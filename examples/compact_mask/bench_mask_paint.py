@@ -19,46 +19,47 @@ small crop allocation and then lets NumPy's optimized boolean indexing do the
 paint. The ``runs/spans`` column is therefore part of the benchmark output: many
 short spans can make direct RLE slower in wall time even when it wins on memory.
 
-By default, scenarios are derived from segmentation artifact images in
-``examples/compact_mask/outputs``. Use ``--synthetic`` to run generated polygon
-masks instead.
+The benchmark downloads supervision assets, runs one segmentation inference call
+per image, and uses the resulting masks — matching the data source used by
+``bench_inference_api.py``.
 """
 
 from __future__ import annotations
 
 import argparse
 import gc
+import os
 import statistics
 import time
 import tracemalloc
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
 from rich import box
 from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
 from rich.table import Table
 
+import supervision as sv
+from supervision.assets import ImageAssets, VideoAssets, download_assets
 from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.converters import mask_to_xyxy
 
-console = Console(width=120, force_terminal=True)
+console = Console(width=160, force_terminal=True)
+
+# Inference settings — keep in sync with bench_inference_api.py.
+MODEL_ID = "rfdetr-seg-large"
+MODEL_ID_ENV = "BENCH_INFERENCE_MODEL_ID"
+API_KEY_ENV = "ROBOFLOW_API_KEY"
+CONFIDENCE = 0.2
+IOU = 0.5
+RESPONSE_MASK_FORMAT = "rle"
 
 REPETITIONS = 20
 WARMUP = 3
-DEFAULT_SOURCE_DIR = Path("examples/compact_mask/outputs")
-MAX_IMAGE_DIMENSION = 960
-MAX_SEGMENTS_PER_IMAGE = 120
+MAX_OBJECTS_PER_SCENE = 120
 COLORS_BGR = np.array(
     [
         [244, 67, 54],
@@ -73,16 +74,10 @@ COLORS_BGR = np.array(
     dtype=np.uint8,
 )
 
-
-@dataclass(frozen=True, slots=True)
-class Scenario:
-    """Synthetic painting benchmark scenario."""
-
-    name: str
-    image_shape: tuple[int, int]
-    num_objects: int
-    fill_fraction: float
-    vertices: int
+ASSETS = {Path(asset.filename).stem: asset for asset in ImageAssets}
+for _video_asset in VideoAssets:
+    _key = Path(_video_asset.filename).stem
+    ASSETS[_key if _key not in ASSETS else f"{_key}-video"] = _video_asset
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +97,7 @@ class PaintBenchmarkResult:
     scenario: str
     resolution: str
     objects: int
-    mask_area_ratio: float
+    mask_area_pct: float
     dense_storage_bytes: int
     compact_storage_bytes: int
     full_dense_s: float
@@ -117,140 +112,170 @@ class PaintBenchmarkResult:
     rle_matches_dense: bool
 
 
-def make_scene(image_shape: tuple[int, int]) -> np.ndarray:
-    """Create a deterministic BGR scene."""
-    image_h, image_w = image_shape
-    rng = np.random.default_rng(17)
-    return rng.integers(0, 255, (image_h, image_w, 3), dtype=np.uint8)
+# ---------------------------------------------------------------------------
+# Inference-based input generation  (mirrors bench_inference_api.py)
+# ---------------------------------------------------------------------------
 
 
-def resize_for_benchmark(image: np.ndarray, max_dimension: int) -> np.ndarray:
-    """Resize ``image`` so the largest side is at most ``max_dimension``."""
-    image_h, image_w = image.shape[:2]
-    scale = min(1.0, max_dimension / max(image_h, image_w))
-    if scale == 1.0:
-        return image
-    size_wh = (max(1, int(image_w * scale)), max(1, int(image_h * scale)))
-    return cv2.resize(image, size_wh, interpolation=cv2.INTER_AREA)
+def load_image_from_asset(path: Path | None, asset: str) -> tuple[np.ndarray, str]:
+    """Return ``(image, label)`` for an image or video middle frame."""
+    if path is not None:
+        image = cv2.imread(str(path))
+        if image is None:
+            raise FileNotFoundError(f"Could not read image: {path}")
+        return image, str(path)
+
+    asset_obj = ASSETS[asset]
+    asset_path = Path(download_assets(asset_obj))
+    if isinstance(asset_obj, ImageAssets):
+        image = cv2.imread(str(asset_path))
+        if image is None:
+            raise FileNotFoundError(f"Could not read image: {asset_path}")
+        return image, str(asset_path)
+
+    video = cv2.VideoCapture(str(asset_path))
+    if not video.isOpened():
+        raise FileNotFoundError(f"Could not read video: {asset_path}")
+    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_index = max(0, frame_count // 2)
+    if frame_index:
+        video.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+    ok, frame = video.read()
+    video.release()
+    if not ok or frame is None:
+        raise FileNotFoundError(f"Could not read middle frame: {asset_path}")
+    return frame, f"{asset_path}#{frame_index}"
 
 
-def make_masks(
-    image_shape: tuple[int, int],
-    num_objects: int,
-    fill_fraction: float,
-    vertices: int,
-    seed: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Create dense masks and tight ``xyxy`` boxes for one scenario."""
-    image_h, image_w = image_shape
-    rng = np.random.default_rng(seed)
-    masks = np.zeros((num_objects, image_h, image_w), dtype=bool)
-    target_area = image_h * image_w * fill_fraction / max(1, num_objects)
-    radius = max(4, int((target_area / np.pi) ** 0.5))
-
-    for index in range(num_objects):
-        center_x = int(rng.integers(radius + 1, max(radius + 2, image_w - radius - 1)))
-        center_y = int(rng.integers(radius + 1, max(radius + 2, image_h - radius - 1)))
-        angles = np.linspace(0, 2 * np.pi, vertices, endpoint=False)
-        angles += rng.uniform(-np.pi / vertices, np.pi / vertices, size=vertices)
-        radii = radius * rng.uniform(0.45, 1.25, size=vertices)
-        points = np.column_stack(
-            [
-                np.clip(center_x + radii * np.cos(angles), 0, image_w - 1),
-                np.clip(center_y + radii * np.sin(angles), 0, image_h - 1),
-            ]
-        ).astype(np.int32)
-        canvas = np.zeros((image_h, image_w), dtype=np.uint8)
-        cv2.fillPoly(canvas, [points.reshape(-1, 1, 2)], 1)
-        masks[index] = canvas.astype(bool)
-
-    return masks, mask_to_xyxy(masks).astype(np.float32)
-
-
-def make_synthetic_input(scenario: Scenario) -> PaintInput:
-    """Create one synthetic benchmark input."""
-    scene = make_scene(scenario.image_shape)
-    masks, xyxy = make_masks(
-        image_shape=scenario.image_shape,
-        num_objects=scenario.num_objects,
-        fill_fraction=scenario.fill_fraction,
-        vertices=scenario.vertices,
-        seed=42,
+def freeze_result(inference_result: Any) -> dict[str, Any]:
+    """Convert one Inference result to a reusable dictionary."""
+    if isinstance(inference_result, dict):
+        return inference_result
+    if hasattr(inference_result, "model_dump"):
+        return inference_result.model_dump(exclude_none=True, by_alias=True)
+    if hasattr(inference_result, "dict"):
+        return inference_result.dict(exclude_none=True, by_alias=True)
+    raise TypeError(
+        f"Expected dict-like Inference result, got {type(inference_result).__name__}"
     )
-    return PaintInput(scenario.name, scene, masks, xyxy)
 
 
-def masks_from_image_segments(
-    image: np.ndarray,
-    max_segments: int,
-    clusters: int = 8,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Derive deterministic semantic-style masks from image color regions."""
-    image_h, image_w = image.shape[:2]
-    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    samples = lab.reshape((-1, 3)).astype(np.float32)
-    criteria = (
-        cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
-        20,
-        1.0,
+def count_rle_predictions(result: dict[str, Any]) -> int:
+    """Return the number of predictions carrying Roboflow RLE masks."""
+    return sum(
+        isinstance(prediction.get("rle") or prediction.get("rle_mask"), dict)
+        for prediction in result.get("predictions", [])
     )
-    cv2.setRNGSeed(42)
-    _, labels, _ = cv2.kmeans(
-        samples,
-        clusters,
-        None,
-        criteria,
-        1,
-        cv2.KMEANS_PP_CENTERS,
-    )
-    labels_2d = labels.reshape((image_h, image_w))
-    kernel = np.ones((3, 3), dtype=np.uint8)
-    min_area = max(32, int(image_h * image_w * 0.0005))
 
-    components: list[tuple[int, np.ndarray]] = []
-    for label in range(clusters):
-        cluster_mask = (labels_2d == label).astype(np.uint8)
-        cluster_mask = cv2.morphologyEx(cluster_mask, cv2.MORPH_OPEN, kernel)
-        cluster_mask = cv2.morphologyEx(cluster_mask, cv2.MORPH_CLOSE, kernel)
-        num_labels, component_labels, stats, _ = cv2.connectedComponentsWithStats(
-            cluster_mask,
-            connectivity=8,
+
+def derive_boxes_from_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
+    """Set prediction boxes from native RLE segmentation masks."""
+    predictions = []
+    for prediction in result.get("predictions", []):
+        rle = prediction.get("rle") or prediction.get("rle_mask")
+        if not isinstance(rle, dict):
+            predictions.append(prediction)
+            continue
+
+        height, width = rle["size"]
+        mask = sv.rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
+        if not mask.any():
+            predictions.append(prediction)
+            continue
+
+        x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
+        predictions.append(
+            {
+                **prediction,
+                "x": float((x1 + x2) / 2),
+                "y": float((y1 + y2) / 2),
+                "width": float(x2 - x1),
+                "height": float(y2 - y1),
+            }
         )
-        for component_idx in range(1, num_labels):
-            area = int(stats[component_idx, cv2.CC_STAT_AREA])
-            if area < min_area:
-                continue
-            components.append((area, component_labels == component_idx))
-
-    components.sort(key=lambda item: item[0], reverse=True)
-    masks = [mask for _, mask in components[:max_segments]]
-    if not masks:
-        raise ValueError("No image segments found.")
-    masks_arr = np.asarray(masks, dtype=bool)
-    return masks_arr, mask_to_xyxy(masks_arr).astype(np.float32)
+    return {**result, "predictions": predictions}
 
 
-def image_paths(source_dir: Path, max_images: int | None) -> list[Path]:
-    """Return image paths to use for image-backed benchmark cases."""
-    paths = sorted(
-        path
-        for path in source_dir.glob("*")
-        if path.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"}
+def load_inference_model(model_id: str, api_key: str | None) -> Any:
+    """Load the requested Inference segmentation model."""
+    try:
+        from inference import get_model
+    except ImportError as exc:
+        raise ImportError(
+            "Install the `inference` package to run this benchmark."
+        ) from exc
+
+    model_kwargs = {"api_key": api_key} if api_key is not None else {}
+    return get_model(model_id=model_id, **model_kwargs)
+
+
+def run_inference_once(
+    image: np.ndarray,
+    model: Any,
+    model_id: str,
+    confidence: float,
+    iou: float,
+) -> dict[str, Any] | None:
+    """Run one segmentation inference call and return a frozen result dict."""
+    result = derive_boxes_from_rle_masks(
+        freeze_result(
+            model.infer(
+                image,
+                confidence=confidence,
+                iou=iou,
+                response_mask_format=RESPONSE_MASK_FORMAT,
+            )[0]
+        )
     )
-    if max_images is not None:
-        paths = paths[:max_images]
-    return paths
+    if count_rle_predictions(result) == 0:
+        console.print(
+            f"[yellow]skipped[/yellow] {model_id}: no native RLE segmentation "
+            f"predictions for response_mask_format={RESPONSE_MASK_FORMAT!r}"
+        )
+        return None
+    return result
 
 
-def make_image_input(path: Path, max_segments: int, max_dimension: int) -> PaintInput:
-    """Create one image-backed benchmark input from a segmentation artifact."""
-    image = cv2.imread(str(path))
-    if image is None:
-        raise FileNotFoundError(f"Could not read image: {path}")
-    scene = resize_for_benchmark(image, max_dimension)
-    masks, xyxy = masks_from_image_segments(scene, max_segments=max_segments)
-    name = path.stem.removesuffix("_segmentations")
-    return PaintInput(name, scene, masks, xyxy)
+def make_inference_input(
+    image: np.ndarray,
+    result: dict[str, Any],
+    name: str,
+    max_objects: int,
+) -> PaintInput:
+    """Create a :class:`PaintInput` from a real segmentation inference result."""
+    detections = sv.Detections.from_inference(result)
+    if detections.mask is None or len(detections) == 0:
+        raise ValueError(f"{name}: inference result contains no segmentation masks")
+    masks_arr = np.asarray(detections.mask, dtype=bool)[:max_objects]
+    xyxy = detections.xyxy[: len(masks_arr)].astype(np.float32)
+    return PaintInput(name, image, masks_arr, xyxy)
+
+
+def inference_inputs(
+    assets: list[str],
+    model: Any,
+    model_id: str,
+    confidence: float,
+    iou: float,
+    max_objects: int,
+) -> list[PaintInput]:
+    """Download supervision assets, run inference, return :class:`PaintInput` list."""
+    inputs: list[PaintInput] = []
+    for i, asset in enumerate(assets, 1):
+        console.print(f"  [{i}/{len(assets)}] {asset}")
+        try:
+            image, _source = load_image_from_asset(None, asset)
+            result = run_inference_once(image, model, model_id, confidence, iou)
+            if result is not None:
+                inputs.append(make_inference_input(image, result, asset, max_objects))
+        except (FileNotFoundError, ValueError, OSError) as exc:
+            console.print(f"[yellow]skipped[/yellow] {asset}: {exc}")
+    return inputs
+
+
+# ---------------------------------------------------------------------------
+# Benchmark internals
+# ---------------------------------------------------------------------------
 
 
 def compact_storage_bytes(compact_mask: CompactMask) -> int:
@@ -314,51 +339,11 @@ def paint_direct_rle_into(
     compact_mask: CompactMask,
     order: np.ndarray,
 ) -> None:
-    """Paint CompactMask directly from RLE true spans."""
+    """Paint CompactMask via CompactMask.paint_into (batched RLE span scatter)."""
     for detection_idx in order:
-        x1 = int(compact_mask.offsets[detection_idx, 0])
-        y1 = int(compact_mask.offsets[detection_idx, 1])
-        color = color_for_index(int(detection_idx))
-        for crop_x, span_y1, span_y2 in compact_mask._iter_true_spans(
-            int(detection_idx)
-        ):
-            image_x = x1 + crop_x
-            image_y1 = y1 + span_y1
-            image_y2 = y1 + span_y2
-            canvas[image_y1:image_y2, image_x] = color
-
-
-def paint_full_dense(
-    scene: np.ndarray,
-    masks: np.ndarray,
-    order: np.ndarray,
-) -> np.ndarray:
-    """Paint full-frame dense masks by boolean indexing."""
-    canvas = scene.copy()
-    paint_full_dense_into(canvas, masks, order)
-    return canvas
-
-
-def paint_crop_dense(
-    scene: np.ndarray,
-    compact_mask: CompactMask,
-    order: np.ndarray,
-) -> np.ndarray:
-    """Paint CompactMask by decoding each crop to a dense boolean array."""
-    canvas = scene.copy()
-    paint_crop_dense_into(canvas, compact_mask, order)
-    return canvas
-
-
-def paint_direct_rle(
-    scene: np.ndarray,
-    compact_mask: CompactMask,
-    order: np.ndarray,
-) -> np.ndarray:
-    """Paint CompactMask directly from RLE true spans."""
-    canvas = scene.copy()
-    paint_direct_rle_into(canvas, compact_mask, order)
-    return canvas
+        compact_mask.paint_into(
+            canvas, int(detection_idx), color_for_index(int(detection_idx))
+        )
 
 
 def median_seconds(fn: Callable[[], object], reps: int, warmup: int) -> float:
@@ -399,15 +384,6 @@ def run_input(
     crop_canvas = np.empty_like(scene)
     rle_canvas = np.empty_like(scene)
 
-    def full_dense() -> np.ndarray:
-        return paint_full_dense(scene, masks, order)
-
-    def crop_dense() -> np.ndarray:
-        return paint_crop_dense(scene, compact_mask, order)
-
-    def direct_rle() -> np.ndarray:
-        return paint_direct_rle(scene, compact_mask, order)
-
     def full_dense_inplace() -> np.ndarray:
         full_canvas[...] = scene
         paint_full_dense_into(full_canvas, masks, order)
@@ -423,16 +399,24 @@ def run_input(
         paint_direct_rle_into(rle_canvas, compact_mask, order)
         return rle_canvas
 
-    dense_result = full_dense()
-    crop_result = crop_dense()
-    rle_result = direct_rle()
+    dense_result = scene.copy()
+    paint_full_dense_into(dense_result, masks, order)
+    crop_result = scene.copy()
+    paint_crop_dense_into(crop_result, compact_mask, order)
+    rle_result = scene.copy()
+    paint_direct_rle_into(rle_result, compact_mask, order)
 
     image_h, image_w = scene.shape[:2]
+    n_pixels = (
+        max(1, masks.shape[1] * masks.shape[2])
+        if masks.ndim == 3
+        else max(1, image_h * image_w)
+    )
     return PaintBenchmarkResult(
         scenario=paint_input.name,
         resolution=f"{image_w}x{image_h}",
         objects=len(masks),
-        mask_area_ratio=float(masks.sum() / max(1, masks.shape[1] * masks.shape[2])),
+        mask_area_pct=float(masks.sum() / (n_pixels * max(1, len(masks))) * 100),
         dense_storage_bytes=int(masks.nbytes),
         compact_storage_bytes=compact_storage_bytes(compact_mask),
         full_dense_s=median_seconds(full_dense_inplace, repetitions, warmup),
@@ -448,24 +432,17 @@ def run_input(
     )
 
 
-def run_scenario(
-    scenario: Scenario,
-    repetitions: int,
-    warmup: int,
-) -> PaintBenchmarkResult:
-    """Run all painting strategies for one synthetic scenario."""
-    return run_input(make_synthetic_input(scenario), repetitions, warmup)
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
 
 
 def _fmt_ratio(ratio: float) -> str:
-    """Format a speedup/compression ratio with colour coding."""
+    """Format a speedup/slowdown ratio with colour coding."""
     fmt = f"{ratio:.0f}x" if ratio >= 10 else f"{ratio:.2f}x"
-    if ratio >= 10:
-        return f"[green]{fmt}[/green]"
-    elif ratio >= 1:
-        return f"[yellow]{fmt}[/yellow]"
-    else:
-        return f"[red]{fmt}[/red]"
+    if ratio >= 1:
+        return f"[green]{fmt}[/green]" if ratio >= 10 else f"[yellow]{fmt}[/yellow]"
+    return f"[red]{fmt}[/red]"
 
 
 def _fmt_mb(num_bytes: int) -> str:
@@ -478,7 +455,7 @@ def print_summary(
     reps: int,
     warmup: int,
 ) -> None:
-    """Print a Rich summary table matching the compact mask benchmark style."""
+    """Print a Rich summary table."""
     table = Table(
         title="CompactMask mask painting",
         box=box.ROUNDED,
@@ -488,14 +465,14 @@ def print_summary(
     table.add_column("src", style="bold", no_wrap=True)
     table.add_column("res", no_wrap=True)
     table.add_column("seg", justify="right")
-    table.add_column("area %", justify="right")
+    table.add_column("area%/obj", justify="right")
     table.add_column("full ms", justify="right")
     table.add_column("crop ms", justify="right")
     table.add_column("RLE ms", justify="right", style="green")
     table.add_column("RLE/full", justify="right")
     table.add_column("RLE/crop", justify="right")
     table.add_column("runs/spans", justify="right")
-    table.add_column("scratch MB", justify="right", style="cyan")
+    table.add_column("paint MB", justify="right", style="cyan")
     table.add_column("mask MB", justify="right")
     table.add_column("ok", justify="center")
 
@@ -507,20 +484,14 @@ def print_summary(
             result.scenario,
             result.resolution,
             str(result.objects),
-            f"{result.mask_area_ratio * 100:.2f}",
+            f"{result.mask_area_pct:.2f}",
             f"{result.full_dense_s * 1e3:.2f}",
             f"{result.crop_dense_s * 1e3:.2f}",
             f"{result.direct_rle_s * 1e3:.2f}",
             _fmt_ratio(rle_full),
             _fmt_ratio(rle_crop),
             f"{result.rle_runs}/{result.rle_spans}",
-            "/".join(
-                [
-                    _fmt_mb(result.full_dense_peak_bytes),
-                    _fmt_mb(result.crop_dense_peak_bytes),
-                    _fmt_mb(result.direct_rle_peak_bytes),
-                ]
-            ),
+            f"{_fmt_mb(result.crop_dense_peak_bytes)}/{_fmt_mb(result.direct_rle_peak_bytes)}",
             f"{_fmt_mb(result.dense_storage_bytes)}/{_fmt_mb(result.compact_storage_bytes)}",
             "[green]✓[/green]" if pixel_perfect else "[red]✗[/red]",
         )
@@ -530,13 +501,14 @@ def print_summary(
         + "  ·  ".join(
             [
                 f"timings are median of {reps} reps after {warmup} warmups",
-                "scratch MB is full/crop/RLE traced allocation while painting "
+                "paint MB is crop/RLE peak traced allocation while painting "
                 "into a preallocated canvas",
                 "mask MB is dense/compact persistent mask storage",
                 "RLE/full = full dense paint time / direct RLE paint time",
                 "RLE/crop = crop-dense paint time / direct RLE paint time",
                 "runs/spans exposes Python direct-paint loop count; many spans "
                 "can be slower than crop-dense NumPy indexing",
+                "area%/obj = per-object mask coverage as % of frame area",
                 "OK means crop-dense and direct-RLE outputs exactly match full dense",
             ]
         )
@@ -544,112 +516,53 @@ def print_summary(
     )
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repetitions", type=int, default=REPETITIONS)
-    parser.add_argument("--warmup", type=int, default=WARMUP)
-    parser.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
-    parser.add_argument("--max-images", type=int, default=0)
-    parser.add_argument("--max-segments", type=int, default=MAX_SEGMENTS_PER_IMAGE)
-    parser.add_argument("--max-dimension", type=int, default=MAX_IMAGE_DIMENSION)
-    parser.add_argument(
-        "--synthetic",
-        action="store_true",
-        help="Run synthetic polygon scenarios instead of image-backed scenarios.",
-    )
+    parser.add_argument("--asset", choices=ASSETS.keys(), default=None)
+    parser.add_argument("--image", type=Path, default=None)
     return parser.parse_args()
-
-
-def synthetic_inputs() -> list[PaintInput]:
-    """Return fallback synthetic benchmark inputs."""
-    scenarios = [
-        Scenario("720p sparse", (720, 1280), 80, 0.025, 12),
-        Scenario("1080p medium", (1080, 1920), 120, 0.050, 24),
-        Scenario("1080p complex", (1080, 1920), 120, 0.050, 96),
-    ]
-    return [make_synthetic_input(scenario) for scenario in scenarios]
-
-
-def image_inputs(
-    source_dir: Path,
-    max_images: int | None,
-    max_segments: int,
-    max_dimension: int,
-) -> list[PaintInput]:
-    """Load image-backed benchmark inputs with progress reporting."""
-    paths = image_paths(source_dir, max_images=max_images)
-    inputs: list[PaintInput] = []
-    progress = Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    )
-    with progress:
-        task = progress.add_task("preparing images...", total=len(paths))
-        for path in paths:
-            progress.update(task, description=f"[bold]{path.stem}[/bold]")
-            try:
-                inputs.append(
-                    make_image_input(
-                        path=path,
-                        max_segments=max_segments,
-                        max_dimension=max_dimension,
-                    )
-                )
-            except ValueError as exc:
-                console.print(f"[yellow]skipped[/yellow] {path.name}: {exc}")
-            progress.advance(task)
-    return inputs
 
 
 def main() -> None:
     """Run the benchmark."""
     args = parse_args()
-    max_images = None if args.max_images <= 0 else args.max_images
-    if args.synthetic:
-        inputs = synthetic_inputs()
-    else:
-        inputs = image_inputs(
-            source_dir=args.source_dir,
-            max_images=max_images,
-            max_segments=args.max_segments,
-            max_dimension=args.max_dimension,
-        )
-        if not inputs:
-            console.print(
-                f"[yellow]no image inputs found in {args.source_dir}; "
-                "falling back to synthetic scenarios[/yellow]"
-            )
-            inputs = synthetic_inputs()
+    model_id = os.getenv(MODEL_ID_ENV, MODEL_ID)
+    api_key = os.getenv(API_KEY_ENV)
+    model = load_inference_model(model_id, api_key)
+    assets = [args.asset] if args.asset is not None else list(ASSETS)
+    if args.image is not None:
+        assets = ["custom"]
+    inputs = inference_inputs(
+        assets=assets,
+        model=model,
+        model_id=model_id,
+        confidence=CONFIDENCE,
+        iou=IOU,
+        max_objects=MAX_OBJECTS_PER_SCENE,
+    )
+    if not inputs:
+        console.print("[yellow]no inference inputs found; exiting[/yellow]")
+        return
 
     results: list[PaintBenchmarkResult] = []
-    progress = Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console,
-    )
-    with progress:
-        task = progress.add_task("benchmarking...", total=len(inputs))
-        for paint_input in inputs:
-            progress.update(task, description=f"[bold]{paint_input.name}[/bold]")
-            results.append(
-                run_input(
-                    paint_input=paint_input,
-                    repetitions=args.repetitions,
-                    warmup=args.warmup,
-                )
+    for i, paint_input in enumerate(inputs, 1):
+        console.print(f"  [{i}/{len(inputs)}] {paint_input.name}")
+        results.append(
+            run_input(
+                paint_input=paint_input,
+                repetitions=REPETITIONS,
+                warmup=WARMUP,
             )
-            gc.collect()
-            progress.advance(task)
+        )
+        gc.collect()
 
-    print_summary(results, reps=args.repetitions, warmup=args.warmup)
+    print_summary(results, reps=REPETITIONS, warmup=WARMUP)
 
 
 if __name__ == "__main__":

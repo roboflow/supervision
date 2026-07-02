@@ -1001,6 +1001,165 @@ class CompactMask:
                     yield crop_x, span_y1, span_y2
 
     # ------------------------------------------------------------------
+    # Painting
+    # ------------------------------------------------------------------
+
+    def paint_into(
+        self,
+        canvas: npt.NDArray[np.uint8],
+        index: int,
+        color: tuple[int, int, int] | npt.NDArray[np.uint8],
+        canvas_offset: tuple[int, int] = (0, 0),
+    ) -> None:
+        """Paint one mask into a BGR canvas in-place using RLE span arithmetic.
+
+        Reads column spans directly from the RLE without materialising the
+        full ``(crop_h, crop_w)`` boolean array.  Spans are batched into
+        pixel-index arrays and applied with a single vectorised scatter write,
+        replacing one NumPy call per span with a few bulk array operations.
+
+        This avoids the ~0.9 µs Python dispatch overhead per span that makes
+        per-span slice assignment (``canvas[y1:y2, x] = color``) slow for
+        masks with many short spans.
+
+        Args:
+            canvas: ``(H, W, 3)`` uint8 BGR image modified in-place.
+            index: Index of the mask to paint (0-indexed).
+            color: BGR colour as a length-3 tuple or ``uint8`` array.
+            canvas_offset: ``(x, y)`` pixel coordinates of the top-left corner
+                of ``canvas`` within the original image.  Absolute mask
+                coordinates are shifted by this amount before writing, allowing
+                ``canvas`` to be a sub-image (ROI) of a larger frame.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 3:7, 3:7] = True
+            >>> xyxy = np.array([[3, 3, 6, 6]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> canvas = np.zeros((10, 10, 3), dtype=np.uint8)
+            >>> cm.paint_into(canvas, 0, (255, 0, 0))
+            >>> bool(canvas[3:7, 3:7, 0].all())
+            True
+            >>> bool(canvas[3:7, 3:7, 1].any())
+            False
+
+            ```
+        """
+        crop_h = int(self._crop_shapes[index, 0])
+        crop_w = int(self._crop_shapes[index, 1])
+        if crop_h <= 0 or crop_w <= 0:
+            return
+        x1_off = int(self._offsets[index, 0])
+        y1_off = int(self._offsets[index, 1])
+        ox, oy = canvas_offset
+        canvas_h, canvas_w = canvas.shape[:2]
+
+        # Collect span endpoints in canvas-local coordinates, clipping to bounds.
+        xs: list[int] = []
+        ys1: list[int] = []
+        ys2: list[int] = []
+        for cx, sy1, sy2 in self._iter_true_spans(index):
+            ax = cx + x1_off - ox
+            if ax < 0 or ax >= canvas_w:
+                continue
+            ay1 = max(0, sy1 + y1_off - oy)
+            ay2 = min(canvas_h, sy2 + y1_off - oy)
+            if ay1 >= ay2:
+                continue
+            xs.append(ax)
+            ys1.append(ay1)
+            ys2.append(ay2)
+
+        if not xs:
+            return
+
+        # Expand spans to pixel-index arrays — one NumPy call per span is
+        # replaced by a small set of bulk operations.
+        # lengths[i] = pixel count for span i
+        lengths = np.fromiter(
+            (b - a for a, b in zip(ys1, ys2)), dtype=np.intp, count=len(xs)
+        )
+        total = int(lengths.sum())
+        if total == 0:
+            return
+
+        # cumlen[i] = number of pixels in spans 0 .. i-1
+        cumlen = np.empty(len(lengths), dtype=np.intp)
+        cumlen[0] = 0
+        if len(lengths) > 1:
+            np.cumsum(lengths[:-1], out=cumlen[1:])
+
+        # y_arr[j] = ys1[span] + (j - cumlen[span])
+        # x_arr[j] = xs[span]
+        y_arr = (
+            np.repeat(np.asarray(ys1, dtype=np.int32), lengths)
+            + np.arange(total, dtype=np.int32)
+            - np.repeat(cumlen.astype(np.int32), lengths)
+        )
+        x_arr = np.repeat(np.asarray(xs, dtype=np.int32), lengths)
+        canvas[y_arr, x_arr] = color
+
+    def paint_crop_into(
+        self,
+        canvas: npt.NDArray[np.uint8],
+        index: int,
+        color: tuple[int, int, int] | npt.NDArray[np.uint8],
+        canvas_offset: tuple[int, int] = (0, 0),
+    ) -> None:
+        """Paint one mask into a BGR canvas in-place using a decoded crop.
+
+        Decodes the compact crop to a dense boolean array and applies it via
+        NumPy boolean indexing.  Faster than :meth:`paint_into` when masks
+        have many short RLE spans (high span count relative to crop area).
+
+        Args:
+            canvas: ``(H, W, 3)`` uint8 BGR image modified in-place.
+            index: Index of the mask to paint (0-indexed).
+            color: BGR colour as a length-3 tuple or ``uint8`` array.
+            canvas_offset: ``(x, y)`` pixel coordinates of the top-left corner
+                of ``canvas`` within the original image.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 3:7, 3:7] = True
+            >>> xyxy = np.array([[3, 3, 6, 6]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> canvas = np.zeros((10, 10, 3), dtype=np.uint8)
+            >>> cm.paint_crop_into(canvas, 0, (255, 0, 0))
+            >>> bool(canvas[3:7, 3:7, 0].all())
+            True
+            >>> bool(canvas[3:7, 3:7, 1].any())
+            False
+
+            ```
+        """
+        ox, oy = canvas_offset
+        canvas_h, canvas_w = canvas.shape[:2]
+        x1 = int(self._offsets[index, 0]) - ox
+        y1 = int(self._offsets[index, 1]) - oy
+        crop = self.crop(index)
+        crop_h, crop_w = crop.shape
+        crop_x1 = max(0, -x1)
+        crop_y1 = max(0, -y1)
+        canvas_x1 = max(0, x1)
+        canvas_y1 = max(0, y1)
+        paint_w = min(canvas_w - canvas_x1, crop_w - crop_x1)
+        paint_h = min(canvas_h - canvas_y1, crop_h - crop_y1)
+        if paint_w <= 0 or paint_h <= 0:
+            return
+        crop_roi = crop[crop_y1 : crop_y1 + paint_h, crop_x1 : crop_x1 + paint_w]
+        canvas_slice = canvas[
+            canvas_y1 : canvas_y1 + paint_h, canvas_x1 : canvas_x1 + paint_w
+        ]
+        canvas_slice[crop_roi] = color
+
+    # ------------------------------------------------------------------
     # Sequence / array protocol
     # ------------------------------------------------------------------
 

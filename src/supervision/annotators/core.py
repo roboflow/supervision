@@ -401,6 +401,7 @@ def _paint_masks_by_area(
     color_lookup: ColorLookup | npt.NDArray[np.int_],
     collect_union: bool = False,
     canvas_origin: tuple[int, int] = (0, 0),
+    compact_mask_strategy: str = "direct_rle",
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
@@ -420,6 +421,9 @@ def _paint_masks_by_area(
             mask footprint). When ``False`` (default), returns ``None``.
         canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
             image. Use the default for full-frame painting.
+        compact_mask_strategy: Painting strategy for ``CompactMask`` inputs.
+            ``"direct_rle"`` (default) uses vectorised RLE span arithmetic;
+            ``"crop_dense"`` decodes each crop to a boolean array first.
 
     Returns:
         A boolean array matching the canvas dimensions when
@@ -450,6 +454,24 @@ def _paint_masks_by_area(
         paint_w = canvas_w - canvas_x1
         paint_h = canvas_h - canvas_y1
         if paint_w <= 0 or paint_h <= 0:
+            return
+
+        # Fast path: no union accumulation.
+        if union is None:
+            if compact_mask_strategy == "crop_dense":
+                compact_mask.paint_crop_into(
+                    canvas,
+                    detection_idx,
+                    color_bgr,
+                    canvas_offset=(origin_x, origin_y),
+                )
+            else:  # "direct_rle"
+                compact_mask.paint_into(
+                    canvas,
+                    detection_idx,
+                    color_bgr,
+                    canvas_offset=(origin_x, origin_y),
+                )
             return
 
         for crop_x, span_y1, span_y2 in compact_mask._iter_true_spans(
@@ -500,6 +522,7 @@ class MaskAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        compact_mask_strategy: str = "direct_rle",
     ):
         """
         Args:
@@ -508,10 +531,16 @@ class MaskAnnotator(BaseAnnotator):
             opacity: Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            compact_mask_strategy: Painting strategy used when detections carry
+                a `CompactMask`. ``"direct_rle"`` (default) paints via
+                vectorised RLE span arithmetic; ``"crop_dense"`` decodes each
+                crop to a dense boolean array first (can be faster for masks
+                with very many short RLE spans).
         """
         self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
+        self.compact_mask_strategy = compact_mask_strategy
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -585,6 +614,7 @@ class MaskAnnotator(BaseAnnotator):
             self.color,
             effective_lookup,
             canvas_origin=(x1, y1),
+            compact_mask_strategy=self.compact_mask_strategy,
         )
         tmp = cv2.addWeighted(
             colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
