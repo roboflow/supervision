@@ -273,18 +273,20 @@ def get_video_frames_generator(
         source_path, start, end, iterative_seek
     )
     frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        if frame is not None:
-            yield cast(npt.NDArray[np.uint8], frame)
-        for _ in range(stride - 1):
-            success = video.grab()
-            if not success:
+    try:
+        while True:
+            success, frame = video.read()
+            if not success or frame_position >= end:
                 break
-        frame_position += stride
-    video.release()
+            if frame is not None:
+                yield cast(npt.NDArray[np.uint8], frame)
+            for _ in range(stride - 1):
+                success = video.grab()
+                if not success:
+                    break
+            frame_position += stride
+    finally:
+        video.release()
 
 
 def process_video(

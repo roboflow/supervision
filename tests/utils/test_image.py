@@ -1,8 +1,11 @@
+import warnings
+
 import numpy as np
 import pytest
 from PIL import Image, ImageChops
 
 from supervision.utils.image import (
+    _overlay_image,
     crop_image,
     get_image_resolution_wh,
     letterbox_image,
@@ -149,6 +152,22 @@ def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
 
     # when
     result = overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_overlay_image_public_wrapper_delegates_to_internal() -> None:
+    """Public `overlay_image` still produces the internal `_overlay_image` result."""
+    # given
+    image = np.full((1, 1, 3), 22, dtype=np.uint8)
+    overlay = np.array([[[39, 39, 39, 60]]], dtype=np.uint8)
+    expected = _overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
+
+    # when
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        result = overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
 
     # then
     np.testing.assert_array_equal(result, expected)
