@@ -1,27 +1,21 @@
-"""Benchmark mask painting strategies used by compact mask annotation.
+"""Benchmark sv.MaskAnnotator painting strategies for CompactMask inputs.
 
 Run with:
     uv run python examples/compact_mask/bench_mask_paint.py
 
-This benchmark isolates the low-level painting work behind ``MaskAnnotator`` and
-compares three strategies:
+Compares three sv.MaskAnnotator calling conventions on real segmentation data:
 
-* full dense: paint from full-frame ``(N, H, W)`` boolean masks
-* crop dense: decode each ``CompactMask`` crop, then paint the crop
-* direct RLE: paint directly from ``CompactMask`` RLE true spans
+* full_dense  — standard dense (N, H, W) bool masks; pre-CompactMask baseline
+* direct_rle  — CompactMask with compact_mask_strategy="direct_rle" (default)
+* crop_dense  — CompactMask with compact_mask_strategy="crop_dense"
 
-The direct-RLE path exists to remove the last dense allocation from compact mask
-painting. It should minimize transient memory and keep annotation viable for
-large frames or high detection counts where full dense masks are impractical.
-It is not expected to be universally faster than crop-dense painting: direct RLE
-performs one Python slice assignment per true span, while crop-dense pays for a
-small crop allocation and then lets NumPy's optimized boolean indexing do the
-paint. The ``runs/spans`` column is therefore part of the benchmark output: many
-short spans can make direct RLE slower in wall time even when it wins on memory.
+Timings cover the full sv.MaskAnnotator.annotate() call including opacity
+blending, matching what users observe in production. To switch strategy:
 
-The benchmark downloads supervision assets, runs one segmentation inference call
-per image, and uses the resulting masks — matching the data source used by
-``bench_inference_api.py``.
+    annotator = sv.MaskAnnotator(compact_mask_strategy="crop_dense")
+
+The benchmark downloads supervision assets, runs one segmentation inference
+call per image, and uses the resulting masks.
 """
 
 from __future__ import annotations
@@ -43,7 +37,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-import supervision as sv
+from supervision import Detections, MaskAnnotator, mask_to_xyxy, rle_to_mask
 from supervision.assets import ImageAssets, VideoAssets, download_assets
 from supervision.detection.compact_mask import CompactMask
 
@@ -60,19 +54,6 @@ RESPONSE_MASK_FORMAT = "rle"
 REPETITIONS = 20
 WARMUP = 3
 MAX_OBJECTS_PER_SCENE = 120
-COLORS_BGR = np.array(
-    [
-        [244, 67, 54],
-        [33, 150, 243],
-        [76, 175, 80],
-        [255, 193, 7],
-        [156, 39, 176],
-        [255, 87, 34],
-        [0, 188, 212],
-        [139, 195, 74],
-    ],
-    dtype=np.uint8,
-)
 
 ASSETS = {Path(asset.filename).stem: asset for asset in ImageAssets}
 for _video_asset in VideoAssets:
@@ -86,8 +67,9 @@ class PaintInput:
 
     name: str
     scene: np.ndarray
-    masks: np.ndarray
-    xyxy: np.ndarray
+    masks: np.ndarray  # (N, H, W) bool — dense
+    xyxy: np.ndarray  # (N, 4) float32
+    class_id: np.ndarray  # (N,) int — for consistent color lookup across strategies
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,15 +83,15 @@ class PaintBenchmarkResult:
     dense_storage_bytes: int
     compact_storage_bytes: int
     full_dense_s: float
-    crop_dense_s: float
     direct_rle_s: float
+    crop_dense_s: float
     full_dense_peak_bytes: int
-    crop_dense_peak_bytes: int
     direct_rle_peak_bytes: int
+    crop_dense_peak_bytes: int
     rle_runs: int
     rle_spans: int
-    crop_matches_dense: bool
-    rle_matches_dense: bool
+    rle_matches_full: bool
+    crop_matches_full: bool
 
 
 # ---------------------------------------------------------------------------
@@ -178,12 +160,12 @@ def derive_boxes_from_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
             continue
 
         height, width = rle["size"]
-        mask = sv.rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
+        mask = rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
         if not mask.any():
             predictions.append(prediction)
             continue
 
-        x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
+        x1, y1, x2, y2 = mask_to_xyxy(mask[np.newaxis, ...])[0]
         predictions.append(
             {
                 **prediction,
@@ -243,34 +225,46 @@ def make_inference_input(
     max_objects: int,
 ) -> PaintInput:
     """Create a :class:`PaintInput` from a real segmentation inference result."""
-    detections = sv.Detections.from_inference(result)
+    detections = Detections.from_inference(result)
     if detections.mask is None or len(detections) == 0:
         raise ValueError(f"{name}: inference result contains no segmentation masks")
-    masks_arr = np.asarray(detections.mask, dtype=bool)[:max_objects]
-    xyxy = detections.xyxy[: len(masks_arr)].astype(np.float32)
-    return PaintInput(name, image, masks_arr, xyxy)
+    n = min(max_objects, len(detections))
+    masks_arr = np.asarray(detections.mask, dtype=bool)[:n]
+    xyxy = detections.xyxy[:n].astype(np.float32)
+    class_id = (
+        detections.class_id[:n]
+        if detections.class_id is not None
+        else np.zeros(n, dtype=np.int_)
+    )
+    return PaintInput(name, image, masks_arr, xyxy, class_id)
 
 
-def inference_inputs(
-    assets: list[str],
+def infer_and_paint(
+    asset: str,
+    image_path: Path | None,
     model: Any,
     model_id: str,
     confidence: float,
     iou: float,
     max_objects: int,
-) -> list[PaintInput]:
-    """Download supervision assets, run inference, return :class:`PaintInput` list."""
-    inputs: list[PaintInput] = []
-    for i, asset in enumerate(assets, 1):
-        console.print(f"  [{i}/{len(assets)}] {asset}")
-        try:
-            image, _source = load_image_from_asset(None, asset)
-            result = run_inference_once(image, model, model_id, confidence, iou)
-            if result is not None:
-                inputs.append(make_inference_input(image, result, asset, max_objects))
-        except (FileNotFoundError, ValueError, OSError) as exc:
-            console.print(f"[yellow]skipped[/yellow] {asset}: {exc}")
-    return inputs
+    repetitions: int,
+    warmup: int,
+) -> PaintBenchmarkResult | None:
+    """Load image, run inference, run paint benchmark — one image end-to-end."""
+    try:
+        image, _source = load_image_from_asset(image_path, asset)
+    except (FileNotFoundError, OSError) as exc:
+        console.print(f"  [yellow]skipped[/yellow] {asset}: {exc}")
+        return None
+    result = run_inference_once(image, model, model_id, confidence, iou)
+    if result is None:
+        return None
+    try:
+        paint_input = make_inference_input(image, result, asset, max_objects)
+    except ValueError as exc:
+        console.print(f"  [yellow]skipped[/yellow] {asset}: {exc}")
+        return None
+    return run_input(paint_input, repetitions=repetitions, warmup=warmup)
 
 
 # ---------------------------------------------------------------------------
@@ -303,49 +297,6 @@ def rle_span_count(compact_mask: CompactMask) -> int:
     )
 
 
-def color_for_index(index: int) -> tuple[int, int, int]:
-    """Return deterministic BGR color for an object index."""
-    color = COLORS_BGR[index % len(COLORS_BGR)]
-    return int(color[0]), int(color[1]), int(color[2])
-
-
-def paint_full_dense_into(
-    canvas: np.ndarray,
-    masks: np.ndarray,
-    order: np.ndarray,
-) -> None:
-    """Paint full-frame dense masks by boolean indexing into ``canvas``."""
-    for detection_idx in order:
-        canvas[masks[detection_idx]] = color_for_index(int(detection_idx))
-
-
-def paint_crop_dense_into(
-    canvas: np.ndarray,
-    compact_mask: CompactMask,
-    order: np.ndarray,
-) -> None:
-    """Paint CompactMask by decoding each crop to a dense boolean array."""
-    for detection_idx in order:
-        x1 = int(compact_mask.offsets[detection_idx, 0])
-        y1 = int(compact_mask.offsets[detection_idx, 1])
-        crop = compact_mask.crop(int(detection_idx))
-        crop_h, crop_w = crop.shape
-        canvas_slice = canvas[y1 : y1 + crop_h, x1 : x1 + crop_w]
-        canvas_slice[crop] = color_for_index(int(detection_idx))
-
-
-def paint_direct_rle_into(
-    canvas: np.ndarray,
-    compact_mask: CompactMask,
-    order: np.ndarray,
-) -> None:
-    """Paint CompactMask via CompactMask.paint_into (batched RLE span scatter)."""
-    for detection_idx in order:
-        compact_mask.paint_into(
-            canvas, int(detection_idx), color_for_index(int(detection_idx))
-        )
-
-
 def median_seconds(fn: Callable[[], object], reps: int, warmup: int) -> float:
     """Return median runtime for ``fn``."""
     for _ in range(warmup):
@@ -375,36 +326,35 @@ def run_input(
     repetitions: int,
     warmup: int,
 ) -> PaintBenchmarkResult:
-    """Run all painting strategies for one prepared input."""
+    """Run all three MaskAnnotator strategies for one prepared input."""
     scene = paint_input.scene
     masks = paint_input.masks
+    class_id = paint_input.class_id
     compact_mask = CompactMask.from_dense(masks, paint_input.xyxy, scene.shape[:2])
-    order = np.flip(np.argsort(compact_mask.area))
-    full_canvas = np.empty_like(scene)
-    crop_canvas = np.empty_like(scene)
-    rle_canvas = np.empty_like(scene)
 
-    def full_dense_inplace() -> np.ndarray:
-        full_canvas[...] = scene
-        paint_full_dense_into(full_canvas, masks, order)
-        return full_canvas
+    # Dense detections use the old (N, H, W) bool mask path in MaskAnnotator.
+    det_dense = Detections(xyxy=paint_input.xyxy, mask=masks, class_id=class_id)
+    # Compact detections route through CompactMask; strategy selects the sub-path.
+    det_compact = Detections(
+        xyxy=paint_input.xyxy, mask=compact_mask, class_id=class_id
+    )
 
-    def crop_dense_inplace() -> np.ndarray:
-        crop_canvas[...] = scene
-        paint_crop_dense_into(crop_canvas, compact_mask, order)
-        return crop_canvas
+    ann_full = MaskAnnotator()
+    ann_rle = MaskAnnotator(compact_mask_strategy="direct_rle")
+    ann_crop = MaskAnnotator(compact_mask_strategy="crop_dense")
 
-    def direct_rle_inplace() -> np.ndarray:
-        rle_canvas[...] = scene
-        paint_direct_rle_into(rle_canvas, compact_mask, order)
-        return rle_canvas
+    def full_dense() -> np.ndarray:
+        return ann_full.annotate(scene=scene.copy(), detections=det_dense)
 
-    dense_result = scene.copy()
-    paint_full_dense_into(dense_result, masks, order)
-    crop_result = scene.copy()
-    paint_crop_dense_into(crop_result, compact_mask, order)
-    rle_result = scene.copy()
-    paint_direct_rle_into(rle_result, compact_mask, order)
+    def direct_rle() -> np.ndarray:
+        return ann_rle.annotate(scene=scene.copy(), detections=det_compact)
+
+    def crop_dense() -> np.ndarray:
+        return ann_crop.annotate(scene=scene.copy(), detections=det_compact)
+
+    full_result = full_dense()
+    rle_result = direct_rle()
+    crop_result = crop_dense()
 
     image_h, image_w = scene.shape[:2]
     n_pixels = (
@@ -419,16 +369,16 @@ def run_input(
         mask_area_pct=float(masks.sum() / (n_pixels * max(1, len(masks))) * 100),
         dense_storage_bytes=int(masks.nbytes),
         compact_storage_bytes=compact_storage_bytes(compact_mask),
-        full_dense_s=median_seconds(full_dense_inplace, repetitions, warmup),
-        crop_dense_s=median_seconds(crop_dense_inplace, repetitions, warmup),
-        direct_rle_s=median_seconds(direct_rle_inplace, repetitions, warmup),
-        full_dense_peak_bytes=peak_bytes(full_dense_inplace),
-        crop_dense_peak_bytes=peak_bytes(crop_dense_inplace),
-        direct_rle_peak_bytes=peak_bytes(direct_rle_inplace),
+        full_dense_s=median_seconds(full_dense, repetitions, warmup),
+        direct_rle_s=median_seconds(direct_rle, repetitions, warmup),
+        crop_dense_s=median_seconds(crop_dense, repetitions, warmup),
+        full_dense_peak_bytes=peak_bytes(full_dense),
+        direct_rle_peak_bytes=peak_bytes(direct_rle),
+        crop_dense_peak_bytes=peak_bytes(crop_dense),
         rle_runs=rle_run_count(compact_mask),
         rle_spans=rle_span_count(compact_mask),
-        crop_matches_dense=bool(np.array_equal(crop_result, dense_result)),
-        rle_matches_dense=bool(np.array_equal(rle_result, dense_result)),
+        rle_matches_full=bool(np.array_equal(rle_result, full_result)),
+        crop_matches_full=bool(np.array_equal(crop_result, full_result)),
     )
 
 
@@ -457,7 +407,7 @@ def print_summary(
 ) -> None:
     """Print a Rich summary table."""
     table = Table(
-        title="CompactMask mask painting",
+        title="sv.MaskAnnotator painting strategies",
         box=box.ROUNDED,
         show_lines=False,
         header_style="bold cyan",
@@ -466,32 +416,34 @@ def print_summary(
     table.add_column("res", no_wrap=True)
     table.add_column("seg", justify="right")
     table.add_column("area%/obj", justify="right")
-    table.add_column("full ms", justify="right")
-    table.add_column("crop ms", justify="right")
-    table.add_column("RLE ms", justify="right", style="green")
+    table.add_column("full_dense ms", justify="right")
+    table.add_column("direct_rle ms", justify="right", style="green")
+    table.add_column("crop_dense ms", justify="right")
     table.add_column("RLE/full", justify="right")
-    table.add_column("RLE/crop", justify="right")
+    table.add_column("crop/full", justify="right")
     table.add_column("runs/spans", justify="right")
-    table.add_column("paint MB", justify="right", style="cyan")
+    table.add_column("annot MB", justify="right", style="cyan")
     table.add_column("mask MB", justify="right")
     table.add_column("ok", justify="center")
 
     for result in results:
-        rle_full = result.full_dense_s / max(result.direct_rle_s, 1e-9)
-        rle_crop = result.crop_dense_s / max(result.direct_rle_s, 1e-9)
-        pixel_perfect = result.crop_matches_dense and result.rle_matches_dense
+        rle_vs_full = result.full_dense_s / max(result.direct_rle_s, 1e-9)
+        crop_vs_full = result.full_dense_s / max(result.crop_dense_s, 1e-9)
+        pixel_perfect = result.rle_matches_full and result.crop_matches_full
         table.add_row(
             result.scenario,
             result.resolution,
             str(result.objects),
             f"{result.mask_area_pct:.2f}",
             f"{result.full_dense_s * 1e3:.2f}",
-            f"{result.crop_dense_s * 1e3:.2f}",
             f"{result.direct_rle_s * 1e3:.2f}",
-            _fmt_ratio(rle_full),
-            _fmt_ratio(rle_crop),
+            f"{result.crop_dense_s * 1e3:.2f}",
+            _fmt_ratio(rle_vs_full),
+            _fmt_ratio(crop_vs_full),
             f"{result.rle_runs}/{result.rle_spans}",
-            f"{_fmt_mb(result.crop_dense_peak_bytes)}/{_fmt_mb(result.direct_rle_peak_bytes)}",
+            f"{_fmt_mb(result.full_dense_peak_bytes)}"
+            f"/{_fmt_mb(result.direct_rle_peak_bytes)}"
+            f"/{_fmt_mb(result.crop_dense_peak_bytes)}",
             f"{_fmt_mb(result.dense_storage_bytes)}/{_fmt_mb(result.compact_storage_bytes)}",
             "[green]✓[/green]" if pixel_perfect else "[red]✗[/red]",
         )
@@ -501,15 +453,17 @@ def print_summary(
         + "  ·  ".join(
             [
                 f"timings are median of {reps} reps after {warmup} warmups",
-                "paint MB is crop/RLE peak traced allocation while painting "
-                "into a preallocated canvas",
-                "mask MB is dense/compact persistent mask storage",
-                "RLE/full = full dense paint time / direct RLE paint time",
-                "RLE/crop = crop-dense paint time / direct RLE paint time",
-                "runs/spans exposes Python direct-paint loop count; many spans "
-                "can be slower than crop-dense NumPy indexing",
+                "timings = full sv.MaskAnnotator.annotate() including opacity blend",
+                "full_dense uses dense (N,H,W) bool masks; direct_rle and crop_dense"
+                " use CompactMask",
+                "RLE/full = full_dense / direct_rle speedup;"
+                " crop/full = full_dense / crop_dense",
+                "annot MB = peak traced bytes during annotate() — full/rle/crop",
+                "mask MB = persistent mask storage dense/compact",
+                "runs/spans = RLE runs / true-pixel column spans (high spans → more"
+                " Python overhead for direct_rle)",
                 "area%/obj = per-object mask coverage as % of frame area",
-                "OK means crop-dense and direct-RLE outputs exactly match full dense",
+                "OK means direct_rle and crop_dense outputs exactly match full_dense",
             ]
         )
         + "[/dim]"
@@ -538,28 +492,23 @@ def main() -> None:
     assets = [args.asset] if args.asset is not None else list(ASSETS)
     if args.image is not None:
         assets = ["custom"]
-    inputs = inference_inputs(
-        assets=assets,
-        model=model,
-        model_id=model_id,
-        confidence=CONFIDENCE,
-        iou=IOU,
-        max_objects=MAX_OBJECTS_PER_SCENE,
-    )
-    if not inputs:
-        console.print("[yellow]no inference inputs found; exiting[/yellow]")
-        return
 
     results: list[PaintBenchmarkResult] = []
-    for i, paint_input in enumerate(inputs, 1):
-        console.print(f"  [{i}/{len(inputs)}] {paint_input.name}")
-        results.append(
-            run_input(
-                paint_input=paint_input,
-                repetitions=REPETITIONS,
-                warmup=WARMUP,
-            )
+    for i, asset in enumerate(assets, 1):
+        console.print(f"[{i}/{len(assets)}] {asset}")
+        result = infer_and_paint(
+            asset=asset,
+            image_path=args.image,
+            model=model,
+            model_id=model_id,
+            confidence=CONFIDENCE,
+            iou=IOU,
+            max_objects=MAX_OBJECTS_PER_SCENE,
+            repetitions=REPETITIONS,
+            warmup=WARMUP,
         )
+        if result is not None:
+            results.append(result)
         gc.collect()
 
     print_summary(results, reps=REPETITIONS, warmup=WARMUP)

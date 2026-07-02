@@ -42,6 +42,14 @@ from rich.progress import (
 from rich.table import Table
 
 import supervision as sv
+from supervision import (
+    Detections,
+    MaskAnnotator,
+    calculate_masks_centroids,
+    mask_iou_batch,
+    mask_non_max_suppression,
+    move_masks,
+)
 from supervision.detection.compact_mask import CompactMask
 
 console = Console(width=240, force_terminal=True)
@@ -380,9 +388,7 @@ def stage_decode(compact_mask: CompactMask) -> float:
     )
 
 
-def stage_area(
-    det_dense: sv.Detections, det_compact: sv.Detections
-) -> tuple[float, float]:
+def stage_area(det_dense: Detections, det_compact: Detections) -> tuple[float, float]:
     """Time .area on both representations."""
     return (
         time_reps(lambda: det_dense.area),
@@ -390,9 +396,7 @@ def stage_area(
     )
 
 
-def stage_filter(
-    det_dense: sv.Detections, det_compact: sv.Detections
-) -> tuple[float, float]:
+def stage_filter(det_dense: Detections, det_compact: Detections) -> tuple[float, float]:
     """Time boolean filtering (keep every other detection)."""
     keep = np.arange(len(det_dense)) % 2 == 0
     return (
@@ -402,10 +406,10 @@ def stage_filter(
 
 
 def stage_annotate(
-    scene: np.ndarray, det_dense: sv.Detections, det_compact: sv.Detections
+    scene: np.ndarray, det_dense: Detections, det_compact: Detections
 ) -> tuple[float, float]:
     """Time MaskAnnotator on both representations."""
-    annotator = sv.MaskAnnotator(opacity=0.5)
+    annotator = MaskAnnotator(opacity=0.5)
     return (
         time_reps(lambda: annotator.annotate(scene.copy(), det_dense)),
         time_reps(lambda: annotator.annotate(scene.copy(), det_compact)),
@@ -416,11 +420,11 @@ def stage_correctness(
     scene: np.ndarray,
     masks_dense: np.ndarray,
     compact_mask: CompactMask,
-    det_dense: sv.Detections,
-    det_compact: sv.Detections,
+    det_dense: Detections,
+    det_compact: Detections,
 ) -> tuple[bool, bool, bool]:
     """Return (pixel_perfect, areas_match, roundtrip_ok)."""
-    annotator = sv.MaskAnnotator(opacity=0.5)
+    annotator = MaskAnnotator(opacity=0.5)
     out_dense = annotator.annotate(scene.copy(), det_dense)
     out_compact = annotator.annotate(scene.copy(), det_compact)
     pixel_perfect = bool(np.array_equal(out_dense, out_compact))
@@ -440,20 +444,18 @@ def stage_iou(
     regardless of whether full dense IoU timing is skipped.
     """
     correct_n = min(len(compact_mask), 10)
-    iou_compact_small = sv.mask_iou_batch(
+    iou_compact_small = mask_iou_batch(
         compact_mask[:correct_n], compact_mask[:correct_n]
     )
-    iou_dense_small = sv.mask_iou_batch(
-        masks_dense[:correct_n], masks_dense[:correct_n]
-    )
+    iou_dense_small = mask_iou_batch(masks_dense[:correct_n], masks_dense[:correct_n])
     iou_ok = bool(np.allclose(iou_dense_small, iou_compact_small, atol=1e-4))
 
-    compact_iou_s = time_reps(lambda: sv.mask_iou_batch(compact_mask, compact_mask))
+    compact_iou_s = time_reps(lambda: mask_iou_batch(compact_mask, compact_mask))
     if iou_dense_skipped:
         dense_iou_s = math.nan
     else:
         dense_iou_s = time_reps(
-            lambda: sv.mask_iou_batch(masks_dense, masks_dense),
+            lambda: mask_iou_batch(masks_dense, masks_dense),
             repeats=IOU_NMS_REPS,
         )
     return dense_iou_s, compact_iou_s, iou_ok
@@ -487,25 +489,25 @@ def stage_nms(
     predictions = np.c_[xyxy, confidence, class_ids.astype(float)]
 
     compact_nms_s = time_reps(
-        lambda: sv.mask_non_max_suppression(predictions, compact_mask)
+        lambda: mask_non_max_suppression(predictions, compact_mask)
     )
     if dense_skipped or iou_dense_skipped:
         return math.nan, compact_nms_s, None, 0
 
-    keep_dense = sv.mask_non_max_suppression(predictions, masks_dense)
-    keep_compact = sv.mask_non_max_suppression(predictions, compact_mask)
+    keep_dense = mask_non_max_suppression(predictions, masks_dense)
+    keep_compact = mask_non_max_suppression(predictions, compact_mask)
     n_diff = int(np.sum(keep_dense != keep_compact))
     nms_ok = n_diff == 0
     dense_nms_s = time_reps(
-        lambda: sv.mask_non_max_suppression(predictions, masks_dense),
+        lambda: mask_non_max_suppression(predictions, masks_dense),
         repeats=IOU_NMS_REPS,
     )
     return dense_nms_s, compact_nms_s, nms_ok, n_diff
 
 
 def stage_merge(
-    det_dense: sv.Detections | None,
-    det_compact: sv.Detections,
+    det_dense: Detections | None,
+    det_compact: Detections,
     dense_skipped: bool,
 ) -> tuple[float, float, bool | None]:
     """Time Detections.merge on two half-splits.
@@ -516,15 +518,15 @@ def stage_merge(
     half = len(det_compact) // 2
     compact_a, compact_b = det_compact[:half], det_compact[half:]
 
-    compact_merge_s = time_reps(lambda: sv.Detections.merge([compact_a, compact_b]))
+    compact_merge_s = time_reps(lambda: Detections.merge([compact_a, compact_b]))
     if dense_skipped or det_dense is None:
         return math.nan, compact_merge_s, None
 
     dense_a, dense_b = det_dense[:half], det_dense[half:]
-    merged_d = sv.Detections.merge([dense_a, dense_b])
-    merged_c = sv.Detections.merge([compact_a, compact_b])
+    merged_d = Detections.merge([dense_a, dense_b])
+    merged_c = Detections.merge([compact_a, compact_b])
     merge_ok = bool(np.allclose(merged_d.area, merged_c.area))
-    dense_merge_s = time_reps(lambda: sv.Detections.merge([dense_a, dense_b]))
+    dense_merge_s = time_reps(lambda: Detections.merge([dense_a, dense_b]))
     return dense_merge_s, compact_merge_s, merge_ok
 
 
@@ -548,7 +550,7 @@ def stage_offset(
     if dense_skipped:
         return math.nan, compact_offset_s, None
 
-    moved_dense = sv.move_masks(
+    moved_dense = move_masks(
         masks_dense, np.array([dx, dy]), resolution_wh=(new_w, new_h)
     )
     moved_compact = compact_mask.with_offset(
@@ -556,7 +558,7 @@ def stage_offset(
     ).to_dense()
     offset_ok = bool(np.array_equal(moved_dense, moved_compact))
     dense_offset_s = time_reps(
-        lambda: sv.move_masks(
+        lambda: move_masks(
             masks_dense, np.array([dx, dy]), resolution_wh=(new_w, new_h)
         )
     )
@@ -569,14 +571,14 @@ def stage_centroids(
     dense_skipped: bool,
 ) -> tuple[float, float, bool | None]:
     """Time centroid: np.tensordot on full stack (dense) vs per-crop (compact)."""
-    compact_centroids_s = time_reps(lambda: sv.calculate_masks_centroids(compact_mask))
+    compact_centroids_s = time_reps(lambda: calculate_masks_centroids(compact_mask))
     if dense_skipped:
         return math.nan, compact_centroids_s, None
 
-    c_dense = sv.calculate_masks_centroids(masks_dense)
-    c_compact = sv.calculate_masks_centroids(compact_mask)
+    c_dense = calculate_masks_centroids(masks_dense)
+    c_compact = calculate_masks_centroids(compact_mask)
     centroids_ok = bool(np.allclose(c_dense, c_compact, atol=1.0))  # 1-pixel tolerance
-    dense_centroids_s = time_reps(lambda: sv.calculate_masks_centroids(masks_dense))
+    dense_centroids_s = time_reps(lambda: calculate_masks_centroids(masks_dense))
     return dense_centroids_s, compact_centroids_s, centroids_ok
 
 
@@ -697,7 +699,7 @@ def run_scenario(
     confidence = (
         np.random.default_rng(1).uniform(0.3, 0.99, num_objects).astype(np.float32)
     )
-    det_compact = sv.Detections(xyxy=xyxy, mask=compact_mask, class_id=class_ids)
+    det_compact = Detections(xyxy=xyxy, mask=compact_mask, class_id=class_ids)
 
     if dense_skipped:
         dense_area_s = dense_filter_s = dense_annot_s = math.nan
@@ -707,7 +709,7 @@ def run_scenario(
         pixel_perfect = areas_match = roundtrip_ok = None
         det_dense = None
     else:
-        det_dense = sv.Detections(xyxy=xyxy, mask=masks_dense, class_id=class_ids)
+        det_dense = Detections(xyxy=xyxy, mask=masks_dense, class_id=class_ids)
         dense_area_s, compact_area_s = stage_area(det_dense, det_compact)
         dense_filter_s, compact_filter_s = stage_filter(det_dense, det_compact)
         dense_annot_s, compact_annot_s = stage_annotate(scene, det_dense, det_compact)
@@ -845,20 +847,20 @@ def run_scenario(
     )
 
 
-def _time_compact_area(det_compact: sv.Detections) -> float:
+def _time_compact_area(det_compact: Detections) -> float:
     """Time .area on the compact detections (used when dense timing is skipped)."""
     return time_reps(lambda: det_compact.area)
 
 
-def _time_compact_filter(det_compact: sv.Detections) -> float:
+def _time_compact_filter(det_compact: Detections) -> float:
     """Time boolean-index filtering on the compact detections (dense-skip path)."""
     keep = np.arange(len(det_compact)) % 2 == 0
     return time_reps(lambda: det_compact[keep])
 
 
-def _time_compact_annotate(scene: np.ndarray, det_compact: sv.Detections) -> float:
+def _time_compact_annotate(scene: np.ndarray, det_compact: Detections) -> float:
     """Time MaskAnnotator on the compact detections (dense-skip path)."""
-    annotator = sv.MaskAnnotator(opacity=0.5)
+    annotator = MaskAnnotator(opacity=0.5)
     return time_reps(lambda: annotator.annotate(scene.copy(), det_compact))
 
 

@@ -930,6 +930,74 @@ class TestPaintMasksByArea:
         assert canvas[0, 0].tolist() == [0, 0, 0]
 
 
+class TestPaintAllInto:
+    """Tests for CompactMask.paint_all_into batch scatter correctness."""
+
+    def test_later_index_overwrites_earlier_at_overlap(self):
+        """Last mask in paint order appears on top at overlapping pixels."""
+        masks = np.zeros((2, 10, 10), dtype=bool)
+        masks[0, 2:8, 2:8] = True  # large mask painted first (index 0)
+        masks[1, 4:6, 4:6] = True  # small mask painted second (index 1)
+        xyxy = np.array([[2.0, 2.0, 7.0, 7.0], [4.0, 4.0, 5.0, 5.0]])
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+        canvas = np.zeros((10, 10, 3), dtype=np.uint8)
+        cm.paint_all_into(
+            canvas,
+            indices=[0, 1],
+            colors=[(255, 0, 0), (0, 255, 0)],
+        )
+        assert canvas[3, 3].tolist() == [255, 0, 0]  # large mask only — red
+        assert canvas[5, 5].tolist() == [0, 255, 0]  # overlap — small mask wins
+
+    def test_matches_sequential_paint_into(self):
+        """Batched output is pixel-identical to N sequential paint_into calls."""
+        rng = np.random.default_rng(42)
+        height, width = 60, 80
+        n = 5
+        masks = np.zeros((n, height, width), dtype=bool)
+        boxes = [
+            [5, 5, 40, 35],
+            [20, 15, 70, 55],
+            [10, 30, 60, 50],
+            [30, 10, 65, 45],
+            [2, 2, 20, 20],
+        ]
+        xyxy = np.array(boxes, dtype=np.float32)
+        for i, (x1, y1, x2, y2) in enumerate(boxes):
+            masks[i, y1:y2, x1:x2] = True
+        colors = [
+            (200, 10, 10),
+            (10, 200, 10),
+            (10, 10, 200),
+            (200, 200, 10),
+            (10, 200, 200),
+        ]
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(height, width))
+        indices = list(range(n))
+
+        canvas_seq = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        canvas_batch = canvas_seq.copy()
+        for rank, idx in enumerate(indices):
+            cm.paint_into(canvas_seq, idx, colors[rank])
+        cm.paint_all_into(canvas_batch, indices=indices, colors=colors)
+
+        assert np.array_equal(canvas_seq, canvas_batch)
+
+    def test_canvas_offset_shifts_all_masks(self):
+        """canvas_offset shifts absolute mask coordinates into sub-canvas space."""
+        masks = np.zeros((1, 20, 20), dtype=bool)
+        masks[0, 10:15, 10:15] = True
+        xyxy = np.array([[10.0, 10.0, 14.0, 14.0]])
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 20))
+        canvas = np.zeros((10, 10, 3), dtype=np.uint8)
+        cm.paint_all_into(
+            canvas, indices=[0], colors=[(255, 0, 0)], canvas_offset=(8, 8)
+        )
+        # Absolute mask rows 10:15 cols 10:15 → canvas rows 2:7 cols 2:7
+        assert canvas[2, 2].tolist() == [255, 0, 0]
+        assert canvas[0, 0].tolist() == [0, 0, 0]
+
+
 class TestCompactMaskParity:
     """Tests that CompactMask and dense mask produce identical annotator output."""
 

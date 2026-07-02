@@ -1159,6 +1159,105 @@ class CompactMask:
         ]
         canvas_slice[crop_roi] = color
 
+    def paint_all_into(
+        self,
+        canvas: npt.NDArray[np.uint8],
+        indices: Sequence[int],
+        colors: Sequence[tuple[int, int, int]],
+        canvas_offset: tuple[int, int] = (0, 0),
+    ) -> None:
+        """Paint multiple masks into a BGR canvas with one vectorised scatter write.
+
+        Collects ALL span data across every mask in a single Python loop, then
+        applies the combined pixel-index arrays in one NumPy call.  This reduces
+        per-mask NumPy dispatch from O(10 x N) to O(10) total, making
+        ``direct_rle`` faster than :meth:`paint_crop_into` for all typical
+        segmentation workloads.
+
+        Paint order is determined by `indices`: masks that appear *later* in the
+        sequence overwrite earlier ones at any overlapping pixels (NumPy
+        fancy-index last-write-wins semantics).  Pass masks sorted
+        largest-area-first so that smaller masks appear on top.
+
+        Args:
+            canvas: ``(H, W, 3)`` uint8 BGR image modified in-place.
+            indices: Sequence of mask indices to paint in order.  Masks later in
+                the sequence appear on top of earlier ones.
+            colors: BGR colour for each mask, aligned element-wise with
+                `indices`.  Length must equal ``len(indices)``.
+            canvas_offset: ``(x, y)`` pixel coordinates of the top-left corner
+                of `canvas` within the original image.  Absolute mask coordinates
+                are shifted by this amount before writing.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((2, 10, 10), dtype=bool)
+            >>> masks[0, 2:8, 2:8] = True   # large mask
+            >>> masks[1, 4:6, 4:6] = True   # small mask, overlaps centre
+            >>> xyxy = np.array([[2, 2, 7, 7], [4, 4, 5, 5]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> canvas = np.zeros((10, 10, 3), dtype=np.uint8)
+            >>> cm.paint_all_into(
+            ...     canvas, indices=[0, 1],
+            ...     colors=[(255, 0, 0), (0, 255, 0)])
+            >>> bool(canvas[3, 3, 0] == 255)  # large mask — red
+            True
+            >>> bool(canvas[5, 5, 1] == 255)  # small mask on top — green
+            True
+
+            ```
+        """
+        ox, oy = canvas_offset
+        canvas_h, canvas_w = canvas.shape[:2]
+
+        xs: list[int] = []
+        ys1: list[int] = []
+        ys2: list[int] = []
+        color_ranks: list[int] = []
+
+        for rank, detection_idx in enumerate(indices):
+            x1_off = int(self._offsets[detection_idx, 0])
+            y1_off = int(self._offsets[detection_idx, 1])
+            for cx, sy1, sy2 in self._iter_true_spans(detection_idx):
+                ax = cx + x1_off - ox
+                if ax < 0 or ax >= canvas_w:
+                    continue
+                ay1 = max(0, sy1 + y1_off - oy)
+                ay2 = min(canvas_h, sy2 + y1_off - oy)
+                if ay1 >= ay2:
+                    continue
+                xs.append(ax)
+                ys1.append(ay1)
+                ys2.append(ay2)
+                color_ranks.append(rank)
+
+        if not xs:
+            return
+
+        lengths = np.fromiter(
+            (b - a for a, b in zip(ys1, ys2)), dtype=np.intp, count=len(xs)
+        )
+        total = int(lengths.sum())
+        if total == 0:
+            return
+
+        cumlen = np.empty(len(lengths), dtype=np.intp)
+        cumlen[0] = 0
+        if len(lengths) > 1:
+            np.cumsum(lengths[:-1], out=cumlen[1:])
+
+        y_arr = (
+            np.repeat(np.asarray(ys1, dtype=np.int32), lengths)
+            + np.arange(total, dtype=np.int32)
+            - np.repeat(cumlen.astype(np.int32), lengths)
+        )
+        x_arr = np.repeat(np.asarray(xs, dtype=np.int32), lengths)
+        r_arr = np.repeat(np.asarray(color_ranks, dtype=np.intp), lengths)
+        colors_arr = np.asarray(colors, dtype=np.uint8)
+        canvas[y_arr, x_arr] = colors_arr[r_arr]
+
     # ------------------------------------------------------------------
     # Sequence / array protocol
     # ------------------------------------------------------------------

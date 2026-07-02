@@ -440,6 +440,31 @@ def _paint_masks_by_area(
     origin_x, origin_y = canvas_origin
     canvas_h, canvas_w = canvas.shape[:2]
 
+    # Batched fast path: one scatter write for all masks.  Reduces NumPy
+    # dispatch from O(10 x N_masks) to O(10) total for the direct_rle strategy.
+    if (
+        compact_mask is not None
+        and union is None
+        and compact_mask_strategy == "direct_rle"
+    ):
+        sorted_area = np.flip(np.argsort(detections.area))
+        all_colors = [
+            resolve_color(
+                color=color,
+                detections=detections,
+                detection_idx=int(idx),
+                color_lookup=color_lookup,
+            ).as_bgr()
+            for idx in sorted_area
+        ]
+        compact_mask.paint_all_into(
+            canvas,
+            indices=sorted_area.tolist(),
+            colors=all_colors,
+            canvas_offset=canvas_origin,
+        )
+        return None
+
     def paint_compact_mask(
         detection_idx: int,
         color_bgr: tuple[int, int, int],
@@ -456,17 +481,9 @@ def _paint_masks_by_area(
         if paint_w <= 0 or paint_h <= 0:
             return
 
-        # Fast path: no union accumulation.
         if union is None:
             if compact_mask_strategy == "crop_dense":
                 compact_mask.paint_crop_into(
-                    canvas,
-                    detection_idx,
-                    color_bgr,
-                    canvas_offset=(origin_x, origin_y),
-                )
-            else:  # "direct_rle"
-                compact_mask.paint_into(
                     canvas,
                     detection_idx,
                     color_bgr,

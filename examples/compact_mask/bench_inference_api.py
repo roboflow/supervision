@@ -26,7 +26,14 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-import supervision as sv
+from supervision import (
+    ColorLookup,
+    Detections,
+    LabelAnnotator,
+    MaskAnnotator,
+    mask_to_xyxy,
+    rle_to_mask,
+)
 from supervision.assets import ImageAssets, VideoAssets, download_assets
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
@@ -135,12 +142,12 @@ def derive_boxes_from_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
             continue
 
         height, width = rle["size"]
-        mask = sv.rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
+        mask = rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
         if not mask.any():
             predictions.append(prediction)
             continue
 
-        x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
+        x1, y1, x2, y2 = mask_to_xyxy(mask[np.newaxis, ...])[0]
         predictions.append(
             {
                 **prediction,
@@ -161,7 +168,7 @@ def artifact_path(source: str) -> Path:
     return ARTIFACT_DIR / f"{stem}{suffix}_segmentations.jpg"
 
 
-def detection_labels(detections: sv.Detections) -> list[str]:
+def detection_labels(detections: Detections) -> list[str]:
     """Return compact class/confidence labels for validation artifacts."""
     raw_class_names = detections.get_data(CLASS_NAME_DATA_FIELD)
     class_names = (
@@ -188,17 +195,17 @@ def save_segmentation_artifact(
     source: str,
 ) -> Path | None:
     """Draw parsed segmentation masks and save a validation artifact."""
-    detections = sv.Detections.from_inference(result)
+    detections = Detections.from_inference(result)
     if detections.mask is None:
         return None
 
     annotated = image.copy()
-    annotated = sv.MaskAnnotator(
-        color_lookup=sv.ColorLookup.INDEX,
+    annotated = MaskAnnotator(
+        color_lookup=ColorLookup.INDEX,
         opacity=0.45,
     ).annotate(scene=annotated, detections=detections)
-    annotated = sv.LabelAnnotator(
-        color_lookup=sv.ColorLookup.INDEX,
+    annotated = LabelAnnotator(
+        color_lookup=ColorLookup.INDEX,
         text_scale=0.35,
         text_padding=4,
     ).annotate(
@@ -282,12 +289,12 @@ def peak_bytes(fn: Callable[[], object]) -> int:
     return int(peak)
 
 
-def dense_mask_bytes(detections: sv.Detections) -> int:
+def dense_mask_bytes(detections: Detections) -> int:
     """Return dense mask storage bytes."""
     return 0 if detections.mask is None else int(np.asarray(detections.mask).nbytes)
 
 
-def compact_mask_bytes(detections: sv.Detections) -> int:
+def compact_mask_bytes(detections: Detections) -> int:
     """Return compact mask storage bytes."""
     if not isinstance(detections.mask, CompactMask):
         return 0
@@ -321,11 +328,11 @@ def run_benchmark(
 
     # Benchmark the public Roboflow/Inference adapter; RLE masks enter through
     # the result payload and should stay compact when compact_masks=True.
-    def dense() -> sv.Detections:
-        return sv.Detections.from_inference(result)
+    def dense() -> Detections:
+        return Detections.from_inference(result)
 
-    def compact() -> sv.Detections:
-        return sv.Detections.from_inference(result, compact_masks=True)
+    def compact() -> Detections:
+        return Detections.from_inference(result, compact_masks=True)
 
     dense_once = dense()
     compact_once = compact()
