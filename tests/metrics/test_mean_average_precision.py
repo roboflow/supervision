@@ -471,3 +471,123 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
 
         with pytest.raises(ValueError, match=ORIENTED_BOX_COORDINATES):
             metric.compute()
+
+    def test_cross_matched_obb_orients_iou_correctly(self) -> None:
+        """2x2 cross-match: pred0->target1, pred1->target0 must both score as TP.
+
+        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0.
+        Passing asserts the (dt, gt) orientation is correct end-to-end.
+        """
+        box_tl = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        box_br = np.array([[20, 20], [30, 20], [30, 30], [20, 30]], dtype=np.float32)
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            data={ORIENTED_BOX_COORDINATES: np.stack([box_tl, box_br])},
+        )
+        # Predictions deliberately swapped: pred0 matches target1, pred1 matches target0
+        predictions = Detections(
+            xyxy=np.array([[20, 20, 30, 30], [0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+            data={ORIENTED_BOX_COORDINATES: np.stack([box_br, box_tl])},
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestMeanAveragePrecisionMasksCrowdBranch:
+    """Tests for the crowd-aware Jaccard path in _mask_iou_with_jaccard."""
+
+    def test_crowd_gt_uses_detection_area_as_denominator(self) -> None:
+        """Crowd GT: detection covering half the crowd mask must score IoU≈1.0.
+
+        Standard IoU would give 0.5 (half intersection over full union).
+        Crowd Jaccard collapses union to detection area → 0.5/0.5 = 1.0.
+        """
+        crowd_mask = np.ones((1, 32, 32), dtype=bool)
+        detection_mask = np.zeros((1, 32, 32), dtype=bool)
+        detection_mask[0, :16, :] = True  # covers half the crowd mask
+
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float64),
+            class_id=np.array([0]),
+            mask=crowd_mask,
+            data={"iscrowd": np.array([1], dtype=np.int64)},
+        )
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 32, 16]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            mask=detection_mask,
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+    def test_mixed_crowd_and_normal_gt(self) -> None:
+        """One crowd GT and one normal GT: only crowd column uses Jaccard rule."""
+        full_mask = np.ones((1, 32, 32), dtype=bool)
+        half_mask = np.zeros((1, 32, 32), dtype=bool)
+        half_mask[0, :16, :] = True
+
+        # target0 = crowd (full image), target1 = normal (top half)
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32], [0, 0, 32, 16]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            mask=np.concatenate([full_mask, half_mask]),
+            data={"iscrowd": np.array([1, 0], dtype=np.int64)},
+        )
+        # prediction = top half; crowd IoU ≈ 1.0 (Jaccard), normal IoU = 1.0
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 32, 16]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            mask=half_mask,
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestMeanAveragePrecisionMasksOrientation:
+    """Tests that the (dt, gt) IoU-matrix orientation is correct end-to-end."""
+
+    def test_cross_matched_masks_orient_iou_correctly(self) -> None:
+        """2x2 cross-match: pred0->target1, pred1->target0 must both score as TP.
+
+        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0.
+        Passing asserts the (dt, gt) orientation is correct end-to-end.
+        """
+        top_mask = np.zeros((1, 32, 32), dtype=bool)
+        top_mask[0, :16, :] = True
+        bottom_mask = np.zeros((1, 32, 32), dtype=bool)
+        bottom_mask[0, 16:, :] = True
+
+        # target0 = top half, target1 = bottom half
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 16], [0, 16, 32, 32]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            mask=np.concatenate([top_mask, bottom_mask]),
+        )
+        # Predictions deliberately swapped: pred0=bottom, pred1=top
+        predictions = Detections(
+            xyxy=np.array([[0, 16, 32, 32], [0, 0, 32, 16]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+            mask=np.concatenate([bottom_mask, top_mask]),
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(1.0, abs=1e-6)

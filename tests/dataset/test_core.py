@@ -325,7 +325,7 @@ class TestDetectionDatasetInMemoryImages:
         assert len(dataset) == 2
 
     def test_merge_preserves_in_memory_pixel_access(self) -> None:
-        """Merging two in-memory datasets keeps pixel access for every image."""
+        """Merging two in-memory datasets keeps pixel access via public __getitem__."""
         image_1 = _create_image(fill_value=10)
         image_2 = _create_image(fill_value=20)
         ds_1 = self._build_dataset({"img1.jpg": image_1})
@@ -334,8 +334,10 @@ class TestDetectionDatasetInMemoryImages:
         merged = DetectionDataset.merge([ds_1, ds_2])
 
         assert len(merged) == 2
-        np.testing.assert_array_equal(merged._get_image("img1.jpg"), image_1)
-        np.testing.assert_array_equal(merged._get_image("img2.jpg"), image_2)
+        _, loaded_1, _ = merged[0]
+        _, loaded_2, _ = merged[1]
+        np.testing.assert_array_equal(loaded_1, image_1)
+        np.testing.assert_array_equal(loaded_2, image_2)
 
     def test_iteration_yields_in_memory_images(self) -> None:
         """Iteration yields (path, image, annotation) with correct pixels."""
@@ -356,3 +358,28 @@ class TestDetectionDatasetInMemoryImages:
         """Passing a dict of images emits the SupervisionWarnings deprecation notice."""
         with pytest.warns(SupervisionWarnings, match="deprecated"):
             self._build_dataset({"img1.jpg": _create_image(fill_value=3)})
+
+    def test_eq_reflexive_in_memory(self) -> None:
+        """In-memory dataset equals itself (reflexive __eq__ via pixel comparison)."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+        dataset = self._build_dataset(images)
+
+        assert dataset == dataset
+
+    def test_eq_same_pixels_returns_true(self) -> None:
+        """Two in-memory datasets with identical images and annotations are equal."""
+        images = {"img1.jpg": _create_image(fill_value=5)}
+        ds_a = self._build_dataset(images)
+        ds_b = self._build_dataset(dict(images))
+
+        assert ds_a == ds_b
+
+    def test_eq_different_pixels_returns_false(self) -> None:
+        """In-memory datasets with different pixel data are not equal."""
+        ds_a = self._build_dataset({"img1.jpg": _create_image(fill_value=1)})
+        ds_b = self._build_dataset({"img1.jpg": _create_image(fill_value=2)})
+
+        assert ds_a != ds_b
