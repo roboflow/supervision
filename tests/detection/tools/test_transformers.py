@@ -30,7 +30,7 @@ def _make_panoptic_png(seg_map: np.ndarray) -> bytes:
     """Encode a (H, W) uint8 segment-ID array as an RGBA PNG byte string."""
     rgba = np.zeros((*seg_map.shape, 4), dtype=np.uint8)
     rgba[:, :, 0] = seg_map.astype(np.uint8)
-    img = Image.fromarray(rgba, "RGBA")
+    img = Image.fromarray(rgba)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
