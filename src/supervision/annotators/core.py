@@ -3180,7 +3180,12 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
