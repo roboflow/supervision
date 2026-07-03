@@ -179,7 +179,9 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = str(parseString(tostring(annotation)).toprettyxml(indent="  "))
+    xml_string = str(
+        parseString(tostring(annotation).decode("utf-8")).toprettyxml(indent="  ")
+    )
     return xml_string
 
 
@@ -230,6 +232,8 @@ def load_pascal_voc_annotations(
 
         tree = parse(annotation_path)
         root = tree.getroot()
+        if root is None:
+            raise ValueError(f"Failed to parse XML root from {annotation_path}")
 
         image = cv2.imread(image_path)
         if image is None:
@@ -410,7 +414,7 @@ def save_pascal_voc_annotations(
             detections=annotations,
             classes=dataset.classes,
             filename=image_name,
-            image_shape=image.shape,
+            image_shape=(image.shape[0], image.shape[1], image.shape[2]),
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
