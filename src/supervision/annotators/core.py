@@ -3184,7 +3184,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
                 xyxy=detections.xyxy,
                 resolution_wh=(image_width, image_height),
-            ).astype(int)
+            ).astype(np.int32)
             for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
