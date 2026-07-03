@@ -3027,12 +3027,15 @@ class CropAnnotator(BaseAnnotator):
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
         ).astype(int)
+        # Snapshot before the loop so later crops are taken from the original image,
+        # not a scene already annotated by earlier iterations (overlapping-box case).
+        source_scene = scene.copy()
 
         for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
             crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
             if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
                 continue
-            crop = crop_image(image=scene, xyxy=xyxy)
+            crop = crop_image(image=source_scene, xyxy=xyxy)
             resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(

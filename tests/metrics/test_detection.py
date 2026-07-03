@@ -1697,7 +1697,26 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
         )
 
         # Assert
-        assert round(float(result.map50), 2) == 0.81
+        assert result.map50 == pytest.approx(0.81, abs=0.01)
+
+    def test_all_background_predictions_return_zero_not_nan(self) -> None:
+        """All-background dataset with predictions must yield 0.0 mAP, not NaN."""
+        # Arrange — no GT objects anywhere; model still fires predictions
+        background_target = np.zeros((0, 5), dtype=np.float32)
+        background_predictions = np.array(
+            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
+        )
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=[background_predictions],
+            targets=[background_target],
+        )
+
+        # Assert — must be finite 0.0, not NaN (regression for all-background datasets)
+        assert result.map50 == pytest.approx(0.0)
+        assert result.map75 == pytest.approx(0.0)
+        assert result.map50_95 == pytest.approx(0.0)
 
 
 class TestSplitDetectionsByOutcome:

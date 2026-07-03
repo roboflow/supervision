@@ -1447,9 +1447,14 @@ class MeanAveragePrecision:
                 cast(npt.NDArray[np.int32], concatenated_stats[2]),
                 cast(npt.NDArray[np.int32], concatenated_stats[3]),
             )
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            if average_precisions.size == 0:
+                # All images had no ground-truth objects; FPs recorded but no class
+                # to accumulate AP over → return 0.0 rather than NaN.
+                map50, map75, map50_95 = 0.0, 0.0, 0.0
+            else:
+                map50 = average_precisions[:, 0].mean()
+                map75 = average_precisions[:, 5].mean()
+                map50_95 = average_precisions.mean()
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])
