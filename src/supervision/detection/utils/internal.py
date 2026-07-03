@@ -84,6 +84,8 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
             # (matching Ultralytics' own semantics) instead of casting every
             # nonzero interpolated value to True, which would dilate the mask.
             mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
+        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
+        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
 
         mask_maps.append(mask)
 

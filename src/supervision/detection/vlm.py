@@ -483,7 +483,9 @@ def from_deepseek_vl_2(
         if xyxy_list
         else np.empty((0, 4), dtype=np.float32)
     )
-    class_name = np.array(class_name_list)
+    class_name = (
+        np.array(class_name_list) if class_name_list else np.array([], dtype=object)
+    )
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
