@@ -1666,6 +1666,9 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
         # Assert
         assert without_fp.map50 == pytest.approx(1.0, abs=0.01)
         assert with_fp.map50 < without_fp.map50
+        assert with_fp.map50 < 0.5
+        assert with_fp.map75 < without_fp.map75
+        assert with_fp.map50_95 < without_fp.map50_95
 
     def test_ground_truth_present_path_unchanged(self) -> None:
         """GT-present scenario keeps its pinned map50 (guards normal-path numerics)."""
@@ -1698,6 +1701,24 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
 
         # Assert
         assert round(float(result.map50), 2) == 0.81
+
+    def test_all_background_images_return_zero_not_nan(self) -> None:
+        """Dataset with only background images must return map50=0, not NaN."""
+        # Arrange
+        background_pred = np.array([[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32)
+        background_tgt = np.zeros((0, 5), dtype=np.float32)
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=[background_pred],
+            targets=[background_tgt],
+        )
+
+        # Assert
+        assert not np.isnan(result.map50), (
+            "map50 must not be NaN for all-background dataset"
+        )
+        assert result.map50 == pytest.approx(0.0)
 
 
 class TestSplitDetectionsByOutcome:
