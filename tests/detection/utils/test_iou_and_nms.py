@@ -1937,3 +1937,29 @@ class TestBoxNonMaxMerge:
         assert len(result) == 2
         group_sizes = sorted(len(g) for g in result)
         assert group_sizes == [2, 2]
+
+    def test_6col_different_class_ids_not_merged(self) -> None:
+        """Identical boxes with different class_ids stay in separate groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 1],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 2
+        assert all(len(g) == 1 for g in result)
+
+    def test_6col_same_class_id_merged(self) -> None:
+        """Identical boxes with the same class_id are merged into one group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 0],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 2
