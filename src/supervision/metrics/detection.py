@@ -1434,7 +1434,7 @@ class MeanAveragePrecision:
                         ),
                         predicted_objs[:, 5],
                         predicted_objs[:, 4],
-                        np.zeros((0,)),
+                        np.zeros((0,), dtype=np.float32),
                     )
                 )
 
@@ -1447,9 +1447,19 @@ class MeanAveragePrecision:
                 cast(npt.NDArray[np.int32], concatenated_stats[2]),
                 cast(npt.NDArray[np.int32], concatenated_stats[3]),
             )
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            map50 = (
+                float(average_precisions[:, 0].mean())
+                if average_precisions.size > 0
+                else 0.0
+            )
+            map75 = (
+                float(average_precisions[:, 5].mean())
+                if average_precisions.size > 0
+                else 0.0
+            )
+            map50_95 = (
+                float(average_precisions.mean()) if average_precisions.size > 0 else 0.0
+            )
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])
