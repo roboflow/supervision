@@ -4,6 +4,7 @@ import copy
 import os
 import random
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
@@ -126,6 +127,51 @@ def map_detections_class_id(
     return detections_copy
 
 
+def _check_no_basename_collisions(
+    image_paths: list[str],
+    key: Callable[[str], str],
+    output_kind: str,
+) -> None:
+    """Raise if two image paths would be written to the same output file.
+
+    Dataset image paths may share a basename when they originate from different
+    directories (a legal, common state after :meth:`DetectionDataset.merge`).
+    Exporting them into a single flat output directory keyed on the basename or
+    stem would silently overwrite one file with another and mispair images with
+    their annotations. This guard detects such collisions before any file is
+    written and names the colliding source paths.
+
+    Args:
+        image_paths: The dataset image paths about to be written.
+        key: Maps an image path to the output file name it would be written to.
+        output_kind: Human-readable description of the output (e.g. ``"image"``
+            or ``"YOLO annotation"``) used in the error message.
+
+    Raises:
+        ValueError: If two image paths map to the same output file name.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> from supervision.dataset.utils import _check_no_basename_collisions
+        >>> _check_no_basename_collisions(
+        ...     ["a/img.jpg", "b/img.jpg"], lambda p: Path(p).name, "image"
+        ... )
+        Traceback (most recent call last):
+        ...
+        ValueError: Cannot export dataset: image paths 'a/img.jpg' and ...
+    """
+    seen: dict[str, str] = {}
+    for image_path in image_paths:
+        output_name = key(image_path)
+        if output_name in seen:
+            raise ValueError(
+                f"Cannot export dataset: image paths {seen[output_name]!r} and "
+                f"{image_path!r} both map to {output_kind} file {output_name!r}. "
+                "Ensure all image basenames are unique before exporting."
+            )
+        seen[output_name] = image_path
+
+
 def save_dataset_images(
     dataset: DetectionDataset,
     images_directory_path: str,
@@ -149,6 +195,11 @@ def save_dataset_images(
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
     """
+    _check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="image",
+    )
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in tqdm(
         dataset.image_paths,
@@ -179,13 +230,21 @@ def train_test_split(
         shuffle: Whether to shuffle the data before splitting.
 
     Returns:
-        The split data.
-    """
-    if random_state is not None:
-        random.seed(random_state)
+        The split data. The input list is copied and never mutated.
 
+    Examples:
+        >>> train, test = train_test_split(
+        ...     [1, 2, 3, 4, 5], train_ratio=0.6, random_state=0
+        ... )
+        >>> len(train), len(test)
+        (3, 2)
+    """
+    rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
     if shuffle:
-        random.shuffle(data)
+        data = list(data)
+        rng.shuffle(data)
+    else:
+        data = list(data)  # copy to guarantee non-mutation
 
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]

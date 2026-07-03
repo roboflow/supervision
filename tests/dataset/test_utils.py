@@ -1,10 +1,13 @@
+import random
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 from typing import TypeVar
 
 import pytest
 
 from supervision import Detections
 from supervision.dataset.utils import (
+    _check_no_basename_collisions,
     build_class_index_mapping,
     map_detections_class_id,
     merge_class_lists,
@@ -229,3 +232,71 @@ def test_map_detections_class_id(
             source_to_target_mapping=source_to_target_mapping, detections=detections
         )
         assert result == expected_result
+
+
+class TestTrainTestSplitRngIsolation:
+    """Regression tests for train_test_split RNG isolation (DAT-02)."""
+
+    def test_does_not_mutate_input_list(self) -> None:
+        """split() must not reorder the caller's list in place."""
+        data = list(range(10))
+        original = data.copy()
+        train_test_split(data=data, train_ratio=0.5, random_state=42, shuffle=True)
+        assert data == original
+
+    def test_does_not_pollute_global_rng(self) -> None:
+        """split() must not disturb the process-global random state."""
+        state_before = random.getstate()
+        train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        assert random.getstate() == state_before
+
+    def test_result_independent_of_global_rng(self) -> None:
+        """A fixed random_state yields the same split regardless of global RNG."""
+        first = train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        for _ in range(5):
+            random.random()  # noqa: S311 — perturb global RNG; split must ignore it
+        second = train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        assert first == second
+
+
+class TestCheckNoBasenameCollisions:
+    """Regression tests for export basename collision detection (DAT-04)."""
+
+    def test_empty_list_does_not_raise(self) -> None:
+        """Empty image_paths must not raise."""
+        _check_no_basename_collisions(
+            image_paths=[],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_single_path_does_not_raise(self) -> None:
+        """Single image path cannot collide; must not raise."""
+        _check_no_basename_collisions(
+            image_paths=["a/img.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_raises_on_colliding_output_names(self) -> None:
+        """Two source paths mapping to one output name must raise ValueError."""
+        with pytest.raises(ValueError, match="both map to image file"):
+            _check_no_basename_collisions(
+                image_paths=["a/img.jpg", "b/img.jpg"],
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+
+    def test_passes_on_unique_output_names(self) -> None:
+        """Distinct output names must not raise."""
+        _check_no_basename_collisions(
+            image_paths=["a/img1.jpg", "b/img2.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
