@@ -447,7 +447,9 @@ def from_deepseek_vl_2(
         A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
             shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
             optional array of shape `(n,)` with class indices, and `class_name`
-            is an array of shape `(n,)` with class labels.
+            is an array of shape `(n,)` with class labels. When the input
+            contains no detections (or all are filtered by `classes`), returns
+            `(np.empty((0, 4)), np.empty(0), np.empty(0))`.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -481,7 +483,9 @@ def from_deepseek_vl_2(
         if xyxy_list
         else np.empty((0, 4), dtype=np.float32)
     )
-    class_name = np.array(class_name_list)
+    class_name = (
+        np.array(class_name_list) if class_name_list else np.array([], dtype=object)
+    )
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)

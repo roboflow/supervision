@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import io
-
 import numpy as np
 import pytest
-from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.tools.transformers import (
@@ -19,21 +16,11 @@ from supervision.detection.tools.transformers import (
     process_transformers_v5_segmentation_result,
     process_transformers_v5_semantic_or_instance_segmentation_result,
 )
-from tests.helpers import _FakeDetachTensor
+from tests.helpers import _FakeDetachTensor, make_panoptic_png
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _make_panoptic_png(seg_map: np.ndarray) -> bytes:
-    """Encode a (H, W) uint8 segment-ID array as an RGBA PNG byte string."""
-    rgba = np.zeros((*seg_map.shape, 4), dtype=np.uint8)
-    rgba[:, :, 0] = seg_map.astype(np.uint8)
-    img = Image.fromarray(rgba)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +34,7 @@ class TestPngStringToSegmentationArray:
     def test_extracts_red_channel_as_segment_ids(self) -> None:
         """RGBA PNG: red channel values become the returned label array."""
         seg_map = np.array([[1, 2], [3, 0]], dtype=np.uint8)
-        png_bytes = _make_panoptic_png(seg_map)
+        png_bytes = make_panoptic_png(seg_map)
 
         result = png_string_to_segmentation_array(png_bytes)
 
@@ -57,7 +44,7 @@ class TestPngStringToSegmentationArray:
         """Output shape matches the image height and width."""
         seg_map = np.zeros((6, 8), dtype=np.uint8)
         seg_map[2:4, 3:5] = 7
-        png_bytes = _make_panoptic_png(seg_map)
+        png_bytes = make_panoptic_png(seg_map)
 
         result = png_string_to_segmentation_array(png_bytes)
 
@@ -193,7 +180,7 @@ class TestProcessTransformersV4SegmentationResult:
         seg_map = np.zeros((4, 4), dtype=np.uint8)
         seg_map[0:2, 0:2] = 1
         seg_result = {
-            "png_string": _make_panoptic_png(seg_map),
+            "png_string": make_panoptic_png(seg_map),
             "segments_info": [{"id": 1, "category_id": 5}],
         }
 
@@ -216,7 +203,7 @@ class TestProcessTransformersV4PanopticSegmentationResult:
         seg_map = np.zeros((4, 4), dtype=np.uint8)
         seg_map[0:2, :] = 1
         seg_map[2:4, :] = 2
-        png_bytes = _make_panoptic_png(seg_map)
+        png_bytes = make_panoptic_png(seg_map)
         seg_result = {
             "png_string": png_bytes,
             "segments_info": [
@@ -237,7 +224,7 @@ class TestProcessTransformersV4PanopticSegmentationResult:
         """Providing id2label populates CLASS_NAME_DATA_FIELD in output data."""
         seg_map = np.ones((2, 2), dtype=np.uint8)
         seg_result = {
-            "png_string": _make_panoptic_png(seg_map),
+            "png_string": make_panoptic_png(seg_map),
             "segments_info": [{"id": 1, "category_id": 0}],
         }
 
@@ -313,10 +300,9 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         raises=ValueError,
         reason=(
             "empty segments_info produces masks shape (0,) instead of (0,H,W),"
-            " causing mask_to_xyxy to crash — source bug, not a test setup issue."
-            " TODO: open a tracking issue and add its URL here."
+            " causing mask_to_xyxy to crash — source bug, not a test setup issue"
         ),
-        strict=False,
+        strict=True,
     )
     def test_empty_segments_info_returns_zero_detections(self) -> None:
         """Empty segments_info list should yield zero-length arrays (xfail: bug)."""

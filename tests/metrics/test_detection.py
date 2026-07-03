@@ -1634,7 +1634,7 @@ class TestDetectionMetrics:
 
 
 class TestMeanAveragePrecisionBackgroundFalsePositives:
-    """Legacy `from_tensors` must penalize predictions on ground-truth-empty images."""
+    """MeanAveragePrecision.from_tensors penalizes predictions on GT-empty images."""
 
     def test_background_false_positives_lower_map(self) -> None:
         """False positives on a GT-empty image drop map50 below the FP-free baseline."""
@@ -1666,6 +1666,9 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
         # Assert
         assert without_fp.map50 == pytest.approx(1.0, abs=0.01)
         assert with_fp.map50 < without_fp.map50
+        assert with_fp.map50 < 0.5
+        assert with_fp.map75 < without_fp.map75
+        assert with_fp.map50_95 < without_fp.map50_95
 
     def test_ground_truth_present_path_unchanged(self) -> None:
         """GT-present scenario keeps its pinned map50 (guards normal-path numerics)."""

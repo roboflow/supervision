@@ -230,13 +230,21 @@ def train_test_split(
         shuffle: Whether to shuffle the data before splitting.
 
     Returns:
-        The split data.
+        The split data. The input list is copied and never mutated.
+
+    Examples:
+        >>> train, test = train_test_split(
+        ...     [1, 2, 3, 4, 5], train_ratio=0.6, random_state=0
+        ... )
+        >>> len(train), len(test)
+        (3, 2)
     """
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
-    data = list(data)
-
     if shuffle:
+        data = list(data)
         rng.shuffle(data)
+    else:
+        data = list(data)  # copy to guarantee non-mutation
 
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]

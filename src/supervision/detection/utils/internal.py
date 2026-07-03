@@ -38,6 +38,20 @@ def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
+    """Extract boolean masks from Ultralytics results, cropping letterbox padding.
+
+    Handles the case where the inference resolution differs from the original image
+    shape by computing the letterbox padding offsets, cropping them out, and resizing
+    each proto mask back to `orig_shape`. Thresholds at 0.5 to match Ultralytics'
+    semantics and avoid dilating masks through float interpolation.
+
+    Args:
+        yolov8_results: Ultralytics results object with `.masks` and `.orig_shape`.
+
+    Returns:
+        Boolean array of shape `(N, H, W)` aligned with the detections, or `None`
+        when no masks are present.
+    """
     if not yolov8_results.masks:
         return None
 
@@ -70,6 +84,8 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
             # (matching Ultralytics' own semantics) instead of casting every
             # nonzero interpolated value to True, which would dilate the mask.
             mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
+        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
+        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
 
         mask_maps.append(mask)
 

@@ -406,9 +406,8 @@ class TestDetectionDatasetExportCollisions:
         with pytest.raises(ValueError, match="both map to image file"):
             dataset.as_yolo(images_directory_path=str(tmp_path / "images"))
 
-    def test_as_yolo_raises_on_same_basename_annotations(self, tmp_path: Path) -> None:
-        """Same-basename images that produce the same annotation filename must error."""
-        # img.jpg and img.png both map to img.txt in YOLO annotation output
+    def test_as_yolo_raises_on_same_stem_annotations(self, tmp_path: Path) -> None:
+        """Same-stem images must not overwrite annotations."""
         dataset = DetectionDataset(
             classes=["cat"],
             images=["dir_a/img.jpg", "dir_b/img.png"],
@@ -422,8 +421,53 @@ class TestDetectionDatasetExportCollisions:
             },
         )
 
-        with pytest.raises(ValueError, match="YOLO annotation"):
-            dataset.as_yolo(annotations_directory_path=str(tmp_path / "labels"))
+        with pytest.raises(ValueError, match="both map to YOLO annotation file"):
+            dataset.as_yolo(
+                images_directory_path=str(tmp_path / "images"),
+                annotations_directory_path=str(tmp_path / "labels"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images must not overwrite image files on export."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.jpg"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(tmp_path / "images"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_stem_annotations(
+        self, tmp_path: Path
+    ) -> None:
+        """Same-stem images must not overwrite annotations."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                annotations_directory_path=str(tmp_path / "annotations"),
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -434,19 +478,17 @@ class TestDetectionDatasetExportCollisions:
 def _make_detection_dataset(
     n: int, classes: list[str] | None = None
 ) -> DetectionDataset:
-    """Build an in-memory DetectionDataset with n images."""
+    """Build a DetectionDataset with n images using list[str] path API."""
     if classes is None:
         classes = ["cat"]
-    images = {f"img{i}.jpg": np.zeros((4, 4, 3), dtype=np.uint8) for i in range(n)}
+    image_paths = [f"img{i}.jpg" for i in range(n)]
     annotations = {
         f"img{i}.jpg": _create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])
         for i in range(n)
     }
-    import warnings
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+    return DetectionDataset(
+        classes=classes, images=image_paths, annotations=annotations
+    )
 
 
 class TestDetectionDatasetSplit:
@@ -547,7 +589,7 @@ class TestClassificationDatasetFolderRoundTrip:
         assert len(ds2) == len(ds)
 
     def test_reload_annotation_class_ids_match(self, tmp_path: Path) -> None:
-        """Every reloaded annotation class_id falls within the class list."""
+        """Reloaded annotations map each image to its original class folder."""
         src = tmp_path / "source"
         self._make_folder_tree(src)
         ds = ClassificationDataset.from_folder_structure(str(src))
@@ -556,5 +598,7 @@ class TestClassificationDatasetFolderRoundTrip:
         ds.as_folder_structure(str(out))
         ds2 = ClassificationDataset.from_folder_structure(str(out))
 
-        for ann in ds2.annotations.values():
-            assert 0 <= int(ann.class_id[0]) < len(ds2.classes)
+        for image_path, ann in ds2.annotations.items():
+            class_id = int(ann.class_id[0])
+            assert 0 <= class_id < len(ds2.classes)
+            assert ds2.classes[class_id] == Path(image_path).parent.name

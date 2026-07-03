@@ -8,12 +8,27 @@ for generating synthetic test data and performing custom assertions.
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
 import numpy as np
+from PIL import Image
 
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
+
+
+def make_panoptic_png(segment_map: np.ndarray) -> bytes:
+    """Encode a (H, W) uint8 segment-ID array as a 4-channel RGBA PNG byte string.
+
+    The segment IDs are stored in the red channel (channel 0). Used by
+    panoptic segmentation tests that construct PNG-encoded segment maps.
+    """
+    arr = np.zeros((*segment_map.shape, 4), dtype=np.uint8)
+    arr[:, :, 0] = segment_map.astype(np.uint8)
+    buf = io.BytesIO()
+    Image.fromarray(arr).save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def _create_detections(

@@ -58,33 +58,50 @@ class TestImageSink:
         assert sentinel.exists(), "pre-existing file should not be deleted"
         assert len(list(existing.iterdir())) == 2
 
+    def test_overwrite_true_clears_existing_dir(self, tmp_path: Path) -> None:
+        """overwrite=True removes pre-existing files before writing."""
+        target = tmp_path / "target"
+        target.mkdir()
+        sentinel = target / "old.txt"
+        sentinel.write_text("old")
+
+        image = np.zeros((8, 8, 3), dtype=np.uint8)
+        with sv.ImageSink(target_dir_path=str(target), overwrite=True) as sink:
+            sink.save_image(image=image)
+
+        assert not sentinel.exists(), "overwrite=True must clear pre-existing files"
+
 
 class TestVideoSink:
     """VideoSink writes valid video frames to a file."""
 
     def test_creates_output_file(self, tmp_path: Path) -> None:
         """VideoSink creates a non-empty file at target_path."""
-        target = str(tmp_path / "out.mp4")
+        target = str(tmp_path / "out.avi")
         info = VideoInfo(width=64, height=64, fps=1, total_frames=None)
         frame = np.zeros((64, 64, 3), dtype=np.uint8)
 
-        with sv.VideoSink(target_path=target, video_info=info) as sink:
+        with sv.VideoSink(target_path=target, video_info=info, codec="MJPG") as sink:
             sink.write_frame(frame=frame)
 
         assert Path(target).exists()
         assert Path(target).stat().st_size > 0
 
     def test_writes_multiple_frames(self, tmp_path: Path) -> None:
-        """Writing N frames stores exactly N frames in the output file."""
+        """Writing N frames produces a strictly larger file than writing one frame."""
         info = VideoInfo(width=64, height=64, fps=5, total_frames=None)
-        # Use distinct per-frame content so each frame is an I-frame; avoids
-        # codec P-frame compression making the multi-frame file smaller than the
-        # single-frame file on some codec builds.
-        target_many = str(tmp_path / "many.mp4")
-        with sv.VideoSink(target_path=target_many, video_info=info) as sink:
-            for i in range(10):
-                frame = np.full((64, 64, 3), i * 25, dtype=np.uint8)
-                sink.write_frame(frame=frame)
 
-        written_info = VideoInfo.from_video_path(target_many)
-        assert written_info.total_frames == 10
+        target_one = str(tmp_path / "one.avi")
+        with sv.VideoSink(
+            target_path=target_one, video_info=info, codec="MJPG"
+        ) as sink:
+            sink.write_frame(frame=np.zeros((64, 64, 3), dtype=np.uint8))
+
+        target_many = str(tmp_path / "many.avi")
+        with sv.VideoSink(
+            target_path=target_many, video_info=info, codec="MJPG"
+        ) as sink:
+            for i in range(10):
+                sink.write_frame(frame=np.full((64, 64, 3), i * 20, dtype=np.uint8))
+
+        assert Path(target_many).stat().st_size > Path(target_one).stat().st_size

@@ -2373,10 +2373,9 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask_bool = np.repeat((heat_mask > 0)[:, :, np.newaxis], 3, axis=2)
-        scene[mask_bool] = cv2.addWeighted(
-            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
-        )[mask_bool]
+        mask2d = heat_mask > 0
+        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
@@ -2997,6 +2996,12 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -3023,10 +3028,10 @@ class CropAnnotator(BaseAnnotator):
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
-        ).astype(int)
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
         # Snapshot before the loop so later crops are taken from the original image,
         # not a scene already annotated by earlier iterations (overlapping-box case).
         source_scene = scene.copy()
@@ -3178,7 +3183,12 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:

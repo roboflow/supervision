@@ -1,8 +1,5 @@
-import io
-
 import numpy as np
 import pytest
-from PIL import Image
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -22,6 +19,7 @@ from tests.helpers import (
     _FakeYoloNasPrediction,
     _FakeYoloNasResults,
     _FakeYOLOv5Results,
+    make_panoptic_png,
 )
 
 
@@ -167,34 +165,28 @@ class TestFromLMMMapping:
     def test_from_lmm_maps_every_member_to_vlm(
         self, lmm_member: LMM, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Each LMM member dispatches to the VLM sharing its value."""
-        captured: dict[str, VLM] = {}
+        """Each LMM member dispatches to the VLM sharing its value with args intact."""
+        captured: dict[str, object] = {}
 
         def fake_from_vlm(vlm: VLM, result: str, **kwargs: object) -> Detections:
             captured["vlm"] = vlm
+            captured["result"] = result
+            captured["kwargs"] = kwargs
             return Detections.empty()
 
         monkeypatch.setattr(Detections, "from_vlm", staticmethod(fake_from_vlm))
 
-        Detections.from_lmm(lmm_member, result="", resolution_wh=(10, 10))
+        Detections.from_lmm(lmm_member, result="sentinel", resolution_wh=(10, 10))
 
         assert isinstance(captured["vlm"], VLM)
-        assert captured["vlm"].value == lmm_member.value
+        assert captured["vlm"].value == lmm_member.value  # type: ignore[union-attr]
+        assert captured["result"] == "sentinel"
+        assert captured["kwargs"]["resolution_wh"] == (10, 10)  # type: ignore[index]
 
 
 # ---------------------------------------------------------------------------
 # from_transformers
 # ---------------------------------------------------------------------------
-
-
-def _make_v4_panoptic_png(segment_map: np.ndarray) -> bytes:
-    """Encode a (H, W) segment-ID array as a panoptic PNG bytes string."""
-    arr = np.zeros((*segment_map.shape, 4), dtype=np.uint8)
-    arr[:, :, 0] = segment_map.astype(np.uint8)
-    img = Image.fromarray(arr)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
 
 
 class TestFromTransformers:
@@ -264,7 +256,7 @@ class TestFromTransformers:
         seg_map = np.zeros((4, 4), dtype=np.uint8)
         seg_map[0:2, 0:2] = 1
         seg_map[2:4, 2:4] = 2
-        png_bytes = _make_v4_panoptic_png(seg_map)
+        png_bytes = make_panoptic_png(seg_map)
         result = {
             "png_string": png_bytes,
             "segments_info": [
@@ -433,6 +425,12 @@ class TestFromMMDetection:
 class TestFromPaddleDet:
     """from_paddledet extracts xyxy, confidence, class_id from the bbox column array."""
 
+    def test_empty_bbox_returns_empty_detections(self) -> None:
+        """Empty (0,6) bbox array yields zero-length Detections."""
+        det = Detections.from_paddledet({"bbox": np.empty((0, 6), dtype=np.float32)})
+
+        assert len(det) == 0
+
     @pytest.mark.parametrize(
         ("bbox_array", "expected_len"),
         [
@@ -449,11 +447,6 @@ class TestFromPaddleDet:
                 1,
                 id="single-detection",
             ),
-            pytest.param(
-                np.empty((0, 6), dtype=np.float32),
-                0,
-                id="empty",
-            ),
         ],
     )
     def test_maps_bbox_columns_to_detections(
@@ -465,10 +458,9 @@ class TestFromPaddleDet:
         det = Detections.from_paddledet(result)
 
         assert len(det) == expected_len
-        if expected_len > 0:
-            np.testing.assert_allclose(det.xyxy, bbox_array[:, 2:6])
-            np.testing.assert_allclose(det.confidence, bbox_array[:, 1])
-            np.testing.assert_array_equal(det.class_id, bbox_array[:, 0].astype(int))
+        np.testing.assert_allclose(det.xyxy, bbox_array[:, 2:6])
+        np.testing.assert_allclose(det.confidence, bbox_array[:, 1])
+        np.testing.assert_array_equal(det.class_id, bbox_array[:, 0].astype(int))
 
 
 # ---------------------------------------------------------------------------
@@ -478,6 +470,18 @@ class TestFromPaddleDet:
 
 class TestFromDeepSparse:
     """from_deepsparse maps DeepSparse boxes/scores/labels to Detections."""
+
+    def test_empty_results_return_empty_detections(self) -> None:
+        """Empty boxes/scores/labels arrays yield zero-length Detections."""
+        result = _FakeDeepSparseResults(
+            boxes=[np.empty((0, 4), dtype=np.float32)],
+            scores=[np.empty(0, dtype=np.float32)],
+            labels=[np.empty(0, dtype=np.float32)],
+        )
+
+        det = Detections.from_deepsparse(result)
+
+        assert len(det) == 0
 
     @pytest.mark.parametrize(
         ("boxes", "scores", "labels", "expected_len"),
@@ -496,13 +500,6 @@ class TestFromDeepSparse:
                 1,
                 id="single-detection",
             ),
-            pytest.param(
-                np.empty((0, 4), dtype=np.float32),
-                np.empty(0, dtype=np.float32),
-                np.empty(0, dtype=np.float32),
-                0,
-                id="empty",
-            ),
         ],
     )
     def test_maps_boxes_scores_labels_to_detections(
@@ -518,10 +515,9 @@ class TestFromDeepSparse:
         det = Detections.from_deepsparse(result)
 
         assert len(det) == expected_len
-        if expected_len > 0:
-            np.testing.assert_allclose(det.xyxy, boxes)
-            np.testing.assert_allclose(det.confidence, scores)
-            np.testing.assert_array_equal(det.class_id, labels.astype(int))
+        np.testing.assert_allclose(det.xyxy, boxes)
+        np.testing.assert_allclose(det.confidence, scores)
+        np.testing.assert_array_equal(det.class_id, labels.astype(int))
 
 
 # ---------------------------------------------------------------------------
@@ -666,6 +662,12 @@ class TestFromAzureAnalyzeImage:
 class TestFromNCNN:
     """from_ncnn converts ncnn rect objects (xywh) to xyxy Detections."""
 
+    def test_empty_objects_return_empty_detections(self) -> None:
+        """Empty object list yields zero-length Detections."""
+        det = Detections.from_ncnn([])
+
+        assert len(det) == 0
+
     @pytest.mark.parametrize(
         ("objects", "expected_len"),
         [
@@ -682,7 +684,6 @@ class TestFromNCNN:
                 1,
                 id="single-detection",
             ),
-            pytest.param([], 0, id="empty"),
         ],
     )
     def test_maps_xywh_rect_to_xyxy(self, objects: list, expected_len: int) -> None:
@@ -690,14 +691,13 @@ class TestFromNCNN:
         det = Detections.from_ncnn(objects)
 
         assert len(det) == expected_len
-        if expected_len > 0:
-            first = objects[0]
-            expected_x2 = first.rect.x + first.rect.w
-            expected_y2 = first.rect.y + first.rect.h
-            np.testing.assert_allclose(det.xyxy[0, 2], expected_x2)
-            np.testing.assert_allclose(det.xyxy[0, 3], expected_y2)
-            assert float(det.confidence[0]) == pytest.approx(first.prob)
-            assert int(det.class_id[0]) == first.label
+        first = objects[0]
+        expected_x2 = first.rect.x + first.rect.w
+        expected_y2 = first.rect.y + first.rect.h
+        np.testing.assert_allclose(det.xyxy[0, 2], expected_x2)
+        np.testing.assert_allclose(det.xyxy[0, 3], expected_y2)
+        assert float(det.confidence[0]) == pytest.approx(first.prob)
+        assert int(det.class_id[0]) == first.label
 
 
 # ---------------------------------------------------------------------------
@@ -734,12 +734,3 @@ class TestFromLMMEndToEnd:
             )
 
         assert len(det) == 0
-
-    def test_unrecognized_string_raises_value_error(self) -> None:
-        """Unrecognized LMM name as string must raise ValueError."""
-        with pytest.raises(ValueError, match="unknown_model_xyz"):
-            Detections.from_lmm(
-                "unknown_model_xyz",
-                result="",
-                resolution_wh=(10, 10),
-            )

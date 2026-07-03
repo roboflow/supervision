@@ -975,14 +975,15 @@ class TestHeatMapAnnotator:
     def test_annotate_hottest_region_survives_uint8_wrap(
         self, test_image: np.ndarray
     ) -> None:
-        """Heat count exceeding 255 must not wrap to zero and blank the region."""
+        """Heat count at 2^8=256 must not wrap uint8 to zero and blank the region."""
         annotator = HeatMapAnnotator()
         detections = _create_detections(xyxy=[[20, 20, 60, 60]])
-        result = test_image.copy()
         for _ in range(256):
             result = annotator.annotate(scene=test_image.copy(), detections=detections)
-        painted = np.count_nonzero(np.any(result != test_image, axis=2))
-        assert painted > 0
+        region_painted = np.count_nonzero(
+            np.any(result[20:60, 20:60] != test_image[20:60, 20:60], axis=2)
+        )
+        assert region_painted > 100
 
 
 class TestEllipseAnnotator:
@@ -1350,11 +1351,14 @@ class TestCropAnnotator:
         assert deprecations == []
 
     def test_annotate_with_partially_out_of_bounds_detection(self, gradient_image):
-        """A box reaching outside the scene must be clipped, not raise cv2.error."""
+        """Partially-OOB box is clipped and rendered; scene must change."""
         detections = _create_detections(xyxy=[[-10, -10, 30, 30]], class_id=[0])
-        annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
+        annotator = CropAnnotator(
+            position=Position.CENTER, border_color_lookup=ColorLookup.INDEX
+        )
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert result.shape == gradient_image.shape
+        assert not np.array_equal(gradient_image, result)
 
     def test_annotate_with_fully_out_of_bounds_detection(self, gradient_image):
         """A box fully outside the scene collapses to zero area and is skipped."""
@@ -1362,6 +1366,58 @@ class TestCropAnnotator:
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert np.array_equal(gradient_image, result)
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([-5, 20, 40, 60], id="negative-x-min"),
+            pytest.param([20, -5, 60, 40], id="negative-y-min"),
+            pytest.param([-10, -10, 30, 30], id="negative-x-and-y-min"),
+            pytest.param([60, 20, 140, 60], id="past-right-edge"),
+            pytest.param([-20, -20, 140, 140], id="larger-than-scene"),
+        ],
+    )
+    def test_annotate_with_box_crossing_scene_border(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes extending past the scene border are clipped instead of raising"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert result.shape == gradient_image.shape
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([150, 150, 200, 200], id="fully-outside"),
+            pytest.param([-50, -50, -10, -10], id="fully-negative"),
+            pytest.param([30, 20, 30, 60], id="zero-width"),
+            pytest.param([30, 30, 30, 30], id="zero-area"),
+        ],
+    )
+    def test_annotate_skips_boxes_empty_after_clipping(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes with no visible area are skipped instead of raising cv2.error"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert np.array_equal(gradient_image, result)
+
+    def test_annotate_mixed_valid_and_degenerate_boxes(self, gradient_image) -> None:
+        """A degenerate box does not prevent valid boxes from being drawn"""
+        detections = _create_detections(
+            xyxy=[[150, 150, 200, 200], [10, 10, 90, 90]], class_id=[0, 1]
+        )
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert not np.array_equal(gradient_image, result)
 
 
 class TestIconAnnotator:
@@ -1404,6 +1460,66 @@ class TestBackgroundOverlayAnnotator:
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
+
+    @pytest.mark.parametrize(
+        ("xyxy", "inside_xy", "outside_xy"),
+        [
+            pytest.param([-5, 20, 40, 60], (20, 30), (60, 80), id="crosses-left-edge"),
+            pytest.param([20, -5, 60, 40], (30, 20), (80, 60), id="crosses-top-edge"),
+            pytest.param(
+                [-10, -10, 40, 40], (20, 20), (70, 70), id="crosses-both-edges"
+            ),
+        ],
+    )
+    def test_annotate_preserves_detection_crossing_scene_border(
+        self, xyxy: list[int], inside_xy: tuple[int, int], outside_xy: tuple[int, int]
+    ) -> None:
+        """The visible part of a box crossing the border keeps original pixels"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[xyxy])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        x_in, y_in = inside_xy
+        x_out, y_out = outside_xy
+        assert np.array_equal(result[y_in, x_in], np.array([200, 200, 200]))
+        assert np.array_equal(result[y_out, x_out], np.array([100, 100, 100]))
+
+    def test_annotate_fully_out_negative_box_does_not_corrupt(self) -> None:
+        """Both-negative OOB box must not restore an in-bounds region via wrap-around"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[-30, -30, -5, -5]])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.array_equal(result[80, 80], np.array([100, 100, 100]))
+
+    def test_annotate_force_box_preserves_detection_crossing_scene_border(self):
+        """force_box with a border-crossing box keeps the visible detection region"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[20:60, 0:40] = True
+        detections = _create_detections(xyxy=[[-5, 20, 40, 60]], mask=[mask])
+        annotator = BackgroundOverlayAnnotator(
+            color=Color.BLACK, opacity=0.5, force_box=True
+        )
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.array_equal(result[30, 20], np.array([200, 200, 200]))
+        assert np.array_equal(result[80, 60], np.array([100, 100, 100]))
+
+    def test_annotate_with_fully_out_of_bounds_detection(self):
+        """A box fully outside the scene leaves the whole scene tinted"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[150, 150, 200, 200]])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.all(result == 100)
 
     def test_annotate_uint8_mask_matches_bool_mask(self):
         """Test that uint8 and bool masks produce identical overlays."""

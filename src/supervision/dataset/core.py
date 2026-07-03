@@ -38,6 +38,7 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.utils import (
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -181,7 +182,7 @@ class DetectionDataset(BaseDataset):
     ) -> tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
-            using the provided split_ratio.
+            using the provided split_ratio. The input dataset is not mutated.
 
         Args:
             split_ratio: The ratio of the training
@@ -378,7 +379,28 @@ class DetectionDataset(BaseDataset):
                 polygon points to be removed from the input polygon,
                 in the range [0, 1). Argument is used only for segmentation datasets.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same stem (when
+                annotations_directory_path is set), which would cause one
+                output file to overwrite another. Rename images to ensure
+                unique basenames before exporting a merged dataset.
         """
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
+            )
+
         if images_directory_path:
             save_dataset_images(
                 dataset=self,
@@ -564,6 +586,12 @@ class DetectionDataset(BaseDataset):
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same annotation
+                file name (when annotations_directory_path is set),
+                which would cause one output file to overwrite another.
         """
         if is_obb and (
             min_image_area_percentage != 0.0
@@ -579,6 +607,20 @@ class DetectionDataset(BaseDataset):
                 UserWarning,
                 stacklevel=2,
             )
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).stem + ".txt",
+                output_kind="YOLO annotation",
+            )
+
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self,
