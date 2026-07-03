@@ -44,9 +44,9 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _overlay_image,
     crop_image,
     letterbox_image,
-    overlay_image,
     scale_image,
 )
 from supervision.utils.logger import _get_logger
@@ -2010,7 +2010,7 @@ class IconAnnotator(BaseAnnotator):
             x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
             y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
-            scene[:] = overlay_image(scene, icon, (x, y))
+            scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
     @lru_cache
@@ -2373,10 +2373,9 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask_bool = cv2.cvtColor(heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask_bool] = cv2.addWeighted(
-            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
-        )[mask_bool]
+        mask2d = heat_mask > 0
+        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
@@ -2997,6 +2996,12 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -3023,14 +3028,14 @@ class CropAnnotator(BaseAnnotator):
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
-        ).astype(int)
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
 
         for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
-            x_min, y_min, x_max, y_max = xyxy
-            if x_max - x_min <= 0 or y_max - y_min <= 0:
+            crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
+            if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
                 continue
             crop = crop_image(image=scene, xyxy=xyxy)
             resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
@@ -3038,7 +3043,7 @@ class CropAnnotator(BaseAnnotator):
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
+            scene = _overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
             color = resolve_color(
                 color=self.border_color,
                 detections=detections,

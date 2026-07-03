@@ -15,7 +15,7 @@ from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect, Vector
-from supervision.utils.image import overlay_image
+from supervision.utils.image import _overlay_image
 from supervision.utils.internal import SupervisionWarnings
 
 TEXT_MARGIN = 10
@@ -630,7 +630,7 @@ class LineZoneAnnotator:
             label_dimension=label_image.shape[0],
         )
 
-        frame = overlay_image(frame, label_image, label_anchor)
+        frame = _overlay_image(frame, label_image, label_anchor)
 
         return frame
 

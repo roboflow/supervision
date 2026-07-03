@@ -261,6 +261,10 @@ def get_video_frames_generator(
         A generator that yields the
             frames of the video.
 
+    Note:
+        The underlying `cv2.VideoCapture` is always released when the generator
+        is exhausted or closed, even if the consumer breaks out of iteration early.
+
     Examples:
         ```python
         import supervision as sv
@@ -273,18 +277,20 @@ def get_video_frames_generator(
         source_path, start, end, iterative_seek
     )
     frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        if frame is not None:
-            yield cast(npt.NDArray[np.uint8], frame)
-        for _ in range(stride - 1):
-            success = video.grab()
-            if not success:
+    try:
+        while True:
+            success, frame = video.read()
+            if not success or frame_position >= end:
                 break
-        frame_position += stride
-    video.release()
+            if frame is not None:
+                yield cast(npt.NDArray[np.uint8], frame)
+            for _ in range(stride - 1):
+                success = video.grab()
+                if not success:
+                    break
+            frame_position += stride
+    finally:
+        video.release()
 
 
 def process_video(
