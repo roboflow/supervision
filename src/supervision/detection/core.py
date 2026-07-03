@@ -1533,20 +1533,10 @@ class Detections:
             "Use `Detections.from_vlm` instead."
         )
 
-        # filler logic mapping old from_lmm to new from_vlm
-        lmm_to_vlm = {
-            LMM.PALIGEMMA: VLM.PALIGEMMA,
-            LMM.FLORENCE_2: VLM.FLORENCE_2,
-            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
-            LMM.QWEN_3_VL: VLM.QWEN_3_VL,
-            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
-            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-            LMM.MOONDREAM: VLM.MOONDREAM,
-        }
-
+        # LMM and VLM are mirror enums (identical string values) so value-based
+        # lookup is exhaustive by construction — no hand-maintained mapping needed.
         if isinstance(lmm, LMM):
-            vlm = lmm_to_vlm[lmm]
+            vlm = VLM(lmm.value)
 
         elif isinstance(lmm, str):
             try:
@@ -1556,7 +1546,7 @@ class Detections:
                     f"Invalid LMM string '{lmm}'. Must be one of "
                     f"{[m.value for m in LMM]}"
                 )
-            vlm = lmm_to_vlm[lmm_enum]
+            vlm = VLM(lmm_enum.value)
 
         else:
             raise ValueError(

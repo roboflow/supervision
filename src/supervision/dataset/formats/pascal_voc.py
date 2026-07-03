@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 from xml.etree.ElementTree import Element, SubElement
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
 
 import cv2
 import numpy as np
@@ -9,7 +13,9 @@ from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
 from tqdm.auto import tqdm
 
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
@@ -359,3 +365,48 @@ def _get_required_text(element: Element, tag: str) -> str:
     if child is None or child.text is None:
         raise ValueError(f"Missing '{tag}' in Pascal VOC annotation.")
     return child.text
+
+
+def save_pascal_voc_annotations(
+    dataset: "DetectionDataset",
+    annotations_directory_path: str,
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+    show_progress: bool = False,
+) -> None:
+    """Write Pascal VOC XML annotation files for every image in *dataset*.
+
+    Raises:
+        ValueError: If two image paths map to the same ``.xml`` output name.
+    """
+    from supervision.dataset.utils import check_no_basename_collisions
+
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: f"{Path(image_path).stem}.xml",
+        output_kind="Pascal VOC annotation",
+    )
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_path, image, annotations in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving Pascal VOC annotations",
+        disable=not show_progress,
+    ):
+        annotation_name = Path(image_path).stem
+        annotations_path = os.path.join(
+            annotations_directory_path, f"{annotation_name}.xml"
+        )
+        image_name = Path(image_path).name
+        pascal_voc_xml = detections_to_pascal_voc(
+            detections=annotations,
+            classes=dataset.classes,
+            filename=image_name,
+            image_shape=image.shape,
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        with open(annotations_path, "w") as f:
+            f.write(pascal_voc_xml)
