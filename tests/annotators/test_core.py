@@ -1367,6 +1367,58 @@ class TestCropAnnotator:
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert np.array_equal(gradient_image, result)
 
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([-5, 20, 40, 60], id="negative-x-min"),
+            pytest.param([20, -5, 60, 40], id="negative-y-min"),
+            pytest.param([-10, -10, 30, 30], id="negative-x-and-y-min"),
+            pytest.param([60, 20, 140, 60], id="past-right-edge"),
+            pytest.param([-20, -20, 140, 140], id="larger-than-scene"),
+        ],
+    )
+    def test_annotate_with_box_crossing_scene_border(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes extending past the scene border are clipped instead of raising"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert result.shape == gradient_image.shape
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([150, 150, 200, 200], id="fully-outside"),
+            pytest.param([-50, -50, -10, -10], id="fully-negative"),
+            pytest.param([30, 20, 30, 60], id="zero-width"),
+            pytest.param([30, 30, 30, 30], id="zero-area"),
+        ],
+    )
+    def test_annotate_skips_boxes_empty_after_clipping(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes with no visible area are skipped instead of raising cv2.error"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert np.array_equal(gradient_image, result)
+
+    def test_annotate_mixed_valid_and_degenerate_boxes(self, gradient_image) -> None:
+        """A degenerate box does not prevent valid boxes from being drawn"""
+        detections = _create_detections(
+            xyxy=[[150, 150, 200, 200], [10, 10, 90, 90]], class_id=[0, 1]
+        )
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert not np.array_equal(gradient_image, result)
+
 
 class TestIconAnnotator:
     """Tests for IconAnnotator class"""
