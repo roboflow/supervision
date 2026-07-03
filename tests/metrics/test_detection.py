@@ -4,6 +4,7 @@ from typing import ClassVar
 import cv2
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -1751,3 +1752,44 @@ class TestSplitDetectionsByOutcome:
         """Missing class_id on either input raises ValueError."""
         with pytest.raises(ValueError, match="class_id"):
             _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+
+class TestConfusionMatrixPlot:
+    """Tests for ConfusionMatrix.plot rendering."""
+
+    @pytest.mark.parametrize(
+        "normalize",
+        [
+            pytest.param(False, id="raw-counts"),
+            pytest.param(True, id="normalized"),
+        ],
+    )
+    def test_plot_returns_figure(self, normalize: bool) -> None:
+        """plot() must not crash on the integer matrix produced by from_tensors."""
+        targets = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0],
+                    [6.0, 1.0, 8.0, 3.0, 1],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        predictions = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        confusion_matrix = ConfusionMatrix.from_tensors(
+            predictions=predictions,
+            targets=targets,
+            classes=["person", "dog"],
+        )
+
+        fig = confusion_matrix.plot(normalize=normalize)
+
+        assert fig is not None
+        plt.close(fig)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from unittest.mock import Mock, patch
 
 import cv2
@@ -9,6 +10,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision.utils.image import (
+    _overlay_image,
     crop_image,
     get_image_resolution_wh,
     letterbox_image,
@@ -355,6 +357,40 @@ def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
 
     # then
     np.testing.assert_array_equal(result, expected)
+
+
+def test_overlay_image_public_wrapper_delegates_to_internal() -> None:
+    """Public `overlay_image` still produces the internal `_overlay_image` result."""
+    # given
+    image = np.full((1, 1, 3), 22, dtype=np.uint8)
+    overlay = np.array([[[39, 39, 39, 60]]], dtype=np.uint8)
+    expected = _overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
+
+    # when
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        result = overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_overlay_image_emits_future_warning() -> None:
+    """Public overlay_image must still emit FutureWarning after internal refactor."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+    overlay = np.full((1, 1, 3), 255, dtype=np.uint8)
+    # pyDeprecate tracks per-function warned_calls (default num_warns=1) so the
+    # warning fires only once per process. Reset to make this test order-independent.
+    overlay_image._state.warned_calls = 0
+
+    # when
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    assert any(issubclass(w.category, FutureWarning) for w in caught)
 
 
 def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:

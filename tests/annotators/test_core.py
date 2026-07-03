@@ -972,6 +972,19 @@ class TestHeatMapAnnotator:
             warnings.simplefilter("error", RuntimeWarning)
             annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
 
+    def test_annotate_hottest_region_survives_uint8_wrap(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Heat count at 2^8=256 must not wrap uint8 to zero and blank the region."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        for _ in range(256):
+            result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        region_painted = np.count_nonzero(
+            np.any(result[20:60, 20:60] != test_image[20:60, 20:60], axis=2)
+        )
+        assert region_painted > 100
+
 
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class"""
@@ -1322,6 +1335,112 @@ class TestCropAnnotator:
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_emits_no_deprecation_warning(self, gradient_image):
+        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        deprecations = [
+            w
+            for w in caught
+            if issubclass(w.category, (DeprecationWarning, FutureWarning))
+        ]
+        assert deprecations == []
+
+    def test_annotate_with_partially_out_of_bounds_detection(self, gradient_image):
+        """Partially-OOB box is clipped and rendered; scene must change."""
+        detections = _create_detections(xyxy=[[-10, -10, 30, 30]], class_id=[0])
+        annotator = CropAnnotator(
+            position=Position.CENTER, border_color_lookup=ColorLookup.INDEX
+        )
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        assert result.shape == gradient_image.shape
+        assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_with_fully_out_of_bounds_detection(self, gradient_image):
+        """A box fully outside the scene collapses to zero area and is skipped."""
+        detections = _create_detections(xyxy=[[-50, -50, -10, -10]], class_id=[0])
+        annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        assert np.array_equal(gradient_image, result)
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([-5, 20, 40, 60], id="negative-x-min"),
+            pytest.param([20, -5, 60, 40], id="negative-y-min"),
+            pytest.param([-10, -10, 30, 30], id="negative-x-and-y-min"),
+            pytest.param([60, 20, 140, 60], id="past-right-edge"),
+            pytest.param([-20, -20, 140, 140], id="larger-than-scene"),
+        ],
+    )
+    def test_annotate_with_box_crossing_scene_border(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes extending past the scene border are clipped instead of raising"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert result.shape == gradient_image.shape
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([150, 150, 200, 200], id="fully-outside"),
+            pytest.param([-50, -50, -10, -10], id="fully-negative"),
+            pytest.param([30, 20, 30, 60], id="zero-width"),
+            pytest.param([30, 30, 30, 30], id="zero-area"),
+        ],
+    )
+    def test_annotate_skips_boxes_empty_after_clipping(
+        self, gradient_image, xyxy: list[int]
+    ) -> None:
+        """Boxes with no visible area are skipped instead of raising cv2.error"""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert np.array_equal(gradient_image, result)
+
+    def test_annotate_mixed_valid_and_degenerate_boxes(self, gradient_image) -> None:
+        """A degenerate box does not prevent valid boxes from being drawn"""
+        detections = _create_detections(
+            xyxy=[[150, 150, 200, 200], [10, 10, 90, 90]], class_id=[0, 1]
+        )
+        annotator = CropAnnotator()
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert not np.array_equal(gradient_image, result)
+
+
+class TestIconAnnotator:
+    """Tests for IconAnnotator class"""
+
+    def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
+        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        icon_path = str(tmp_path / "icon.png")
+        icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
+        cv2.imwrite(icon_path, icon)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        annotator = IconAnnotator()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            annotator.annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+        deprecations = [
+            w
+            for w in caught
+            if issubclass(w.category, (DeprecationWarning, FutureWarning))
+        ]
+        assert deprecations == []
 
 
 class TestBackgroundOverlayAnnotator:
