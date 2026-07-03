@@ -734,3 +734,12 @@ class TestFromLMMEndToEnd:
             )
 
         assert len(det) == 0
+
+    def test_unrecognized_string_raises_value_error(self) -> None:
+        """Unrecognized LMM name as string must raise ValueError."""
+        with pytest.raises(ValueError, match="unknown_model_xyz"):
+            Detections.from_lmm(
+                "unknown_model_xyz",
+                result="",
+                resolution_wh=(10, 10),
+            )

@@ -406,6 +406,25 @@ class TestDetectionDatasetExportCollisions:
         with pytest.raises(ValueError, match="both map to image file"):
             dataset.as_yolo(images_directory_path=str(tmp_path / "images"))
 
+    def test_as_yolo_raises_on_same_basename_annotations(self, tmp_path: Path) -> None:
+        """Same-basename images that produce the same annotation filename must error."""
+        # img.jpg and img.png both map to img.txt in YOLO annotation output
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="YOLO annotation"):
+            dataset.as_yolo(annotations_directory_path=str(tmp_path / "labels"))
+
 
 # ---------------------------------------------------------------------------
 # TST-03 - DetectionDataset.split()

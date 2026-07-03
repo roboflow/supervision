@@ -284,3 +284,19 @@ class TestCheckNoBasenameCollisions:
             key=lambda image_path: Path(image_path).name,
             output_kind="image",
         )
+
+    def test_passes_on_empty_image_paths(self) -> None:
+        """Empty list must not raise (vacuously no collision)."""
+        check_no_basename_collisions(
+            image_paths=[],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_passes_on_single_image_path(self) -> None:
+        """Single element list cannot collide with itself."""
+        check_no_basename_collisions(
+            image_paths=["dir/only.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )

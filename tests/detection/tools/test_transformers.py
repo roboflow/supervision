@@ -313,7 +313,8 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         raises=ValueError,
         reason=(
             "empty segments_info produces masks shape (0,) instead of (0,H,W),"
-            " causing mask_to_xyxy to crash — source bug, not a test setup issue"
+            " causing mask_to_xyxy to crash — source bug, not a test setup issue."
+            " TODO: open a tracking issue and add its URL here."
         ),
         strict=False,
     )

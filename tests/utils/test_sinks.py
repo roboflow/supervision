@@ -75,17 +75,16 @@ class TestVideoSink:
         assert Path(target).stat().st_size > 0
 
     def test_writes_multiple_frames(self, tmp_path: Path) -> None:
-        """Writing N frames produces a larger file than writing one frame."""
+        """Writing N frames stores exactly N frames in the output file."""
         info = VideoInfo(width=64, height=64, fps=5, total_frames=None)
-        frame = np.zeros((64, 64, 3), dtype=np.uint8)
-
-        target_one = str(tmp_path / "one.mp4")
-        with sv.VideoSink(target_path=target_one, video_info=info) as sink:
-            sink.write_frame(frame=frame)
-
+        # Use distinct per-frame content so each frame is an I-frame; avoids
+        # codec P-frame compression making the multi-frame file smaller than the
+        # single-frame file on some codec builds.
         target_many = str(tmp_path / "many.mp4")
         with sv.VideoSink(target_path=target_many, video_info=info) as sink:
-            for _ in range(10):
+            for i in range(10):
+                frame = np.full((64, 64, 3), i * 25, dtype=np.uint8)
                 sink.write_frame(frame=frame)
 
-        assert Path(target_many).stat().st_size >= Path(target_one).stat().st_size
+        written_info = VideoInfo.from_video_path(target_many)
+        assert written_info.total_frames == 10
