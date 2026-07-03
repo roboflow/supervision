@@ -1419,6 +1419,43 @@ class TestCropAnnotator:
 
         assert not np.array_equal(gradient_image, result)
 
+    def test_annotate_overlapping_crops_sample_from_original_scene(self) -> None:
+        """Later crops must sample the original un-annotated scene.
+
+        box1 is pasted into the region that box2 crops from. Without the
+        source_scene = scene.copy() fix, box2 reads box1's paste value
+        instead of the original pixel — the aliasing regression.
+        """
+        # Arrange: two distinct pixel bands; box1's paste region overlaps box2's crop
+        scene = np.full((80, 80, 3), 50, dtype=np.uint8)
+        scene[0:20, 0:20] = 10  # band A — box1 crops here (value 10)
+        scene[20:40, 20:40] = 200  # band B — box2 crops here; box1 pastes here
+
+        detections = _create_detections(
+            xyxy=[[0, 0, 20, 20], [20, 20, 40, 40]], class_id=[0, 1]
+        )
+        # BOTTOM_RIGHT: each crop is pasted at its (x2, y2) corner.
+        # box1 pastes band A (value 10) at rows 20-39, cols 20-39 — exactly
+        # where box2 will crop.
+        annotator = CropAnnotator(
+            position=Position.BOTTOM_RIGHT,
+            scale_factor=1.0,
+        )
+
+        # Act
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+
+        # Assert: box2's crop is pasted at rows 40-59, cols 40-59.
+        # Interior (rows 42-57, cols 42-57) avoids the 2-pixel default border
+        # and must equal 200 — the original band B value. Without the fix,
+        # box2 samples 10 from the painted scene instead of 200 from original.
+        interior = result[42:58, 42:58]
+        assert np.all(interior == 200), (
+            f"box2 crop paste region should contain original pixel 200, "
+            f"got {np.unique(interior).tolist()!r}. "
+            "Regression: source_scene must be scene.copy(), not an alias."
+        )
+
 
 class TestIconAnnotator:
     """Tests for IconAnnotator class"""

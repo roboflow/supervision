@@ -734,3 +734,8 @@ class TestFromLMMEndToEnd:
             )
 
         assert len(det) == 0
+
+
+def test_lmm_values_are_subset_of_vlm_values() -> None:
+    """Every LMM value exists in VLM — required for VLM(lmm.value) to succeed."""
+    assert {m.value for m in LMM} <= {m.value for m in VLM}

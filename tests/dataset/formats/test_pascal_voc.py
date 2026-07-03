@@ -6,12 +6,14 @@ import numpy as np
 import pytest
 from defusedxml import ElementTree
 
+from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
     object_to_pascal_voc,
     parse_polygon_points,
+    save_pascal_voc_annotations,
 )
 from tests.helpers import _create_detections
 
@@ -300,3 +302,60 @@ class TestLoadPascalVocDeterministicClasses:
         assert {p: d.class_id.tolist() for p, d in first[2].items()} == {
             p: d.class_id.tolist() for p, d in second[2].items()
         }
+
+
+class TestSavePascalVocAnnotations:
+    """save_pascal_voc_annotations: filesystem output contract."""
+
+    def test_empty_dataset_creates_directory_and_no_xml_files(
+        self, tmp_path: Path
+    ) -> None:
+        """Empty dataset produces no XML files; output directory is created."""
+        dataset = DetectionDataset(classes=[], images=[], annotations={})
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        assert out_dir.is_dir()
+        assert list(out_dir.glob("*.xml")) == []
+
+    def test_zero_detection_image_writes_xml_without_object_elements(
+        self, tmp_path: Path
+    ) -> None:
+        """Image with no detections produces one XML file with no object elements."""
+        from supervision.detection.core import Detections
+
+        img_path = tmp_path / "img.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        xml_files = list(out_dir.glob("*.xml"))
+        assert len(xml_files) == 1
+        tree = ElementTree.parse(str(xml_files[0]))
+        assert tree.findall("object") == []
+
+    def test_show_progress_true_is_accepted_without_error(self, tmp_path: Path) -> None:
+        """show_progress=True is accepted by the function without raising."""
+        from supervision.detection.core import Detections
+
+        img_path = tmp_path / "img.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir), show_progress=True)
+
+        assert out_dir.is_dir()
