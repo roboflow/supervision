@@ -388,8 +388,34 @@ def save_pascal_voc_annotations(
 ) -> None:
     """Write Pascal VOC XML annotation files for every image in *dataset*.
 
+    Args:
+        dataset: Dataset whose annotations are saved.
+        annotations_directory_path: Destination directory for ``.xml`` files;
+            created automatically if it does not exist.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area. Detections below this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``0.0`` keeps all detections.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area. Detections above this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``1.0`` keeps all detections.
+        approximation_percentage: Fraction of polygon vertices to remove when
+            approximating instance masks as polygons. Range ``[0, 1)``. Default
+            ``0.75`` applies aggressive simplification.
+        show_progress: If ``True``, display a tqdm progress bar while writing
+            annotation files. Default ``False``.
+
     Raises:
         ValueError: If two image paths map to the same ``.xml`` output name.
+
+    Examples:
+        >>> import tempfile
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.formats.pascal_voc import (
+        ...     save_pascal_voc_annotations,
+        ... )
+        >>> dataset = DetectionDataset(classes=[], images={}, annotations={})
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     save_pascal_voc_annotations(dataset, tmpdir)
     """
     from supervision.dataset.utils import check_no_basename_collisions
 

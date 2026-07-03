@@ -1438,8 +1438,10 @@ class MeanAveragePrecision:
                     )
                 )
             else:
-                # Predictions on a ground-truth-empty (background) image are all
-                # false positives; record them so precision/AP is penalized.
+                # Background image: no GT boxes, so all predictions are FP matches.
+                # This lowers AP for classes that appear in at least one GT image
+                # elsewhere; classes absent from all GT images are excluded from AP
+                # (they never appear in true_class_ids and are skipped by the AP loop).
                 stats.append(
                     (
                         np.zeros(
