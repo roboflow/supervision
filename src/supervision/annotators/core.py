@@ -3019,17 +3019,21 @@ class CropAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        crops = [
-            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
-        ]
-        resized_crops = [
-            scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
-        ]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
+        ).astype(int)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
         ).astype(int)
 
-        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
+        for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
+            x_min, y_min, x_max, y_max = xyxy
+            if x_max - x_min <= 0 or y_max - y_min <= 0:
+                continue
+            crop = crop_image(image=scene, xyxy=xyxy)
+            resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
