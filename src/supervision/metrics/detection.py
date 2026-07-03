@@ -1364,9 +1364,13 @@ class MeanAveragePrecision:
             targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the
                 number of ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                `(x_min, y_min, x_max, y_max, class)` format. An empty array
+                (``N = 0``) represents a background image; all predictions on
+                that image count as false positives and reduce AP accordingly.
+
         Returns:
-            New instance of MeanAveragePrecision.
+            MeanAveragePrecision: New instance computed from the provided
+                predictions and targets.
 
         Examples:
             ```pycon
@@ -1392,6 +1396,15 @@ class MeanAveragePrecision:
             ... )
             >>> round(float(mAP.map50), 2)
             0.81
+
+            >>> bg_pred = [np.array([[0., 0., 10., 10., 0, 0.9]], dtype=np.float32)]
+            >>> bg_tgt = [np.zeros((0, 5), dtype=np.float32)]
+            >>> mAP_bg = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=bg_pred,
+            ...     targets=bg_tgt,
+            ... )
+            >>> float(mAP_bg.map50)
+            0.0
 
             ```
         """

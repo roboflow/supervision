@@ -1634,7 +1634,7 @@ class TestDetectionMetrics:
 
 
 class TestMeanAveragePrecisionBackgroundFalsePositives:
-    """Legacy `from_tensors` must penalize predictions on ground-truth-empty images."""
+    """MeanAveragePrecision.from_tensors penalizes predictions on GT-empty images."""
 
     def test_background_false_positives_lower_map(self) -> None:
         """False positives on a GT-empty image drop map50 below the FP-free baseline."""
