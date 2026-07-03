@@ -383,3 +383,88 @@ class TestDetectionDatasetInMemoryImages:
         ds_b = self._build_dataset({"img1.jpg": _create_image(fill_value=2)})
 
         assert ds_a != ds_b
+
+
+class TestDetectionDatasetExportCollisions:
+    """Regression tests for the basename-collision guard on export (DAT-04)."""
+
+    def test_as_yolo_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images from different directories must not overwrite."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.png", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_yolo(images_directory_path=str(tmp_path / "images"))
+
+    def test_as_yolo_raises_on_same_stem_annotations(self, tmp_path: Path) -> None:
+        """Same-stem images must not overwrite annotations."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to YOLO annotation file"):
+            dataset.as_yolo(
+                images_directory_path=str(tmp_path / "images"),
+                annotations_directory_path=str(tmp_path / "labels"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images must not overwrite image files on export."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.jpg"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(tmp_path / "images"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_stem_annotations(
+        self, tmp_path: Path
+    ) -> None:
+        """Same-stem images must not overwrite annotations."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                annotations_directory_path=str(tmp_path / "annotations"),
+            )

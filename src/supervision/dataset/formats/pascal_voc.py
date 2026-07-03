@@ -184,8 +184,7 @@ def load_pascal_voc_annotations(
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
-    Loads PASCAL VOC XML annotations and returns the image name,
-        a Detections instance, and a list of class names.
+    Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.
@@ -196,17 +195,17 @@ def load_pascal_voc_annotations(
         show_progress: If True, display a progress bar during loading.
 
     Returns:
-        A tuple with a list
-            of class names, a list of paths to images, and a dictionary with image
-            paths as keys and corresponding Detections instances as values.
+        A tuple with a list of class names, a sorted list of paths to images,
+            and a dictionary with image paths as keys and corresponding
+            Detections instances as values.
     """
 
-    image_paths = [
+    image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
         )
-    ]
+    )
 
     classes: list[str] = []
     annotations = {}
@@ -270,6 +269,14 @@ def detections_from_xml_obj(
         </object>
     </annotation>
 
+    Args:
+        root: Parsed Pascal VOC ``<annotation>`` XML element.
+        classes: Existing class names used to assign stable class ids.
+        resolution_wh: Image resolution as ``(width, height)`` for mask
+            rasterization.
+        force_masks: If True, returns a mask array for every object even when
+            no ``<polygon>`` element is present.
+
     Returns:
         A tuple containing a Detections object and an
             updated list of class names, extended with the class names
@@ -322,7 +329,7 @@ def detections_from_xml_obj(
     # https://github.com/roboflow/supervision/issues/144
     xyxy_arr -= 1
 
-    for k in set(class_names):
+    for k in sorted(set(class_names)):
         if k not in extended_classes:
             extended_classes.append(k)
     class_id = np.array(

@@ -1,5 +1,7 @@
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 from defusedxml import ElementTree
@@ -7,6 +9,7 @@ from defusedxml import ElementTree
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
     detections_to_pascal_voc,
+    load_pascal_voc_annotations,
     object_to_pascal_voc,
     parse_polygon_points,
 )
@@ -242,3 +245,58 @@ def test_detections_from_xml_obj_mixed_polygon_and_bbox_masks_aligned(
     assert detections.mask.shape == (2, 30, 30)
     assert detections.mask[0].any()
     assert not detections.mask[1].any()
+
+
+def _write_voc_sample(
+    images_dir: Path, annotations_dir: Path, stem: str, class_names: list[str]
+) -> None:
+    """Write one VOC image plus its bbox-only XML annotation to disk."""
+    cv2.imwrite(str(images_dir / f"{stem}.png"), np.zeros((20, 20, 3), dtype=np.uint8))
+    objects = "".join(
+        f"<object><name>{name}</name><bndbox><xmin>1</xmin><ymin>1</ymin>"
+        f"<xmax>10</xmax><ymax>10</ymax></bndbox></object>"
+        for name in class_names
+    )
+    (annotations_dir / f"{stem}.xml").write_text(f"<annotation>{objects}</annotation>")
+
+
+class TestLoadPascalVocDeterministicClasses:
+    """Regression tests for deterministic VOC class ordering (DAT-03)."""
+
+    def test_classes_sorted_within_file(self, tmp_path: Path) -> None:
+        """Class names from one file are assigned ids in sorted, stable order."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "img", ["zebra", "ant", "mango"])
+
+        classes, _, _ = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert classes == sorted(classes) == ["ant", "mango", "zebra"]
+
+    def test_repeated_loads_give_identical_class_ids(self, tmp_path: Path) -> None:
+        """Two loads of the same multi-file VOC set produce identical class ids."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "a_img", ["zebra"])
+        _write_voc_sample(images_dir, annotations_dir, "b_img", ["ant", "mango"])
+
+        first = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+        second = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert first[0] == second[0]
+        assert {p: d.class_id.tolist() for p, d in first[2].items()} == {
+            p: d.class_id.tolist() for p, d in second[2].items()
+        }
