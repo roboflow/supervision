@@ -169,3 +169,6 @@ _resolutions/
 _reviews/
 tasks/
 *.local.md
+
+*.mp4
+*.pt

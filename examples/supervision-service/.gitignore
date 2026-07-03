@@ -1,0 +1,11 @@
+uploads/
+outputs/
+models/
+data/
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+*.pt
+webapp/node_modules/
+webapp/dist/

@@ -1,0 +1,22 @@
+[project]
+name = "supervision-api"
+version = "0.1.0"
+description = "Video analysis API powered by supervision"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "supervision",
+    "ultralytics",
+    "jsonargparse[signatures]",
+    "imageio-ffmpeg>=0.5",
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

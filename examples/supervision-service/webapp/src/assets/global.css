@@ -1,0 +1,63 @@
+:root {
+  --bg-base: #0d1014;
+  --bg-panel: #151a22;
+  --bg-elevated: #1c2330;
+  --line: rgba(245, 197, 24, 0.16);
+  --marking: #f5c518;
+  --accent: #ff6b2c;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --success: #3dd68c;
+  --danger: #ff8a80;
+  --sidebar-width: 240px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg-base);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--marking);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
