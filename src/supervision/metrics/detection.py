@@ -1364,9 +1364,13 @@ class MeanAveragePrecision:
             targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the
                 number of ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                `(x_min, y_min, x_max, y_max, class)` format. An empty array
+                (``N = 0``) represents a background image; all predictions on
+                that image count as false positives and reduce AP accordingly.
+
         Returns:
-            New instance of MeanAveragePrecision.
+            MeanAveragePrecision: New instance computed from the provided
+                predictions and targets.
 
         Examples:
             ```pycon
@@ -1392,6 +1396,15 @@ class MeanAveragePrecision:
             ... )
             >>> round(float(mAP.map50), 2)
             0.81
+
+            >>> bg_pred = [np.array([[0., 0., 10., 10., 0, 0.9]], dtype=np.float32)]
+            >>> bg_tgt = [np.zeros((0, 5), dtype=np.float32)]
+            >>> mAP_bg = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=bg_pred,
+            ...     targets=bg_tgt,
+            ... )
+            >>> float(mAP_bg.map50)
+            0.0
 
             ```
         """
@@ -1424,6 +1437,19 @@ class MeanAveragePrecision:
                         true_objs[:, 4],
                     )
                 )
+            else:
+                # Predictions on a ground-truth-empty (background) image are all
+                # false positives; record them so precision/AP is penalized.
+                stats.append(
+                    (
+                        np.zeros(
+                            (predicted_objs.shape[0], iou_thresholds.size), dtype=bool
+                        ),
+                        predicted_objs[:, 5],
+                        predicted_objs[:, 4],
+                        np.zeros((0,), dtype=np.float32),
+                    )
+                )
 
         # Compute average precisions if any matches exist
         if stats:
@@ -1434,9 +1460,19 @@ class MeanAveragePrecision:
                 cast(npt.NDArray[np.int32], concatenated_stats[2]),
                 cast(npt.NDArray[np.int32], concatenated_stats[3]),
             )
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            map50 = (
+                float(average_precisions[:, 0].mean())
+                if average_precisions.size > 0
+                else 0.0
+            )
+            map75 = (
+                float(average_precisions[:, 5].mean())
+                if average_precisions.size > 0
+                else 0.0
+            )
+            map50_95 = (
+                float(average_precisions.mean()) if average_precisions.size > 0 else 0.0
+            )
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])
