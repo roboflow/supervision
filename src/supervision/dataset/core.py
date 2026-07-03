@@ -37,8 +37,8 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.utils import (
+    _check_no_basename_collisions,
     build_class_index_mapping,
-    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -380,6 +380,20 @@ class DetectionDataset(BaseDataset):
                 in the range [0, 1). Argument is used only for segmentation datasets.
             show_progress: If True, display a progress bar during saving.
         """
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            _check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            _check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
+            )
+
         if images_directory_path:
             save_dataset_images(
                 dataset=self,
@@ -387,7 +401,7 @@ class DetectionDataset(BaseDataset):
                 show_progress=show_progress,
             )
         if annotations_directory_path:
-            check_no_basename_collisions(
+            _check_no_basename_collisions(
                 image_paths=self.image_paths,
                 key=lambda image_path: f"{Path(image_path).stem}.xml",
                 output_kind="Pascal VOC annotation",
@@ -601,6 +615,20 @@ class DetectionDataset(BaseDataset):
                 UserWarning,
                 stacklevel=2,
             )
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            _check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            _check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).stem + ".txt",
+                output_kind="YOLO annotation",
+            )
+
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self,

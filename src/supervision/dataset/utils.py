@@ -127,7 +127,7 @@ def map_detections_class_id(
     return detections_copy
 
 
-def check_no_basename_collisions(
+def _check_no_basename_collisions(
     image_paths: list[str],
     key: Callable[[str], str],
     output_kind: str,
@@ -152,8 +152,8 @@ def check_no_basename_collisions(
 
     Examples:
         >>> from pathlib import Path
-        >>> from supervision.dataset.utils import check_no_basename_collisions
-        >>> check_no_basename_collisions(
+        >>> from supervision.dataset.utils import _check_no_basename_collisions
+        >>> _check_no_basename_collisions(
         ...     ["a/img.jpg", "b/img.jpg"], lambda p: Path(p).name, "image"
         ... )
         Traceback (most recent call last):
@@ -195,7 +195,7 @@ def save_dataset_images(
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
     """
-    check_no_basename_collisions(
+    _check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: Path(image_path).name,
         output_kind="image",
@@ -233,10 +233,11 @@ def train_test_split(
         The split data.
     """
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
-    data = list(data)
-
     if shuffle:
+        data = list(data)
         rng.shuffle(data)
+    else:
+        data = list(data)  # copy to guarantee non-mutation
 
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]

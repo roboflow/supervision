@@ -7,8 +7,8 @@ import pytest
 
 from supervision import Detections
 from supervision.dataset.utils import (
+    _check_no_basename_collisions,
     build_class_index_mapping,
-    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     train_test_split,
@@ -271,7 +271,7 @@ class TestCheckNoBasenameCollisions:
     def test_raises_on_colliding_output_names(self) -> None:
         """Two source paths mapping to one output name must raise ValueError."""
         with pytest.raises(ValueError, match="both map to image file"):
-            check_no_basename_collisions(
+            _check_no_basename_collisions(
                 image_paths=["a/img.jpg", "b/img.jpg"],
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
@@ -279,7 +279,7 @@ class TestCheckNoBasenameCollisions:
 
     def test_passes_on_unique_output_names(self) -> None:
         """Distinct output names must not raise."""
-        check_no_basename_collisions(
+        _check_no_basename_collisions(
             image_paths=["a/img1.jpg", "b/img2.jpg"],
             key=lambda image_path: Path(image_path).name,
             output_kind="image",
