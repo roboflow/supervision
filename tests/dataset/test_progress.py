@@ -173,7 +173,6 @@ def pascal_voc_dataset(pascal_voc_dir: tuple[str, str]) -> DetectionDataset:
 _YOLO_TQDM = "supervision.dataset.formats.yolo.tqdm"
 _COCO_TQDM = "supervision.dataset.formats.coco.tqdm"
 _PASCAL_TQDM = "supervision.dataset.formats.pascal_voc.tqdm"
-_CORE_TQDM = "supervision.dataset.core.tqdm"
 _UTILS_TQDM = "supervision.dataset.utils.tqdm"
 
 

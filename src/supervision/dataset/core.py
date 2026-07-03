@@ -387,18 +387,11 @@ class DetectionDataset(BaseDataset):
                 output file to overwrite another. Rename images to ensure
                 unique basenames before exporting a merged dataset.
         """
-        # Pre-flight: validate output uniqueness before writing any file
         if images_directory_path:
             check_no_basename_collisions(
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
-            )
-        if annotations_directory_path:
-            check_no_basename_collisions(
-                image_paths=self.image_paths,
-                key=lambda image_path: f"{Path(image_path).stem}.xml",
-                output_kind="Pascal VOC annotation",
             )
 
         if images_directory_path:

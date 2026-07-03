@@ -15,6 +15,7 @@ from tqdm.auto import tqdm
 
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
+    check_no_basename_collisions,
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
@@ -417,7 +418,6 @@ def save_pascal_voc_annotations(
         >>> with tempfile.TemporaryDirectory() as tmpdir:
         ...     save_pascal_voc_annotations(dataset, tmpdir)
     """
-    from supervision.dataset.utils import check_no_basename_collisions
 
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
