@@ -1461,6 +1461,31 @@ class TestBackgroundOverlayAnnotator:
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
 
+    @pytest.mark.parametrize(
+        ("xyxy", "inside_xy", "outside_xy"),
+        [
+            pytest.param([-5, 20, 40, 60], (20, 30), (60, 80), id="crosses-left-edge"),
+            pytest.param([20, -5, 60, 40], (30, 20), (80, 60), id="crosses-top-edge"),
+            pytest.param(
+                [-10, -10, 40, 40], (20, 20), (70, 70), id="crosses-both-edges"
+            ),
+        ],
+    )
+    def test_annotate_preserves_detection_crossing_scene_border(
+        self, xyxy: list[int], inside_xy: tuple[int, int], outside_xy: tuple[int, int]
+    ) -> None:
+        """The visible part of a box crossing the border keeps original pixels"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[xyxy])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        x_in, y_in = inside_xy
+        x_out, y_out = outside_xy
+        assert np.array_equal(result[y_in, x_in], np.array([200, 200, 200]))
+        assert not np.array_equal(result[y_out, x_out], np.array([200, 200, 200]))
+
     def test_annotate_uint8_mask_matches_bool_mask(self):
         """Test that uint8 and bool masks produce identical overlays."""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
