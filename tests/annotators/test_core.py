@@ -1486,6 +1486,31 @@ class TestBackgroundOverlayAnnotator:
         assert np.array_equal(result[y_in, x_in], np.array([200, 200, 200]))
         assert not np.array_equal(result[y_out, x_out], np.array([200, 200, 200]))
 
+    def test_annotate_force_box_preserves_detection_crossing_scene_border(self):
+        """force_box with a border-crossing box keeps the visible detection region"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[20:60, 0:40] = True
+        detections = _create_detections(xyxy=[[-5, 20, 40, 60]], mask=[mask])
+        annotator = BackgroundOverlayAnnotator(
+            color=Color.BLACK, opacity=0.5, force_box=True
+        )
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.array_equal(result[30, 20], np.array([200, 200, 200]))
+        assert not np.array_equal(result[80, 60], np.array([200, 200, 200]))
+
+    def test_annotate_with_fully_out_of_bounds_detection(self):
+        """A box fully outside the scene leaves the whole scene tinted"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[150, 150, 200, 200]])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert not np.any(np.all(result == [200, 200, 200], axis=-1))
+
     def test_annotate_uint8_mask_matches_bool_mask(self):
         """Test that uint8 and bool masks produce identical overlays."""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
