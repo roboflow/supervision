@@ -2373,10 +2373,9 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask_bool = np.repeat((heat_mask > 0)[:, :, np.newaxis], 3, axis=2)
-        scene[mask_bool] = cv2.addWeighted(
-            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
-        )[mask_bool]
+        mask2d = heat_mask > 0
+        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
@@ -3023,10 +3022,10 @@ class CropAnnotator(BaseAnnotator):
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
-        ).astype(int)
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
 
         for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
             crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
