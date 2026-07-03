@@ -3703,6 +3703,9 @@
 </div>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.CropAnnotator.annotate</code> no longer raises <code>cv2.error</code> when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.HeatMapAnnotator.annotate</code> no longer blanks the hottest region when the per-pixel hit count exceeds 255; the heat mask is now derived from the float32 accumulator directly, avoiding uint8 wrap-around.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.get_video_frames_generator</code> now releases the underlying <code>cv2.VideoCapture</code> via <code>try/finally</code>, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2382">#2382</a>: <code>sv.Detections.get_anchors_coordinates</code> now uses oriented bounding box corners (<code>data["xyxyxyxy"]</code>) when OBB data is present, instead of falling back to the axis-aligned envelope. Anchors on rotated detections now lie on the oriented body rather than drifting to the envelope. Non-OBB detections and <code>Position.CENTER_OF_MASS</code> (which requires a mask) are unaffected.</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
@@ -5716,7 +5719,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 1, 2026 22:04:26 UTC">July 1, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 3, 2026 09:03:45 UTC">July 3, 2026</span>
   </span>
 
     
@@ -5744,9 +5747,9 @@
     
     <nav>
       
-        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5754,9 +5757,9 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
         </a>
       
         <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
