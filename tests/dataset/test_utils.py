@@ -268,6 +268,22 @@ class TestTrainTestSplitRngIsolation:
 class TestCheckNoBasenameCollisions:
     """Regression tests for export basename collision detection (DAT-04)."""
 
+    def test_empty_list_does_not_raise(self) -> None:
+        """Empty image_paths must not raise."""
+        _check_no_basename_collisions(
+            image_paths=[],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_single_path_does_not_raise(self) -> None:
+        """Single image path cannot collide; must not raise."""
+        _check_no_basename_collisions(
+            image_paths=["a/img.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
     def test_raises_on_colliding_output_names(self) -> None:
         """Two source paths mapping to one output name must raise ValueError."""
         with pytest.raises(ValueError, match="both map to image file"):
