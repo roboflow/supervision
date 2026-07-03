@@ -184,8 +184,7 @@ def load_pascal_voc_annotations(
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
-    Loads PASCAL VOC XML annotations and returns the image name,
-        a Detections instance, and a list of class names.
+    Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.
@@ -196,9 +195,9 @@ def load_pascal_voc_annotations(
         show_progress: If True, display a progress bar during loading.
 
     Returns:
-        A tuple with a list
-            of class names, a list of paths to images, and a dictionary with image
-            paths as keys and corresponding Detections instances as values.
+        A tuple with a list of class names, a sorted list of paths to images,
+            and a dictionary with image paths as keys and corresponding
+            Detections instances as values.
     """
 
     image_paths = sorted(
@@ -269,6 +268,14 @@ def detections_from_xml_obj(
             </polygon>
         </object>
     </annotation>
+
+    Args:
+        root: Parsed Pascal VOC ``<annotation>`` XML element.
+        classes: Existing class names used to assign stable class ids.
+        resolution_wh: Image resolution as ``(width, height)`` for mask
+            rasterization.
+        force_masks: If True, returns a mask array for every object even when
+            no ``<polygon>`` element is present.
 
     Returns:
         A tuple containing a Detections object and an

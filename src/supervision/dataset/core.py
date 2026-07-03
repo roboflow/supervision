@@ -182,7 +182,7 @@ class DetectionDataset(BaseDataset):
     ) -> tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
-            using the provided split_ratio.
+            using the provided split_ratio. The input dataset is not mutated.
 
         Args:
             split_ratio: The ratio of the training
@@ -379,6 +379,13 @@ class DetectionDataset(BaseDataset):
                 polygon points to be removed from the input polygon,
                 in the range [0, 1). Argument is used only for segmentation datasets.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same stem (when
+                annotations_directory_path is set), which would cause one
+                output file to overwrite another. Rename images to ensure
+                unique basenames before exporting a merged dataset.
         """
         # Pre-flight: validate output uniqueness before writing any file
         if images_directory_path:
@@ -600,6 +607,12 @@ class DetectionDataset(BaseDataset):
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same annotation
+                file name (when annotations_directory_path is set),
+                which would cause one output file to overwrite another.
         """
         if is_obb and (
             min_image_area_percentage != 0.0
