@@ -1,0 +1,171 @@
+name: Docs/Build and Publish
+
+# Deploy matrix:
+#   push develop      -> mike deploy develop
+#   push release/latest -> mike deploy latest
+#   release published -> mike deploy <tag> only; does not move /latest/
+
+on:
+  push:
+    branches:
+      - develop
+      - release/latest
+  workflow_dispatch:
+  release:
+    types: [published]
+
+# Ensure only one concurrent deployment
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref}}
+  cancel-in-progress: true
+
+# Restrict permissions by default
+permissions:
+  contents: write # Required for committing to gh-pages
+  pages: write # Required for deploying to Pages
+  pull-requests: write # Required for PR comments
+
+jobs:
+  docs-build-deploy:
+    name: Publish Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Install uv and set Python
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          python-version: "3.10"
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: uv sync --frozen --group docs
+
+      - name: ⚙️ Configure git for github-actions
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: 🚀 Deploy Development Docs
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mike deploy --push develop
+
+      - name: 🚀 Deploy Latest Docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release/latest'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if mike list | grep -Eq '^latest(\s|$)'; then mike delete latest; fi
+          mike deploy --push latest
+
+      - name: 🏷️ Determine release deployment metadata
+        id: release_metadata
+        run: |
+          is_rc=false
+          release_tag=""
+          if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            release_tag="${GITHUB_REF_NAME#v}"
+            release_tag="${release_tag%.post*}"
+            release_tag_lower="${release_tag,,}"
+            # Match RC suffixes with separators (1.0-rc1, 1.0.rc1) or compact form (1.0rc1).
+            if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
+              is_rc=true
+            fi
+          fi
+          echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Deploy Release Docs
+        if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+
+      # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
+      # This key must stay in sync across three files:
+      #   docs/0d5d9799b1cc4a39825146388c6781eb.txt  (key file served at site root)
+      #   docs/theme/main.html                        (indexnow-key meta tag)
+      #   this workflow                               (inject step + notify step below)
+      # Bing/Yandex fetch https://supervision.roboflow.com/<key>.txt to verify ownership.
+      # Do NOT rename or delete the .txt file or change the key string without updating all three.
+      - name: 🌐 Inject GEO root files into gh-pages
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/release/latest') ||
+          (github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true')
+        run: |
+          cp docs/robots.txt /tmp/robots.txt
+          cp docs/llms.txt /tmp/llms.txt
+          cp docs/llms.full.txt /tmp/llms.full.txt
+          cp docs/llms-100k.txt /tmp/llms-100k.txt
+          cp docs/_headers /tmp/headers.txt
+          cp docs/0d5d9799b1cc4a39825146388c6781eb.txt /tmp/indexnow.txt
+          if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
+            version_dir="latest"
+          else
+            version_dir=""
+          fi
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp /tmp/robots.txt robots.txt
+          cp /tmp/llms.txt llms.txt
+          cp /tmp/llms.full.txt llms.full.txt
+          cp /tmp/llms-100k.txt llms-100k.txt
+          cp /tmp/headers.txt _headers
+          cp /tmp/indexnow.txt 0d5d9799b1cc4a39825146388c6781eb.txt
+          if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
+            cp "$version_dir/sitemap.xml" sitemap.xml
+            gzip -9 -c sitemap.xml > sitemap.xml.gz
+          fi
+          files_to_add=(
+            robots.txt
+            llms.txt
+            llms.full.txt
+            llms-100k.txt
+            _headers
+            0d5d9799b1cc4a39825146388c6781eb.txt
+          )
+          if [[ -f "sitemap.xml" ]]; then
+            files_to_add+=(sitemap.xml)
+          fi
+          if [[ -f "sitemap.xml.gz" ]]; then
+            files_to_add+=(sitemap.xml.gz)
+          fi
+          git add "${files_to_add[@]}"
+          git diff --cached --quiet || git commit -m "chore: update GEO root files"
+          git push origin gh-pages
+
+      - name: 📡 Notify IndexNow
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/release/latest')
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/IndexNow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d '{
+              "host": "supervision.roboflow.com",
+              "key": "0d5d9799b1cc4a39825146388c6781eb",
+              "keyLocation": "https://supervision.roboflow.com/0d5d9799b1cc4a39825146388c6781eb.txt",
+              "urlList": [
+                "https://supervision.roboflow.com/",
+                "https://supervision.roboflow.com/latest/",
+                "https://supervision.roboflow.com/latest/how_to/detect_and_annotate/",
+                "https://supervision.roboflow.com/latest/how_to/track_objects/",
+                "https://supervision.roboflow.com/latest/how_to/detect_small_objects/",
+                "https://supervision.roboflow.com/latest/how_to/filter_detections/",
+                "https://supervision.roboflow.com/latest/how_to/save_detections/",
+                "https://supervision.roboflow.com/latest/how_to/count_in_zone/",
+                "https://supervision.roboflow.com/latest/how_to/benchmark_a_model/",
+                "https://supervision.roboflow.com/latest/how_to/process_datasets/"
+              ]
+            }' || true

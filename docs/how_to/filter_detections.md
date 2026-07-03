@@ -1,14 +1,16 @@
 ---
 comments: true
+description: Filter and query detection results by class, confidence, or spatial overlap using supervision's Detections API — clean predictions in one line.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 # Filter Detections
 
-The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down
-and refine object detections. This section outlines various filtering methods, including filtering by specific class
-or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones.
-Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement
-the filters in their applications.
+The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down and refine object detections. This section outlines various filtering methods, including filtering by specific class or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones. Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement the filters in their applications.
 
 ### by specific class
 
@@ -118,8 +120,7 @@ Allows you to select detections with specific confidence value, for example high
 
 ### by area
 
-Allows you to select detections based on their size. We define the area as the number of pixels occupied by the
-detection in the image. In the example below, we have sifted out the detections that are too small.
+Allows you to select detections based on their size. We define the area as the number of pixels occupied by the detection in the image. In the example below, we have sifted out the detections that are too small.
 
 === "After"
 
@@ -153,10 +154,7 @@ detection in the image. In the example below, we have sifted out the detections 
 
 ### by relative area
 
-Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of
-detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image
-but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area
-occupied by them. In the example below, we remove too large detections.
+Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area occupied by them. In the example below, we remove too large detections.
 
 === "After"
 
@@ -198,9 +196,7 @@ occupied by them. In the example below, we remove too large detections.
 
 ### by box dimensions
 
-Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates,
-can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively
-simple and fast.
+Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates, can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively simple and fast.
 
 === "After"
 
@@ -238,8 +234,7 @@ simple and fast.
 
 ### by `PolygonZone`
 
-Allows you to use `Detections` in combination with `PolygonZone` to weed out bounding boxes that are in and out of the
-zone. In the example below you can see how to filter out all detections located in the lower part of the image.
+Allows you to use `Detections` in combination with `PolygonZone` to weed out bounding boxes that are in and out of the zone. In the example below you can see how to filter out all detections located in the lower part of the image.
 
 === "After"
 
@@ -312,3 +307,29 @@ zone. In the example below you can see how to filter out all detections located 
     ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
     </div>
+
+## Frequently Asked Questions
+
+### How do I filter detections by class in supervision?
+
+Use NumPy-style boolean indexing: `detections[detections.class_id == 0]` for class 0. Combine with `&` or `|` for multiple conditions.
+
+### How do I filter by confidence threshold?
+
+`detections[detections.confidence > 0.5]` returns only detections above the threshold. Chain with class filters for precise results.
+
+### How do I filter by bounding box area?
+
+`detections[detections.area > 1000]` filters by pixel area. If masks are present, `detections.area` uses mask area; otherwise it uses bounding box area from `xyxy`. Use `detections.box_area` when you specifically need bounding box area.
+
+### Can I filter by box aspect ratio or dimensions?
+
+Yes. Use `detections.box_aspect_ratio` for aspect ratio filtering. If you need explicit box dimensions, compute them from `detections.xyxy` as `width = detections.xyxy[:, 2] - detections.xyxy[:, 0]` and `height = detections.xyxy[:, 3] - detections.xyxy[:, 1]`.
+
+### How do I remove duplicate detections (NMS) from my results?
+
+Use `detections.with_nms(threshold=0.5)` — it applies non-maximum suppression on the `xyxy` boxes.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

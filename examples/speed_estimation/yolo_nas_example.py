@@ -1,4 +1,3 @@
-import argparse
 from collections import defaultdict, deque
 
 import cv2
@@ -38,50 +37,33 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
-def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Vehicle Speed Estimation using YOLO-NAS and Supervision"
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        required=True,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
-    )
+def main(
+    source_video_path: str,
+    target_video_path: str,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+) -> None:
+    """
+    Vehicle Speed Estimation using YOLO-NAS and Supervision.
 
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = parse_arguments()
-
-    video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
+    Args:
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
+    video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_thresh=args.confidence_threshold
+        frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
-    thickness = sv.calculate_dynamic_line_thickness(
+    thickness = sv.calculate_optimal_line_thickness(
         resolution_wh=video_info.resolution_wh
     )
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=video_info.resolution_wh)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh=video_info.resolution_wh)
+    box_annotator = sv.BoxAnnotator(thickness=thickness)
     label_annotator = sv.LabelAnnotator(
         text_scale=text_scale,
         text_thickness=thickness,
@@ -89,25 +71,24 @@ if __name__ == "__main__":
     )
     trace_annotator = sv.TraceAnnotator(
         thickness=thickness,
-        trace_length=video_info.fps * 2,
+        trace_length=int(video_info.fps * 2),
         position=sv.Position.BOTTOM_CENTER,
     )
 
-    frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
+    frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
 
-    polygon_zone = sv.PolygonZone(
-        polygon=SOURCE, frame_resolution_wh=video_info.resolution_wh
-    )
+    polygon_zone = sv.PolygonZone(polygon=SOURCE)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
-    coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
+    coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
-    with sv.VideoSink(args.target_video_path, video_info) as sink:
+    with sv.VideoSink(target_video_path, video_info) as sink:
         for frame in frame_generator:
-            result = model.predict(frame)[0]
+            result = model.predict(frame, conf=confidence_threshold, iou=iou_threshold)[
+                0
+            ]
             detections = sv.Detections.from_yolo_nas(result)
             detections = detections[polygon_zone.trigger(detections)]
-            detections = detections.with_nms(threshold=args.iou_threshold)
             detections = byte_track.update_with_detections(detections=detections)
 
             points = detections.get_anchors_coordinates(
@@ -134,7 +115,7 @@ if __name__ == "__main__":
             annotated_frame = trace_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
-            annotated_frame = bounding_box_annotator.annotate(
+            annotated_frame = box_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
             annotated_frame = label_annotator.annotate(
@@ -146,3 +127,10 @@ if __name__ == "__main__":
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
         cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

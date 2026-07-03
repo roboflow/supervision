@@ -1,0 +1,190 @@
+import functools
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
+
+import cv2
+import numpy as np
+import numpy.typing as npt
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from PIL import Image
+
+from supervision.draw.base import ImageType
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def ensure_cv2_image_for_class_method(
+    annotate_func: F,
+) -> F:
+    """
+    Decorates `BaseAnnotator.annotate` implementations, converts scene to
+    an image type used internally by the annotators, converts back when annotation
+    is complete.
+
+    Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+    """
+
+    @functools.wraps(annotate_func)
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(scene, np.ndarray):
+            return annotate_func(self, scene, *args, **kwargs)
+
+        if isinstance(scene, Image.Image):
+            scene_np = pillow_to_cv2(scene)
+            annotated_np = annotate_func(self, scene_np, *args, **kwargs)
+            scene.paste(cv2_to_pillow(annotated_np))
+            return scene
+
+        raise TypeError(f"Unsupported image type: {type(scene)}")
+
+    return cast(F, wrapper)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=ensure_cv2_image_for_class_method,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def ensure_cv2_image_for_annotation(
+    annotate_func: F,
+) -> F:
+    return cast(F, void(annotate_func))
+
+
+def ensure_cv2_image_for_standalone_function(
+    image_processing_fun: F,
+) -> F:
+    """
+    Decorates image processing functions that accept np.ndarray, converting `image` to
+    np.ndarray, converts back when processing is complete.
+
+    Assumes the annotators do NOT modify the scene in-place.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+    """
+
+    @functools.wraps(image_processing_fun)
+    def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(image, np.ndarray):
+            return image_processing_fun(image, *args, **kwargs)
+
+        if isinstance(image, Image.Image):
+            scene = pillow_to_cv2(image)
+            annotated = image_processing_fun(scene, *args, **kwargs)
+            return cv2_to_pillow(annotated)
+
+        raise TypeError(f"Unsupported image type: {type(image)}")
+
+    return cast(F, wrapper)
+
+
+def ensure_pil_image_for_class_method(
+    annotate_func: F,
+) -> F:
+    """
+    Decorates image processing functions that accept np.ndarray, converting `image` to
+    PIL image, converts back when processing is complete.
+
+    Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+    """
+
+    @functools.wraps(annotate_func)
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(scene, np.ndarray):
+            scene_pil = cv2_to_pillow(scene)
+            annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
+            np.copyto(scene, pillow_to_cv2(annotated_pil))
+            return scene
+
+        if isinstance(scene, Image.Image):
+            return cast(ImageType, annotate_func(self, scene, *args, **kwargs))
+
+        raise TypeError(f"Unsupported image type: {type(scene)}")
+
+    return cast(F, wrapper)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=ensure_pil_image_for_class_method,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def ensure_pil_image_for_annotation(
+    annotate_func: F,
+) -> F:
+    return cast(F, void(annotate_func))
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=ensure_cv2_image_for_standalone_function,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def ensure_cv2_image_for_processing(
+    image_processing_fun: F,
+) -> F:
+    return cast(F, void(image_processing_fun))
+
+
+def images_to_cv2(
+    images: list[npt.NDArray[np.uint8] | Image.Image],
+) -> list[npt.NDArray[np.uint8]]:
+    """
+    Converts images provided either as Pillow images or OpenCV
+    images into OpenCV format.
+
+    Args:
+        images: Images to be converted
+
+    Returns:
+        List of input images in OpenCV format
+            (with order preserved).
+
+    """
+    result: list[npt.NDArray[np.uint8]] = []
+    for image in images:
+        if isinstance(image, Image.Image):
+            result.append(pillow_to_cv2(image))
+        else:
+            result.append(image)
+    return result
+
+
+def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
+    """
+    Converts Pillow image into OpenCV image, handling RGB -> BGR
+    conversion.
+
+    Args:
+        image: Pillow image (in RGB format).
+
+    Returns:
+        Input image converted to OpenCV format.
+    """
+    scene = np.array(image)
+    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+    # cvtColor already returns uint8 here, so astype is a no-op other than the
+    # full-image copy it forces; copy=False keeps the dtype guard without it.
+    return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))
+
+
+def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
+    """
+    Converts OpenCV image into Pillow image, handling BGR -> RGB
+    conversion.
+
+    Args:
+        image: OpenCV image (in BGR format).
+
+    Returns:
+        Input image converted to Pillow format.
+    """
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(rgb_image)

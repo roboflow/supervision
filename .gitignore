@@ -153,3 +153,26 @@ Desktop.ini
 *~
 .directory
 .Trash-*
+
+# local data
+data/
+
+# Claude working scratchpad (plans, lessons, ephemeral artefacts)
+.claude/logs/
+.claude/state/
+.claude/worktrees/
+.developments/
+.plans/
+.notes/
+.reports/
+.temp/
+.tmp/
+_outputs/
+_resolutions/
+_reviews/
+tasks/
+*.local.md
+
+output/
+notebooks/
+releases/
