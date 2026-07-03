@@ -261,6 +261,10 @@ def get_video_frames_generator(
         A generator that yields the
             frames of the video.
 
+    Note:
+        The underlying `cv2.VideoCapture` is always released when the generator
+        is exhausted or closed, even if the consumer breaks out of iteration early.
+
     Examples:
         ```python
         import supervision as sv

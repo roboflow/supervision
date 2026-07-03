@@ -2996,6 +2996,12 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
+
         Examples:
             ```pycon
             >>> import numpy as np
