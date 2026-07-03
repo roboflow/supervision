@@ -1438,8 +1438,10 @@ class MeanAveragePrecision:
                     )
                 )
             else:
-                # Predictions on a ground-truth-empty (background) image are all
-                # false positives; record them so precision/AP is penalized.
+                # Background image: no GT boxes, so all predictions are FP matches.
+                # This lowers AP for classes that appear in at least one GT image
+                # elsewhere; classes absent from all GT images are excluded from AP
+                # (they never appear in true_class_ids and are skipped by the AP loop).
                 stats.append(
                     (
                         np.zeros(
@@ -1460,19 +1462,14 @@ class MeanAveragePrecision:
                 cast(npt.NDArray[np.int32], concatenated_stats[2]),
                 cast(npt.NDArray[np.int32], concatenated_stats[3]),
             )
-            map50 = (
-                float(average_precisions[:, 0].mean())
-                if average_precisions.size > 0
-                else 0.0
-            )
-            map75 = (
-                float(average_precisions[:, 5].mean())
-                if average_precisions.size > 0
-                else 0.0
-            )
-            map50_95 = (
-                float(average_precisions.mean()) if average_precisions.size > 0 else 0.0
-            )
+            if average_precisions.size == 0:
+                # All images had no ground-truth objects; FPs recorded but no class
+                # to accumulate AP over → return 0.0 rather than NaN.
+                map50, map75, map50_95 = 0.0, 0.0, 0.0
+            else:
+                map50 = float(average_precisions[:, 0].mean())
+                map75 = float(average_precisions[:, 5].mean())
+                map50_95 = float(average_precisions.mean())
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])

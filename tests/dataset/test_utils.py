@@ -7,8 +7,8 @@ import pytest
 
 from supervision import Detections
 from supervision.dataset.utils import (
-    _check_no_basename_collisions,
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     train_test_split,
@@ -268,26 +268,10 @@ class TestTrainTestSplitRngIsolation:
 class TestCheckNoBasenameCollisions:
     """Regression tests for export basename collision detection (DAT-04)."""
 
-    def test_empty_list_does_not_raise(self) -> None:
-        """Empty image_paths must not raise."""
-        _check_no_basename_collisions(
-            image_paths=[],
-            key=lambda image_path: Path(image_path).name,
-            output_kind="image",
-        )
-
-    def test_single_path_does_not_raise(self) -> None:
-        """Single image path cannot collide; must not raise."""
-        _check_no_basename_collisions(
-            image_paths=["a/img.jpg"],
-            key=lambda image_path: Path(image_path).name,
-            output_kind="image",
-        )
-
     def test_raises_on_colliding_output_names(self) -> None:
         """Two source paths mapping to one output name must raise ValueError."""
         with pytest.raises(ValueError, match="both map to image file"):
-            _check_no_basename_collisions(
+            check_no_basename_collisions(
                 image_paths=["a/img.jpg", "b/img.jpg"],
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
@@ -295,8 +279,24 @@ class TestCheckNoBasenameCollisions:
 
     def test_passes_on_unique_output_names(self) -> None:
         """Distinct output names must not raise."""
-        _check_no_basename_collisions(
+        check_no_basename_collisions(
             image_paths=["a/img1.jpg", "b/img2.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_passes_on_empty_image_paths(self) -> None:
+        """Empty list must not raise (vacuously no collision)."""
+        check_no_basename_collisions(
+            image_paths=[],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_passes_on_single_image_path(self) -> None:
+        """Single element list cannot collide with itself."""
+        check_no_basename_collisions(
+            image_paths=["dir/only.jpg"],
             key=lambda image_path: Path(image_path).name,
             output_kind="image",
         )

@@ -173,7 +173,6 @@ def pascal_voc_dataset(pascal_voc_dir: tuple[str, str]) -> DetectionDataset:
 _YOLO_TQDM = "supervision.dataset.formats.yolo.tqdm"
 _COCO_TQDM = "supervision.dataset.formats.coco.tqdm"
 _PASCAL_TQDM = "supervision.dataset.formats.pascal_voc.tqdm"
-_CORE_TQDM = "supervision.dataset.core.tqdm"
 _UTILS_TQDM = "supervision.dataset.utils.tqdm"
 
 
@@ -318,7 +317,7 @@ class TestPascalVocProgress:
         """Pascal VOC save shows progress bar when show_progress=True."""
         out = tmp_path / "output"
         with (
-            patch(_CORE_TQDM, wraps=_real_tqdm) as mock_tqdm,
+            patch(_PASCAL_TQDM, wraps=_real_tqdm) as mock_tqdm,
             patch(_UTILS_TQDM, wraps=_real_tqdm),
         ):
             pascal_voc_dataset.as_pascal_voc(
@@ -328,7 +327,7 @@ class TestPascalVocProgress:
             )
             assert mock_tqdm.call_args[1]["disable"] is False
 
-    @patch(_CORE_TQDM, wraps=_real_tqdm)
+    @patch(_PASCAL_TQDM, wraps=_real_tqdm)
     def test_as_pascal_voc_no_progress_by_default(
         self, mock_tqdm: object, pascal_voc_dataset: DetectionDataset, tmp_path: Path
     ):

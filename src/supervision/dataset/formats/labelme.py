@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
-from supervision.dataset.utils import _check_no_basename_collisions
+from supervision.dataset.utils import check_no_basename_collisions
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
     mask_to_polygons,
@@ -380,7 +380,7 @@ def save_labelme_annotations(
         )
         ```
     """
-    _check_no_basename_collisions(
+    check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: f"{Path(image_path).stem}.json",
         output_kind="LabelMe annotation",

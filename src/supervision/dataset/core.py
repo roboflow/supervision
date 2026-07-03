@@ -28,8 +28,8 @@ from supervision.dataset.formats.labelme import (
     save_labelme_annotations,
 )
 from supervision.dataset.formats.pascal_voc import (
-    detections_to_pascal_voc,
     load_pascal_voc_annotations,
+    save_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import (
     load_yolo_annotations,
@@ -37,8 +37,8 @@ from supervision.dataset.formats.yolo import (
     save_yolo_annotations,
 )
 from supervision.dataset.utils import (
-    _check_no_basename_collisions,
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -387,18 +387,11 @@ class DetectionDataset(BaseDataset):
                 output file to overwrite another. Rename images to ensure
                 unique basenames before exporting a merged dataset.
         """
-        # Pre-flight: validate output uniqueness before writing any file
         if images_directory_path:
-            _check_no_basename_collisions(
+            check_no_basename_collisions(
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
-            )
-        if annotations_directory_path:
-            _check_no_basename_collisions(
-                image_paths=self.image_paths,
-                key=lambda image_path: f"{Path(image_path).stem}.xml",
-                output_kind="Pascal VOC annotation",
             )
 
         if images_directory_path:
@@ -408,35 +401,14 @@ class DetectionDataset(BaseDataset):
                 show_progress=show_progress,
             )
         if annotations_directory_path:
-            _check_no_basename_collisions(
-                image_paths=self.image_paths,
-                key=lambda image_path: f"{Path(image_path).stem}.xml",
-                output_kind="Pascal VOC annotation",
+            save_pascal_voc_annotations(
+                dataset=self,
+                annotations_directory_path=annotations_directory_path,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+                show_progress=show_progress,
             )
-            Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-            for image_path, image, annotations in tqdm(
-                self,
-                total=len(self),
-                desc="Saving Pascal VOC annotations",
-                disable=not show_progress,
-            ):
-                annotation_name = Path(image_path).stem
-                annotations_path = os.path.join(
-                    annotations_directory_path, f"{annotation_name}.xml"
-                )
-                image_name = Path(image_path).name
-                pascal_voc_xml = detections_to_pascal_voc(
-                    detections=annotations,
-                    classes=self.classes,
-                    filename=image_name,
-                    image_shape=image.shape,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )
-
-                with open(annotations_path, "w") as f:
-                    f.write(pascal_voc_xml)
 
     @classmethod
     def from_pascal_voc(
@@ -630,13 +602,13 @@ class DetectionDataset(BaseDataset):
             )
         # Pre-flight: validate output uniqueness before writing any file
         if images_directory_path:
-            _check_no_basename_collisions(
+            check_no_basename_collisions(
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
             )
         if annotations_directory_path:
-            _check_no_basename_collisions(
+            check_no_basename_collisions(
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).stem + ".txt",
                 output_kind="YOLO annotation",

@@ -343,6 +343,17 @@ def _overlay_image(
 
     Non-deprecated internal implementation backing the public `overlay_image`.
     Kept separate so library-internal callers do not emit a deprecation warning.
+
+    Args:
+        image: Background BGR array of shape ``(H, W, 3)``. Modified in place
+            and returned.
+        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``; channel
+            4, when present, is treated as alpha.
+        anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
+            be negative (partial off-screen placement is clipped).
+
+    Returns:
+        The ``image`` array with the overlay applied.
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]

@@ -42,13 +42,8 @@ We'll use the following libraries:
 - `supervision` to evaluate the model results
 
 ```bash
-pip install roboflow supervision
-pip install git+https://github.com/roboflow/inference.git@linas/allow-latest-rc-supervision
+pip install roboflow inference "supervision[metrics]"
 ```
-
-!!! info
-
-    We're updating `inference` at the moment. Please install it as shown above.
 
 Here's how you can download a dataset:
 

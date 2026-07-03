@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ["check_no_basename_collisions", "train_test_split"]
+
 import copy
 import os
 import random
@@ -127,7 +129,7 @@ def map_detections_class_id(
     return detections_copy
 
 
-def _check_no_basename_collisions(
+def check_no_basename_collisions(
     image_paths: list[str],
     key: Callable[[str], str],
     output_kind: str,
@@ -152,24 +154,26 @@ def _check_no_basename_collisions(
 
     Examples:
         >>> from pathlib import Path
-        >>> from supervision.dataset.utils import _check_no_basename_collisions
-        >>> _check_no_basename_collisions(
+        >>> from supervision.dataset.utils import check_no_basename_collisions
+        >>> check_no_basename_collisions(
         ...     ["a/img.jpg", "b/img.jpg"], lambda p: Path(p).name, "image"
         ... )
         Traceback (most recent call last):
         ...
         ValueError: Cannot export dataset: image paths 'a/img.jpg' and ...
     """
-    seen: dict[str, str] = {}
+    seen: dict[str, tuple[str, str]] = {}  # casefold(key) → (original name, image_path)
     for image_path in image_paths:
         output_name = key(image_path)
-        if output_name in seen:
+        case_key = output_name.casefold()
+        if case_key in seen:
+            first_name, first_path = seen[case_key]
             raise ValueError(
-                f"Cannot export dataset: image paths {seen[output_name]!r} and "
-                f"{image_path!r} both map to {output_kind} file {output_name!r}. "
+                f"Cannot export dataset: image paths {first_path!r} and "
+                f"{image_path!r} both map to {output_kind} file {first_name!r}. "
                 "Ensure all image basenames are unique before exporting."
             )
-        seen[output_name] = image_path
+        seen[case_key] = (output_name, image_path)
 
 
 def save_dataset_images(
@@ -195,7 +199,7 @@ def save_dataset_images(
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
     """
-    _check_no_basename_collisions(
+    check_no_basename_collisions(
         image_paths=dataset.image_paths,
         key=lambda image_path: Path(image_path).name,
         output_kind="image",
