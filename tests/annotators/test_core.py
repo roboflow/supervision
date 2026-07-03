@@ -975,14 +975,15 @@ class TestHeatMapAnnotator:
     def test_annotate_hottest_region_survives_uint8_wrap(
         self, test_image: np.ndarray
     ) -> None:
-        """Heat count exceeding 255 must not wrap to zero and blank the region."""
+        """Heat count at 2^8=256 must not wrap uint8 to zero and blank the region."""
         annotator = HeatMapAnnotator()
         detections = _create_detections(xyxy=[[20, 20, 60, 60]])
-        result = test_image.copy()
         for _ in range(256):
             result = annotator.annotate(scene=test_image.copy(), detections=detections)
-        painted = np.count_nonzero(np.any(result != test_image, axis=2))
-        assert painted > 0
+        region_painted = np.count_nonzero(
+            np.any(result[20:60, 20:60] != test_image[20:60, 20:60], axis=2)
+        )
+        assert region_painted > 100
 
 
 class TestEllipseAnnotator:
@@ -1350,11 +1351,14 @@ class TestCropAnnotator:
         assert deprecations == []
 
     def test_annotate_with_partially_out_of_bounds_detection(self, gradient_image):
-        """A box reaching outside the scene must be clipped, not raise cv2.error."""
+        """Partially-OOB box is clipped and rendered; scene must change."""
         detections = _create_detections(xyxy=[[-10, -10, 30, 30]], class_id=[0])
-        annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
+        annotator = CropAnnotator(
+            position=Position.CENTER, border_color_lookup=ColorLookup.INDEX
+        )
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert result.shape == gradient_image.shape
+        assert not np.array_equal(gradient_image, result)
 
     def test_annotate_with_fully_out_of_bounds_detection(self, gradient_image):
         """A box fully outside the scene collapses to zero area and is skipped."""

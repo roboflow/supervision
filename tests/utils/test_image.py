@@ -173,6 +173,17 @@ def test_overlay_image_public_wrapper_delegates_to_internal() -> None:
     np.testing.assert_array_equal(result, expected)
 
 
+def test_overlay_image_emits_future_warning() -> None:
+    """Public overlay_image must still emit FutureWarning after internal refactor."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+    overlay = np.full((1, 1, 3), 255, dtype=np.uint8)
+
+    # when / then
+    with pytest.warns(FutureWarning):
+        overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+
 def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
     """RGBA overlay is cropped when anchored outside scene bounds."""
     # given
