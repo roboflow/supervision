@@ -427,9 +427,7 @@ class TestDetectionDatasetExportCollisions:
                 annotations_directory_path=str(tmp_path / "labels"),
             )
 
-    def test_as_pascal_voc_raises_on_same_basename_images(
-        self, tmp_path: Path
-    ) -> None:
+    def test_as_pascal_voc_raises_on_same_basename_images(self, tmp_path: Path) -> None:
         """Same-basename images must not overwrite image files on export."""
         dataset = DetectionDataset(
             classes=["cat"],
@@ -466,9 +464,7 @@ class TestDetectionDatasetExportCollisions:
             },
         )
 
-        with pytest.raises(
-            ValueError, match="both map to Pascal VOC annotation file"
-        ):
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
             dataset.as_pascal_voc(
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
