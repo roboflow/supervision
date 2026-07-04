@@ -518,7 +518,8 @@ def _masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
         xyxy: Optional detection boxes of shape ``(N, 4)`` in
             ``[x1, y1, x2, y2]`` format. When provided, the dense path
-            uses box union (O(N)) instead of a full pixel scan (O(N·H·W)).
+            first checks whether all true pixels fall within the box union;
+            if so the box bounds are returned without a full pixel scan.
 
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
@@ -543,10 +544,17 @@ def _masks_to_roi(
         x1, y1, x2, y2 = box_roi
         if x1 < x2 and y1 < y2:
             union = mask_array if mask_array.ndim == 2 else np.any(mask_array, axis=0)
-            outside = union.copy()
-            outside[y1:y2, x1:x2] = False
-            if union[y1:y2, x1:x2].any() and not outside.any():
+            # Return box bounds only when all true pixels fall within the box.
+            # Slice-based checks avoid allocating a full-frame copy.
+            if (
+                union[y1:y2, x1:x2].any()
+                and not union[:y1].any()
+                and not union[y2:].any()
+                and not union[y1:y2, :x1].any()
+                and not union[y1:y2, x2:].any()
+            ):
                 return box_roi
+            return _mask_to_roi(union)
     if mask_array.ndim == 2:
         union = mask_array
     else:
