@@ -14,12 +14,7 @@ date_modified: 2026-06-25
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
 ### Breaking Changes
-- `sv.JSONSink` now emits native JSON types for numeric and boolean data fields
-  instead of stringified values. Fields previously serialized as `"True"`/`"False"`,
-  `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream
-  consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use
-  strict string-typed schema validators must be updated. `sv.CSVSink` is unchanged —
-  CSV is inherently textual and still coerces values to strings ([#2400](https://github.com/roboflow/supervision/pull/2400)).
+- `sv.JSONSink` now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as `"True"`/`"False"`, `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use strict string-typed schema validators must be updated. `sv.CSVSink` is unchanged — CSV is inherently textual and still coerces values to strings ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.CropAnnotator.annotate` no longer raises `cv2.error` when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.
