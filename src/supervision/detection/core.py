@@ -2542,8 +2542,9 @@ class Detections:
             index: Row index, indices, slice, or boolean mask selecting detections.
 
         Returns:
-            A `Detections` instance containing the selected rows. Empty detections
-            are returned unchanged.
+            A new `Detections` instance containing the selected rows. Always returns
+            a fresh copy — arrays and metadata are never shared with the original,
+            even when the selection is empty or the input has zero detections.
 
         Example:
             >>> import numpy as np
@@ -2657,6 +2658,12 @@ class Detections:
                  in detections.class_id
              ]
             ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`, or if the
+                array length does not match the number of detections.
+            ValueError: If `value` has a shape incompatible with the detection
+                count (raised by `_validate_data`).
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
