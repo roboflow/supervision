@@ -817,26 +817,24 @@ def test_key_points_getitem_empty_list():
     assert len(result) == 0
 
 
-def test_key_points_as_detections_numpy_indices():
-    """selected_keypoint_indices accepts a numpy array of indices."""
+@pytest.mark.parametrize(
+    "selected_keypoint_indices",
+    [
+        pytest.param(np.array([0, 1]), id="numpy-array"),
+        pytest.param(iter([0, 1]), id="generator"),
+        pytest.param((0, 1), id="tuple"),
+    ],
+)
+def test_key_points_as_detections_index_container_types(selected_keypoint_indices):
+    """selected_keypoint_indices accepts any Iterable[int] container type."""
     key_points = _create_key_points(
         xy=[[[10, 10], [20, 20], [30, 15]]],
         class_id=[0],
     )
 
-    detections = key_points.as_detections(selected_keypoint_indices=np.array([0, 1]))
-
-    assert np.array_equal(detections.xyxy, np.array([[10, 10, 20, 20]]))
-
-
-def test_key_points_as_detections_generator_indices():
-    """selected_keypoint_indices accepts any Iterable[int], including a generator."""
-    key_points = _create_key_points(
-        xy=[[[10, 10], [20, 20], [30, 15]]],
-        class_id=[0],
+    detections = key_points.as_detections(
+        selected_keypoint_indices=selected_keypoint_indices
     )
-
-    detections = key_points.as_detections(selected_keypoint_indices=iter([0, 1]))
 
     assert np.array_equal(detections.xyxy, np.array([[10, 10, 20, 20]]))
 
@@ -854,30 +852,29 @@ def test_key_points_as_detections_empty_indices_selects_all():
     assert np.array_equal(all_selected.xyxy, empty_list_selected.xyxy)
 
 
-def test_key_points_as_detections_keeps_collinear_keypoints():
-    """A skeleton whose keypoints are collinear keeps its zero-area box."""
-    key_points = _create_key_points(
-        xy=[[[10, 20], [30, 20]]],
-        class_id=[0],
-    )
+@pytest.mark.parametrize(
+    ("xy", "expected_xyxy"),
+    [
+        pytest.param(
+            [[[10, 20], [30, 20]]],
+            np.array([[10, 20, 30, 20]]),
+            id="collinear-keypoints",
+        ),
+        pytest.param(
+            [[[15, 25]]],
+            np.array([[15, 25, 15, 25]]),
+            id="single-keypoint",
+        ),
+    ],
+)
+def test_key_points_as_detections_keeps_degenerate_skeletons(xy, expected_xyxy):
+    """A skeleton with valid keypoints keeps its box even when the area is zero."""
+    key_points = _create_key_points(xy=xy, class_id=[0])
 
     detections = key_points.as_detections()
 
     assert len(detections) == 1
-    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 20]]))
-
-
-def test_key_points_as_detections_keeps_single_keypoint():
-    """A skeleton with a single valid keypoint keeps its degenerate box."""
-    key_points = _create_key_points(
-        xy=[[[15, 25]]],
-        class_id=[0],
-    )
-
-    detections = key_points.as_detections()
-
-    assert len(detections) == 1
-    assert np.array_equal(detections.xyxy, np.array([[15, 25, 15, 25]]))
+    assert np.array_equal(detections.xyxy, expected_xyxy)
 
 
 def test_key_points_as_detections_with_data():
