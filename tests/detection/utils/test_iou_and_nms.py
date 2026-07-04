@@ -20,6 +20,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
 
 
@@ -699,7 +700,7 @@ def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
     masks[0, 0:2, 0:2] = True
     masks[1, 0:2, 0:2] = True
 
-    with pytest.warns(FutureWarning, match="positionally is deprecated"):
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
         legacy_result = mask_non_max_merge(
             predictions,
             masks,
@@ -707,7 +708,7 @@ def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
             640,
             OverlapMetric.IOU,
         )
-    with pytest.warns(FutureWarning, match="positionally is deprecated"):
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
         reordered_result = mask_non_max_merge(
             predictions,
             masks,

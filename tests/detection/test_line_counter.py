@@ -910,6 +910,9 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     )
 
     line_zone.trigger(first_detections)
+    # Trigger twice with second_detections so tracker_id=0 accumulates
+    # crossing_history_length absent frames (default=2) and is evicted.
+    line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
     assert set(line_zone.crossing_state_history) == {(1, 2)}
