@@ -73,7 +73,11 @@ from supervision.detection.vlm import (
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import _validate_detections_fields, _validate_resolution
+from supervision.validators import (
+    _validate_data,
+    _validate_detections_fields,
+    _validate_resolution,
+)
 
 
 @dataclass
@@ -336,8 +340,13 @@ class Detections:
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
             masks = cast(
-                npt.NDArray[np.bool_], extract_ultralytics_masks(ultralytics_results)
+                npt.NDArray[np.bool_] | None,
+                extract_ultralytics_masks(ultralytics_results),
             )
+            if masks is None:
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
@@ -2547,7 +2556,22 @@ class Detections:
             [[1, 1, 2, 2]]
         """
         if len(self) == 0:
-            return self
+            return Detections(
+                xyxy=self.xyxy.copy(),
+                mask=self.mask[:0] if self.mask is not None else None,
+                confidence=(
+                    self.confidence.copy() if self.confidence is not None else None
+                ),
+                class_id=self.class_id.copy() if self.class_id is not None else None,
+                tracker_id=(
+                    self.tracker_id.copy() if self.tracker_id is not None else None
+                ),
+                data={
+                    key: value.copy() if isinstance(value, np.ndarray) else list(value)
+                    for key, value in self.data.items()
+                },
+                metadata=dict(self.metadata),
+            )
         if isinstance(index, (int, np.integer)):
             index = [int(index)]
         array_index = cast(
@@ -2564,7 +2588,7 @@ class Detections:
                 self.tracker_id[array_index] if self.tracker_id is not None else None
             ),
             data=get_data_item(self.data, array_index),
-            metadata=self.metadata,
+            metadata=dict(self.metadata),
         )
 
     def __getitem__(
@@ -2643,6 +2667,7 @@ class Detections:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @property
@@ -3116,10 +3141,31 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         )
         data = winner.data
 
-    # Mask union via logical OR
+    # Mask union via logical OR. Preserve CompactMask outputs without re-cropping
+    # to the merged box, because source masks may legitimately extend outside it.
     masks = [d.mask for d in detections if d.mask is not None]
     if masks:
-        mask = np.logical_or.reduce(np.concatenate(masks, axis=0))[np.newaxis]
+        if all(isinstance(m, CompactMask) for m in masks):
+            compact_masks = cast(list[CompactMask], masks)
+            image_shape = compact_masks[0].image_shape
+            if any(m.image_shape != image_shape for m in compact_masks):
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes."
+                )
+            union_mask = np.zeros(image_shape, dtype=bool)
+            for compact_mask in compact_masks:
+                union_mask |= compact_mask.to_dense()[0]
+            image_h, image_w = image_shape
+            mask = CompactMask.from_dense(
+                masks=union_mask[np.newaxis],
+                xyxy=np.array([[0, 0, image_w - 1, image_h - 1]], dtype=np.float32),
+                image_shape=image_shape,
+            )
+        else:
+            dense_masks = [
+                m.to_dense() if isinstance(m, CompactMask) else m for m in masks
+            ]
+            mask = np.logical_or.reduce(np.concatenate(dense_masks, axis=0))[np.newaxis]
     else:
         mask = None
 

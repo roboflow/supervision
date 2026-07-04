@@ -82,6 +82,20 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
     np.testing.assert_array_equal(det.class_id, np.arange(len(results)))
 
 
+def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> None:
+    """Segmentation-only Ultralytics results without masks return empty detections."""
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=0)
+
+    det = Detections.from_ultralytics(results)
+
+    assert len(det) == 0
+    assert det.xyxy.shape == (0, 4)
+    assert det.mask is None
+    np.testing.assert_array_equal(
+        det.data[CLASS_NAME_DATA_FIELD], np.array([], dtype=str)
+    )
+
+
 @pytest.mark.parametrize(
     ("bboxes", "conf", "labels", "expected_len"),
     [

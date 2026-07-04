@@ -899,6 +899,22 @@ def test_line_zone_trigger_does_not_call_np_cross(
     assert line_zone.out_count == 1
 
 
+def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
+    """History for tracker IDs absent from the current frame is evicted."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[1], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {(1, 2)}
+
+
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
     for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:

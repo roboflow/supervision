@@ -10,7 +10,6 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.masks import resize_masks
 
 
 class OverlapFilter(Enum):
@@ -1045,8 +1044,9 @@ def mask_non_max_merge(
     predictions: npt.NDArray[np.floating],
     masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
-    mask_dimension: int = 640,
+    *args: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    mask_dimension: int = 640,
 ) -> list[list[int]]:
     """
     Perform Non-Maximum Merging (NMM) on segmentation predictions.
@@ -1061,10 +1061,10 @@ def mask_non_max_merge(
             dimensions of each mask.
         iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression.
-        mask_dimension: The dimension to which the masks should be
-            resized before computing IOU values. Defaults to 640.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
+        mask_dimension: Deprecated, no longer used. Kept for backward
+            compatibility.
 
     Returns:
         A list of groups of prediction indices. Each inner list contains
@@ -1077,43 +1077,48 @@ def mask_non_max_merge(
             range from `0` to `1`.
     """
 
-    if isinstance(masks, CompactMask):
-        # _group_overlapping_masks needs dense arrays for logical_or union merging.
-        # Note: np.asarray(masks) first materialises a full-resolution (N, H, W)
-        # dense array before downscaling with resize_masks. This reduces the size
-        # of the array used for overlap computation but does not avoid the initial
-        # full-frame materialisation, which may still be memory-intensive for very
-        # large images or object counts.
-        masks = resize_masks(np.asarray(masks), mask_dimension)
-    else:
-        masks = resize_masks(masks, mask_dimension)
-    masks_resized = masks
-
-    if predictions.shape[1] == 5:
-        return _group_overlapping_masks(
-            predictions, masks_resized, iou_threshold, overlap_metric
+    if len(args) > 2:
+        raise TypeError(
+            "mask_non_max_merge accepts at most five positional arguments. "
+            "Pass overlap_metric and mask_dimension by keyword."
         )
+    if args:
+        warnings.warn(
+            "Passing overlap_metric or mask_dimension positionally is deprecated. "
+            "Pass them by keyword instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        first = args[0]
+        if isinstance(first, OverlapMetric):
+            overlap_metric = first
+        else:
+            mask_dimension = cast(int, first)
+        if len(args) == 2:
+            second = args[1]
+            if isinstance(first, OverlapMetric):
+                mask_dimension = cast(int, second)
+            else:
+                overlap_metric = cast(OverlapMetric, second)
 
-    category_ids = predictions[:, 5]
-    merge_groups = []
-    for category_id in np.unique(category_ids):
-        curr_indices = np.where(category_ids == category_id)[0]
-        merge_class_groups = _group_overlapping_masks(
-            predictions[curr_indices],
-            masks_resized[curr_indices],
+    del mask_dimension
+
+    def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
+        if isinstance(masks, CompactMask):
+            return _group_overlapping_masks_pairwise(
+                predictions[global_indices],
+                masks[global_indices],
+                iou_threshold,
+                overlap_metric,
+            )
+        return _group_overlapping_masks(
+            predictions[global_indices],
+            masks[global_indices],
             iou_threshold,
             overlap_metric,
         )
 
-        for merge_class_group in merge_class_groups:
-            merge_groups.append(curr_indices[merge_class_group].tolist())
-
-    for merge_group in merge_groups:
-        if len(merge_group) == 0:
-            raise ValueError(
-                f"Empty group detected when non-max-merging detections: {merge_groups}"
-            )
-    return merge_groups
+    return _non_max_merge_per_category(predictions, group_within)
 
 
 def _greedy_nmm_via_iou_callback(
@@ -1145,6 +1150,28 @@ def _greedy_nmm_via_iou_callback(
         merge_groups.append(merge_group)
         order = order[~above_threshold]
     return merge_groups
+
+
+def _group_overlapping_masks_pairwise(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> list[list[int]]:
+    """Group masks by exact pairwise mask overlap without resizing masks."""
+
+    def iou_against_candidate(
+        order: npt.NDArray[np.int_], idx: int
+    ) -> npt.NDArray[np.floating]:
+        return mask_iou_batch(
+            masks[order],
+            masks[[idx]],
+            overlap_metric,
+        ).flatten()
+
+    return _greedy_nmm_via_iou_callback(
+        predictions, iou_against_candidate, iou_threshold
+    )
 
 
 def _non_max_merge_per_category(

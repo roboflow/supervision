@@ -434,6 +434,17 @@ def process_roboflow_result(
             else:
                 masks.append(mask)
             tracker_ids.append(prediction.get("tracker_id"))
+        else:
+            logger.warning(
+                "Invalid polygon prediction with fewer than 3 points; falling back "
+                "to box-only detection."
+            )
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(None)
+            tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
         np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))

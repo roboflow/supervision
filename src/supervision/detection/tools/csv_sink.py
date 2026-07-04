@@ -122,7 +122,7 @@ class CSVSink:
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
-            - np.ndarray with ndim >= 1: return value[i]
+            - np.ndarray with len equal to n: return value[i]
             - list or tuple with len equal to n: return value[i]
             - any other type: return as-is for broadcasting
 
@@ -136,7 +136,7 @@ class CSVSink:
             otherwise value unchanged.
         """
         if isinstance(value, np.ndarray):
-            return value if value.ndim == 0 else value[i]
+            return value[i] if value.ndim > 0 and len(value) == n else value
         if isinstance(value, (list, tuple)) and len(value) == n:
             return value[i]
         return value
@@ -150,9 +150,9 @@ class CSVSink:
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
-        ``custom_data``. List and tuple values in ``custom_data`` with length
-        equal to ``len(detections.xyxy)`` are sliced one element per row; all
-        other values are broadcast to every row.
+        ``custom_data``. NumPy array, list, and tuple values in
+        ``custom_data`` with length equal to ``len(detections.xyxy)`` are
+        sliced one element per row; all other values are broadcast to every row.
 
         Args:
             detections: Detection data to serialize into row dictionaries.

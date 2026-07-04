@@ -335,6 +335,27 @@ def test_select_returns_detection_subset() -> None:
     )
 
 
+def test_select_empty_returns_fresh_metadata_dict() -> None:
+    """Selecting empty detections returns a fresh metadata dictionary."""
+    detections = Detections.empty()
+    detections.metadata["source"] = "camera"
+
+    result = detections.select([])
+    result.metadata["source"] = "other"
+
+    assert detections.metadata["source"] == "camera"
+
+
+def test_setitem_rejects_data_length_mismatch() -> None:
+    """Data assignment rejects values not aligned with detections length."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 1, 1], [2, 2, 3, 3]], dtype=np.float32)
+    )
+
+    with pytest.raises(ValueError, match=r"must be \(2,\)"):
+        detections["name"] = np.array(["cat"])
+
+
 def test_get_data_returns_detection_data_value() -> None:
     """Get data returns the stored data value or None."""
     result = TEST_DET_1.get_data("some_key")
@@ -2317,6 +2338,34 @@ class TestDetectionsWithNMM:
         result = dets.with_nmm(threshold=0.5)
 
         assert len(result) == 0
+
+    def test_compact_mask_nmm_preserves_full_frame_union(self) -> None:
+        """CompactMask NMM keeps full-frame mask pixels after merging."""
+        masks = np.zeros((2, 10, 10), dtype=bool)
+        masks[0, 0, 0] = True
+        masks[0, 9, 9] = True
+        masks[1, 0, 0] = True
+        masks[1, 8, 8] = True
+        compact_mask = CompactMask.from_dense(
+            masks=masks,
+            xyxy=np.array([[0, 0, 9, 9], [0, 0, 9, 9]], dtype=np.float32),
+            image_shape=(10, 10),
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
+            mask=compact_mask,
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = detections.with_nmm(threshold=0.1)
+
+        assert len(result) == 1
+        assert isinstance(result.mask, CompactMask)
+        result_mask = result.mask.to_dense()[0]
+        assert result_mask[0, 0]
+        assert result_mask[8, 8]
+        assert result_mask[9, 9]
 
 
 class TestDetectionsArea:

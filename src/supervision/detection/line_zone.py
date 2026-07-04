@@ -170,6 +170,7 @@ class LineZone:
             )
             return crossed_in, crossed_out
 
+        self._evict_stale_crossing_history(detections.tracker_id)
         self._update_class_id_to_name(detections)
 
         in_limits, has_any_left_trigger, has_any_right_trigger = (
@@ -210,6 +211,15 @@ class LineZone:
                 crossed_out[i] = True
 
         return crossed_in, crossed_out
+
+    def _evict_stale_crossing_history(
+        self, tracker_ids: npt.NDArray[np.integer]
+    ) -> None:
+        current_tracker_ids = {int(tracker_id) for tracker_id in tracker_ids}
+        for key in list(self.crossing_state_history):
+            tracker_id, _ = key
+            if int(tracker_id) not in current_tracker_ids:
+                del self.crossing_state_history[key]
 
     @staticmethod
     def _calculate_region_of_interest_limits(vector: Vector) -> tuple[Vector, Vector]:
