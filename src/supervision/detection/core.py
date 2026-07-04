@@ -2845,7 +2845,7 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             data=self.data,
-            metadata=self.metadata,
+            metadata=dict(self.metadata),
         )
         return new
 
@@ -3160,6 +3160,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
             for compact_mask in compact_masks:
                 union_mask |= compact_mask.to_dense()[0]
             image_h, image_w = image_shape
+            # Full-frame crop is intentional: source masks may have true pixels
+            # anywhere in the frame, so a tight merged box could clip them.
             mask = CompactMask.from_dense(
                 masks=union_mask[np.newaxis],
                 xyxy=np.array([[0, 0, image_w - 1, image_h - 1]], dtype=np.float32),

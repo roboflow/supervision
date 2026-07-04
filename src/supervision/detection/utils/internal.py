@@ -313,7 +313,11 @@ def process_roboflow_result(
         where each array is aligned with the others. ``masks`` is ``None``
         when no predictions include mask data, or when only a subset do
         (mixed-modality batch) — in that case all masks are dropped to preserve
-        alignment with ``xyxy``. When ``compact_masks=True`` and masks are
+        alignment with ``xyxy``. Note: a single malformed polygon prediction
+        (fewer than 3 points) in an otherwise fully-segmented batch causes all
+        masks to be dropped from the result; the detection itself is kept as a
+        box-only entry with a ``logger.warning``. When ``compact_masks=True``
+        and masks are
         present, ``masks`` is a :class:`CompactMask`; otherwise it is a dense
         boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
         tracker ID, or when only a subset do (mixed batch) — in that case all

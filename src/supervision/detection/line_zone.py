@@ -3,7 +3,7 @@ import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
 import cv2
 import numpy as np
@@ -117,6 +117,11 @@ class LineZone:
         self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = (
             defaultdict(lambda: deque(maxlen=self.crossing_history_length))
         )
+        # Tracks consecutive frames a tracker key has been absent; eviction
+        # requires crossing_history_length absent frames so that ByteTrack
+        # coasting gaps (single-frame detection drops) don't reset mid-crossing
+        # state prematurely.
+        self._tracker_frames_absent: dict[tuple[int, int | None], int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
         self.triggering_anchors = triggering_anchors
@@ -213,13 +218,20 @@ class LineZone:
         return crossed_in, crossed_out
 
     def _evict_stale_crossing_history(
-        self, tracker_ids: npt.NDArray[np.integer]
+        self, tracker_ids: npt.NDArray[np.integer[Any]]
     ) -> None:
         current_tracker_ids = {int(tracker_id) for tracker_id in tracker_ids}
         for key in list(self.crossing_state_history):
             tracker_id, _ = key
-            if int(tracker_id) not in current_tracker_ids:
-                del self.crossing_state_history[key]
+            if int(tracker_id) in current_tracker_ids:
+                self._tracker_frames_absent.pop(key, None)
+            else:
+                absent = self._tracker_frames_absent.get(key, 0) + 1
+                if absent >= self.crossing_history_length:
+                    del self.crossing_state_history[key]
+                    self._tracker_frames_absent.pop(key, None)
+                else:
+                    self._tracker_frames_absent[key] = absent
 
     @staticmethod
     def _calculate_region_of_interest_limits(vector: Vector) -> tuple[Vector, Vector]:
