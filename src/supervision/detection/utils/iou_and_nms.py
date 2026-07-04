@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.compact_mask import CompactMask
+from supervision.utils.internal import warn_deprecated
 
 
 class OverlapFilter(Enum):
@@ -1063,8 +1064,8 @@ def mask_non_max_merge(
             to use for non-maximum suppression.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        mask_dimension: Deprecated, no longer used. Kept for backward
-            compatibility.
+        mask_dimension: Deprecated in `0.30.0`, removed in `0.33.0`. No longer
+            used; the parameter is silently ignored.
 
     Returns:
         A list of groups of prediction indices. Each inner list contains
@@ -1075,19 +1076,23 @@ def mask_non_max_merge(
     Raises:
         AssertionError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
+        TypeError: If more than five positional arguments are passed.
     """
 
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
     if len(args) > 2:
         raise TypeError(
             "mask_non_max_merge accepts at most five positional arguments. "
             "Pass overlap_metric and mask_dimension by keyword."
         )
     if args:
-        warnings.warn(
-            "Passing overlap_metric or mask_dimension positionally is deprecated. "
-            "Pass them by keyword instead.",
-            FutureWarning,
-            stacklevel=2,
+        warn_deprecated(
+            "Passing `overlap_metric` or `mask_dimension` positionally to "
+            "`mask_non_max_merge` is deprecated in `0.30.0` and will be removed "
+            "in `0.33.0`. Pass them by keyword instead."
         )
         first = args[0]
         if isinstance(first, OverlapMetric):
