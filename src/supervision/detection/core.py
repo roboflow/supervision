@@ -339,10 +339,7 @@ class Detections:
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
-            masks = cast(
-                npt.NDArray[np.bool_] | None,
-                extract_ultralytics_masks(ultralytics_results),
-            )
+            masks = extract_ultralytics_masks(ultralytics_results)
             if masks is None:
                 empty = cls.empty()
                 empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
