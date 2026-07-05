@@ -187,7 +187,7 @@ def process_transformers_v5_panoptic_segmentation_result(
     Process a v5 Transformers semantic segmentation tensor.
 
     Args:
-        segmentation_array: Segmentation array where non-zero values are class IDs.
+        segmentation_array: Segmentation array where unique values are class IDs.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -196,8 +196,7 @@ def process_transformers_v5_panoptic_segmentation_result(
         Processed segmentation result including bounding boxes, masks,
             class IDs, and data.
     """
-    class_ids = np.unique(segmentation_array)
-    class_ids = class_ids[class_ids != 0].astype(int)
+    class_ids = np.unique(segmentation_array).astype(int)
     if len(class_ids) == 0:
         masks = np.empty((0, *segmentation_array.shape), dtype=bool)
     else:

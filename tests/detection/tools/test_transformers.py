@@ -250,20 +250,20 @@ class TestProcessTransformersV5PanopticSegmentationResult:
         [
             pytest.param(
                 np.array([[0, 0, 1, 1], [0, 2, 2, 0]], dtype=np.int64),
-                np.array([1, 2]),
-                id="drops-background-zero",
+                np.array([0, 1, 2]),
+                id="preserves-class-zero",
             ),
             pytest.param(
                 np.zeros((2, 2), dtype=np.int64),
-                np.array([], dtype=int),
-                id="background-only-empty",
+                np.array([0]),
+                id="single-zero-class",
             ),
         ],
     )
-    def test_semantic_tensor_ignores_background_zero(
+    def test_semantic_tensor_preserves_class_zero(
         self, seg_array: np.ndarray, expected_class_ids: np.ndarray
     ) -> None:
-        """Bare tensor semantic maps ignore background id zero."""
+        """Bare tensor semantic maps preserve class id zero."""
         expected_count = len(expected_class_ids)
 
         out = process_transformers_v5_panoptic_segmentation_result(seg_array, None)
@@ -282,6 +282,19 @@ class TestProcessTransformersV5PanopticSegmentationResult:
 
         np.testing.assert_array_equal(
             out["data"][CLASS_NAME_DATA_FIELD], ["tree", "sky"]
+        )
+
+    def test_with_id2label_preserves_zero_class_name(self) -> None:
+        """id2label maps class id zero when it appears in a tensor map."""
+        seg_array = np.array([[0, 0], [1, 1]], dtype=np.int64)
+
+        out = process_transformers_v5_panoptic_segmentation_result(
+            seg_array, {0: "class-zero", 1: "class-one"}
+        )
+
+        np.testing.assert_array_equal(out["class_id"], [0, 1])
+        np.testing.assert_array_equal(
+            out["data"][CLASS_NAME_DATA_FIELD], ["class-zero", "class-one"]
         )
 
 
@@ -382,4 +395,4 @@ class TestProcessTransformersV5SegmentationResult:
 
         out = process_transformers_v5_segmentation_result(tensor_result, None)
 
-        np.testing.assert_array_equal(out["class_id"], [1])
+        np.testing.assert_array_equal(out["class_id"], [0, 1])

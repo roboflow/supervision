@@ -164,6 +164,7 @@ class LineZone:
         crossed_out = np.full(len(detections), False)
 
         if len(detections) == 0:
+            self._evict_stale_crossing_history(np.empty(0, dtype=int))
             return crossed_in, crossed_out
 
         if detections.tracker_id is None:
