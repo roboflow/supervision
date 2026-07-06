@@ -54,9 +54,7 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
-**Readable argument lists**: do not put multi-branch conditional expressions inside
-function or constructor arguments. If an argument needs more than a simple
-`a if condition else b`, assign it to a named local variable before the call.
+**Readable argument lists**: do not put multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
 
 **Doctest determinism** — output must be reproducible across platforms:
 
