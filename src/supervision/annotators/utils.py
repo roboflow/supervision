@@ -1,7 +1,7 @@
 import re
 import textwrap
 from enum import Enum
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -129,9 +129,17 @@ def resolve_text_background_xyxy(
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    if isinstance(color, ColorPalette):
-        return color.by_idx(idx)
-    return color
+    color_like = cast(Any, color)
+    if callable(getattr(color_like, "by_idx", None)):
+        color_like = color_like.by_idx(idx)
+    if isinstance(color_like, Color):
+        return color_like
+    return Color(
+        r=int(color_like.r),
+        g=int(color_like.g),
+        b=int(color_like.b),
+        a=int(getattr(color_like, "a", 255)),
+    )
 
 
 def resolve_color(

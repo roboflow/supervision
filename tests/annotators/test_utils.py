@@ -132,6 +132,22 @@ def test_resolve_color_accepts_negative_class_id() -> None:
     assert result == Color.from_hex("#0000ff")
 
 
+def test_resolve_color_accepts_palette_from_src_namespace() -> None:
+    """Palette instances imported through src.supervision still resolve by index."""
+    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+    result = resolve_color(
+        color=SrcColorPalette.DEFAULT,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result.as_bgr() == (251, 81, 163)
+
+
 @pytest.mark.parametrize(
     ("text", "max_line_length", "expected_result", "exception"),
     [
