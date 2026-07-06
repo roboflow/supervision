@@ -50,6 +50,7 @@ nav:
           - Compact Mask: detection/compact_mask.md
           - Converters: detection/utils/converters.md
           - IoU and NMS: detection/utils/iou_and_nms.md
+          - Mask Metrics: detection/utils/mask_metrics.md
           - Boxes: detection/utils/boxes.md
           - Masks: detection/utils/masks.md
           - Polygons: detection/utils/polygons.md
