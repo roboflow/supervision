@@ -335,6 +335,82 @@ def test_select_returns_detection_subset() -> None:
     )
 
 
+def test_select_empty_returns_fresh_metadata_dict() -> None:
+    """Selecting empty detections returns a fresh metadata dictionary."""
+    detections = Detections.empty()
+    detections.metadata["source"] = "camera"
+
+    result = detections.select([])
+    result.metadata["source"] = "other"
+
+    assert detections.metadata["source"] == "camera"
+
+
+def test_select_non_empty_slice_returns_fresh_arrays() -> None:
+    """Selecting non-empty detections does not share array storage."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 1, 1], [2, 2, 3, 3]], dtype=np.float32),
+        mask=np.array(
+            [
+                [[True, False], [False, False]],
+                [[False, True], [False, False]],
+            ]
+        ),
+        confidence=np.array([0.1, 0.2], dtype=np.float32),
+        class_id=np.array([1, 2]),
+        tracker_id=np.array([10, 20]),
+        data={"features": np.array([[1, 2], [3, 4]])},
+    )
+
+    result = detections.select(slice(0, 1))
+    assert isinstance(result.mask, np.ndarray)
+    assert result.confidence is not None
+    assert result.class_id is not None
+    assert result.tracker_id is not None
+    assert isinstance(result.data["features"], np.ndarray)
+
+    result.xyxy[0, 0] = 99
+    result.mask[0, 0, 0] = False
+    result.confidence[0] = 0.9
+    result.class_id[0] = 9
+    result.tracker_id[0] = 90
+    result.data["features"][0, 0] = 99
+
+    assert detections.xyxy[0, 0] == 0
+    assert detections.mask[0, 0, 0]
+    assert detections.confidence[0] == pytest.approx(0.1)
+    assert detections.class_id[0] == 1
+    assert detections.tracker_id[0] == 10
+    assert detections.data["features"][0, 0] == 1
+
+
+def test_select_compact_mask_slice_returns_fresh_arrays() -> None:
+    """Selecting CompactMask detections by slice does not share public arrays."""
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[:, :2, :2] = True
+    xyxy = np.array([[0, 0, 1, 1], [1, 1, 2, 2]], dtype=np.float32)
+    compact_mask = CompactMask.from_dense(masks, xyxy, image_shape=(4, 4))
+    detections = Detections(xyxy=xyxy.copy(), mask=compact_mask)
+
+    result = detections.select(slice(0, 1))
+    assert isinstance(result.mask, CompactMask)
+
+    result.mask.offsets[0, 0] = 3
+
+    assert isinstance(detections.mask, CompactMask)
+    assert detections.mask.offsets[0, 0] == 0
+
+
+def test_setitem_rejects_data_length_mismatch() -> None:
+    """Data assignment rejects values not aligned with detections length."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 1, 1], [2, 2, 3, 3]], dtype=np.float32)
+    )
+
+    with pytest.raises(ValueError, match=r"must be \(2,\)"):
+        detections["name"] = np.array(["cat"])
+
+
 def test_get_data_returns_detection_data_value() -> None:
     """Get data returns the stored data value or None."""
     result = TEST_DET_1.get_data("some_key")
@@ -2317,6 +2393,35 @@ class TestDetectionsWithNMM:
         result = dets.with_nmm(threshold=0.5)
 
         assert len(result) == 0
+
+    def test_compact_mask_nmm_preserves_full_frame_union(self) -> None:
+        """CompactMask NMM keeps full-frame mask pixels after merging."""
+        masks = np.zeros((2, 10, 10), dtype=bool)
+        masks[0, 1, 1] = True
+        masks[0, 8, 8] = True
+        masks[1, 1, 1] = True
+        masks[1, 7, 7] = True
+        compact_mask = CompactMask.from_dense(
+            masks=masks,
+            xyxy=np.array([[0, 0, 9, 9], [0, 0, 9, 9]], dtype=np.float32),
+            image_shape=(10, 10),
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float32),
+            mask=compact_mask,
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = detections.with_nmm(threshold=0.1)
+
+        assert len(result) == 1
+        assert isinstance(result.mask, CompactMask)
+        assert result.mask.bbox_xyxy.tolist() == [[1, 1, 8, 8]]
+        result_mask = result.mask.to_dense()[0]
+        assert result_mask[1, 1]
+        assert result_mask[7, 7]
+        assert result_mask[8, 8]
 
 
 class TestDetectionsArea:

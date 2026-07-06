@@ -20,6 +20,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
 
 
@@ -600,7 +601,7 @@ def test_mask_non_max_suppression(
                 ]
             ),
             0.6,
-            [[0, 1]],
+            [[0], [1]],
             DoesNotRaise(),
         ),  # two masks partially overlapping with no category, no merge
         (
@@ -667,6 +668,94 @@ def test_mask_non_max_merge(
         sorted_result = sorted([sorted(group) for group in result])
         sorted_expected_result = sorted([sorted(group) for group in expected_result])
         assert sorted_result == sorted_expected_result
+
+
+def test_mask_non_max_merge_ignores_mask_dimension_for_exact_iou() -> None:
+    """Mask NMM ignores downscale dimension and uses exact mask overlap."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0, 0] = True
+    masks[0, 0, 1] = True
+    masks[1, 0, 0] = True
+    masks[1, 1, 0] = True
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.9,
+        mask_dimension=1,
+    )
+
+    assert sorted([sorted(group) for group in result]) == [[0], [1]]
+
+
+def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
+    """Mask NMM supports legacy positional trailing args with warning."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0:2, 0:2] = True
+    masks[1, 0:2, 0:2] = True
+
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        legacy_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            640,
+            OverlapMetric.IOU,
+        )
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        reordered_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            OverlapMetric.IOU,
+            640,
+        )
+
+    assert legacy_result == [[0, 1]]
+    assert reordered_result == [[0, 1]]
+
+
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
 
 
 @pytest.mark.parametrize(

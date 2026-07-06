@@ -1234,12 +1234,12 @@ class CompactMask:
             result[y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
             return result
 
-        # Slice: use direct Python list slice and numpy view — O(k), no arange.
         if isinstance(index, slice):
+            selected_rles = [rle.copy() for rle in self._rles[index]]
             return CompactMask(
-                self._rles[index],
-                self._crop_shapes[index],
-                self._offsets[index],
+                selected_rles,
+                self._crop_shapes[index].copy(),
+                self._offsets[index].copy(),
                 self._image_shape,
             )
 
@@ -1253,9 +1253,9 @@ class CompactMask:
         else:
             idx_arr = np.asarray(list(index), dtype=np.intp)
 
-        new_rles = [self._rles[int(mask_idx)] for mask_idx in idx_arr]
-        new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr]
-        new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
+        new_rles = [self._rles[int(mask_idx)].copy() for mask_idx in idx_arr]
+        new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr].copy()
+        new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr].copy()
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 
     def __array__(
