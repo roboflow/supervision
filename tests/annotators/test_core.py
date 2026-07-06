@@ -1479,6 +1479,31 @@ class TestIconAnnotator:
         ]
         assert deprecations == []
 
+    def test_icon_cache_is_shared_by_path_and_resolution(
+        self, monkeypatch, test_image, tmp_path
+    ):
+        """Equal path/resolution icon loads are cached across annotator instances."""
+        icon_path = str(tmp_path / "icon.png")
+        icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
+        cv2.imwrite(icon_path, icon)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        imread_calls = 0
+        original_imread = cv2.imread
+
+        def count_imread(path, flags):
+            nonlocal imread_calls
+            imread_calls += 1
+            return original_imread(path, flags)
+
+        monkeypatch.setattr(cv2, "imread", count_imread)
+
+        for _ in range(2):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+
+        assert imread_calls == 1
+
 
 class TestBackgroundOverlayAnnotator:
     """Tests for BackgroundOverlayAnnotator class"""

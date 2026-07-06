@@ -54,7 +54,11 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
+**Function docstrings**: every new or modified function, including private helpers and tests, must have a succinct docstring explaining its purpose. Put function-level why/what/how context inside the function docstring, not in a comment before the function. Public APIs still require the full Google-style structure described below.
+
 **Readable argument lists**: do not put multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
+
+**Inline comments**: write code so the intent is clear from names, small helpers, and straightforward control flow. For non-trivial logic inside a function that still needs context, add concise inline comments explaining why the code exists, what invariant it protects, and how the tricky part works. Do not put comments before functions; use the function docstring instead. Do not comment obvious assignments, mechanical plumbing, lint-only changes, typing-only changes, or pure docs edits.
 
 **Doctest determinism** — output must be reproducible across platforms:
 
@@ -96,6 +100,7 @@ warn_deprecated("'foo' deprecated in `0.29.0`, removed in `0.32.0`. Use 'bar'.")
 - Minimal implementation; type hints and Google docstrings with usage examples.
 - Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
 - Update docstrings and mkdocs entries as needed.
+- Update [docs/changelog.md](docs/changelog.md) for every functional change or bug fix, including user-visible behavior changes. Skip changelog entries for lint-only, type-only, formatting-only, and pure documentation-only changes.
 
 **Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key as a constant in `config.py` (e.g. `CLASS_NAME_DATA_FIELD`, `ORIENTED_BOX_COORDINATES`).
 

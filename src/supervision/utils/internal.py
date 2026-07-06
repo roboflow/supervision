@@ -30,8 +30,6 @@ def format_warning(
     return f"{category.__name__}: {message}\n"
 
 
-warnings.formatwarning = format_warning
-
 if os.getenv("SUPERVISON_DEPRECATION_WARNING") == "0":
     warnings.simplefilter("ignore", SupervisionWarnings)
 else:
