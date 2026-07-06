@@ -811,9 +811,116 @@ def test_key_points_as_detections_mixed_valid_invalid_batch():
 
     detections = key_points.as_detections()
 
-    # Only the valid skeleton survives the area>0 filter
+    # Only the skeleton with at least one valid keypoint survives
     assert len(detections) == 1
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_getitem_empty_list():
+    """Selecting with an empty list returns an empty KeyPoints, like Detections."""
+    key_points = _create_key_points(
+        xy=[[[1, 2], [3, 4]], [[5, 6], [7, 8]]],
+        class_id=[0, 1],
+    )
+
+    result = key_points[[]]
+
+    assert len(result) == 0
+    assert result.is_empty()
+
+
+@pytest.mark.parametrize(
+    "selected_keypoint_indices",
+    [
+        pytest.param(np.array([0, 1]), id="numpy-array"),
+        pytest.param(iter([0, 1]), id="generator"),
+        pytest.param((0, 1), id="tuple"),
+    ],
+)
+def test_key_points_as_detections_index_container_types(selected_keypoint_indices):
+    """selected_keypoint_indices accepts any Iterable[int] container type."""
+    key_points = _create_key_points(
+        xy=[[[10, 10], [20, 20], [30, 15]]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(
+        selected_keypoint_indices=selected_keypoint_indices,
+    )
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 10, 20, 20]]))
+
+
+def test_key_points_as_detections_empty_indices_selects_all():
+    """An empty selected_keypoint_indices behaves like None (selects all)."""
+    key_points = _create_key_points(
+        xy=[[[10, 10], [20, 20], [30, 15]]],
+        confidence=[[0.1, 0.3, 0.5]],
+        class_id=[0],
+        detection_confidence=[0.9],
+    )
+    key_points["custom_data"] = ["person"]
+
+    all_selected = key_points.as_detections()
+    empty_list_selected = key_points.as_detections(selected_keypoint_indices=[])
+
+    assert np.array_equal(all_selected.xyxy, empty_list_selected.xyxy)
+    assert np.array_equal(all_selected.confidence, empty_list_selected.confidence)
+    assert np.array_equal(all_selected.class_id, empty_list_selected.class_id)
+    assert np.array_equal(
+        all_selected.data["custom_data"], empty_list_selected.data["custom_data"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("xy", "expected_xyxy"),
+    [
+        pytest.param(
+            [[[10, 20], [30, 20]]],
+            np.array([[10, 20, 30, 20]]),
+            id="collinear-keypoints",
+        ),
+        pytest.param(
+            [[[15, 25]]],
+            np.array([[15, 25, 15, 25]]),
+            id="single-keypoint",
+        ),
+    ],
+)
+def test_key_points_as_detections_keeps_degenerate_skeletons(xy, expected_xyxy):
+    """A skeleton with valid keypoints keeps its box even when the area is zero."""
+    key_points = _create_key_points(xy=xy, class_id=[0])
+
+    detections = key_points.as_detections()
+
+    assert len(detections) == 1
+    assert np.array_equal(detections.xyxy, expected_xyxy)
+
+
+def test_key_points_as_detections_filters_invalid_and_aligns_degenerate_metadata():
+    """Invalid skeletons are removed while valid degenerate metadata stays aligned."""
+    key_points = _create_key_points(
+        xy=[
+            [[0, 0], [0, 0]],
+            [[np.nan, 5], [0, 0]],
+            [[np.inf, 5], [0, 0]],
+            [[15, 25], [np.nan, 50]],
+            [[10, 20], [30, 20]],
+        ],
+        class_id=[0, 1, 2, 3, 4],
+        detection_confidence=[0.1, 0.2, 0.3, 0.4, 0.5],
+    )
+    key_points["custom_data"] = ["zero", "nan", "inf", "point", "line"]
+
+    detections = key_points.as_detections()
+
+    assert np.array_equal(
+        detections.xyxy,
+        np.array([[15, 25, 15, 25], [10, 20, 30, 20]], dtype=np.float32),
+    )
+    assert np.array_equal(detections.class_id, np.array([3, 4]))
+    assert np.array_equal(detections.confidence, np.array([0.4, 0.5], dtype=np.float32))
+    assert np.array_equal(detections.data["custom_data"], np.array(["point", "line"]))
 
 
 def test_key_points_as_detections_with_data():

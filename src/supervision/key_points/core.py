@@ -971,9 +971,9 @@ class KeyPoints:
         if isinstance(i, int):
             i = [i]
 
-        if isinstance(i, list) and all(isinstance(x, bool) for x in i):
+        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
             i = np.array(i)
-        if isinstance(j, list) and all(isinstance(x, bool) for x in j):
+        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
@@ -1294,13 +1294,17 @@ class KeyPoints:
             return Detections.empty()
 
         xy = self.xy
-        if selected_keypoint_indices:
-            indices = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+        indices: npt.NDArray[np.intp] | None = None
+        if selected_keypoint_indices is not None:
+            candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+            if candidate.size > 0:
+                indices = candidate
+        if indices is not None:
             xy = xy[:, indices, :]
 
-        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
-        # points are excluded from each skeleton's bounding box.
-        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
+        # coordinates cannot form a valid detection box, so both cases are excluded.
+        valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
         has_valid = valid.any(axis=1)  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]
@@ -1317,7 +1321,7 @@ class KeyPoints:
             confidence = self.detection_confidence.astype(np.float32)
         elif self.keypoint_confidence is not None:
             keypoint_confidence = self.keypoint_confidence
-            if selected_keypoint_indices:
+            if indices is not None:
                 keypoint_confidence = keypoint_confidence[:, indices]
             confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
         else:
@@ -1326,6 +1330,6 @@ class KeyPoints:
         detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = detections.select(cast(Any, detections.area) > 0)
+        detections = detections.select(has_valid)
 
         return detections
