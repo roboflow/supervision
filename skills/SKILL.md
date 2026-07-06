@@ -48,6 +48,8 @@ See `references/detection.md` for building `Detections` from other sources
 (inference, SAM3) and filtering, and `references/annotators.md` for the full
 annotator list and the compose pattern.
 
+The repo also publishes `docs/llms.txt` for general model-level facts and API surface; this skill focuses specifically on the mistakes agents repeatedly make in practice (wrong method names, deprecated APIs, silently-ignored kwargs) with runnable patterns, rather than restating the API reference.
+
 ## Critical decision: InferencePipeline vs sv.process_video
 
 These solve the same problem — "run a model over every frame of a video/stream" —
@@ -119,7 +121,8 @@ source — it assumes a finite frame count from `VideoInfo`.
   common mistakes.
 - `references/annotators.md` — annotator classes, correct parameter names, the
   compose pattern.
-- `references/tracking.md` — ByteTrack setup, correct parameter/method names,
-  filtering by `tracker_id`.
+- `references/tracking.md` — tracking with the `trackers` package (`ByteTrackTracker`),
+  why `sv.ByteTrack` is deprecated, correct parameter/method names, filtering by
+  `tracker_id`.
 - `references/video.md` — `sv.process_video`, `VideoInfo`, `VideoSink`.
 - `references/utils.md` — `PolygonZone`, `LineZone`, `sv.Color` / `sv.ColorPalette`.
