@@ -561,6 +561,7 @@ class KeyPoints:
                     for face_landmark in mediapipe_results.multi_face_landmarks
                 ]
         else:
+            # Reject unsupported MediaPipe-like payloads before landmark parsing.
             raise ValueError(
                 "Unsupported MediaPipe result type. Expected an object with "
                 "pose_landmarks, face_landmarks, or multi_face_landmarks."

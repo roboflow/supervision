@@ -37,6 +37,7 @@ def plot_image(
     else:
         image_np = image
 
+    # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=size)
@@ -104,6 +105,7 @@ def plot_images_grid(
             " or reduce the number of images."
         )
 
+    # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
     import matplotlib.pyplot as plt
 
     _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)

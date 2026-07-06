@@ -499,6 +499,7 @@ class ColorPalette:
         if color_count < 1:
             raise ValueError("color_count must be greater than or equal to 1")
 
+        # Keep pyplot lazy so importing color utilities does not import matplotlib.
         import matplotlib.pyplot as plt
 
         mpl_palette = plt.get_cmap(palette_name)
@@ -508,6 +509,7 @@ class ColorPalette:
         if hasattr(mpl_palette, "colors"):
             colors = mpl_palette.colors
         else:
+            # A single color samples the palette start and avoids division by zero.
             positions = (
                 [0.0]
                 if color_count == 1
@@ -541,6 +543,7 @@ class ColorPalette:
         """
         if not self.colors:
             raise ValueError("ColorPalette must contain at least one color")
+        # Modulo preserves Python-like wrapping for negative and oversized indexes.
         idx = idx % len(self.colors)
         return self.colors[idx]
 

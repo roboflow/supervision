@@ -58,6 +58,7 @@ logger = _get_logger(__name__)
 def _load_icon_from_path(
     icon_path: str, icon_resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.uint8]:
+    """Load and resize an icon image through a cache shared by annotators."""
     icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
     if icon is None:
         raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
@@ -901,6 +902,7 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
+        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
         blended_scene = np.clip(
             scene.astype(np.float32) * (1 - alpha_mask)
             + colored_mask.astype(np.float32) * alpha_mask,
@@ -2033,6 +2035,7 @@ class IconAnnotator(BaseAnnotator):
         return scene
 
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
+        """Load an icon through the module-level cache shared by annotators."""
         return _load_icon_from_path(
             icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )

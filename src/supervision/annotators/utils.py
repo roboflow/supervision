@@ -129,7 +129,9 @@ def resolve_text_background_xyxy(
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
+    """Resolve a color-like object to a concrete `Color` for an index."""
     color_like = cast(Any, color)
+    # Accept ColorPalette-like objects without depending on their exact concrete class.
     if callable(getattr(color_like, "by_idx", None)):
         color_like = color_like.by_idx(idx)
     if isinstance(color_like, Color):

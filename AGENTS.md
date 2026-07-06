@@ -54,7 +54,11 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
+**Function docstrings**: every new or modified function, including private helpers and tests, must have a succinct docstring explaining its purpose. Put function-level why/what/how context inside the function docstring, not in a comment before the function. Public APIs still require the full Google-style structure described below.
+
 **Readable argument lists**: do not put multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
+
+**Inline comments**: write code so the intent is clear from names, small helpers, and straightforward control flow. For non-trivial logic inside a function that still needs context, add concise inline comments explaining why the code exists, what invariant it protects, and how the tricky part works. Do not put comments before functions; use the function docstring instead. Do not comment obvious assignments, mechanical plumbing, lint-only changes, typing-only changes, or pure docs edits.
 
 **Doctest determinism** — output must be reproducible across platforms:
 

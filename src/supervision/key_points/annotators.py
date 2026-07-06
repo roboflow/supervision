@@ -20,12 +20,14 @@ logger = _get_logger(__name__)
 
 
 def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
+    """Validate 1-based skeleton edges and return zero-based vertex indexes."""
     vertex_a, vertex_b = edge
     if not (1 <= vertex_a <= vertex_count and 1 <= vertex_b <= vertex_count):
         raise ValueError(
             "Edge indices must use the 1-based convention and be within the "
             f"available keypoint range [1, {vertex_count}], got {edge}."
         )
+    # Public skeleton definitions are 1-based; keypoint arrays are zero-based.
     return vertex_a - 1, vertex_b - 1
 
 
