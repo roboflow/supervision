@@ -19,6 +19,16 @@ from supervision.utils.logger import _get_logger
 logger = _get_logger(__name__)
 
 
+def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
+    class_a, class_b = edge
+    if not (1 <= class_a <= vertex_count and 1 <= class_b <= vertex_count):
+        raise ValueError(
+            "Edge indices must use the 1-based convention and be within the "
+            f"available keypoint range [1, {vertex_count}], got {edge}."
+        )
+    return class_a - 1, class_b - 1
+
+
 class BaseKeyPointAnnotator(ABC):
     @abstractmethod
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -235,9 +245,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     continue
                 edges = _looked_up
 
-            for class_a, class_b in edges:
-                idx_a = class_a - 1
-                idx_b = class_b - 1
+            for edge in edges:
+                idx_a, idx_b = _validate_edge_indices(edge=edge, vertex_count=len(xy))
                 xy_a = xy[idx_a]
                 xy_b = xy[idx_b]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):

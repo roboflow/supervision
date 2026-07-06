@@ -1,8 +1,10 @@
+import importlib
+import sys
 from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision.draw.color import Color
+from supervision.draw.color import Color, ColorPalette, unify_to_bgr
 
 
 @pytest.mark.parametrize(
@@ -313,3 +315,32 @@ def test_color_repr(color: Color, expected_repr: str) -> None:
 def test_color_hash(color_a: Color, color_b: Color, expect_equal_hash: bool) -> None:
     assert (hash(color_a) == hash(color_b)) == expect_equal_hash
     assert (color_a == color_b) == expect_equal_hash
+
+
+def test_palette_accepts_negative_indices() -> None:
+    """Negative palette indices wrap like standard Python sequences."""
+    palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+
+    assert palette.by_idx(-1) == Color.from_hex("#0000ff")
+
+
+def test_unify_to_bgr_passes_through_bgr_tuple() -> None:
+    """Tuple inputs are already BGR and must not be channel-swapped."""
+    assert unify_to_bgr((1, 2, 3)) == (1, 2, 3)
+
+
+def test_from_matplotlib_accepts_single_color() -> None:
+    """A one-color matplotlib palette is valid and must not divide by zero."""
+    palette = ColorPalette.from_matplotlib("jet", 1)
+
+    assert len(palette) == 1
+
+
+def test_draw_color_import_does_not_import_matplotlib_pyplot() -> None:
+    """Importing draw.color keeps pyplot lazy until from_matplotlib is called."""
+    sys.modules.pop("supervision.draw.color", None)
+    sys.modules.pop("matplotlib.pyplot", None)
+
+    importlib.import_module("supervision.draw.color")
+
+    assert "matplotlib.pyplot" not in sys.modules

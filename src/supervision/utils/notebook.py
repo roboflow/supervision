@@ -1,5 +1,4 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
@@ -37,6 +36,8 @@ def plot_image(
         image_np = pillow_to_cv2(image)
     else:
         image_np = image
+
+    import matplotlib.pyplot as plt
 
     plt.figure(figsize=size)
 
@@ -102,6 +103,8 @@ def plot_images_grid(
             "The number of images exceeds the grid size. Please increase the grid size"
             " or reduce the number of images."
         )
+
+    import matplotlib.pyplot as plt
 
     _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 

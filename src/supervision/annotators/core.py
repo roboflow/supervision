@@ -54,6 +54,20 @@ from supervision.utils.logger import _get_logger
 logger = _get_logger(__name__)
 
 
+@lru_cache
+def _load_icon_from_path(
+    icon_path: str, icon_resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+    if icon is None:
+        raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
+    icon_array = cast(npt.NDArray[np.uint8], icon)
+    result: npt.NDArray[np.uint8] = letterbox_image(
+        image=icon_array, resolution_wh=icon_resolution_wh
+    )
+    return result
+
+
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
     """Normalize accepted color inputs to internal color objects.
 
@@ -887,7 +901,12 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        blended_scene = np.clip(
+            scene.astype(np.float32) * (1 - alpha_mask)
+            + colored_mask.astype(np.float32) * alpha_mask,
+            0,
+            255,
+        ).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
@@ -2013,18 +2032,10 @@ class IconAnnotator(BaseAnnotator):
             scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
-    @lru_cache
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-        icon_array = cast(npt.NDArray[np.uint8], icon)
-        result: npt.NDArray[np.uint8] = letterbox_image(
-            image=icon_array, resolution_wh=self.icon_resolution_wh
+        return _load_icon_from_path(
+            icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )
-        return result
 
 
 class BlurAnnotator(BaseAnnotator):

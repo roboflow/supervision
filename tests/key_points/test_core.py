@@ -677,6 +677,17 @@ def test_key_points_is_empty():
     assert not non_empty_key_points.is_empty()
 
 
+def test_key_points_zero_length_slice_is_empty():
+    """A filtered KeyPoints object with zero rows is empty."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[0],
+    )
+
+    assert key_points[np.array([], dtype=int)].is_empty()
+
+
 def test_key_points_setitem():
     """Test the __setitem__ method for KeyPoints objects."""
     key_points = _create_key_points(
@@ -1024,6 +1035,12 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
         mediapipe_results, resolution_wh=resolution_wh
     )
     assert key_points == expected_key_points
+
+
+def test_from_mediapipe_unknown_result_type_raises() -> None:
+    """Unsupported Mediapipe result objects raise a descriptive ValueError."""
+    with pytest.raises(ValueError, match="Unsupported MediaPipe result"):
+        KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
 
 
 class TestDeprecatedConfidenceConstructor:

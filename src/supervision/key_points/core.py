@@ -560,6 +560,11 @@ class KeyPoints:
                     face_landmark.landmark
                     for face_landmark in mediapipe_results.multi_face_landmarks
                 ]
+        else:
+            raise ValueError(
+                "Unsupported MediaPipe result type. Expected an object with "
+                "pose_landmarks, face_landmarks, or multi_face_landmarks."
+            )
 
         if len(results) == 0:
             return cls.empty()
@@ -1162,9 +1167,7 @@ class KeyPoints:
 
             ```
         """
-        empty_key_points = KeyPoints.empty()
-        empty_key_points.data = self.data
-        return self == empty_key_points
+        return len(self) == 0
 
     def with_nms(
         self,
