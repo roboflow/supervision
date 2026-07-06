@@ -20,13 +20,13 @@ logger = _get_logger(__name__)
 
 
 def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
-    class_a, class_b = edge
-    if not (1 <= class_a <= vertex_count and 1 <= class_b <= vertex_count):
+    vertex_a, vertex_b = edge
+    if not (1 <= vertex_a <= vertex_count and 1 <= vertex_b <= vertex_count):
         raise ValueError(
             "Edge indices must use the 1-based convention and be within the "
             f"available keypoint range [1, {vertex_count}], got {edge}."
         )
-    return class_a - 1, class_b - 1
+    return vertex_a - 1, vertex_b - 1
 
 
 class BaseKeyPointAnnotator(ABC):

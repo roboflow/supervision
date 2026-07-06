@@ -324,6 +324,14 @@ def test_palette_accepts_negative_indices() -> None:
     assert palette.by_idx(-1) == Color.from_hex("#0000ff")
 
 
+def test_empty_palette_lookup_raises() -> None:
+    """Empty palette lookup raises a clear API error."""
+    palette = ColorPalette.from_hex([])
+
+    with pytest.raises(ValueError, match="at least one color"):
+        palette.by_idx(0)
+
+
 def test_unify_to_bgr_passes_through_bgr_tuple() -> None:
     """Tuple inputs are already BGR and must not be channel-swapped."""
     assert unify_to_bgr((1, 2, 3)) == (1, 2, 3)

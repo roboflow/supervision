@@ -539,6 +539,8 @@ class ColorPalette:
 
             ```
         """
+        if not self.colors:
+            raise ValueError("ColorPalette must contain at least one color")
         idx = idx % len(self.colors)
         return self.colors[idx]
 
