@@ -1,8 +1,6 @@
 # Detections
 
-`sv.Detections` is a single dataclass-like container used across the whole library.
-Every model integration converts its native output into one of these — always
-prefer the `from_*` constructor over building `Detections(...)` by hand.
+`sv.Detections` is a single dataclass-like container used across the whole library. Every model integration converts its native output into one of these — always prefer the `from_*` constructor over building `Detections(...)` by hand.
 
 ## Creating Detections from common sources
 
@@ -25,28 +23,24 @@ detections = sv.Detections.from_sam(sam_result)
 detections = sv.Detections.from_transformers(transformers_results, id2label=id2label)
 ```
 
-Each `from_*` method normalizes the model's native output into the same set of
-attributes below — this is the whole point of using them instead of parsing raw
-model output yourself.
+Each `from_*` method normalizes the model's native output into the same set of attributes below — this is the whole point of using them instead of parsing raw model output yourself.
 
 ## Key attributes
 
-| attribute | shape / type | notes |
-|---|---|---|
-| `xyxy` | `np.ndarray (N, 4)` | float, `[x1, y1, x2, y2]` per box, always present |
-| `confidence` | `np.ndarray (N,)` or `None` | float scores |
-| `class_id` | `np.ndarray (N,)` or `None` | integer class ids |
-| `tracker_id` | `np.ndarray (N,)` or `None` | set after running a tracker, not by detection alone |
-| `mask` | `np.ndarray (N, H, W)` or `None` | boolean segmentation masks |
-| `data` | `dict` | extra per-detection arrays, e.g. `data["class_name"]`; also accessible via `detections["class_name"]` |
+| attribute    | shape / type                     | notes                                                                                                 |
+| ------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `xyxy`       | `np.ndarray (N, 4)`              | float, `[x1, y1, x2, y2]` per box, always present                                                     |
+| `confidence` | `np.ndarray (N,)` or `None`      | float scores                                                                                          |
+| `class_id`   | `np.ndarray (N,)` or `None`      | integer class ids                                                                                     |
+| `tracker_id` | `np.ndarray (N,)` or `None`      | set after running a tracker, not by detection alone                                                   |
+| `mask`       | `np.ndarray (N, H, W)` or `None` | boolean segmentation masks                                                                            |
+| `data`       | `dict`                           | extra per-detection arrays, e.g. `data["class_name"]`; also accessible via `detections["class_name"]` |
 
-`len(detections)` gives the number of boxes (`N`). `Detections` is empty-safe: with
-zero detections, arrays have shape `(0, 4)` / `(0,)` rather than being `None`.
+`len(detections)` gives the number of boxes (`N`). `Detections` is empty-safe: with zero detections, arrays have shape `(0, 4)` / `(0,)` rather than being `None`.
 
 ## Filtering patterns
 
-`Detections` supports NumPy-style boolean-mask indexing directly — this is the
-correct and idiomatic way to filter. It does **not** have a `.filter()` method.
+`Detections` supports NumPy-style boolean-mask indexing directly — this is the correct and idiomatic way to filter. It does **not** have a `.filter()` method.
 
 ```python
 # keep only class_id == 0 (e.g. "person")
@@ -68,8 +62,7 @@ detections = detections[detections.area > 1000]
 first = detections[0]
 ```
 
-`Detections` also supports `+` to merge two instances and `sv.Detections.merge([d1, d2])`
-for combining more than two.
+`Detections` also supports `+` to merge two instances and `sv.Detections.merge([d1, d2])` for combining more than two.
 
 ## Common mistakes
 
