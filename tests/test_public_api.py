@@ -16,3 +16,17 @@ def test_all_symbols_are_importable(symbol_name: str) -> None:
         f"supervision.{symbol_name} is listed in __all__ but not accessible "
         f"as a non-None package attribute"
     )
+
+
+@pytest.mark.parametrize(
+    "symbol_name",
+    [
+        pytest.param("VLM", id="VLM"),
+        pytest.param("denormalize_boxes", id="denormalize_boxes"),
+        pytest.param("xyxyxyxy_to_xyxy", id="xyxyxyxy_to_xyxy"),
+    ],
+)
+def test_shipped_imports_are_listed_in_all(symbol_name: str) -> None:
+    """Public package attributes must be discoverable through __all__."""
+    assert getattr(sv, symbol_name) is not None
+    assert symbol_name in sv.__all__

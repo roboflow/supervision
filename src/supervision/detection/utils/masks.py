@@ -300,7 +300,9 @@ def resize_masks(
     """
     max_height: int = masks.shape[1]
     max_width: int = masks.shape[2]
-    scale = min(max_dimension / max_height, max_dimension / max_width)
+    scale = min(1.0, max_dimension / max_height, max_dimension / max_width)
+    if scale == 1.0:
+        return masks
 
     new_height = int(scale * max_height)
     new_width = int(scale * max_width)
@@ -516,7 +518,8 @@ def _masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
         xyxy: Optional detection boxes of shape ``(N, 4)`` in
             ``[x1, y1, x2, y2]`` format. When provided, the dense path
-            uses box union (O(N)) instead of a full pixel scan (O(N·H·W)).
+            first checks whether all true pixels fall within the box union;
+            if so the box bounds are returned without a full pixel scan.
 
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
@@ -527,16 +530,31 @@ def _masks_to_roi(
     mask_array = np.asarray(masks, dtype=bool)
     if mask_array.size == 0 or not mask_array.any():
         return None
-    # Fast path: union of detection boxes (O(N)) avoids full N·H·W pixel scan.
-    # supervision xyxy uses inclusive max coords; floor(x2)+1 converts to exclusive.
+    # Fast path: union of detection boxes (O(N)) avoids a full N·H·W pixel scan
+    # when boxes are mask-derived. Guard it with an `any()` check over the ROI so
+    # loose boxes cannot clip true pixels that lie outside the box union.
     if xyxy is not None and len(xyxy) > 0:
         image_h, image_w = image_shape
-        return (
+        box_roi = (
             max(0, int(np.floor(xyxy[:, 0].min()))),
             max(0, int(np.floor(xyxy[:, 1].min()))),
             min(image_w, int(np.floor(xyxy[:, 2].max())) + 1),
             min(image_h, int(np.floor(xyxy[:, 3].max())) + 1),
         )
+        x1, y1, x2, y2 = box_roi
+        if x1 < x2 and y1 < y2:
+            union = mask_array if mask_array.ndim == 2 else np.any(mask_array, axis=0)
+            # Return box bounds only when all true pixels fall within the box.
+            # Slice-based checks avoid allocating a full-frame copy.
+            if (
+                union[y1:y2, x1:x2].any()
+                and not union[:y1].any()
+                and not union[y2:].any()
+                and not union[y1:y2, :x1].any()
+                and not union[y1:y2, x2:].any()
+            ):
+                return box_roi
+            return _mask_to_roi(union)
     if mask_array.ndim == 2:
         union = mask_array
     else:

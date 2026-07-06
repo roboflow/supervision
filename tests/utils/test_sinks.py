@@ -3,8 +3,10 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 import supervision as sv
+import supervision.utils.video as video_utils
 from supervision.utils.video import VideoInfo
 
 
@@ -74,6 +76,37 @@ class TestImageSink:
 
 class TestVideoSink:
     """VideoSink writes valid video frames to a file."""
+
+    def test_write_frame_outside_context_raises(self, tmp_path: Path) -> None:
+        """write_frame requires an open VideoSink context."""
+        target = str(tmp_path / "out.avi")
+        info = VideoInfo(width=64, height=64, fps=1, total_frames=None)
+        sink = sv.VideoSink(target_path=target, video_info=info, codec="MJPG")
+
+        with pytest.raises(RuntimeError, match="open VideoSink context"):
+            sink.write_frame(frame=np.zeros((64, 64, 3), dtype=np.uint8))
+
+    def test_enter_raises_when_writer_does_not_open(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """VideoSink surfaces VideoWriter open failures immediately."""
+
+        class ClosedWriter:
+            def isOpened(self) -> bool:
+                return False
+
+            def release(self) -> None:
+                pass
+
+        monkeypatch.setattr(
+            video_utils.cv2, "VideoWriter", lambda *args: ClosedWriter()
+        )
+        target = str(tmp_path / "out.avi")
+        info = VideoInfo(width=64, height=64, fps=1, total_frames=None)
+
+        with pytest.raises(RuntimeError, match="Could not open video writer"):
+            with sv.VideoSink(target_path=target, video_info=info, codec="MJPG"):
+                pass
 
     def test_creates_output_file(self, tmp_path: Path) -> None:
         """VideoSink creates a non-empty file at target_path."""

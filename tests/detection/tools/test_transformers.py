@@ -243,16 +243,34 @@ class TestProcessTransformersV4PanopticSegmentationResult:
 
 
 class TestProcessTransformersV5PanopticSegmentationResult:
-    """process_transformers_v5_panoptic_segmentation_result uses unique pixel values."""
+    """process_transformers_v5_panoptic_segmentation_result handles semantic tensors."""
 
-    def test_two_unique_ids_produce_two_masks(self) -> None:
-        """Array with two unique values produces two boolean masks."""
-        seg_array = np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.int64)
+    @pytest.mark.parametrize(
+        ("seg_array", "expected_class_ids"),
+        [
+            pytest.param(
+                np.array([[0, 0, 1, 1], [0, 2, 2, 0]], dtype=np.int64),
+                np.array([0, 1, 2]),
+                id="preserves-class-zero",
+            ),
+            pytest.param(
+                np.zeros((2, 2), dtype=np.int64),
+                np.array([0]),
+                id="single-zero-class",
+            ),
+        ],
+    )
+    def test_semantic_tensor_preserves_class_zero(
+        self, seg_array: np.ndarray, expected_class_ids: np.ndarray
+    ) -> None:
+        """Bare tensor semantic maps preserve class id zero."""
+        expected_count = len(expected_class_ids)
 
         out = process_transformers_v5_panoptic_segmentation_result(seg_array, None)
 
-        assert out["mask"].shape[0] == 2
-        np.testing.assert_array_equal(out["class_id"], [0, 1])
+        assert out["mask"].shape == (expected_count, *seg_array.shape)
+        assert out["xyxy"].shape == (expected_count, 4)
+        np.testing.assert_array_equal(out["class_id"], expected_class_ids)
 
     def test_with_id2label_sets_class_names(self) -> None:
         """id2label maps unique IDs to class name strings in output data."""
@@ -264,6 +282,19 @@ class TestProcessTransformersV5PanopticSegmentationResult:
 
         np.testing.assert_array_equal(
             out["data"][CLASS_NAME_DATA_FIELD], ["tree", "sky"]
+        )
+
+    def test_with_id2label_preserves_zero_class_name(self) -> None:
+        """id2label maps class id zero when it appears in a tensor map."""
+        seg_array = np.array([[0, 0], [1, 1]], dtype=np.int64)
+
+        out = process_transformers_v5_panoptic_segmentation_result(
+            seg_array, {0: "class-zero", 1: "class-one"}
+        )
+
+        np.testing.assert_array_equal(out["class_id"], [0, 1])
+        np.testing.assert_array_equal(
+            out["data"][CLASS_NAME_DATA_FIELD], ["class-zero", "class-one"]
         )
 
 
@@ -296,16 +327,8 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         np.testing.assert_array_equal(out["class_id"], [0, 1])
         np.testing.assert_allclose(out["confidence"], [0.9, 0.7])
 
-    @pytest.mark.xfail(
-        raises=ValueError,
-        reason=(
-            "empty segments_info produces masks shape (0,) instead of (0,H,W),"
-            " causing mask_to_xyxy to crash — source bug, not a test setup issue"
-        ),
-        strict=True,
-    )
     def test_empty_segments_info_returns_zero_detections(self) -> None:
-        """Empty segments_info list should yield zero-length arrays (xfail: bug)."""
+        """Empty segments_info list yields zero-length detection arrays."""
         seg_result = {
             "segmentation": _FakeDetachTensor(np.zeros((2, 2), dtype=np.int64)),
             "segments_info": [],
@@ -316,6 +339,9 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         )
 
         assert len(out["class_id"]) == 0
+        assert out["xyxy"].shape == (0, 4)
+        assert out["mask"].shape == (0, 2, 2)
+        assert out["confidence"].shape == (0,)
 
 
 # ---------------------------------------------------------------------------
@@ -343,11 +369,11 @@ class TestProcessTransformersV5SegmentationResult:
 
         assert len(out["class_id"]) == 2
 
-    def test_tensor_like_object_routes_to_panoptic_path(self) -> None:
-        """Object whose class is named 'Tensor' routes to panoptic sub-processor."""
+    def test_tensor_like_object_routes_to_semantic_tensor_path(self) -> None:
+        """Object whose class is named 'Tensor' routes to semantic tensor path."""
 
         class Tensor:
-            """Minimal fake torch.Tensor for the panoptic path."""
+            """Minimal fake torch.Tensor for the semantic tensor path."""
 
             def __init__(self, arr: np.ndarray) -> None:
                 self._arr = arr
@@ -369,5 +395,4 @@ class TestProcessTransformersV5SegmentationResult:
 
         out = process_transformers_v5_segmentation_result(tensor_result, None)
 
-        # Panoptic path: unique IDs [0, 1] → two masks
-        assert len(out["class_id"]) == 2
+        np.testing.assert_array_equal(out["class_id"], [0, 1])
