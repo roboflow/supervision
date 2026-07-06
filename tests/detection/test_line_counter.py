@@ -930,6 +930,23 @@ def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> No
     assert not line_zone.crossing_state_history
 
 
+def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
+    """Class changes age out stale per-class crossing history."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    for _ in range(line_zone.crossing_history_length):
+        line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {(0, 2)}
+
+
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
     for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:

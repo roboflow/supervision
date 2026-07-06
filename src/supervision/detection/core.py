@@ -2554,9 +2554,19 @@ class Detections:
             [[1, 1, 2, 2]]
         """
         if len(self) == 0:
+            if isinstance(self.mask, CompactMask):
+                mask = self.mask[:0]
+            elif self.mask is not None:
+                mask = self.mask[:0].copy()
+            else:
+                mask = None
+            data = {
+                key: value.copy() if isinstance(value, np.ndarray) else list(value)
+                for key, value in self.data.items()
+            }
             return Detections(
                 xyxy=self.xyxy.copy(),
-                mask=self.mask[:0] if self.mask is not None else None,
+                mask=mask,
                 confidence=(
                     self.confidence.copy() if self.confidence is not None else None
                 ),
@@ -2564,10 +2574,7 @@ class Detections:
                 tracker_id=(
                     self.tracker_id.copy() if self.tracker_id is not None else None
                 ),
-                data={
-                    key: value.copy() if isinstance(value, np.ndarray) else list(value)
-                    for key, value in self.data.items()
-                },
+                data=data,
                 metadata=dict(self.metadata),
             )
         if isinstance(index, (int, np.integer)):
@@ -2575,17 +2582,33 @@ class Detections:
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
         )
+        data = {
+            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            for key, value in get_data_item(self.data, array_index).items()
+        }
+        if isinstance(self.mask, CompactMask):
+            mask = self.mask[cast(Any, array_index)]
+        elif self.mask is not None:
+            mask = self.mask[cast(Any, array_index)].copy()
+        else:
+            mask = None
         return Detections(
-            xyxy=self.xyxy[array_index],
-            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
+            xyxy=self.xyxy[array_index].copy(),
+            mask=mask,
             confidence=(
-                self.confidence[array_index] if self.confidence is not None else None
+                self.confidence[array_index].copy()
+                if self.confidence is not None
+                else None
             ),
-            class_id=self.class_id[array_index] if self.class_id is not None else None,
+            class_id=(
+                self.class_id[array_index].copy() if self.class_id is not None else None
+            ),
             tracker_id=(
-                self.tracker_id[array_index] if self.tracker_id is not None else None
+                self.tracker_id[array_index].copy()
+                if self.tracker_id is not None
+                else None
             ),
-            data=get_data_item(self.data, array_index),
+            data=data,
             metadata=dict(self.metadata),
         )
 
@@ -2660,10 +2683,9 @@ class Detections:
             ```
 
         Raises:
-            TypeError: If `value` is not a `np.ndarray` or `list`, or if the
-                array length does not match the number of detections.
-            ValueError: If `value` has a shape incompatible with the detection
-                count (raised by `_validate_data`).
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has a length or shape incompatible with
+                the detection count.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")

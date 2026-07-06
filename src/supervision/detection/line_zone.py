@@ -3,7 +3,7 @@ import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -164,7 +164,7 @@ class LineZone:
         crossed_out = np.full(len(detections), False)
 
         if len(detections) == 0:
-            self._evict_stale_crossing_history(np.empty(0, dtype=int))
+            self._evict_stale_crossing_history(set())
             return crossed_in, crossed_out
 
         if detections.tracker_id is None:
@@ -176,17 +176,20 @@ class LineZone:
             )
             return crossed_in, crossed_out
 
-        self._evict_stale_crossing_history(detections.tracker_id)
-        self._update_class_id_to_name(detections)
-
-        in_limits, has_any_left_trigger, has_any_right_trigger = (
-            self._compute_anchor_sides(detections)
-        )
-
         class_ids: list[int | None] = (
             list(detections.class_id)
             if detections.class_id is not None
             else [None] * len(detections)
+        )
+        current_keys = {
+            (int(tracker_id), int(class_id) if class_id is not None else None)
+            for tracker_id, class_id in zip(detections.tracker_id, class_ids)
+        }
+        self._evict_stale_crossing_history(current_keys)
+        self._update_class_id_to_name(detections)
+
+        in_limits, has_any_left_trigger, has_any_right_trigger = (
+            self._compute_anchor_sides(detections)
         )
 
         for i, (class_id, tracker_id) in enumerate(
@@ -199,7 +202,8 @@ class LineZone:
                 continue
 
             tracker_state: bool = has_any_left_trigger[i]
-            crossing_history = self.crossing_state_history[(tracker_id, class_id)]
+            key = (int(tracker_id), int(class_id) if class_id is not None else None)
+            crossing_history = self.crossing_state_history[key]
             crossing_history.append(tracker_state)
 
             if len(crossing_history) < self.crossing_history_length:
@@ -219,12 +223,10 @@ class LineZone:
         return crossed_in, crossed_out
 
     def _evict_stale_crossing_history(
-        self, tracker_ids: npt.NDArray[np.integer[Any]]
+        self, current_keys: set[tuple[int, int | None]]
     ) -> None:
-        current_tracker_ids = {int(tracker_id) for tracker_id in tracker_ids}
         for key in list(self.crossing_state_history):
-            tracker_id, _ = key
-            if int(tracker_id) in current_tracker_ids:
+            if key in current_keys:
                 self._tracker_frames_absent.pop(key, None)
             else:
                 absent = self._tracker_frames_absent.get(key, 0) + 1

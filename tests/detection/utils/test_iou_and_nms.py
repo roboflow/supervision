@@ -721,6 +721,43 @@ def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
     assert reordered_result == [[0, 1]]
 
 
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
+
+
 @pytest.mark.parametrize(
     ("box_true", "box_detection", "overlap_metric", "expected_overlap", "exception"),
     [

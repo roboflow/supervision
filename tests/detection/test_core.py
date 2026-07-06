@@ -346,6 +346,44 @@ def test_select_empty_returns_fresh_metadata_dict() -> None:
     assert detections.metadata["source"] == "camera"
 
 
+def test_select_non_empty_slice_returns_fresh_arrays() -> None:
+    """Selecting non-empty detections does not share array storage."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 1, 1], [2, 2, 3, 3]], dtype=np.float32),
+        mask=np.array(
+            [
+                [[True, False], [False, False]],
+                [[False, True], [False, False]],
+            ]
+        ),
+        confidence=np.array([0.1, 0.2], dtype=np.float32),
+        class_id=np.array([1, 2]),
+        tracker_id=np.array([10, 20]),
+        data={"features": np.array([[1, 2], [3, 4]])},
+    )
+
+    result = detections.select(slice(0, 1))
+    assert isinstance(result.mask, np.ndarray)
+    assert result.confidence is not None
+    assert result.class_id is not None
+    assert result.tracker_id is not None
+    assert isinstance(result.data["features"], np.ndarray)
+
+    result.xyxy[0, 0] = 99
+    result.mask[0, 0, 0] = False
+    result.confidence[0] = 0.9
+    result.class_id[0] = 9
+    result.tracker_id[0] = 90
+    result.data["features"][0, 0] = 99
+
+    assert detections.xyxy[0, 0] == 0
+    assert detections.mask[0, 0, 0]
+    assert detections.confidence[0] == pytest.approx(0.1)
+    assert detections.class_id[0] == 1
+    assert detections.tracker_id[0] == 10
+    assert detections.data["features"][0, 0] == 1
+
+
 def test_setitem_rejects_data_length_mismatch() -> None:
     """Data assignment rejects values not aligned with detections length."""
     detections = Detections(
