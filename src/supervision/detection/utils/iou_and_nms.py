@@ -1161,12 +1161,12 @@ def _update_mask_candidate(
             image_shape=masks.image_shape,
         )
     dense_candidate = cast(npt.NDArray[Any], candidate)
-    dense_union = np.logical_or.reduce(
+    dense_union: npt.NDArray[Any] = np.logical_or.reduce(
         np.concatenate([masks[above_idx], dense_candidate]),
         axis=0,
         keepdims=True,
     )
-    return cast(npt.NDArray[Any], dense_union)
+    return dense_union
 
 
 def _greedy_nmm_via_mask_candidate(
