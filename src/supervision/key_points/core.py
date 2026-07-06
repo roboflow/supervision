@@ -1162,9 +1162,7 @@ class KeyPoints:
 
             ```
         """
-        empty_key_points = KeyPoints.empty()
-        empty_key_points.data = self.data
-        return self == empty_key_points
+        return len(self) == 0
 
     def with_nms(
         self,
@@ -1298,9 +1296,9 @@ class KeyPoints:
         if indices is not None:
             xy = xy[:, indices, :]
 
-        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
-        # points are excluded from each skeleton's bounding box.
-        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
+        # coordinates cannot form a valid detection box, so both cases are excluded.
+        valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
         has_valid = valid.any(axis=1)  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]

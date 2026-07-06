@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-06-25
+date_modified: 2026-07-06
 ---
 
 # Changelog
@@ -14,6 +14,7 @@ date_modified: 2026-06-25
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
 ### Fixed
+- Fixed [#2402](https://github.com/roboflow/supervision/pull/2402): `sv.KeyPoints.as_detections` now accepts NumPy arrays, tuples, and generators in `selected_keypoint_indices` without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.CropAnnotator.annotate` no longer raises `cv2.error` when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.HeatMapAnnotator.annotate` no longer blanks the hottest region when the per-pixel hit count exceeds 255; the heat mask is now derived from the float32 accumulator directly, avoiding uint8 wrap-around.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.get_video_frames_generator` now releases the underlying `cv2.VideoCapture` via `try/finally`, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.
