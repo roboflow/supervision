@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-05
+date_modified: 2026-07-06
 ---
 
 # Changelog
@@ -18,6 +18,7 @@ date_modified: 2026-07-05
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed [#2407](https://github.com/roboflow/supervision/pull/2407): `sv.ColorPalette.by_idx()` now raises a clear `ValueError` when called on an empty palette instead of leaking a `ZeroDivisionError`. Non-empty palettes keep the existing index-wrapping behavior.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.CropAnnotator.annotate` no longer raises `cv2.error` when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.HeatMapAnnotator.annotate` no longer blanks the hottest region when the per-pixel hit count exceeds 255; the heat mask is now derived from the float32 accumulator directly, avoiding uint8 wrap-around.
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.get_video_frames_generator` now releases the underlying `cv2.VideoCapture` via `try/finally`, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.

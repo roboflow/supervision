@@ -96,6 +96,7 @@ warn_deprecated("'foo' deprecated in `0.29.0`, removed in `0.32.0`. Use 'bar'.")
 - Minimal implementation; type hints and Google docstrings with usage examples.
 - Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
 - Update docstrings and mkdocs entries as needed.
+- Update [docs/changelog.md](docs/changelog.md) for every functional change or bug fix, including user-visible behavior changes. Skip changelog entries for lint-only, type-only, formatting-only, and pure documentation-only changes.
 
 **Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key as a constant in `config.py` (e.g. `CLASS_NAME_DATA_FIELD`, `ORIENTED_BOX_COORDINATES`).
 
