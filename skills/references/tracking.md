@@ -30,7 +30,9 @@ for frame in frames:
 
     annotated = trace_annotator.annotate(scene=frame.copy(), detections=detections)
     annotated = box_annotator.annotate(scene=annotated, detections=detections)
-    annotated = label_annotator.annotate(scene=annotated, detections=detections, labels=labels)
+    annotated = label_annotator.annotate(
+        scene=annotated, detections=detections, labels=labels
+    )
 
 tracker.reset()  # call between videos/streams to clear track state
 ```
