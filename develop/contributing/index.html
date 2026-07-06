@@ -2836,6 +2836,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#readability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Readability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#performance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3254,6 +3265,8 @@
 <p>Every docstring should include a usage example. When the example only uses <code>supervision</code>, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically verified by the test suite. See <a href="#doctests">Doctests</a> below for syntax guidance and for when fenced <code>```python</code> blocks are appropriate instead.</p>
 <h3 id="type-checking">Type checking<a class="headerlink" href="#type-checking" title="Permanent link">&para;</a></h3>
 <p>Type hints are required on all new code. mypy is enforced by the pre-commit hook configured in <code>.pre-commit-config.yaml</code> — your PR will fail CI if mypy reports errors.</p>
+<h3 id="readability">Readability<a class="headerlink" href="#readability" title="Permanent link">&para;</a></h3>
+<p>Avoid multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple <code>a if condition else b</code>, assign it to a named local variable before the call.</p>
 <h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Avoid unnecessary copies of NumPy arrays.</li>
