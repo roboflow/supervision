@@ -2553,6 +2553,7 @@ class Detections:
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
         """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
             if isinstance(self.mask, CompactMask):
                 mask = self.mask[:0]
@@ -3181,12 +3182,10 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
             union_mask = np.zeros(image_shape, dtype=bool)
             for compact_mask in compact_masks:
                 union_mask |= compact_mask.to_dense()[0]
-            image_h, image_w = image_shape
-            # Full-frame crop is intentional: source masks may have true pixels
-            # anywhere in the frame, so a tight merged box could clip them.
+            union_xyxy = mask_to_xyxy(union_mask[np.newaxis]).astype(np.float32)
             mask = CompactMask.from_dense(
                 masks=union_mask[np.newaxis],
-                xyxy=np.array([[0, 0, image_w - 1, image_h - 1]], dtype=np.float32),
+                xyxy=union_xyxy,
                 image_shape=image_shape,
             )
         else:

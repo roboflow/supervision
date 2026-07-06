@@ -1062,11 +1062,12 @@ def mask_non_max_merge(
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
         iou_threshold: The intersection-over-union threshold
-            to use for non-maximum suppression.
+            to use for non-maximum merging.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         mask_dimension: Deprecated in `0.30.0`, removed in `0.33.0`. No longer
-            used; the parameter is silently ignored.
+            used; the parameter is silently ignored. Passing `mask_dimension`
+            positionally emits a deprecation warning.
 
     Returns:
         A list of groups of prediction indices. Each inner list contains
@@ -1078,6 +1079,21 @@ def mask_non_max_merge(
         AssertionError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
         TypeError: If more than five positional arguments are passed.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_merge(predictions, masks, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
 
     assert 0 <= iou_threshold <= 1, (
@@ -1145,11 +1161,12 @@ def _update_mask_candidate(
             image_shape=masks.image_shape,
         )
     dense_candidate = cast(npt.NDArray[Any], candidate)
-    return np.logical_or.reduce(
+    dense_union = np.logical_or.reduce(
         np.concatenate([masks[above_idx], dense_candidate]),
         axis=0,
         keepdims=True,
     )
+    return cast(npt.NDArray[Any], dense_union)
 
 
 def _greedy_nmm_via_mask_candidate(

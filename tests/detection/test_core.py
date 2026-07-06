@@ -384,6 +384,23 @@ def test_select_non_empty_slice_returns_fresh_arrays() -> None:
     assert detections.data["features"][0, 0] == 1
 
 
+def test_select_compact_mask_slice_returns_fresh_arrays() -> None:
+    """Selecting CompactMask detections by slice does not share public arrays."""
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[:, :2, :2] = True
+    xyxy = np.array([[0, 0, 1, 1], [1, 1, 2, 2]], dtype=np.float32)
+    compact_mask = CompactMask.from_dense(masks, xyxy, image_shape=(4, 4))
+    detections = Detections(xyxy=xyxy.copy(), mask=compact_mask)
+
+    result = detections.select(slice(0, 1))
+    assert isinstance(result.mask, CompactMask)
+
+    result.mask.offsets[0, 0] = 3
+
+    assert isinstance(detections.mask, CompactMask)
+    assert detections.mask.offsets[0, 0] == 0
+
+
 def test_setitem_rejects_data_length_mismatch() -> None:
     """Data assignment rejects values not aligned with detections length."""
     detections = Detections(
@@ -2380,10 +2397,10 @@ class TestDetectionsWithNMM:
     def test_compact_mask_nmm_preserves_full_frame_union(self) -> None:
         """CompactMask NMM keeps full-frame mask pixels after merging."""
         masks = np.zeros((2, 10, 10), dtype=bool)
-        masks[0, 0, 0] = True
-        masks[0, 9, 9] = True
-        masks[1, 0, 0] = True
-        masks[1, 8, 8] = True
+        masks[0, 1, 1] = True
+        masks[0, 8, 8] = True
+        masks[1, 1, 1] = True
+        masks[1, 7, 7] = True
         compact_mask = CompactMask.from_dense(
             masks=masks,
             xyxy=np.array([[0, 0, 9, 9], [0, 0, 9, 9]], dtype=np.float32),
@@ -2400,10 +2417,11 @@ class TestDetectionsWithNMM:
 
         assert len(result) == 1
         assert isinstance(result.mask, CompactMask)
+        assert result.mask.bbox_xyxy.tolist() == [[1, 1, 8, 8]]
         result_mask = result.mask.to_dense()[0]
-        assert result_mask[0, 0]
+        assert result_mask[1, 1]
+        assert result_mask[7, 7]
         assert result_mask[8, 8]
-        assert result_mask[9, 9]
 
 
 class TestDetectionsArea:

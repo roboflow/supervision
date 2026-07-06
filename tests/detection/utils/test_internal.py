@@ -541,6 +541,12 @@ def test_process_roboflow_result_invalid_polygon_is_box_only(
     np.testing.assert_array_equal(data[CLASS_NAME_DATA_FIELD], np.array(["person"]))
     assert "fewer than 3 points" in caplog.text
 
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+    np.testing.assert_array_equal(compact_result[0], xyxy)
+    assert compact_result[3] is None
+
 
 def test_polygon_prediction_compact_masks_true() -> None:
     """polygon prediction with compact_masks=True returns a CompactMask."""

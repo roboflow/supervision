@@ -21,9 +21,10 @@ class JSONSink:
 
         JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
-        When a list or tuple value in custom_data (or detections.data) has the
-        same length as the detection count, each element is written to the
-        corresponding detection row; any other value is broadcast to all rows.
+        When a NumPy array, list, or tuple value in custom_data (or
+        detections.data) has the same length as the detection count, each
+        element is written to the corresponding detection row; any other value
+        is broadcast to all rows.
         NumPy scalars (e.g. ``np.int64``, ``np.float32``) are serialized as
         JSON numbers; NumPy arrays are serialized as JSON arrays.
 
