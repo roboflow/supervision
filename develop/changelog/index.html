@@ -3730,6 +3730,8 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>sv.Classifications.from_timm</code> now softmaxes model logits before exposing confidence scores, matching <code>sv.Classifications.from_clip</code> and keeping timm confidences on a normalized probability scale. Thresholds calibrated against raw logits may need retuning.</li>
+<li><code>sv.download_assets</code> now verifies MD5 hashes after fresh downloads and retries once when the downloaded payload is corrupted instead of accepting a bad file.</li>
 <li>Fixed metrics scoring edge cases: legacy <code>sv.MeanAveragePrecision</code> now uses COCO 101-point AP averaging, <code>sv.ConfusionMatrix</code> rejects invalid class ids instead of wrapping them through <code>int16</code>/negative indexing, <code>sv.MeanAveragePrecision</code> preserves user-provided target <code>ignore</code> flags, and <code>sv.MeanAverageRecallResult.recall_per_class</code> now exposes per-class recall for each max-detection cutoff.</li>
 <li><code>sv.ByteTrack</code> no longer mutates input <code>Detections</code> while assigning tracker IDs. It now keeps detections at the activation-threshold boundary eligible for matching, avoids impossible new-track thresholds above score <code>1.0</code>, ignores invalid zero-area/non-finite tensor boxes before Kalman updates, and does not emit unconfirmed <code>-1</code> IDs from first-frame tensor updates.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2402">#2402</a>: <code>sv.KeyPoints.as_detections</code> now accepts NumPy arrays, tuples, and generators in <code>selected_keypoint_indices</code> without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.</li>
@@ -5752,7 +5754,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 7, 2026 19:05:03 UTC">July 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 7, 2026 19:59:23 UTC">July 7, 2026</span>
   </span>
 
     
