@@ -1633,6 +1633,95 @@ class TestDetectionMetrics:
         assert result.map50 == pytest.approx(1.0, abs=0.01)
 
 
+class TestMeanAveragePrecisionBackgroundFalsePositives:
+    """MeanAveragePrecision.from_tensors penalizes predictions on GT-empty images."""
+
+    def test_background_false_positives_lower_map(self) -> None:
+        """False positives on a GT-empty image drop map50 below the FP-free baseline."""
+        # Arrange
+        matched_target = np.array([[0.0, 0.0, 10.0, 10.0, 0]], dtype=np.float32)
+        matched_prediction = np.array(
+            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
+        )
+        background_target = np.zeros((0, 5), dtype=np.float32)
+        background_predictions = np.array(
+            [
+                [100.0, 100.0, 110.0, 110.0, 0, 0.95],
+                [200.0, 200.0, 210.0, 210.0, 0, 0.95],
+                [300.0, 300.0, 310.0, 310.0, 0, 0.95],
+            ],
+            dtype=np.float32,
+        )
+
+        # Act
+        without_fp = MeanAveragePrecision.from_tensors(
+            predictions=[matched_prediction],
+            targets=[matched_target],
+        )
+        with_fp = MeanAveragePrecision.from_tensors(
+            predictions=[matched_prediction, background_predictions],
+            targets=[matched_target, background_target],
+        )
+
+        # Assert
+        assert without_fp.map50 == pytest.approx(1.0, abs=0.01)
+        assert with_fp.map50 < without_fp.map50
+        assert with_fp.map50 < 0.5
+        assert with_fp.map75 < without_fp.map75
+        assert with_fp.map50_95 < without_fp.map50_95
+
+    def test_ground_truth_present_path_unchanged(self) -> None:
+        """GT-present scenario keeps its pinned map50 (guards normal-path numerics)."""
+        # Arrange
+        targets = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0],
+                    [2.0, 2.0, 5.0, 5.0, 0],
+                    [6.0, 1.0, 8.0, 3.0, 1],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        predictions = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+                    [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+                    [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+                ],
+                dtype=np.float32,
+            )
+        ]
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=predictions, targets=targets
+        )
+
+        # Assert
+        assert result.map50 == pytest.approx(0.81, abs=0.01)
+
+    def test_all_background_predictions_return_zero_not_nan(self) -> None:
+        """All-background dataset with predictions must yield 0.0 mAP, not NaN."""
+        # Arrange — no GT objects anywhere; model still fires predictions
+        background_target = np.zeros((0, 5), dtype=np.float32)
+        background_predictions = np.array(
+            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
+        )
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=[background_predictions],
+            targets=[background_target],
+        )
+
+        # Assert — must be finite 0.0, not NaN (regression for all-background datasets)
+        assert result.map50 == pytest.approx(0.0)
+        assert result.map75 == pytest.approx(0.0)
+        assert result.map50_95 == pytest.approx(0.0)
+
+
 class TestSplitDetectionsByOutcome:
     """Tests for _split_detections_by_outcome matching and filtering logic."""
 

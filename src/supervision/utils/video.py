@@ -107,6 +107,7 @@ class VideoSink:
         self.__writer: cv2.VideoWriter | None = None
 
     def __enter__(self) -> VideoSink:
+        """Open the underlying video writer for context-managed frame output."""
         fourcc_fn = cast(
             Callable[[str, str, str, str], int], getattr(cv2, "VideoWriter_fourcc")
         )
@@ -121,6 +122,11 @@ class VideoSink:
             self.video_info.fps,
             self.video_info.resolution_wh,
         )
+        # OpenCV can construct a writer object that is not usable for the target path.
+        if not self.__writer.isOpened():
+            self.__writer.release()
+            self.__writer = None
+            raise RuntimeError(f"Could not open video writer for {self.target_path}")
         return self
 
     def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
@@ -131,8 +137,10 @@ class VideoSink:
             frame: The video frame to be written to the file. The frame
                 must be in BGR color format.
         """
-        if self.__writer is not None:
-            self.__writer.write(frame)
+        # Preserve the context-manager invariant instead of silently dropping frames.
+        if self.__writer is None:
+            raise RuntimeError("write_frame requires an open VideoSink context.")
+        self.__writer.write(frame)
 
     def __exit__(
         self,
@@ -140,8 +148,10 @@ class VideoSink:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
+        """Release the underlying video writer when leaving the context."""
         if self.__writer is not None:
             self.__writer.release()
+            self.__writer = None
 
 
 def _mux_audio(source_path: str, video_path: str) -> None:

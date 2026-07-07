@@ -73,7 +73,11 @@ from supervision.detection.vlm import (
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import _validate_detections_fields, _validate_resolution
+from supervision.validators import (
+    _validate_data,
+    _validate_detections_fields,
+    _validate_resolution,
+)
 
 
 @dataclass
@@ -335,9 +339,11 @@ class Detections:
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
-            masks = cast(
-                npt.NDArray[np.bool_], extract_ultralytics_masks(ultralytics_results)
-            )
+            masks = extract_ultralytics_masks(ultralytics_results)
+            if masks is None:
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
@@ -453,7 +459,9 @@ class Detections:
 
         # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
         # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
-        boxes = tensorflow_results["detection_boxes"][0].numpy()
+        # `.numpy()` may share memory with the source tensor, so copy before the
+        # in-place scaling to avoid mutating the caller's result / double-scaling.
+        boxes = tensorflow_results["detection_boxes"][0].numpy().copy()
         boxes[:, [0, 2]] *= resolution_wh[1]
         boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
@@ -1088,10 +1096,12 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm: The type of LMM (Large Multimodal Model) to use.
@@ -1530,18 +1540,10 @@ class Detections:
             "Use `Detections.from_vlm` instead."
         )
 
-        # filler logic mapping old from_lmm to new from_vlm
-        lmm_to_vlm = {
-            LMM.PALIGEMMA: VLM.PALIGEMMA,
-            LMM.FLORENCE_2: VLM.FLORENCE_2,
-            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
-            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
-            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-        }
-
+        # LMM and VLM are mirror enums (identical string values) so value-based
+        # lookup is exhaustive by construction — no hand-maintained mapping needed.
         if isinstance(lmm, LMM):
-            vlm = lmm_to_vlm[lmm]
+            vlm = VLM(lmm.value)
 
         elif isinstance(lmm, str):
             try:
@@ -1551,7 +1553,7 @@ class Detections:
                     f"Invalid LMM string '{lmm}'. Must be one of "
                     f"{[m.value for m in LMM]}"
                 )
-            vlm = lmm_to_vlm[lmm_enum]
+            vlm = VLM(lmm_enum.value)
 
         else:
             raise ValueError(
@@ -1574,7 +1576,7 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
-        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
@@ -2540,8 +2542,9 @@ class Detections:
             index: Row index, indices, slice, or boolean mask selecting detections.
 
         Returns:
-            A `Detections` instance containing the selected rows. Empty detections
-            are returned unchanged.
+            A new `Detections` instance containing the selected rows. Always returns
+            a fresh copy — arrays and metadata are never shared with the original,
+            even when the selection is empty or the input has zero detections.
 
         Example:
             >>> import numpy as np
@@ -2550,25 +2553,64 @@ class Detections:
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
         """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
-            return self
+            if isinstance(self.mask, CompactMask):
+                mask = self.mask[:0]
+            elif self.mask is not None:
+                mask = self.mask[:0].copy()
+            else:
+                mask = None
+            data = {
+                key: value.copy() if isinstance(value, np.ndarray) else list(value)
+                for key, value in self.data.items()
+            }
+            return Detections(
+                xyxy=self.xyxy.copy(),
+                mask=mask,
+                confidence=(
+                    self.confidence.copy() if self.confidence is not None else None
+                ),
+                class_id=self.class_id.copy() if self.class_id is not None else None,
+                tracker_id=(
+                    self.tracker_id.copy() if self.tracker_id is not None else None
+                ),
+                data=data,
+                metadata=dict(self.metadata),
+            )
         if isinstance(index, (int, np.integer)):
             index = [int(index)]
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
         )
+        data = {
+            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            for key, value in get_data_item(self.data, array_index).items()
+        }
+        if isinstance(self.mask, CompactMask):
+            mask = self.mask[cast(Any, array_index)]
+        elif self.mask is not None:
+            mask = self.mask[cast(Any, array_index)].copy()
+        else:
+            mask = None
         return Detections(
-            xyxy=self.xyxy[array_index],
-            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
+            xyxy=self.xyxy[array_index].copy(),
+            mask=mask,
             confidence=(
-                self.confidence[array_index] if self.confidence is not None else None
+                self.confidence[array_index].copy()
+                if self.confidence is not None
+                else None
             ),
-            class_id=self.class_id[array_index] if self.class_id is not None else None,
+            class_id=(
+                self.class_id[array_index].copy() if self.class_id is not None else None
+            ),
             tracker_id=(
-                self.tracker_id[array_index] if self.tracker_id is not None else None
+                self.tracker_id[array_index].copy()
+                if self.tracker_id is not None
+                else None
             ),
-            data=get_data_item(self.data, array_index),
-            metadata=self.metadata,
+            data=data,
+            metadata=dict(self.metadata),
         )
 
     def __getitem__(
@@ -2640,6 +2682,11 @@ class Detections:
                  in detections.class_id
              ]
             ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has a length or shape incompatible with
+                the detection count.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -2647,6 +2694,7 @@ class Detections:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @property
@@ -2820,7 +2868,7 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             data=self.data,
-            metadata=self.metadata,
+            metadata=dict(self.metadata),
         )
         return new
 
@@ -3120,10 +3168,31 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         )
         data = winner.data
 
-    # Mask union via logical OR
+    # Mask union via logical OR. Preserve CompactMask outputs without re-cropping
+    # to the merged box, because source masks may legitimately extend outside it.
     masks = [d.mask for d in detections if d.mask is not None]
     if masks:
-        mask = np.logical_or.reduce(np.concatenate(masks, axis=0))[np.newaxis]
+        if all(isinstance(m, CompactMask) for m in masks):
+            compact_masks = cast(list[CompactMask], masks)
+            image_shape = compact_masks[0].image_shape
+            if any(m.image_shape != image_shape for m in compact_masks):
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes."
+                )
+            union_mask = np.zeros(image_shape, dtype=bool)
+            for compact_mask in compact_masks:
+                union_mask |= compact_mask.to_dense()[0]
+            union_xyxy = mask_to_xyxy(union_mask[np.newaxis]).astype(np.float32)
+            mask = CompactMask.from_dense(
+                masks=union_mask[np.newaxis],
+                xyxy=union_xyxy,
+                image_shape=image_shape,
+            )
+        else:
+            dense_masks = [
+                m.to_dense() if isinstance(m, CompactMask) else m for m in masks
+            ]
+            mask = np.logical_or.reduce(np.concatenate(dense_masks, axis=0))[np.newaxis]
     else:
         mask = None
 

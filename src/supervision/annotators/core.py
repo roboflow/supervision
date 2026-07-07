@@ -54,6 +54,21 @@ from supervision.utils.logger import _get_logger
 logger = _get_logger(__name__)
 
 
+@lru_cache
+def _load_icon_from_path(
+    icon_path: str, icon_resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Load and resize an icon image through a cache shared by annotators."""
+    icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+    if icon is None:
+        raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
+    icon_array = cast(npt.NDArray[np.uint8], icon)
+    result: npt.NDArray[np.uint8] = letterbox_image(
+        image=icon_array, resolution_wh=icon_resolution_wh
+    )
+    return result
+
+
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
     """Normalize accepted color inputs to internal color objects.
 
@@ -887,7 +902,13 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
+        blended_scene = np.clip(
+            scene.astype(np.float32) * (1 - alpha_mask)
+            + colored_mask.astype(np.float32) * alpha_mask,
+            0,
+            255,
+        ).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
@@ -2013,18 +2034,11 @@ class IconAnnotator(BaseAnnotator):
             scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
-    @lru_cache
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-        icon_array = cast(npt.NDArray[np.uint8], icon)
-        result: npt.NDArray[np.uint8] = letterbox_image(
-            image=icon_array, resolution_wh=self.icon_resolution_wh
+        """Load an icon through the module-level cache shared by annotators."""
+        return _load_icon_from_path(
+            icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )
-        return result
 
 
 class BlurAnnotator(BaseAnnotator):
@@ -3032,12 +3046,15 @@ class CropAnnotator(BaseAnnotator):
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
         ).astype(np.int32)
+        # Snapshot before the loop so later crops are taken from the original image,
+        # not a scene already annotated by earlier iterations (overlapping-box case).
+        source_scene = scene.copy()
 
         for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
             crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
             if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
                 continue
-            crop = crop_image(image=scene, xyxy=xyxy)
+            crop = crop_image(image=source_scene, xyxy=xyxy)
             resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
@@ -3180,7 +3197,12 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
+from supervision.dataset.utils import check_no_basename_collisions
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
     mask_to_polygons,
@@ -363,6 +364,10 @@ def save_labelme_annotations(
         annotations_directory_path: Directory where the LabelMe ``.json`` files
             are written (created if it does not exist).
 
+    Raises:
+        ValueError: If two image paths map to the same output .json stem,
+            which would cause one annotation file to overwrite another.
+
     Examples:
         ```python
         import supervision as sv
@@ -375,6 +380,11 @@ def save_labelme_annotations(
         )
         ```
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: f"{Path(image_path).stem}.json",
+        output_kind="LabelMe annotation",
+    )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, detections in dataset:
         image_height, image_width, _ = image.shape

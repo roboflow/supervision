@@ -1419,6 +1419,43 @@ class TestCropAnnotator:
 
         assert not np.array_equal(gradient_image, result)
 
+    def test_annotate_overlapping_crops_sample_from_original_scene(self) -> None:
+        """Later crops must sample the original un-annotated scene.
+
+        box1 is pasted into the region that box2 crops from. Without the
+        source_scene = scene.copy() fix, box2 reads box1's paste value
+        instead of the original pixel — the aliasing regression.
+        """
+        # Arrange: two distinct pixel bands; box1's paste region overlaps box2's crop
+        scene = np.full((80, 80, 3), 50, dtype=np.uint8)
+        scene[0:20, 0:20] = 10  # band A — box1 crops here (value 10)
+        scene[20:40, 20:40] = 200  # band B — box2 crops here; box1 pastes here
+
+        detections = _create_detections(
+            xyxy=[[0, 0, 20, 20], [20, 20, 40, 40]], class_id=[0, 1]
+        )
+        # BOTTOM_RIGHT: each crop is pasted at its (x2, y2) corner.
+        # box1 pastes band A (value 10) at rows 20-39, cols 20-39 — exactly
+        # where box2 will crop.
+        annotator = CropAnnotator(
+            position=Position.BOTTOM_RIGHT,
+            scale_factor=1.0,
+        )
+
+        # Act
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+
+        # Assert: box2's crop is pasted at rows 40-59, cols 40-59.
+        # Interior (rows 42-57, cols 42-57) avoids the 2-pixel default border
+        # and must equal 200 — the original band B value. Without the fix,
+        # box2 samples 10 from the painted scene instead of 200 from original.
+        interior = result[42:58, 42:58]
+        assert np.all(interior == 200), (
+            f"box2 crop paste region should contain original pixel 200, "
+            f"got {np.unique(interior).tolist()!r}. "
+            "Regression: source_scene must be scene.copy(), not an alias."
+        )
+
 
 class TestIconAnnotator:
     """Tests for IconAnnotator class"""
@@ -1442,6 +1479,31 @@ class TestIconAnnotator:
         ]
         assert deprecations == []
 
+    def test_icon_cache_is_shared_by_path_and_resolution(
+        self, monkeypatch, test_image, tmp_path
+    ):
+        """Equal path/resolution icon loads are cached across annotator instances."""
+        icon_path = str(tmp_path / "icon.png")
+        icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
+        cv2.imwrite(icon_path, icon)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        imread_calls = 0
+        original_imread = cv2.imread
+
+        def count_imread(path, flags):
+            nonlocal imread_calls
+            imread_calls += 1
+            return original_imread(path, flags)
+
+        monkeypatch.setattr(cv2, "imread", count_imread)
+
+        for _ in range(2):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+
+        assert imread_calls == 1
+
 
 class TestBackgroundOverlayAnnotator:
     """Tests for BackgroundOverlayAnnotator class"""
@@ -1460,6 +1522,66 @@ class TestBackgroundOverlayAnnotator:
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
+
+    @pytest.mark.parametrize(
+        ("xyxy", "inside_xy", "outside_xy"),
+        [
+            pytest.param([-5, 20, 40, 60], (20, 30), (60, 80), id="crosses-left-edge"),
+            pytest.param([20, -5, 60, 40], (30, 20), (80, 60), id="crosses-top-edge"),
+            pytest.param(
+                [-10, -10, 40, 40], (20, 20), (70, 70), id="crosses-both-edges"
+            ),
+        ],
+    )
+    def test_annotate_preserves_detection_crossing_scene_border(
+        self, xyxy: list[int], inside_xy: tuple[int, int], outside_xy: tuple[int, int]
+    ) -> None:
+        """The visible part of a box crossing the border keeps original pixels"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[xyxy])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        x_in, y_in = inside_xy
+        x_out, y_out = outside_xy
+        assert np.array_equal(result[y_in, x_in], np.array([200, 200, 200]))
+        assert np.array_equal(result[y_out, x_out], np.array([100, 100, 100]))
+
+    def test_annotate_fully_out_negative_box_does_not_corrupt(self) -> None:
+        """Both-negative OOB box must not restore an in-bounds region via wrap-around"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[-30, -30, -5, -5]])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.array_equal(result[80, 80], np.array([100, 100, 100]))
+
+    def test_annotate_force_box_preserves_detection_crossing_scene_border(self):
+        """force_box with a border-crossing box keeps the visible detection region"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[20:60, 0:40] = True
+        detections = _create_detections(xyxy=[[-5, 20, 40, 60]], mask=[mask])
+        annotator = BackgroundOverlayAnnotator(
+            color=Color.BLACK, opacity=0.5, force_box=True
+        )
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.array_equal(result[30, 20], np.array([200, 200, 200]))
+        assert np.array_equal(result[80, 60], np.array([100, 100, 100]))
+
+    def test_annotate_with_fully_out_of_bounds_detection(self):
+        """A box fully outside the scene leaves the whole scene tinted"""
+        image = np.full((100, 100, 3), 200, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[150, 150, 200, 200]])
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+
+        assert np.all(result == 100)
 
     def test_annotate_uint8_mask_matches_bool_mask(self):
         """Test that uint8 and bool masks produce identical overlays."""

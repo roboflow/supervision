@@ -117,6 +117,11 @@ class LineZone:
         self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = (
             defaultdict(lambda: deque(maxlen=self.crossing_history_length))
         )
+        # Tracks consecutive frames a tracker key has been absent; eviction
+        # requires crossing_history_length absent frames so that ByteTrack
+        # coasting gaps (single-frame detection drops) don't reset mid-crossing
+        # state prematurely.
+        self._tracker_frames_absent: dict[tuple[int, int | None], int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
         self.triggering_anchors = triggering_anchors
@@ -159,6 +164,7 @@ class LineZone:
         crossed_out = np.full(len(detections), False)
 
         if len(detections) == 0:
+            self._evict_stale_crossing_history(set())
             return crossed_in, crossed_out
 
         if detections.tracker_id is None:
@@ -170,16 +176,20 @@ class LineZone:
             )
             return crossed_in, crossed_out
 
-        self._update_class_id_to_name(detections)
-
-        in_limits, has_any_left_trigger, has_any_right_trigger = (
-            self._compute_anchor_sides(detections)
-        )
-
         class_ids: list[int | None] = (
             list(detections.class_id)
             if detections.class_id is not None
             else [None] * len(detections)
+        )
+        current_keys = {
+            (int(tracker_id), int(class_id) if class_id is not None else None)
+            for tracker_id, class_id in zip(detections.tracker_id, class_ids)
+        }
+        self._evict_stale_crossing_history(current_keys)
+        self._update_class_id_to_name(detections)
+
+        in_limits, has_any_left_trigger, has_any_right_trigger = (
+            self._compute_anchor_sides(detections)
         )
 
         for i, (class_id, tracker_id) in enumerate(
@@ -192,7 +202,8 @@ class LineZone:
                 continue
 
             tracker_state: bool = has_any_left_trigger[i]
-            crossing_history = self.crossing_state_history[(tracker_id, class_id)]
+            key = (int(tracker_id), int(class_id) if class_id is not None else None)
+            crossing_history = self.crossing_state_history[key]
             crossing_history.append(tracker_state)
 
             if len(crossing_history) < self.crossing_history_length:
@@ -210,6 +221,20 @@ class LineZone:
                 crossed_out[i] = True
 
         return crossed_in, crossed_out
+
+    def _evict_stale_crossing_history(
+        self, current_keys: set[tuple[int, int | None]]
+    ) -> None:
+        for key in list(self.crossing_state_history):
+            if key in current_keys:
+                self._tracker_frames_absent.pop(key, None)
+            else:
+                absent = self._tracker_frames_absent.get(key, 0) + 1
+                if absent >= self.crossing_history_length:
+                    del self.crossing_state_history[key]
+                    self._tracker_frames_absent.pop(key, None)
+                else:
+                    self._tracker_frames_absent[key] = absent
 
     @staticmethod
     def _calculate_region_of_interest_limits(vector: Vector) -> tuple[Vector, Vector]:

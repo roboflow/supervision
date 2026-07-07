@@ -11,6 +11,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
+    box_non_max_merge,
     box_non_max_suppression,
     mask_iou_batch,
     mask_non_max_merge,
@@ -19,6 +20,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
 
 
@@ -599,7 +601,7 @@ def test_mask_non_max_suppression(
                 ]
             ),
             0.6,
-            [[0, 1]],
+            [[0], [1]],
             DoesNotRaise(),
         ),  # two masks partially overlapping with no category, no merge
         (
@@ -666,6 +668,94 @@ def test_mask_non_max_merge(
         sorted_result = sorted([sorted(group) for group in result])
         sorted_expected_result = sorted([sorted(group) for group in expected_result])
         assert sorted_result == sorted_expected_result
+
+
+def test_mask_non_max_merge_ignores_mask_dimension_for_exact_iou() -> None:
+    """Mask NMM ignores downscale dimension and uses exact mask overlap."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0, 0] = True
+    masks[0, 0, 1] = True
+    masks[1, 0, 0] = True
+    masks[1, 1, 0] = True
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.9,
+        mask_dimension=1,
+    )
+
+    assert sorted([sorted(group) for group in result]) == [[0], [1]]
+
+
+def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
+    """Mask NMM supports legacy positional trailing args with warning."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0:2, 0:2] = True
+    masks[1, 0:2, 0:2] = True
+
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        legacy_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            640,
+            OverlapMetric.IOU,
+        )
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        reordered_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            OverlapMetric.IOU,
+            640,
+        )
+
+    assert legacy_result == [[0, 1]]
+    assert reordered_result == [[0, 1]]
+
+
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
 
 
 @pytest.mark.parametrize(
@@ -1877,3 +1967,88 @@ class TestBoxIouBatchWithJaccard:
             box_iou_batch_with_jaccard(
                 [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
             )
+
+
+# ---------------------------------------------------------------------------
+# box_non_max_merge
+# ---------------------------------------------------------------------------
+
+
+class TestBoxNonMaxMerge:
+    """box_non_max_merge groups overlapping boxes into clusters."""
+
+    def test_empty_input_returns_empty_list(self) -> None:
+        """An empty predictions array produces no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert result == []
+
+    def test_non_overlapping_boxes_each_own_group(self) -> None:
+        """Boxes with zero overlap remain in separate singleton groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [20, 20, 30, 30, 0.8],
+                [50, 50, 60, 60, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 3
+        assert all(len(g) == 1 for g in result)
+
+    def test_identical_boxes_merged_into_one_group(self) -> None:
+        """Perfectly overlapping boxes (IoU=1) are merged into a single group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [0, 0, 10, 10, 0.8],
+                [0, 0, 10, 10, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 3
+
+    def test_two_distinct_clusters(self) -> None:
+        """Two groups of overlapping boxes produce exactly two merge groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [1, 1, 11, 11, 0.85],
+                [50, 50, 60, 60, 0.8],
+                [51, 51, 61, 61, 0.75],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.3)
+        assert len(result) == 2
+        group_sizes = sorted(len(g) for g in result)
+        assert group_sizes == [2, 2]
+
+    def test_6col_different_class_ids_not_merged(self) -> None:
+        """Identical boxes with different class_ids stay in separate groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 1],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 2
+        assert all(len(g) == 1 for g in result)
+
+    def test_6col_same_class_id_merged(self) -> None:
+        """Identical boxes with the same class_id are merged into one group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 0],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 2

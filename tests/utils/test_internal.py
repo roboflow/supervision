@@ -1,3 +1,4 @@
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
 from typing import Any
@@ -6,7 +7,11 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.utils.internal import get_instance_variables
+from supervision.utils.internal import (
+    SupervisionWarnings,
+    format_warning,
+    get_instance_variables,
+)
 
 
 class MockClass:
@@ -197,3 +202,11 @@ def test_get_instance_variables(
             input_instance, include_properties=include_properties
         )
         assert result == expected
+
+
+def test_supervision_warning_formatter_is_not_global() -> None:
+    """Supervision warning formatting is opt-in, not global warnings state."""
+    assert warnings.formatwarning is not format_warning
+    assert format_warning("message", SupervisionWarnings, "file.py", 1) == (
+        "SupervisionWarnings: message\n"
+    )

@@ -10,6 +10,7 @@ from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
+    pad_boxes,
     scale_boxes,
     xyxyxyxy_to_xyxy,
 )
@@ -384,3 +385,52 @@ def test_oriented_box_anchors_at_90_degrees_on_box(anchor: Position) -> None:
     )
     distances = np.linalg.norm(rectangle_points - result, axis=1)
     assert distances.min() < 1e-6
+
+
+# ---------------------------------------------------------------------------
+# pad_boxes
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("xyxy", "px", "py", "expected"),
+    [
+        pytest.param(
+            np.array([[10, 20, 30, 40]]),
+            5,
+            None,
+            np.array([[5, 15, 35, 45]]),
+            id="single-box-uniform",
+        ),
+        pytest.param(
+            np.array([[10, 20, 30, 40]]),
+            5,
+            10,
+            np.array([[5, 10, 35, 50]]),
+            id="single-box-asymmetric",
+        ),
+        pytest.param(
+            np.array([[10, 20, 30, 40], [15, 25, 35, 45]]),
+            5,
+            10,
+            np.array([[5, 10, 35, 50], [10, 15, 40, 55]]),
+            id="two-boxes",
+        ),
+        pytest.param(
+            np.empty((0, 4), dtype=np.float32),
+            5,
+            None,
+            np.empty((0, 4), dtype=np.float32),
+            id="empty",
+        ),
+    ],
+)
+def test_pad_boxes(
+    xyxy: np.ndarray,
+    px: int,
+    py: int | None,
+    expected: np.ndarray,
+) -> None:
+    """pad_boxes expands each box by px horizontally and py (or px) vertically."""
+    result = pad_boxes(xyxy=xyxy, px=px, py=py)
+    np.testing.assert_array_equal(result, expected)
