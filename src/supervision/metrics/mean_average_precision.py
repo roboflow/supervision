@@ -75,7 +75,7 @@ class MeanAveragePrecisionResult:
     """
     The result of the Mean Average Precision calculation.
 
-    Defaults to `0` when no detections or targets are present.
+    Returns `-1` sentinel scores when no detections or targets are present.
 
     Attributes:
         metric_target: the type of data used for the metric -

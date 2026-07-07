@@ -351,6 +351,13 @@ class LineZone:
 
 
 class LineZoneAnnotator:
+    """
+    Draw a `LineZone` and its in/out counts on a video frame.
+
+    Use this annotator after calling `LineZone.trigger` so the rendered counts
+    reflect the latest tracked detections.
+    """
+
     def __init__(
         self,
         thickness: int = 2,
@@ -740,6 +747,13 @@ class LineZoneAnnotator:
 
 
 class LineZoneAnnotatorMulticlass:
+    """
+    Draw per-class crossing counts for one or more `LineZone` instances.
+
+    The annotator renders a table with one row per line zone and one column per
+    class observed by the zones.
+    """
+
     def __init__(
         self,
         *,

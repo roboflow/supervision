@@ -1,10 +1,12 @@
 import warnings
 
+import cv2
 import numpy as np
 import pytest
 from PIL import Image, ImageChops
 
 from supervision.utils.image import (
+    ImageSink,
     _overlay_image,
     crop_image,
     get_image_resolution_wh,
@@ -269,6 +271,17 @@ def test_crop_image(image, xyxy, expected_size) -> None:
 def test_get_image_resolution_wh(image, expected) -> None:
     resolution = get_image_resolution_wh(image)
     assert resolution == expected
+
+
+def test_image_sink_raises_when_cv2_write_fails(monkeypatch, tmp_path) -> None:
+    """ImageSink.save_image raises and keeps count stable when OpenCV write fails."""
+    monkeypatch.setattr(cv2, "imwrite", lambda *_: False)
+
+    with ImageSink(str(tmp_path)) as sink:
+        with pytest.raises(IOError, match="Failed to save image"):
+            sink.save_image(np.zeros((2, 2, 3), dtype=np.uint8))
+
+        assert sink.image_count == 0
 
 
 @pytest.mark.parametrize(
