@@ -93,6 +93,20 @@ def test_update_with_detections_does_not_mutate_input() -> None:
     assert detections.tracker_id is None
 
 
+def test_update_with_tensors_activates_on_second_consecutive_frame() -> None:
+    """A second consecutive tensor frame should activate the delayed track."""
+    byte_tracker = sv.ByteTrack(minimum_consecutive_frames=2)
+    tensors = np.array([[0, 0, 10, 10, 0.9]], dtype=np.float32)
+
+    first_frame = byte_tracker.update_with_tensors(tensors)
+    second_frame = byte_tracker.update_with_tensors(tensors)
+
+    assert first_frame == []
+    assert len(second_frame) == 1
+    assert second_frame[0].is_activated
+    assert second_frame[0].external_track_id == 1
+
+
 def test_score_equal_to_activation_threshold_keeps_existing_track() -> None:
     """A detection exactly at the threshold should remain eligible to match."""
     byte_tracker = sv.ByteTrack(track_activation_threshold=0.5)
@@ -118,10 +132,41 @@ def test_linear_assignment_does_not_mutate_cost_matrix() -> None:
     assert np.array_equal(cost_matrix, original)
 
 
-def test_update_with_tensors_ignores_zero_height_boxes() -> None:
-    """Zero-height boxes should be dropped before Kalman state creation."""
+@pytest.mark.parametrize(
+    "tensors",
+    [
+        pytest.param(
+            np.array([[np.nan, 0, 10, 10, 0.9]], dtype=np.float32),
+            id="nan",
+        ),
+        pytest.param(
+            np.array([[0, np.inf, 10, 10, 0.9]], dtype=np.float32),
+            id="inf",
+        ),
+        pytest.param(
+            np.array([[0, 0, 0, 10, 0.9]], dtype=np.float32),
+            id="zero-width",
+        ),
+        pytest.param(
+            np.array([[10, 0, 0, 10, 0.9]], dtype=np.float32),
+            id="negative-width",
+        ),
+        pytest.param(
+            np.array([[0, 0, 10, 0, 0.9]], dtype=np.float32),
+            id="zero-height",
+        ),
+        pytest.param(
+            np.array([[0, 10, 10, 0, 0.9]], dtype=np.float32),
+            id="negative-height",
+        ),
+        pytest.param(np.empty((0, 5), dtype=np.float32), id="empty"),
+    ],
+)
+def test_update_with_tensors_ignores_invalid_boxes(
+    tensors: np.ndarray,
+) -> None:
+    """Invalid tensors should be dropped before track creation."""
     byte_tracker = sv.ByteTrack()
-    tensors = np.array([[0, 0, 10, 0, 0.9]], dtype=np.float32)
 
     tracks = byte_tracker.update_with_tensors(tensors)
 

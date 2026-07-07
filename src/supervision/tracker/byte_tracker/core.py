@@ -150,7 +150,7 @@ class ByteTrack:
             iou_costs: npt.NDArray[np.float32] = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            tracked_detections = detections.select(np.arange(len(detections)))
+            tracked_detections = detections.select(slice(None))
             tracked_detections.tracker_id = np.full(len(detections), -1, dtype=int)
             for i_detection, i_track in matches:
                 tracked_detections.tracker_id[i_detection] = int(
