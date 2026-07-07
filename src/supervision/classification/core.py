@@ -152,7 +152,7 @@ class Classifications:
             classifications = sv.Classifications.from_timm(output)
             ```
         """
-        confidence = timm_results.cpu().detach().numpy()[0]
+        confidence = timm_results.softmax(dim=-1).cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
             return cls(

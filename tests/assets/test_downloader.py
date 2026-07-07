@@ -52,18 +52,48 @@ class TestDownloadAssets:
         "supervision.assets.downloader.is_md5_hash_matching",
         side_effect=[False, True],
     )
+    @patch("pathlib.Path.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=True)
+    @patch("supervision.assets.downloader.copyfileobj")
+    @patch("supervision.assets.downloader.tqdm")
+    @patch("supervision.assets.downloader.get")
     def test_already_exists_but_corrupted(
-        self, mock_exists, mock_md5, mock_remove, mock_logger
+        self,
+        mock_get,
+        mock_tqdm,
+        mock_copyfileobj,
+        mock_exists,
+        mock_mkdir,
+        mock_open_file,
+        mock_md5,
+        mock_remove,
+        mock_logger,
     ) -> None:
         """Test download_assets when file exists but is corrupted (re-downloads)."""
         filename = "vehicles.mp4"
+
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Length": "100"}
+        mock_response.raw = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock(
+            return_value=mock_response.raw
+        )
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
+
         result = download_assets(filename)
+
         assert result == filename
+        mock_get.assert_called_once()
+        mock_copyfileobj.assert_called_once()
         mock_logger.warning.assert_called_once_with("File corrupted. Re-downloading...")
         mock_remove.assert_called_once_with(filename)
 
     @patch("supervision.assets.downloader.logger")
+    @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=False)
@@ -78,9 +108,10 @@ class TestDownloadAssets:
         mock_exists,
         mock_mkdir,
         mock_open_file,
+        mock_md5,
         mock_logger,
     ) -> None:
-        """Test download_assets downloading a new file."""
+        """Test download_assets verifies a freshly downloaded file."""
         filename = "vehicles.mp4"
 
         mock_response = MagicMock()
@@ -100,6 +131,53 @@ class TestDownloadAssets:
         mock_get.assert_called_once()
         mock_response.raise_for_status.assert_called_once_with()
         mock_copyfileobj.assert_called_once()
+        mock_md5.assert_called_once_with(filename, "8155ff4e4de08cfa25f39de96483f918")
+
+    @patch("supervision.assets.downloader.logger")
+    @patch("os.remove")
+    @patch(
+        "supervision.assets.downloader.is_md5_hash_matching",
+        side_effect=[False, True],
+    )
+    @patch("pathlib.Path.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("pathlib.Path.exists", return_value=False)
+    @patch("supervision.assets.downloader.copyfileobj")
+    @patch("supervision.assets.downloader.tqdm")
+    @patch("supervision.assets.downloader.get")
+    def test_download_new_file_retries_corrupted_payload(
+        self,
+        mock_get,
+        mock_tqdm,
+        mock_copyfileobj,
+        mock_exists,
+        mock_mkdir,
+        mock_open_file,
+        mock_md5,
+        mock_remove,
+        mock_logger,
+    ) -> None:
+        """Test download_assets retries once when a fresh payload fails MD5."""
+        filename = "vehicles.mp4"
+
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Length": "100"}
+        mock_response.raw = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock(
+            return_value=mock_response.raw
+        )
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
+
+        result = download_assets(filename)
+
+        assert result == filename
+        assert mock_get.call_count == 2
+        assert mock_copyfileobj.call_count == 2
+        mock_remove.assert_called_once_with(filename)
+        mock_logger.warning.assert_called_once_with("File corrupted. Re-downloading...")
 
     @patch("pathlib.Path.exists", return_value=False)
     def test_invalid_asset(self, mock_exists) -> None:
@@ -124,6 +202,7 @@ class TestDownloadAssets:
         assert "vehicles.mp4" in str(exc_info.value)
 
     @patch("supervision.assets.downloader.logger")
+    @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("supervision.assets.downloader.copyfileobj")
@@ -138,6 +217,7 @@ class TestDownloadAssets:
         mock_copyfileobj,
         mock_mkdir,
         mock_open_file,
+        mock_md5,
         mock_logger,
     ) -> None:
         """Test download_assets with VideoAssets enum."""
@@ -155,8 +235,12 @@ class TestDownloadAssets:
         result = download_assets(asset)
         assert result == asset.filename
         mock_logger.info.assert_called_with("Downloading %s assets", asset.filename)
+        mock_md5.assert_called_once_with(
+            asset.filename, "8155ff4e4de08cfa25f39de96483f918"
+        )
 
     @patch("supervision.assets.downloader.logger")
+    @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("supervision.assets.downloader.copyfileobj")
@@ -171,6 +255,7 @@ class TestDownloadAssets:
         mock_copyfileobj,
         mock_mkdir,
         mock_open_file,
+        mock_md5,
         mock_logger,
     ) -> None:
         """Test download_assets with ImageAssets enum."""
@@ -188,3 +273,6 @@ class TestDownloadAssets:
         result = download_assets(asset)
         assert result == asset.filename
         mock_logger.info.assert_called_with("Downloading %s assets", asset.filename)
+        mock_md5.assert_called_once_with(
+            asset.filename, "0f5a4b98abf3e3973faf9e9260a7d876"
+        )
