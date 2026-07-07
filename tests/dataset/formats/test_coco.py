@@ -251,6 +251,148 @@ def test_group_coco_annotations_by_image_id(
         assert result == expected_result
 
 
+def test_coco_annotations_to_detections_defaults_missing_area_and_iscrowd() -> None:
+    """COCO annotations missing optional area/iscrowd fields still load."""
+    annotation = {
+        "id": 1,
+        "image_id": 1,
+        "category_id": 1,
+        "bbox": [1, 2, 3, 4],
+        "segmentation": [],
+    }
+
+    detections = coco_annotations_to_detections(
+        image_annotations=[annotation],
+        resolution_wh=(10, 10),
+        with_masks=False,
+        use_iscrowd=True,
+    )
+
+    assert detections.data["iscrowd"].tolist() == [0]
+    assert detections.data["area"].tolist() == [12.0]
+
+
+def test_load_coco_annotations_can_skip_iscrowd_metadata(tmp_path: Path) -> None:
+    """use_iscrowd=False omits COCO metadata from loaded Detections.data."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    _, image_paths, annotations = load_coco_annotations(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+        use_iscrowd=False,
+    )
+
+    assert image_paths == [str(image_path)]
+    assert "iscrowd" not in annotations[str(image_path)].data
+    assert "area" not in annotations[str(image_path)].data
+
+
+def test_detection_dataset_from_coco_accepts_use_iscrowd_false(tmp_path: Path) -> None:
+    """DetectionDataset.from_coco forwards use_iscrowd to the COCO loader."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+        use_iscrowd=False,
+    )
+
+    assert "iscrowd" not in dataset.annotations[str(image_path)].data
+    assert "area" not in dataset.annotations[str(image_path)].data
+
+
+def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(
+    tmp_path: Path,
+) -> None:
+    """The fourth positional from_coco argument remains show_progress."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    dataset = DetectionDataset.from_coco(
+        str(images_dir),
+        str(annotations_path),
+        False,
+        False,
+    )
+
+    assert dataset.annotations[str(image_path)].data["iscrowd"].tolist() == [1]
+    assert dataset.annotations[str(image_path)].data["area"].tolist() == [12.0]
+
+
 @pytest.mark.parametrize(
     (
         "image_annotations",
@@ -902,7 +1044,7 @@ def test_build_coco_class_index_mapping(
                 mock_coco_annotation(
                     category_id=1,
                     bbox=(0, 0, 5, 5),
-                    area=5 * 5,
+                    area=13,
                     segmentation={
                         "size": [5, 5],
                         "counts": [0, 3, 2, 3, 2, 3, 5, 2, 3, 2],
@@ -935,7 +1077,7 @@ def test_build_coco_class_index_mapping(
                 mock_coco_annotation(
                     category_id=1,
                     bbox=(0, 0, 5, 5),
-                    area=5 * 5,
+                    area=19,
                     segmentation={
                         "size": [5, 5],
                         "counts": [2, 10, 2, 3, 2, 6],
@@ -1154,8 +1296,58 @@ def test_detections_to_coco_annotations_data_area_overrides_bbox_with_mask() -> 
     assert annotations[0]["area"] == 999.0
 
 
+def test_detections_to_coco_annotations_mask_area_when_no_data() -> None:
+    """Masked detections without stored area export pixel area, not bbox area."""
+    mask = np.zeros((1, 10, 10), dtype=bool)
+    mask[0, 0:4, 0:4] = True
+
+    detections = Detections(
+        xyxy=np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["area"] == 16.0
+
+
+def test_missing_coco_area_with_mask_exports_mask_pixel_area() -> None:
+    """Segmented COCO annotations without area export decoded mask area."""
+    detections = coco_annotations_to_detections(
+        image_annotations=[
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 10, 10],
+                "segmentation": [[0, 0, 5, 0, 5, 5, 0, 5]],
+            }
+        ],
+        resolution_wh=(10, 10),
+        with_masks=True,
+        use_iscrowd=True,
+    )
+    assert detections.mask is not None
+    expected_area = float(np.count_nonzero(detections.mask[0]))
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert annotations[0]["area"] == expected_area
+    assert annotations[0]["area"] != 100.0
+
+
 def test_detections_to_coco_annotations_fallback_area_when_no_data() -> None:
-    """When detections have no area in data, area should fall back to bbox area."""
+    """Box-only detections with no area in data fall back to bbox area."""
     detections = Detections(
         xyxy=np.array([[10.0, 20.0, 110.0, 120.0]], dtype=np.float32),
         class_id=np.array([0], dtype=int),

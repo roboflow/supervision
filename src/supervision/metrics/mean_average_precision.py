@@ -744,8 +744,9 @@ class COCOEvaluator:
 
         # Set ignore flag
         for gt in targets:
-            gt["ignore"] = gt["ignore"] if "ignore" in gt else 0
-            gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
+            ignore = int(gt.get("ignore", 0))
+            iscrowd = int(gt.get("iscrowd", 0))
+            gt["ignore"] = int(bool(ignore or iscrowd))
 
         # Select targets
         self._targets = defaultdict(list)
@@ -1545,6 +1546,13 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     )
                     iscrowd = int(iscrowd_data[target_idx])
 
+                ignore = 0
+                if image_targets.data is not None and "ignore" in image_targets.data:
+                    ignore_data: npt.NDArray[np.int64] = np.asarray(
+                        image_targets.data["ignore"], dtype=np.int64
+                    )
+                    ignore = int(ignore_data[target_idx])
+
                 dict_annotation: _TypeCocoDict = {
                     "area": area,
                     "iscrowd": iscrowd,
@@ -1552,7 +1560,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     "bbox": xywh,
                     "category_id": category_id,
                     "id": len(annotations) + 1,  # Start IDs from 1 (0 means no match)
-                    "ignore": 0,
+                    "ignore": ignore,
                 }
                 if content is not None:
                     dict_annotation["content"] = content[target_idx]
