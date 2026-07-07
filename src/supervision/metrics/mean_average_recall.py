@@ -40,18 +40,19 @@ class MeanAverageRecallResult:
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
         mAR_at_1: the Mean Average Recall, when considering only the top
-            highest confidence detection for each class.
+            highest confidence detection for each image.
         mAR_at_10: the Mean Average Recall, when considering top 10
-            highest confidence detections for each class.
+            highest confidence detections for each image.
         mAR_at_100: the Mean Average Recall, when considering top 100
-            highest confidence detections for each class.
-        recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            highest confidence detections for each image.
+        recall_per_class: the recall scores per max detection count, class and
+            IoU threshold. Shape:
+            `(num_max_detections, num_target_classes, num_iou_thresholds)`.
         max_detections: the array with maximum number of detections
             considered.
         iou_thresholds: the IoU thresholds used in the calculations.
         matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
+            Corresponds to the class axis of `recall_per_class`.
         small_objects: the Mean Average Recall
             metric results for small objects (area < 32²).
         medium_objects: the Mean Average Recall
@@ -113,7 +114,12 @@ class MeanAverageRecallResult:
             max detections: [  1  10 100]
             IoU thresh:     [0.5  0.55 ... 0.95]
             mAR per class:
-              0: [1. ... 1.]
+              @1:
+                0: [1. ... 1.]
+              @10:
+                0: [1. ... 1.]
+              @100:
+                0: [1. ... 1.]
             ...
             Medium objects:
               MeanAverageRecallResult:
@@ -135,10 +141,12 @@ class MeanAverageRecallResult:
         )
         if self.recall_per_class.size == 0:
             out_str += "  No results\n"
-        for class_id, recall_of_class in zip(
-            self.matched_classes, self.recall_per_class
+        for max_detections, recalls_at_k in zip(
+            self.max_detections, self.recall_per_class
         ):
-            out_str += f"  {class_id}: {recall_of_class}\n"
+            out_str += f"  @{max_detections}:\n"
+            for class_id, recall_of_class in zip(self.matched_classes, recalls_at_k):
+                out_str += f"    {class_id}: {recall_of_class}\n"
 
         indent = "  "
         if self.small_objects is not None:
@@ -266,9 +274,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each
-    class. For example, mAR @ 100 considers the top 100 highest confidence
-    detections for each class. mAR @ 1 considers only the highest
-    confidence detection for each class.
+    image. For example, mAR @ 100 considers the top 100 highest confidence
+    detections for each image. mAR @ 1 considers only the highest
+    confidence detection for each image.
 
     Examples:
         ```pycon
@@ -456,10 +464,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                     )
 
         if not stats:
+            max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                recall_scores=np.zeros(iou_thresholds.shape[0]),
-                recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
+                recall_scores=np.zeros(max_detection_count),
+                recall_per_class=np.zeros(
+                    (max_detection_count, 0, iou_thresholds.shape[0])
+                ),
                 max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
@@ -469,14 +480,14 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-        recall_scores_per_k, recall_per_class, unique_classes = (
+        recall_scores_per_k, recall_per_class_at_k, unique_classes = (
             self._compute_average_recall_for_classes(*concatenated_stats)
         )
 
         return MeanAverageRecallResult(
             metric_target=self._metric_target,
             recall_scores=recall_scores_per_k,
-            recall_per_class=recall_per_class,
+            recall_per_class=recall_per_class_at_k,
             max_detections=self.max_detections,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
@@ -513,13 +524,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             recalls_at_k.append(recall_per_class)
 
         # Shape: KxCxTh -> KxC
-        recalls_at_k_array = np.array(recalls_at_k)
-        average_recall_per_class = np.mean(recalls_at_k_array, axis=2)
+        recall_per_class_at_k = np.array(recalls_at_k)
+        average_recall_per_class = np.mean(recall_per_class_at_k, axis=2)
 
         # Shape: KxC -> K
         recall_scores = np.mean(average_recall_per_class, axis=1)
 
-        return recall_scores, recall_per_class, unique_classes
+        return recall_scores, recall_per_class_at_k, unique_classes
 
     @staticmethod
     def _match_detection_batch(

@@ -289,6 +289,57 @@ class TestClassNamePopulation:
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
 
+    def test_constructor_does_not_mutate_input_annotations(self) -> None:
+        """Adding class_name metadata must not mutate caller-owned Detections."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={"img1.png": annotation},
+        )
+
+        assert CLASS_NAME_DATA_FIELD not in annotation.data
+        assert CLASS_NAME_DATA_FIELD in dataset.annotations["img1.png"].data
+
+    @pytest.mark.parametrize(
+        ("class_id", "match"),
+        [
+            pytest.param([-1], "outside the valid range", id="negative"),
+            pytest.param([1], "outside the valid range", id="too-large"),
+        ],
+    )
+    def test_constructor_rejects_out_of_range_class_id(
+        self, class_id: list[int], match: str
+    ) -> None:
+        """Invalid class ids raise a clear ValueError instead of indexing arrays."""
+        annotations = {
+            "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=class_id)
+        }
+
+        with pytest.raises(ValueError, match=match):
+            DetectionDataset(
+                classes=["dog"],
+                images=["img1.png"],
+                annotations=annotations,
+            )
+
+    def test_constructor_rejects_non_integer_class_id(self) -> None:
+        """Non-integer class ids raise a clear ValueError before class-name mapping."""
+        annotations = {
+            "img1.png": Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0.5]),
+            )
+        }
+
+        with pytest.raises(ValueError, match="non-integer class_id"):
+            DetectionDataset(
+                classes=["dog"],
+                images=["img1.png"],
+                annotations=annotations,
+            )
+
 
 class TestDetectionDatasetInMemoryImages:
     """Verify DetectionDataset keeps dict-provided images in memory (DAT-01)."""
@@ -602,3 +653,20 @@ class TestClassificationDatasetFolderRoundTrip:
             class_id = int(ann.class_id[0])
             assert 0 <= class_id < len(ds2.classes)
             assert ds2.classes[class_id] == Path(image_path).parent.name
+
+    def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
+        """Clutter and non-image files do not break folder loading."""
+        root = tmp_path / "source"
+        cats = root / "cats"
+        cats.mkdir(parents=True)
+        (root / ".DS_Store").write_text("metadata", encoding="utf-8")
+        (root / "README.md").write_text("notes", encoding="utf-8")
+        (cats / ".DS_Store").write_text("metadata", encoding="utf-8")
+        (cats / "README.md").write_text("notes", encoding="utf-8")
+        (cats / "classes.txt").write_text("cats", encoding="utf-8")
+        (cats / "cat.png").write_bytes(b"image")
+
+        dataset = ClassificationDataset.from_folder_structure(str(root))
+
+        assert dataset.classes == ["cats"]
+        assert dataset.image_paths == [str(cats / "cat.png")]
