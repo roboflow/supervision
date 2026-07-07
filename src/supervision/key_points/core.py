@@ -1196,8 +1196,7 @@ class KeyPoints:
             key_points_list: A list of KeyPoints objects to merge.
 
         Returns:
-            A single KeyPoints object containing the merged data from the
-                input list.
+            A single KeyPoints object containing the merged data from the input list.
 
         Raises:
             ValueError: If the non-empty inputs do not share the same number
