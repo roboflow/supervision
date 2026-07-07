@@ -49,6 +49,10 @@ from supervision.detection.core import Detections
 from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
+_IMAGE_FILE_EXTENSIONS = frozenset(
+    {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+)
+
 
 class BaseDataset(ABC):
     @abstractmethod
@@ -864,8 +868,9 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_path: str,
         force_masks: bool = False,
-        use_iscrowd: bool = True,
         show_progress: bool = False,
+        *,
+        use_iscrowd: bool = True,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from COCO formatted data.
@@ -877,9 +882,9 @@ class DetectionDataset(BaseDataset):
             force_masks: If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
+            show_progress: If True, display a progress bar during loading.
             use_iscrowd: If True, includes COCO ``iscrowd`` and ``area``
                 annotation fields in ``Detections.data``.
-            show_progress: If True, display a progress bar during loading.
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
@@ -1231,7 +1236,9 @@ class ClassificationDataset(BaseDataset):
         Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
-            root_directory_path: The path to the dataset directory.
+            root_directory_path: The path to the dataset directory. Hidden
+                entries, root-level files, nested directories, and files whose
+                suffix is not a supported image extension are ignored.
             show_progress: If True, display a progress bar during loading.
 
         Returns:
@@ -1281,6 +1288,8 @@ class ClassificationDataset(BaseDataset):
                 class_directory.iterdir(), key=lambda path: path.name
             ):
                 if image_path.name.startswith(".") or not image_path.is_file():
+                    continue
+                if image_path.suffix.lower() not in _IMAGE_FILE_EXTENSIONS:
                     continue
                 image_paths.append(str(image_path))
                 annotations[str(image_path)] = Classifications(

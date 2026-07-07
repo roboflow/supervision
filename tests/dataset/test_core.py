@@ -324,6 +324,22 @@ class TestClassNamePopulation:
                 annotations=annotations,
             )
 
+    def test_constructor_rejects_non_integer_class_id(self) -> None:
+        """Non-integer class ids raise a clear ValueError before class-name mapping."""
+        annotations = {
+            "img1.png": Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0.5]),
+            )
+        }
+
+        with pytest.raises(ValueError, match="non-integer class_id"):
+            DetectionDataset(
+                classes=["dog"],
+                images=["img1.png"],
+                annotations=annotations,
+            )
+
 
 class TestDetectionDatasetInMemoryImages:
     """Verify DetectionDataset keeps dict-provided images in memory (DAT-01)."""
@@ -639,13 +655,15 @@ class TestClassificationDatasetFolderRoundTrip:
             assert ds2.classes[class_id] == Path(image_path).parent.name
 
     def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
-        """Dotfiles, loose files, and nested dotfiles do not break folder loading."""
+        """Clutter and non-image files do not break folder loading."""
         root = tmp_path / "source"
         cats = root / "cats"
         cats.mkdir(parents=True)
         (root / ".DS_Store").write_text("metadata", encoding="utf-8")
         (root / "README.md").write_text("notes", encoding="utf-8")
         (cats / ".DS_Store").write_text("metadata", encoding="utf-8")
+        (cats / "README.md").write_text("notes", encoding="utf-8")
+        (cats / "classes.txt").write_text("cats", encoding="utf-8")
         (cats / "cat.png").write_bytes(b"image")
 
         dataset = ClassificationDataset.from_folder_structure(str(root))
