@@ -36,6 +36,51 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
+def _download_asset(filename: str) -> None:
+    """
+    Download asset bytes to the target filename.
+    """
+    response = get(
+        MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
+    )
+    response.raise_for_status()
+
+    file_size = int(response.headers.get("Content-Length", 0))
+    folder_path = Path(filename).expanduser().resolve()
+    folder_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with tqdm.wrapattr(
+        response.raw, "read", total=file_size, desc="", colour="#a351fb"
+    ) as raw_resp:
+        with folder_path.open("wb") as file:
+            copyfileobj(raw_resp, file)
+
+
+def _download_verified_asset(
+    filename: str, original_md5_hash: str, retry_on_mismatch: bool = True
+) -> None:
+    """
+    Download an asset and reject payloads whose MD5 does not match the catalog.
+    """
+    _download_asset(filename)
+
+    if is_md5_hash_matching(filename, original_md5_hash):
+        return
+
+    logger.warning("File corrupted. Re-downloading...")
+    os.remove(filename)
+
+    if retry_on_mismatch:
+        _download_verified_asset(
+            filename=filename,
+            original_md5_hash=original_md5_hash,
+            retry_on_mismatch=False,
+        )
+        return
+
+    raise ValueError(f"Downloaded asset {filename!r} failed MD5 verification.")
+
+
 def download_assets(asset_name: Assets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
@@ -61,27 +106,15 @@ def download_assets(asset_name: Assets | str) -> str:
     filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
 
     if filename in MEDIA_ASSETS:
+        original_md5_hash = MEDIA_ASSETS[filename][1]
         if not Path(filename).exists():
             logger.info("Downloading %s assets", filename)
-            response = get(
-                MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
-            )
-            response.raise_for_status()
-
-            file_size = int(response.headers.get("Content-Length", 0))
-            folder_path = Path(filename).expanduser().resolve()
-            folder_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with tqdm.wrapattr(
-                response.raw, "read", total=file_size, desc="", colour="#a351fb"
-            ) as raw_resp:
-                with folder_path.open("wb") as file:
-                    copyfileobj(raw_resp, file)
+            _download_verified_asset(filename, original_md5_hash)
         else:
-            if not is_md5_hash_matching(filename, MEDIA_ASSETS[filename][1]):
+            if not is_md5_hash_matching(filename, original_md5_hash):
                 logger.warning("File corrupted. Re-downloading...")
                 os.remove(filename)
-                return download_assets(filename)
+                _download_verified_asset(filename, original_md5_hash)
 
             logger.info("%s asset download complete.", filename)
     else:
