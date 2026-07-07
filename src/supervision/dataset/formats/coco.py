@@ -199,9 +199,14 @@ def coco_annotations_to_detections(
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
         iscrowd = [
-            image_annotation["iscrowd"] for image_annotation in image_annotations
+            image_annotation.get("iscrowd", 0) for image_annotation in image_annotations
         ]
-        area = [image_annotation["area"] for image_annotation in image_annotations]
+        area = [
+            image_annotation.get(
+                "area", image_annotation["bbox"][2] * image_annotation["bbox"][3]
+            )
+            for image_annotation in image_annotations
+        ]
         data = dict(
             iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
         )
@@ -351,7 +356,12 @@ def detections_to_coco_annotations(
                 else:
                     segmentation = list(raw_seg)
 
-        area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
+        if "area" in data:
+            area = float(np.asarray(data["area"]).item())
+        elif mask is not None:
+            area = float(np.count_nonzero(mask))
+        else:
+            area = float(box_width * box_height)
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
