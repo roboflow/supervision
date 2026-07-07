@@ -57,7 +57,7 @@ def approximate_mask_with_polygons(
     mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
+    approximation_percentage: float = 0.0,
 ) -> list[npt.NDArray[np.number]]:
     height, width = mask.shape
     image_area = height * width

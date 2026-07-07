@@ -23,7 +23,8 @@ class Position(Enum):
 
     @classmethod
     def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
+        """Return all position values in their definition order."""
+        return [position.value for position in cls]
 
 
 @dataclass

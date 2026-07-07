@@ -18,6 +18,10 @@ date_modified: 2026-07-06
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises
+  `ValueError` when any channel falls outside the 0-255 byte range.
+- Fixed: `approximate_mask_with_polygons` now defaults to no polygon
+  simplification, matching the public dataset export methods.
 - Fixed [#2402](https://github.com/roboflow/supervision/pull/2402): `sv.KeyPoints.as_detections` now accepts NumPy arrays, tuples, and generators in `selected_keypoint_indices` without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.
 - Changed: delayed `sv.ByteTrack`, `supervision.keypoint`, `normalized_xyxy` for `sv.denormalize_boxes`, and `supervision.dataset.utils` RLE compatibility removals from `supervision-0.30.0` to `supervision-0.31.0` so the deprecated APIs keep a full transition window.
 - Fixed [#2407](https://github.com/roboflow/supervision/pull/2407): `sv.ColorPalette.by_idx()` now raises a clear `ValueError` when called on an empty palette instead of leaking a `ZeroDivisionError`. Non-empty palettes keep the existing index-wrapping behavior.
