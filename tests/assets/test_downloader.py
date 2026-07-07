@@ -179,6 +179,52 @@ class TestDownloadAssets:
         mock_remove.assert_called_once_with(filename)
         mock_logger.warning.assert_called_once_with("File corrupted. Re-downloading...")
 
+    @patch("supervision.assets.downloader.logger")
+    @patch("os.remove")
+    @patch(
+        "supervision.assets.downloader.is_md5_hash_matching",
+        side_effect=[False, False],
+    )
+    @patch("pathlib.Path.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("pathlib.Path.exists", return_value=False)
+    @patch("supervision.assets.downloader.copyfileobj")
+    @patch("supervision.assets.downloader.tqdm")
+    @patch("supervision.assets.downloader.get")
+    def test_download_new_file_raises_after_second_md5_mismatch(
+        self,
+        mock_get,
+        mock_tqdm,
+        mock_copyfileobj,
+        mock_exists,
+        mock_mkdir,
+        mock_open_file,
+        mock_md5,
+        mock_remove,
+        mock_logger,
+    ) -> None:
+        """Test download_assets fails after the verified retry is also corrupted."""
+        filename = "vehicles.mp4"
+
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Length": "100"}
+        mock_response.raw = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock(
+            return_value=mock_response.raw
+        )
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
+
+        with pytest.raises(ValueError, match="failed MD5 verification"):
+            download_assets(filename)
+
+        assert mock_get.call_count == 2
+        assert mock_copyfileobj.call_count == 2
+        assert mock_remove.call_count == 2
+        assert mock_logger.warning.call_count == 2
+
     @patch("pathlib.Path.exists", return_value=False)
     def test_invalid_asset(self, mock_exists) -> None:
         """Test download_assets with invalid asset name."""
