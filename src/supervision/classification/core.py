@@ -43,6 +43,18 @@ class Classifications:
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
 
+    def __eq__(self, other: object) -> bool:
+        """
+        Compare classifications by value across numpy-backed fields.
+        """
+        if not isinstance(other, Classifications):
+            return NotImplemented
+        if not np.array_equal(self.class_id, other.class_id):
+            return False
+        if self.confidence is None or other.confidence is None:
+            return self.confidence is other.confidence
+        return bool(np.array_equal(self.confidence, other.confidence))
+
     def __len__(self) -> int:
         """
         Returns the number of classifications.

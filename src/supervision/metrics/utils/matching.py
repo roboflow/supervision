@@ -31,3 +31,26 @@ def _greedy_match(
             matched_targets.add(t)
             matched_preds.add(p)
             yield t, p
+
+
+def _match_detection_batch_with_target_indices(
+    predictions_classes: npt.NDArray[np.int32],
+    target_classes: npt.NDArray[np.int32],
+    iou: npt.NDArray[np.float32],
+    iou_thresholds: npt.NDArray[np.float32],
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int32]]:
+    """Match predictions to targets and retain target indices per IoU threshold."""
+    num_predictions = predictions_classes.shape[0]
+    num_iou_levels = iou_thresholds.shape[0]
+    correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
+    matched_targets = np.full((num_predictions, num_iou_levels), -1, dtype=np.int32)
+    correct_class = target_classes[:, None] == predictions_classes
+
+    for i, iou_level in enumerate(iou_thresholds):
+        matched_indices = np.where((iou >= iou_level) & correct_class)
+
+        for target_idx, prediction_idx in _greedy_match(iou, matched_indices):
+            correct[prediction_idx, i] = True
+            matched_targets[prediction_idx, i] = target_idx
+
+    return correct, matched_targets

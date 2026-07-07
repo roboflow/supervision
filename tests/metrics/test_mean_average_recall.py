@@ -502,6 +502,33 @@ def test_empty_inputs_keep_max_detection_axis() -> None:
     assert result.matched_classes.shape == (0,)
 
 
+def test_medium_bucket_scores_target_matched_small_prediction() -> None:
+    """Medium-object mAR keeps valid matches even if the prediction is small."""
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = (
+        MeanAverageRecall(metric_target=MetricTarget.BOXES)
+        .update(
+            [predictions],
+            [targets],
+        )
+        .compute()
+    )
+
+    assert result.medium_objects is not None
+    assert result.medium_objects.mAR_at_1 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_10 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_100 == pytest.approx(0.9)
+
+
 @pytest.mark.parametrize(
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],

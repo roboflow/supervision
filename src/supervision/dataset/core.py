@@ -184,7 +184,7 @@ class DetectionDataset(BaseDataset):
         if not isinstance(other, DetectionDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
@@ -1105,7 +1105,7 @@ class ClassificationDataset(BaseDataset):
         if not isinstance(other, ClassificationDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
