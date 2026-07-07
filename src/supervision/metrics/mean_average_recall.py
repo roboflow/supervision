@@ -274,9 +274,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each
-    class. For example, mAR @ 100 considers the top 100 highest confidence
-    detections for each class. mAR @ 1 considers only the highest
-    confidence detection for each class.
+    image. For example, mAR @ 100 considers the top 100 highest confidence
+    detections for each image. mAR @ 1 considers only the highest
+    confidence detection for each image.
 
     Examples:
         ```pycon
@@ -464,10 +464,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                     )
 
         if not stats:
+            max_detection_count = self.max_detections.shape[0]
             return MeanAverageRecallResult(
                 metric_target=self._metric_target,
-                recall_scores=np.zeros(iou_thresholds.shape[0]),
-                recall_per_class=np.zeros((0, 0, iou_thresholds.shape[0])),
+                recall_scores=np.zeros(max_detection_count),
+                recall_per_class=np.zeros(
+                    (max_detection_count, 0, iou_thresholds.shape[0])
+                ),
                 max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),

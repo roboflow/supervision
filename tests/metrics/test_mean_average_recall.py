@@ -480,6 +480,28 @@ def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
     np.testing.assert_allclose(result.recall_per_class[2, :, 0], [1.0, 1.0])
 
 
+def test_empty_inputs_keep_max_detection_axis() -> None:
+    """Empty inputs must keep mAR result shapes aligned with max detections."""
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([Detections.empty()], [Detections.empty()]).compute()
+
+    assert result.recall_scores.shape == result.max_detections.shape
+    assert result.recall_per_class.shape == (
+        result.max_detections.shape[0],
+        0,
+        result.iou_thresholds.shape[0],
+    )
+    np.testing.assert_allclose(
+        result.recall_scores,
+        np.zeros(result.max_detections.shape[0]),
+    )
+    assert result.mAR_at_1 == 0.0
+    assert result.mAR_at_10 == 0.0
+    assert result.mAR_at_100 == 0.0
+    assert result.matched_classes.shape == (0,)
+
+
 @pytest.mark.parametrize(
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
