@@ -569,6 +569,34 @@ class TestDetectionMetrics:
         assert result.diagonal().sum() == result.sum()
         assert np.array_equal(result, expected_result)
 
+    def test_evaluate_detection_batch_rejects_negative_class_ids(self) -> None:
+        """Negative class ids must fail instead of indexing the matrix tail."""
+        predictions = np.array([[0, 0, 10, 10, 0, 0.9]], dtype=np.float32)
+        targets = np.array([[0, 0, 10, 10, -1]], dtype=np.float32)
+
+        with pytest.raises(ValueError, match="Target class ids"):
+            ConfusionMatrix.evaluate_detection_batch(
+                predictions=predictions,
+                targets=targets,
+                num_classes=1,
+                conf_threshold=0.3,
+                iou_threshold=0.5,
+            )
+
+    def test_evaluate_detection_batch_rejects_overflowing_class_ids(self) -> None:
+        """Large class ids must fail instead of overflowing through int16 casts."""
+        predictions = np.array([[0, 0, 10, 10, 40000, 0.9]], dtype=np.float32)
+        targets = np.zeros((0, 5), dtype=np.float32)
+
+        with pytest.raises(ValueError, match="Prediction class ids"):
+            ConfusionMatrix.evaluate_detection_batch(
+                predictions=predictions,
+                targets=targets,
+                num_classes=1,
+                conf_threshold=0.3,
+                iou_threshold=0.5,
+            )
+
     @pytest.mark.parametrize(
         ("matches", "expected_result", "exception"),
         [
@@ -638,6 +666,15 @@ class TestDetectionMetrics:
                 recall=recall, precision=precision
             )
             assert_almost_equal(result, expected_result, tolerance=0.01)
+
+    def test_compute_average_precision_perfect_curve_is_exact_one(self) -> None:
+        """COCO 101-point AP should give exactly 1.0 for a perfect PR curve."""
+        result = MeanAveragePrecision.compute_average_precision(
+            recall=np.array([1.0]),
+            precision=np.array([1.0]),
+        )
+
+        assert result == pytest.approx(1.0, abs=1e-12)
 
     @pytest.mark.parametrize(
         (
@@ -1670,8 +1707,8 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
         assert with_fp.map75 < without_fp.map75
         assert with_fp.map50_95 < without_fp.map50_95
 
-    def test_ground_truth_present_path_unchanged(self) -> None:
-        """GT-present scenario keeps its pinned map50 (guards normal-path numerics)."""
+    def test_ground_truth_present_path_uses_coco_101_point_ap(self) -> None:
+        """GT-present scenario uses the corrected COCO 101-point AP value."""
         # Arrange
         targets = [
             np.array(
@@ -1700,7 +1737,7 @@ class TestMeanAveragePrecisionBackgroundFalsePositives:
         )
 
         # Assert
-        assert result.map50 == pytest.approx(0.81, abs=0.01)
+        assert result.map50 == pytest.approx(0.7524752475, abs=1e-9)
 
     def test_all_background_predictions_return_zero_not_nan(self) -> None:
         """All-background dataset with predictions must yield 0.0 mAP, not NaN."""
