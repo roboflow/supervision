@@ -453,6 +453,33 @@ def test_single_perfect_detection() -> None:
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
 
 
+def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
+    """Per-class recall must expose @1, @10 and @100 instead of only @100."""
+    predictions = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([predictions], [targets]).compute()
+
+    assert result.recall_per_class.shape == (3, 2, 10)
+    np.testing.assert_allclose(result.recall_per_class[0, :, 0], [1.0, 0.0])
+    np.testing.assert_allclose(result.recall_per_class[1, :, 0], [1.0, 1.0])
+    np.testing.assert_allclose(result.recall_per_class[2, :, 0], [1.0, 1.0])
+
+
 @pytest.mark.parametrize(
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
