@@ -629,13 +629,13 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 if not np.array_equal(merged_metadata[key], value):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
-                        "{type(value)}, {type(other_value)}."
+                        f"{type(value)}, {type(other_value)}."
                     )
             elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                 # Since [] == np.array([]).
                 raise ValueError(
                     f"Conflicting metadata for key: '{key}': "
-                    "{type(value)}, {type(other_value)}."
+                    f"{type(value)}, {type(other_value)}."
                 )
             else:
                 if merged_metadata[key] != value:

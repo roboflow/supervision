@@ -444,9 +444,8 @@ def process_video(
             try:
                 frame_write_queue.put(None, timeout=1)
             except Full:
-                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
-                # If we cannot enqueue it, the writer thread will still complete based
-                # on previously queued frames or other shutdown conditions.
+                # Best effort: if the writer is stuck and the queue never drains,
+                # do not block shutdown forever trying to enqueue the sentinel.
                 pass
             if not read_finished:
                 while True:
@@ -512,12 +511,14 @@ class FPSMonitor:
         Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
-            The average FPS. Returns 0.0 if no time stamps are stored.
+            The average FPS across the recorded intervals. Returns 0.0 if fewer
+            than two time stamps are stored.
         """
-        if not self.all_timestamps:
+        if len(self.all_timestamps) < 2:
             return 0.0
         taken_time = self.all_timestamps[-1] - self.all_timestamps[0]
-        return (len(self.all_timestamps)) / taken_time if taken_time != 0 else 0.0
+        frame_intervals = len(self.all_timestamps) - 1
+        return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
         """

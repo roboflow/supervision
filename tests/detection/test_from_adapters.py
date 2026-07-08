@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import supervision.detection.core as detection_core
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import LMM, Detections
 from supervision.detection.vlm import VLM
 from supervision.utils.internal import SupervisionWarnings
@@ -583,6 +583,21 @@ class TestFromEasyOCR:
         assert len(det) == 1
         assert float(det.confidence[0]) == pytest.approx(0.0)
 
+    def test_preserves_oriented_corners_in_data(self) -> None:
+        """Quadrilateral EasyOCR boxes must be preserved in the data payload."""
+        bbox = [[0, 0], [8, 1], [7, 5], [1, 4]]
+        results = [(bbox, "text", 0.9)]
+
+        det = Detections.from_easyocr(results)
+
+        assert ORIENTED_BOX_COORDINATES in det.data
+        np.testing.assert_allclose(det.data[ORIENTED_BOX_COORDINATES], np.array([bbox]))
+
+    def test_detail_zero_results_raise_clear_error(self) -> None:
+        """detail=0 EasyOCR results must fail with a descriptive ValueError."""
+        with pytest.raises(ValueError, match="detail=1"):
+            Detections.from_easyocr(["text"])
+
 
 # ---------------------------------------------------------------------------
 # from_azure_analyze_image
@@ -629,7 +644,7 @@ class TestFromAzureAnalyzeImage:
         np.testing.assert_allclose(det.xyxy[0], [0, 0, 10, 10])
 
     def test_explicit_class_map_filters_unknown_classes(self) -> None:
-        """With class_map, tags whose name is absent from the map are dropped."""
+        """With class_map, the highest-confidence mapped tag is selected."""
         class_map = {5: "cat"}
         result = _make_azure_result(
             [
@@ -639,8 +654,8 @@ class TestFromAzureAnalyzeImage:
                     10,
                     10,
                     [
+                        {"name": "unknown", "confidence": 0.95},
                         {"name": "cat", "confidence": 0.9},
-                        {"name": "unknown", "confidence": 0.5},
                     ],
                 ),
             ]
@@ -648,9 +663,32 @@ class TestFromAzureAnalyzeImage:
 
         det = Detections.from_azure_analyze_image(result, class_map=class_map)
 
-        # Only 'cat' (id=5) survives; 'unknown' is filtered
         assert len(det) == 1
         assert int(det.class_id[0]) == 5
+        np.testing.assert_allclose(det.confidence, [0.9])
+
+    def test_unmapped_tags_warn_and_skip_detection(self) -> None:
+        """With class_map, completely unmapped tags should warn before skipping."""
+        class_map = {5: "cat"}
+        result = _make_azure_result(
+            [
+                _make_azure_detection(
+                    0,
+                    0,
+                    10,
+                    10,
+                    [
+                        {"name": "unknown", "confidence": 0.95},
+                        {"name": "other", "confidence": 0.9},
+                    ],
+                ),
+            ]
+        )
+
+        with pytest.warns(SupervisionWarnings, match="none of its tags matched"):
+            det = Detections.from_azure_analyze_image(result, class_map=class_map)
+
+        assert len(det) == 0
 
     def test_empty_values_list_returns_empty_detections(self) -> None:
         """Zero detections in values list produce an empty Detections."""

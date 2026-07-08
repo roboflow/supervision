@@ -95,6 +95,8 @@ comments: true
     )
     ```
 
+    `sv.VertexEllipseAnnotator` is a compatibility alias for `sv.VertexEllipseAreaAnnotator`.
+
 === "VertexEllipseOutlineAnnotator"
 
     ```python

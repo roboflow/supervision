@@ -51,6 +51,11 @@ def crop_image(
         Cropped image matching input
             type.
 
+    Note:
+        Coordinates are rounded to integers and clipped to the image bounds
+        before slicing. This keeps NumPy and Pillow inputs aligned and avoids
+        negative-index wrap-around on NumPy arrays.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -82,9 +87,19 @@ def crop_image(
     x_min, y_min, x_max, y_max = xyxy_arr.flatten()
 
     if isinstance(image, np.ndarray):
+        height, width = image.shape[:2]
+        x_min = int(np.clip(x_min, 0, width))
+        y_min = int(np.clip(y_min, 0, height))
+        x_max = int(np.clip(x_max, 0, width))
+        y_max = int(np.clip(y_max, 0, height))
         return image[y_min:y_max, x_min:x_max]
 
     if isinstance(image, Image.Image):
+        width, height = image.size
+        x_min = int(np.clip(x_min, 0, width))
+        y_min = int(np.clip(y_min, 0, height))
+        x_max = int(np.clip(x_max, 0, width))
+        y_max = int(np.clip(y_max, 0, height))
         return image.crop((float(x_min), float(y_min), float(x_max), float(y_max)))
 
     raise TypeError(

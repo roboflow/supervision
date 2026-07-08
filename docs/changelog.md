@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-07
+date_modified: 2026-07-08
 ---
 
 # Changelog
@@ -18,6 +18,11 @@ date_modified: 2026-07-07
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `sv.process_video` no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `DetectionDataset.as_pascal_voc()` now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.
+- `import supervision` no longer surfaces the deprecated `ByteTrack` warning; the top-level tracker alias now resolves lazily when accessed explicitly.
+- Fixed dataset export edge cases: `DetectionDataset.split()` and `DetectionDataset.merge()` now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.
 - Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises `ValueError` when any channel falls outside the 0-255 byte range.
 - Fixed: `approximate_mask_with_polygons` now defaults to no polygon simplification, matching the public dataset export methods.
 - Fixed: `ImageSink.save_image()` now raises `OSError` when `cv2.imwrite()` fails, and deprecation-warning control accepts the correct `SUPERVISION_DEPRECATION_WARNING` environment variable while still honoring the legacy misspelled alias.
@@ -42,6 +47,7 @@ date_modified: 2026-07-07
 - `CompactMask.from_coco_rle` — efficient COCO RLE ingestion into crop-scoped compact mask format without materializing dense `(N, H, W)` arrays ([#2367](https://github.com/roboflow/supervision/pull/2367))
 - `Detections.from_inference(compact_masks=True)` — opt-in compact mask representation for Roboflow/Inference segmentation results; masks are cropped to detector bounding boxes ([#2367](https://github.com/roboflow/supervision/pull/2367))
 - `CompactMask.image_shape` — new public property returning `(H, W)` of the full image the mask is scoped to ([#2383](https://github.com/roboflow/supervision/pull/2383))
+- `sv.mask_to_roi` — explicit exclusive mask-bound helper for NumPy slicing and crop extraction. `sv.mask_to_xyxy` stays inclusive for compatibility with CompactMask and current box-based adapters, so the coordinate-convention migration path is now explicit instead of implicit.
 
 ### Changed
 - Performance [#2383](https://github.com/roboflow/supervision/pull/2383): `sv.Detections.merge()` on mixed dense `ndarray` + `CompactMask` inputs now returns a `CompactMask` instead of a dense `ndarray`. Previously (0.29.0/0.29.1) the mixed path fell back to `np.vstack`, allocating a full `(N, H, W)` array; the new path converts dense inputs to `CompactMask` without materialising the full stack (~2 500× less peak memory, ~13× faster on 1080p / 40 detections). **Behavior change**: code that checks `isinstance(merged.mask, np.ndarray)` or calls bare ndarray methods (`.astype`, `.reshape`, `.ravel`) on a mixed-merge result will need to be updated. The all-dense path is unchanged and still returns `ndarray`.

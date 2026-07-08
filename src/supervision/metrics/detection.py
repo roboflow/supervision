@@ -4,10 +4,8 @@ import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from deprecate import (  # type: ignore[import-untyped,unused-ignore]
@@ -26,6 +24,9 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.utils.matching import _greedy_match
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 
 def _assert_supported_target(metric_target: MetricTarget) -> None:
@@ -1151,7 +1152,7 @@ class ConfusionMatrix:
         classes: list[str] | None = None,
         normalize: bool = False,
         fig_size: tuple[int, int] = (12, 10),
-    ) -> matplotlib.figure.Figure:
+    ) -> Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
@@ -1167,6 +1168,7 @@ class ConfusionMatrix:
         Returns:
             Confusion matrix plot.
         """
+        from matplotlib import pyplot as plt
 
         # Cast to float so that the NaN masking below never hits an integer
         # matrix (assigning NaN into an int array raises ValueError).
