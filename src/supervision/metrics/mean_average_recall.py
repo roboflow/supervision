@@ -18,7 +18,9 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
-from supervision.metrics.utils.matching import _greedy_match
+from supervision.metrics.utils.matching import (
+    _match_detection_batch_with_target_indices,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -368,36 +370,39 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             The Mean Average Recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
-
-        small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
+        result.small_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
         )
-        result.small_objects = self._compute(small_predictions, small_targets)
-
-        medium_predictions, medium_targets = (
-            self._filter_predictions_and_targets_by_size(
-                self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
-            )
+        result.medium_objects = self._compute(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
         )
-        result.medium_objects = self._compute(medium_predictions, medium_targets)
-
-        large_predictions, large_targets = self._filter_predictions_and_targets_by_size(
+        result.large_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
         )
-        result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
-        self, predictions_list: list[Detections], targets_list: list[Detections]
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> MeanAverageRecallResult:
+        if size_category != ObjectSizeCategory.ANY:
+            # Score the requested bucket on bucket-filtered targets so detections
+            # outside the bucket cannot consume the only available target.
+            targets_list = [
+                self._filter_detections_by_size(targets, size_category)
+                for targets in targets_list
+            ]
+            size_category = ObjectSizeCategory.ANY
+
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
-
             if len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
                     raise ValueError(
@@ -405,12 +410,16 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         "predictions and targets."
                     )
                 if len(predictions) == 0:
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    if len(target_class_ids) == 0:
+                        continue
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=int),
                             np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            target_class_ids,
                         )
                     )
 
@@ -446,18 +455,20 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches = self._match_detection_batch(
+                    matches, _ = _match_detection_batch_with_target_indices(
                         prediction_class_ids,
                         target_class_ids,
                         iou,
                         iou_thresholds,
                     )
+                    ignored_matches = np.zeros_like(matches, dtype=bool)
 
                     sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
                             matches[sorted_indices],
-                            np.arange(len(predictions)),
+                            ignored_matches[sorted_indices],
+                            np.arange(len(prediction_confidence)),
                             prediction_class_ids[sorted_indices],
                             target_class_ids,
                         )
@@ -499,6 +510,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
+        ignored_matches: npt.NDArray[np.bool_],
         prediction_indices: npt.NDArray[np.int32],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
@@ -509,12 +521,23 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     ]:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
+        if unique_classes.size == 0:
+            max_detection_count = self.max_detections.shape[0]
+            num_thresholds = matches.shape[1]
+            return (
+                np.zeros(max_detection_count, dtype=np.float64),
+                np.zeros((max_detection_count, 0, num_thresholds), dtype=np.float64),
+                unique_classes,
+            )
+
         recalls_at_k: list[npt.NDArray[np.float64]] = []
         for max_detections in self.max_detections:
             # Shape: PxTh,P,C,C -> CxThx3
+            is_within_limit = prediction_indices < max_detections
             confusion_matrix = self._compute_confusion_matrix(
-                matches[prediction_indices < max_detections],
-                prediction_class_ids[prediction_indices < max_detections],
+                matches[is_within_limit],
+                ignored_matches[is_within_limit],
+                prediction_class_ids[is_within_limit],
                 unique_classes,
                 class_counts,
             )
@@ -539,24 +562,15 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        num_predictions, num_iou_levels = (
-            predictions_classes.shape[0],
-            iou_thresholds.shape[0],
+        result_correct, _ = _match_detection_batch_with_target_indices(
+            predictions_classes, target_classes, iou, iou_thresholds
         )
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where((iou >= iou_level) & correct_class)
-
-            for t, p in _greedy_match(iou, matched_indices):
-                correct[p, i] = True
-        result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
+        sorted_ignored_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
@@ -570,6 +584,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         Args:
             sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
+            sorted_ignored_matches: shape (P, Th), that is True
+                if the prediction should not affect the given IoU threshold.
             sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
             unique_classes: shape (C,), containing the unique
@@ -601,13 +617,14 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                 false_negatives = np.full(num_thresholds, num_true)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
+                false_positives = (~sorted_ignored_matches[is_class]).sum(0)
                 false_negatives = np.zeros(num_thresholds)
             else:
                 limited_matches = sorted_matches[is_class]
+                limited_ignored_matches = sorted_ignored_matches[is_class]
                 true_positives = limited_matches.sum(0)
 
-                false_positives = (1 - limited_matches).sum(0)
+                false_positives = (~limited_matches & ~limited_ignored_matches).sum(0)
                 false_negatives = num_true - true_positives
 
             confusion_matrix[class_idx] = np.stack(
@@ -660,6 +677,11 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             if detections.mask is not None:
                 # detections.mask is NDArray[bool] | CompactMask; return as-is.
                 return detections.mask
+            if len(detections) > 0:
+                raise ValueError(
+                    "MeanAverageRecall with `MetricTarget.MASKS` requires "
+                    "detections to include masks."
+                )
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
@@ -709,23 +731,3 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                 new_detections.data[key] = np.array(value)[size_mask]
 
         return new_detections
-
-    def _filter_predictions_and_targets_by_size(
-        self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory,
-    ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
-        new_predictions_list = []
-        new_targets_list = []
-        for predictions, targets in zip(predictions_list, targets_list):
-            new_predictions_list.append(
-                self._filter_detections_by_size(predictions, size_category)
-            )
-            new_targets_list.append(
-                self._filter_detections_by_size(targets, size_category)
-            )
-        return new_predictions_list, new_targets_list

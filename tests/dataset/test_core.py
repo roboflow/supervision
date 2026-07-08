@@ -5,7 +5,12 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from supervision import ClassificationDataset, DetectionDataset, Detections
+from supervision import (
+    ClassificationDataset,
+    Classifications,
+    DetectionDataset,
+    Detections,
+)
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections, create_yolo_dataset
@@ -434,6 +439,49 @@ class TestDetectionDatasetInMemoryImages:
         ds_b = self._build_dataset({"img1.jpg": _create_image(fill_value=2)})
 
         assert ds_a != ds_b
+
+
+class TestDatasetEqualityContracts:
+    """Dataset equality must respect class order and NumPy-backed annotations."""
+
+    def test_detection_dataset_class_order_matters(self) -> None:
+        """DetectionDataset equality is sensitive to the ordered class list."""
+        ds_a = DetectionDataset(classes=["cat", "dog"], images=[], annotations={})
+        ds_b = DetectionDataset(classes=["dog", "cat"], images=[], annotations={})
+
+        assert ds_a != ds_b
+
+    def test_classification_dataset_numpy_annotations(self) -> None:
+        """ClassificationDataset equality handles multi-value NumPy annotations."""
+        annotations = {
+            "img.png": Classifications(
+                class_id=np.array([0, 1], dtype=np.int_),
+                confidence=np.array([0.25, 0.75], dtype=np.float32),
+            )
+        }
+        ds_a = ClassificationDataset(
+            classes=["cat", "dog"],
+            images=["img.png"],
+            annotations=annotations,
+        )
+        ds_b = ClassificationDataset(
+            classes=["cat", "dog"],
+            images=["img.png"],
+            annotations={
+                "img.png": Classifications(
+                    class_id=np.array([0, 1], dtype=np.int_),
+                    confidence=np.array([0.25, 0.75], dtype=np.float32),
+                )
+            },
+        )
+        ds_c = ClassificationDataset(
+            classes=["dog", "cat"],
+            images=["img.png"],
+            annotations=annotations,
+        )
+
+        assert ds_a == ds_b
+        assert ds_a != ds_c
 
 
 class TestDetectionDatasetExportCollisions:
