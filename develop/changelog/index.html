@@ -3733,6 +3733,7 @@
 <li><code>sv.Classifications.from_timm</code> now softmaxes model logits before exposing confidence scores, matching <code>sv.Classifications.from_clip</code> and keeping timm confidences on a normalized probability scale. Thresholds calibrated against raw logits may need retuning.</li>
 <li><code>sv.download_assets</code> now verifies MD5 hashes after fresh downloads and retries once when the downloaded payload is corrupted instead of accepting a bad file.</li>
 <li>Fixed metrics scoring edge cases: legacy <code>sv.MeanAveragePrecision</code> now uses COCO 101-point AP averaging, <code>sv.ConfusionMatrix</code> rejects invalid class ids instead of wrapping them through <code>int16</code>/negative indexing, <code>sv.MeanAveragePrecision</code> preserves user-provided target <code>ignore</code> flags, and <code>sv.MeanAverageRecallResult.recall_per_class</code> now exposes per-class recall for each max-detection cutoff.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2408">#2408</a>: <code>sv.Precision</code>, <code>sv.Recall</code>, <code>sv.F1Score</code>, and <code>sv.MeanAverageRecall</code> now score size buckets by filtering targets only while leaving predictions eligible to match bucket targets. This preserves bucket matches that would otherwise be stolen by out-of-bucket filtering and keeps mAR top-K ranking intact.</li>
 <li><code>sv.ByteTrack</code> no longer mutates input <code>Detections</code> while assigning tracker IDs. It now keeps detections at the activation-threshold boundary eligible for matching, avoids impossible new-track thresholds above score <code>1.0</code>, ignores invalid zero-area/non-finite tensor boxes before Kalman updates, and does not emit unconfirmed <code>-1</code> IDs from first-frame tensor updates.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2402">#2402</a>: <code>sv.KeyPoints.as_detections</code> now accepts NumPy arrays, tuples, and generators in <code>selected_keypoint_indices</code> without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2407">#2407</a>: <code>sv.ColorPalette.by_idx()</code> now raises a clear <code>ValueError</code> when called on an empty palette instead of leaking a <code>ZeroDivisionError</code>. Non-empty palettes keep the existing index-wrapping behavior.</li>
@@ -3753,6 +3754,7 @@
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Performance <a href="https://github.com/roboflow/supervision/pull/2383">#2383</a>: <code>sv.Detections.merge()</code> on mixed dense <code>ndarray</code> + <code>CompactMask</code> inputs now returns a <code>CompactMask</code> instead of a dense <code>ndarray</code>. Previously (0.29.0/0.29.1) the mixed path fell back to <code>np.vstack</code>, allocating a full <code>(N, H, W)</code> array; the new path converts dense inputs to <code>CompactMask</code> without materialising the full stack (~2 500× less peak memory, ~13× faster on 1080p / 40 detections). <strong>Behavior change</strong>: code that checks <code>isinstance(merged.mask, np.ndarray)</code> or calls bare ndarray methods (<code>.astype</code>, <code>.reshape</code>, <code>.ravel</code>) on a mixed-merge result will need to be updated. The all-dense path is unchanged and still returns <code>ndarray</code>.</li>
+<li><code>DetectionDataset</code> and <code>ClassificationDataset</code> equality now compare the ordered <code>classes</code> lists directly instead of treating class labels as an unordered set. This keeps equality aligned with <code>class_id</code> indexing semantics, where class position is part of the dataset contract.</li>
 </ul>
 <h3 id="0291-jun-23-2026">0.29.1 <small>Jun 23, 2026</small><a class="headerlink" href="#0291-jun-23-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -5754,7 +5756,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 7, 2026 19:59:23 UTC">July 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 06:56:34 UTC">July 8, 2026</span>
   </span>
 
     
