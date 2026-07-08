@@ -388,26 +388,21 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> MeanAverageRecallResult:
+        if size_category != ObjectSizeCategory.ANY:
+            # Score the requested bucket on bucket-filtered targets so detections
+            # outside the bucket cannot consume the only available target.
+            targets_list = [
+                self._filter_detections_by_size(targets, size_category)
+                for targets in targets_list
+            ]
+            size_category = ObjectSizeCategory.ANY
+
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
-            prediction_size_mask = np.ones(len(predictions), dtype=bool)
-            target_size_mask = np.ones(len(targets), dtype=bool)
-            if size_category != ObjectSizeCategory.ANY:
-                if len(predictions) > 0:
-                    prediction_size_mask = (
-                        get_detection_size_category(predictions, self._metric_target)
-                        == size_category.value
-                    )
-                if len(targets) > 0:
-                    target_size_mask = (
-                        get_detection_size_category(targets, self._metric_target)
-                        == size_category.value
-                    )
-
             if len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
                     raise ValueError(
@@ -415,9 +410,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         "predictions and targets."
                     )
                 if len(predictions) == 0:
-                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)[
-                        target_size_mask
-                    ]
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
                     if len(target_class_ids) == 0:
                         continue
                     stats.append(
@@ -462,51 +455,20 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches, matched_target_indices = (
-                        _match_detection_batch_with_target_indices(
-                            prediction_class_ids,
-                            target_class_ids,
-                            iou,
-                            iou_thresholds,
-                        )
+                    matches, _ = _match_detection_batch_with_target_indices(
+                        prediction_class_ids,
+                        target_class_ids,
+                        iou,
+                        iou_thresholds,
                     )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
-                    if size_category != ObjectSizeCategory.ANY:
-                        valid_target_match = matched_target_indices >= 0
-                        matched_scored_target = np.zeros_like(matches, dtype=bool)
-                        if np.any(valid_target_match):
-                            matched_scored_target[valid_target_match] = (
-                                target_size_mask[
-                                    matched_target_indices[valid_target_match]
-                                ]
-                            )
-                        prediction_scored = (
-                            prediction_size_mask[:, None] | matched_scored_target
-                        )
-                        ignored_matches = ~prediction_scored | (
-                            valid_target_match & ~matched_scored_target
-                        )
-                        prediction_keep = np.any(~ignored_matches, axis=1)
-                        matches = (
-                            matches[prediction_keep]
-                            & matched_scored_target[prediction_keep]
-                        )
-                        ignored_matches = ignored_matches[prediction_keep]
-                        prediction_confidence = prediction_confidence[prediction_keep]
-                        prediction_class_ids = prediction_class_ids[prediction_keep]
-                        target_class_ids = target_class_ids[target_size_mask]
-                        if (
-                            len(prediction_class_ids) == 0
-                            and len(target_class_ids) == 0
-                        ):
-                            continue
 
                     sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
                             matches[sorted_indices],
                             ignored_matches[sorted_indices],
-                            np.arange(len(prediction_class_ids)),
+                            np.arange(len(prediction_confidence)),
                             prediction_class_ids[sorted_indices],
                             target_class_ids,
                         )
@@ -558,6 +520,15 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         npt.NDArray[np.int32],
     ]:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+
+        if unique_classes.size == 0:
+            max_detection_count = self.max_detections.shape[0]
+            num_thresholds = matches.shape[1]
+            return (
+                np.zeros(max_detection_count, dtype=np.float64),
+                np.zeros((max_detection_count, 0, num_thresholds), dtype=np.float64),
+                unique_classes,
+            )
 
         recalls_at_k: list[npt.NDArray[np.float64]] = []
         for max_detections in self.max_detections:
@@ -760,23 +731,3 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                 new_detections.data[key] = np.array(value)[size_mask]
 
         return new_detections
-
-    def _filter_predictions_and_targets_by_size(
-        self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory,
-    ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
-        new_predictions_list = []
-        new_targets_list = []
-        for predictions, targets in zip(predictions_list, targets_list):
-            new_predictions_list.append(
-                self._filter_detections_by_size(predictions, size_category)
-            )
-            new_targets_list.append(
-                self._filter_detections_by_size(targets, size_category)
-            )
-        return new_predictions_list, new_targets_list

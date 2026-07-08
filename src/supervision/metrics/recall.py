@@ -154,6 +154,15 @@ class Recall(Metric["RecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> RecallResult:
+        if size_category != ObjectSizeCategory.ANY:
+            # Score the requested bucket on bucket-filtered targets so detections
+            # outside the bucket cannot consume the only available target.
+            targets_list = [
+                self._filter_detections_by_size(targets, size_category)
+                for targets in targets_list
+            ]
+            size_category = ObjectSizeCategory.ANY
+
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
