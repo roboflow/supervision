@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-06
+date_modified: 2026-07-08
 ---
 
 # Changelog
@@ -18,6 +18,9 @@ date_modified: 2026-07-06
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `sv.process_video` no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.
+- Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `DetectionDataset.as_pascal_voc()` now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.
 - `import supervision` no longer surfaces the deprecated `ByteTrack` warning; the top-level tracker alias now resolves lazily when accessed explicitly.
 - Fixed dataset export edge cases: `DetectionDataset.split()` and `DetectionDataset.merge()` now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.
 - Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises `ValueError` when any channel falls outside the 0-255 byte range.
