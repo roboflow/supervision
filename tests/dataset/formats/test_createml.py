@@ -230,9 +230,7 @@ class TestLoadCreatemlAnnotations:
                 annotations_path=str(annotations_path),
             )
 
-    def test_rejects_image_path_resolving_to_directory(
-        self, tmp_path: Path
-    ) -> None:
+    def test_rejects_image_path_resolving_to_directory(self, tmp_path: Path) -> None:
         """CreateML loader rejects entries that resolve to a directory."""
         annotations_path = tmp_path / "annotations.json"
         (tmp_path / "nested").mkdir()
