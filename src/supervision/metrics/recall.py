@@ -18,7 +18,9 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
-from supervision.metrics.utils.matching import _greedy_match
+from supervision.metrics.utils.matching import (
+    _match_detection_batch_with_target_indices,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -134,35 +136,52 @@ class Recall(Metric["RecallResult"]):
             The recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
-
-        small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
+        result.small_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
         )
-        result.small_objects = self._compute(small_predictions, small_targets)
-
-        medium_predictions, medium_targets = (
-            self._filter_predictions_and_targets_by_size(
-                self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
-            )
+        result.medium_objects = self._compute(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
         )
-        result.medium_objects = self._compute(medium_predictions, medium_targets)
-
-        large_predictions, large_targets = self._filter_predictions_and_targets_by_size(
+        result.large_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
         )
-        result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
-        self, predictions_list: list[Detections], targets_list: list[Detections]
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> RecallResult:
+        if size_category != ObjectSizeCategory.ANY:
+            # Score the requested bucket on bucket-filtered targets so detections
+            # outside the bucket cannot consume the only available target.
+            targets_list = [
+                self._filter_detections_by_size(targets, size_category)
+                for targets in targets_list
+            ]
+            size_category = ObjectSizeCategory.ANY
+
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
+            prediction_size_mask = np.ones(len(predictions), dtype=bool)
+            target_size_mask = np.ones(len(targets), dtype=bool)
+            if size_category != ObjectSizeCategory.ANY:
+                if len(predictions) > 0:
+                    prediction_size_mask = (
+                        get_detection_size_category(predictions, self._metric_target)
+                        == size_category.value
+                    )
+                if len(targets) > 0:
+                    target_size_mask = (
+                        get_detection_size_category(targets, self._metric_target)
+                        == size_category.value
+                    )
 
             if len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
@@ -171,12 +190,18 @@ class Recall(Metric["RecallResult"]):
                         "and targets."
                     )
                 if len(predictions) == 0:
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)[
+                        target_size_mask
+                    ]
+                    if len(target_class_ids) == 0:
+                        continue
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=np.float32),
                             np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            target_class_ids,
                         )
                     )
 
@@ -211,15 +236,48 @@ class Recall(Metric["RecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches = self._match_detection_batch(
-                        prediction_class_ids,
-                        target_class_ids,
-                        iou,
-                        iou_thresholds,
+                    matches, matched_target_indices = (
+                        _match_detection_batch_with_target_indices(
+                            prediction_class_ids,
+                            target_class_ids,
+                            iou,
+                            iou_thresholds,
+                        )
                     )
+                    ignored_matches = np.zeros_like(matches, dtype=bool)
+                    if size_category != ObjectSizeCategory.ANY:
+                        valid_target_match = matched_target_indices >= 0
+                        matched_scored_target = np.zeros_like(matches, dtype=bool)
+                        if np.any(valid_target_match):
+                            matched_scored_target[valid_target_match] = (
+                                target_size_mask[
+                                    matched_target_indices[valid_target_match]
+                                ]
+                            )
+                        prediction_scored = (
+                            prediction_size_mask[:, None] | matched_scored_target
+                        )
+                        ignored_matches = ~prediction_scored | (
+                            valid_target_match & ~matched_scored_target
+                        )
+                        prediction_keep = np.any(~ignored_matches, axis=1)
+                        matches = (
+                            matches[prediction_keep]
+                            & matched_scored_target[prediction_keep]
+                        )
+                        ignored_matches = ignored_matches[prediction_keep]
+                        prediction_confidence = prediction_confidence[prediction_keep]
+                        prediction_class_ids = prediction_class_ids[prediction_keep]
+                        target_class_ids = target_class_ids[target_size_mask]
+                        if (
+                            len(prediction_class_ids) == 0
+                            and len(target_class_ids) == 0
+                        ):
+                            continue
                     stats.append(
                         (
                             matches,
+                            ignored_matches,
                             prediction_confidence,
                             prediction_class_ids,
                             target_class_ids,
@@ -259,6 +317,7 @@ class Recall(Metric["RecallResult"]):
     def _compute_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
+        ignored_matches: npt.NDArray[np.bool_],
         prediction_confidence: npt.NDArray[np.float32],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
@@ -269,12 +328,13 @@ class Recall(Metric["RecallResult"]):
     ]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
+        ignored_matches = ignored_matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
-            matches, prediction_class_ids, unique_classes, class_counts
+            matches, ignored_matches, prediction_class_ids, unique_classes, class_counts
         )
 
         # Shape: CxThx3 -> CxTh
@@ -288,7 +348,15 @@ class Recall(Metric["RecallResult"]):
             recall_scores = self._compute_recall(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            recall_scores = np.average(recall_per_class, axis=0, weights=class_counts)
+            if class_counts.sum() == 0:
+                # No ground-truth support (e.g. only false-positive classes, or a
+                # size bucket with predictions but no targets): weighting is
+                # undefined, so report 0 as the empty case did before.
+                recall_scores = np.zeros(recall_per_class.shape[1])
+            else:
+                recall_scores = np.average(
+                    recall_per_class, axis=0, weights=class_counts
+                )
 
         return recall_scores, recall_per_class, unique_classes
 
@@ -299,24 +367,15 @@ class Recall(Metric["RecallResult"]):
         iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        num_predictions, num_iou_levels = (
-            predictions_classes.shape[0],
-            iou_thresholds.shape[0],
+        result_correct, _ = _match_detection_batch_with_target_indices(
+            predictions_classes, target_classes, iou, iou_thresholds
         )
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where((iou >= iou_level) & correct_class)
-
-            for t, p in _greedy_match(iou, matched_indices):
-                correct[p, i] = True
-        result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
+        sorted_ignored_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
@@ -330,6 +389,8 @@ class Recall(Metric["RecallResult"]):
         Args:
             sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
+            sorted_ignored_matches: shape (P, Th), that is True
+                if the prediction should not affect the given IoU threshold.
             sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
             unique_classes: shape (C,), containing the unique
@@ -359,11 +420,13 @@ class Recall(Metric["RecallResult"]):
                 false_negatives = np.full(num_thresholds, num_true)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
+                false_positives = (~sorted_ignored_matches[is_class]).sum(0)
                 false_negatives = np.zeros(num_thresholds)
             else:
                 true_positives = sorted_matches[is_class].sum(0)
-                false_positives = (1 - sorted_matches[is_class]).sum(0)
+                false_positives = (
+                    ~sorted_matches[is_class] & ~sorted_ignored_matches[is_class]
+                ).sum(0)
                 false_negatives = num_true - true_positives
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
@@ -419,6 +482,11 @@ class Recall(Metric["RecallResult"]):
             if detections.mask is not None:
                 # detections.mask is NDArray[bool] | CompactMask; return as-is.
                 return detections.mask
+            if len(detections) > 0:
+                raise ValueError(
+                    "Recall with `MetricTarget.MASKS` requires detections to "
+                    "include masks."
+                )
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)

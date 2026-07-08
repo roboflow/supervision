@@ -121,3 +121,22 @@ def test_from_timm_softmaxes_logits() -> None:
         result.confidence, _MockTensor(logits).softmax(dim=-1).numpy()[0]
     )
     assert np.isclose(np.sum(result.confidence), 1.0)
+
+
+def test_classifications_compare_numpy_fields_by_value() -> None:
+    """Classifications equality handles NumPy arrays and confidence values."""
+    left = Classifications(
+        class_id=np.array([0, 1], dtype=np.int_),
+        confidence=np.array([0.25, 0.75], dtype=np.float32),
+    )
+    right = Classifications(
+        class_id=np.array([0, 1], dtype=np.int_),
+        confidence=np.array([0.25, 0.75], dtype=np.float32),
+    )
+    different = Classifications(
+        class_id=np.array([0, 1], dtype=np.int_),
+        confidence=np.array([0.25, 0.5], dtype=np.float32),
+    )
+
+    assert left == right
+    assert left != different

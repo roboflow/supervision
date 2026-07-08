@@ -254,6 +254,23 @@ def test_color_from_bgra_tuple(
 
 
 @pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({"r": -1, "g": 0, "b": 0}, id="red-negative"),
+        pytest.param({"r": 0, "g": 256, "b": 0}, id="green-too-large"),
+        pytest.param({"r": 0, "g": 0, "b": 300}, id="blue-too-large"),
+        pytest.param({"r": 0, "g": 0, "b": 0, "a": -1}, id="alpha-negative"),
+    ],
+)
+def test_color_constructor_rejects_out_of_range_channels(
+    kwargs: dict[str, int],
+) -> None:
+    """Direct Color construction rejects channels outside the byte range."""
+    with pytest.raises(ValueError, match="Color values must be in range"):
+        Color(**kwargs)
+
+
+@pytest.mark.parametrize(
     ("color", "expected_result", "exception"),
     [
         (Color(r=255, g=255, b=0, a=128), (255, 255, 0, 128), DoesNotRaise()),

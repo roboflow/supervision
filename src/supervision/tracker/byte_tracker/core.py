@@ -26,15 +26,16 @@ def _valid_tracking_tensors(
 @deprecated_class(
     target=TargetMode.NOTIFY,
     deprecated_in="0.28.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 class ByteTrack:
     """
     Initialize the ByteTrack object.
 
-    .. deprecated:: 0.28.0
+    !!! deprecated "Deprecated"
+
         `ByteTrack` is deprecated since `supervision-0.28.0` and will be removed in
-        `supervision-0.30.0`. Use `ByteTrackTracker` from the `trackers` package
+        `supervision-0.31.0`. Use `ByteTrackTracker` from the `trackers` package
         instead (`pip install trackers`). Note: the update method is renamed from
         `update_with_detections()` to `update()`.
 
