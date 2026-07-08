@@ -1,12 +1,16 @@
 import os
 import shutil
+from queue import Queue as StdQueue
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
 import pytest
 
 from supervision.utils.video import (
+    FPSMonitor,
     VideoInfo,
     _mux_audio,
     get_video_frames_generator,
@@ -92,6 +96,102 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
             prefetch=1,
             writer_buffer=1,
         )
+
+
+def test_process_video_enqueues_writer_sentinel_without_timeout(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video must block on the writer sentinel instead of timing out."""
+    read_queue = StdQueue()
+    read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put((1, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put(None)
+
+    class RecordingWriteQueue:
+        """Record writer queue puts so the shutdown path can be asserted."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record each put call and its timeout."""
+            self.put_calls.append((item, timeout))
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Do nothing; the worker targets are intentionally never started."""
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    write_queue = RecordingWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=2),
+    )
+
+    target_path = str(tmp_path / "target_sentinel.mp4")
+
+    def callback(frame, index):
+        if index == 1:
+            raise ValueError("Test exception at frame 1")
+        return frame
+
+    with pytest.raises(ValueError, match="Test exception at frame 1"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert write_queue.put_calls[-1] == (None, None)
+    assert all(timeout is None for _item, timeout in write_queue.put_calls)
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
@@ -247,6 +347,21 @@ def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     generator = get_video_frames_generator(dummy_video_path, stride=2)
     frames = list(generator)
     assert len(frames) == 5
+
+
+def test_fps_monitor_uses_frame_intervals(monkeypatch) -> None:
+    """FPSMonitor must divide elapsed time by intervals, not sample count."""
+    timestamps = iter([0.0, 0.5, 1.0])
+    monkeypatch.setattr(
+        "supervision.utils.video.time.monotonic", lambda: next(timestamps)
+    )
+
+    fps_monitor = FPSMonitor()
+    fps_monitor.tick()
+    fps_monitor.tick()
+    fps_monitor.tick()
+
+    assert fps_monitor.fps == pytest.approx(2.0)
 
 
 def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> None:

@@ -196,6 +196,7 @@ overrides = [ { module = [ "examples.*", "tests.*" ], ignore_errors = true } ]
 
 [tool.pytest]
 ini_options.norecursedirs = [ ".git", ".venv", "build", "dist", "docs", "examples", "notebooks" ]
+ini_options.testpaths = [ "src", "tests" ]
 ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",

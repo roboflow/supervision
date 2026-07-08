@@ -993,6 +993,37 @@ def test_florence_2(
 
 
 @pytest.mark.parametrize(
+    ("florence_result", "match"),
+    [
+        pytest.param(
+            {
+                "<REGION_TO_CATEGORY>": "some object<loc_300><loc_400><loc_500><loc_600>",
+                "<REGION_TO_DESCRIPTION>": "other",
+            },
+            "single element",
+            id="multiple-top-level-tasks",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": 123},
+            "Expected string as <REGION_TO_CATEGORY> result",
+            id="non-string-region-result",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": "some object"},
+            "Expected string to end in location tags",
+            id="missing-location-tags",
+        ),
+    ],
+)
+def test_florence_2_invalid_payloads_raise_value_error(
+    florence_result: dict[str, object], match: str
+) -> None:
+    """Malformed Florence 2 region payloads raise `ValueError`."""
+    with pytest.raises(ValueError, match=match):
+        from_florence_2(florence_result, (10, 10))
+
+
+@pytest.mark.parametrize(
     ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (

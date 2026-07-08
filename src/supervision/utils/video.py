@@ -9,7 +9,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from queue import Empty, Full, Queue
+from queue import Empty, Queue
 from types import TracebackType
 from typing import cast
 
@@ -405,12 +405,11 @@ def process_video(
                 break
             video_sink.write_frame(frame=frame)
 
-    reader_worker = threading.Thread(target=reader_thread, daemon=True)
+    reader_worker = threading.Thread(target=reader_thread)
     with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
         writer_worker = threading.Thread(
             target=writer_thread,
             args=(video_sink,),
-            daemon=True,
         )
 
         reader_worker.start()
@@ -441,13 +440,7 @@ def process_video(
                     exception_in_worker = exc
                     break
         finally:
-            try:
-                frame_write_queue.put(None, timeout=1)
-            except Full:
-                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
-                # If we cannot enqueue it, the writer thread will still complete based
-                # on previously queued frames or other shutdown conditions.
-                pass
+            frame_write_queue.put(None)
             if not read_finished:
                 while True:
                     # Use timeout to prevent indefinite blocking if reader thread fails
@@ -463,8 +456,8 @@ def process_video(
                             break
                         # Reader is still alive; continue waiting for frames.
                         continue
-            reader_worker.join(timeout=10)
-            writer_worker.join(timeout=10)
+            reader_worker.join()
+            writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
@@ -512,12 +505,14 @@ class FPSMonitor:
         Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
-            The average FPS. Returns 0.0 if no time stamps are stored.
+            The average FPS across the recorded intervals. Returns 0.0 if fewer
+            than two time stamps are stored.
         """
-        if not self.all_timestamps:
+        if len(self.all_timestamps) < 2:
             return 0.0
         taken_time = self.all_timestamps[-1] - self.all_timestamps[0]
-        return (len(self.all_timestamps)) / taken_time if taken_time != 0 else 0.0
+        frame_intervals = len(self.all_timestamps) - 1
+        return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
         """

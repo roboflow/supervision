@@ -9,7 +9,9 @@ from typing import Any, cast
 import cv2
 import numpy as np
 import pytest
+from PIL import Image
 
+import supervision.annotators.core as annotators_core
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.core import (
     BackgroundOverlayAnnotator,
@@ -973,6 +975,20 @@ class TestHeatMapAnnotator:
             warnings.simplefilter("error", RuntimeWarning)
             annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
 
+    def test_annotate_resets_when_resolution_changes(self) -> None:
+        """Changing frame resolution must reset heat state instead of crashing."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        first_scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        second_scene = np.zeros((120, 80, 3), dtype=np.uint8)
+
+        annotator.annotate(scene=first_scene.copy(), detections=detections)
+        result = annotator.annotate(scene=second_scene.copy(), detections=detections)
+
+        assert result.shape == second_scene.shape
+        assert annotator.heat_mask is not None
+        assert annotator.heat_mask.shape == second_scene.shape[:2]
+
     def test_annotate_hottest_region_survives_uint8_wrap(
         self, test_image: np.ndarray
     ) -> None:
@@ -1139,6 +1155,35 @@ class TestLabelAnnotator:
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.93)
 
+    def test_smart_position_spreads_boxes_once(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """smart_position should spread labels once per annotate call."""
+        calls = 0
+        original_spread_out_boxes = annotators_core.spread_out_boxes
+
+        def counting_spread_out_boxes(
+            boxes: np.ndarray, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            nonlocal calls
+            calls += 1
+            return original_spread_out_boxes(boxes, *args, **kwargs)
+
+        monkeypatch.setattr(
+            annotators_core, "spread_out_boxes", counting_spread_out_boxes
+        )
+
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90], [15, 15, 85, 85]], class_id=[0, 1]
+        )
+        annotator = LabelAnnotator(color_lookup=ColorLookup.INDEX, smart_position=True)
+
+        annotator.annotate(
+            scene=test_image.copy(), detections=detections, labels=["one", "two"]
+        )
+
+        assert calls == 1
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class"""
@@ -1158,6 +1203,39 @@ class TestRichLabelAnnotator:
             scene=test_image.copy(), detections=detections, labels=["test"]
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
+
+    def test_smart_position_spreads_boxes_once(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """smart_position should spread rich labels once per annotate call."""
+        calls = 0
+        original_spread_out_boxes = annotators_core.spread_out_boxes
+
+        def counting_spread_out_boxes(
+            boxes: np.ndarray, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            nonlocal calls
+            calls += 1
+            return original_spread_out_boxes(boxes, *args, **kwargs)
+
+        monkeypatch.setattr(
+            annotators_core, "spread_out_boxes", counting_spread_out_boxes
+        )
+
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90], [15, 15, 85, 85]], class_id=[0, 1]
+        )
+        annotator = RichLabelAnnotator(
+            color_lookup=ColorLookup.INDEX, smart_position=True
+        )
+
+        annotator.annotate(
+            scene=Image.fromarray(test_image.copy()),
+            detections=detections,
+            labels=["one", "two"],
+        )
+
+        assert calls == 1
 
 
 class TestBlurAnnotator:

@@ -6,7 +6,7 @@ import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.tools.inference_slicer import InferenceSlicer, move_detections
 from supervision.detection.utils.iou_and_nms import OverlapFilter
 from supervision.utils.internal import SupervisionWarnings
 
@@ -696,3 +696,20 @@ class TestInferenceSlicerBatch:
         )
         with pytest.warns(SupervisionWarnings, match="outside the slice bounds"):
             slicer(image)
+
+    def test_move_detections_returns_a_copy(self) -> None:
+        """move_detections must not mutate the caller's Detections object."""
+        detections = Detections(
+            xyxy=np.array([[1.0, 2.0, 3.0, 4.0]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        original_xyxy = detections.xyxy.copy()
+
+        moved = move_detections(
+            detections=detections,
+            offset=np.array([10, 20]),
+            resolution_wh=(100, 100),
+        )
+
+        np.testing.assert_array_equal(detections.xyxy, original_xyxy)
+        np.testing.assert_array_equal(moved.xyxy, np.array([[11.0, 22.0, 13.0, 24.0]]))

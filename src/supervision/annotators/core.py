@@ -1367,11 +1367,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
 
@@ -1426,10 +1426,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
             label_properties = self._adjust_labels_in_frame(
                 (scene.shape[1], scene.shape[0]),
                 labels,
@@ -1723,11 +1719,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided
         detections, with support for Unicode characters.
@@ -1780,10 +1776,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
             label_properties = self._adjust_labels_in_frame(
                 (scene.width, scene.height),
                 labels,
@@ -2357,7 +2349,7 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        if self.heat_mask is None:
+        if self.heat_mask is None or self.heat_mask.shape != scene.shape[:2]:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
         mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)

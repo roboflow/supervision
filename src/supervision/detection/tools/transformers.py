@@ -209,19 +209,29 @@ def process_transformers_v5_panoptic_segmentation_result(
 
 def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
     """
-    Convert a PNG byte string to a label mask array.
+    Convert a PNG byte string to a panoptic segmentation array.
 
     Args:
         png_string: A byte string representing the PNG image.
 
     Returns:
-        A label mask array with shape (H, W), where H and W
-            are the height and width of the image. Each unique value in the array
-            represents a different object or category.
+        A segmentation ID array with shape (H, W), where each unique value
+            represents a different object or category. RGB-encoded panoptic
+            PNGs are decoded as little-endian 24-bit integers; alpha is ignored.
     """
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
-    return cast(npt.NDArray[Any], mask[:, :, 0])
+    if mask.ndim == 2:
+        return cast(npt.NDArray[Any], mask.astype(np.uint32))
+    if mask.shape[2] < 3:
+        raise ValueError("Panoptic PNG masks must have at least 3 channels.")
+
+    segmentation = (
+        mask[:, :, 0].astype(np.uint32)
+        + (mask[:, :, 1].astype(np.uint32) << 8)
+        + (mask[:, :, 2].astype(np.uint32) << 16)
+    )
+    return cast(npt.NDArray[Any], segmentation)
 
 
 def append_class_names_to_data(
