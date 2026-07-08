@@ -114,8 +114,8 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[int, deque[bool]] = (
-            defaultdict(lambda: deque(maxlen=self.crossing_history_length))
+        self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
+            lambda: deque(maxlen=self.crossing_history_length)
         )
         # Tracks consecutive frames a tracker key has been absent; eviction
         # requires crossing_history_length absent frames so that ByteTrack
@@ -219,9 +219,7 @@ class LineZone:
 
         return crossed_in, crossed_out
 
-    def _evict_stale_crossing_history(
-        self, current_keys: set[int]
-    ) -> None:
+    def _evict_stale_crossing_history(self, current_keys: set[int]) -> None:
         for key in list(self.crossing_state_history):
             if key in current_keys:
                 self._tracker_frames_absent.pop(key, None)

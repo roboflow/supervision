@@ -6,7 +6,10 @@ import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.tools.inference_slicer import InferenceSlicer, move_detections
+from supervision.detection.tools.inference_slicer import (
+    InferenceSlicer,
+    move_detections,
+)
 from supervision.detection.utils.iou_and_nms import OverlapFilter
 from supervision.utils.internal import SupervisionWarnings
 

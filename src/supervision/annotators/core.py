@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
 from supervision.annotators.base import BaseAnnotator

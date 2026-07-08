@@ -1,9 +1,9 @@
 import os
 import shutil
-from queue import Queue as StdQueue
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from queue import Queue as StdQueue
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import cv2
 import numpy as np
