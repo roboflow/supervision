@@ -6,13 +6,13 @@ import pytest
 
 from supervision.annotators.utils import (
     ColorLookup,
+    Trace,
     hex_to_rgba,
     is_valid_hex,
     resolve_color,
     resolve_color_idx,
     resolve_text_background_xyxy,
     rgba_to_hex,
-    Trace,
     wrap_text,
 )
 from supervision.detection.core import Detections
