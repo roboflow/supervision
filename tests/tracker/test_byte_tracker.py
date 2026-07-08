@@ -18,6 +18,13 @@ def _detections_from_boxes(
     )
 
 
+def test_top_level_bytetrack_access_returns_class() -> None:
+    """Top-level ByteTrack access should still resolve to the class object."""
+    sv.__dict__.pop("ByteTrack", None)
+    tracker_cls = sv.ByteTrack
+    assert tracker_cls is not None
+
+
 @pytest.mark.parametrize(
     ("detections", "expected_results"),
     [

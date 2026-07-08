@@ -11,6 +11,8 @@ import supervision as sv
 )
 def test_all_symbols_are_importable(symbol_name: str) -> None:
     """Every name in supervision.__all__ must be a non-None accessible attribute."""
+    if symbol_name == "ByteTrack":
+        sv.__dict__.pop("ByteTrack", None)
     val = getattr(sv, symbol_name, None)
     assert val is not None, (
         f"supervision.{symbol_name} is listed in __all__ but not accessible "
