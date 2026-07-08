@@ -100,6 +100,19 @@ class Color:
     b: int
     a: int = 255
 
+    def __post_init__(self) -> None:
+        """Validate that direct Color construction uses byte-sized channels."""
+        if not (
+            0 <= self.r <= 255
+            and 0 <= self.g <= 255
+            and 0 <= self.b <= 255
+            and 0 <= self.a <= 255
+        ):
+            raise ValueError(
+                "Color values must be in range 0-255, "
+                f"got ({self.r}, {self.g}, {self.b}, {self.a})"
+            )
+
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
         """

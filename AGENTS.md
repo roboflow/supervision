@@ -75,7 +75,7 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 
 ## 4. Deprecated Module Aliases
 
-`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Always import from `supervision.key_points`, not `supervision.keypoint`.
+`supervision.keypoint` deprecated since `0.27.0`, removed in `0.31.0`. Always import from `supervision.key_points`, not `supervision.keypoint`.
 
 ---
 

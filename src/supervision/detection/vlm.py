@@ -23,7 +23,8 @@ class LMM(Enum):
     """
     Enum specifying supported Large Multimodal Models (LMMs).
 
-    .. deprecated:: 0.27.0
+    !!! deprecated "Deprecated"
+
         `LMM` is deprecated and will be removed in `supervision-0.31.0`.
         Use `VLM` instead.
 
