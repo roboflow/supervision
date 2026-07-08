@@ -6,37 +6,37 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Frequently asked questions about installing Supervision, supported computer vision models, datasets, tracking, metrics, and licensing.">
+        <meta name="description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers.">
       
       
         <meta name="author" content="Roboflow">
       
       
-        <link rel="canonical" href="https://supervision.roboflow.com/develop/faq/">
+        <link rel="canonical" href="https://supervision.roboflow.com/develop/utils/conversion/">
       
       
-        <link rel="prev" href="../contact/">
+        <link rel="prev" href="../../detection/metrics/">
       
       
-        <link rel="next" href="../how_to/detect_and_annotate/">
+        <link rel="next" href="../video/">
       
       
         
       
       
-      <link rel="icon" href="../assets/supervision-lenny.png">
+      <link rel="icon" href="../../assets/supervision-lenny.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>FAQ - Supervision</title>
+        <title>Conversion - Supervision</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,13 +55,13 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-      <link rel="stylesheet" href="../stylesheets/cookbooks_card.css">
+      <link rel="stylesheet" href="../../stylesheets/cookbooks_card.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -167,95 +167,6 @@
 
 
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is Supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported object detection, segmentation, and VLM outputs."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I install Supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Install the base package with pip install supervision. Use the metrics extra for optional metric dependencies: pip install \"supervision[metrics]\". Sample asset utilities are included in the base package under supervision.assets."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Which object detection models work with Supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Supervision is model-agnostic. sv.Detections includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate sv.KeyPoints converters, including MediaPipe."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What can I do with Supervision?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "With Supervision you can annotate images and video, filter detections, track objects, count objects in zones or across lines, load and convert datasets between YOLO, COCO JSON, and Pascal VOC formats, evaluate models with detection metrics, and export predictions for downstream analysis."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I track objects across video frames?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections through update_with_detections(). After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What dataset formats does Supervision support?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "For detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC. Use DetectionDataset.from_yolo(), DetectionDataset.from_coco(), or DetectionDataset.from_pascal_voc() to load datasets, and the matching as_* methods to export them."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I count objects in a zone?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use sv.PolygonZone for arbitrary polygon regions and sv.LineZone for line-crossing counts. Line crossing requires detections.tracker_id, so run a tracker before calling the line zone trigger."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I benchmark a model?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use supervision.metrics.mean_average_precision.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Accumulate predictions and ground-truth Detections, then call compute() to calculate metrics."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is Supervision free to use?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Supervision is free and open source under the MIT license."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Where is the source code?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "The source code is available at https://github.com/roboflow/supervision."
-      }
-    }
-  ]
-}
-</script>
-
 
 
 
@@ -279,8 +190,8 @@
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "FAQ",
-      "item": "https://supervision.roboflow.com/develop/faq/"
+      "name": "Conversion",
+      "item": "https://supervision.roboflow.com/develop/utils/conversion/"
     }
   ]
 }
@@ -290,9 +201,9 @@
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
-<meta property="og:title" content="FAQ" />
-<meta property="og:description" content="Frequently asked questions about installing Supervision, supported computer vision models, datasets, tracking, metrics, and licensing." />
-<meta property="og:url" content="https://supervision.roboflow.com/develop/faq/" />
+<meta property="og:title" content="Conversion" />
+<meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
+<meta property="og:url" content="https://supervision.roboflow.com/develop/utils/conversion/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta property="og:image:width" content="1200" />
@@ -300,8 +211,8 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
-<meta name="twitter:title" content="FAQ" />
-<meta name="twitter:description" content="Frequently asked questions about installing Supervision, supported computer vision models, datasets, tracking, metrics, and licensing." />
+<meta name="twitter:title" content="Conversion" />
+<meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta name="twitter:image:width" content="1200" />
@@ -337,7 +248,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#frequently-asked-questions" class="md-skip">
+        <a href="#conversion-utils" class="md-skip">
           Skip to content
         </a>
       
@@ -365,14 +276,14 @@
 
     <!-- Link to home -->
     <a
-      href=".."
+      href="../.."
       title="Supervision"
       class="md-header__button md-logo"
       aria-label="Supervision"
       data-md-component="logo"
     >
       
-  <img src="../assets/supervision-lenny.png" alt="logo">
+  <img src="../../assets/supervision-lenny.png" alt="logo">
 
     </a>
 
@@ -393,7 +304,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis" style="display: flex; align-items: center; gap: 0.5rem;">
             <a
-            href=".."
+            href="../.."
             title="Supervision"
             class="md-header__button md-logo"
             aria-label="Supervision"
@@ -401,11 +312,11 @@
             id="item-logo"
             >
             
-  <img src="../assets/supervision-lenny.png" alt="logo">
+  <img src="../../assets/supervision-lenny.png" alt="logo">
 
             </a>
             
-              FAQ
+              Conversion
             
           </span>
         </div>
@@ -570,7 +481,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -589,7 +500,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../about/" class="md-tabs__link">
+      <a href="../../about/" class="md-tabs__link">
         
   
   
@@ -608,7 +519,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../contact/" class="md-tabs__link">
+      <a href="../../contact/" class="md-tabs__link">
         
   
   
@@ -625,11 +536,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
         
   
   
@@ -650,7 +559,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../how_to/detect_and_annotate/" class="md-tabs__link">
+        <a href="../../how_to/detect_and_annotate/" class="md-tabs__link">
           
   
   
@@ -666,6 +575,8 @@
   
   
   
+    
+  
   
     
     
@@ -673,11 +584,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../detection/core/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../detection/core/" class="md-tabs__link">
           
   
   
@@ -698,7 +611,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../cookbooks/" class="md-tabs__link">
+      <a href="../../cookbooks/" class="md-tabs__link">
         
   
   
@@ -717,7 +630,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../contributing/" class="md-tabs__link">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -736,7 +649,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../code_of_conduct/" class="md-tabs__link">
+      <a href="../../code_of_conduct/" class="md-tabs__link">
         
   
   
@@ -755,7 +668,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../license/" class="md-tabs__link">
+      <a href="../../license/" class="md-tabs__link">
         
   
   
@@ -776,7 +689,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../changelog/" class="md-tabs__link">
+        <a href="../../changelog/" class="md-tabs__link">
           
   
   
@@ -816,9 +729,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Supervision" class="md-nav__button md-logo" aria-label="Supervision" data-md-component="logo">
+    <a href="../.." title="Supervision" class="md-nav__button md-logo" aria-label="Supervision" data-md-component="logo">
       
-  <img src="../assets/supervision-lenny.png" alt="logo">
+  <img src="../../assets/supervision-lenny.png" alt="logo">
 
     </a>
     Supervision
@@ -833,7 +746,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -860,7 +773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../about/" class="md-nav__link">
+      <a href="../../about/" class="md-nav__link">
         
   
   
@@ -887,7 +800,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contact/" class="md-nav__link">
+      <a href="../../contact/" class="md-nav__link">
         
   
   
@@ -911,37 +824,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    FAQ
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
         
   
   
@@ -957,136 +843,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-supervision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is Supervision?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-install-supervision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I install Supervision?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#which-object-detection-models-work-with-supervision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Which object detection models work with Supervision?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-can-i-do-with-supervision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What can I do with Supervision?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-track-objects-across-video-frames" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I track objects across video frames?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-dataset-formats-does-supervision-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What dataset formats does Supervision support?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-count-objects-in-a-zone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I count objects in a zone?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-benchmark-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I benchmark a model?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#is-supervision-free-to-use" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Is Supervision free to use?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-is-the-source-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where is the source code?
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1148,7 +904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/detect_and_annotate/" class="md-nav__link">
+      <a href="../../how_to/detect_and_annotate/" class="md-nav__link">
         
   
   
@@ -1176,7 +932,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/save_detections/" class="md-nav__link">
+      <a href="../../how_to/save_detections/" class="md-nav__link">
         
   
   
@@ -1204,7 +960,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/filter_detections/" class="md-nav__link">
+      <a href="../../how_to/filter_detections/" class="md-nav__link">
         
   
   
@@ -1232,7 +988,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/detect_small_objects/" class="md-nav__link">
+      <a href="../../how_to/detect_small_objects/" class="md-nav__link">
         
   
   
@@ -1260,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/track_objects/" class="md-nav__link">
+      <a href="../../how_to/track_objects/" class="md-nav__link">
         
   
   
@@ -1288,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/process_datasets/" class="md-nav__link">
+      <a href="../../how_to/process_datasets/" class="md-nav__link">
         
   
   
@@ -1316,7 +1072,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/benchmark_a_model/" class="md-nav__link">
+      <a href="../../how_to/benchmark_a_model/" class="md-nav__link">
         
   
   
@@ -1344,7 +1100,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/count_in_zone/" class="md-nav__link">
+      <a href="../../how_to/count_in_zone/" class="md-nav__link">
         
   
   
@@ -1372,7 +1128,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how_to/use_compact_masks/" class="md-nav__link">
+      <a href="../../how_to/use_compact_masks/" class="md-nav__link">
         
   
   
@@ -1404,24 +1160,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
             
   
   
@@ -1439,7 +1200,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1507,7 +1268,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/core/" class="md-nav__link">
+      <a href="../../detection/core/" class="md-nav__link">
         
   
   
@@ -1535,7 +1296,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/annotators/" class="md-nav__link">
+      <a href="../../detection/annotators/" class="md-nav__link">
         
   
   
@@ -1563,7 +1324,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/compact_mask/" class="md-nav__link">
+      <a href="../../detection/compact_mask/" class="md-nav__link">
         
   
   
@@ -1591,7 +1352,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/converters/" class="md-nav__link">
+      <a href="../../detection/utils/converters/" class="md-nav__link">
         
   
   
@@ -1626,7 +1387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/iou_and_nms/" class="md-nav__link">
+      <a href="../../detection/utils/iou_and_nms/" class="md-nav__link">
         
   
   
@@ -1654,7 +1415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/boxes/" class="md-nav__link">
+      <a href="../../detection/utils/boxes/" class="md-nav__link">
         
   
   
@@ -1682,7 +1443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/masks/" class="md-nav__link">
+      <a href="../../detection/utils/masks/" class="md-nav__link">
         
   
   
@@ -1717,7 +1478,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/polygons/" class="md-nav__link">
+      <a href="../../detection/utils/polygons/" class="md-nav__link">
         
   
   
@@ -1745,7 +1506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/utils/vlms/" class="md-nav__link">
+      <a href="../../detection/utils/vlms/" class="md-nav__link">
         
   
   
@@ -1838,7 +1599,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../keypoint/core/" class="md-nav__link">
+      <a href="../../keypoint/core/" class="md-nav__link">
         
   
   
@@ -1866,7 +1627,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../keypoint/annotators/" class="md-nav__link">
+      <a href="../../keypoint/annotators/" class="md-nav__link">
         
   
   
@@ -1952,7 +1713,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../classification/core/" class="md-nav__link">
+      <a href="../../classification/core/" class="md-nav__link">
         
   
   
@@ -2038,7 +1799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/tools/line_zone/" class="md-nav__link">
+      <a href="../../detection/tools/line_zone/" class="md-nav__link">
         
   
   
@@ -2066,7 +1827,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/tools/polygon_zone/" class="md-nav__link">
+      <a href="../../detection/tools/polygon_zone/" class="md-nav__link">
         
   
   
@@ -2094,7 +1855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/tools/inference_slicer/" class="md-nav__link">
+      <a href="../../detection/tools/inference_slicer/" class="md-nav__link">
         
   
   
@@ -2122,7 +1883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/tools/smoother/" class="md-nav__link">
+      <a href="../../detection/tools/smoother/" class="md-nav__link">
         
   
   
@@ -2150,7 +1911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/tools/save_detections/" class="md-nav__link">
+      <a href="../../detection/tools/save_detections/" class="md-nav__link">
         
   
   
@@ -2186,7 +1947,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../trackers/" class="md-nav__link">
+      <a href="../../trackers/" class="md-nav__link">
         
   
   
@@ -2264,7 +2025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datasets/core/" class="md-nav__link">
+      <a href="../../datasets/core/" class="md-nav__link">
         
   
   
@@ -2350,7 +2111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/mean_average_precision/" class="md-nav__link">
+      <a href="../../metrics/mean_average_precision/" class="md-nav__link">
         
   
   
@@ -2378,7 +2139,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/mean_average_recall/" class="md-nav__link">
+      <a href="../../metrics/mean_average_recall/" class="md-nav__link">
         
   
   
@@ -2406,7 +2167,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/precision/" class="md-nav__link">
+      <a href="../../metrics/precision/" class="md-nav__link">
         
   
   
@@ -2434,7 +2195,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/recall/" class="md-nav__link">
+      <a href="../../metrics/recall/" class="md-nav__link">
         
   
   
@@ -2462,7 +2223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/f1_score/" class="md-nav__link">
+      <a href="../../metrics/f1_score/" class="md-nav__link">
         
   
   
@@ -2490,7 +2251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/common_values/" class="md-nav__link">
+      <a href="../../metrics/common_values/" class="md-nav__link">
         
   
   
@@ -2518,7 +2279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../detection/metrics/" class="md-nav__link">
+      <a href="../../detection/metrics/" class="md-nav__link">
         
   
   
@@ -2551,6 +2312,8 @@
                 
   
   
+    
+  
   
   
     
@@ -2561,11 +2324,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" checked>
         
           
           <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
@@ -2586,7 +2349,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_8">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2601,10 +2364,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../utils/conversion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conversion
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2627,6 +2424,132 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.cv2_to_pillow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;cv2_to_pillow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" cv2_to_pillow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.cv2_to_pillow(image)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.pillow_to_cv2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pillow_to_cv2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" pillow_to_cv2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.pillow_to_cv2(image)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.ensure_cv2_image_for_annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensure_cv2_image_for_annotation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.ensure_pil_image_for_annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensure_pil_image_for_annotation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.images_to_cv2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;images_to_cv2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" images_to_cv2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.images_to_cv2(images)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;images
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2639,7 +2562,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/video/" class="md-nav__link">
+      <a href="../video/" class="md-nav__link">
         
   
   
@@ -2667,7 +2590,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/image/" class="md-nav__link">
+      <a href="../image/" class="md-nav__link">
         
   
   
@@ -2702,7 +2625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/iterables/" class="md-nav__link">
+      <a href="../iterables/" class="md-nav__link">
         
   
   
@@ -2730,7 +2653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/notebook/" class="md-nav__link">
+      <a href="../notebook/" class="md-nav__link">
         
   
   
@@ -2758,7 +2681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/file/" class="md-nav__link">
+      <a href="../file/" class="md-nav__link">
         
   
   
@@ -2786,7 +2709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/draw/" class="md-nav__link">
+      <a href="../draw/" class="md-nav__link">
         
   
   
@@ -2814,7 +2737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/geometry/" class="md-nav__link">
+      <a href="../geometry/" class="md-nav__link">
         
   
   
@@ -2850,7 +2773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../assets/" class="md-nav__link">
+      <a href="../../assets/" class="md-nav__link">
         
   
   
@@ -2885,7 +2808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cookbooks/" class="md-nav__link">
+      <a href="../../cookbooks/" class="md-nav__link">
         
   
   
@@ -2912,7 +2835,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -2939,7 +2862,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code_of_conduct/" class="md-nav__link">
+      <a href="../../code_of_conduct/" class="md-nav__link">
         
   
   
@@ -2966,7 +2889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../license/" class="md-nav__link">
+      <a href="../../license/" class="md-nav__link">
         
   
   
@@ -3043,7 +2966,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -3071,7 +2994,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../deprecated/" class="md-nav__link">
+      <a href="../../deprecated/" class="md-nav__link">
         
   
   
@@ -3133,10 +3056,66 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-supervision" class="md-nav__link">
+  <a href="#supervision.utils.conversion.cv2_to_pillow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is Supervision?
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;cv2_to_pillow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" cv2_to_pillow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.cv2_to_pillow(image)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.pillow_to_cv2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pillow_to_cv2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" pillow_to_cv2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.pillow_to_cv2(image)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.ensure_cv2_image_for_annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensure_cv2_image_for_annotation
       
     </span>
   </a>
@@ -3144,10 +3123,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-do-i-install-supervision" class="md-nav__link">
+  <a href="#supervision.utils.conversion.ensure_pil_image_for_annotation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How do I install Supervision?
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensure_pil_image_for_annotation
       
     </span>
   </a>
@@ -3155,90 +3134,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#which-object-detection-models-work-with-supervision" class="md-nav__link">
+  <a href="#supervision.utils.conversion.images_to_cv2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Which object detection models work with Supervision?
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;images_to_cv2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" images_to_cv2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.utils.conversion.images_to_cv2(images)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;images
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#what-can-i-do-with-supervision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What can I do with Supervision?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-track-objects-across-video-frames" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I track objects across video frames?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-dataset-formats-does-supervision-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What dataset formats does Supervision support?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-count-objects-in-a-zone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I count objects in a zone?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-do-i-benchmark-a-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How do I benchmark a model?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#is-supervision-free-to-use" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Is Supervision free to use?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-is-the-source-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where is the source code?
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3261,7 +3180,7 @@
 
 
   
-    <a href="https://github.com/roboflow/supervision/tree/main/docs/faq.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/roboflow/supervision/tree/main/docs/utils/conversion.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -3269,33 +3188,433 @@
   
 
 
-<h1 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h1>
-<h2 id="what-is-supervision">What is Supervision?<a class="headerlink" href="#what-is-supervision" title="Permanent link">&para;</a></h2>
-<p>Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified <code>Detections</code> class with converters for supported object detection, segmentation, and VLM outputs.</p>
-<h2 id="how-do-i-install-supervision">How do I install Supervision?<a class="headerlink" href="#how-do-i-install-supervision" title="Permanent link">&para;</a></h2>
-<p>Install the base package with:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>supervision
-</span></code></pre></div>
-<p>Use the <code>metrics</code> extra when you need optional metric dependencies:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;supervision[metrics]&quot;</span>
-</span></code></pre></div>
-<p>Sample asset utilities are part of the base package under <code>supervision.assets</code>.</p>
-<h2 id="which-object-detection-models-work-with-supervision">Which object detection models work with Supervision?<a class="headerlink" href="#which-object-detection-models-work-with-supervision" title="Permanent link">&para;</a></h2>
-<p>Supervision is model agnostic. <code>sv.Detections</code> includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate <code>sv.KeyPoints</code> converters, including MediaPipe.</p>
-<h2 id="what-can-i-do-with-supervision">What can I do with Supervision?<a class="headerlink" href="#what-can-i-do-with-supervision" title="Permanent link">&para;</a></h2>
-<p>You can annotate images and video, filter detections, track objects, count objects in zones or across lines, load and convert datasets, evaluate models with detection metrics, and export predictions for downstream analysis.</p>
-<h2 id="how-do-i-track-objects-across-video-frames">How do I track objects across video frames?<a class="headerlink" href="#how-do-i-track-objects-across-video-frames" title="Permanent link">&para;</a></h2>
-<p>Assign persistent tracker IDs before visualization. The built-in <code>sv.ByteTrack</code> wrapper accepts <code>Detections</code> through <code>update_with_detections()</code>, but it is deprecated in favor of <code>ByteTrackTracker</code> from the external <code>trackers</code> package. After tracking, combine the output with annotators such as <code>sv.TraceAnnotator</code>, <code>sv.BoxAnnotator</code>, and <code>sv.LabelAnnotator</code>.</p>
-<h2 id="what-dataset-formats-does-supervision-support">What dataset formats does Supervision support?<a class="headerlink" href="#what-dataset-formats-does-supervision-support" title="Permanent link">&para;</a></h2>
-<p>For detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use <code>DetectionDataset.from_yolo()</code>, <code>DetectionDataset.from_coco()</code>, <code>DetectionDataset.from_pascal_voc()</code>, <code>DetectionDataset.from_createml()</code>, or <code>DetectionDataset.from_labelme()</code> to load datasets, and the matching <code>as_*</code> methods to export them.</p>
-<h2 id="how-do-i-count-objects-in-a-zone">How do I count objects in a zone?<a class="headerlink" href="#how-do-i-count-objects-in-a-zone" title="Permanent link">&para;</a></h2>
-<p>Use <code>sv.PolygonZone</code> for arbitrary polygon regions and <code>sv.LineZone</code> for line-crossing counts. Line crossing requires <code>detections.tracker_id</code>, so run a tracker before calling the line zone trigger.</p>
-<h2 id="how-do-i-benchmark-a-model">How do I benchmark a model?<a class="headerlink" href="#how-do-i-benchmark-a-model" title="Permanent link">&para;</a></h2>
-<p>Install <code>supervision[metrics]</code>, then use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code> for mAP and <code>sv.ConfusionMatrix</code> for confusion matrices. Accumulate predictions and ground-truth <code>Detections</code>, then call <code>compute()</code> to calculate metrics.</p>
-<h2 id="is-supervision-free-to-use">Is Supervision free to use?<a class="headerlink" href="#is-supervision-free-to-use" title="Permanent link">&para;</a></h2>
-<p>Yes. Supervision is free and open source under the MIT license.</p>
-<h2 id="where-is-the-source-code">Where is the source code?<a class="headerlink" href="#where-is-the-source-code" title="Permanent link">&para;</a></h2>
-<p>The source code is available at <a href="https://github.com/roboflow/supervision">github.com/roboflow/supervision</a>.</p>
+<h1 id="conversion-utils">Conversion Utils<a class="headerlink" href="#conversion-utils" title="Permanent link">&para;</a></h1>
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.conversion.cv2_to_pillow">cv2_to_pillow</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.utils.conversion.cv2_to_pillow" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">cv2_to_pillow</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span></code>
+
+<a href="#supervision.utils.conversion.cv2_to_pillow" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Converts OpenCV image into Pillow image, handling BGR -&gt; RGB
+conversion.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.utils.conversion.cv2_to_pillow(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
+<a href="#supervision.utils.conversion.cv2_to_pillow(image)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.uint8">uint8</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>OpenCV image (in BGR format).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="PIL.Image.Image">Image</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input image converted to Pillow format.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/utils/conversion.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-178">178</a></span>
+<span class="normal"><a href="#__codelineno-0-179">179</a></span>
+<span class="normal"><a href="#__codelineno-0-180">180</a></span>
+<span class="normal"><a href="#__codelineno-0-181">181</a></span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span>
+<span class="normal"><a href="#__codelineno-0-183">183</a></span>
+<span class="normal"><a href="#__codelineno-0-184">184</a></span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span>
+<span class="normal"><a href="#__codelineno-0-186">186</a></span>
+<span class="normal"><a href="#__codelineno-0-187">187</a></span>
+<span class="normal"><a href="#__codelineno-0-188">188</a></span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="k">def</span><span class="w"> </span><span class="nf">cv2_to_pillow</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">:</span>
+</span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">    Converts OpenCV image into Pillow image, handling BGR -&gt; RGB</span>
+</span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">    conversion.</span>
+</span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a>
+</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-184"><a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">        image: OpenCV image (in BGR format).</span>
+</span><span id="__span-0-185"><a id="__codelineno-0-185" name="__codelineno-0-185"></a>
+</span><span id="__span-0-186"><a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-187"><a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="sd">        Input image converted to Pillow format.</span>
+</span><span id="__span-0-188"><a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-189"><a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="n">rgb_image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span>
+</span><span id="__span-0-190"><a id="__codelineno-0-190" name="__codelineno-0-190"></a>    <span class="k">return</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">rgb_image</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+    <h2><a href="#supervision.utils.conversion.pillow_to_cv2">pillow_to_cv2</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.utils.conversion.pillow_to_cv2" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">pillow_to_cv2</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]</span></code>
+
+<a href="#supervision.utils.conversion.pillow_to_cv2" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Converts Pillow image into OpenCV image, handling RGB -&gt; BGR
+conversion.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.utils.conversion.pillow_to_cv2(image)" class="doc doc-heading doc-heading-parameter">                  <code>image</code>
+<a href="#supervision.utils.conversion.pillow_to_cv2(image)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="PIL.Image.Image">Image</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pillow image (in RGB format).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.uint8">uint8</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input image converted to OpenCV format.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/utils/conversion.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span>
+<span class="normal"><a href="#__codelineno-0-164">164</a></span>
+<span class="normal"><a href="#__codelineno-0-165">165</a></span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span>
+<span class="normal"><a href="#__codelineno-0-168">168</a></span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span>
+<span class="normal"><a href="#__codelineno-0-171">171</a></span>
+<span class="normal"><a href="#__codelineno-0-172">172</a></span>
+<span class="normal"><a href="#__codelineno-0-173">173</a></span>
+<span class="normal"><a href="#__codelineno-0-174">174</a></span>
+<span class="normal"><a href="#__codelineno-0-175">175</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-160"><a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="k">def</span><span class="w"> </span><span class="nf">pillow_to_cv2</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
+</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-162"><a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">    Converts Pillow image into OpenCV image, handling RGB -&gt; BGR</span>
+</span><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="sd">    conversion.</span>
+</span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a>
+</span><span id="__span-0-165"><a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-166"><a id="__codelineno-0-166" name="__codelineno-0-166"></a><span class="sd">        image: Pillow image (in RGB format).</span>
+</span><span id="__span-0-167"><a id="__codelineno-0-167" name="__codelineno-0-167"></a>
+</span><span id="__span-0-168"><a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="sd">        Input image converted to OpenCV format.</span>
+</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="n">scene</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="n">scene</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_RGB2BGR</span><span class="p">)</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="c1"># cvtColor already returns uint8 here, so astype is a no-op other than the</span>
+</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="c1"># full-image copy it forces; copy=False keeps the dtype guard without it.</span>
+</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="n">scene</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+    <h2><a href="#supervision.utils.conversion.ensure_cv2_image_for_annotation">ensure_cv2_image_for_annotation</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.utils.conversion.ensure_cv2_image_for_annotation" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">ensure_cv2_image_for_annotation</span><span class="p">(</span><span class="n">annotate_func</span><span class="p">:</span> <span class="n">F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span></code>
+
+<a href="#supervision.utils.conversion.ensure_cv2_image_for_annotation" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/utils/conversion.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">target</span><span class="o">=</span><span class="n">ensure_cv2_image_for_class_method</span><span class="p">,</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">deprecated_in</span><span class="o">=</span><span class="s2">&quot;0.27.0&quot;</span><span class="p">,</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">remove_in</span><span class="o">=</span><span class="s2">&quot;0.31.0&quot;</span><span class="p">,</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="p">)</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="k">def</span><span class="w"> </span><span class="nf">ensure_cv2_image_for_annotation</span><span class="p">(</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">annotate_func</span><span class="p">:</span> <span class="n">F</span><span class="p">,</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span><span class="p">:</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">void</span><span class="p">(</span><span class="n">annotate_func</span><span class="p">))</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+    <h2><a href="#supervision.utils.conversion.ensure_pil_image_for_annotation">ensure_pil_image_for_annotation</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.utils.conversion.ensure_pil_image_for_annotation" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">ensure_pil_image_for_annotation</span><span class="p">(</span><span class="n">annotate_func</span><span class="p">:</span> <span class="n">F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span></code>
+
+<a href="#supervision.utils.conversion.ensure_pil_image_for_annotation" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/utils/conversion.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#__codelineno-0-118">118</a></span>
+<span class="normal"><a href="#__codelineno-0-119">119</a></span>
+<span class="normal"><a href="#__codelineno-0-120">120</a></span>
+<span class="normal"><a href="#__codelineno-0-121">121</a></span>
+<span class="normal"><a href="#__codelineno-0-122">122</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a><span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[untyped-decorator]</span>
+</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>    <span class="n">target</span><span class="o">=</span><span class="n">ensure_pil_image_for_class_method</span><span class="p">,</span>
+</span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>    <span class="n">deprecated_in</span><span class="o">=</span><span class="s2">&quot;0.27.0&quot;</span><span class="p">,</span>
+</span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>    <span class="n">remove_in</span><span class="o">=</span><span class="s2">&quot;0.31.0&quot;</span><span class="p">,</span>
+</span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="p">)</span>
+</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="k">def</span><span class="w"> </span><span class="nf">ensure_pil_image_for_annotation</span><span class="p">(</span>
+</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="n">annotate_func</span><span class="p">:</span> <span class="n">F</span><span class="p">,</span>
+</span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">F</span><span class="p">:</span>
+</span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">void</span><span class="p">(</span><span class="n">annotate_func</span><span class="p">))</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+    <h2><a href="#supervision.utils.conversion.images_to_cv2">images_to_cv2</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.utils.conversion.images_to_cv2" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">images_to_cv2</span><span class="p">(</span><span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]</span> <span class="o">|</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]]</span></code>
+
+<a href="#supervision.utils.conversion.images_to_cv2" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Converts images provided either as Pillow images or OpenCV
+images into OpenCV format.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.utils.conversion.images_to_cv2(images)" class="doc doc-heading doc-heading-parameter">                  <code>images</code>
+<a href="#supervision.utils.conversion.images_to_cv2(images)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.uint8">uint8</span>] | <span title="PIL.Image.Image">Image</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Images to be converted</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.uint8">uint8</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of input images in OpenCV format
+(with order preserved).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/utils/conversion.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#__codelineno-0-148">148</a></span>
+<span class="normal"><a href="#__codelineno-0-149">149</a></span>
+<span class="normal"><a href="#__codelineno-0-150">150</a></span>
+<span class="normal"><a href="#__codelineno-0-151">151</a></span>
+<span class="normal"><a href="#__codelineno-0-152">152</a></span>
+<span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="k">def</span><span class="w"> </span><span class="nf">images_to_cv2</span><span class="p">(</span>
+</span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]</span> <span class="o">|</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">],</span>
+</span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]]:</span>
+</span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="sd">    Converts images provided either as Pillow images or OpenCV</span>
+</span><span id="__span-0-141"><a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="sd">    images into OpenCV format.</span>
+</span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a>
+</span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        images: Images to be converted</span>
+</span><span id="__span-0-145"><a id="__codelineno-0-145" name="__codelineno-0-145"></a>
+</span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">        List of input images in OpenCV format</span>
+</span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">            (with order preserved).</span>
+</span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a>
+</span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
+</span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
+</span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pillow_to_cv2</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>
+</span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-156"><a id="__codelineno-0-156" name="__codelineno-0-156"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span><span id="__span-0-157"><a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="k">return</span> <span class="n">result</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
 
 
 
@@ -3328,7 +3647,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 24, 2026 21:39:22 UTC">April 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 12:30:32 UTC">July 8, 2026</span>
   </span>
 
     
@@ -3356,23 +3675,17 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
-          
-          <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
-        </a>
-      
         <a href="https://github.com/codex" class="md-author" title="@codex">
           
           <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
+        <a href="https://github.com/pre-commit-ci%5Bbot%5D" class="md-author" title="@pre-commit-ci[bot]">
+          
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="GitHub user">
+        </a>
       
       
-        
-          <a href="https://github.com/roboflow/supervision/tree/main/docs/faq.md" class="md-author md-author--more">
-            +4
-          </a>
-        
       
     </nav>
   </span>
@@ -3538,20 +3851,20 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../javascripts/init_kapa_widget.js"></script>
+        <script src="../../javascripts/init_kapa_widget.js"></script>
       
-        <script src="../javascripts/cookbooks-card.js"></script>
+        <script src="../../javascripts/cookbooks-card.js"></script>
       
-        <script src="../javascripts/pycon_copy.js"></script>
+        <script src="../../javascripts/pycon_copy.js"></script>
       
-        <script src="../javascripts/segment.js"></script>
+        <script src="../../javascripts/segment.js"></script>
       
-        <script src="../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
       

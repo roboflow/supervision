@@ -629,6 +629,63 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../code_of_conduct/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Code of Conduct
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../license/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  License
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -1456,7 +1513,7 @@
   <span class="md-ellipsis">
     
   
-    VLMs
+    VLM Utils
   
 
     
@@ -2310,6 +2367,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../conversion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conversion
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../video/" class="md-nav__link">
         
   
@@ -3043,6 +3135,87 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_of_conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../license/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    License
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -3055,10 +3228,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
             
   
   
@@ -3076,8 +3249,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5351,6 +5524,10 @@ matching input type.</p>
 
 
 
+        <p>Save sequential images into a directory through a context manager.</p>
+<p><code>ImageSink</code> creates the target directory on entry and writes each image
+using <code>save_image</code>, incrementing the image name pattern after every save.</p>
+
 
 
 
@@ -5436,83 +5613,105 @@ matching input type.</p>
 <span class="normal"><a href="#__codelineno-0-596">596</a></span>
 <span class="normal"><a href="#__codelineno-0-597">597</a></span>
 <span class="normal"><a href="#__codelineno-0-598">598</a></span>
-<span class="normal"><a href="#__codelineno-0-599">599</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="k">class</span><span class="w"> </span><span class="nc">ImageSink</span><span class="p">:</span>
-</span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a>        <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a>        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>        <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
-</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        Initialize context manager for saving images to directory.</span>
-</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>
-</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">            target_dir_path: Target directory path where images will be</span>
-</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">                saved.</span>
-</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">            overwrite: Whether to overwrite existing directory.</span>
-</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">                Defaults to `False`.</span>
-</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">            image_name_pattern: File name pattern for saved images.</span>
-</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">                Defaults to `&quot;image_{:05d}.png&quot;`.</span>
-</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>
-</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">        Examples:</span>
-</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">            ```pycon</span>
-</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">            &gt;&gt;&gt; import tempfile</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            &gt;&gt;&gt; import os</span>
-</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
-</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">            ...     image = np.zeros((100, 100, 3), dtype=np.uint8)</span>
-</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            ...     with sv.ImageSink(target_dir_path=tmpdir, overwrite=True) as sink:</span>
-</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">            ...         sink.save_image(image=image)</span>
-</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">            ...         sink.save_image(image=image)</span>
-</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">            ...     files = sorted(os.listdir(tmpdir))</span>
-</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">            ...     len(files)</span>
-</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">            2</span>
-</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>
-</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">            ```</span>
-</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
-</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
-</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
-</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span>
+<span class="normal"><a href="#__codelineno-0-603">603</a></span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span>
+<span class="normal"><a href="#__codelineno-0-609">609</a></span>
+<span class="normal"><a href="#__codelineno-0-610">610</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="k">class</span><span class="w"> </span><span class="nc">ImageSink</span><span class="p">:</span>
+</span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="sd">    Save sequential images into a directory through a context manager.</span>
+</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a>
+</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="sd">    `ImageSink` creates the target directory on entry and writes each image</span>
+</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">    using `save_image`, incrementing the image name pattern after every save.</span>
+</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a>
+</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>        <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
+</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">        Initialize context manager for saving images to directory.</span>
+</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a>
+</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">            target_dir_path: Target directory path where images will be</span>
+</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">                saved.</span>
+</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">            overwrite: Whether to overwrite existing directory.</span>
+</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">                Defaults to `False`.</span>
+</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">            image_name_pattern: File name pattern for saved images.</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">                Defaults to `&quot;image_{:05d}.png&quot;`.</span>
+</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>
+</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">        Examples:</span>
+</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            ```pycon</span>
+</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">            &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">            &gt;&gt;&gt; import tempfile</span>
+</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">            &gt;&gt;&gt; import os</span>
+</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">            &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
+</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">            ...     image = np.zeros((100, 100, 3), dtype=np.uint8)</span>
+</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">            ...     with sv.ImageSink(target_dir_path=tmpdir, overwrite=True) as sink:</span>
+</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">            ...         sink.save_image(image=image)</span>
+</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">            ...         sink.save_image(image=image)</span>
+</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">            ...     files = sorted(os.listdir(tmpdir))</span>
+</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">            ...     len(files)</span>
+</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="sd">            2</span>
 </span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a>
-</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageSink</span><span class="p">:</span>
-</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a>        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">):</span>
-</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">:</span>
-</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a>                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
-</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a>
-</span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a>        <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a>
-</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_image</span><span class="p">(</span>
-</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        Save image to target directory with optional custom filename.</span>
-</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>
-</span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">            image: Image to save with shape `(height, width, 3)`</span>
-</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">                in BGR format.</span>
-</span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">            image_name: Custom filename for saved image. If</span>
-</span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">                `None`, generates name using `image_name_pattern`. Defaults to</span>
-</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">                `None`.</span>
-</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a>
-</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a>        <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">            ```</span>
+</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
+</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
+</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
+</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a>
+</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageSink</span><span class="p">:</span>
+</span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a>        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">):</span>
+</span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span><span class="p">:</span>
+</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
+</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
+</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a>            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">)</span>
+</span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a>
+</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a>
+</span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">save_image</span><span class="p">(</span>
+</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">        Save image to target directory with optional custom filename.</span>
+</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a>
+</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">            image: Image to save with shape `(height, width, 3)`</span>
+</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">                in BGR format.</span>
+</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="sd">            image_name: Custom filename for saved image. If</span>
+</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">                `None`, generates name using `image_name_pattern`. Defaults to</span>
+</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">                `None`.</span>
 </span><span id="__span-0-592"><a id="__codelineno-0-592" name="__codelineno-0-592"></a>
-</span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span>
-</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a>        <span class="n">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a>        <span class="n">exc_value</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a>        <span class="n">exc_traceback</span><span class="p">:</span> <span class="n">TracebackType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a>        <span class="k">pass</span>
+</span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">        Raises:</span>
+</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">            OSError: If `cv2.imwrite` cannot write the image to disk.</span>
+</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a>        <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a>            <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>
+</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a>        <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a>            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save image to path: </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>
+</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span>
+</span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-606"><a id="__codelineno-0-606" name="__codelineno-0-606"></a>        <span class="n">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-607"><a id="__codelineno-0-607" name="__codelineno-0-607"></a>        <span class="n">exc_value</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-608"><a id="__codelineno-0-608" name="__codelineno-0-608"></a>        <span class="n">exc_traceback</span><span class="p">:</span> <span class="n">TracebackType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-609"><a id="__codelineno-0-609" name="__codelineno-0-609"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a>        <span class="k">pass</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -5627,14 +5826,7 @@ Defaults to <code>"image_{:05d}.png"</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/utils/image.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-524">524</a></span>
-<span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
-<span class="normal"><a href="#__codelineno-0-530">530</a></span>
-<span class="normal"><a href="#__codelineno-0-531">531</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-531">531</a></span>
 <span class="normal"><a href="#__codelineno-0-532">532</a></span>
 <span class="normal"><a href="#__codelineno-0-533">533</a></span>
 <span class="normal"><a href="#__codelineno-0-534">534</a></span>
@@ -5664,44 +5856,51 @@ Defaults to <code>"image_{:05d}.png"</code>.</p>
 <span class="normal"><a href="#__codelineno-0-558">558</a></span>
 <span class="normal"><a href="#__codelineno-0-559">559</a></span>
 <span class="normal"><a href="#__codelineno-0-560">560</a></span>
-<span class="normal"><a href="#__codelineno-0-561">561</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
-</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">    Initialize context manager for saving images to directory.</span>
-</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>
-</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">        target_dir_path: Target directory path where images will be</span>
-</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">            saved.</span>
-</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="sd">        overwrite: Whether to overwrite existing directory.</span>
-</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="sd">            Defaults to `False`.</span>
-</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">        image_name_pattern: File name pattern for saved images.</span>
-</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="sd">            Defaults to `&quot;image_{:05d}.png&quot;`.</span>
-</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>
-</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">        &gt;&gt;&gt; import tempfile</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">        &gt;&gt;&gt; import os</span>
-</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">        &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
-</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">        ...     image = np.zeros((100, 100, 3), dtype=np.uint8)</span>
-</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">        ...     with sv.ImageSink(target_dir_path=tmpdir, overwrite=True) as sink:</span>
-</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">        ...         sink.save_image(image=image)</span>
-</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">        ...         sink.save_image(image=image)</span>
-</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">        ...     files = sorted(os.listdir(tmpdir))</span>
-</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">        ...     len(files)</span>
-</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">        2</span>
-</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>
-</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">        ```</span>
-</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
-</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
-</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
-</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="normal"><a href="#__codelineno-0-561">561</a></span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+<span class="normal"><a href="#__codelineno-0-567">567</a></span>
+<span class="normal"><a href="#__codelineno-0-568">568</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a>    <span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>    <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;image_</span><span class="si">{:05d}</span><span class="s2">.png&quot;</span><span class="p">,</span>
+</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="sd">    Initialize context manager for saving images to directory.</span>
+</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a>
+</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a><span class="sd">        target_dir_path: Target directory path where images will be</span>
+</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">            saved.</span>
+</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">        overwrite: Whether to overwrite existing directory.</span>
+</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            Defaults to `False`.</span>
+</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">        image_name_pattern: File name pattern for saved images.</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            Defaults to `&quot;image_{:05d}.png&quot;`.</span>
+</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>
+</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">        &gt;&gt;&gt; import tempfile</span>
+</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">        &gt;&gt;&gt; import os</span>
+</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">        &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
+</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">        ...     image = np.zeros((100, 100, 3), dtype=np.uint8)</span>
+</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">        ...     with sv.ImageSink(target_dir_path=tmpdir, overwrite=True) as sink:</span>
+</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">        ...         sink.save_image(image=image)</span>
+</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">        ...         sink.save_image(image=image)</span>
+</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">        ...     files = sorted(os.listdir(tmpdir))</span>
+</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">        ...     len(files)</span>
+</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="sd">        2</span>
+</span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a>
+</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">        ```</span>
+</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span> <span class="o">=</span> <span class="n">target_dir_path</span>
+</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
+</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span> <span class="o">=</span> <span class="n">image_name_pattern</span>
+</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="mi">0</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5772,16 +5971,32 @@ in BGR format.</p>
     </table>
 
 
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="OSError">OSError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>cv2.imwrite</code> cannot write the image to disk.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/utils/image.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-573">573</a></span>
-<span class="normal"><a href="#__codelineno-0-574">574</a></span>
-<span class="normal"><a href="#__codelineno-0-575">575</a></span>
-<span class="normal"><a href="#__codelineno-0-576">576</a></span>
-<span class="normal"><a href="#__codelineno-0-577">577</a></span>
-<span class="normal"><a href="#__codelineno-0-578">578</a></span>
-<span class="normal"><a href="#__codelineno-0-579">579</a></span>
-<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-580">580</a></span>
 <span class="normal"><a href="#__codelineno-0-581">581</a></span>
 <span class="normal"><a href="#__codelineno-0-582">582</a></span>
 <span class="normal"><a href="#__codelineno-0-583">583</a></span>
@@ -5792,25 +6007,40 @@ in BGR format.</p>
 <span class="normal"><a href="#__codelineno-0-588">588</a></span>
 <span class="normal"><a href="#__codelineno-0-589">589</a></span>
 <span class="normal"><a href="#__codelineno-0-590">590</a></span>
-<span class="normal"><a href="#__codelineno-0-591">591</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="k">def</span><span class="w"> </span><span class="nf">save_image</span><span class="p">(</span>
-</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">    Save image to target directory with optional custom filename.</span>
-</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>
-</span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">        image: Image to save with shape `(height, width, 3)`</span>
-</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a><span class="sd">            in BGR format.</span>
-</span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">        image_name: Custom filename for saved image. If</span>
-</span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">            `None`, generates name using `image_name_pattern`. Defaults to</span>
-</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">            `None`.</span>
-</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
-</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a>
-</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
-</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a>    <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
-</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="normal"><a href="#__codelineno-0-591">591</a></span>
+<span class="normal"><a href="#__codelineno-0-592">592</a></span>
+<span class="normal"><a href="#__codelineno-0-593">593</a></span>
+<span class="normal"><a href="#__codelineno-0-594">594</a></span>
+<span class="normal"><a href="#__codelineno-0-595">595</a></span>
+<span class="normal"><a href="#__codelineno-0-596">596</a></span>
+<span class="normal"><a href="#__codelineno-0-597">597</a></span>
+<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="k">def</span><span class="w"> </span><span class="nf">save_image</span><span class="p">(</span>
+</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">    Save image to target directory with optional custom filename.</span>
+</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a>
+</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">        image: Image to save with shape `(height, width, 3)`</span>
+</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">            in BGR format.</span>
+</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="sd">        image_name: Custom filename for saved image. If</span>
+</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">            `None`, generates name using `image_name_pattern`. Defaults to</span>
+</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">            `None`.</span>
+</span><span id="__span-0-592"><a id="__codelineno-0-592" name="__codelineno-0-592"></a>
+</span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">        OSError: If `cv2.imwrite` cannot write the image to disk.</span>
+</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a>    <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a>        <span class="n">image_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_name_pattern</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image_count</span><span class="p">)</span>
+</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>
+</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a>    <span class="n">image_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save image to path: </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">+=</span> <span class="mi">1</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
