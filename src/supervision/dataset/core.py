@@ -252,27 +252,26 @@ class DetectionDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        if self._images_in_memory:
-            train_input = {path: self._images_in_memory[path] for path in train_paths}
-            test_input = {path: self._images_in_memory[path] for path in test_paths}
-        else:
-            train_input = train_paths
-            test_input = test_paths
         train_annotations = {path: self.annotations[path] for path in train_paths}
         test_annotations = {path: self.annotations[path] for path in test_paths}
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images=train_input,
+            images=train_paths,
             annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images=test_input,
+            images=test_paths,
             annotations=test_annotations,
         )
+        if self._images_in_memory:
+            train_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in train_paths
+            }
+            test_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in test_paths
+            }
         return train_dataset, test_dataset
 
     @classmethod
@@ -369,11 +368,14 @@ class DetectionDataset(BaseDataset):
                     detections=annotations[image_path],
                 )
 
-        return cls(
+        merged_dataset = cls(
             classes=classes,
-            images=images_in_memory or image_paths,
+            images=image_paths,
             annotations=annotations,
         )
+        if all_in_memory:
+            merged_dataset._images_in_memory = images_in_memory
+        return merged_dataset
 
     def as_pascal_voc(
         self,
@@ -386,7 +388,9 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format.
+        and their corresponding annotations in PASCAL VOC format. Both output
+        layouts are preflighted before any files are written so a collision in
+        either target fails without partial output.
 
         Args:
             images_directory_path: The path to the directory
@@ -420,6 +424,12 @@ class DetectionDataset(BaseDataset):
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
             )
 
         if images_directory_path:

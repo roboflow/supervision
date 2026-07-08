@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -1672,6 +1673,68 @@ class TestOrientedBoxNonMaxMerge:
 
         sorted_groups = sorted(sorted(g) for g in groups)
         assert sorted_groups == [[0, 1], [2]]
+
+
+class TestIouThresholdValidation:
+    """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
+
+    @pytest.mark.parametrize(
+        ("function", "kwargs"),
+        [
+            pytest.param(
+                box_non_max_suppression,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nms",
+            ),
+            pytest.param(
+                box_non_max_merge,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nmm",
+            ),
+            pytest.param(
+                mask_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nms",
+            ),
+            pytest.param(
+                mask_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nmm",
+            ),
+            pytest.param(
+                oriented_box_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nms",
+            ),
+            pytest.param(
+                oriented_box_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nmm",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
+    def test_rejects_thresholds_outside_closed_unit_interval(
+        self,
+        function: Callable[..., object],
+        kwargs: dict[str, object],
+        iou_threshold: float,
+    ) -> None:
+        """Each public overlap filter rejects thresholds outside [0, 1]."""
+        with pytest.raises(ValueError, match="closed range from 0 to 1"):
+            function(iou_threshold=iou_threshold, **kwargs)
 
 
 def _naive_mask_iou(

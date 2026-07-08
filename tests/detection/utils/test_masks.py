@@ -13,6 +13,7 @@ from supervision.detection.utils.masks import (
     contains_holes,
     contains_multiple_segments,
     filter_segments_by_distance,
+    mask_to_roi,
     move_masks,
     resize_masks,
 )
@@ -20,6 +21,12 @@ from supervision.detection.utils.masks import (
 
 class TestMaskROIHelpers:
     """Tests for _mask_to_roi, _compact_masks_to_roi, _masks_to_roi helpers."""
+
+    def test_mask_to_roi_public_helper_exposes_exclusive_bounds(self) -> None:
+        """Public mask_to_roi should return slice-friendly exclusive bounds."""
+        mask = np.zeros((10, 15), dtype=bool)
+        mask[3, 5] = True
+        assert mask_to_roi(mask) == (5, 3, 6, 4)
 
     def test_mask_to_roi_all_false_returns_none(self):
         """All-false mask should return None."""

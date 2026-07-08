@@ -1081,13 +1081,27 @@ def test_get_data_item(
         (
             [{"key1": [1, 2, 3]}, {"key1": np.array([1, 2, 3])}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Empty lists and numpy arrays for the same key
         (
             [{"key1": []}, {"key1": np.array([])}],
             None,
-            pytest.raises(ValueError, match="type\\(other_value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical multi-dimensional lists across metadata dictionaries
         (
@@ -1123,7 +1137,14 @@ def test_get_data_item(
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": np.arange(4).reshape(2, 2)}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical higher-dimensional (3D) numpy arrays across
         # metadata dictionaries

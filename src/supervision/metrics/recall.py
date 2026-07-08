@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
@@ -717,6 +716,7 @@ class RecallResult:
             https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
         ){ align=center width="800" }
         """
+        from matplotlib import pyplot as plt
 
         labels = ["Recall@50", "Recall@75"]
         values = [self.recall_at_50, self.recall_at_75]

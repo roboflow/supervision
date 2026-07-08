@@ -116,7 +116,7 @@ class TestPolygonZoneTrigger:
         from the original unclipped box, giving a single consistent position.
 
         Setup: zone_left covers x 0-99, zone_right covers x 100-200.
-        Detection [60, 80, 140, 120] has BOTTOM_CENTER = ceil((60+140)/2), ceil(120)
+        Detection [60, 80, 140, 120] has BOTTOM_CENTER = round((60+140)/2), round(120)
         = (100, 120), which falls in zone_right only.
         """
         zone_left = sv.PolygonZone(
@@ -145,7 +145,7 @@ class TestPolygonZoneTrigger:
             np.array([[0, 0], [100, 0], [100, 100], [0, 100]]),
             triggering_anchors=[sv.Position.CENTER],
         )
-        # CENTER = (ceil((-50+0)/2), ceil((25+75)/2)) = (-25, 50) — x < 0.
+        # CENTER = (round((-50+0)/2), round((25+75)/2)) = (-25, 50) — x < 0.
         detections = _create_detections(
             xyxy=[[-50.0, 25.0, 0.0, 75.0]],
             class_id=[0],
@@ -157,10 +157,29 @@ class TestPolygonZoneTrigger:
         """An anchor landing exactly on a polygon corner is counted as inside."""
         polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
         zone = sv.PolygonZone(polygon, triggering_anchors=[sv.Position.BOTTOM_RIGHT])
-        # BOTTOM_RIGHT = (ceil(x2), ceil(y2)) = (100, 100) — the polygon corner.
+        # BOTTOM_RIGHT = (round(x2), round(y2)) = (100, 100) — the polygon corner.
         detections = _create_detections(
             xyxy=[[50.0, 50.0, 100.0, 100.0]],
             class_id=[0],
         )
         result = zone.trigger(detections)
         assert result[0]
+
+    def test_half_pixel_anchor_uses_nearest_pixel(self) -> None:
+        """Half-pixel anchors should not be biased toward the larger x and y."""
+        zone_left = sv.PolygonZone(
+            np.array([[0, 0], [100, 0], [100, 200], [0, 200]], dtype=np.int32)
+        )
+        zone_right = sv.PolygonZone(
+            np.array([[101, 0], [200, 0], [200, 200], [101, 200]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[[60.0, 80.0, 141.0, 120.0]],
+            class_id=[0],
+        )
+
+        left_result = zone_left.trigger(detections)[0]
+        right_result = zone_right.trigger(detections)[0]
+
+        assert left_result
+        assert not right_result

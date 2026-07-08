@@ -91,7 +91,7 @@ class PolygonZone:
 
         all_anchors = np.array(
             [
-                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
                 for anchors in self.triggering_anchors
             ]
         )
