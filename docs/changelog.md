@@ -18,10 +18,13 @@ date_modified: 2026-07-06
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
-- Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises
-  `ValueError` when any channel falls outside the 0-255 byte range.
-- Fixed: `approximate_mask_with_polygons` now defaults to no polygon
-  simplification, matching the public dataset export methods.
+- Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises `ValueError` when any channel falls outside the 0-255 byte range.
+- Fixed: `approximate_mask_with_polygons` now defaults to no polygon simplification, matching the public dataset export methods.
+- `sv.Classifications.from_timm` now softmaxes model logits before exposing confidence scores, matching `sv.Classifications.from_clip` and keeping timm confidences on a normalized probability scale. Thresholds calibrated against raw logits may need retuning.
+- `sv.download_assets` now verifies MD5 hashes after fresh downloads and retries once when the downloaded payload is corrupted instead of accepting a bad file.
+- Fixed metrics scoring edge cases: legacy `sv.MeanAveragePrecision` now uses COCO 101-point AP averaging, `sv.ConfusionMatrix` rejects invalid class ids instead of wrapping them through `int16`/negative indexing, `sv.MeanAveragePrecision` preserves user-provided target `ignore` flags, and `sv.MeanAverageRecallResult.recall_per_class` now exposes per-class recall for each max-detection cutoff.
+- Fixed [#2408](https://github.com/roboflow/supervision/pull/2408): `sv.Precision`, `sv.Recall`, `sv.F1Score`, and `sv.MeanAverageRecall` now score size buckets by filtering targets only while leaving predictions eligible to match bucket targets. This preserves bucket matches that would otherwise be stolen by out-of-bucket filtering and keeps mAR top-K ranking intact.
+- `sv.ByteTrack` no longer mutates input `Detections` while assigning tracker IDs. It now keeps detections at the activation-threshold boundary eligible for matching, avoids impossible new-track thresholds above score `1.0`, ignores invalid zero-area/non-finite tensor boxes before Kalman updates, and does not emit unconfirmed `-1` IDs from first-frame tensor updates.
 - Fixed [#2402](https://github.com/roboflow/supervision/pull/2402): `sv.KeyPoints.as_detections` now accepts NumPy arrays, tuples, and generators in `selected_keypoint_indices` without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.
 - Changed: delayed `sv.ByteTrack`, `supervision.keypoint`, `normalized_xyxy` for `sv.denormalize_boxes`, and `supervision.dataset.utils` RLE compatibility removals from `supervision-0.30.0` to `supervision-0.31.0` so the deprecated APIs keep a full transition window.
 - Fixed [#2407](https://github.com/roboflow/supervision/pull/2407): `sv.ColorPalette.by_idx()` now raises a clear `ValueError` when called on an empty palette instead of leaking a `ZeroDivisionError`. Non-empty palettes keep the existing index-wrapping behavior.
@@ -30,6 +33,7 @@ date_modified: 2026-07-06
 - Fixed [#2393](https://github.com/roboflow/supervision/pull/2393): `sv.get_video_frames_generator` now releases the underlying `cv2.VideoCapture` via `try/finally`, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.
 - Fixed [#2382](https://github.com/roboflow/supervision/pull/2382): `sv.Detections.get_anchors_coordinates` now uses oriented bounding box corners (`data["xyxyxyxy"]`) when OBB data is present, instead of falling back to the axis-aligned envelope. Anchors on rotated detections now lie on the oriented body rather than drifting to the envelope. Non-OBB detections and `Position.CENTER_OF_MASS` (which requires a mask) are unaffected.
 - Fixed [#2396](https://github.com/roboflow/supervision/pull/2396): `sv.BackgroundOverlayAnnotator.annotate` no longer leaves detection regions tinted when bounding boxes have negative coordinates (extend outside the left or top scene boundary); boxes are now clipped to scene bounds before the detection region is restored.
+- Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
 
 ### Added
 - `BaseAnnotator.requires_mask` — class-level `bool` flag on all annotators; `True` for `MaskAnnotator`, `PolygonAnnotator`, and `HaloAnnotator`; `False` for all others. Integrations can inspect this before materializing expensive mask payloads ([#2370](https://github.com/roboflow/supervision/pull/2370))
@@ -39,6 +43,7 @@ date_modified: 2026-07-06
 
 ### Changed
 - Performance [#2383](https://github.com/roboflow/supervision/pull/2383): `sv.Detections.merge()` on mixed dense `ndarray` + `CompactMask` inputs now returns a `CompactMask` instead of a dense `ndarray`. Previously (0.29.0/0.29.1) the mixed path fell back to `np.vstack`, allocating a full `(N, H, W)` array; the new path converts dense inputs to `CompactMask` without materialising the full stack (~2 500× less peak memory, ~13× faster on 1080p / 40 detections). **Behavior change**: code that checks `isinstance(merged.mask, np.ndarray)` or calls bare ndarray methods (`.astype`, `.reshape`, `.ravel`) on a mixed-merge result will need to be updated. The all-dense path is unchanged and still returns `ndarray`.
+- `DetectionDataset` and `ClassificationDataset` equality now compare the ordered `classes` lists directly instead of treating class labels as an unordered set. This keeps equality aligned with `class_id` indexing semantics, where class position is part of the dataset contract.
 
 ### 0.29.1 <small>Jun 23, 2026</small>
 

@@ -23,6 +23,7 @@ def indices_to_matches(
 def linear_assignment(
     cost_matrix: npt.NDArray[np.float32], thresh: float
 ) -> tuple[npt.NDArray[np.int_], tuple[int, ...], tuple[int, ...]]:
+    """Match rows and columns without mutating the caller-owned cost matrix."""
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),
@@ -30,8 +31,9 @@ def linear_assignment(
             tuple(range(cost_matrix.shape[1])),
         )
 
-    cost_matrix[cost_matrix > thresh] = thresh + 1e-4
-    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    assignment_cost_matrix = cost_matrix.copy()
+    assignment_cost_matrix[assignment_cost_matrix > thresh] = thresh + 1e-4
+    row_ind, col_ind = linear_sum_assignment(assignment_cost_matrix)
     indices = np.column_stack((row_ind, col_ind))
 
     return indices_to_matches(cost_matrix, indices, thresh)

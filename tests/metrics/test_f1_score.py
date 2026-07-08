@@ -160,6 +160,23 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
+    def test_medium_bucket_scores_target_matched_small_prediction(self) -> None:
+        """Medium-object F1 keeps valid matches even if the prediction is small."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        result = F1Score().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.f1_50 == 1.0
+
     def test_false_positives_on_background_image_counted(self):
         """Predictions on an image with no targets must count as false positives."""
         predictions_with_gt = Detections(

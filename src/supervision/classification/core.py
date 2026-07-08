@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 if TYPE_CHECKING:
-    import torch
+    import torch  # type: ignore[import-not-found, unused-ignore]
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
@@ -42,6 +42,18 @@ class Classifications:
 
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Compare classifications by value across numpy-backed fields.
+        """
+        if not isinstance(other, Classifications):
+            return NotImplemented
+        if not np.array_equal(self.class_id, other.class_id):
+            return False
+        if self.confidence is None or other.confidence is None:
+            return self.confidence is other.confidence
+        return bool(np.array_equal(self.confidence, other.confidence))
 
     def __len__(self) -> int:
         """
@@ -123,6 +135,10 @@ class Classifications:
         Creates a Classifications instance from a
         [timm](https://huggingface.co/docs/hub/timm) inference result.
 
+        Note:
+            Returned confidences are softmax-normalized probabilities, so
+            thresholds calibrated against raw logits may need recalibration.
+
         Args:
             timm_results: The inference result from timm model.
 
@@ -152,7 +168,7 @@ class Classifications:
             classifications = sv.Classifications.from_timm(output)
             ```
         """
-        confidence = timm_results.cpu().detach().numpy()[0]
+        confidence = timm_results.softmax(dim=-1).cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
             return cls(

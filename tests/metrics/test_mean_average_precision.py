@@ -540,6 +540,28 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
+
+class TestMeanAveragePrecisionIgnoreFlag:
+    """Tests for explicit target ignore flags in COCO-style evaluation."""
+
+    def test_user_ignore_flag_excludes_target_from_scoring(self) -> None:
+        """Targets marked ignored by the user must not count as normal GT."""
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0]),
+            data={"ignore": np.array([1], dtype=np.int64)},
+        )
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        metric = MeanAveragePrecision()
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(-1.0, abs=1e-6)
+
     def test_normal_gt_matched_correctly_alongside_crowd_gt(self) -> None:
         """Normal GT is matched and scored when a crowd GT is also present."""
         mask_normal = np.zeros((1, 32, 32), dtype=bool)
