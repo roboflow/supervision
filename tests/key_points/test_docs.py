@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 _REPO_ROOT = Path(__file__).resolve().parent
 while not (_REPO_ROOT / "pyproject.toml").exists():
     _REPO_ROOT = _REPO_ROOT.parent

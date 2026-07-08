@@ -95,8 +95,7 @@ comments: true
     )
     ```
 
-    `sv.VertexEllipseAnnotator` is a compatibility alias for
-    `sv.VertexEllipseAreaAnnotator`.
+    `sv.VertexEllipseAnnotator` is a compatibility alias for `sv.VertexEllipseAreaAnnotator`.
 
 === "VertexEllipseOutlineAnnotator"
 
