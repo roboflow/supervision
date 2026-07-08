@@ -2304,6 +2304,15 @@ class HeatMapAnnotator(BaseAnnotator):
         self.low_hue = low_hue
         self.heat_mask: npt.NDArray[np.float32] | None = None
 
+    def reset(self) -> None:
+        """
+        Clears the accumulated heat so the annotator can be reused across
+        independent streams. `annotate` already reinitializes the heat mask
+        when the scene resolution changes; call this to discard heat from a
+        previous stream that shares the same resolution.
+        """
+        self.heat_mask = None
+
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """

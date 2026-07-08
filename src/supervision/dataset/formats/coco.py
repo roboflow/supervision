@@ -413,6 +413,30 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
     Returns:
         A mapping from new class id (sequential ranging from 0 to 79)
         to original COCO class id (1 to 90 with skipped ids).
+
+    Examples:
+        ```python
+        import json
+        import tempfile
+        from supervision.dataset.formats.coco import get_coco_class_index_mapping
+
+        coco_data = {
+            "categories": [
+                {"id": 1, "name": "person"},
+                {"id": 3, "name": "car"},
+            ],
+            "images": [],
+            "annotations": [],
+        }
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(coco_data, f)
+            annotations_path = f.name
+
+        mapping = get_coco_class_index_mapping(annotations_path)
+        # {0: 1, 1: 3}
+        ```
     """
     coco_data = read_json_file(annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])

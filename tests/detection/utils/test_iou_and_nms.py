@@ -1252,6 +1252,23 @@ def test_box_iou_batch_symmetric_large(
     )
 
 
+def test_box_iou_batch_preserves_precision_above_float32_limit() -> None:
+    """Coordinates above 2**24 keep full precision via float64 accumulation."""
+    # float32 spacing is 2.0 at 2**24, so an odd origin cannot be represented
+    # exactly; the old float32 accumulation returned ~0.3706 for this pair.
+    origin = 2**24 + 1
+    box_a = np.array([[origin, origin, origin + 50, origin + 50]], dtype=np.float64)
+    box_b = np.array(
+        [[origin + 25, origin, origin + 75, origin + 50]], dtype=np.float64
+    )
+
+    result = box_iou_batch(boxes_true=box_a, boxes_detection=box_b)
+
+    # Two 50x50 boxes shifted by 25 in x: intersection 25x50=1250,
+    # union 2*2500-1250=3750 -> IoU = 1/3.
+    assert result[0, 0] == pytest.approx(1.0 / 3.0, rel=1e-6)
+
+
 @pytest.mark.parametrize(
     "scale",
     [

@@ -4,7 +4,10 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
-from supervision.metrics.mean_average_precision import MeanAveragePrecision
+from supervision.metrics.mean_average_precision import (
+    EvaluationDataset,
+    MeanAveragePrecision,
+)
 
 
 def _mask_detections(
@@ -622,3 +625,21 @@ class TestMeanAveragePrecisionMasksOrientation:
         result = metric.update([predictions], [targets]).compute()
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestEvaluationDatasetLoadPredictions:
+    """Tests for `EvaluationDataset.load_predictions` input validation."""
+
+    def test_unknown_image_id_raises_value_error(self) -> None:
+        """Predictions referencing an unknown image id raise ValueError."""
+        dataset = EvaluationDataset(
+            targets={
+                "images": [{"id": 1}],
+                "annotations": [],
+                "categories": [{"id": 1}],
+            }
+        )
+        predictions = [{"image_id": 999, "category_id": 1, "bbox": [0, 0, 1, 1]}]
+
+        with pytest.raises(ValueError, match="current coco set"):
+            dataset.load_predictions(predictions)

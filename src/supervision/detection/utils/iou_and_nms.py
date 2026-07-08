@@ -235,7 +235,11 @@ def box_iou_batch(
             npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
         )
 
-    x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
+    # Accumulate in float64: float32 cannot represent integer coordinates above
+    # 2**24 exactly (e.g. GeoTIFF-scale pixel coordinates), which corrupts the
+    # min/max corners and the derived areas. The final matrix is cast back to
+    # float32 to preserve the public return-type contract.
+    x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
     x_max_inter = np.empty_like(x_min_inter)
     y_min_inter = np.empty_like(x_min_inter)
     y_max_inter = np.empty_like(x_min_inter)
@@ -253,8 +257,10 @@ def box_iou_batch(
 
     area_inter = x_max_inter * y_max_inter  # inter_w * inter_h
 
-    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
-    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
+    area_true = ((x_max_true - x_min_true) * (y_max_true - y_min_true)).astype(
+        np.float64
+    )
+    area_det = ((x_max_det - x_min_det) * (y_max_det - y_min_det)).astype(np.float64)
 
     if overlap_metric == OverlapMetric.IOU:
         area_norm = area_true[:, None] + area_det[None, :] - area_inter
@@ -792,6 +798,19 @@ def mask_iou_batch(
         ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
             ``(N, H, W)`` arrays, or if they do not share the same
             spatial dimensions ``(H, W)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks_true = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_true[:, :2, :2] = True
+        >>> masks_detection = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_detection[:, :3, :3] = True
+        >>> sv.mask_iou_batch(masks_true, masks_detection)
+        array([[0.44444445]])
+
+        ```
     """
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
@@ -889,6 +908,21 @@ def mask_non_max_suppression(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     rows, columns = predictions.shape
@@ -979,6 +1013,19 @@ def box_non_max_suppression(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_suppression(predictions, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
@@ -1313,6 +1360,19 @@ def box_non_max_merge(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_merge(predictions, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
 

@@ -1002,6 +1002,18 @@ class TestHeatMapAnnotator:
         )
         assert region_painted > 100
 
+    def test_reset_clears_accumulated_heat(self, test_image: np.ndarray) -> None:
+        """reset() must discard accumulated heat so a reused annotator starts clean."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        annotator.reset()
+        result = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+        assert annotator.heat_mask is None or not annotator.heat_mask.any()
+        assert np.array_equal(test_image, result)
+
 
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class"""

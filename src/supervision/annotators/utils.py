@@ -404,6 +404,16 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
 
     Raises:
         ValueError: If the format is invalid.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import hex_to_rgba
+        >>> hex_to_rgba("#FF00FF")
+        (255, 0, 255, 255)
+        >>> hex_to_rgba("#FF00FF80")
+        (255, 0, 255, 128)
+
+        ```
     """
     hex_color = hex_color.strip().lstrip("#")
     if len(hex_color) == 6:
@@ -432,6 +442,14 @@ def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
 
     Raises:
         ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import rgba_to_hex
+        >>> rgba_to_hex((255, 0, 255, 128))
+        '#FF00FF80'
+
+        ```
     """
     if len(rgba) != 4 or not all(0 <= c <= 255 for c in rgba):
         raise ValueError("RGBA must be a 4-tuple with values between 0-255.")
@@ -448,6 +466,16 @@ def is_valid_hex(hex_color: str) -> bool:
 
     Returns:
         True if the string is a valid 6- or 8-digit hex color, otherwise False.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import is_valid_hex
+        >>> is_valid_hex("#FF00FF")
+        True
+        >>> is_valid_hex("not-a-color")
+        False
+
+        ```
     """
     return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))
 

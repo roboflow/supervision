@@ -18,6 +18,9 @@ date_modified: 2026-07-08
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- `sv.box_iou_batch` now accumulates box areas and intersections in `float64` before returning `float32`, preserving precision for coordinates above `2**24` (e.g. GeoTIFF-scale pixel coordinates) that `float32` cannot represent exactly. Results for small-coordinate inputs are unchanged.
+- Legacy `sv.MeanAveragePrecision` prediction loading now raises `ValueError` for image ids absent from the ground-truth COCO set instead of relying on a bare `assert`, so the check is no longer silently skipped under `python -O`.
+- `sv.HeatMapAnnotator` now exposes a `reset()` method to clear accumulated heat, so a single annotator instance can be reused across independent streams without carrying over heat from a previous stream.
 - Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `sv.process_video` no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.
 - Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.
 - Fixed [#2416](https://github.com/roboflow/supervision/pull/2416): `DetectionDataset.as_pascal_voc()` now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.
