@@ -1,7 +1,8 @@
 import os
 import shutil
 from pathlib import Path
-from queue import Empty, Full, Queue as StdQueue
+from queue import Empty, Full
+from queue import Queue as StdQueue
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -300,6 +301,7 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """process_video should keep waiting briefly when the reader queue times out."""
+
     class TimeoutReadQueue:
         """Record the first frame read and then time out in shutdown."""
 
