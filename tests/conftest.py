@@ -2,6 +2,9 @@ import sys
 import warnings
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import matplotlib
@@ -9,13 +12,10 @@ with warnings.catch_warnings():
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-import numpy as np
-import pytest
-
 matplotlib.use("Agg")
 
-import supervision as sv
-from tests.helpers import _create_key_points
+import supervision as sv  # noqa: E402
+from tests.helpers import _create_key_points  # noqa: E402
 
 
 @pytest.fixture

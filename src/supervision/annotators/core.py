@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
-from PIL import ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
 from supervision.annotators.base import BaseAnnotator
@@ -1776,8 +1776,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
+            scene_pil = cast(Image.Image, scene)
             label_properties = self._adjust_labels_in_frame(
-                (scene.width, scene.height),
+                (scene_pil.width, scene_pil.height),
                 labels,
                 label_properties,
             )

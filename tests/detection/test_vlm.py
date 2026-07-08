@@ -997,7 +997,9 @@ def test_florence_2(
     [
         pytest.param(
             {
-                "<REGION_TO_CATEGORY>": "some object<loc_300><loc_400><loc_500><loc_600>",
+                "<REGION_TO_CATEGORY>": (
+                    "some object<loc_300><loc_400><loc_500><loc_600>"
+                ),
                 "<REGION_TO_DESCRIPTION>": "other",
             },
             "single element",

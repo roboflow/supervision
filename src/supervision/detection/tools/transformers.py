@@ -222,7 +222,7 @@ def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
     if mask.ndim == 2:
-        return cast(npt.NDArray[Any], mask.astype(np.uint32))
+        return mask.astype(np.uint32)
     if mask.shape[2] < 3:
         raise ValueError("Panoptic PNG masks must have at least 3 channels.")
 
