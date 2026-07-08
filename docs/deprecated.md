@@ -16,6 +16,7 @@ These features are phased out due to better alternatives or potential issues in 
 - `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated in `supervision-0.28.0`. These functions moved to `supervision.detection.utils.converters` and will be removed from `supervision.dataset.utils` in `supervision-0.31.0`.
 - `sv.LMM` enum is deprecated in `supervision-0.27.0` and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
 - [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) classmethod is deprecated in `supervision-0.26.0` and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- `KeyPoints.confidence` is deprecated in `supervision-0.29.0`. Use `KeyPoints.keypoint_confidence` instead. It will be removed in `supervision-0.32.0`.
 - Public `validate_*` helper functions are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`. Supervision internals now use private `_validate_*` helpers.
 
 # Removed

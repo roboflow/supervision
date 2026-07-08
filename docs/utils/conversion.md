@@ -24,13 +24,13 @@ status: new
 :::supervision.utils.conversion.ensure_cv2_image_for_annotation
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.conversion.ensure_pillow_image_for_annotation">ensure_pillow_image_for_annotation</a></h2>
+    <h2><a href="#supervision.utils.conversion.ensure_pil_image_for_annotation">ensure_pil_image_for_annotation</a></h2>
 </div>
 
-:::supervision.utils.conversion.ensure_pillow_image_for_annotation
+:::supervision.utils.conversion.ensure_pil_image_for_annotation
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.conversion.convert_images_to_cv2">convert_images_to_cv2</a></h2>
+    <h2><a href="#supervision.utils.conversion.images_to_cv2">images_to_cv2</a></h2>
 </div>
 
-:::supervision.utils.conversion.convert_images_to_cv2
+:::supervision.utils.conversion.images_to_cv2

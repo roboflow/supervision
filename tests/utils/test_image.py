@@ -278,7 +278,7 @@ def test_image_sink_raises_when_cv2_write_fails(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(cv2, "imwrite", lambda *_: False)
 
     with ImageSink(str(tmp_path)) as sink:
-        with pytest.raises(IOError, match="Failed to save image"):
+        with pytest.raises(OSError, match="Failed to save image"):
             sink.save_image(np.zeros((2, 2, 3), dtype=np.uint8))
 
         assert sink.image_count == 0

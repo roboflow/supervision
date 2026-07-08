@@ -589,6 +589,9 @@ class ImageSink:
             image_name: Custom filename for saved image. If
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
+
+        Raises:
+            OSError: If `cv2.imwrite` cannot write the image to disk.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
