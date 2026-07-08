@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
+    check_no_basename_collisions,
     map_detections_class_id,
 )
 from supervision.detection.core import Detections
@@ -578,12 +579,14 @@ def save_coco_annotations(
 
         .. note::
             This function ensures globally unique integer ``id`` values across
-            splits. It does **not** ensure unique ``file_name`` values — the
-            ``file_name`` field is set to the bare image basename, so splits
-            that share filenames (e.g. ``000001.jpg`` in both train and valid)
-            will have duplicate ``file_name`` values when their COCO files are
-            merged. Use distinct output directories or rename images before
-            merging if downstream tools require unique ``file_name`` keys.
+            splits. It rejects duplicate image basenames before writing because
+            ``file_name`` is set to the bare image basename, so two input paths
+            that differ only by directory would otherwise collapse to the same
+            COCO image record.
+
+    Raises:
+        ValueError: If two image paths share the same basename and would map to
+            the same COCO ``file_name``.
 
     Example:
         ```python
@@ -608,6 +611,11 @@ def save_coco_annotations(
             "(COCO spec requires 1-indexed ids); "
             f"got {starting_image_id=}, {starting_annotation_id=}"
         )
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="COCO image",
+    )
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {

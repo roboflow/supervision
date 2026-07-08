@@ -4,6 +4,7 @@ Tests for supervision/annotators/core.py
 
 import warnings
 from collections.abc import Iterator
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -1317,6 +1318,32 @@ class TestPercentageBarAnnotator:
         annotator = PercentageBarAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.93)
+
+
+class TestPositionHelpers:
+    """Tests for helper methods that map `Position` to coordinates."""
+
+    @pytest.mark.parametrize(
+        ("helper", "args"),
+        [
+            pytest.param(
+                PercentageBarAnnotator.calculate_border_coordinates,
+                ((10, 10), (4, 4), cast(Position, "invalid")),
+                id="percentage-bar",
+            ),
+            pytest.param(
+                CropAnnotator.calculate_crop_coordinates,
+                ((10, 10), (4, 4), cast(Position, "invalid")),
+                id="crop",
+            ),
+        ],
+    )
+    def test_unknown_position_raises(
+        self, helper: Any, args: tuple[Any, Any, Any]
+    ) -> None:
+        """Unsupported positions must raise instead of returning None."""
+        with pytest.raises(ValueError, match="Unsupported position"):
+            helper(*args)
 
 
 class TestCropAnnotator:

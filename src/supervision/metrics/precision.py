@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
-
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
@@ -757,6 +755,8 @@ class PrecisionResult:
             https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
         ){ align=center width="800" }
         """
+
+        from matplotlib import pyplot as plt
 
         labels = ["Precision@50", "Precision@75"]
         values = [self.precision_at_50, self.precision_at_75]

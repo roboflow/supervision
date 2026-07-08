@@ -80,6 +80,7 @@ def resolve_text_background_xyxy(
     text_wh: tuple[int, int],
     position: Position,
 ) -> tuple[int, int, int, int]:
+    """Compute the background box for text anchored at `position`."""
     center_x, center_y = center_coordinates
     text_w, text_h = text_wh
 
@@ -126,6 +127,7 @@ def resolve_text_background_xyxy(
             center_x + text_w,
             center_y + text_h // 2,
         )
+    raise ValueError(f"Unsupported position: {position}")
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
@@ -353,6 +355,13 @@ class Trace:
         self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
+        """Append a frame of detections to the trace history."""
+        if detections.tracker_id is None:
+            raise ValueError(
+                "Could not put detections into Trace because "
+                "Detections do not have tracker_id."
+            )
+
         frame_id: npt.NDArray[np.int_] = np.full(
             len(detections), self.current_frame_id, dtype=int
         )
@@ -363,12 +372,6 @@ class Trace:
                 detections.get_anchors_coordinates(self.anchor),
             ]
         )
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not put detections into Trace because "
-                "Detections do not have tracker_id."
-            )
-
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)

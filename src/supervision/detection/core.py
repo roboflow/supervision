@@ -32,6 +32,7 @@ from supervision.detection.utils.boxes import (
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
+    rle_to_mask,
     xywh_to_xyxy,
 )
 from supervision.detection.utils.internal import (
@@ -815,12 +816,33 @@ class Detections:
         sorted_generated_masks = sorted(
             sam_result, key=lambda x: x["area"], reverse=True
         )
+        if len(sorted_generated_masks) == 0:
+            return cls.empty()
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+        segmentations = [mask["segmentation"] for mask in sorted_generated_masks]
+        first_segmentation = segmentations[0]
 
-        if np.asarray(xywh).shape[0] == 0:
-            return cls.empty()
+        if all(isinstance(segmentation, np.ndarray) for segmentation in segmentations):
+            mask = np.stack(segmentations, axis=0)
+        elif all(isinstance(segmentation, dict) for segmentation in segmentations):
+            image_height, image_width = cast(
+                tuple[int, int], tuple(int(v) for v in first_segmentation["size"])
+            )
+            mask = np.stack(
+                [
+                    rle_to_mask(
+                        segmentation["counts"],
+                        (image_width, image_height),
+                    )
+                    for segmentation in segmentations
+                ],
+                axis=0,
+            )
+        else:
+            raise ValueError(
+                "SAM segmentations must all be dense arrays or COCO RLE dictionaries."
+            )
 
         xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
@@ -1988,7 +2010,10 @@ class Detections:
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
@@ -1996,7 +2021,10 @@ class Detections:
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_2_5_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
@@ -2007,7 +2035,10 @@ class Detections:
             )
 
         if vlm == VLM.QWEN_3_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
@@ -2016,13 +2047,19 @@ class Detections:
             )
 
         if vlm == VLM.DEEPSEEK_VL_2:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.FLORENCE_2:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 empty = cls.empty()
@@ -2038,18 +2075,27 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
@@ -2060,7 +2106,7 @@ class Detections:
                 data=data,
             )
 
-        return cls.empty()
+        raise ValueError(f"Unsupported VLM value: {vlm}.")
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:

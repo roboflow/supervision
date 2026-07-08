@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
+import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.vlm import (
@@ -1388,6 +1389,33 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert np.allclose(confidence, [0.8, 0.9])
     assert masks is not None
     assert masks.shape == (2, 480, 640)
+
+
+def test_from_vlm_unsupported_future_enum_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown VLM members should raise instead of returning empty detections."""
+
+    class FakeVLM:
+        PALIGEMMA = object()
+        FLORENCE_2 = object()
+        QWEN_2_5_VL = object()
+        QWEN_3_VL = object()
+        DEEPSEEK_VL_2 = object()
+        GOOGLE_GEMINI_2_0 = object()
+        GOOGLE_GEMINI_2_5 = object()
+        MOONDREAM = object()
+        FUTURE = object()
+
+    monkeypatch.setattr(detection_core, "VLM", FakeVLM)
+    monkeypatch.setattr(
+        detection_core,
+        "_validate_vlm_parameters",
+        lambda vlm, result, kwargs: vlm,
+    )
+
+    with pytest.raises(ValueError, match="Unsupported VLM value"):
+        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")
 
 
 @pytest.mark.parametrize(

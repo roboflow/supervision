@@ -308,6 +308,23 @@ class TestLoadCreatemlAnnotations:
 
 
 class TestSaveCreatemlAnnotations:
+    """CreateML export must reject same-basename images before writing."""
+
+    def test_raises_on_duplicate_image_basenames(self, tmp_path: Path) -> None:
+        """Duplicate image basenames are rejected instead of becoming duplicates."""
+        image_paths = ["dir_a/img.jpg", "dir_b/img.jpg"]
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=image_paths,
+            annotations={path: Detections.empty() for path in image_paths},
+        )
+
+        with pytest.raises(ValueError, match="CreateML image file"):
+            save_createml_annotations(
+                dataset=dataset,
+                annotations_path=str(tmp_path / "annotations.json"),
+            )
+
     def test_empty_dataset_writes_empty_list(self, tmp_path: Path) -> None:
         """Empty dataset serialises to an empty JSON array."""
         annotations_path = tmp_path / "nested" / "annotations.json"

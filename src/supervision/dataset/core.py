@@ -252,27 +252,26 @@ class DetectionDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        if self._images_in_memory:
-            train_input = {path: self._images_in_memory[path] for path in train_paths}
-            test_input = {path: self._images_in_memory[path] for path in test_paths}
-        else:
-            train_input = train_paths
-            test_input = test_paths
         train_annotations = {path: self.annotations[path] for path in train_paths}
         test_annotations = {path: self.annotations[path] for path in test_paths}
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images=train_input,
+            images=train_paths,
             annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images=test_input,
+            images=test_paths,
             annotations=test_annotations,
         )
+        if self._images_in_memory:
+            train_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in train_paths
+            }
+            test_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in test_paths
+            }
         return train_dataset, test_dataset
 
     @classmethod
@@ -369,11 +368,14 @@ class DetectionDataset(BaseDataset):
                     detections=annotations[image_path],
                 )
 
-        return cls(
+        merged_dataset = cls(
             classes=classes,
-            images=images_in_memory or image_paths,
+            images=image_paths,
             annotations=annotations,
         )
+        if all_in_memory:
+            merged_dataset._images_in_memory = images_in_memory
+        return merged_dataset
 
     def as_pascal_voc(
         self,

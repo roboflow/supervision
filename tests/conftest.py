@@ -1,4 +1,14 @@
-import matplotlib
+import sys
+import warnings
+from pathlib import Path
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import matplotlib
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
 import numpy as np
 import pytest
 

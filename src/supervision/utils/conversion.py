@@ -160,15 +160,21 @@ def images_to_cv2(
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     Converts Pillow image into OpenCV image, handling RGB -> BGR
-    conversion.
+    conversion. Palette images are first expanded to RGB so palette indices are
+    resolved to their actual colors.
 
     Args:
-        image: Pillow image (in RGB format).
+        image: Pillow image in RGB, grayscale, or palette mode.
 
     Returns:
         Input image converted to OpenCV format.
     """
+    if image.mode == "P":
+        image = image.convert("RGB")
+
     scene = np.array(image)
+    if scene.ndim == 2:
+        return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.

@@ -1872,6 +1872,32 @@ def _read_ids(annotation_path) -> tuple[list[int], list[int]]:
     return image_ids, annotation_ids
 
 
+class TestSaveCocoAnnotationsCollisionGuard:
+    """COCO export must reject same-basename images before writing."""
+
+    def test_raises_on_duplicate_image_basenames(self, tmp_path: Path) -> None:
+        """Duplicate image basenames are rejected instead of being collapsed."""
+        image_paths = []
+        annotations: dict[str, Detections] = {}
+        for parent in ("dir_a", "dir_b"):
+            image_path = tmp_path / parent / "img.jpg"
+            image_path.parent.mkdir(parents=True, exist_ok=True)
+            assert cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+            image_path_str = str(image_path)
+            image_paths.append(image_path_str)
+            annotations[image_path_str] = Detections.empty()
+
+        dataset = DetectionDataset(
+            classes=["object"], images=image_paths, annotations=annotations
+        )
+
+        with pytest.raises(ValueError, match="COCO image file"):
+            save_coco_annotations(
+                dataset=dataset,
+                annotation_path=str(tmp_path / "annotations.json"),
+            )
+
+
 def test_save_coco_annotations_defaults_start_at_one(tmp_path):
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=3)
     annotation_path = tmp_path / "annotations.json"

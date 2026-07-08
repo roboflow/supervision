@@ -18,6 +18,7 @@ date_modified: 2026-07-06
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed dataset export edge cases: `DetectionDataset.split()` and `DetectionDataset.merge()` now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.
 - Fixed: `sv.Color(...)` now validates direct RGBA channel values and raises `ValueError` when any channel falls outside the 0-255 byte range.
 - Fixed: `approximate_mask_with_polygons` now defaults to no polygon simplification, matching the public dataset export methods.
 - Fixed: `ImageSink.save_image()` now raises `OSError` when `cv2.imwrite()` fails, and deprecation-warning control accepts the correct `SUPERVISION_DEPRECATION_WARNING` environment variable while still honoring the legacy misspelled alias.

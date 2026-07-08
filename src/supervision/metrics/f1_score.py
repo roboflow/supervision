@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
-
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
@@ -758,6 +756,7 @@ class F1ScoreResult:
             https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
         ){ align=center width="800" }
         """
+        from matplotlib import pyplot as plt
 
         labels = ["F1@50", "F1@75"]
         values = [self.f1_50, self.f1_75]

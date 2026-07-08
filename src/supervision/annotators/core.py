@@ -2888,6 +2888,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     def calculate_border_coordinates(
         anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the border corner coordinates for a given anchor position."""
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2912,6 +2913,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx - width // 2, cy), (cx + width // 2, cy + height)
         elif position == Position.BOTTOM_RIGHT:
             return (cx, cy), (cx + width, cy + height)
+        raise ValueError(f"Unsupported position: {position}")
 
     @staticmethod
     def _validate_custom_values(
@@ -3083,6 +3085,7 @@ class CropAnnotator(BaseAnnotator):
     def calculate_crop_coordinates(
         anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the crop coordinates for a given anchor position."""
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
@@ -3119,6 +3122,7 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+        raise ValueError(f"Unsupported position: {position}")
 
 
 class BackgroundOverlayAnnotator(BaseAnnotator):

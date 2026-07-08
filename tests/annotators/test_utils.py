@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
 import pytest
@@ -9,11 +10,14 @@ from supervision.annotators.utils import (
     is_valid_hex,
     resolve_color,
     resolve_color_idx,
+    resolve_text_background_xyxy,
     rgba_to_hex,
+    Trace,
     wrap_text,
 )
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position
 from tests.helpers import _create_detections
 
 
@@ -210,6 +214,35 @@ def test_wrap_text(
     with exception:
         result = wrap_text(text=text, max_line_length=max_line_length)
         assert result == expected_result
+
+
+def test_resolve_text_background_xyxy_rejects_unknown_position() -> None:
+    """Unsupported positions must raise instead of returning an implicit None."""
+    with pytest.raises(ValueError, match="Unsupported position"):
+        resolve_text_background_xyxy(
+            center_coordinates=(10, 10),
+            text_wh=(20, 10),
+            position=cast(Position, "invalid"),
+        )
+
+
+def test_trace_put_requires_tracker_id_before_mutation() -> None:
+    """Trace.put must not mutate internal history before validating tracker ids."""
+    trace = Trace()
+    detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+
+    before_frame_id = trace.current_frame_id
+    before_history = trace.frame_id.copy()
+    before_xy = trace.xy.copy()
+    before_tracker_id = trace.tracker_id.copy()
+
+    with pytest.raises(ValueError, match="tracker_id"):
+        trace.put(detections)
+
+    assert trace.current_frame_id == before_frame_id
+    assert np.array_equal(trace.frame_id, before_history)
+    assert np.array_equal(trace.xy, before_xy)
+    assert np.array_equal(trace.tracker_id, before_tracker_id)
 
 
 @pytest.mark.parametrize(

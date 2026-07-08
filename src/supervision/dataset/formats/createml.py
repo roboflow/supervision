@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.dataset.utils import check_no_basename_collisions
 from supervision.detection.core import Detections
 from supervision.utils.file import read_json_file, save_json_file
 
@@ -287,13 +288,17 @@ def save_createml_annotations(
     ``"img.jpg"`` rather than ``"/data/train/img.jpg"``). This matches CreateML
     convention and means the loader reconstructs paths relative to
     ``images_directory_path``. As a consequence, two images with the same
-    basename from different directories will produce duplicate ``"image"`` keys
-    in the output and cannot be round-tripped correctly.
+    basename from different directories would collapse to the same ``"image"``
+    key, so the exporter rejects that case before writing.
 
     Args:
         dataset: The ``DetectionDataset`` to write.
         annotations_path: Output path for the CreateML JSON file. Parent
             directories are created if they do not already exist.
+
+    Raises:
+        ValueError: If two image paths share the same basename and would map to
+            the same CreateML ``image`` entry.
 
     Examples:
         ```python
@@ -304,6 +309,11 @@ def save_createml_annotations(
         save_createml_annotations(dataset, "/tmp/annotations.json")
         ```
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="CreateML image",
+    )
     Path(annotations_path).parent.mkdir(parents=True, exist_ok=True)
     createml_data: list[CreateMLDict] = [
         {

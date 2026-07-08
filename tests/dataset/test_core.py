@@ -1,3 +1,4 @@
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -381,19 +382,41 @@ class TestDetectionDatasetInMemoryImages:
         assert len(dataset) == 2
 
     def test_merge_preserves_in_memory_pixel_access(self) -> None:
-        """Merging two in-memory datasets keeps pixel access via public __getitem__."""
+        """Merging two in-memory datasets keeps pixel access without re-warning."""
         image_1 = _create_image(fill_value=10)
         image_2 = _create_image(fill_value=20)
-        ds_1 = self._build_dataset({"img1.jpg": image_1})
-        ds_2 = self._build_dataset({"img2.jpg": image_2})
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_1 = self._build_dataset({"img1.jpg": image_1})
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_2 = self._build_dataset({"img2.jpg": image_2})
 
-        merged = DetectionDataset.merge([ds_1, ds_2])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            merged = DetectionDataset.merge([ds_1, ds_2])
 
         assert len(merged) == 2
         _, loaded_1, _ = merged[0]
         _, loaded_2, _ = merged[1]
         np.testing.assert_array_equal(loaded_1, image_1)
         np.testing.assert_array_equal(loaded_2, image_2)
+
+    def test_split_preserves_in_memory_pixel_access_without_warning(self) -> None:
+        """Splitting an in-memory dataset keeps pixel access without re-warning."""
+        image_1 = _create_image(fill_value=11)
+        image_2 = _create_image(fill_value=22)
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            dataset = self._build_dataset({"img1.jpg": image_1, "img2.jpg": image_2})
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            train, test = dataset.split(split_ratio=0.5, shuffle=False)
+
+        assert train.image_paths == ["img1.jpg"]
+        assert test.image_paths == ["img2.jpg"]
+        _, loaded_train, _ = train[0]
+        _, loaded_test, _ = test[0]
+        np.testing.assert_array_equal(loaded_train, image_1)
+        np.testing.assert_array_equal(loaded_test, image_2)
 
     def test_iteration_yields_in_memory_images(self) -> None:
         """Iteration yields (path, image, annotation) with correct pixels."""
