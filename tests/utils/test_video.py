@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from queue import Queue as StdQueue
+from queue import Empty, Full, Queue as StdQueue
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -98,10 +98,10 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
         )
 
 
-def test_process_video_enqueues_writer_sentinel_without_timeout(
+def test_process_video_enqueues_writer_sentinel_with_timeout(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """process_video must block on the writer sentinel instead of timing out."""
+    """process_video enqueues the writer sentinel and bounded worker joins."""
     read_queue = StdQueue()
     read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
     read_queue.put((1, np.zeros((2, 2, 3), dtype=np.uint8)))
@@ -122,6 +122,8 @@ def test_process_video_enqueues_writer_sentinel_without_timeout(
             """The writer thread is disabled, so reads are not expected."""
             raise AssertionError("writer queue should not be read in this test")
 
+    join_calls: list[object | None] = []
+
     class FakeThread:
         """Thread stand-in that keeps the test single-threaded."""
 
@@ -141,6 +143,7 @@ def test_process_video_enqueues_writer_sentinel_without_timeout(
 
         def join(self, timeout=None) -> None:
             """Do nothing; the worker targets are intentionally never started."""
+            join_calls.append(timeout)
 
     class FakeVideoSink:
         """Minimal sink context manager used to verify shutdown ordering."""
@@ -190,8 +193,223 @@ def test_process_video_enqueues_writer_sentinel_without_timeout(
             show_progress=False,
         )
 
-    assert write_queue.put_calls[-1] == (None, None)
-    assert all(timeout is None for _item, timeout in write_queue.put_calls)
+    assert write_queue.put_calls[-1] == (None, 1)
+    assert all(timeout is None for _item, timeout in write_queue.put_calls[:-1])
+    assert join_calls == [10, 10]
+
+
+def test_process_video_best_effort_sentinel_handles_full_queue(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video should not hang if the writer queue is already full."""
+    read_queue = StdQueue()
+    read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put(None)
+
+    class FullWriteQueue:
+        """Record writer queue puts and fail the shutdown sentinel."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object | None]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record the put and raise Full for the shutdown sentinel."""
+            self.put_calls.append((item, timeout))
+            if item is None:
+                raise Full
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    join_calls: list[object | None] = []
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Record join timeouts for shutdown verification."""
+            join_calls.append(timeout)
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    write_queue = FullWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=1),
+    )
+
+    target_path = str(tmp_path / "target_full_queue.mp4")
+
+    def callback(frame, index):
+        raise ValueError("Test exception at frame 0")
+
+    with pytest.raises(ValueError, match="Test exception at frame 0"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert write_queue.put_calls[-1] == (None, 1)
+    assert join_calls == [10, 10]
+
+
+def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video should keep waiting briefly when the reader queue times out."""
+    class TimeoutReadQueue:
+        """Record the first frame read and then time out in shutdown."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.get_calls: list[object | None] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """The reader thread is disabled, so writes are not expected."""
+            raise AssertionError("reader queue should not be written in this test")
+
+        def get(self, timeout: object | None = None) -> object:
+            """Yield one frame during processing, then time out during shutdown."""
+            self.get_calls.append(timeout)
+            if timeout is None:
+                return (0, np.zeros((2, 2, 3), dtype=np.uint8))
+            raise Empty
+
+    class RecordingWriteQueue:
+        """Record writer queue puts so the shutdown path can be asserted."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object | None]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record each put call and its timeout."""
+            self.put_calls.append((item, timeout))
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    join_calls: list[object | None] = []
+    reader_alive_states = iter([True, False])
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Record join timeouts for shutdown verification."""
+            join_calls.append(timeout)
+
+        def is_alive(self) -> bool:
+            """Return a short-lived alive state so the timeout branch is hit."""
+            return next(reader_alive_states, False)
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    read_queue = TimeoutReadQueue()
+    write_queue = RecordingWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=1),
+    )
+
+    target_path = str(tmp_path / "target_timeout.mp4")
+
+    def callback(frame, index):
+        raise ValueError("Test exception at frame 0")
+
+    with pytest.raises(ValueError, match="Test exception at frame 0"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert read_queue.get_calls == [None, 1, 1]
+    assert join_calls == [10, 10]
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:

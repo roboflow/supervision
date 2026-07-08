@@ -267,7 +267,7 @@ class TestDownloadAssets:
         mock_tqdm.wrapattr.return_value.__enter__ = MagicMock(
             return_value=mock_response.raw
         )
-        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock(return_value=False)
         mock_copyfileobj.side_effect = lambda _src, file: file.write(b"asset-bytes")
 
         result = download_assets(filename, directory=target_directory)

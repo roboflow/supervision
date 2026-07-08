@@ -444,13 +444,15 @@ def load_coco_annotations(
         show_progress: If `True`, display a progress bar during loading.
 
     Returns:
-        A tuple of `(classes, image_paths, annotations)`.
+        A tuple of `(classes, image_paths, annotations)` where image paths are
+        canonicalized resolved paths inside ``images_directory_path``.
 
     Raises:
         ValueError: If any annotation's ``file_name`` resolves to the images
             directory itself, to a path outside the images directory (e.g. via
             ``../`` traversal or an absolute path), or to a subdirectory instead
             of a regular image file.
+        ValueError: If two image entries resolve to the same canonical path.
 
     Note:
         Each annotation's ``file_name`` is validated against
@@ -513,6 +515,12 @@ def load_coco_annotations(
                 f"COCO annotation refers to image {image_name!r}, which "
                 f"resolves to directory {resolved_image_path}. Expected a "
                 "path to an image file."
+            )
+        image_path = str(resolved_image_path)
+        if image_path in annotations:
+            raise ValueError(
+                f"COCO annotation file contains duplicate entries for image "
+                f"{image_name!r}. Each image must appear at most once."
             )
 
         with_masks = force_masks or any(

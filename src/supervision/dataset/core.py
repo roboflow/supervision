@@ -388,7 +388,9 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format.
+        and their corresponding annotations in PASCAL VOC format. Both output
+        layouts are preflighted before any files are written so a collision in
+        either target fails without partial output.
 
         Args:
             images_directory_path: The path to the directory
@@ -422,6 +424,12 @@ class DetectionDataset(BaseDataset):
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
             )
 
         if images_directory_path:

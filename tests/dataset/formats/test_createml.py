@@ -191,6 +191,60 @@ class TestLoadCreatemlAnnotations:
         np.testing.assert_array_equal(detections.class_id, np.array([0], dtype=int))
         assert len(annotations[str(tmp_path / "b.jpg")]) == 0
 
+    def test_rejects_duplicate_resolved_image_paths(self, tmp_path: Path) -> None:
+        """Aliases for the same file resolve to one canonical CreateML entry."""
+        annotations_path = tmp_path / "annotations.json"
+        (tmp_path / "nested").mkdir()
+        payload = [
+            {"image": "a.jpg", "annotations": []},
+            {"image": "nested/../a.jpg", "annotations": []},
+        ]
+        annotations_path.write_text(json.dumps(payload))
+
+        with pytest.raises(ValueError, match="duplicate entries for image"):
+            load_createml_annotations(
+                images_directory_path=str(tmp_path),
+                annotations_path=str(annotations_path),
+            )
+
+    def test_rejects_unresolvable_image_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Unresolvable image paths are rejected before they enter the dataset."""
+        annotations_path = tmp_path / "annotations.json"
+        payload = [{"image": "bad.jpg", "annotations": []}]
+        annotations_path.write_text(json.dumps(payload))
+
+        original_resolve = Path.resolve
+
+        def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+            if self == tmp_path / "bad.jpg":
+                raise OSError("unresolvable path")
+            return original_resolve(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "resolve", fake_resolve)
+
+        with pytest.raises(ValueError, match="invalid path"):
+            load_createml_annotations(
+                images_directory_path=str(tmp_path),
+                annotations_path=str(annotations_path),
+            )
+
+    def test_rejects_image_path_resolving_to_directory(
+        self, tmp_path: Path
+    ) -> None:
+        """CreateML loader rejects entries that resolve to a directory."""
+        annotations_path = tmp_path / "annotations.json"
+        (tmp_path / "nested").mkdir()
+        payload = [{"image": "nested", "annotations": []}]
+        annotations_path.write_text(json.dumps(payload))
+
+        with pytest.raises(ValueError, match="directory"):
+            load_createml_annotations(
+                images_directory_path=str(tmp_path),
+                annotations_path=str(annotations_path),
+            )
+
     def test_assigns_global_sorted_class_ids(self, tmp_path: Path) -> None:
         """Class ids are globally sorted regardless of per-image label order."""
         annotations_path = tmp_path / "annotations.json"

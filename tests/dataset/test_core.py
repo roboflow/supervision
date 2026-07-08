@@ -591,6 +591,45 @@ class TestDetectionDatasetExportCollisions:
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
 
+    def test_as_pascal_voc_rejects_annotation_collisions_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """Pascal VOC export preflights annotation collisions before copying images."""
+        source_root = tmp_path / "source"
+        source_a = source_root / "dir_a"
+        source_b = source_root / "dir_b"
+        source_a.mkdir(parents=True)
+        source_b.mkdir(parents=True)
+        image_a_path = source_a / "img.jpg"
+        image_b_path = source_b / "img.png"
+        image_a_path.write_bytes(b"image-a")
+        image_b_path.write_bytes(b"image-b")
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(image_a_path), str(image_b_path)],
+            annotations={
+                str(image_a_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                str(image_b_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        images_directory = tmp_path / "images"
+        annotations_directory = tmp_path / "annotations"
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(images_directory),
+                annotations_directory_path=str(annotations_directory),
+            )
+
+        assert not images_directory.exists()
+        assert not annotations_directory.exists()
+
 
 # ---------------------------------------------------------------------------
 # TST-03 - DetectionDataset.split()

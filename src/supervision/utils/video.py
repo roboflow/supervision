@@ -9,7 +9,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from queue import Empty, Queue
+from queue import Empty, Full, Queue
 from types import TracebackType
 from typing import cast
 
@@ -405,11 +405,12 @@ def process_video(
                 break
             video_sink.write_frame(frame=frame)
 
-    reader_worker = threading.Thread(target=reader_thread)
+    reader_worker = threading.Thread(target=reader_thread, daemon=True)
     with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
         writer_worker = threading.Thread(
             target=writer_thread,
             args=(video_sink,),
+            daemon=True,
         )
 
         reader_worker.start()
@@ -440,7 +441,12 @@ def process_video(
                     exception_in_worker = exc
                     break
         finally:
-            frame_write_queue.put(None)
+            try:
+                frame_write_queue.put(None, timeout=1)
+            except Full:
+                # Best effort: if the writer is stuck and the queue never drains,
+                # do not block shutdown forever trying to enqueue the sentinel.
+                pass
             if not read_finished:
                 while True:
                     # Use timeout to prevent indefinite blocking if reader thread fails
@@ -456,8 +462,8 @@ def process_video(
                             break
                         # Reader is still alive; continue waiting for frames.
                         continue
-            reader_worker.join()
-            writer_worker.join()
+            reader_worker.join(timeout=10)
+            writer_worker.join(timeout=10)
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker

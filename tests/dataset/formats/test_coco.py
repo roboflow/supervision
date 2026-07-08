@@ -1577,6 +1577,37 @@ def test_load_coco_annotations_rejects_file_name_resolving_to_directory(
         )
 
 
+def test_load_coco_annotations_rejects_unresolvable_file_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reject file_name values whose resolved path cannot be computed."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": "bad.jpg", "width": 5, "height": 5}],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    original_resolve = Path.resolve
+
+    def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+        if self == images_directory / "bad.jpg":
+            raise OSError("unresolvable path")
+        return original_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+
+    with pytest.raises(ValueError, match="invalid path"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
 def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
     """Accept a legitimate nested file_name inside images/ without raising."""
     images_directory = tmp_path / "images"
@@ -1597,6 +1628,32 @@ def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
     )
     expected_path = str(images_directory / "train" / "image.jpg")
     assert expected_path in annotations
+
+
+def test_load_coco_annotations_rejects_duplicate_resolved_file_names(
+    tmp_path: Path,
+) -> None:
+    """Aliases for the same file resolve to one canonical COCO entry."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    (images_directory / "nested").mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {"id": 1, "file_name": "image.jpg", "width": 5, "height": 5},
+            {"id": 2, "file_name": "nested/../image.jpg", "width": 5, "height": 5},
+        ],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate entries for image"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
 
 
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
