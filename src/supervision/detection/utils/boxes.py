@@ -8,6 +8,7 @@ from deprecate import (  # type: ignore[import-untyped,unused-ignore]
 )
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.geometry.core import Position
 
 
 def clip_boxes(
@@ -102,7 +103,7 @@ def pad_boxes(
 @deprecated(  # type: ignore[untyped-decorator]
     target=TargetMode.ARGS_REMAP,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
     args_mapping={"normalized_xyxy": "xyxy"},
 )
 def denormalize_boxes(
@@ -310,6 +311,95 @@ def xyxyxyxy_to_xyxy(
     x_max = xyxyxyxy[..., 0].max(axis=-1)
     y_max = xyxyxyxy[..., 1].max(axis=-1)
     return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
+
+
+# Anchor position -> (sx, sy) offset from the box center, in units of the box
+# half-width and half-height. Image coordinates, so +y points down.
+_ANCHOR_OFFSETS: dict[Position, tuple[float, float]] = {
+    Position.CENTER: (0.0, 0.0),
+    Position.CENTER_LEFT: (-1.0, 0.0),
+    Position.CENTER_RIGHT: (1.0, 0.0),
+    Position.TOP_CENTER: (0.0, -1.0),
+    Position.BOTTOM_CENTER: (0.0, 1.0),
+    Position.TOP_LEFT: (-1.0, -1.0),
+    Position.TOP_RIGHT: (1.0, -1.0),
+    Position.BOTTOM_LEFT: (-1.0, 1.0),
+    Position.BOTTOM_RIGHT: (1.0, 1.0),
+}
+
+
+def _oriented_box_anchors(
+    xyxyxyxy: npt.NDArray[np.number], anchor: Position
+) -> npt.NDArray[np.float64]:
+    """Locate an anchor point on each oriented bounding box.
+
+    The returned point always lies on the oriented rectangle itself: corners map
+    to corners, side anchors to side midpoints, and `CENTER` to the box center.
+    For an axis-aligned box the result matches the anchor derived from the
+    envelope, so this is a drop-in replacement that stops the anchor from drifting
+    off a rotated body.
+
+    Args:
+        xyxyxyxy: OBB corner coordinates with shape `(N, 4, 2)` in winding order,
+            each box as `[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`.
+        anchor: The anchor position to locate. `Position.CENTER_OF_MASS` is not
+            supported here, as it is defined on a mask rather than a box.
+
+    Returns:
+        Anchor coordinates as an array of shape `(N, 2)`.
+
+    Raises:
+        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`, or the anchor
+            is not supported.
+
+    Note:
+        Corners must be in consecutive winding order (clockwise or
+        counter-clockwise). Non-sequential ordering (e.g. diagonal pairs)
+        silently produces incorrect results.
+
+        Width and height are determined by x-axis projection of each half-side
+        vector. When a box rotates past ``arctan(w/h)`` (approx. 68 deg for a
+        10 x 4 box) the assigned *width* side flips discontinuously, producing
+        a jump in anchor position (~``|w - h|`` pixels for ``BOTTOM_CENTER``).
+        The anchor always lies on the box; the effect is cosmetic for static
+        images but visible on rotating objects in video.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _oriented_box_anchors
+        >>> from supervision.geometry.core import Position
+        >>> corners = np.array(
+        ...     [[[0, 0], [10, 0], [10, 4], [0, 4]]], dtype=np.float32
+        ... )
+        >>> _oriented_box_anchors(corners, Position.BOTTOM_CENTER)
+        array([[5., 4.]])
+
+        ```
+    """
+    corners = np.asarray(xyxyxyxy, dtype=np.float64)
+    if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
+        raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {corners.shape}")
+    if anchor not in _ANCHOR_OFFSETS:
+        raise ValueError(f"{anchor} is not supported.")
+    sx, sy = _ANCHOR_OFFSETS[anchor]
+
+    center = corners.mean(axis=1)
+    # Two perpendicular half-side vectors per box.
+    half_side_a = (corners[:, 1] - corners[:, 0]) / 2
+    half_side_b = (corners[:, 2] - corners[:, 1]) / 2
+
+    # Map each box's own sides onto the image axes: the side more aligned with
+    # the x-axis plays the role of width, the other of height. This makes the
+    # offsets collapse to the axis-aligned frame when the box is not rotated.
+    is_width = np.abs(half_side_a[:, 0]) >= np.abs(half_side_b[:, 0])
+    width = np.where(is_width[:, None], half_side_a, half_side_b)
+    height = np.where(is_width[:, None], half_side_b, half_side_a)
+    # Point width toward +x and height toward +y so the offset signs are stable.
+    width = np.where((width[:, 0] < 0)[:, None], -width, width)
+    height = np.where((height[:, 1] < 0)[:, None], -height, height)
+
+    return cast(npt.NDArray[np.float64], center + sx * width + sy * height)
 
 
 def scale_boxes(

@@ -1,6 +1,7 @@
+from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import cv2
 import numpy as np
@@ -33,6 +34,7 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     xyxy_to_polygons,
 )
+from supervision.detection.utils.masks import _masks_to_roi
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
@@ -42,14 +44,29 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _overlay_image,
     crop_image,
     letterbox_image,
-    overlay_image,
     scale_image,
 )
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+
+@lru_cache
+def _load_icon_from_path(
+    icon_path: str, icon_resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Load and resize an icon image through a cache shared by annotators."""
+    icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+    if icon is None:
+        raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
+    icon_array = cast(npt.NDArray[np.uint8], icon)
+    result: npt.NDArray[np.uint8] = letterbox_image(
+        image=icon_array, resolution_wh=icon_resolution_wh
+    )
+    return result
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
@@ -353,12 +370,52 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
 
 # --- Shared mask-painting utilities ---
+def _iter_mask_crops(
+    detections: Detections,
+) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
+    """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
+
+    Encapsulates the ``CompactMask`` vs dense dispatch so individual annotators
+    do not need inline ``isinstance`` checks. For ``CompactMask`` inputs yields
+    the bbox crop and its ``(x1, y1)`` image-space origin; for dense masks
+    yields the full-frame boolean slice with ``offset=None``.
+
+    Args:
+        detections: Object detections whose masks to iterate.
+
+    Yields:
+        Tuple of ``(detection_idx, mask_or_crop, offset_or_None)``.
+        ``mask_or_crop`` is boolean (crop-sized for ``CompactMask``, full-frame
+        for dense). ``offset_or_None`` is an int32 ``(x1, y1)`` array for
+        crop→image translation, or ``None`` for dense masks.
+    """
+    masks = detections.mask
+    if masks is None:
+        return
+    # TODO: replace isinstance dispatch with a MaskLike Protocol (separate PR)
+    compact_mask = masks if isinstance(masks, CompactMask) else None
+    for detection_idx in range(len(detections)):
+        if compact_mask is None:
+            yield (
+                detection_idx,
+                cast(npt.NDArray[np.bool_], masks[detection_idx]),
+                None,
+            )
+        else:
+            yield (
+                detection_idx,
+                compact_mask.crop(detection_idx),
+                compact_mask.offsets[detection_idx],
+            )
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
     color: Color | ColorPalette,
     color_lookup: ColorLookup | npt.NDArray[np.int_],
     collect_union: bool = False,
+    canvas_origin: tuple[int, int] = (0, 0),
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
@@ -376,10 +433,13 @@ def _paint_masks_by_area(
             boolean array that accumulates the union of all painted masks
             (useful for callers like `HaloAnnotator` that need the combined
             mask footprint). When ``False`` (default), returns ``None``.
+        canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
+            image. Use the default for full-frame painting.
 
     Returns:
-        A ``(H, W)`` boolean union array when ``collect_union=True``,
-        otherwise ``None``.
+        A boolean array matching the canvas dimensions when
+        ``collect_union=True``, otherwise ``None``. When called with an
+        ROI sub-canvas, dimensions are the ROI size, not the full image.
     """
     masks = detections.mask
     if masks is None:
@@ -388,6 +448,8 @@ def _paint_masks_by_area(
         np.zeros(canvas.shape[:2], dtype=bool) if collect_union else None
     )
     compact_mask = masks if isinstance(masks, CompactMask) else None
+    origin_x, origin_y = canvas_origin
+    canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
         color_bgr = resolve_color(
             color=color,
@@ -400,11 +462,30 @@ def _paint_masks_by_area(
             y1 = int(compact_mask.offsets[detection_idx, 1])
             crop_m = compact_mask.crop(detection_idx)
             crop_h, crop_w = crop_m.shape
-            canvas[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color_bgr
+            crop_x1 = max(0, origin_x - x1)
+            crop_y1 = max(0, origin_y - y1)
+            canvas_x1 = max(0, x1 - origin_x)
+            canvas_y1 = max(0, y1 - origin_y)
+            paint_w = min(crop_w - crop_x1, canvas_w - canvas_x1)
+            paint_h = min(crop_h - crop_y1, canvas_h - canvas_y1)
+            if paint_w <= 0 or paint_h <= 0:
+                continue
+            crop_slice = crop_m[
+                crop_y1 : crop_y1 + paint_h, crop_x1 : crop_x1 + paint_w
+            ]
+            canvas_slice = canvas[
+                canvas_y1 : canvas_y1 + paint_h,
+                canvas_x1 : canvas_x1 + paint_w,
+            ]
+            canvas_slice[crop_slice] = color_bgr
             if union is not None:
-                union[y1 : y1 + crop_h, x1 : x1 + crop_w] |= crop_m
+                union[
+                    canvas_y1 : canvas_y1 + paint_h,
+                    canvas_x1 : canvas_x1 + paint_w,
+                ] |= crop_slice
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
+            mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]
             canvas[mask] = color_bgr
             if union is not None:
                 union |= mask
@@ -419,6 +500,8 @@ class MaskAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -486,16 +569,35 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+        image_shape = (int(scene.shape[0]), int(scene.shape[1]))
+        effective_lookup = (
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        )
+        if len(detections) > 0:
+            resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=0,
+                color_lookup=effective_lookup,
+            )
+        roi = _masks_to_roi(detections.mask, image_shape, detections.xyxy)
+        if roi is None:
+            return scene
+
+        x1, y1, x2, y2 = roi
+        scene_roi = scene[y1:y2, x1:x2]
+        colored_mask = np.array(scene_roi, copy=True, dtype=np.uint8)
         _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
-            self.color_lookup if custom_color_lookup is None else custom_color_lookup,
+            effective_lookup,
+            canvas_origin=(x1, y1),
         )
-        cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
+        tmp = cv2.addWeighted(
+            colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
         )
+        scene_roi[:] = tmp
         return scene
 
 
@@ -507,6 +609,8 @@ class PolygonAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -565,6 +669,14 @@ class PolygonAnnotator(BaseAnnotator):
 
             ```
 
+        Note:
+            When `detections.mask` is a `CompactMask`, each detection's polygon
+            is decoded from a bbox-sized crop (O(crop_area)) rather than a
+            full-frame ``(H, W)`` allocation (O(H·W)). Polygon coordinates are
+            shifted from crop-local space to image space via the stored
+            ``(x1, y1)`` bbox origin. Pixels outside the declared ``xyxy`` box
+            are not represented in compact storage and will not be drawn.
+
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
@@ -573,8 +685,7 @@ class PolygonAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        for detection_idx in range(len(detections)):
-            mask = cast(npt.NDArray[np.bool_], detections.mask[detection_idx])
+        for detection_idx, mask, offset in _iter_mask_crops(detections):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -584,6 +695,9 @@ class PolygonAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             for polygon in mask_to_polygons(mask=mask):
+                if offset is not None:
+                    # translate crop-local polygon to image space via (x1, y1) origin
+                    polygon = polygon + offset
                 scene = draw_polygon(
                     scene=scene,
                     polygon=cast(npt.NDArray[np.int_], polygon),
@@ -695,6 +809,8 @@ class HaloAnnotator(BaseAnnotator):
         This annotator uses `sv.Detections.mask`.
     """
 
+    requires_mask = True
+
     def __init__(
         self,
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
@@ -786,7 +902,13 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
+        blended_scene = np.clip(
+            scene.astype(np.float32) * (1 - alpha_mask)
+            + colored_mask.astype(np.float32) * alpha_mask,
+            0,
+            255,
+        ).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
@@ -1467,11 +1589,50 @@ class LabelAnnotator(_BaseLabelAnnotator):
         color: tuple[int, int, int],
         border_radius: int,
     ) -> npt.NDArray[np.uint8]:
+        """Draw a filled rectangle with optional rounded corners on an image.
+
+        Args:
+            scene: BGR image array to draw on; modified in-place and returned.
+            xyxy: Bounding box as (x1, y1, x2, y2) pixel coordinates.
+            color: Fill color as a BGR tuple (e.g. ``(0, 0, 255)`` for red).
+            border_radius: Corner rounding radius in pixels. Values <= 0
+                (including values clamped to 0 by a degenerate box) draw a
+                plain filled rectangle with square corners.
+
+        Returns:
+            The annotated ``scene`` array.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            scene = np.zeros((200, 200, 3), dtype=np.uint8)
+            scene = sv.LabelAnnotator.draw_rounded_rectangle(
+                scene=scene,
+                xyxy=(10, 10, 100, 50),
+                color=(0, 255, 0),
+                border_radius=0,
+            )
+            ```
+        """
         x1, y1, x2, y2 = xyxy
         width = x2 - x1
         height = y2 - y1
 
         border_radius = min(border_radius, min(width, height) // 2)
+
+        if border_radius <= 0:
+            # square corners: a single fill rectangle (the common default), rather
+            # than two rectangles plus four zero-radius corner circles
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color,
+                thickness=-1,
+            )
+            return scene
 
         rectangle_coordinates = [
             ((x1 + border_radius, y1), (x2 - border_radius, y2)),
@@ -1870,21 +2031,14 @@ class IconAnnotator(BaseAnnotator):
             x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
             y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
-            scene[:] = overlay_image(scene, icon, (x, y))
+            scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
-    @lru_cache
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-        icon_array = cast(npt.NDArray[np.uint8], icon)
-        result: npt.NDArray[np.uint8] = letterbox_image(
-            image=icon_array, resolution_wh=self.icon_resolution_wh
+        """Load an icon through the module-level cache shared by annotators."""
+        return _load_icon_from_path(
+            icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )
-        return result
 
 
 class BlurAnnotator(BaseAnnotator):
@@ -2233,10 +2387,9 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask_bool = cv2.cvtColor(heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask_bool] = cv2.addWeighted(
-            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
-        )[mask_bool]
+        mask2d = heat_mask > 0
+        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
@@ -2857,6 +3010,12 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -2879,22 +3038,29 @@ class CropAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        crops = [
-            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
-        ]
-        resized_crops = [
-            scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
-        ]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
+        # Snapshot before the loop so later crops are taken from the original image,
+        # not a scene already annotated by earlier iterations (overlapping-box case).
+        source_scene = scene.copy()
 
-        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
+        for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
+            crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
+            if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
+                continue
+            crop = crop_image(image=source_scene, xyxy=xyxy)
+            resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
+            scene = _overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
             color = resolve_color(
                 color=self.border_color,
                 detections=detections,
@@ -3031,7 +3197,12 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
@@ -3052,6 +3223,9 @@ class ComparisonAnnotator:
     Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
     """
+
+    # Not a BaseAnnotator subclass — duck-typing callers can still check requires_mask
+    requires_mask: ClassVar[bool] = False
 
     def __init__(
         self,

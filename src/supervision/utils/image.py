@@ -300,6 +300,9 @@ def overlay_image(
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
     """
+    Deprecated since 0.27.0; removal in 0.31.0. Use `_overlay_image` for
+    internal callers, or avoid calling `overlay_image` directly in external code.
+
     Overlay image onto scene at specified anchor point. Handles cases where
     overlay position is partially or completely outside scene bounds.
 
@@ -327,6 +330,30 @@ def overlay_image(
         (1000, 1000, 3)
 
         ```
+    """
+    return _overlay_image(image=image, overlay=overlay, anchor=anchor)
+
+
+def _overlay_image(
+    image: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    anchor: tuple[int, int],
+) -> npt.NDArray[np.uint8]:
+    """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
+
+    Non-deprecated internal implementation backing the public `overlay_image`.
+    Kept separate so library-internal callers do not emit a deprecation warning.
+
+    Args:
+        image: Background BGR array of shape ``(H, W, 3)``. Modified in place
+            and returned.
+        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``; channel
+            4, when present, is treated as alpha.
+        anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
+            be negative (partial off-screen placement is clipped).
+
+    Returns:
+        The ``image`` array with the overlay applied.
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
@@ -494,6 +521,13 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 
 
 class ImageSink:
+    """
+    Save sequential images into a directory through a context manager.
+
+    `ImageSink` creates the target directory on entry and writes each image
+    using `save_image`, incrementing the image name pattern after every save.
+    """
+
     def __init__(
         self,
         target_dir_path: str,
@@ -555,12 +589,16 @@ class ImageSink:
             image_name: Custom filename for saved image. If
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
+
+        Raises:
+            OSError: If `cv2.imwrite` cannot write the image to disk.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
 
         image_path = os.path.join(self.target_dir_path, image_name)
-        cv2.imwrite(image_path, image)
+        if not cv2.imwrite(image_path, image):
+            raise OSError(f"Failed to save image to path: {image_path}")
         self.image_count += 1
 
     def __exit__(

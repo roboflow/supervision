@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
 
@@ -399,6 +400,43 @@ def test_compute_value_error_for_missing_required_fields_after_update(
         metric.update(predictions, targets).compute()
 
 
+def test_mask_content_preserves_compact_mask() -> None:
+    """CompactMask inputs stay compact for mask IoU."""
+    dense_mask = np.zeros((1, 4, 5), dtype=bool)
+    dense_mask[0, 1:3, 1:4] = True
+    xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+    compact_mask = CompactMask.from_dense(
+        dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+    )
+    detections = Detections(xyxy=xyxy, mask=compact_mask)
+    metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+
+    content = metric._detections_content(detections)
+
+    assert content is compact_mask
+
+
+def test_compute_with_compact_mask_matches_dense() -> None:
+    """MeanAverageRecall.compute() yields same recall_scores for CompactMask."""
+    masks = np.zeros((1, 50, 50), dtype=bool)
+    masks[0, 10:20, 10:20] = True
+    xyxy = np.array([[10, 10, 19, 19]], dtype=np.float64)
+    cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+    det_dense = Detections(
+        xyxy=xyxy, mask=masks, confidence=np.array([0.9]), class_id=np.array([0])
+    )
+    det_compact = Detections(
+        xyxy=xyxy, mask=cm, confidence=np.array([0.9]), class_id=np.array([0])
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+
+    r_dense = metric.update(det_dense, det_dense).compute()
+    metric.reset()
+    r_compact = metric.update(det_compact, det_compact).compute()
+
+    np.testing.assert_allclose(r_dense.recall_scores, r_compact.recall_scores)
+
+
 def test_single_perfect_detection() -> None:
     """Test that a single perfect detection yields 1.0 recall."""
     detections = Detections(
@@ -413,6 +451,82 @@ def test_single_perfect_detection() -> None:
     # For a single GT, if it's recalled, the score is 1.0 across all K
     expected = np.array([1.0, 1.0, 1.0])
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
+
+
+def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
+    """Per-class recall must expose @1, @10 and @100 instead of only @100."""
+    predictions = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([predictions], [targets]).compute()
+
+    assert result.recall_per_class.shape == (3, 2, 10)
+    np.testing.assert_allclose(result.recall_per_class[0, :, 0], [1.0, 0.0])
+    np.testing.assert_allclose(result.recall_per_class[1, :, 0], [1.0, 1.0])
+    np.testing.assert_allclose(result.recall_per_class[2, :, 0], [1.0, 1.0])
+
+
+def test_empty_inputs_keep_max_detection_axis() -> None:
+    """Empty inputs must keep mAR result shapes aligned with max detections."""
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([Detections.empty()], [Detections.empty()]).compute()
+
+    assert result.recall_scores.shape == result.max_detections.shape
+    assert result.recall_per_class.shape == (
+        result.max_detections.shape[0],
+        0,
+        result.iou_thresholds.shape[0],
+    )
+    np.testing.assert_allclose(
+        result.recall_scores,
+        np.zeros(result.max_detections.shape[0]),
+    )
+    assert result.mAR_at_1 == 0.0
+    assert result.mAR_at_10 == 0.0
+    assert result.mAR_at_100 == 0.0
+    assert result.matched_classes.shape == (0,)
+
+
+def test_medium_bucket_scores_target_matched_small_prediction() -> None:
+    """Medium-object mAR keeps valid matches even if the prediction is small."""
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = (
+        MeanAverageRecall(metric_target=MetricTarget.BOXES)
+        .update(
+            [predictions],
+            [targets],
+        )
+        .compute()
+    )
+
+    assert result.medium_objects is not None
+    assert result.medium_objects.mAR_at_1 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_10 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_100 == pytest.approx(0.9)
 
 
 @pytest.mark.parametrize(
@@ -665,3 +779,27 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     # mAR@1 should be significantly lower than mAR@10 for multi-object images
     # This validates that K limits detections per image (not per class)
     assert result.mAR_at_1 < result.mAR_at_10
+
+
+def test_greedy_matching_two_valid_pairs():
+    """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+    IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+    assignment is T0<->P0 and T1<->P1. mAR@100 at iou=0.5 is 1.0.
+    """
+    preds = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+        confidence=np.array([0.95, 0.90]),
+        class_id=np.array([0, 0]),
+    )
+    targets = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+        class_id=np.array([0, 0]),
+    )
+
+    result = MeanAverageRecall().update(preds, targets).compute()
+
+    # At iou=0.5 both pairs match (recall=1.0); IoU(T1,P1)=0.538 < 0.55 so only
+    # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
+    # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
+    assert result.mAR_at_100 == pytest.approx(0.55)

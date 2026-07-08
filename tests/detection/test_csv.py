@@ -537,3 +537,28 @@ def assert_csv_equal(file_name, expected_rows) -> None:
 )
 def test_csv_sink_slice_value(value: Any, i: int, n: int, expected: Any) -> None:
     assert CSVSink._slice_value(value, i, n) == expected
+
+
+@pytest.mark.parametrize(
+    ("custom_data", "expected_value"),
+    [
+        pytest.param(
+            {"embedding": np.array([1, 2, 3])},
+            np.array([1, 2, 3]),
+            id="custom_data_ndarray_length_mismatch",
+        )
+    ],
+)
+def test_csv_sink_broadcasts_ndarray_when_length_mismatches_detection_count(
+    custom_data: dict[str, Any] | None, expected_value: np.ndarray
+) -> None:
+    """Mismatched ndarray data is broadcast instead of indexed per row."""
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+    )
+
+    rows = CSVSink.parse_detection_data(detections, custom_data=custom_data)
+
+    assert len(rows) == 2
+    np.testing.assert_array_equal(rows[0]["embedding"], expected_value)
+    np.testing.assert_array_equal(rows[1]["embedding"], expected_value)

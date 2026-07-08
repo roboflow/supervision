@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.8.4 # using tag; previously pinned SHA when tags were not persistent
+    rev: fc2da0552b28c24c836d045bfb6c3057b3d11e62 # v3.9.4
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -37,7 +37,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.25.0
+    rev: v2.25.1
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
@@ -49,7 +49,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.18
+    rev: v0.15.20
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -75,6 +75,7 @@ repos:
           - "numpy>=2.0"
           - "types-PyYAML"
           - "types-requests"
+          - "types-tqdm"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2

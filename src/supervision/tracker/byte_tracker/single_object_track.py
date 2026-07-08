@@ -81,19 +81,18 @@ class STrack:
                 stracks[i].covariance = cov
 
     def activate(self, kalman_filter: KalmanFilter, frame_id: int) -> None:
-        """Start a new tracklet"""
+        """Start a new tracklet after its first detection."""
         self.kalman_filter = kalman_filter
         self.internal_track_id = self.internal_id_counter.new_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
 
-        self.tracklet_len = 0
+        self.tracklet_len = 1
         self.state = TrackState.Tracked
-        if frame_id == 1:
+        if frame_id == 1 and self.tracklet_len >= self.minimum_consecutive_frames:
             self.is_activated = True
-            if self.minimum_consecutive_frames == 1:
-                self.external_track_id = self.external_id_counter.new_id()
+            self.external_track_id = self.external_id_counter.new_id()
 
         self.frame_id = frame_id
         self.start_frame = frame_id
@@ -130,7 +129,7 @@ class STrack:
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        if self.tracklet_len == self.minimum_consecutive_frames:
+        if self.tracklet_len >= self.minimum_consecutive_frames:
             self.is_activated = True
             if self.external_track_id == self.external_id_counter.NO_ID:
                 self.external_track_id = self.external_id_counter.new_id()

@@ -25,6 +25,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.metrics.core import MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
 
 
 def _assert_supported_target(metric_target: MetricTarget) -> None:
@@ -32,6 +33,30 @@ def _assert_supported_target(metric_target: MetricTarget) -> None:
         raise ValueError(
             "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
         )
+
+
+def _validated_class_ids(
+    values: npt.NDArray[np.float32],
+    num_classes: int,
+    role: str,
+) -> npt.NDArray[np.int64]:
+    """Return class ids that are safe to use as confusion-matrix indexes."""
+    if values.size == 0:
+        return np.asarray(values, dtype=np.int64)
+
+    finite = np.isfinite(values)
+    integral = values == np.floor(values)
+    if not np.all(finite & integral):
+        raise ValueError(f"{role} class ids must be finite integers.")
+
+    class_ids = values.astype(np.int64)
+    invalid = (class_ids < 0) | (class_ids >= num_classes)
+    if np.any(invalid):
+        invalid_values = np.unique(class_ids[invalid]).tolist()
+        raise ValueError(
+            f"{role} class ids must be in [0, {num_classes - 1}], got {invalid_values}."
+        )
+    return class_ids
 
 
 def detections_to_tensor(
@@ -900,24 +925,26 @@ class ConfusionMatrix:
         detection_batch_filtered = predictions[confidence >= conf_threshold]
 
         if len(detection_batch_filtered) == 0:
-            # No detections pass confidence threshold - all GT are FN
-            true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
+            true_classes = _validated_class_ids(
+                targets[:, class_id_idx], num_classes, "Target"
+            )
             for gt_class in true_classes:
                 result_matrix[gt_class, num_classes] += 1
             return result_matrix
 
         if len(targets) == 0:
-            # No ground truth - all detections are FP
-            detection_classes = np.array(
-                detection_batch_filtered[:, class_id_idx], dtype=np.int16
+            detection_classes = _validated_class_ids(
+                detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
             )
             for det_class in detection_classes:
                 result_matrix[num_classes, det_class] += 1
             return result_matrix
 
-        true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(
-            detection_batch_filtered[:, class_id_idx], dtype=np.int16
+        true_classes = _validated_class_ids(
+            targets[:, class_id_idx], num_classes, "Target"
+        )
+        detection_classes = _validated_class_ids(
+            detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
         )
         true_boxes = targets[:, :coords_dim]
         detection_boxes = detection_batch_filtered[:, :coords_dim]
@@ -1141,7 +1168,9 @@ class ConfusionMatrix:
             Confusion matrix plot.
         """
 
-        array = self.matrix.copy()
+        # Cast to float so that the NaN masking below never hits an integer
+        # matrix (assigning NaN into an int array raises ValueError).
+        array = self.matrix.astype(np.float64)
 
         if normalize:
             eps = 1e-8
@@ -1280,7 +1309,7 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.99
+            1.0
 
             ```
         """
@@ -1361,9 +1390,13 @@ class MeanAveragePrecision:
             targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the
                 number of ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                `(x_min, y_min, x_max, y_max, class)` format. An empty array
+                (``N = 0``) represents a background image; all predictions on
+                that image count as false positives and reduce AP accordingly.
+
         Returns:
-            New instance of MeanAveragePrecision.
+            MeanAveragePrecision: New instance computed from the provided
+                predictions and targets.
 
         Examples:
             ```pycon
@@ -1388,7 +1421,16 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.81
+            0.75
+
+            >>> bg_pred = [np.array([[0., 0., 10., 10., 0, 0.9]], dtype=np.float32)]
+            >>> bg_tgt = [np.zeros((0, 5), dtype=np.float32)]
+            >>> mAP_bg = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=bg_pred,
+            ...     targets=bg_tgt,
+            ... )
+            >>> float(mAP_bg.map50)
+            0.0
 
             ```
         """
@@ -1421,6 +1463,21 @@ class MeanAveragePrecision:
                         true_objs[:, 4],
                     )
                 )
+            else:
+                # Background image: no GT boxes, so all predictions are FP matches.
+                # This lowers AP for classes that appear in at least one GT image
+                # elsewhere; classes absent from all GT images are excluded from AP
+                # (they never appear in true_class_ids and are skipped by the AP loop).
+                stats.append(
+                    (
+                        np.zeros(
+                            (predicted_objs.shape[0], iou_thresholds.size), dtype=bool
+                        ),
+                        predicted_objs[:, 5],
+                        predicted_objs[:, 4],
+                        np.zeros((0,), dtype=np.float32),
+                    )
+                )
 
         # Compute average precisions if any matches exist
         if stats:
@@ -1431,9 +1488,14 @@ class MeanAveragePrecision:
                 cast(npt.NDArray[np.int32], concatenated_stats[2]),
                 cast(npt.NDArray[np.int32], concatenated_stats[3]),
             )
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            if average_precisions.size == 0:
+                # All images had no ground-truth objects; FPs recorded but no class
+                # to accumulate AP over → return 0.0 rather than NaN.
+                map50, map75, map50_95 = 0.0, 0.0, 0.0
+            else:
+                map50 = float(average_precisions[:, 0].mean())
+                map75 = float(average_precisions[:, 5].mean())
+                map50_95 = float(average_precisions.mean())
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])
@@ -1462,24 +1524,16 @@ class MeanAveragePrecision:
             Average precision.
         """
         extended_recall = np.concatenate(([0.0], recall, [1.0]))
-        extended_precision = np.concatenate(([1.0], precision, [0.0]))
+        extended_precision = np.concatenate(([0.0], precision, [0.0]))
         max_accumulated_precision = np.flip(
             np.maximum.accumulate(np.flip(extended_precision))
         )
         interpolated_recall_levels = np.linspace(0, 1, 101)
-        interpolated_precision = np.interp(
-            interpolated_recall_levels, extended_recall, max_accumulated_precision
+        recall_indices = np.searchsorted(
+            extended_recall, interpolated_recall_levels, side="left"
         )
-
-        # Check if we are running on NumPy 2.0+ or older
-        if hasattr(np, "trapezoid"):
-            average_precision = np.trapezoid(
-                interpolated_precision, interpolated_recall_levels
-            )
-        else:
-            average_precision = getattr(np, "trapz")(
-                interpolated_precision, interpolated_recall_levels
-            )
+        interpolated_precision = max_accumulated_precision[recall_indices]
+        average_precision = np.mean(interpolated_precision)
 
         return float(average_precision)
 
@@ -1514,17 +1568,8 @@ class MeanAveragePrecision:
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
         result: npt.NDArray[np.bool_] = correct
         return result
 

@@ -1,6 +1,11 @@
 import pytest
 
-from supervision.geometry.core import Point, Vector
+from supervision.geometry.core import Point, Position, Vector
+
+
+def test_position_list_returns_enum_values_in_definition_order() -> None:
+    """Position.list returns stable string values for public option lists."""
+    assert Position.list() == [position.value for position in Position]
 
 
 @pytest.mark.parametrize(

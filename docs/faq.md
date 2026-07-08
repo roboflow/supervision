@@ -35,7 +35,7 @@ You can annotate images and video, filter detections, track objects, count objec
 
 ## How do I track objects across video frames?
 
-Assign persistent tracker IDs before visualization. The built-in `sv.ByteTrack` wrapper accepts `Detections` through `update_with_detections()`. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
+Assign persistent tracker IDs before visualization. The built-in `sv.ByteTrack` wrapper accepts `Detections` through `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
 
 ## What dataset formats does Supervision support?
 
@@ -47,7 +47,7 @@ Use `sv.PolygonZone` for arbitrary polygon regions and `sv.LineZone` for line-cr
 
 ## How do I benchmark a model?
 
-Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP and `sv.ConfusionMatrix` for confusion matrices. Accumulate predictions and ground-truth `Detections`, then call `compute()` to calculate metrics.
+Install `supervision[metrics]`, then use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP and `sv.ConfusionMatrix` for confusion matrices. Accumulate predictions and ground-truth `Detections`, then call `compute()` to calculate metrics.
 
 ## Is Supervision free to use?
 

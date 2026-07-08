@@ -93,6 +93,10 @@ We will define a `callback` function, which will process each frame of the video
 
 After running inference and obtaining predictions, the next step is to track the detected objects throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames.
 
+!!! warning "Deprecated tracker wrapper"
+
+    `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. The external tracker uses `update()` instead of `update_with_detections()`.
+
 === "Ultralytics"
 
     ```{ .py hl_lines="6 12" }

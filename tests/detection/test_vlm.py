@@ -14,7 +14,57 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
 )
+
+
+@pytest.mark.parametrize(
+    ("result", "resolution_wh", "classes", "expected_xyxy", "expected_class_name"),
+    [
+        pytest.param(
+            '```json\n[{"bbox_2d": [100, 200, 300, 400], "label": "cat"}]\n```',
+            (640, 480),
+            None,
+            np.array([[64.0, 96.0, 192.0, 192.0]]),
+            np.array(["cat"], dtype=str),
+            id="single-detection-scales-from-1000x1000",
+        ),
+        pytest.param(
+            "```json\n[]\n```",
+            (640, 480),
+            None,
+            np.empty((0, 4)),
+            np.empty(0, dtype=str),
+            id="empty-json-array-returns-empty",
+        ),
+        pytest.param(
+            "```json\n"
+            '[{"bbox_2d": [0, 0, 500, 500], "label": "dog"},'
+            ' {"bbox_2d": [500, 500, 1000, 1000], "label": "cat"}]\n```',
+            (640, 480),
+            ["cat"],
+            np.array([[320.0, 240.0, 640.0, 480.0]]),
+            np.array(["cat"], dtype=str),
+            id="classes-filter-keeps-only-matching",
+        ),
+    ],
+)
+def test_from_qwen_3_vl(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_xyxy: np.ndarray,
+    expected_class_name: np.ndarray,
+) -> None:
+    """from_qwen_3_vl scales from implicit 1000x1000 input space to resolution_wh."""
+    xyxy, _class_id, class_name = from_qwen_3_vl(
+        result=result,
+        resolution_wh=resolution_wh,
+        classes=classes,
+    )
+
+    np.testing.assert_allclose(xyxy, expected_xyxy)
+    np.testing.assert_array_equal(class_name, expected_class_name)
 
 
 @pytest.mark.parametrize(
@@ -1194,19 +1244,19 @@ def test_from_google_gemini_2_5(
     ("exception", "result", "resolution_wh", "classes", "expected_detections"),
     [
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "",
             (100, 100),
             None,
-            None,
-        ),  # empty text
+            Detections.empty(),
+        ),  # empty text -> empty detections (aligned with other VLM parsers)
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "random text",
             (100, 100),
             None,
-            None,
-        ),  # random text
+            Detections.empty(),
+        ),  # random text -> empty detections
         (
             does_not_raise(),
             "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
@@ -1295,6 +1345,29 @@ def test_from_deepseek_vl_2(
             detections.data[CLASS_NAME_DATA_FIELD],
             expected_detections.data[CLASS_NAME_DATA_FIELD],
         )
+
+
+@pytest.mark.parametrize(
+    ("result", "classes"),
+    [
+        pytest.param("", None, id="empty_string"),
+        pytest.param("no tags here", None, id="no_tags"),
+        pytest.param("", ["cat"], id="empty_string_with_classes"),
+    ],
+)
+def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
+    result: str, classes: list[str] | None
+) -> None:
+    """A result with no ref/det pairs yields empty Detections instead of raising."""
+    detections = Detections.from_vlm(
+        vlm=VLM.DEEPSEEK_VL_2,
+        result=result,
+        resolution_wh=(1000, 1000),
+        classes=classes,
+    )
+
+    assert len(detections) == 0
+    assert detections.xyxy.shape == (0, 4)
 
 
 def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():

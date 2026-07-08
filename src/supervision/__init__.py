@@ -161,6 +161,7 @@ from supervision.utils.video import (
 
 __all__ = [
     "LMM",
+    "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",
@@ -238,6 +239,7 @@ __all__ = [
     "contains_multiple_segments",
     "crop_image",
     "cv2_to_pillow",
+    "denormalize_boxes",
     "draw_filled_polygon",
     "draw_filled_rectangle",
     "draw_image",
@@ -290,4 +292,5 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
+    "xyxyxyxy_to_xyxy",
 ]

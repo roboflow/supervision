@@ -7,11 +7,13 @@ from supervision.annotators.utils import (
     ColorLookup,
     hex_to_rgba,
     is_valid_hex,
+    resolve_color,
     resolve_color_idx,
     rgba_to_hex,
     wrap_text,
 )
 from supervision.detection.core import Detections
+from supervision.draw.color import Color, ColorPalette
 from tests.helpers import _create_detections
 
 
@@ -113,6 +115,37 @@ def test_resolve_color_idx(
             color_lookup=color_lookup,
         )
         assert result == expected_result
+
+
+def test_resolve_color_accepts_negative_class_id() -> None:
+    """Negative class ids map deterministically instead of aborting annotation."""
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1])
+    palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+
+    result = resolve_color(
+        color=palette,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result == Color.from_hex("#0000ff")
+
+
+def test_resolve_color_accepts_palette_from_src_namespace() -> None:
+    """Palette instances imported through src.supervision still resolve by index."""
+    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+    result = resolve_color(
+        color=SrcColorPalette.DEFAULT,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result.as_bgr() == (251, 81, 163)
 
 
 @pytest.mark.parametrize(

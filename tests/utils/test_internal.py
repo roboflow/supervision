@@ -1,3 +1,8 @@
+import json
+import os
+import subprocess
+import sys
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
 from typing import Any
@@ -6,7 +11,11 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.utils.internal import get_instance_variables
+from supervision.utils.internal import (
+    SupervisionWarnings,
+    format_warning,
+    get_instance_variables,
+)
 
 
 class MockClass:
@@ -71,6 +80,38 @@ class MockDataclass:
     @property
     def __private_property(self) -> int:
         return 2
+
+
+def _warning_messages_for_env(
+    *, new_env: str | None, legacy_env: str | None
+) -> list[str]:
+    """Run the deprecation-warning path under a controlled environment."""
+    env = os.environ.copy()
+    env.pop("SUPERVISION_DEPRECATION_WARNING", None)
+    env.pop("SUPERVISON_DEPRECATION_WARNING", None)
+    if new_env is not None:
+        env["SUPERVISION_DEPRECATION_WARNING"] = new_env
+    if legacy_env is not None:
+        env["SUPERVISON_DEPRECATION_WARNING"] = legacy_env
+
+    script = """
+import json
+import warnings
+from supervision.utils.internal import warn_deprecated
+
+with warnings.catch_warnings(record=True) as recorded:
+    warn_deprecated("deprecated")
+
+print(json.dumps([str(item.message) for item in recorded]))
+"""
+    completed = subprocess.run(  # noqa: S603 - trusted fixed command in a test helper.
+        [sys.executable, "-c", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    return json.loads(completed.stdout)
 
 
 @pytest.mark.parametrize(
@@ -197,3 +238,27 @@ def test_get_instance_variables(
             input_instance, include_properties=include_properties
         )
         assert result == expected
+
+
+def test_supervision_warning_formatter_is_not_global() -> None:
+    """Supervision warning formatting is opt-in, not global warnings state."""
+    assert warnings.formatwarning is not format_warning
+    assert format_warning("message", SupervisionWarnings, "file.py", 1) == (
+        "SupervisionWarnings: message\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("new_env", "legacy_env", "expected_count"),
+    [
+        pytest.param("0", "1", 0, id="prefer-new-env"),
+        pytest.param(None, "0", 0, id="legacy-fallback"),
+        pytest.param("1", "0", 1, id="new-env-enables-warning"),
+    ],
+)
+def test_supervision_warning_env_var_controls_deprecation_warnings(
+    new_env: str | None, legacy_env: str | None, expected_count: int
+) -> None:
+    """SUPERVISION_DEPRECATION_WARNING keeps precedence over the legacy alias."""
+    messages = _warning_messages_for_env(new_env=new_env, legacy_env=legacy_env)
+    assert len(messages) == expected_count

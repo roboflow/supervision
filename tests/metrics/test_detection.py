@@ -4,6 +4,7 @@ from typing import ClassVar
 import cv2
 import numpy as np
 import pytest
+from matplotlib import pyplot as plt
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -568,6 +569,34 @@ class TestDetectionMetrics:
         assert result.diagonal().sum() == result.sum()
         assert np.array_equal(result, expected_result)
 
+    def test_evaluate_detection_batch_rejects_negative_class_ids(self) -> None:
+        """Negative class ids must fail instead of indexing the matrix tail."""
+        predictions = np.array([[0, 0, 10, 10, 0, 0.9]], dtype=np.float32)
+        targets = np.array([[0, 0, 10, 10, -1]], dtype=np.float32)
+
+        with pytest.raises(ValueError, match="Target class ids"):
+            ConfusionMatrix.evaluate_detection_batch(
+                predictions=predictions,
+                targets=targets,
+                num_classes=1,
+                conf_threshold=0.3,
+                iou_threshold=0.5,
+            )
+
+    def test_evaluate_detection_batch_rejects_overflowing_class_ids(self) -> None:
+        """Large class ids must fail instead of overflowing through int16 casts."""
+        predictions = np.array([[0, 0, 10, 10, 40000, 0.9]], dtype=np.float32)
+        targets = np.zeros((0, 5), dtype=np.float32)
+
+        with pytest.raises(ValueError, match="Prediction class ids"):
+            ConfusionMatrix.evaluate_detection_batch(
+                predictions=predictions,
+                targets=targets,
+                num_classes=1,
+                conf_threshold=0.3,
+                iou_threshold=0.5,
+            )
+
     @pytest.mark.parametrize(
         ("matches", "expected_result", "exception"),
         [
@@ -637,6 +666,15 @@ class TestDetectionMetrics:
                 recall=recall, precision=precision
             )
             assert_almost_equal(result, expected_result, tolerance=0.01)
+
+    def test_compute_average_precision_perfect_curve_is_exact_one(self) -> None:
+        """COCO 101-point AP should give exactly 1.0 for a perfect PR curve."""
+        result = MeanAveragePrecision.compute_average_precision(
+            recall=np.array([1.0]),
+            precision=np.array([1.0]),
+        )
+
+        assert result == pytest.approx(1.0, abs=1e-12)
 
     @pytest.mark.parametrize(
         (
@@ -1613,6 +1651,113 @@ class TestDetectionMetrics:
         )
         assert cm.metric_target == MetricTarget.BOXES
 
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair."""
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = MeanAveragePrecision.from_detections(
+            predictions=[preds], targets=[targets]
+        )
+
+        assert result.map50 == pytest.approx(1.0, abs=0.01)
+
+
+class TestMeanAveragePrecisionBackgroundFalsePositives:
+    """MeanAveragePrecision.from_tensors penalizes predictions on GT-empty images."""
+
+    def test_background_false_positives_lower_map(self) -> None:
+        """False positives on a GT-empty image drop map50 below the FP-free baseline."""
+        # Arrange
+        matched_target = np.array([[0.0, 0.0, 10.0, 10.0, 0]], dtype=np.float32)
+        matched_prediction = np.array(
+            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
+        )
+        background_target = np.zeros((0, 5), dtype=np.float32)
+        background_predictions = np.array(
+            [
+                [100.0, 100.0, 110.0, 110.0, 0, 0.95],
+                [200.0, 200.0, 210.0, 210.0, 0, 0.95],
+                [300.0, 300.0, 310.0, 310.0, 0, 0.95],
+            ],
+            dtype=np.float32,
+        )
+
+        # Act
+        without_fp = MeanAveragePrecision.from_tensors(
+            predictions=[matched_prediction],
+            targets=[matched_target],
+        )
+        with_fp = MeanAveragePrecision.from_tensors(
+            predictions=[matched_prediction, background_predictions],
+            targets=[matched_target, background_target],
+        )
+
+        # Assert
+        assert without_fp.map50 == pytest.approx(1.0, abs=0.01)
+        assert with_fp.map50 < without_fp.map50
+        assert with_fp.map50 < 0.5
+        assert with_fp.map75 < without_fp.map75
+        assert with_fp.map50_95 < without_fp.map50_95
+
+    def test_ground_truth_present_path_uses_coco_101_point_ap(self) -> None:
+        """GT-present scenario uses the corrected COCO 101-point AP value."""
+        # Arrange
+        targets = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0],
+                    [2.0, 2.0, 5.0, 5.0, 0],
+                    [6.0, 1.0, 8.0, 3.0, 1],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        predictions = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+                    [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+                    [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+                ],
+                dtype=np.float32,
+            )
+        ]
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=predictions, targets=targets
+        )
+
+        # Assert
+        assert result.map50 == pytest.approx(0.7524752475, abs=1e-9)
+
+    def test_all_background_predictions_return_zero_not_nan(self) -> None:
+        """All-background dataset with predictions must yield 0.0 mAP, not NaN."""
+        # Arrange — no GT objects anywhere; model still fires predictions
+        background_target = np.zeros((0, 5), dtype=np.float32)
+        background_predictions = np.array(
+            [[0.0, 0.0, 10.0, 10.0, 0, 0.9]], dtype=np.float32
+        )
+
+        # Act
+        result = MeanAveragePrecision.from_tensors(
+            predictions=[background_predictions],
+            targets=[background_target],
+        )
+
+        # Assert — must be finite 0.0, not NaN (regression for all-background datasets)
+        assert result.map50 == pytest.approx(0.0)
+        assert result.map75 == pytest.approx(0.0)
+        assert result.map50_95 == pytest.approx(0.0)
+
 
 class TestSplitDetectionsByOutcome:
     """Tests for _split_detections_by_outcome matching and filtering logic."""
@@ -1733,3 +1878,44 @@ class TestSplitDetectionsByOutcome:
         """Missing class_id on either input raises ValueError."""
         with pytest.raises(ValueError, match="class_id"):
             _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+
+class TestConfusionMatrixPlot:
+    """Tests for ConfusionMatrix.plot rendering."""
+
+    @pytest.mark.parametrize(
+        "normalize",
+        [
+            pytest.param(False, id="raw-counts"),
+            pytest.param(True, id="normalized"),
+        ],
+    )
+    def test_plot_returns_figure(self, normalize: bool) -> None:
+        """plot() must not crash on the integer matrix produced by from_tensors."""
+        targets = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0],
+                    [6.0, 1.0, 8.0, 3.0, 1],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        predictions = [
+            np.array(
+                [
+                    [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+                ],
+                dtype=np.float32,
+            )
+        ]
+        confusion_matrix = ConfusionMatrix.from_tensors(
+            predictions=predictions,
+            targets=targets,
+            classes=["person", "dog"],
+        )
+
+        fig = confusion_matrix.plot(normalize=normalize)
+
+        assert fig is not None
+        plt.close(fig)

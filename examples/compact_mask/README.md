@@ -527,6 +527,69 @@ Run on any machine — no GPU or real model required:
 uv run python examples/compact_mask/benchmark.py
 ```
 
+For a focused benchmark of the Roboflow inference-result parser API, run:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py
+```
+
+This script downloads all supervision image assets plus the middle frame from every supervision video asset by default, runs one real segmentation inference per source image, requests native RLE masks from Inference, freezes that result, and then compares parser performance:
+
+```python
+sv.Detections.from_inference(result)
+sv.Detections.from_inference(result, compact_masks=True)
+```
+
+Timing repetitions, warmups, confidence, IoU, response mask format, and the default model live as constants in `bench_inference_api.py`.
+
+Inference runs and segmentation-derived box fields are outside the timed benchmark loop. By default the script uses `rfdetr-seg-large` with `response_mask_format="rle"`; set `BENCH_INFERENCE_MODEL_ID` to override the model. Set `ROBOFLOW_API_KEY` when your model requires authentication. Sources where the model returns no native RLE segmentation masks are skipped because there is no RLE parser work to benchmark. `rfdetr-large` is a valid local Inference model id, but it is object detection only; use an `rfdetr-seg-*` model for instance segmentation.
+
+Run one specific supervision image or video asset with `--asset`:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking
+uv run python examples/compact_mask/bench_inference_api.py --asset soccer
+uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
+```
+
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and parser speedup (`dense parser time / compact parser time`).
+
+**Speedup column:** The `speedup` value reflects allocation savings — how much time is saved by skipping the dense `(N, H, W)` bool-stack allocation — not a faster RLE decode. Compact RLE arithmetic is typically slower than the dense NumPy path. The net result:
+
+- **Compact is faster** only when the dense `(N, H, W)` bool-stack allocation dominates — large images with many sparse masks where avoiding that allocation outweighs the RLE arithmetic cost.
+- **Compact is slower** for small images or dense/overlapping masks, where Python RLE arithmetic dominates and the allocation cost is negligible.
+- **The primary guaranteed benefit is memory**: compact masks use roughly 99% less memory than dense stacks for typical segmentation output, regardless of which parse direction is faster.
+
+The default run includes a `synthetic-dense-64` row (64×64 image, 4 fully-filled masks) to demonstrate the adversarial regime where compact is slower than dense. For each real source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
+
+### Sample results — inference API
+
+Measured on macOS Apple M4 Max, 50 reps after 3 warmups, using `rfdetr-seg-large` via Roboflow Inference.
+
+| src                        | res       | seg | dense ms | CM ms | speedup | peak MB (dense/compact) | mask MB (dense/compact) | ok  |
+| -------------------------- | --------- | --- | -------- | ----- | ------- | ----------------------- | ----------------------- | --- |
+| synthetic-dense-64         | 64×64     | 4   | 0.03     | 0.11  | 0.31×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
+| people-walking.jpg         | 1920×1080 | 53  | 85.56    | 12.55 | 6.82×   | 219.86 / 0.11           | 109.90 / 0.02           | ✓   |
+| soccer.jpg                 | 398×224   | 21  | 1.36     | 1.07  | 1.27×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
+| vehicles.mp4#269           | 3840×2160 | 7   | 46.03    | 2.60  | 18×     | 116.13 / 0.07           | 58.06 / 0.00            | ✓   |
+| milk-bottling-plant.mp4#94 | 1920×1080 | 9   | 15.61    | 11.57 | 1.35×   | 37.34 / 0.53            | 18.66 / 0.03            | ✓   |
+| vehicles-2.mp4#637         | 1920×1080 | 47  | 76.87    | 13.59 | 5.66×   | 194.97 / 0.13           | 97.46 / 0.03            | ✓   |
+| grocery-store.mp4#501      | 3840×2160 | 4   | 27.20    | 4.36  | 6.24×   | 66.36 / 0.22            | 33.18 / 0.01            | ✓   |
+| subway.mp4#649             | 2160×3840 | 42  | 325.71   | 32.21 | 10×     | 696.78 / 0.80           | 348.36 / 0.09           | ✓   |
+| market-square.mp4#237      | 2160×3840 | 96  | 732.98   | 27.24 | 27×     | 1592.61 / 0.22          | 796.26 / 0.05           | ✓   |
+| people-walking.mp4#170     | 1920×1080 | 60  | 100.99   | 12.69 | 7.96×   | 248.89 / 0.12           | 124.42 / 0.02           | ✓   |
+| beach-1.mp4#223            | 3840×2160 | 33  | 223.50   | 13.39 | 17×     | 547.47 / 0.12           | 273.72 / 0.02           | ✓   |
+| basketball-1.mp4#238       | 1920×1080 | 2   | 3.61     | 2.05  | 1.76×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
+| skiing.mp4#176             | 1920×1080 | 11  | 16.47    | 3.07  | 5.37×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
+
+- **seg** — number of instance segmentations returned by the model
+- **dense ms / CM ms** — median parse time for `from_inference()` vs `from_inference(compact_masks=True)`
+- **speedup** — dense / compact parse time; values below 1× (e.g., synthetic-dense-64) indicate the adversarial regime where RLE arithmetic cost exceeds allocation savings
+- **peak MB** — peak traced allocations during parsing (dense / compact)
+- **mask MB** — mask storage only (dense / compact); compact is typically 100–5 000× smaller
+- **ok** — `compact.to_dense()` pixel-exactly matches dense masks
+
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 
 | Tier    | Resolution | Objects | Dense array | Notes                                |
@@ -585,7 +648,8 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 
 ## Files
 
-| File           | Description                                      |
-| -------------- | ------------------------------------------------ |
-| `benchmark.py` | Full benchmark across FHD / 4K / satellite tiers |
-| `README.md`    | This file                                        |
+| File                     | Description                                         |
+| ------------------------ | --------------------------------------------------- |
+| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers    |
+| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark |
+| `README.md`              | This file                                           |

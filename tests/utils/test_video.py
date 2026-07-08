@@ -200,6 +200,42 @@ def test_get_video_frames_generator(dummy_video_path) -> None:
     assert all(frame.shape == (480, 640, 3) for frame in frames)
 
 
+def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None:
+    """
+    Verify that the capture is released when a consumer breaks out early.
+
+    Scenario: A consumer iterates one frame then abandons the generator, raising
+    GeneratorExit at the yield point.
+    Expected: The `try/finally` guard still calls `release()`, avoiding a decoder
+    leak.
+    """
+
+    class FakeCapture:
+        def __init__(self) -> None:
+            self.released = False
+
+        def read(self):
+            return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+        def grab(self):
+            return True
+
+        def release(self) -> None:
+            self.released = True
+
+    fake_capture = FakeCapture()
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (fake_capture, 0, 100),
+    )
+
+    generator = get_video_frames_generator("dummy")
+    next(generator)
+    generator.close()
+
+    assert fake_capture.released
+
+
 def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator correctly handles the stride parameter.

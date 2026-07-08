@@ -52,7 +52,7 @@ dependencies = [
   "numpy>=1.21.2",
   "opencv-python-headless>=4.5.5.64",
   "pillow>=9.4",
-  "pydeprecate>=0.9,<0.10",
+  "pydeprecate>=0.9,<0.11",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
@@ -79,6 +79,7 @@ dev = [
   "pytest>=7.2.2,<10",
   "pytest-cov>=4,<8",
   "tox>=4.11.4",
+  "types-tqdm",
 ]
 docs = [
   "mike>=2",
@@ -191,25 +192,16 @@ explicit_package_bases = true
 ignore_missing_imports = false
 python_version = "3.10"
 strict = true
-overrides = [
-  # exclude = [
-  #  "docs",
-  #  "test",
-  #  "examples",
-  #  "setup.py",
-  # ]
-  { module = [
-    "examples.*",
-    "tests.*",
-  ], ignore_errors = true },
-  { module = "deprecate", ignore_missing_imports = true },
-]
+overrides = [ { module = [ "examples.*", "tests.*" ], ignore_errors = true } ]
 
 [tool.pytest]
 ini_options.norecursedirs = [ ".git", ".venv", "build", "dist", "docs", "examples", "notebooks" ]
 ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
+]
+ini_options.filterwarnings = [
+  "error::DeprecationWarning",
 ]
 ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
 
