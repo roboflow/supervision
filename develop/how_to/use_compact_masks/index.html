@@ -3154,6 +3154,10 @@
 
 <h1 id="use-compact-masks-for-memory-efficient-segmentation">Use Compact Masks for Memory-Efficient Segmentation<a class="headerlink" href="#use-compact-masks-for-memory-efficient-segmentation" title="Permanent link">&para;</a></h1>
 <p><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.compact_mask.CompactMask&lt;/code&gt;" href="../../detection/compact_mask/#supervision.detection.compact_mask.CompactMask">CompactMask</a> stores each instance mask as a run-length encoding of its bounding-box <strong>crop</strong> rather than a full <code>(H, W)</code> boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>sv.mask_to_xyxy</code> keeps supervision's inclusive max-coordinate convention for compatibility with <code>CompactMask</code> and current box-based adapters. Use <code>sv.mask_to_roi</code> when you need exclusive slice bounds for NumPy indexing or crop extraction.</p>
+</div>
 <p>This guide covers the four main integration points:</p>
 <ol>
 <li><a href="#ingest-coco-rle-payloads">Ingesting COCO RLE payloads directly as CompactMask</a></li>
@@ -3375,7 +3379,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 1, 2026 19:01:29 UTC">July 1, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 21:00:32 UTC">July 8, 2026</span>
   </span>
 
     
@@ -3413,21 +3417,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
+        <a href="https://github.com/codex" class="md-author" title="@codex">
           
-          <img src="https://avatars.githubusercontent.com/in/1236702?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
-        <a href="https://github.com/Copilot" class="md-author" title="@Copilot">
+        <a href="https://github.com/pre-commit-ci%5Bbot%5D" class="md-author" title="@pre-commit-ci[bot]">
           
-          <img src="https://avatars.githubusercontent.com/in/946600?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="GitHub user">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/use_compact_masks.md" class="md-author md-author--more">
-            +1
+            +2
           </a>
         
       

@@ -3903,6 +3903,11 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>sv.process_video</code> no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>DetectionDataset.as_pascal_voc()</code> now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.</li>
+<li><code>import supervision</code> no longer surfaces the deprecated <code>ByteTrack</code> warning; the top-level tracker alias now resolves lazily when accessed explicitly.</li>
+<li>Fixed dataset export edge cases: <code>DetectionDataset.split()</code> and <code>DetectionDataset.merge()</code> now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.</li>
 <li>Fixed: <code>sv.Color(...)</code> now validates direct RGBA channel values and raises <code>ValueError</code> when any channel falls outside the 0-255 byte range.</li>
 <li>Fixed: <code>approximate_mask_with_polygons</code> now defaults to no polygon simplification, matching the public dataset export methods.</li>
 <li>Fixed: <code>ImageSink.save_image()</code> now raises <code>OSError</code> when <code>cv2.imwrite()</code> fails, and deprecation-warning control accepts the correct <code>SUPERVISION_DEPRECATION_WARNING</code> environment variable while still honoring the legacy misspelled alias.</li>
@@ -3927,6 +3932,7 @@
 <li><code>CompactMask.from_coco_rle</code> — efficient COCO RLE ingestion into crop-scoped compact mask format without materializing dense <code>(N, H, W)</code> arrays (<a href="https://github.com/roboflow/supervision/pull/2367">#2367</a>)</li>
 <li><code>Detections.from_inference(compact_masks=True)</code> — opt-in compact mask representation for Roboflow/Inference segmentation results; masks are cropped to detector bounding boxes (<a href="https://github.com/roboflow/supervision/pull/2367">#2367</a>)</li>
 <li><code>CompactMask.image_shape</code> — new public property returning <code>(H, W)</code> of the full image the mask is scoped to (<a href="https://github.com/roboflow/supervision/pull/2383">#2383</a>)</li>
+<li><code>sv.mask_to_roi</code> — explicit exclusive mask-bound helper for NumPy slicing and crop extraction. <code>sv.mask_to_xyxy</code> stays inclusive for compatibility with CompactMask and current box-based adapters, so the coordinate-convention migration path is now explicit instead of implicit.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -5933,7 +5939,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 12:30:32 UTC">July 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 21:00:32 UTC">July 8, 2026</span>
   </span>
 
     
