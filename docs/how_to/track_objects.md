@@ -95,9 +95,7 @@ After running inference and obtaining predictions, the next step is to track the
 
 !!! warning "Deprecated tracker wrapper"
 
-    `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the external
-    `trackers` package. The external tracker uses `update()` instead of
-    `update_with_detections()`.
+    `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. The external tracker uses `update()` instead of `update_with_detections()`.
 
 === "Ultralytics"
 
