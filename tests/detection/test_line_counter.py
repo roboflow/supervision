@@ -915,7 +915,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
-    assert set(line_zone.crossing_state_history) == {(1, 2)}
+    assert set(line_zone.crossing_state_history) == {1}
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
