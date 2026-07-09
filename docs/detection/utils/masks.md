@@ -34,3 +34,9 @@ status: new
 </div>
 
 :::supervision.detection.utils.masks.filter_segments_by_distance
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.masks.calculate_masks_centroids">calculate_masks_centroids</a></h2>
+</div>
+
+:::supervision.detection.utils.masks.calculate_masks_centroids
