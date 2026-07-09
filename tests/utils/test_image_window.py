@@ -486,3 +486,42 @@ class TestImageWindowMouseCallback:
         event.y = 0  # inside the top letterbox band
         window._on_mouse(event, "down")
         cb.assert_called_once_with(399, 0, "down")
+
+    def test_on_mouse_after_configure_resize_maps_correct_coords(self):
+        """End-to-end: a <Configure> resize followed by a click maps to image pixels."""
+        window = ImageWindow()
+        window._pil_image = Image.new("RGB", (400, 200))
+        window._label = MagicMock()
+        mock_root = MagicMock()
+        window._root = mock_root
+        cb = MagicMock()
+        window._mouse_callback = cb
+        configure_event = MagicMock()
+        configure_event.widget = mock_root
+        configure_event.width = 200
+        configure_event.height = 200
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._on_configure(configure_event)  # triggers _update_display internally
+
+        mouse_event = MagicMock()
+        mouse_event.x = 100  # display space -> 200 in original
+        mouse_event.y = 25  # letterboxed by (200 - 100) / 2 = 50 -> 0 in original
+        window._on_mouse(mouse_event, "down")
+        cb.assert_called_once_with(200, 0, "down")
+
+    def test_on_mouse_maps_coords_when_stretched(self):
+        """Event coords unscale correctly when keep_aspect_ratio=False (stretched)."""
+        window = ImageWindow(keep_aspect_ratio=False)
+        window._pil_image = Image.new("RGB", (400, 200))
+        window._win_w = 100
+        window._win_h = 100
+        window._update_display_transform(Image.new("RGB", (100, 100)))
+        cb = MagicMock()
+        window._mouse_callback = cb
+        event = MagicMock()
+        event.x = 50  # stretched display space -> 200 in original width
+        event.y = 50  # stretched display space -> 100 in original height
+        window._on_mouse(event, "up")
+        cb.assert_called_once_with(200, 100, "up")
