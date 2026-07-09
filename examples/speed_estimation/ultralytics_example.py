@@ -94,7 +94,7 @@ def main(
             )
             points = view_transformer.transform_points(points=points).astype(int)
 
-            for tracker_id, [_, y] in zip(detections.tracker_id, points):
+            for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
                 coordinates[tracker_id].append(y)
 
             labels = []

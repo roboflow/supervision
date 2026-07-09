@@ -115,7 +115,7 @@ def annotate(
     """
     annotated_frame = frame.copy()
     for zone, zone_annotator, box_annotator in zip(
-        zones, zone_annotators, box_annotators
+        zones, zone_annotators, box_annotators, strict=True
     ):
         detections_in_zone = detections[zone.trigger(detections=detections)]
         annotated_frame = zone_annotator.annotate(scene=annotated_frame)
