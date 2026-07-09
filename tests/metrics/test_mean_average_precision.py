@@ -630,16 +630,48 @@ class TestMeanAveragePrecisionMasksOrientation:
 class TestEvaluationDatasetLoadPredictions:
     """Tests for `EvaluationDataset.load_predictions` input validation."""
 
-    def test_unknown_image_id_raises_value_error(self) -> None:
-        """Predictions referencing an unknown image id raise ValueError."""
+    @pytest.mark.parametrize(
+        ("known_image_ids", "prediction_image_ids"),
+        [
+            pytest.param([1], [999], id="all-unknown-ids"),
+            pytest.param([1, 2], [1, 999], id="mixed-known-and-unknown-ids"),
+            pytest.param([], [1], id="empty-dataset-with-nonempty-predictions"),
+        ],
+    )
+    def test_unknown_image_id_raises_value_error(
+        self, known_image_ids: list[int], prediction_image_ids: list[int]
+    ) -> None:
+        """Predictions referencing any unknown image id raise ValueError."""
         dataset = EvaluationDataset(
             targets={
-                "images": [{"id": 1}],
+                "images": [{"id": image_id} for image_id in known_image_ids],
                 "annotations": [],
                 "categories": [{"id": 1}],
             }
         )
-        predictions = [{"image_id": 999, "category_id": 1, "bbox": [0, 0, 1, 1]}]
+        predictions = [
+            {"image_id": image_id, "category_id": 1, "bbox": [0, 0, 1, 1]}
+            for image_id in prediction_image_ids
+        ]
 
         with pytest.raises(ValueError, match="current coco set"):
             dataset.load_predictions(predictions)
+
+    def test_predictions_subset_of_known_ids_does_not_raise(self) -> None:
+        """Predictions referencing only a subset of known image ids are accepted."""
+        dataset = EvaluationDataset(
+            targets={
+                "images": [{"id": 1}, {"id": 2}],
+                "annotations": [],
+                "categories": [{"id": 1}],
+            }
+        )
+        predictions = [{"image_id": 1, "category_id": 1, "bbox": [0, 0, 1, 1]}]
+
+        result = dataset.load_predictions(predictions)
+
+        loaded_annotations = result.get_annotations([1])
+        assert len(loaded_annotations) == 1
+        assert loaded_annotations[0]["image_id"] == 1
+        assert loaded_annotations[0]["category_id"] == 1
+        assert loaded_annotations[0]["bbox"] == [0, 0, 1, 1]
