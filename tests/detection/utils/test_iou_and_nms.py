@@ -1252,20 +1252,70 @@ def test_box_iou_batch_symmetric_large(
     )
 
 
-def test_box_iou_batch_preserves_precision_above_float32_limit() -> None:
-    """Coordinates above 2**24 keep full precision via float64 accumulation."""
-    # float32 spacing is 2.0 at 2**24, so an odd origin cannot be represented
-    # exactly; the old float32 accumulation returned ~0.3706 for this pair.
-    origin = 2**24 + 1
-    box_a = np.array([[origin, origin, origin + 50, origin + 50]], dtype=np.float64)
+def _boundary_box_pair(
+    origin: int, side: int = 50, shift: int = 25, dtype: type = np.float64
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build two overlapping boxes sharing an origin for precision tests.
+
+    Both boxes are `side`x`side`; the second is shifted by `shift` along x so
+    the intersection is `shift`x`side` and the union is `2*side**2 - shift*side`.
+    """
+    box_a = np.array([[origin, origin, origin + side, origin + side]], dtype=dtype)
     box_b = np.array(
-        [[origin + 25, origin, origin + 75, origin + 50]], dtype=np.float64
+        [[origin + shift, origin, origin + side + shift, origin + side]],
+        dtype=dtype,
     )
+    return box_a, box_b
+
+
+@pytest.mark.parametrize(
+    ("origin", "overlap_metric", "expected"),
+    [
+        pytest.param(
+            2**24 + 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-above-2pow24"
+        ),
+        pytest.param(2**24 + 1, OverlapMetric.IOS, 0.5, id="ios-float64-above-2pow24"),
+        pytest.param(2**24, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-at-2pow24"),
+        pytest.param(
+            2**24 - 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-just-below-2pow24"
+        ),
+    ],
+)
+def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
+    origin: int,
+    overlap_metric: OverlapMetric,
+    expected: float,
+) -> None:
+    """`float64`/`int64` inputs keep full precision at the `2**24` boundary.
+
+    `float64` accumulation is exact for these integer-valued coordinates, so the
+    result must match the analytic value. Two 50x50 boxes shifted by 25 in x give
+    intersection 25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5.
+    This does not exercise the `float32`-storage case, which cannot be recovered
+    inside this function; it guards the `float64`/`int64` accumulation path only.
+    """
+    box_a, box_b = _boundary_box_pair(origin, dtype=np.float64)
+
+    result = box_iou_batch(
+        boxes_true=box_a, boxes_detection=box_b, overlap_metric=overlap_metric
+    )
+
+    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+
+
+def test_box_iou_batch_int32_input_does_not_overflow() -> None:
+    """`int32` coordinates with large areas must not overflow to a wrong IoU.
+
+    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`.
+    Before upcasting the corners to `float64`, this made the union non-positive
+    and the function returned `0.0`; it must now return the analytic IoU of 1/3.
+    """
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
 
     result = box_iou_batch(boxes_true=box_a, boxes_detection=box_b)
 
-    # Two 50x50 boxes shifted by 25 in x: intersection 25x50=1250,
-    # union 2*2500-1250=3750 -> IoU = 1/3.
+    assert result[0, 0] != 0.0
     assert result[0, 0] == pytest.approx(1.0 / 3.0, rel=1e-6)
 
 
