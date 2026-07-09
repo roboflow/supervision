@@ -2154,6 +2154,36 @@ class TraceAnnotator(BaseAnnotator):
         self.smooth = smooth
         self.color_lookup: ColorLookup = color_lookup
 
+    def reset(self) -> None:
+        """
+        Clears the accumulated trace history so the annotator can be reused
+        across independent streams without carrying over points from a
+        previous stream.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((20, 20, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[1, 1, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> _ = trace_annotator.annotate(scene=image.copy(), detections=detections)
+            >>> trace_annotator.trace.xy.shape
+            (1, 2)
+            >>> trace_annotator.reset()
+            >>> trace_annotator.trace.current_frame_id
+            0
+            >>> trace_annotator.trace.xy.shape
+            (0, 2)
+
+            ```
+        """
+        self.trace.reset()
+
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
@@ -2310,6 +2340,25 @@ class HeatMapAnnotator(BaseAnnotator):
         independent streams. `annotate` already reinitializes the heat mask
         when the scene resolution changes; call this to discard heat from a
         previous stream that shares the same resolution.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((40, 40, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(xyxy=np.array([[10, 10, 20, 20]]))
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            >>> _ = heat_map_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(heat_map_annotator.heat_mask.sum() > 0)
+            True
+            >>> heat_map_annotator.reset()
+            >>> heat_map_annotator.heat_mask is None
+            True
+
+            ```
         """
         self.heat_mask = None
 

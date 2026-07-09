@@ -391,6 +391,18 @@ class Trace:
         )
         return xy
 
+    def reset(self) -> None:
+        """Restore the trace buffers to their initial empty state.
+
+        Clears the accumulated `frame_id`, `xy`, and `tracker_id` history and
+        rewinds `current_frame_id` to `0`, so the trace can be reused across
+        independent streams without carrying over points from a previous run.
+        """
+        self.current_frame_id = 0
+        self.frame_id = np.array([], dtype=int)
+        self.xy = np.empty((0, 2), dtype=np.float32)
+        self.tracker_id = np.array([], dtype=int)
+
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     """

@@ -1003,16 +1003,35 @@ class TestHeatMapAnnotator:
         assert region_painted > 100
 
     def test_reset_clears_accumulated_heat(self, test_image: np.ndarray) -> None:
-        """reset() must discard accumulated heat so a reused annotator starts clean."""
-        annotator = HeatMapAnnotator()
-        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
-        annotator.annotate(scene=test_image.copy(), detections=detections)
-        annotator.reset()
-        result = annotator.annotate(
-            scene=test_image.copy(), detections=Detections.empty()
+        """reset() must zero accumulation so a reused annotator matches a fresh one.
+
+        The heatmap colours each pixel by its heat *relative to the current
+        maximum*, so a single uniformly-painted region always renders identically
+        regardless of its absolute count. To make the assertion actually depend on
+        reset having zeroed the buffer, heat is first built up on region A alone,
+        then after reset both region A and a fresh region B are annotated together.
+        If reset truly zeroed the buffer, A and B carry equal heat and the frame
+        matches a never-used annotator; if reset were a no-op, A's carried-over
+        count would dominate the max-normalisation and B would render a different
+        hue — so byte-equality with the fresh annotator can only hold when the
+        accumulation was genuinely discarded.
+        """
+        region_a = _create_detections(xyxy=[[10, 10, 30, 30]])
+        region_a_and_b = _create_detections(xyxy=[[10, 10, 30, 30], [60, 60, 90, 90]])
+        reused = HeatMapAnnotator()
+        for _ in range(5):
+            reused.annotate(scene=test_image.copy(), detections=region_a)
+        reused.reset()
+        reused_result = reused.annotate(
+            scene=test_image.copy(), detections=region_a_and_b
         )
-        assert annotator.heat_mask is None or not annotator.heat_mask.any()
-        assert np.array_equal(test_image, result)
+
+        fresh = HeatMapAnnotator()
+        fresh_result = fresh.annotate(
+            scene=test_image.copy(), detections=region_a_and_b
+        )
+
+        assert np.array_equal(reused_result, fresh_result)
 
 
 class TestEllipseAnnotator:
@@ -1741,6 +1760,69 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+
+class TestTraceAnnotatorReset:
+    """Tests for TraceAnnotator.reset() clearing accumulated trace history."""
+
+    def test_reset_empties_trace_buffers(self, test_image: np.ndarray) -> None:
+        """reset() must clear the underlying Trace buffers to their empty state."""
+        annotator = TraceAnnotator(trace_length=10)
+        detections = _create_detections(
+            xyxy=[[10, 10, 30, 30]], class_id=[1], tracker_id=[7]
+        )
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+
+        annotator.reset()
+
+        assert annotator.trace.frame_id.shape == (0,)
+        assert annotator.trace.xy.shape == (0, 2)
+        assert annotator.trace.tracker_id.shape == (0,)
+        assert annotator.trace.current_frame_id == 0
+
+    def test_reset_matches_fresh_annotator(self, test_image: np.ndarray) -> None:
+        """After reset() a reused annotator must render identically to a fresh one.
+
+        The two streams reuse the same ``tracker_id`` but follow spatially
+        distinct paths. If reset were a no-op, ``Trace.get`` would return the
+        first stream's points concatenated with the second's and draw a spurious
+        polyline bridging the two paths; only a genuine reset leaves solely the
+        second stream's points, so byte-equality with a never-used annotator can
+        hold only when the prior history was actually discarded. ``trace_length``
+        is large enough that no windowing prunes away the stale points that a
+        broken reset would leave behind.
+        """
+        first_stream = [
+            _create_detections(
+                xyxy=[[10 + step * 6, 10 + step * 6, 20 + step * 6, 20 + step * 6]],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            for step in range(5)
+        ]
+        second_stream = [
+            _create_detections(
+                xyxy=[[80 - step * 6, 10 + step * 6, 90 - step * 6, 20 + step * 6]],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            for step in range(5)
+        ]
+        reused = TraceAnnotator(trace_length=30)
+        reused_scene = test_image.copy()
+        for detections in first_stream:
+            reused_scene = reused.annotate(scene=reused_scene, detections=detections)
+        reused.reset()
+        reused_scene = test_image.copy()
+        for detections in second_stream:
+            reused_scene = reused.annotate(scene=reused_scene, detections=detections)
+
+        fresh = TraceAnnotator(trace_length=30)
+        fresh_scene = test_image.copy()
+        for detections in second_stream:
+            fresh_scene = fresh.annotate(scene=fresh_scene, detections=detections)
+
+        assert np.array_equal(reused_scene, fresh_scene)
 
 
 class TestTraceAnnotatorSmoothStationary:
