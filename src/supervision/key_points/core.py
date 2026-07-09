@@ -1201,6 +1201,8 @@ class KeyPoints:
         Raises:
             ValueError: If the non-empty inputs do not share the same number
                 of keypoints per skeleton.
+            ValueError: If the non-empty inputs do not share the same
+                coordinate depth (`xy.shape[2]`) per skeleton.
             ValueError: If some inputs have a field set (`class_id`,
                 `keypoint_confidence`, `detection_confidence`, or `visible`)
                 and others do not.
