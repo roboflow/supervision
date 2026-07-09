@@ -48,7 +48,7 @@ def main(
     ]
     timers = [ClockBasedTimer() for _ in zones]
 
-    window = sv.TkImageWindow("Processed Video")
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         fps_monitor.tick()
         fps = fps_monitor.fps

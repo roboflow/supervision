@@ -127,7 +127,7 @@ def main(
     ]
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
-    window = sv.TkImageWindow("Processed Video")
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         detections = model.predict(frame, threshold=confidence_threshold)
         detections = detections[find_in_list(detections.class_id, classes)]

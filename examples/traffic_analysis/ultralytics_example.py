@@ -108,7 +108,7 @@ class VideoProcessor:
                     annotated_frame = self.process_frame(frame)
                     sink.write_frame(annotated_frame)
         else:
-            window = sv.TkImageWindow("Processed Video")
+            window = sv.ImageWindow("Processed Video")
             for frame in tqdm(frame_generator, total=self.video_info.total_frames):
                 annotated_frame = self.process_frame(frame)
                 window.show(annotated_frame)

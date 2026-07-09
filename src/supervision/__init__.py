@@ -150,7 +150,7 @@ from supervision.utils.image import (
     scale_image,
     tint_image,
 )
-from supervision.utils.image_window import TkImageWindow
+from supervision.utils.image_window import ImageWindow
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
@@ -195,6 +195,7 @@ __all__ = [
     "HeatMapAnnotator",
     "IconAnnotator",
     "ImageSink",
+    "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
@@ -217,7 +218,6 @@ __all__ = [
     "Rect",
     "RichLabelAnnotator",
     "RoundBoxAnnotator",
-    "TkImageWindow",
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",

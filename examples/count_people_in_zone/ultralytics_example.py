@@ -166,7 +166,7 @@ def main(
                 )
                 sink.write_frame(annotated_frame)
     else:
-        window = sv.TkImageWindow("Processed Video")
+        window = sv.ImageWindow("Processed Video")
         for frame in tqdm(frames_generator, total=video_info.total_frames):
             detections = detect(frame, model, confidence_threshold, iou_threshold)
             annotated_frame = annotate(

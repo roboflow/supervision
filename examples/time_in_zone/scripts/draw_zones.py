@@ -42,7 +42,7 @@ def mouse_event(x: int, y: int, event_type: str) -> None:
 
 
 def redraw(
-    image: np.ndarray, original_image: np.ndarray, window: sv.TkImageWindow
+    image: np.ndarray, original_image: np.ndarray, window: sv.ImageWindow
 ) -> None:
     global POLYGONS, current_mouse_position
     image[:] = original_image.copy()
@@ -82,7 +82,7 @@ def redraw(
 
 
 def close_and_finalize_polygon(
-    image: np.ndarray, original_image: np.ndarray, window: sv.TkImageWindow
+    image: np.ndarray, original_image: np.ndarray, window: sv.ImageWindow
 ) -> None:
     if len(POLYGONS[-1]) > 2:
         cv2.line(
@@ -142,7 +142,7 @@ def main(source_path: str, zone_configuration_path: str) -> None:
         return
 
     image = original_image.copy()
-    window = sv.TkImageWindow(WINDOW_NAME)
+    window = sv.ImageWindow(WINDOW_NAME)
     window.set_mouse_callback(mouse_event)
     window.show(image)
 

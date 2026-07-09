@@ -48,7 +48,7 @@ def main(
     ]
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
-    window = sv.TkImageWindow("Processed Video")
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         results = model(
             frame,

@@ -82,7 +82,7 @@ def main(
     coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
     with sv.VideoSink(target_video_path, video_info) as sink:
-        window = sv.TkImageWindow("frame")
+        window = sv.ImageWindow("frame")
         for frame in frame_generator:
             result = model(frame, conf=confidence_threshold, iou=iou_threshold)[0]
             detections = sv.Detections.from_ultralytics(result)
