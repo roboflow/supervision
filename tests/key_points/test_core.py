@@ -1096,6 +1096,24 @@ def test_key_points_as_detections_with_data():
             None,
             pytest.raises(ValueError, match="same keys to merge"),
         ),  # data dictionaries with mismatched keys
+        pytest.param(
+            [
+                KeyPoints(xy=np.zeros((2, 0, 2), dtype=np.float32)),
+                KeyPoints(xy=np.zeros((3, 0, 2), dtype=np.float32)),
+            ],
+            KeyPoints(xy=np.zeros((5, 0, 2), dtype=np.float32)),
+            DoesNotRaise(),
+            id="zero-keypoints-merge-succeeds",
+        ),
+        pytest.param(
+            [
+                KeyPoints(xy=np.zeros((2, 0, 2), dtype=np.float32)),
+                KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32)),
+            ],
+            None,
+            pytest.raises(ValueError, match="same number of keypoints"),
+            id="zero-vs-nonzero-keypoints-mismatch",
+        ),
     ],
 )
 def test_key_points_merge(
@@ -1103,6 +1121,7 @@ def test_key_points_merge(
     expected_result: KeyPoints | None,
     exception: Exception,
 ) -> None:
+    """Test KeyPoints.merge field merging, mismatches, and zero-keypoint cases."""
     with exception:
         result = KeyPoints.merge(key_points_list=key_points_list)
         assert result == expected_result, f"Expected: {expected_result}, Got: {result}"
@@ -1135,6 +1154,33 @@ def test_key_points_iteration_no_confidence():
     )
     for xy, kp_confidence, class_id, data in key_points_no_conf:
         assert kp_confidence is None
+
+
+def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
+    """Test merge-then-NMS removes duplicated overlapping skeletons."""
+    key_points_list = [
+        _create_key_points(
+            xy=[[[100, 100], [200, 200]], [[400, 400], [500, 500]]],
+            detection_confidence=[0.9, 0.6],
+            class_id=[0, 0],
+        ),
+        _create_key_points(
+            xy=[[[100, 100], [200, 200]], [[700, 700], [800, 800]]],
+            detection_confidence=[0.85, 0.7],
+            class_id=[0, 0],
+        ),
+    ]
+
+    merged = KeyPoints.merge(key_points_list)
+    result = merged.with_nms(threshold=0.5, class_agnostic=False)
+
+    assert len(merged) == 4
+    assert len(result) == 3
+    assert len(result) < len(merged)
+    np.testing.assert_allclose(
+        np.sort(result.detection_confidence),
+        np.array([0.6, 0.7, 0.9], dtype=np.float32),
+    )
 
 
 @pytest.mark.parametrize(
