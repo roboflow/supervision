@@ -158,3 +158,46 @@ class TestDetectionsSmoother:
         assert len(smoothed_missing) == 0
         assert smoothed_returned.confidence is not None
         assert_allclose(smoothed_returned.xyxy, np.array([[1, 1, 11, 11]]), atol=1e-5)
+
+    def test_reset_clears_track_history(self) -> None:
+        """reset() must drop cached frames so post-reset output ignores prior boxes."""
+        smoother = DetectionsSmoother(length=3)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                confidence=np.array([0.5]),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        smoother.reset()
+        smoothed = smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                confidence=np.array([0.7]),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        assert len(smoother.tracks) == 1
+        assert_allclose(smoothed.xyxy, np.array([[2, 2, 12, 12]]), atol=1e-5)
+
+    def test_reset_preserves_window_length(self) -> None:
+        """reset() must keep the configured window so maxlen still bounds new tracks."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        smoother.reset()
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                tracker_id=np.array([9]),
+            )
+        )
+
+        assert smoother.tracks[9].maxlen == 2

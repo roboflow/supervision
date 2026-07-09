@@ -124,6 +124,20 @@ class PolygonZoneAnnotator:
         center: The center of the polygon for text placement
         display_in_zone_count: Show the label of the zone or not. Default is True
         opacity: The opacity of zone filling when drawn on the scene. Default is 0
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> zone_annotator = sv.PolygonZoneAnnotator(zone=polygon_zone, thickness=2)
+        >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
+        >>> annotated_scene = zone_annotator.annotate(scene=scene)
+        >>> annotated_scene.shape
+        (400, 400, 3)
+
+        ```
     """
 
     def __init__(
