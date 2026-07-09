@@ -8,10 +8,12 @@ import numpy as np
 import numpy.typing as npt
 from PIL import Image
 
+from supervision.utils.conversion import cv2_to_pillow
+
 MouseCallback = Callable[[int, int, str], None]
 
 
-class TkImageWindow:
+class ImageWindow:
     """Desktop image window backed by stdlib tkinter + pillow.
 
     Functional replacement for `cv2.imshow` / `cv2.waitKey` that works under
@@ -45,7 +47,7 @@ class TkImageWindow:
         ```python
         import supervision as sv
 
-        window = sv.TkImageWindow("preview")
+        window = sv.ImageWindow("preview")
         for frame in sv.get_video_frames_generator(source_path="video.mp4"):
             annotated = ...  # annotate frame
             window.show(annotated)
@@ -59,7 +61,7 @@ class TkImageWindow:
         ```python
         import supervision as sv
 
-        with sv.TkImageWindow("preview") as window:
+        with sv.ImageWindow("preview") as window:
             for frame in sv.get_video_frames_generator(source_path="video.mp4"):
                 window.show(frame)
                 if window.wait_key(delay_ms=1) == "q":
@@ -81,10 +83,10 @@ class TkImageWindow:
         self._pil_image: Image.Image | None = None
         self._win_w: int = 0
         self._win_h: int = 0
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+        self._display_scale_x: float = 1.0
+        self._display_scale_y: float = 1.0
+        self._display_offset_x: float = 0.0
+        self._display_offset_y: float = 0.0
 
     def show(self, image: npt.NDArray[np.uint8]) -> None:
         """Display a BGR, grayscale, or BGRA frame in the window.
@@ -161,19 +163,11 @@ class TkImageWindow:
                 root.destroy()
             self._reset_window_refs()
 
-    # ------------------------------------------------------------------
-    # Context manager
-    # ------------------------------------------------------------------
-
-    def __enter__(self) -> TkImageWindow:
+    def __enter__(self) -> ImageWindow:
         return self
 
     def __exit__(self, *_: object) -> None:
         self.close()
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _ensure_window(self) -> None:
         if self._window_exists():
@@ -210,16 +204,57 @@ class TkImageWindow:
         img = self._pil_image
         if self._win_w > 1 and self._win_h > 1:
             img = _fit_image(img, self._win_w, self._win_h, self.keep_aspect_ratio)
+        self._update_display_transform(img)
         self._photo = ImageTk.PhotoImage(img)
         self._label.configure(image=self._photo)
+
+    def _update_display_transform(self, fitted: Image.Image) -> None:
+        """Record the scale and letterbox offset from the last display pass.
+
+        The fitted image is drawn centered inside the label, so mouse events on
+        the label carry display-space coordinates. Storing the per-axis scale
+        and centering offset lets `_on_mouse` invert the transform back to
+        original image-pixel coordinates. Falls back to an identity transform
+        while the window geometry is still unknown.
+        """
+        if self._pil_image is None:
+            return
+        orig_w, orig_h = self._pil_image.size
+        fit_w, fit_h = fitted.size
+        win_w = self._win_w if self._win_w > 1 else fit_w
+        win_h = self._win_h if self._win_h > 1 else fit_h
+        self._display_scale_x = fit_w / orig_w if orig_w else 1.0
+        self._display_scale_y = fit_h / orig_h if orig_h else 1.0
+        self._display_offset_x = max(0.0, (win_w - fit_w) / 2)
+        self._display_offset_y = max(0.0, (win_h - fit_h) / 2)
 
     def _on_key(self, event: Any) -> None:
         self._key_queue.append(event.keysym)
         self._signal_wait()
 
     def _on_mouse(self, event: Any, event_type: str) -> None:
-        if self._mouse_callback is not None:
-            self._mouse_callback(event.x, event.y, event_type)
+        if self._mouse_callback is None:
+            return
+        x, y = self._to_image_coords(event.x, event.y)
+        self._mouse_callback(x, y, event_type)
+
+    def _to_image_coords(self, event_x: int, event_y: int) -> tuple[int, int]:
+        """Map label-space event coordinates to original image pixels.
+
+        Inverts the scale and letterbox offset recorded by `_update_display`
+        so callbacks receive coordinates in the source image's pixel space,
+        regardless of how the window has been resized. Results are rounded to
+        the nearest pixel and clamped inside the image bounds. When no image
+        has been shown, the raw event coordinates are returned unchanged.
+        """
+        if self._pil_image is None:
+            return event_x, event_y
+        orig_w, orig_h = self._pil_image.size
+        image_x = round((event_x - self._display_offset_x) / self._display_scale_x)
+        image_y = round((event_y - self._display_offset_y) / self._display_scale_y)
+        clamped_x = min(max(image_x, 0), orig_w - 1)
+        clamped_y = min(max(image_y, 0), orig_h - 1)
+        return clamped_x, clamped_y
 
     def _signal_wait(self) -> None:
         if self._key_event is None:
@@ -253,11 +288,6 @@ class TkImageWindow:
         self._key_queue.clear()
 
 
-# ------------------------------------------------------------------
-# Module-level helper
-# ------------------------------------------------------------------
-
-
 def _fit_image(
     image: Image.Image, width: int, height: int, keep_aspect_ratio: bool = True
 ) -> Image.Image:
@@ -273,10 +303,10 @@ def _fit_image(
 
 
 def _bgr_to_pil(image: npt.NDArray[np.uint8]) -> Image.Image:
-    if image.ndim == 2:
-        return Image.fromarray(np.ascontiguousarray(image))
-    if image.ndim == 3 and image.shape[2] == 3:
-        return Image.fromarray(np.ascontiguousarray(image[..., ::-1]))
-    if image.ndim == 3 and image.shape[2] == 4:
-        return Image.fromarray(np.ascontiguousarray(image[..., [2, 1, 0, 3]]))
-    raise ValueError(f"Expected shape (H,W), (H,W,3), or (H,W,4), got {image.shape}.")
+    """Convert a BGR, grayscale, or BGRA OpenCV array to a Pillow image.
+
+    Thin wrapper delegating to `sv.cv2_to_pillow`, which reorders channels
+    from OpenCV's BGR(A) convention to Pillow's RGB(A) and passes grayscale
+    arrays through unchanged.
+    """
+    return cv2_to_pillow(image)

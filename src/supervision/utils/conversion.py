@@ -196,14 +196,20 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     """
-    Converts OpenCV image into Pillow image, handling BGR -> RGB
-    conversion.
+    Converts an OpenCV image into a Pillow image, reordering channels from
+    OpenCV's BGR(A) convention to Pillow's RGB(A).
 
     Args:
-        image: OpenCV image (in BGR format).
+        image: OpenCV image. Accepted shapes:
+            - `(H, W)` — grayscale, passed through unchanged.
+            - `(H, W, 3)` — BGR, converted to RGB.
+            - `(H, W, 4)` — BGRA, converted to RGBA.
 
     Returns:
         Input image converted to Pillow format.
+
+    Raises:
+        ValueError: If `image` is not 2-D or 3-D with 3 or 4 channels.
 
     Examples:
         ```pycon
@@ -219,5 +225,11 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
 
         ```
     """
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(rgb_image)
+    if image.ndim == 2:
+        return Image.fromarray(np.ascontiguousarray(image))
+    if image.ndim == 3 and image.shape[2] == 3:
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return Image.fromarray(rgb_image)
+    if image.ndim == 3 and image.shape[2] == 4:
+        return Image.fromarray(np.ascontiguousarray(image[..., [2, 1, 0, 3]]))
+    raise ValueError(f"Expected shape (H,W), (H,W,3), or (H,W,4), got {image.shape}.")
