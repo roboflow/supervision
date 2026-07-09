@@ -45,9 +45,8 @@ class TestGreedyMatch:
         matched_indices = np.where(iou >= 0.5)
         assert list(_greedy_match(iou, matched_indices)) == [(1, 0)]
 
-    def test_all_unmatched_when_each_target_shares_one_prediction(self) -> None:
-        """Once a target and prediction are consumed, later pairs referencing
-        them are skipped even if above threshold."""
+    def test_two_non_conflicting_pairs_are_matched(self) -> None:
+        """Two non-conflicting pairs are matched."""
         iou = np.array([[0.9, 0.8], [0.85, 0.0], [0.0, 0.7]], dtype=np.float32)
         matched_indices = np.where(iou >= 0.5)
         result = list(_greedy_match(iou, matched_indices))
