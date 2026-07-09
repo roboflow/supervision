@@ -266,16 +266,11 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        # PIL is much faster than cv2 for checking image shape and mode: https://github.com/roboflow/supervision/issues/1554
-        image = Image.open(image_path)
+        # PIL is much faster than cv2 for checking image shape: https://github.com/roboflow/supervision/issues/1554
+        with Image.open(image_path) as image:
+            w, h = image.size
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
-        w, h = image.size
         resolution_wh = (w, h)
-        if image.mode not in ("RGB", "L"):
-            raise ValueError(
-                f"Images must be 'RGB' or 'grayscale', \
-                but {image_path} mode is '{image.mode}'."
-            )
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
         annotation = yolo_annotations_to_detections(

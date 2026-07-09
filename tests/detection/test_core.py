@@ -1631,6 +1631,44 @@ class TestDetectionsObbDispatch:
         assert len(result) == 1
 
 
+class TestDetectionsOverlapValidation:
+    """`with_nms` and `with_nmm` require confidence and class IDs by default."""
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_requires_confidence(self, method: str) -> None:
+        """Missing confidence raises a descriptive `ValueError`."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="Detections confidence must be given"):
+            getattr(detections, method)(threshold=0.5)
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_requires_class_id_when_not_class_agnostic(self, method: str) -> None:
+        """Missing class IDs raise a descriptive `ValueError`."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+        )
+
+        with pytest.raises(ValueError, match="Detections class_id must be given"):
+            getattr(detections, method)(threshold=0.5)
+
+
 class TestGetAnchorsObbDispatch:
     """`get_anchors_coordinates` reads oriented corners when OBB data is present."""
 

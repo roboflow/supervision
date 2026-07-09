@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
+import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.vlm import (
@@ -992,6 +993,39 @@ def test_florence_2(
 
 
 @pytest.mark.parametrize(
+    ("florence_result", "match"),
+    [
+        pytest.param(
+            {
+                "<REGION_TO_CATEGORY>": (
+                    "some object<loc_300><loc_400><loc_500><loc_600>"
+                ),
+                "<REGION_TO_DESCRIPTION>": "other",
+            },
+            "single element",
+            id="multiple-top-level-tasks",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": 123},
+            "Expected string as <REGION_TO_CATEGORY> result",
+            id="non-string-region-result",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": "some object"},
+            "Expected string to end in location tags",
+            id="missing-location-tags",
+        ),
+    ],
+)
+def test_florence_2_invalid_payloads_raise_value_error(
+    florence_result: dict[str, object], match: str
+) -> None:
+    """Malformed Florence 2 region payloads raise `ValueError`."""
+    with pytest.raises(ValueError, match=match):
+        from_florence_2(florence_result, (10, 10))
+
+
+@pytest.mark.parametrize(
     ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (
@@ -1388,6 +1422,33 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert np.allclose(confidence, [0.8, 0.9])
     assert masks is not None
     assert masks.shape == (2, 480, 640)
+
+
+def test_from_vlm_unsupported_future_enum_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown VLM members should raise instead of returning empty detections."""
+
+    class FakeVLM:
+        PALIGEMMA = object()
+        FLORENCE_2 = object()
+        QWEN_2_5_VL = object()
+        QWEN_3_VL = object()
+        DEEPSEEK_VL_2 = object()
+        GOOGLE_GEMINI_2_0 = object()
+        GOOGLE_GEMINI_2_5 = object()
+        MOONDREAM = object()
+        FUTURE = object()
+
+    monkeypatch.setattr(detection_core, "VLM", FakeVLM)
+    monkeypatch.setattr(
+        detection_core,
+        "_validate_vlm_parameters",
+        lambda vlm, result, kwargs: vlm,
+    )
+
+    with pytest.raises(ValueError, match="Unsupported VLM value"):
+        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")
 
 
 @pytest.mark.parametrize(

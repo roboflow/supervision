@@ -30,20 +30,26 @@ from supervision.detection.utils.polygons import (
 )
 
 
-@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
 def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
-    """Deprecated. Use `supervision.detection.utils.converters.mask_to_rle`."""
+    """Deprecated since 0.28.0.
+
+    Use `supervision.detection.utils.converters.mask_to_rle`.
+    """
     return cast(list[int] | str, void(mask, compressed))
 
 
-@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
 def rle_to_mask(
     rle: npt.NDArray[np.integer] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
-    """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
+    """Deprecated since 0.28.0.
+
+    Use `supervision.detection.utils.converters.rle_to_mask`.
+    """
     return cast(npt.NDArray[np.bool_], void(rle, resolution_wh))
 
 
@@ -57,8 +63,13 @@ def approximate_mask_with_polygons(
     mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
+    approximation_percentage: float = 0.0,
 ) -> list[npt.NDArray[np.number]]:
+    """Filter mask polygons by area and optionally simplify them.
+
+    The default `approximation_percentage=0.0` preserves the original contour
+    unless callers explicitly ask for simplification.
+    """
     height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area

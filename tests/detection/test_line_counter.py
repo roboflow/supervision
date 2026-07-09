@@ -915,7 +915,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
-    assert set(line_zone.crossing_state_history) == {(1, 2)}
+    assert set(line_zone.crossing_state_history) == {1}
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
@@ -931,7 +931,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> No
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
-    """Class changes age out stale per-class crossing history."""
+    """Class changes must not split a tracker crossing history."""
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
     first_detections = _create_detections(
         xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
@@ -944,7 +944,31 @@ def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> No
     for _ in range(line_zone.crossing_history_length):
         line_zone.trigger(second_detections)
 
-    assert set(line_zone.crossing_state_history) == {(0, 2)}
+    assert set(line_zone.crossing_state_history) == {0}
+
+
+def test_line_zone_class_flicker_keeps_crossing_counts_continuous() -> None:
+    """A tracker's class change must not suppress a real crossing."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    detections_sequence = [
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[0]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]),
+    ]
+
+    crossed_in = []
+    crossed_out = []
+    for detections in detections_sequence:
+        crossed_in_frame, crossed_out_frame = line_zone.trigger(detections)
+        crossed_in.append(bool(crossed_in_frame[0]))
+        crossed_out.append(bool(crossed_out_frame[0]))
+
+    assert crossed_in == [False, True, False, False]
+    assert crossed_out == [False, False, False, True]
+    assert line_zone.in_count_per_class == {1: 1}
+    assert line_zone.out_count_per_class == {1: 1}
+    assert set(line_zone.crossing_state_history) == {0}
 
 
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:

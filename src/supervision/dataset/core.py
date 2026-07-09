@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from copy import deepcopy
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -47,6 +48,10 @@ from supervision.dataset.utils import (
 from supervision.detection.core import Detections
 from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
+
+_IMAGE_FILE_EXTENSIONS = frozenset(
+    {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+)
 
 
 class BaseDataset(ABC):
@@ -96,15 +101,38 @@ class DetectionDataset(BaseDataset):
             raise ValueError(
                 "The keys of the images and annotations dictionaries must match."
             )
-        self.annotations = annotations
+        self.annotations = {
+            image_path: deepcopy(annotation)
+            for image_path, annotation in annotations.items()
+        }
 
-        if self.classes:
-            np_classes = np.array(self.classes)
-            for annotation in self.annotations.values():
-                if annotation.class_id is not None:
-                    annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[
-                        annotation.class_id
-                    ]
+        np_classes = np.array(self.classes)
+        for image_path, annotation in self.annotations.items():
+            class_ids = annotation.class_id
+            if class_ids is None:
+                continue
+            if not np.issubdtype(class_ids.dtype, np.integer):
+                raise ValueError(
+                    f"Detection annotation for image {image_path!r} contains "
+                    f"non-integer class_id values with dtype {class_ids.dtype}."
+                )
+
+            invalid_class_ids = class_ids[
+                (class_ids < 0) | (class_ids >= len(self.classes))
+            ]
+            if len(invalid_class_ids) > 0:
+                valid_range = (
+                    "empty"
+                    if len(self.classes) == 0
+                    else f"[0, {len(self.classes) - 1}]"
+                )
+                raise ValueError(
+                    f"Detection annotation for image {image_path!r} contains "
+                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
+                    f"range {valid_range} for {len(self.classes)} classes."
+                )
+
+            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -156,7 +184,7 @@ class DetectionDataset(BaseDataset):
         if not isinstance(other, DetectionDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
@@ -224,27 +252,26 @@ class DetectionDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        if self._images_in_memory:
-            train_input = {path: self._images_in_memory[path] for path in train_paths}
-            test_input = {path: self._images_in_memory[path] for path in test_paths}
-        else:
-            train_input = train_paths
-            test_input = test_paths
         train_annotations = {path: self.annotations[path] for path in train_paths}
         test_annotations = {path: self.annotations[path] for path in test_paths}
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images=train_input,
+            images=train_paths,
             annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images=test_input,
+            images=test_paths,
             annotations=test_annotations,
         )
+        if self._images_in_memory:
+            train_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in train_paths
+            }
+            test_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in test_paths
+            }
         return train_dataset, test_dataset
 
     @classmethod
@@ -341,11 +368,14 @@ class DetectionDataset(BaseDataset):
                     detections=annotations[image_path],
                 )
 
-        return cls(
+        merged_dataset = cls(
             classes=classes,
-            images=images_in_memory or image_paths,
+            images=image_paths,
             annotations=annotations,
         )
+        if all_in_memory:
+            merged_dataset._images_in_memory = images_in_memory
+        return merged_dataset
 
     def as_pascal_voc(
         self,
@@ -358,7 +388,9 @@ class DetectionDataset(BaseDataset):
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format.
+        and their corresponding annotations in PASCAL VOC format. Both output
+        layouts are preflighted before any files are written so a collision in
+        either target fails without partial output.
 
         Args:
             images_directory_path: The path to the directory
@@ -392,6 +424,12 @@ class DetectionDataset(BaseDataset):
                 image_paths=self.image_paths,
                 key=lambda image_path: Path(image_path).name,
                 output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
             )
 
         if images_directory_path:
@@ -841,6 +879,8 @@ class DetectionDataset(BaseDataset):
         annotations_path: str,
         force_masks: bool = False,
         show_progress: bool = False,
+        *,
+        use_iscrowd: bool = True,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from COCO formatted data.
@@ -853,6 +893,8 @@ class DetectionDataset(BaseDataset):
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
             show_progress: If True, display a progress bar during loading.
+            use_iscrowd: If True, includes COCO ``iscrowd`` and ``area``
+                annotation fields in ``Detections.data``.
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
@@ -883,6 +925,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,
+            use_iscrowd=use_iscrowd,
             show_progress=show_progress,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
@@ -1072,7 +1115,7 @@ class ClassificationDataset(BaseDataset):
         if not isinstance(other, ClassificationDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
@@ -1203,7 +1246,9 @@ class ClassificationDataset(BaseDataset):
         Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
-            root_directory_path: The path to the dataset directory.
+            root_directory_path: The path to the dataset directory. Hidden
+                entries, root-level files, nested directories, and files whose
+                suffix is not a supported image extension are ignored.
             show_progress: If True, display a progress bar during loading.
 
         Returns:
@@ -1227,24 +1272,37 @@ class ClassificationDataset(BaseDataset):
             )
             ```
         """
-        classes = os.listdir(root_directory_path)
-        classes = sorted(set(classes))
+        root_directory = Path(root_directory_path)
+        classes = sorted(
+            {
+                entry.name
+                for entry in root_directory.iterdir()
+                if entry.is_dir() and not entry.name.startswith(".")
+            }
+        )
 
         image_paths = []
         annotations = {}
 
-        for class_name in tqdm(
-            classes,
-            total=len(classes),
-            desc="Loading classification dataset",
-            disable=not show_progress,
+        for class_id, class_name in enumerate(
+            tqdm(
+                classes,
+                total=len(classes),
+                desc="Loading classification dataset",
+                disable=not show_progress,
+            )
         ):
-            class_id = classes.index(class_name)
+            class_directory = root_directory / class_name
 
-            for image in os.listdir(os.path.join(root_directory_path, class_name)):
-                image_path = str(os.path.join(root_directory_path, class_name, image))
-                image_paths.append(image_path)
-                annotations[image_path] = Classifications(
+            for image_path in sorted(
+                class_directory.iterdir(), key=lambda path: path.name
+            ):
+                if image_path.name.startswith(".") or not image_path.is_file():
+                    continue
+                if image_path.suffix.lower() not in _IMAGE_FILE_EXTENSIONS:
+                    continue
+                image_paths.append(str(image_path))
+                annotations[str(image_path)] = Classifications(
                     class_id=np.array([class_id]),
                 )
 

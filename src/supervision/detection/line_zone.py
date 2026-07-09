@@ -114,14 +114,14 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = (
-            defaultdict(lambda: deque(maxlen=self.crossing_history_length))
+        self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
+            lambda: deque(maxlen=self.crossing_history_length)
         )
         # Tracks consecutive frames a tracker key has been absent; eviction
         # requires crossing_history_length absent frames so that ByteTrack
         # coasting gaps (single-frame detection drops) don't reset mid-crossing
         # state prematurely.
-        self._tracker_frames_absent: dict[tuple[int, int | None], int] = {}
+        self._tracker_frames_absent: dict[int, int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
         self.triggering_anchors = triggering_anchors
@@ -181,10 +181,7 @@ class LineZone:
             if detections.class_id is not None
             else [None] * len(detections)
         )
-        current_keys = {
-            (int(tracker_id), int(class_id) if class_id is not None else None)
-            for tracker_id, class_id in zip(detections.tracker_id, class_ids)
-        }
+        current_keys = {int(tracker_id) for tracker_id in detections.tracker_id}
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
@@ -202,7 +199,7 @@ class LineZone:
                 continue
 
             tracker_state: bool = has_any_left_trigger[i]
-            key = (int(tracker_id), int(class_id) if class_id is not None else None)
+            key = int(tracker_id)
             crossing_history = self.crossing_state_history[key]
             crossing_history.append(tracker_state)
 
@@ -222,9 +219,7 @@ class LineZone:
 
         return crossed_in, crossed_out
 
-    def _evict_stale_crossing_history(
-        self, current_keys: set[tuple[int, int | None]]
-    ) -> None:
+    def _evict_stale_crossing_history(self, current_keys: set[int]) -> None:
         for key in list(self.crossing_state_history):
             if key in current_keys:
                 self._tracker_frames_absent.pop(key, None)
@@ -351,6 +346,13 @@ class LineZone:
 
 
 class LineZoneAnnotator:
+    """
+    Draw a `LineZone` and its in/out counts on a video frame.
+
+    Use this annotator after calling `LineZone.trigger` so the rendered counts
+    reflect the latest tracked detections.
+    """
+
     def __init__(
         self,
         thickness: int = 2,
@@ -740,6 +742,13 @@ class LineZoneAnnotator:
 
 
 class LineZoneAnnotatorMulticlass:
+    """
+    Draw per-class crossing counts for one or more `LineZone` instances.
+
+    The annotator renders a table with one row per line zone and one column per
+    class observed by the zones.
+    """
+
     def __init__(
         self,
         *,

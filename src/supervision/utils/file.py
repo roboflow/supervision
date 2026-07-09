@@ -89,7 +89,10 @@ def _download_to_file(
     finally:
         response.close()
 
-    os.replace(temp_path, target)
+    try:
+        os.replace(temp_path, target)
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 class NumpyJsonEncoder(json.JSONEncoder):

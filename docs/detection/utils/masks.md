@@ -6,6 +6,12 @@ status: new
 # Masks Utils
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.masks.mask_to_roi">mask_to_roi</a></h2>
+</div>
+
+:::supervision.detection.utils.masks.mask_to_roi
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.masks.move_masks">move_masks</a></h2>
 </div>
 

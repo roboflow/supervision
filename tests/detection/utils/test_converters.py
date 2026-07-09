@@ -318,17 +318,25 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     np.testing.assert_array_equal(result, expected)
 
 
-def _mask_to_xyxy_reference(masks: np.ndarray) -> np.ndarray:
+def _mask_to_xyxy_reference(
+    masks: np.ndarray, coordinate_convention: str = "inclusive"
+) -> np.ndarray:
     """Per-mask `np.where` loop used as a ground-truth oracle."""
     xyxy = np.zeros((masks.shape[0], 4), dtype=int)
     for i, mask in enumerate(masks):
         rows, cols = np.where(mask)
         if len(rows) > 0 and len(cols) > 0:
+            if coordinate_convention == "exclusive":
+                x_max = int(cols.max()) + 1
+                y_max = int(rows.max()) + 1
+            else:
+                x_max = int(cols.max())
+                y_max = int(rows.max())
             xyxy[i, :] = [
                 int(cols.min()),
                 int(rows.min()),
-                int(cols.max()),
-                int(rows.max()),
+                x_max,
+                y_max,
             ]
     return xyxy
 
@@ -397,6 +405,52 @@ class TestMaskToXyxy:
         assert result.dtype == reference.dtype
         np.testing.assert_array_equal(result, reference)
 
+    def test_mask_to_xyxy_exclusive_matches_reference(self) -> None:
+        """Exclusive bounds should return one-past-the-end coordinates."""
+        masks = np.array(
+            [
+                [[False, False], [False, True]],
+                [[True, True], [True, True]],
+            ],
+            dtype=bool,
+        )
+
+        result = mask_to_xyxy(masks, coordinate_convention="exclusive")
+        reference = _mask_to_xyxy_reference(masks, coordinate_convention="exclusive")
+
+        np.testing.assert_array_equal(result, reference)
+
+    def test_xyxy_to_mask_exclusive_round_trip(self) -> None:
+        """Exclusive boxes should round-trip through `xyxy_to_mask`."""
+        boxes = np.array([[1, 1, 3, 3], [0, 0, 2, 1]], dtype=float)
+
+        result = xyxy_to_mask(
+            boxes=boxes,
+            resolution_wh=(4, 4),
+            coordinate_convention="exclusive",
+        )
+
+        expected = np.array(
+            [
+                [
+                    [False, False, False, False],
+                    [False, True, True, False],
+                    [False, True, True, False],
+                    [False, False, False, False],
+                ],
+                [
+                    [True, True, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                ],
+            ],
+            dtype=bool,
+        )
+
+        assert result.dtype == np.bool_
+        np.testing.assert_array_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     ("mask", "compressed", "expected_rle", "exception"),
@@ -458,14 +512,14 @@ class TestMaskToXyxy:
             np.array([[[]]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask must be 2D"),
-        ),  # raises AssertionError because mask dimensionality is not 2D
+            pytest.raises(ValueError, match="Input mask must be 2D"),
+        ),  # raises ValueError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask cannot be empty"),
-        ),  # raises AssertionError because mask is empty
+            pytest.raises(ValueError, match="Input mask cannot be empty"),
+        ),  # raises ValueError because mask is empty
     ],
 )
 def test_mask_to_rle(

@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
+    check_no_basename_collisions,
     map_detections_class_id,
 )
 from supervision.detection.core import Detections
@@ -199,9 +200,16 @@ def coco_annotations_to_detections(
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
         iscrowd = [
-            image_annotation["iscrowd"] for image_annotation in image_annotations
+            image_annotation.get("iscrowd", 0) for image_annotation in image_annotations
         ]
-        area = [image_annotation["area"] for image_annotation in image_annotations]
+        area = []
+        for image_annotation in image_annotations:
+            if "area" in image_annotation:
+                area.append(image_annotation["area"])
+            elif with_masks and _with_seg_mask(image_annotation):
+                area.append(np.nan)
+            else:
+                area.append(image_annotation["bbox"][2] * image_annotation["bbox"][3])
         data = dict(
             iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
         )
@@ -351,7 +359,16 @@ def detections_to_coco_annotations(
                 else:
                     segmentation = list(raw_seg)
 
-        area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
+        stored_area = None
+        if "area" in data:
+            stored_area = float(np.asarray(data["area"]).item())
+
+        if stored_area is not None and np.isfinite(stored_area):
+            area = stored_area
+        elif mask is not None:
+            area = float(np.count_nonzero(mask))
+        else:
+            area = float(box_width * box_height)
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
@@ -427,13 +444,15 @@ def load_coco_annotations(
         show_progress: If `True`, display a progress bar during loading.
 
     Returns:
-        A tuple of `(classes, image_paths, annotations)`.
+        A tuple of `(classes, image_paths, annotations)` where image paths are
+        canonicalized resolved paths inside ``images_directory_path``.
 
     Raises:
         ValueError: If any annotation's ``file_name`` resolves to the images
             directory itself, to a path outside the images directory (e.g. via
             ``../`` traversal or an absolute path), or to a subdirectory instead
             of a regular image file.
+        ValueError: If two image entries resolve to the same canonical path.
 
     Note:
         Each annotation's ``file_name`` is validated against
@@ -496,6 +515,12 @@ def load_coco_annotations(
                 f"COCO annotation refers to image {image_name!r}, which "
                 f"resolves to directory {resolved_image_path}. Expected a "
                 "path to an image file."
+            )
+        image_path = str(resolved_image_path)
+        if image_path in annotations:
+            raise ValueError(
+                f"COCO annotation file contains duplicate entries for image "
+                f"{image_name!r}. Each image must appear at most once."
             )
 
         with_masks = force_masks or any(
@@ -562,12 +587,14 @@ def save_coco_annotations(
 
         .. note::
             This function ensures globally unique integer ``id`` values across
-            splits. It does **not** ensure unique ``file_name`` values — the
-            ``file_name`` field is set to the bare image basename, so splits
-            that share filenames (e.g. ``000001.jpg`` in both train and valid)
-            will have duplicate ``file_name`` values when their COCO files are
-            merged. Use distinct output directories or rename images before
-            merging if downstream tools require unique ``file_name`` keys.
+            splits. It rejects duplicate image basenames before writing because
+            ``file_name`` is set to the bare image basename, so two input paths
+            that differ only by directory would otherwise collapse to the same
+            COCO image record.
+
+    Raises:
+        ValueError: If two image paths share the same basename and would map to
+            the same COCO ``file_name``.
 
     Example:
         ```python
@@ -592,6 +619,11 @@ def save_coco_annotations(
             "(COCO spec requires 1-indexed ids); "
             f"got {starting_image_id=}, {starting_annotation_id=}"
         )
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="COCO image",
+    )
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {

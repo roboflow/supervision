@@ -75,6 +75,7 @@ repos:
           - "numpy>=2.0"
           - "types-PyYAML"
           - "types-requests"
+          - "types-tqdm"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
