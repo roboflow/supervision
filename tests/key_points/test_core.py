@@ -936,6 +936,197 @@ def test_key_points_as_detections_with_data():
     assert np.array_equal(detections.data["custom_data"], np.array(["value1"]))
 
 
+@pytest.mark.parametrize(
+    ("key_points_list", "expected_result", "exception"),
+    [
+        (
+            [],
+            KeyPoints.empty(),
+            DoesNotRaise(),
+        ),  # empty list
+        (
+            [KeyPoints.empty(), KeyPoints.empty()],
+            KeyPoints.empty(),
+            DoesNotRaise(),
+        ),  # only empty KeyPoints
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    confidence=[[0.9, 0.8]],
+                    class_id=[0],
+                ),
+            ],
+            _create_key_points(
+                xy=[[[10, 10], [20, 20]]],
+                confidence=[[0.9, 0.8]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # single KeyPoints
+        (
+            [
+                KeyPoints.empty(),
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    confidence=[[0.9, 0.8]],
+                    class_id=[0],
+                ),
+                KeyPoints.empty(),
+            ],
+            _create_key_points(
+                xy=[[[10, 10], [20, 20]]],
+                confidence=[[0.9, 0.8]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # empty KeyPoints are ignored
+        (
+            [
+                KeyPoints(xy=np.array([[[10, 10], [20, 20]]], dtype=np.float32)),
+                KeyPoints(xy=np.array([[[30, 30], [40, 40]]], dtype=np.float32)),
+            ],
+            KeyPoints(
+                xy=np.array(
+                    [[[10, 10], [20, 20]], [[30, 30], [40, 40]]], dtype=np.float32
+                )
+            ),
+            DoesNotRaise(),
+        ),  # xy only; all optional fields None
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    confidence=[[0.9, 0.8]],
+                    class_id=[0],
+                    detection_confidence=[0.95],
+                    visible=[[True, False]],
+                    data={"class_name": ["person"]},
+                ),
+                _create_key_points(
+                    xy=[[[30, 30], [40, 40]], [[50, 50], [60, 60]]],
+                    confidence=[[0.7, 0.6], [0.5, 0.4]],
+                    class_id=[1, 2],
+                    detection_confidence=[0.85, 0.75],
+                    visible=[[True, True], [False, True]],
+                    data={"class_name": ["dog", "cat"]},
+                ),
+            ],
+            _create_key_points(
+                xy=[
+                    [[10, 10], [20, 20]],
+                    [[30, 30], [40, 40]],
+                    [[50, 50], [60, 60]],
+                ],
+                confidence=[[0.9, 0.8], [0.7, 0.6], [0.5, 0.4]],
+                class_id=[0, 1, 2],
+                detection_confidence=[0.95, 0.85, 0.75],
+                visible=[[True, False], [True, True], [False, True]],
+                data={"class_name": ["person", "dog", "cat"]},
+            ),
+            DoesNotRaise(),
+        ),  # all fields populated on every input
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    confidence=[[0.9, 0.8]],
+                    class_id=[0],
+                ),
+                KeyPoints(xy=np.array([[[30, 30], [40, 40]]], dtype=np.float32)),
+            ],
+            None,
+            pytest.raises(ValueError, match="All or none of the 'class_id'"),
+        ),  # class_id set on one input and None on the other
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    visible=[[True, False]],
+                ),
+                KeyPoints(xy=np.array([[[30, 30], [40, 40]]], dtype=np.float32)),
+            ],
+            None,
+            pytest.raises(ValueError, match="All or none of the 'visible'"),
+        ),  # visible set on one input and None on the other
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    detection_confidence=[0.9],
+                ),
+                KeyPoints(xy=np.array([[[30, 30], [40, 40]]], dtype=np.float32)),
+            ],
+            None,
+            pytest.raises(
+                ValueError, match="All or none of the 'detection_confidence'"
+            ),
+        ),  # detection_confidence set on one input and None on the other
+        (
+            [
+                KeyPoints(xy=np.array([[[10, 10], [20, 20]]], dtype=np.float32)),
+                KeyPoints(
+                    xy=np.array([[[10, 10], [20, 20], [30, 30]]], dtype=np.float32)
+                ),
+            ],
+            None,
+            pytest.raises(ValueError, match="same number of keypoints"),
+        ),  # mismatched keypoint counts per skeleton
+        (
+            [
+                KeyPoints(xy=np.array([[[10, 10], [20, 20]]], dtype=np.float32)),
+                KeyPoints(
+                    xy=np.array([[[30, 30, 0.9], [40, 40, 0.8]]], dtype=np.float32)
+                ),
+            ],
+            None,
+            pytest.raises(ValueError, match=r"got depths \[2, 3\]"),
+        ),  # mismatched coordinate depths per skeleton
+        (
+            [
+                _create_key_points(
+                    xy=[[[10, 10], [20, 20]]],
+                    data={"class_name": ["person"]},
+                ),
+                _create_key_points(
+                    xy=[[[30, 30], [40, 40]]],
+                    data={"tracker_id": [7]},
+                ),
+            ],
+            None,
+            pytest.raises(ValueError, match="same keys to merge"),
+        ),  # data dictionaries with mismatched keys
+        pytest.param(
+            [
+                KeyPoints(xy=np.zeros((2, 0, 2), dtype=np.float32)),
+                KeyPoints(xy=np.zeros((3, 0, 2), dtype=np.float32)),
+            ],
+            KeyPoints(xy=np.zeros((5, 0, 2), dtype=np.float32)),
+            DoesNotRaise(),
+            id="zero-keypoints-merge-succeeds",
+        ),
+        pytest.param(
+            [
+                KeyPoints(xy=np.zeros((2, 0, 2), dtype=np.float32)),
+                KeyPoints(xy=np.zeros((1, 2, 2), dtype=np.float32)),
+            ],
+            None,
+            pytest.raises(ValueError, match="same number of keypoints"),
+            id="zero-vs-nonzero-keypoints-mismatch",
+        ),
+    ],
+)
+def test_key_points_merge(
+    key_points_list: list[KeyPoints],
+    expected_result: KeyPoints | None,
+    exception: Exception,
+) -> None:
+    """Test KeyPoints.merge field merging, mismatches, and zero-keypoint cases."""
+    with exception:
+        result = KeyPoints.merge(key_points_list=key_points_list)
+        assert result == expected_result, f"Expected: {expected_result}, Got: {result}"
+
+
 def test_key_points_iteration():
     """Test the iteration over KeyPoints objects."""
     key_points = _create_key_points(
@@ -963,6 +1154,33 @@ def test_key_points_iteration_no_confidence():
     )
     for xy, kp_confidence, class_id, data in key_points_no_conf:
         assert kp_confidence is None
+
+
+def test_key_points_merge_then_with_nms_deduplicates_overlapping_detections():
+    """Test merge-then-NMS removes duplicated overlapping skeletons."""
+    key_points_list = [
+        _create_key_points(
+            xy=[[[100, 100], [200, 200]], [[400, 400], [500, 500]]],
+            detection_confidence=[0.9, 0.6],
+            class_id=[0, 0],
+        ),
+        _create_key_points(
+            xy=[[[100, 100], [200, 200]], [[700, 700], [800, 800]]],
+            detection_confidence=[0.85, 0.7],
+            class_id=[0, 0],
+        ),
+    ]
+
+    merged = KeyPoints.merge(key_points_list)
+    result = merged.with_nms(threshold=0.5, class_agnostic=False)
+
+    assert len(merged) == 4
+    assert len(result) == 3
+    assert len(result) < len(merged)
+    np.testing.assert_allclose(
+        np.sort(result.detection_confidence),
+        np.array([0.6, 0.7, 0.9], dtype=np.float32),
+    )
 
 
 @pytest.mark.parametrize(
