@@ -65,28 +65,26 @@ date_modified: 2026-07-08
 
 - Added [#2027](https://github.com/roboflow/supervision/issues/2027): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now accepts an open rasterio-style dataset in addition to in-memory images. Each tile is read lazily via a windowed read instead of loading the whole image, enabling tiled inference on multi-GB aerial/drone GeoTIFFs without running out of memory. Detection is duck-typed, so `rasterio` stays an optional dependency installable via `pip install "supervision[geotiff]"` and the core library imports no rasterio symbols. A geographic (non-projected) CRS raises `ValueError`.
 
-- Added: [`sv.TkImageWindow`](https://supervision.roboflow.com/latest/utils/image_window/) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey` under `opencv-python-headless`. Key differences from cv2:
+- Added: [`sv.ImageWindow`](https://supervision.roboflow.com/latest/utils/image_window/) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey` under `opencv-python-headless`. Key differences from cv2:
   - `wait_key()` returns a tkinter keysym `str` (e.g. `"q"`, `"Escape"`) or `None`, not an `int` — update `key == ord("q")` to `key == "q"`.
   - Mouse callback signature is `(x: int, y: int, event_type: str)` where `event_type` is `"down"`, `"up"`, or `"move"` — incompatible with cv2's `(event, x, y, flags, param)`.
   - Only left-button events are captured; scroll, right-button, and modifier flags have no equivalent.
   - Requires `python3-tk` (not pip-installable): `sudo apt-get install python3-tk` on Debian/Ubuntu, `brew install python-tk` on macOS with Homebrew/pyenv.
 
-- Changed: `supervision` now depends on `opencv-python-headless` instead of `opencv-python`. The headless wheel provides the same `cv2` API except for desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`, and mouse/keyboard callbacks), which are not available in headless builds. All non-GUI `cv2` behaviour — drawing, text metrics, contour hierarchy, video I/O, affine transforms, image I/O — is unchanged.
+!!! warning "Breaking change"
+    `supervision` now depends on `opencv-python-headless` instead of `opencv-python`. The headless wheel provides the same `cv2` API except for desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`, and mouse/keyboard callbacks), which are not available in headless builds. All non-GUI `cv2` behaviour — drawing, text metrics, contour hierarchy, video I/O, affine transforms, image I/O — is unchanged.
 
-  **Who is affected:** users who called `cv2.imshow`, `cv2.waitKey`, or `cv2.namedWindow` in their own scripts alongside `import supervision`, relying on supervision's transitive `opencv-python` dependency to provide those symbols.
+    **Who is affected:** users who called `cv2.imshow`, `cv2.waitKey`, or `cv2.namedWindow` in their own scripts alongside `import supervision`, relying on supervision's transitive `opencv-python` dependency to provide those symbols.
 
-  **How to restore GUI support:** replace the headless wheel with the full one:
-  ```bash
-  pip uninstall -y opencv-python-headless
-  pip install opencv-python
-  ```
-  Both wheel families share the `cv2` namespace; keep only one installed at a time.
+    **How to restore GUI support:** replace the headless wheel with the full one:
+    ```bash
+    pip uninstall -y opencv-python-headless
+    pip install opencv-python
+    ```
+    Both wheel families share the `cv2` namespace; keep only one installed at a time.
 
-  **Co-installation warning:** `opencv-python` and `opencv-python-headless` share the `cv2` namespace and install conflicting files to the same path. pip does not detect this — both wheels install silently, but the resulting `cv2` behavior is non-deterministic depending on install order. If you also install packages that bring in `opencv-python` (e.g. `ultralytics`, `inference-sdk`), you may end up with both wheels. The safe fix is to explicitly remove the headless wheel afterward:
-  ```bash
-  pip uninstall -y opencv-python-headless
-  pip install opencv-python
-  ```
+    **Co-installation warning:** `opencv-python` and `opencv-python-headless` share the `cv2` namespace and install conflicting files to the same path. pip does not detect this — both wheels install silently, but the resulting `cv2` behavior is non-deterministic depending on install order. If you also install packages that bring in `opencv-python` (e.g. `ultralytics`, `inference-sdk`), you may end up with both wheels. Run the same commands shown above to remove the headless wheel afterward.
+
 - Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
 
 - Fixed [#2342](https://github.com/roboflow/supervision/pull/2342): `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.QWEN_2_5_VL` no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed `"mask"` value in Gemini 2.5 output no longer triggers `AttributeError`; invalid base64 or non-PNG mask data falls back to an empty mask, keeping `xyxy`, `confidence`, and `masks` arrays aligned.
