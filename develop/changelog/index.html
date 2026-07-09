@@ -3903,6 +3903,10 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>sv.box_iou_batch</code> now upcasts box corners to <code>float64</code> before computing areas and intersections, returning <code>float32</code>. This fixes integer-dtype overflow (e.g. <code>int32</code> coordinates around <code>50_000</code> could previously wrap to a negative area and produce an incorrect <code>0.0</code> IoU) and gives full <code>float64</code> precision to callers that pass <code>float64</code>/<code>int64</code> coordinates directly. It does not recover precision already lost when coordinates are stored as <code>float32</code> before this function is called (e.g. <code>Detections.xyxy</code>, which is <code>float32</code> throughout the library) — such callers must upcast their own arrays to <code>float64</code>/<code>int64</code> before calling <code>box_iou_batch</code> to benefit from this fix. Results for small-coordinate inputs are unchanged.</li>
+<li>Legacy COCO prediction loading in <code>sv.EvaluationDataset.load_predictions</code> now raises <code>ValueError</code> for image ids absent from the ground-truth COCO set instead of relying on a bare <code>assert</code>, so the check is no longer silently skipped under <code>python -O</code>.</li>
+<li><code>sv.HeatMapAnnotator</code> now exposes a <code>reset()</code> method to clear accumulated heat, so a single annotator instance can be reused across independent streams without carrying over heat from a previous stream.</li>
+<li><code>sv.TraceAnnotator</code> and <code>sv.DetectionsSmoother</code> now expose a <code>reset()</code> method for interface consistency with <code>sv.HeatMapAnnotator.reset()</code>, clearing their accumulated per-track history so a single instance can be reused across independent streams.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>sv.process_video</code> no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>DetectionDataset.as_pascal_voc()</code> now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.</li>
@@ -5939,7 +5943,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 21:00:32 UTC">July 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2026 15:53:52 UTC">July 9, 2026</span>
   </span>
 
     
