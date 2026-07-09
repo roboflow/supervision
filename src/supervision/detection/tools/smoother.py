@@ -94,6 +94,33 @@ class DetectionsSmoother:
             lambda: deque(maxlen=length)
         )
 
+    def reset(self) -> None:
+        """
+        Clears the per-track detection history so the smoother can be reused
+        across independent streams without carrying over frames from a
+        previous stream. The configured window `length` is preserved.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> smoother = sv.DetectionsSmoother()
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     confidence=np.array([0.5]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> _ = smoother.update_with_detections(detections)
+            >>> len(smoother.tracks)
+            1
+            >>> smoother.reset()
+            >>> len(smoother.tracks)
+            0
+
+            ```
+        """
+        self.tracks.clear()
+
     def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the smoother with a new set of detections from a frame.

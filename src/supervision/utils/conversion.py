@@ -168,6 +168,19 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
     Returns:
         Input image converted to OpenCV format.
+
+    Examples:
+        ```pycon
+        >>> from PIL import Image
+        >>> from supervision.utils.conversion import pillow_to_cv2
+        >>> image = Image.new("RGB", (10, 10), color=(255, 0, 0))
+        >>> scene = pillow_to_cv2(image)
+        >>> scene.shape
+        (10, 10, 3)
+        >>> scene[0, 0].tolist()
+        [0, 0, 255]
+
+        ```
     """
     if image.mode == "P":
         image = image.convert("RGB")
@@ -191,6 +204,20 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
 
     Returns:
         Input image converted to Pillow format.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.utils.conversion import cv2_to_pillow
+        >>> scene = np.zeros((10, 10, 3), dtype=np.uint8)
+        >>> scene[:, :, 2] = 255
+        >>> image = cv2_to_pillow(scene)
+        >>> image.size
+        (10, 10)
+        >>> image.getpixel((0, 0))
+        (255, 0, 0)
+
+        ```
     """
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(rgb_image)

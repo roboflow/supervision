@@ -125,6 +125,17 @@ def calculate_masks_centroids(
     Returns:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks = np.zeros((1, 10, 10), dtype=bool)
+        >>> masks[0, 2:6, 2:6] = True
+        >>> sv.calculate_masks_centroids(masks)
+        array([[4, 4]])
+
+        ```
     """
     if isinstance(masks, CompactMask):
         # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
@@ -467,6 +478,17 @@ def mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when the mask
         has no true pixels.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.masks import mask_to_roi
+        >>> mask = np.zeros((10, 10), dtype=bool)
+        >>> mask[2:5, 3:6] = True
+        >>> mask_to_roi(mask)
+        (3, 2, 6, 5)
+
+        ```
     """
     rows = np.flatnonzero(np.any(mask, axis=1))
     if len(rows) == 0:
