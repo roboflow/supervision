@@ -1367,11 +1367,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
 
@@ -1426,10 +1426,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
             label_properties = self._adjust_labels_in_frame(
                 (scene.shape[1], scene.shape[0]),
                 labels,
@@ -1723,11 +1719,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided
         detections, with support for Unicode characters.
@@ -1780,12 +1776,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
+            scene_pil = cast(Image.Image, scene)
             label_properties = self._adjust_labels_in_frame(
-                (scene.width, scene.height),
+                (scene_pil.width, scene_pil.height),
                 labels,
                 label_properties,
             )
@@ -2357,7 +2350,7 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        if self.heat_mask is None:
+        if self.heat_mask is None or self.heat_mask.shape != scene.shape[:2]:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
         mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
@@ -2888,6 +2881,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     def calculate_border_coordinates(
         anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the border corner coordinates for a given anchor position."""
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2912,6 +2906,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx - width // 2, cy), (cx + width // 2, cy + height)
         elif position == Position.BOTTOM_RIGHT:
             return (cx, cy), (cx + width, cy + height)
+        raise ValueError(f"Unsupported position: {position}")
 
     @staticmethod
     def _validate_custom_values(
@@ -3083,6 +3078,7 @@ class CropAnnotator(BaseAnnotator):
     def calculate_crop_coordinates(
         anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the crop coordinates for a given anchor position."""
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
@@ -3119,6 +3115,7 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+        raise ValueError(f"Unsupported position: {position}")
 
 
 class BackgroundOverlayAnnotator(BaseAnnotator):

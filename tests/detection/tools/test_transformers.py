@@ -29,11 +29,20 @@ from tests.helpers import _FakeDetachTensor, make_panoptic_png
 
 
 class TestPngStringToSegmentationArray:
-    """png_string_to_segmentation_array extracts the red channel as a label map."""
+    """png_string_to_segmentation_array decodes RGB-encoded panoptic IDs."""
 
-    def test_extracts_red_channel_as_segment_ids(self) -> None:
-        """RGBA PNG: red channel values become the returned label array."""
+    def test_extracts_rgb_channels_as_segment_ids(self) -> None:
+        """RGBA PNG: RGB channels become the returned label array."""
         seg_map = np.array([[1, 2], [3, 0]], dtype=np.uint8)
+        png_bytes = make_panoptic_png(seg_map)
+
+        result = png_string_to_segmentation_array(png_bytes)
+
+        np.testing.assert_array_equal(result, seg_map)
+
+    def test_decodes_segment_ids_above_255(self) -> None:
+        """RGB panoptic encoding preserves segment IDs beyond one byte."""
+        seg_map = np.array([[1, 257], [513, 0]], dtype=np.uint32)
         png_bytes = make_panoptic_png(seg_map)
 
         result = png_string_to_segmentation_array(png_bytes)

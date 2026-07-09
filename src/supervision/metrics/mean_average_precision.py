@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -229,6 +228,7 @@ class MeanAveragePrecisionResult:
             https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
         ){ align=center width="800" }
         """
+        from matplotlib import pyplot as plt
 
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]

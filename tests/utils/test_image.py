@@ -255,6 +255,20 @@ def test_crop_image(image, xyxy, expected_size) -> None:
         assert cropped.size == expected_size
 
 
+def test_crop_image_clips_out_of_bounds_coordinates() -> None:
+    """Out-of-bounds crops must clip consistently for NumPy and Pillow inputs."""
+    image_np = np.arange(16, dtype=np.uint8).reshape(4, 4)
+    image_pil = Image.fromarray(image_np)
+    xyxy = (-2, -1, 3, 3)
+    expected = image_np[0:3, 0:3]
+    expected_pil = np.repeat(expected[:, :, None], 3, axis=2)
+
+    np.testing.assert_array_equal(crop_image(image=image_np, xyxy=xyxy), expected)
+    np.testing.assert_array_equal(
+        np.asarray(crop_image(image=image_pil, xyxy=xyxy)), expected_pil
+    )
+
+
 @pytest.mark.parametrize(
     ("image", "expected"),
     [

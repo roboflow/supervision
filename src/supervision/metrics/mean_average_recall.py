@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
@@ -202,6 +201,8 @@ class MeanAverageRecallResult:
             https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
             ){ align=center width="800" }
         """
+        from matplotlib import pyplot as plt
+
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3

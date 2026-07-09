@@ -1,3 +1,4 @@
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -381,19 +382,41 @@ class TestDetectionDatasetInMemoryImages:
         assert len(dataset) == 2
 
     def test_merge_preserves_in_memory_pixel_access(self) -> None:
-        """Merging two in-memory datasets keeps pixel access via public __getitem__."""
+        """Merging two in-memory datasets keeps pixel access without re-warning."""
         image_1 = _create_image(fill_value=10)
         image_2 = _create_image(fill_value=20)
-        ds_1 = self._build_dataset({"img1.jpg": image_1})
-        ds_2 = self._build_dataset({"img2.jpg": image_2})
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_1 = self._build_dataset({"img1.jpg": image_1})
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_2 = self._build_dataset({"img2.jpg": image_2})
 
-        merged = DetectionDataset.merge([ds_1, ds_2])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            merged = DetectionDataset.merge([ds_1, ds_2])
 
         assert len(merged) == 2
         _, loaded_1, _ = merged[0]
         _, loaded_2, _ = merged[1]
         np.testing.assert_array_equal(loaded_1, image_1)
         np.testing.assert_array_equal(loaded_2, image_2)
+
+    def test_split_preserves_in_memory_pixel_access_without_warning(self) -> None:
+        """Splitting an in-memory dataset keeps pixel access without re-warning."""
+        image_1 = _create_image(fill_value=11)
+        image_2 = _create_image(fill_value=22)
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            dataset = self._build_dataset({"img1.jpg": image_1, "img2.jpg": image_2})
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            train, test = dataset.split(split_ratio=0.5, shuffle=False)
+
+        assert train.image_paths == ["img1.jpg"]
+        assert test.image_paths == ["img2.jpg"]
+        _, loaded_train, _ = train[0]
+        _, loaded_test, _ = test[0]
+        np.testing.assert_array_equal(loaded_train, image_1)
+        np.testing.assert_array_equal(loaded_test, image_2)
 
     def test_iteration_yields_in_memory_images(self) -> None:
         """Iteration yields (path, image, annotation) with correct pixels."""
@@ -567,6 +590,45 @@ class TestDetectionDatasetExportCollisions:
             dataset.as_pascal_voc(
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
+
+    def test_as_pascal_voc_rejects_annotation_collisions_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """Pascal VOC export preflights annotation collisions before copying images."""
+        source_root = tmp_path / "source"
+        source_a = source_root / "dir_a"
+        source_b = source_root / "dir_b"
+        source_a.mkdir(parents=True)
+        source_b.mkdir(parents=True)
+        image_a_path = source_a / "img.jpg"
+        image_b_path = source_b / "img.png"
+        image_a_path.write_bytes(b"image-a")
+        image_b_path.write_bytes(b"image-b")
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(image_a_path), str(image_b_path)],
+            annotations={
+                str(image_a_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                str(image_b_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        images_directory = tmp_path / "images"
+        annotations_directory = tmp_path / "annotations"
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(images_directory),
+                annotations_directory_path=str(annotations_directory),
+            )
+
+        assert not images_directory.exists()
+        assert not annotations_directory.exists()
 
 
 # ---------------------------------------------------------------------------

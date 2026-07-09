@@ -452,13 +452,14 @@ def filter_segments_by_distance(
     return keep_labels[labels]
 
 
-def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
+def mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
     """Return exclusive ``(x1, y1, x2, y2)`` bounds for true mask pixels.
 
-    Unlike :func:`~supervision.detection.utils.converters.mask_to_xyxy`,
-    this function uses **exclusive** upper bounds (``+1``) and returns
-    ``None`` for empty masks (instead of zeros). These semantics are
-    required for NumPy slice-based ROI extraction.
+    Use this helper when you need NumPy slice semantics. Unlike
+    :func:`~supervision.detection.utils.converters.mask_to_xyxy`, this
+    function uses exclusive upper bounds (``+1``) and returns ``None`` for
+    empty masks instead of zeros. The inclusive ``mask_to_xyxy`` convention
+    stays in place for compatibility with CompactMask and box-based adapters.
 
     Args:
         mask: 2D boolean array of shape ``(H, W)``.
@@ -472,6 +473,9 @@ def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | Non
         return None
     cols = np.flatnonzero(np.any(mask, axis=0))
     return int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
+
+
+_mask_to_roi = mask_to_roi
 
 
 def _compact_masks_to_roi(
@@ -554,9 +558,9 @@ def _masks_to_roi(
                 and not union[y1:y2, x2:].any()
             ):
                 return box_roi
-            return _mask_to_roi(union)
+            return mask_to_roi(union)
     if mask_array.ndim == 2:
         union = mask_array
     else:
         union = np.any(mask_array, axis=0)
-    return _mask_to_roi(union)
+    return mask_to_roi(union)
