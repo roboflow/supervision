@@ -10,38 +10,43 @@ import numpy as np
 import requests
 import yaml
 
+SUPERVISION_CACHE_DIR = Path(tempfile.gettempdir()) / "supervision"
 
-def prepare_url(value: str) -> str:
+
+def _normalize_http_url(url: str) -> str:
     """
     Validate and normalize an HTTP(S) URL.
 
     Args:
-        value: URL to validate.
+        url: URL to validate.
 
     Returns:
-        Prepared URL string.
+        Normalized URL string.
 
     Raises:
         ValueError: If the URL is invalid or uses an unsupported scheme.
     """
     try:
-        original_parsed_url = urllib.parse.urlparse(value)
+        original_parsed_url = urllib.parse.urlparse(url)
         if "\\" in original_parsed_url.netloc:
             raise ValueError("URL authority contains a backslash")
 
-        prepared_request = requests.Request(method="GET", url=value).prepare()
+        prepared_request = requests.Request(method="GET", url=url).prepare()
         prepared_url = prepared_request.url
         if prepared_url is None:
-            raise ValueError("Prepared URL is empty")
+            raise ValueError("prepared URL is empty")
 
         parsed_url = urllib.parse.urlparse(prepared_url)
     except (requests.RequestException, ValueError) as error:
-        raise ValueError("Provided URL is invalid") from error
+        raise ValueError(f"Invalid URL {url!r}: {error}") from error
 
     if parsed_url.scheme not in {"http", "https"}:
-        raise ValueError("Only HTTP(S) URLs are supported")
+        raise ValueError(
+            f"Unsupported URL scheme {parsed_url.scheme!r} in {url!r}. "
+            "Only HTTP and HTTPS URLs are supported."
+        )
     if parsed_url.hostname is None:
-        raise ValueError("Provided URL is invalid")
+        raise ValueError(f"Invalid URL {url!r}: no host supplied.")
 
     return prepared_url
 

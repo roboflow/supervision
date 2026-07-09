@@ -31,17 +31,24 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
     images_to_cv2,
 )
-from supervision.utils.file import _download_to_file, prepare_url
+from supervision.utils.file import (
+    SUPERVISION_CACHE_DIR,
+    _download_to_file,
+    _normalize_http_url,
+)
 from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
 
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
-DEFAULT_IMAGE_URL_CACHE_DIR = Path(tempfile.gettempdir()) / "supervision" / "image-url"
+DEFAULT_IMAGE_URL_CACHE_DIR = SUPERVISION_CACHE_DIR / "image-url"
 
 
 def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
+    """
+    Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`.
+    """
     cache_root = (
         DEFAULT_IMAGE_URL_CACHE_DIR
         if cache_dir is None
@@ -57,6 +64,9 @@ def _decode_image_from_bytes(
     value: bytes,
     cv_imread_flags: int,
 ) -> npt.NDArray[np.uint8]:
+    """
+    Decode raw image bytes into an OpenCV image, raising on undecodable data.
+    """
     image = cv2.imdecode(
         np.frombuffer(value, dtype=np.uint8),
         cv_imread_flags,
@@ -108,7 +118,7 @@ def load_image_from_url(
 
         ```
     """
-    prepared_url = prepare_url(value=value)
+    prepared_url = _normalize_http_url(url=value)
     if not use_cache:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_target = Path(temp_dir) / "image"

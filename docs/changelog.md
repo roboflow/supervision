@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-08
+date_modified: 2026-07-09
 ---
 
 # Changelog
@@ -42,6 +42,7 @@ date_modified: 2026-07-08
 - Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
 
 ### Added
+- `sv.load_image_from_url` — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (`{tmpdir}/supervision/image-url/` by default, configurable via `cache_dir`) ([#2372](https://github.com/roboflow/supervision/pull/2372))
 - `BaseAnnotator.requires_mask` — class-level `bool` flag on all annotators; `True` for `MaskAnnotator`, `PolygonAnnotator`, and `HaloAnnotator`; `False` for all others. Integrations can inspect this before materializing expensive mask payloads ([#2370](https://github.com/roboflow/supervision/pull/2370))
 - `CompactMask.from_coco_rle` — efficient COCO RLE ingestion into crop-scoped compact mask format without materializing dense `(N, H, W)` arrays ([#2367](https://github.com/roboflow/supervision/pull/2367))
 - `Detections.from_inference(compact_masks=True)` — opt-in compact mask representation for Roboflow/Inference segmentation results; masks are cropped to detector bounding boxes ([#2367](https://github.com/roboflow/supervision/pull/2367))

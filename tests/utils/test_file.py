@@ -8,20 +8,20 @@ import requests
 
 from supervision.utils.file import (
     _download_to_file,
+    _normalize_http_url,
     list_files_with_extensions,
-    prepare_url,
     read_txt_file,
 )
 
 
-class TestPrepareUrl:
-    def test_returns_prepared_http_url(self) -> None:
+class TestNormalizeHttpUrl:
+    def test_returns_normalized_http_url(self) -> None:
         """Valid HTTPS URL is returned normalized."""
         # given
         url = "https://media.roboflow.com/quickstart/dog.jpeg"
 
         # when
-        result = prepare_url(value=url)
+        result = _normalize_http_url(url=url)
 
         # then
         assert result == url
@@ -29,18 +29,35 @@ class TestPrepareUrl:
     @pytest.mark.parametrize(
         ("url", "match"),
         [
-            pytest.param("file:///tmp/image.jpg", "HTTP", id="file-scheme"),
-            pytest.param("not a url", "invalid", id="not-a-url"),
-            pytest.param("http://", "invalid", id="missing-host"),
             pytest.param(
-                "https://foo\\bar/image.jpg", "invalid", id="backslash-authority"
+                "file:///tmp/image.jpg", "Unsupported URL scheme", id="file-scheme"
+            ),
+            pytest.param(
+                "ftp://example.com/image.jpg",
+                "Unsupported URL scheme",
+                id="ftp-scheme",
+            ),
+            pytest.param(
+                "javascript:alert(1)",
+                "Unsupported URL scheme",
+                id="javascript-scheme",
+            ),
+            pytest.param(
+                "data:text/plain;base64,aGk=",
+                "Unsupported URL scheme",
+                id="data-scheme",
+            ),
+            pytest.param("not a url", "Invalid URL", id="not-a-url"),
+            pytest.param("http://", "Invalid URL", id="missing-host"),
+            pytest.param(
+                "https://foo\\bar/image.jpg", "Invalid URL", id="backslash-authority"
             ),
         ],
     )
     def test_rejects_invalid_url(self, url: str, match: str) -> None:
         """Invalid or non-HTTP(S) URLs raise ValueError."""
         with pytest.raises(ValueError, match=match):
-            prepare_url(value=url)
+            _normalize_http_url(url=url)
 
 
 class TestDownloadToFile:
