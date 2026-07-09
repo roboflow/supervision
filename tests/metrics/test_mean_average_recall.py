@@ -716,7 +716,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     from supervision import DetectionDataset
 
     dataset_info = yolo_dataset_two_classes
-    np.random.seed(42)  # Match fixture seed for offset generation
+    rng = np.random.default_rng(42)  # Match fixture seed for offset generation
 
     # Load dataset from YOLO format
     dataset = DetectionDataset.from_yolo(
@@ -739,7 +739,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
         if len(gt_detections) > 0:
             pred_xyxy = gt_detections.xyxy.copy().astype(np.float32)
             # Add small random offset (±3 pixels)
-            offset = np.random.randint(-3, 4, pred_xyxy.shape).astype(np.float32)
+            offset = rng.integers(-3, 4, pred_xyxy.shape).astype(np.float32)
             pred_xyxy = np.clip(pred_xyxy + offset, 0, 640)
 
             # Generate decreasing confidence scores
