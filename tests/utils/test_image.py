@@ -33,9 +33,7 @@ class TestLoadImageFromUrl:
         response.raise_for_status.return_value = None
 
         # when
-        with patch(
-            "supervision.utils.image.requests.get", return_value=response
-        ) as get:
+        with patch("supervision.utils.file.requests.get", return_value=response) as get:
             result = load_image_from_url(
                 "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
@@ -44,6 +42,8 @@ class TestLoadImageFromUrl:
         # then
         get.assert_called_once_with(
             "https://media.roboflow.com/quickstart/dog.jpeg",
+            stream=False,
+            allow_redirects=True,
             timeout=30.0,
         )
         assert result.shape == image.shape
@@ -60,9 +60,7 @@ class TestLoadImageFromUrl:
         response.raise_for_status.return_value = None
 
         # when
-        with patch(
-            "supervision.utils.image.requests.get", return_value=response
-        ) as get:
+        with patch("supervision.utils.file.requests.get", return_value=response) as get:
             first_result = load_image_from_url(
                 "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
@@ -91,7 +89,7 @@ class TestLoadImageFromUrl:
 
         # when
         with patch(
-            "supervision.utils.image.requests.get",
+            "supervision.utils.file.requests.get",
             side_effect=[first_response, second_response],
         ) as get:
             first_result = load_image_from_url(
@@ -125,7 +123,7 @@ class TestLoadImageFromUrl:
 
         # when
         with patch(
-            "supervision.utils.image.requests.get",
+            "supervision.utils.file.requests.get",
             side_effect=[first_response, second_response],
         ) as get:
             cached_result = load_image_from_url(
@@ -156,7 +154,7 @@ class TestLoadImageFromUrl:
 
         # when
         with patch(
-            "supervision.utils.image.requests.get",
+            "supervision.utils.file.requests.get",
             side_effect=[first_response, second_response],
         ) as get:
             load_image_from_url(
@@ -183,7 +181,7 @@ class TestLoadImageFromUrl:
 
         # when / then
         with (
-            patch("supervision.utils.image.requests.get", return_value=response),
+            patch("supervision.utils.file.requests.get", return_value=response),
             pytest.raises(ValueError, match="could not be decoded into image"),
         ):
             load_image_from_url(
@@ -199,7 +197,7 @@ class TestLoadImageFromUrl:
 
         # when / then
         with (
-            patch("supervision.utils.image.requests.get", side_effect=request_error),
+            patch("supervision.utils.file.requests.get", side_effect=request_error),
             pytest.raises(requests.RequestException, match="boom"),
         ):
             load_image_from_url(
@@ -210,7 +208,7 @@ class TestLoadImageFromUrl:
     def test_rejects_non_http_url(self) -> None:
         """Non-HTTP URLs are rejected before making a request."""
         # given
-        with patch("supervision.utils.image.requests.get") as get:
+        with patch("supervision.utils.file.requests.get") as get:
             # when / then
             with pytest.raises(ValueError, match="HTTP"):
                 load_image_from_url("file:///tmp/image.jpg")

@@ -1,9 +1,95 @@
 import json
+import os
+import tempfile
+import urllib.parse
 from pathlib import Path
+from shutil import copyfileobj
 from typing import Any
 
 import numpy as np
+import requests
 import yaml
+
+
+def prepare_url(value: str) -> str:
+    """
+    Validate and normalize an HTTP(S) URL.
+
+    Args:
+        value: URL to validate.
+
+    Returns:
+        Prepared URL string.
+
+    Raises:
+        ValueError: If the URL is invalid or uses an unsupported scheme.
+    """
+    try:
+        original_parsed_url = urllib.parse.urlparse(value)
+        if "\\" in original_parsed_url.netloc:
+            raise ValueError("URL authority contains a backslash")
+
+        prepared_request = requests.Request(method="GET", url=value).prepare()
+        prepared_url = prepared_request.url
+        if prepared_url is None:
+            raise ValueError("Prepared URL is empty")
+
+        parsed_url = urllib.parse.urlparse(prepared_url)
+    except (requests.RequestException, ValueError) as error:
+        raise ValueError("Provided URL is invalid") from error
+
+    if parsed_url.scheme not in {"http", "https"}:
+        raise ValueError("Only HTTP(S) URLs are supported")
+    if parsed_url.hostname is None:
+        raise ValueError("Provided URL is invalid")
+
+    return prepared_url
+
+
+def _download_to_file(
+    url: str, target: Path, *, timeout: float = 30.0, stream: bool = False
+) -> None:
+    """
+    Download `url` to `target` atomically using a temporary file and `os.replace`.
+
+    Args:
+        url: HTTP(S) URL to download.
+        target: Destination file path. Parent directories are created as needed.
+        timeout: Request timeout in seconds. Defaults to `30.0`.
+        stream: If `True`, stream the response to disk in chunks and display a
+            progress bar. If `False`, buffer the response in memory before
+            writing. Defaults to `False`.
+
+    Raises:
+        requests.RequestException: If the request fails or returns an error status.
+    """
+    response = requests.get(url, stream=stream, allow_redirects=True, timeout=timeout)
+    try:
+        response.raise_for_status()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            delete=False, dir=target.parent, suffix=target.suffix
+        ) as file:
+            temp_path = Path(file.name)
+            try:
+                if stream:
+                    from tqdm.auto import tqdm
+
+                    file_size = int(response.headers.get("Content-Length", 0))
+                    with tqdm.wrapattr(
+                        response.raw, "read", total=file_size, desc="", colour="#a351fb"
+                    ) as raw_response:
+                        copyfileobj(raw_response, file)
+                else:
+                    file.write(response.content)
+            except BaseException:
+                file.close()
+                temp_path.unlink(missing_ok=True)
+                raise
+    finally:
+        response.close()
+
+    os.replace(temp_path, target)
 
 
 class NumpyJsonEncoder(json.JSONEncoder):

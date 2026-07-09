@@ -8,7 +8,7 @@ import tempfile
 import urllib.parse
 from collections.abc import Callable
 from functools import partial
-from hashlib import sha256
+from hashlib import md5
 from pathlib import Path
 from types import TracebackType
 from typing import Literal, cast
@@ -16,7 +16,6 @@ from typing import Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-import requests
 from deprecate import (  # type: ignore[import-untyped,unused-ignore]
     TargetMode,
     deprecated,
@@ -32,7 +31,7 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
     images_to_cv2,
 )
-from supervision.utils.internal import prepare_url
+from supervision.utils.file import _download_to_file, prepare_url
 from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
@@ -50,7 +49,7 @@ def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
     )
     url_path = urllib.parse.urlparse(value).path
     suffix = Path(url_path).suffix or ".image"
-    url_hash = sha256(value.encode("utf-8")).hexdigest()
+    url_hash = md5(value.encode("utf-8"), usedforsecurity=False).hexdigest()
     return cache_root / f"{url_hash}{suffix}"
 
 
@@ -66,19 +65,6 @@ def _decode_image_from_bytes(
         raise ValueError("Data pointed by URL could not be decoded into image.")
 
     return cast(npt.NDArray[np.uint8], image)
-
-
-def _write_image_url_cache(cache_path: Path, value: bytes) -> None:
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        dir=cache_path.parent,
-        suffix=cache_path.suffix,
-    ) as file:
-        temp_path = Path(file.name)
-        file.write(value)
-
-    os.replace(temp_path, cache_path)
 
 
 def load_image_from_url(
@@ -123,11 +109,20 @@ def load_image_from_url(
         ```
     """
     prepared_url = prepare_url(value=value)
+    if not use_cache:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_target = Path(temp_dir) / "image"
+            _download_to_file(prepared_url, temp_target, timeout=timeout)
+            return _decode_image_from_bytes(
+                value=temp_target.read_bytes(),
+                cv_imread_flags=cv_imread_flags,
+            )
+
     cache_path = _get_image_url_cache_path(
         value=prepared_url,
         cache_dir=cache_dir,
     )
-    if use_cache and cache_path.exists() and not force_reload:
+    if cache_path.exists() and not force_reload:
         try:
             return _decode_image_from_bytes(
                 value=cache_path.read_bytes(),
@@ -136,19 +131,15 @@ def load_image_from_url(
         except ValueError:
             cache_path.unlink(missing_ok=True)
 
-    response = requests.get(prepared_url, timeout=timeout)
+    _download_to_file(prepared_url, cache_path, timeout=timeout)
     try:
-        response.raise_for_status()
-        image = _decode_image_from_bytes(
-            value=response.content,
+        return _decode_image_from_bytes(
+            value=cache_path.read_bytes(),
             cv_imread_flags=cv_imread_flags,
         )
-        if use_cache:
-            _write_image_url_cache(cache_path=cache_path, value=response.content)
-    finally:
-        response.close()
-
-    return image
+    except ValueError:
+        cache_path.unlink(missing_ok=True)
+        raise
 
 
 @ensure_cv2_image_for_standalone_function

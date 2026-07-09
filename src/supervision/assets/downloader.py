@@ -1,12 +1,9 @@
 import os
 from hashlib import md5
 from pathlib import Path
-from shutil import copyfileobj
-
-from requests import get
-from tqdm.auto import tqdm
 
 from supervision.assets.list import MEDIA_ASSETS, Assets
+from supervision.utils.file import _download_to_file
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -63,20 +60,12 @@ def download_assets(asset_name: Assets | str) -> str:
     if filename in MEDIA_ASSETS:
         if not Path(filename).exists():
             logger.info("Downloading %s assets", filename)
-            response = get(
-                MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
+            _download_to_file(
+                MEDIA_ASSETS[filename][0],
+                Path(filename).expanduser().resolve(),
+                timeout=30.0,
+                stream=True,
             )
-            response.raise_for_status()
-
-            file_size = int(response.headers.get("Content-Length", 0))
-            folder_path = Path(filename).expanduser().resolve()
-            folder_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with tqdm.wrapattr(
-                response.raw, "read", total=file_size, desc="", colour="#a351fb"
-            ) as raw_resp:
-                with folder_path.open("wb") as file:
-                    copyfileobj(raw_resp, file)
         else:
             if not is_md5_hash_matching(filename, MEDIA_ASSETS[filename][1]):
                 logger.warning("File corrupted. Re-downloading...")
