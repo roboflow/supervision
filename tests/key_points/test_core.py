@@ -1074,6 +1074,16 @@ def test_key_points_as_detections_with_data():
         ),  # mismatched keypoint counts per skeleton
         (
             [
+                KeyPoints(xy=np.array([[[10, 10], [20, 20]]], dtype=np.float32)),
+                KeyPoints(
+                    xy=np.array([[[30, 30, 0.9], [40, 40, 0.8]]], dtype=np.float32)
+                ),
+            ],
+            None,
+            pytest.raises(ValueError, match=r"got depths \[2, 3\]"),
+        ),  # mismatched coordinate depths per skeleton
+        (
+            [
                 _create_key_points(
                     xy=[[[10, 10], [20, 20]]],
                     data={"class_name": ["person"]},

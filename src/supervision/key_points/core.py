@@ -1252,6 +1252,13 @@ class KeyPoints:
                 f"skeleton to be merged; got counts {sorted(keypoint_counts)}."
             )
 
+        keypoint_depths = {key_points.xy.shape[2] for key_points in key_points_list}
+        if len(keypoint_depths) > 1:
+            raise ValueError(
+                "All KeyPoints must have the same coordinate depth per "
+                f"skeleton to be merged; got depths {sorted(keypoint_depths)}."
+            )
+
         xy = np.vstack([key_points.xy for key_points in key_points_list])
 
         def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
