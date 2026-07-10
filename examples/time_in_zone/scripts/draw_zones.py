@@ -148,6 +148,8 @@ def main(source_path: str, zone_configuration_path: str) -> None:
 
     while True:
         key = window.wait_key(1)
+        if not window.is_open:
+            break
         if key in KEY_ENTER:
             close_and_finalize_polygon(image, original_image, window)
         elif key == KEY_ESCAPE:

@@ -359,6 +359,19 @@ class TestImageWindowWaitKey:
 
 
 class TestImageWindowClose:
+    def test_is_open_reports_window_state(self):
+        """is_open reflects whether the underlying Tk root still exists."""
+        window = ImageWindow()
+        assert window.is_open is False
+
+        mock_root = MagicMock()
+        mock_root.winfo_exists.return_value = 1
+        window._root = mock_root
+        assert window.is_open is True
+
+        mock_root.winfo_exists.return_value = 0
+        assert window.is_open is False
+
     def test_close_destroys_root(self):
         """close() calls destroy() on the Tk root and nulls internal refs."""
         window = ImageWindow()

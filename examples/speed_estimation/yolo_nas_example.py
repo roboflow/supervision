@@ -125,7 +125,8 @@ def main(
 
             sink.write_frame(annotated_frame)
             window.show(annotated_frame)
-            if window.wait_key(1) == "q":
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
         window.close()
 

@@ -64,6 +64,19 @@ pip install opencv-python
 
 Both wheel families share the `cv2` namespace; keep only one installed at a time.
 
+If another dependency such as `ultralytics` or `inference-sdk` requires `opencv-python`, pip can install both wheel distributions even though they write to the same `cv2` namespace. Choose the wheel that matches your use case, remove the other one, and reinstall it explicitly if needed:
+
+```bash
+pip uninstall -y opencv-python opencv-python-headless
+pip install opencv-python  # GUI support
+# or: pip install opencv-python-headless  # headless support
+```
+
+The full-wheel option is a manual override of supervision's declared headless
+dependency. A later dependency update may reinstall the headless wheel, so use
+a dedicated environment or verify the installed OpenCV distributions after
+updating packages. Never keep both wheel distributions installed together.
+
 ## How do I process frames from a webcam with supervision?
 
 Supervision does not support live camera capture. Manage the capture device yourself with `cv2.VideoCapture` (requires `opencv-python`) and pass individual frames to supervision annotators:

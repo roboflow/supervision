@@ -21,7 +21,7 @@ class ImageWindow:
     supervision dependency). Instantiation always succeeds; `show()` raises
     `ModuleNotFoundError` (No module named '_tkinter') on environments where
     `python3-tk` is absent — install with ``sudo apt-get install python3-tk``
-    (Debian/Ubuntu) or ``brew install python-tk`` (macOS with Homebrew/pyenv)
+    (Debian/Ubuntu) or ``brew install tcl-tk`` (macOS with Homebrew/pyenv)
     — and raises `tkinter.TclError` on headless servers where a display is
     unavailable.
 
@@ -153,6 +153,11 @@ class ImageWindow:
                 Pass ``None`` to remove the callback.
         """
         self._mouse_callback = callback
+
+    @property
+    def is_open(self) -> bool:
+        """Return whether the underlying Tk window currently exists."""
+        return self._window_exists()
 
     def close(self) -> None:
         """Destroy the window and release its resources."""
