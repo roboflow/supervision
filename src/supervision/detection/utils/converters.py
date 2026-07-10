@@ -22,6 +22,19 @@ def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         An array of polygons (N, 4, 2), where each polygon is
             represented as a list of four coordinates in the format `(x, y)`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> box = np.array([[10, 20, 30, 40]])
+        >>> sv.xyxy_to_polygons(box)
+        array([[[10, 20],
+                [30, 20],
+                [30, 40],
+                [10, 40]]])
+
+        ```
     """
     polygon = np.zeros((box.shape[0], 4, 2), dtype=box.dtype)
     polygon[:, :, 0] = box[:, [0, 2, 2, 0]]
@@ -43,6 +56,17 @@ def polygon_to_mask(
     Returns:
         The generated 2D mask, where the polygon is marked with
             `1`s and the rest is filled with `0`s.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[2, 2], [6, 2], [6, 6], [2, 6]])
+        >>> mask = sv.polygon_to_mask(polygon, resolution_wh=(10, 10))
+        >>> int(mask.sum())
+        25
+
+        ```
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
@@ -351,6 +375,20 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
             of shape `(N, 2)`, containing the `x`, `y` coordinates of the
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
             are excluded from the output.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.zeros((10, 10), dtype=bool)
+        >>> mask[2:6, 2:6] = True
+        >>> sv.mask_to_polygons(mask)
+        [array([[2, 2],
+               [2, 5],
+               [5, 5],
+               [5, 2]], dtype=int32)]
+
+        ```
     """
 
     contours, _ = cv2.findContours(
@@ -773,6 +811,16 @@ def polygon_to_xyxy(polygon: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         A 1D NumPy array containing the bounding box
             `(x_min, y_min, x_max, y_max)` of the input polygon.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[10, 20], [30, 20], [30, 40], [10, 40]])
+        >>> sv.polygon_to_xyxy(polygon)
+        array([10, 20, 30, 40])
+
+        ```
     """
     x_min, y_min = np.min(polygon, axis=0)
     x_max, y_max = np.max(polygon, axis=0)

@@ -226,8 +226,17 @@ def box_iou_batch(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
-    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T
+    # Upcast the corners to float64 right after unpacking so every subtraction
+    # and multiplication below runs in float64. This prevents integer-dtype
+    # overflow: an int32 box area such as 50000 * 50000 = 2.5e9 wraps to a
+    # negative value in int32 before any later cast could run, yielding wrong
+    # (often zero) IoU. Upcasting here also gives full float64 precision to
+    # float64/int64 callers. It does NOT recover precision already lost when a
+    # caller stores coordinates as float32 upstream, because that float32
+    # rounding happens before this function is ever called. The final matrix is
+    # cast back to float32 to preserve the public return-type contract.
+    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T.astype(np.float64)
+    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T.astype(np.float64)
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
@@ -235,7 +244,7 @@ def box_iou_batch(
             npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
         )
 
-    x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
+    x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
     x_max_inter = np.empty_like(x_min_inter)
     y_min_inter = np.empty_like(x_min_inter)
     y_max_inter = np.empty_like(x_min_inter)
@@ -792,6 +801,19 @@ def mask_iou_batch(
         ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
             ``(N, H, W)`` arrays, or if they do not share the same
             spatial dimensions ``(H, W)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks_true = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_true[:, :2, :2] = True
+        >>> masks_detection = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_detection[:, :3, :3] = True
+        >>> sv.mask_iou_batch(masks_true, masks_detection)
+        array([[0.44444445]])
+
+        ```
     """
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
@@ -889,6 +911,21 @@ def mask_non_max_suppression(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     rows, columns = predictions.shape
@@ -979,6 +1016,19 @@ def box_non_max_suppression(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_suppression(predictions, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
@@ -1313,6 +1363,19 @@ def box_non_max_merge(
     Raises:
         ValueError: If `iou_threshold` is not within the closed range
             from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_merge(predictions, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
 
