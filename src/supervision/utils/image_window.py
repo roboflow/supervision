@@ -91,9 +91,8 @@ class ImageWindow:
     def show(self, image: npt.NDArray[np.uint8]) -> None:
         """Display a BGR, grayscale, or BGRA frame in the window.
 
-        The image is scaled to fill the current window dimensions while
-        preserving aspect ratio. Resizing the window rescales live.
-
+        The image is scaled to fit the current window dimensions. Aspect ratio is
+        preserved unless `keep_aspect_ratio=False`. Resizing the window rescales live.
         Args:
             image: uint8 numpy array. Accepted shapes:
                 - ``(H, W)`` — grayscale
