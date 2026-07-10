@@ -290,6 +290,13 @@ class ImageWindow:
         self._photo = None
         self._key_event = None
         self._key_queue.clear()
+        self._win_w = 0
+        self._win_h = 0
+        self._display_scale_x = 1.0
+        self._display_scale_y = 1.0
+        self._display_offset_x = 0.0
+        self._display_offset_y = 0.0
+        self._pil_image = None
 
 
 def _fit_image(
