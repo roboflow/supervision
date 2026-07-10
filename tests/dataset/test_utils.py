@@ -3,10 +3,13 @@ from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 from typing import TypeVar
 
+import numpy as np
 import pytest
 
+import supervision.dataset.utils as dataset_utils
 from supervision import Detections
 from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
     build_class_index_mapping,
     check_no_basename_collisions,
     map_detections_class_id,
@@ -88,6 +91,24 @@ def test_train_test_split(
             shuffle=shuffle,
         )
         assert result == expected_result
+
+
+def test_approximate_mask_with_polygons_default_preserves_polygon(
+    monkeypatch,
+) -> None:
+    """Default mask polygon conversion forwards zero simplification."""
+    percentages: list[float] = []
+
+    def fake_approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
+        """Capture simplification percentage while preserving the polygon."""
+        percentages.append(percentage)
+        return polygon
+
+    monkeypatch.setattr(dataset_utils, "approximate_polygon", fake_approximate_polygon)
+
+    approximate_mask_with_polygons(np.ones((3, 3), dtype=bool))
+
+    assert percentages == [0.0]
 
 
 @pytest.mark.parametrize(

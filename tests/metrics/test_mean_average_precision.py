@@ -4,7 +4,10 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
-from supervision.metrics.mean_average_precision import MeanAveragePrecision
+from supervision.metrics.mean_average_precision import (
+    EvaluationDataset,
+    MeanAveragePrecision,
+)
 
 
 def _mask_detections(
@@ -540,6 +543,28 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
+
+class TestMeanAveragePrecisionIgnoreFlag:
+    """Tests for explicit target ignore flags in COCO-style evaluation."""
+
+    def test_user_ignore_flag_excludes_target_from_scoring(self) -> None:
+        """Targets marked ignored by the user must not count as normal GT."""
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0]),
+            data={"ignore": np.array([1], dtype=np.int64)},
+        )
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        metric = MeanAveragePrecision()
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(-1.0, abs=1e-6)
+
     def test_normal_gt_matched_correctly_alongside_crowd_gt(self) -> None:
         """Normal GT is matched and scored when a crowd GT is also present."""
         mask_normal = np.zeros((1, 32, 32), dtype=bool)
@@ -600,3 +625,53 @@ class TestMeanAveragePrecisionMasksOrientation:
         result = metric.update([predictions], [targets]).compute()
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestEvaluationDatasetLoadPredictions:
+    """Tests for `EvaluationDataset.load_predictions` input validation."""
+
+    @pytest.mark.parametrize(
+        ("known_image_ids", "prediction_image_ids"),
+        [
+            pytest.param([1], [999], id="all-unknown-ids"),
+            pytest.param([1, 2], [1, 999], id="mixed-known-and-unknown-ids"),
+            pytest.param([], [1], id="empty-dataset-with-nonempty-predictions"),
+        ],
+    )
+    def test_unknown_image_id_raises_value_error(
+        self, known_image_ids: list[int], prediction_image_ids: list[int]
+    ) -> None:
+        """Predictions referencing any unknown image id raise ValueError."""
+        dataset = EvaluationDataset(
+            targets={
+                "images": [{"id": image_id} for image_id in known_image_ids],
+                "annotations": [],
+                "categories": [{"id": 1}],
+            }
+        )
+        predictions = [
+            {"image_id": image_id, "category_id": 1, "bbox": [0, 0, 1, 1]}
+            for image_id in prediction_image_ids
+        ]
+
+        with pytest.raises(ValueError, match="current coco set"):
+            dataset.load_predictions(predictions)
+
+    def test_predictions_subset_of_known_ids_does_not_raise(self) -> None:
+        """Predictions referencing only a subset of known image ids are accepted."""
+        dataset = EvaluationDataset(
+            targets={
+                "images": [{"id": 1}, {"id": 2}],
+                "annotations": [],
+                "categories": [{"id": 1}],
+            }
+        )
+        predictions = [{"image_id": 1, "category_id": 1, "bbox": [0, 0, 1, 1]}]
+
+        result = dataset.load_predictions(predictions)
+
+        loaded_annotations = result.get_annotations([1])
+        assert len(loaded_annotations) == 1
+        assert loaded_annotations[0]["image_id"] == 1
+        assert loaded_annotations[0]["category_id"] == 1
+        assert loaded_annotations[0]["bbox"] == [0, 0, 1, 1]

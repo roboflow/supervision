@@ -62,7 +62,8 @@ def move_detections(
     """Translate detections by a pixel offset, repositioning boxes and masks.
 
     Args:
-        detections: Detections object to be moved.
+        detections: Detections object to be moved. The input is left unchanged;
+            a fresh copy is returned.
         offset: An array of shape `(2,)` containing offset values in the
             format `[dx, dy]`.
         resolution_wh: The width and height of the desired mask
@@ -71,6 +72,7 @@ def move_detections(
     Returns:
         Repositioned Detections object.
     """
+    detections = detections.select(slice(None))
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(

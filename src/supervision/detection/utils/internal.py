@@ -313,7 +313,11 @@ def process_roboflow_result(
         where each array is aligned with the others. ``masks`` is ``None``
         when no predictions include mask data, or when only a subset do
         (mixed-modality batch) — in that case all masks are dropped to preserve
-        alignment with ``xyxy``. When ``compact_masks=True`` and masks are
+        alignment with ``xyxy``. Note: a single malformed polygon prediction
+        (fewer than 3 points) in an otherwise fully-segmented batch causes all
+        masks to be dropped from the result; the detection itself is kept as a
+        box-only entry with a ``logger.warning``. When ``compact_masks=True``
+        and masks are
         present, ``masks`` is a :class:`CompactMask`; otherwise it is a dense
         boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
         tracker ID, or when only a subset do (mixed batch) — in that case all
@@ -433,6 +437,17 @@ def process_roboflow_result(
                 )
             else:
                 masks.append(mask)
+            tracker_ids.append(prediction.get("tracker_id"))
+        else:
+            logger.warning(
+                "Invalid polygon prediction with fewer than 3 points; falling back "
+                "to box-only detection."
+            )
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
@@ -614,13 +629,13 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 if not np.array_equal(merged_metadata[key], value):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
-                        "{type(value)}, {type(other_value)}."
+                        f"{type(value)}, {type(other_value)}."
                     )
             elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                 # Since [] == np.array([]).
                 raise ValueError(
                     f"Conflicting metadata for key: '{key}': "
-                    "{type(value)}, {type(other_value)}."
+                    f"{type(value)}, {type(other_value)}."
                 )
             else:
                 if merged_metadata[key] != value:

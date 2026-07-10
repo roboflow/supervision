@@ -103,7 +103,7 @@ def pad_boxes(
 @deprecated(  # type: ignore[untyped-decorator]
     target=TargetMode.ARGS_REMAP,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
     args_mapping={"normalized_xyxy": "xyxy"},
 )
 def denormalize_boxes(

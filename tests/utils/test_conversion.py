@@ -108,6 +108,17 @@ def test_pillow_to_cv2(
     )
 
 
+def test_pillow_to_cv2_handles_palette_images() -> None:
+    """Palette images must resolve their palette colors before BGR conversion."""
+    image = Image.new("P", (1, 1))
+    image.putpalette([0, 0, 0, 255, 0, 0] + [0, 0, 0] * 254)
+    image.putdata([1])
+
+    result = pillow_to_cv2(image=image)
+
+    np.testing.assert_array_equal(result, np.array([[[0, 0, 255]]], dtype=np.uint8))
+
+
 def test_images_to_cv2_when_empty_input_provided() -> None:
     # when
     result = images_to_cv2(images=[])

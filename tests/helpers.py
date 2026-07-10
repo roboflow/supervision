@@ -19,13 +19,17 @@ from supervision.key_points.core import KeyPoints
 
 
 def make_panoptic_png(segment_map: np.ndarray) -> bytes:
-    """Encode a (H, W) uint8 segment-ID array as a 4-channel RGBA PNG byte string.
+    """Encode a segment-ID array as a 24-bit RGBA PNG byte string.
 
-    The segment IDs are stored in the red channel (channel 0). Used by
-    panoptic segmentation tests that construct PNG-encoded segment maps.
+    Segment IDs are stored in RGB little-endian order so tests can cover
+    panoptic labels above 255 without collisions.
     """
-    arr = np.zeros((*segment_map.shape, 4), dtype=np.uint8)
-    arr[:, :, 0] = segment_map.astype(np.uint8)
+    segment_map_u32 = np.asarray(segment_map, dtype=np.uint32)
+    arr = np.zeros((*segment_map_u32.shape, 4), dtype=np.uint8)
+    arr[:, :, 0] = (segment_map_u32 & 0xFF).astype(np.uint8)
+    arr[:, :, 1] = ((segment_map_u32 >> 8) & 0xFF).astype(np.uint8)
+    arr[:, :, 2] = ((segment_map_u32 >> 16) & 0xFF).astype(np.uint8)
+    arr[:, :, 3] = 255
     buf = io.BytesIO()
     Image.fromarray(arr).save(buf, format="PNG")
     return buf.getvalue()

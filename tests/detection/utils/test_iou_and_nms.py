@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -20,6 +21,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
 
 
@@ -600,7 +602,7 @@ def test_mask_non_max_suppression(
                 ]
             ),
             0.6,
-            [[0, 1]],
+            [[0], [1]],
             DoesNotRaise(),
         ),  # two masks partially overlapping with no category, no merge
         (
@@ -667,6 +669,94 @@ def test_mask_non_max_merge(
         sorted_result = sorted([sorted(group) for group in result])
         sorted_expected_result = sorted([sorted(group) for group in expected_result])
         assert sorted_result == sorted_expected_result
+
+
+def test_mask_non_max_merge_ignores_mask_dimension_for_exact_iou() -> None:
+    """Mask NMM ignores downscale dimension and uses exact mask overlap."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0, 0] = True
+    masks[0, 0, 1] = True
+    masks[1, 0, 0] = True
+    masks[1, 1, 0] = True
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.9,
+        mask_dimension=1,
+    )
+
+    assert sorted([sorted(group) for group in result]) == [[0], [1]]
+
+
+def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
+    """Mask NMM supports legacy positional trailing args with warning."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0:2, 0:2] = True
+    masks[1, 0:2, 0:2] = True
+
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        legacy_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            640,
+            OverlapMetric.IOU,
+        )
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        reordered_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            OverlapMetric.IOU,
+            640,
+        )
+
+    assert legacy_result == [[0, 1]]
+    assert reordered_result == [[0, 1]]
+
+
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
 
 
 @pytest.mark.parametrize(
@@ -1162,6 +1252,73 @@ def test_box_iou_batch_symmetric_large(
     )
 
 
+def _boundary_box_pair(
+    origin: int, side: int = 50, shift: int = 25, dtype: type = np.float64
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build two overlapping boxes sharing an origin for precision tests.
+
+    Both boxes are `side`x`side`; the second is shifted by `shift` along x so
+    the intersection is `shift`x`side` and the union is `2*side**2 - shift*side`.
+    """
+    box_a = np.array([[origin, origin, origin + side, origin + side]], dtype=dtype)
+    box_b = np.array(
+        [[origin + shift, origin, origin + side + shift, origin + side]],
+        dtype=dtype,
+    )
+    return box_a, box_b
+
+
+@pytest.mark.parametrize(
+    ("origin", "overlap_metric", "expected"),
+    [
+        pytest.param(
+            2**24 + 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-above-2pow24"
+        ),
+        pytest.param(2**24 + 1, OverlapMetric.IOS, 0.5, id="ios-float64-above-2pow24"),
+        pytest.param(2**24, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-at-2pow24"),
+        pytest.param(
+            2**24 - 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-just-below-2pow24"
+        ),
+    ],
+)
+def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
+    origin: int,
+    overlap_metric: OverlapMetric,
+    expected: float,
+) -> None:
+    """`float64`/`int64` inputs keep full precision at the `2**24` boundary.
+
+    `float64` accumulation is exact for these integer-valued coordinates, so the
+    result must match the analytic value. Two 50x50 boxes shifted by 25 in x give
+    intersection 25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5.
+    This does not exercise the `float32`-storage case, which cannot be recovered
+    inside this function; it guards the `float64`/`int64` accumulation path only.
+    """
+    box_a, box_b = _boundary_box_pair(origin, dtype=np.float64)
+
+    result = box_iou_batch(
+        boxes_true=box_a, boxes_detection=box_b, overlap_metric=overlap_metric
+    )
+
+    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+
+
+def test_box_iou_batch_int32_input_does_not_overflow() -> None:
+    """`int32` coordinates with large areas must not overflow to a wrong IoU.
+
+    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`.
+    Before upcasting the corners to `float64`, this made the union non-positive
+    and the function returned `0.0`; it must now return the analytic IoU of 1/3.
+    """
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
+
+    result = box_iou_batch(boxes_true=box_a, boxes_detection=box_b)
+
+    assert result[0, 0] != 0.0
+    assert result[0, 0] == pytest.approx(1.0 / 3.0, rel=1e-6)
+
+
 @pytest.mark.parametrize(
     "scale",
     [
@@ -1583,6 +1740,68 @@ class TestOrientedBoxNonMaxMerge:
 
         sorted_groups = sorted(sorted(g) for g in groups)
         assert sorted_groups == [[0, 1], [2]]
+
+
+class TestIouThresholdValidation:
+    """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
+
+    @pytest.mark.parametrize(
+        ("function", "kwargs"),
+        [
+            pytest.param(
+                box_non_max_suppression,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nms",
+            ),
+            pytest.param(
+                box_non_max_merge,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nmm",
+            ),
+            pytest.param(
+                mask_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nms",
+            ),
+            pytest.param(
+                mask_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nmm",
+            ),
+            pytest.param(
+                oriented_box_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nms",
+            ),
+            pytest.param(
+                oriented_box_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nmm",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
+    def test_rejects_thresholds_outside_closed_unit_interval(
+        self,
+        function: Callable[..., object],
+        kwargs: dict[str, object],
+        iou_threshold: float,
+    ) -> None:
+        """Each public overlap filter rejects thresholds outside [0, 1]."""
+        with pytest.raises(ValueError, match="closed range from 0 to 1"):
+            function(iou_threshold=iou_threshold, **kwargs)
 
 
 def _naive_mask_iou(

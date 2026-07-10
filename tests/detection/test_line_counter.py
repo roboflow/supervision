@@ -3,7 +3,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision import LineZone, LineZoneAnnotatorMulticlass
+from supervision import Detections, LineZone, LineZoneAnnotatorMulticlass
 from supervision.geometry.core import Point, Position, Vector
 from tests.helpers import _create_detections
 
@@ -897,6 +897,78 @@ def test_line_zone_trigger_does_not_call_np_cross(
     assert not crossed_in[0]
     assert crossed_out[0]
     assert line_zone.out_count == 1
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
+    """History for tracker IDs absent from the current frame is evicted."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[1], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    # Trigger twice with second_detections so tracker_id=0 accumulates
+    # crossing_history_length absent frames (default=2) and is evicted.
+    line_zone.trigger(second_detections)
+    line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {1}
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
+    """Empty frames age out tracker crossing history."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    detections = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1])
+
+    line_zone.trigger(detections)
+    for _ in range(line_zone.crossing_history_length):
+        line_zone.trigger(Detections.empty())
+
+    assert not line_zone.crossing_state_history
+
+
+def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
+    """Class changes must not split a tracker crossing history."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    first_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
+    )
+    second_detections = _create_detections(
+        xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[2]
+    )
+
+    line_zone.trigger(first_detections)
+    for _ in range(line_zone.crossing_history_length):
+        line_zone.trigger(second_detections)
+
+    assert set(line_zone.crossing_state_history) == {0}
+
+
+def test_line_zone_class_flicker_keeps_crossing_counts_continuous() -> None:
+    """A tracker's class change must not suppress a real crossing."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    detections_sequence = [
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[0]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[0], class_id=[1]),
+        _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]),
+    ]
+
+    crossed_in = []
+    crossed_out = []
+    for detections in detections_sequence:
+        crossed_in_frame, crossed_out_frame = line_zone.trigger(detections)
+        crossed_in.append(bool(crossed_in_frame[0]))
+        crossed_out.append(bool(crossed_out_frame[0]))
+
+    assert crossed_in == [False, True, False, False]
+    assert crossed_out == [False, False, False, True]
+    assert line_zone.in_count_per_class == {1: 1}
+    assert line_zone.out_count_per_class == {1: 1}
+    assert set(line_zone.crossing_state_history) == {0}
 
 
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:

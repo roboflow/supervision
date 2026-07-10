@@ -173,15 +173,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
-        ),  # single incorrect instance segmentation result with no points
+        ),  # single invalid polygon result with no points falls back to box-only
         (
             _result_1k(
                 _pred(
@@ -191,15 +191,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
-        ),  # single incorrect instance segmentation result with no enough points
+        ),  # single invalid polygon result with too few points falls back to box-only
         (
             _result_1k(
                 _pred(
@@ -245,15 +245,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.array([[175.0, 275.0, 225.0, 325.0]]),
-                np.array([0.9]),
-                np.array([0]),
-                TEST_MASK,
+                np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 7]),
                 None,
-                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "truck"])},
             ),
             DoesNotRaise(),
-        ),  # two instance segmentation results - one correct, one incorrect
+        ),  # mixed valid polygon and invalid polygon keeps boxes and drops masks
         (
             _result(_pred(rle={"size": [4, 4], "counts": "52203"})),
             (
@@ -520,6 +520,32 @@ def test_process_roboflow_result_uses_rle_mask_when_rle_invalid() -> None:
     assert isinstance(dense_result[3], np.ndarray)
     assert isinstance(compact_result[3], CompactMask)
     np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
+def test_process_roboflow_result_invalid_polygon_is_box_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Predictions with fewer than three polygon points are kept as box-only."""
+    roboflow_result = _result(_pred(points=[{"x": 1, "y": 1}, {"x": 2, "y": 2}]))
+
+    with caplog.at_level("WARNING"):
+        xyxy, confidence, class_id, masks, tracker_ids, data = process_roboflow_result(
+            roboflow_result=roboflow_result
+        )
+
+    np.testing.assert_array_equal(xyxy, np.array([[0.5, 0.5, 2.5, 2.5]]))
+    np.testing.assert_array_equal(confidence, np.array([0.9]))
+    np.testing.assert_array_equal(class_id, np.array([0]))
+    assert masks is None
+    assert tracker_ids is None
+    np.testing.assert_array_equal(data[CLASS_NAME_DATA_FIELD], np.array(["person"]))
+    assert "fewer than 3 points" in caplog.text
+
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+    np.testing.assert_array_equal(compact_result[0], xyxy)
+    assert compact_result[3] is None
 
 
 def test_polygon_prediction_compact_masks_true() -> None:
@@ -1055,13 +1081,27 @@ def test_get_data_item(
         (
             [{"key1": [1, 2, 3]}, {"key1": np.array([1, 2, 3])}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Empty lists and numpy arrays for the same key
         (
             [{"key1": []}, {"key1": np.array([])}],
             None,
-            pytest.raises(ValueError, match="type\\(other_value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical multi-dimensional lists across metadata dictionaries
         (
@@ -1097,7 +1137,14 @@ def test_get_data_item(
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": np.arange(4).reshape(2, 2)}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical higher-dimensional (3D) numpy arrays across
         # metadata dictionaries

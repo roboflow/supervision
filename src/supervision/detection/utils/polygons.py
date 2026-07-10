@@ -27,6 +27,20 @@ def filter_polygons_by_area(
     Returns:
         A new list of polygons containing only those with
             areas within the specified thresholds.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> small = np.array([[0, 0], [2, 0], [2, 2], [0, 2]])
+        >>> big = np.array([[0, 0], [10, 0], [10, 10], [0, 10]])
+        >>> sv.filter_polygons_by_area([small, big], min_area=50)
+        [array([[ 0,  0],
+               [10,  0],
+               [10, 10],
+               [ 0, 10]])]
+
+        ```
     """
     if min_area is None and max_area is None:
         return polygons

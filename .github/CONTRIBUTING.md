@@ -246,6 +246,10 @@ Every docstring should include a usage example. When the example only uses `supe
 
 Type hints are required on all new code. mypy is enforced by the pre-commit hook configured in `.pre-commit-config.yaml` — your PR will fail CI if mypy reports errors.
 
+### Readability
+
+Avoid multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
+
 ### Performance
 
 - Avoid unnecessary copies of NumPy arrays.

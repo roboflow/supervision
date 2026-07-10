@@ -4,11 +4,14 @@ Tests for supervision/annotators/core.py
 
 import warnings
 from collections.abc import Iterator
+from typing import Any, cast
 
 import cv2
 import numpy as np
 import pytest
+from PIL import Image
 
+import supervision.annotators.core as annotators_core
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.core import (
     BackgroundOverlayAnnotator,
@@ -972,6 +975,20 @@ class TestHeatMapAnnotator:
             warnings.simplefilter("error", RuntimeWarning)
             annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
 
+    def test_annotate_resets_when_resolution_changes(self) -> None:
+        """Changing frame resolution must reset heat state instead of crashing."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        first_scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        second_scene = np.zeros((120, 80, 3), dtype=np.uint8)
+
+        annotator.annotate(scene=first_scene.copy(), detections=detections)
+        result = annotator.annotate(scene=second_scene.copy(), detections=detections)
+
+        assert result.shape == second_scene.shape
+        assert annotator.heat_mask is not None
+        assert annotator.heat_mask.shape == second_scene.shape[:2]
+
     def test_annotate_hottest_region_survives_uint8_wrap(
         self, test_image: np.ndarray
     ) -> None:
@@ -984,6 +1001,37 @@ class TestHeatMapAnnotator:
             np.any(result[20:60, 20:60] != test_image[20:60, 20:60], axis=2)
         )
         assert region_painted > 100
+
+    def test_reset_clears_accumulated_heat(self, test_image: np.ndarray) -> None:
+        """reset() must zero accumulation so a reused annotator matches a fresh one.
+
+        The heatmap colours each pixel by its heat *relative to the current
+        maximum*, so a single uniformly-painted region always renders identically
+        regardless of its absolute count. To make the assertion actually depend on
+        reset having zeroed the buffer, heat is first built up on region A alone,
+        then after reset both region A and a fresh region B are annotated together.
+        If reset truly zeroed the buffer, A and B carry equal heat and the frame
+        matches a never-used annotator; if reset were a no-op, A's carried-over
+        count would dominate the max-normalisation and B would render a different
+        hue — so byte-equality with the fresh annotator can only hold when the
+        accumulation was genuinely discarded.
+        """
+        region_a = _create_detections(xyxy=[[10, 10, 30, 30]])
+        region_a_and_b = _create_detections(xyxy=[[10, 10, 30, 30], [60, 60, 90, 90]])
+        reused = HeatMapAnnotator()
+        for _ in range(5):
+            reused.annotate(scene=test_image.copy(), detections=region_a)
+        reused.reset()
+        reused_result = reused.annotate(
+            scene=test_image.copy(), detections=region_a_and_b
+        )
+
+        fresh = HeatMapAnnotator()
+        fresh_result = fresh.annotate(
+            scene=test_image.copy(), detections=region_a_and_b
+        )
+
+        assert np.array_equal(reused_result, fresh_result)
 
 
 class TestEllipseAnnotator:
@@ -1138,6 +1186,35 @@ class TestLabelAnnotator:
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.93)
 
+    def test_smart_position_spreads_boxes_once(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """smart_position should spread labels once per annotate call."""
+        calls = 0
+        original_spread_out_boxes = annotators_core.spread_out_boxes
+
+        def counting_spread_out_boxes(
+            boxes: np.ndarray, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            nonlocal calls
+            calls += 1
+            return original_spread_out_boxes(boxes, *args, **kwargs)
+
+        monkeypatch.setattr(
+            annotators_core, "spread_out_boxes", counting_spread_out_boxes
+        )
+
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90], [15, 15, 85, 85]], class_id=[0, 1]
+        )
+        annotator = LabelAnnotator(color_lookup=ColorLookup.INDEX, smart_position=True)
+
+        annotator.annotate(
+            scene=test_image.copy(), detections=detections, labels=["one", "two"]
+        )
+
+        assert calls == 1
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class"""
@@ -1157,6 +1234,39 @@ class TestRichLabelAnnotator:
             scene=test_image.copy(), detections=detections, labels=["test"]
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
+
+    def test_smart_position_spreads_boxes_once(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """smart_position should spread rich labels once per annotate call."""
+        calls = 0
+        original_spread_out_boxes = annotators_core.spread_out_boxes
+
+        def counting_spread_out_boxes(
+            boxes: np.ndarray, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            nonlocal calls
+            calls += 1
+            return original_spread_out_boxes(boxes, *args, **kwargs)
+
+        monkeypatch.setattr(
+            annotators_core, "spread_out_boxes", counting_spread_out_boxes
+        )
+
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90], [15, 15, 85, 85]], class_id=[0, 1]
+        )
+        annotator = RichLabelAnnotator(
+            color_lookup=ColorLookup.INDEX, smart_position=True
+        )
+
+        annotator.annotate(
+            scene=Image.fromarray(test_image.copy()),
+            detections=detections,
+            labels=["one", "two"],
+        )
+
+        assert calls == 1
 
 
 class TestBlurAnnotator:
@@ -1319,6 +1429,32 @@ class TestPercentageBarAnnotator:
         assert_image_mostly_same(test_image, result, similarity_threshold=0.93)
 
 
+class TestPositionHelpers:
+    """Tests for helper methods that map `Position` to coordinates."""
+
+    @pytest.mark.parametrize(
+        ("helper", "args"),
+        [
+            pytest.param(
+                PercentageBarAnnotator.calculate_border_coordinates,
+                ((10, 10), (4, 4), cast(Position, "invalid")),
+                id="percentage-bar",
+            ),
+            pytest.param(
+                CropAnnotator.calculate_crop_coordinates,
+                ((10, 10), (4, 4), cast(Position, "invalid")),
+                id="crop",
+            ),
+        ],
+    )
+    def test_unknown_position_raises(
+        self, helper: Any, args: tuple[Any, Any, Any]
+    ) -> None:
+        """Unsupported positions must raise instead of returning None."""
+        with pytest.raises(ValueError, match="Unsupported position"):
+            helper(*args)
+
+
 class TestCropAnnotator:
     """Tests for CropAnnotator class"""
 
@@ -1479,6 +1615,31 @@ class TestIconAnnotator:
         ]
         assert deprecations == []
 
+    def test_icon_cache_is_shared_by_path_and_resolution(
+        self, monkeypatch, test_image, tmp_path
+    ):
+        """Equal path/resolution icon loads are cached across annotator instances."""
+        icon_path = str(tmp_path / "icon.png")
+        icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
+        cv2.imwrite(icon_path, icon)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        imread_calls = 0
+        original_imread = cv2.imread
+
+        def count_imread(path, flags):
+            nonlocal imread_calls
+            imread_calls += 1
+            return original_imread(path, flags)
+
+        monkeypatch.setattr(cv2, "imread", count_imread)
+
+        for _ in range(2):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+
+        assert imread_calls == 1
+
 
 class TestBackgroundOverlayAnnotator:
     """Tests for BackgroundOverlayAnnotator class"""
@@ -1599,6 +1760,69 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+
+class TestTraceAnnotatorReset:
+    """Tests for TraceAnnotator.reset() clearing accumulated trace history."""
+
+    def test_reset_empties_trace_buffers(self, test_image: np.ndarray) -> None:
+        """reset() must clear the underlying Trace buffers to their empty state."""
+        annotator = TraceAnnotator(trace_length=10)
+        detections = _create_detections(
+            xyxy=[[10, 10, 30, 30]], class_id=[1], tracker_id=[7]
+        )
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+
+        annotator.reset()
+
+        assert annotator.trace.frame_id.shape == (0,)
+        assert annotator.trace.xy.shape == (0, 2)
+        assert annotator.trace.tracker_id.shape == (0,)
+        assert annotator.trace.current_frame_id == 0
+
+    def test_reset_matches_fresh_annotator(self, test_image: np.ndarray) -> None:
+        """After reset() a reused annotator must render identically to a fresh one.
+
+        The two streams reuse the same ``tracker_id`` but follow spatially
+        distinct paths. If reset were a no-op, ``Trace.get`` would return the
+        first stream's points concatenated with the second's and draw a spurious
+        polyline bridging the two paths; only a genuine reset leaves solely the
+        second stream's points, so byte-equality with a never-used annotator can
+        hold only when the prior history was actually discarded. ``trace_length``
+        is large enough that no windowing prunes away the stale points that a
+        broken reset would leave behind.
+        """
+        first_stream = [
+            _create_detections(
+                xyxy=[[10 + step * 6, 10 + step * 6, 20 + step * 6, 20 + step * 6]],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            for step in range(5)
+        ]
+        second_stream = [
+            _create_detections(
+                xyxy=[[80 - step * 6, 10 + step * 6, 90 - step * 6, 20 + step * 6]],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            for step in range(5)
+        ]
+        reused = TraceAnnotator(trace_length=30)
+        reused_scene = test_image.copy()
+        for detections in first_stream:
+            reused_scene = reused.annotate(scene=reused_scene, detections=detections)
+        reused.reset()
+        reused_scene = test_image.copy()
+        for detections in second_stream:
+            reused_scene = reused.annotate(scene=reused_scene, detections=detections)
+
+        fresh = TraceAnnotator(trace_length=30)
+        fresh_scene = test_image.copy()
+        for detections in second_stream:
+            fresh_scene = fresh.annotate(scene=fresh_scene, detections=detections)
+
+        assert np.array_equal(reused_scene, fresh_scene)
 
 
 class TestTraceAnnotatorSmoothStationary:

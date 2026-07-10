@@ -453,6 +453,82 @@ def test_single_perfect_detection() -> None:
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
 
 
+def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
+    """Per-class recall must expose @1, @10 and @100 instead of only @100."""
+    predictions = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            dtype=np.float32,
+        ),
+        class_id=np.array([0, 1], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([predictions], [targets]).compute()
+
+    assert result.recall_per_class.shape == (3, 2, 10)
+    np.testing.assert_allclose(result.recall_per_class[0, :, 0], [1.0, 0.0])
+    np.testing.assert_allclose(result.recall_per_class[1, :, 0], [1.0, 1.0])
+    np.testing.assert_allclose(result.recall_per_class[2, :, 0], [1.0, 1.0])
+
+
+def test_empty_inputs_keep_max_detection_axis() -> None:
+    """Empty inputs must keep mAR result shapes aligned with max detections."""
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update([Detections.empty()], [Detections.empty()]).compute()
+
+    assert result.recall_scores.shape == result.max_detections.shape
+    assert result.recall_per_class.shape == (
+        result.max_detections.shape[0],
+        0,
+        result.iou_thresholds.shape[0],
+    )
+    np.testing.assert_allclose(
+        result.recall_scores,
+        np.zeros(result.max_detections.shape[0]),
+    )
+    assert result.mAR_at_1 == 0.0
+    assert result.mAR_at_10 == 0.0
+    assert result.mAR_at_100 == 0.0
+    assert result.matched_classes.shape == (0,)
+
+
+def test_medium_bucket_scores_target_matched_small_prediction() -> None:
+    """Medium-object mAR keeps valid matches even if the prediction is small."""
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = (
+        MeanAverageRecall(metric_target=MetricTarget.BOXES)
+        .update(
+            [predictions],
+            [targets],
+        )
+        .compute()
+    )
+
+    assert result.medium_objects is not None
+    assert result.medium_objects.mAR_at_1 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_10 == pytest.approx(0.9)
+    assert result.medium_objects.mAR_at_100 == pytest.approx(0.9)
+
+
 @pytest.mark.parametrize(
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
@@ -640,7 +716,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     from supervision import DetectionDataset
 
     dataset_info = yolo_dataset_two_classes
-    np.random.seed(42)  # Match fixture seed for offset generation
+    rng = np.random.default_rng(42)  # Match fixture seed for offset generation
 
     # Load dataset from YOLO format
     dataset = DetectionDataset.from_yolo(
@@ -663,7 +739,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
         if len(gt_detections) > 0:
             pred_xyxy = gt_detections.xyxy.copy().astype(np.float32)
             # Add small random offset (±3 pixels)
-            offset = np.random.randint(-3, 4, pred_xyxy.shape).astype(np.float32)
+            offset = rng.integers(-3, 4, pred_xyxy.shape).astype(np.float32)
             pred_xyxy = np.clip(pred_xyxy + offset, 0, 640)
 
             # Generate decreasing confidence scores

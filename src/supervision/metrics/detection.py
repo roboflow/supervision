@@ -4,10 +4,8 @@ import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from deprecate import (  # type: ignore[import-untyped,unused-ignore]
@@ -27,12 +25,39 @@ from supervision.detection.utils.iou_and_nms import (
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.utils.matching import _greedy_match
 
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
+
 
 def _assert_supported_target(metric_target: MetricTarget) -> None:
     if metric_target == MetricTarget.MASKS:
         raise ValueError(
             "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
         )
+
+
+def _validated_class_ids(
+    values: npt.NDArray[np.float32],
+    num_classes: int,
+    role: str,
+) -> npt.NDArray[np.int64]:
+    """Return class ids that are safe to use as confusion-matrix indexes."""
+    if values.size == 0:
+        return np.asarray(values, dtype=np.int64)
+
+    finite = np.isfinite(values)
+    integral = values == np.floor(values)
+    if not np.all(finite & integral):
+        raise ValueError(f"{role} class ids must be finite integers.")
+
+    class_ids = values.astype(np.int64)
+    invalid = (class_ids < 0) | (class_ids >= num_classes)
+    if np.any(invalid):
+        invalid_values = np.unique(class_ids[invalid]).tolist()
+        raise ValueError(
+            f"{role} class ids must be in [0, {num_classes - 1}], got {invalid_values}."
+        )
+    return class_ids
 
 
 def detections_to_tensor(
@@ -901,24 +926,26 @@ class ConfusionMatrix:
         detection_batch_filtered = predictions[confidence >= conf_threshold]
 
         if len(detection_batch_filtered) == 0:
-            # No detections pass confidence threshold - all GT are FN
-            true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
+            true_classes = _validated_class_ids(
+                targets[:, class_id_idx], num_classes, "Target"
+            )
             for gt_class in true_classes:
                 result_matrix[gt_class, num_classes] += 1
             return result_matrix
 
         if len(targets) == 0:
-            # No ground truth - all detections are FP
-            detection_classes = np.array(
-                detection_batch_filtered[:, class_id_idx], dtype=np.int16
+            detection_classes = _validated_class_ids(
+                detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
             )
             for det_class in detection_classes:
                 result_matrix[num_classes, det_class] += 1
             return result_matrix
 
-        true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(
-            detection_batch_filtered[:, class_id_idx], dtype=np.int16
+        true_classes = _validated_class_ids(
+            targets[:, class_id_idx], num_classes, "Target"
+        )
+        detection_classes = _validated_class_ids(
+            detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
         )
         true_boxes = targets[:, :coords_dim]
         detection_boxes = detection_batch_filtered[:, :coords_dim]
@@ -1125,7 +1152,7 @@ class ConfusionMatrix:
         classes: list[str] | None = None,
         normalize: bool = False,
         fig_size: tuple[int, int] = (12, 10),
-    ) -> matplotlib.figure.Figure:
+    ) -> Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
@@ -1141,6 +1168,7 @@ class ConfusionMatrix:
         Returns:
             Confusion matrix plot.
         """
+        from matplotlib import pyplot as plt
 
         # Cast to float so that the NaN masking below never hits an integer
         # matrix (assigning NaN into an int array raises ValueError).
@@ -1283,7 +1311,7 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.99
+            1.0
 
             ```
         """
@@ -1395,7 +1423,7 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.81
+            0.75
 
             >>> bg_pred = [np.array([[0., 0., 10., 10., 0, 0.9]], dtype=np.float32)]
             >>> bg_tgt = [np.zeros((0, 5), dtype=np.float32)]
@@ -1498,24 +1526,16 @@ class MeanAveragePrecision:
             Average precision.
         """
         extended_recall = np.concatenate(([0.0], recall, [1.0]))
-        extended_precision = np.concatenate(([1.0], precision, [0.0]))
+        extended_precision = np.concatenate(([0.0], precision, [0.0]))
         max_accumulated_precision = np.flip(
             np.maximum.accumulate(np.flip(extended_precision))
         )
         interpolated_recall_levels = np.linspace(0, 1, 101)
-        interpolated_precision = np.interp(
-            interpolated_recall_levels, extended_recall, max_accumulated_precision
+        recall_indices = np.searchsorted(
+            extended_recall, interpolated_recall_levels, side="left"
         )
-
-        # Check if we are running on NumPy 2.0+ or older
-        if hasattr(np, "trapezoid"):
-            average_precision = np.trapezoid(
-                interpolated_precision, interpolated_recall_levels
-            )
-        else:
-            average_precision = getattr(np, "trapz")(
-                interpolated_precision, interpolated_recall_levels
-            )
+        interpolated_precision = max_accumulated_precision[recall_indices]
+        average_precision = np.mean(interpolated_precision)
 
         return float(average_precision)
 

@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -75,7 +74,7 @@ class MeanAveragePrecisionResult:
     """
     The result of the Mean Average Precision calculation.
 
-    Defaults to `0` when no detections or targets are present.
+    Returns `-1` sentinel scores when no detections or targets are present.
 
     Attributes:
         metric_target: the type of data used for the metric -
@@ -229,6 +228,7 @@ class MeanAveragePrecisionResult:
             https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
         ){ align=center width="800" }
         """
+        from matplotlib import pyplot as plt
 
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]
@@ -527,10 +527,11 @@ class EvaluationDataset:
 
         ids = [pred["image_id"] for pred in predictions]
 
-        # Make sure the image ids from predictions exist in the current dataset
-        assert set(ids) == (set(ids) & set(self.get_image_ids())), (
-            "Results do not correspond to current coco set"
-        )
+        # Make sure the image ids from predictions exist in the current dataset.
+        # A plain ``assert`` would be stripped under ``python -O``, so validate
+        # this public-input contract with an explicit exception instead.
+        if not set(ids) <= set(self.get_image_ids()):
+            raise ValueError("Results do not correspond to current coco set")
 
         # Check if the predictions contain any unsupported keys
         if "caption" in predictions[0]:
@@ -744,8 +745,9 @@ class COCOEvaluator:
 
         # Set ignore flag
         for gt in targets:
-            gt["ignore"] = gt["ignore"] if "ignore" in gt else 0
-            gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
+            ignore = int(gt.get("ignore", 0))
+            iscrowd = int(gt.get("iscrowd", 0))
+            gt["ignore"] = int(bool(ignore or iscrowd))
 
         # Select targets
         self._targets = defaultdict(list)
@@ -1545,6 +1547,13 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     )
                     iscrowd = int(iscrowd_data[target_idx])
 
+                ignore = 0
+                if image_targets.data is not None and "ignore" in image_targets.data:
+                    ignore_data: npt.NDArray[np.int64] = np.asarray(
+                        image_targets.data["ignore"], dtype=np.int64
+                    )
+                    ignore = int(ignore_data[target_idx])
+
                 dict_annotation: _TypeCocoDict = {
                     "area": area,
                     "iscrowd": iscrowd,
@@ -1552,7 +1561,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     "bbox": xywh,
                     "category_id": category_id,
                     "id": len(annotations) + 1,  # Start IDs from 1 (0 means no match)
-                    "ignore": 0,
+                    "ignore": ignore,
                 }
                 if content is not None:
                     dict_annotation["content"] = content[target_idx]

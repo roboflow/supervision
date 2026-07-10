@@ -162,6 +162,24 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
+    @pytest.mark.parametrize(
+        "edges",
+        [
+            pytest.param([(0, 1)], id="zero-based"),
+            pytest.param([(1, 3)], id="too-large"),
+        ],
+    )
+    def test_invalid_edges_raise(self, scene, edges):
+        """Edges must use valid 1-based keypoint indices."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [90.0, 90.0]]], dtype=np.float32),
+            visible=np.array([[True, True]]),
+        )
+        annotator = sv.EdgeAnnotator(edges=edges)
+
+        with pytest.raises(ValueError, match="1-based"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
     def test_annotate_no_edges_found(self, scene):
         """
         Verify returning unmodified scene when no known skeleton matches.

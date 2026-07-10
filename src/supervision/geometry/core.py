@@ -23,7 +23,8 @@ class Position(Enum):
 
     @classmethod
     def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
+        """Return all position values in their definition order."""
+        return [position.value for position in cls]
 
 
 @dataclass
@@ -174,18 +175,22 @@ class Rect:
 
     @classmethod
     def from_xyxy(cls, xyxy: tuple[float, float, float, float]) -> Rect:
+        """Create a rectangle from `(x_min, y_min, x_max, y_max)` coordinates."""
         x1, y1, x2, y2 = xyxy
         return cls(x=x1, y=y1, width=x2 - x1, height=y2 - y1)
 
     @property
     def top_left(self) -> Point:
+        """Return the top-left corner as a `Point`."""
         return Point(x=self.x, y=self.y)
 
     @property
     def bottom_right(self) -> Point:
+        """Return the bottom-right corner as a `Point`."""
         return Point(x=self.x + self.width, y=self.y + self.height)
 
     def pad(self, padding: int) -> Rect:
+        """Return a rectangle expanded by `padding` pixels on every side."""
         return Rect(
             x=self.x - padding,
             y=self.y - padding,
@@ -194,6 +199,7 @@ class Rect:
         )
 
     def as_xyxy_int_tuple(self) -> tuple[int, int, int, int]:
+        """Return `(x_min, y_min, x_max, y_max)` coordinates as integers."""
         return (
             int(self.x),
             int(self.y),
