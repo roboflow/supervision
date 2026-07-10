@@ -262,8 +262,18 @@ def test_hex_to_rgba_valid(
     assert hex_to_rgba(hex_color) == expected_rgba
 
 
-@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII", "#FFF", "1234567"])
+@pytest.mark.parametrize(
+    "hex_color",
+    [
+        pytest.param("#FF00F", id="five-digits"),
+        pytest.param("#GGHHII", id="non-hex-digits"),
+        pytest.param("#FFF", id="short-form"),
+        pytest.param("1234567", id="seven-digits"),
+        pytest.param("##000000", id="multiple-prefixes"),
+    ],
+)
 def test_hex_to_rgba_invalid(hex_color: str) -> None:
+    """Invalid formats raise instead of being normalized into valid colors."""
     with pytest.raises(ValueError, match="Invalid hex"):
         hex_to_rgba(hex_color)
 
