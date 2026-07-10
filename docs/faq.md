@@ -72,10 +72,7 @@ pip install opencv-python  # GUI support
 # or: pip install opencv-python-headless  # headless support
 ```
 
-The full-wheel option is a manual override of supervision's declared headless
-dependency. A later dependency update may reinstall the headless wheel, so use
-a dedicated environment or verify the installed OpenCV distributions after
-updating packages. Never keep both wheel distributions installed together.
+The full-wheel option is a manual override of supervision's declared headless dependency. A later dependency update may reinstall the headless wheel, so use a dedicated environment or verify the installed OpenCV distributions after updating packages. Never keep both wheel distributions installed together.
 
 ## How do I process frames from a webcam with supervision?
 
