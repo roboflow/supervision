@@ -31,7 +31,6 @@ def clip_boxes(
             within the frame resolution.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -43,8 +42,6 @@ def clip_boxes(
         array([[ 10,  20, 300, 200],
                [ 15,  25, 320, 240],
                [  0,   0,  30,  40]])
-
-        ```
     """
     result: npt.NDArray[np.number] = np.copy(xyxy)
     width, height = resolution_wh
@@ -77,7 +74,6 @@ def pad_boxes(
             values.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -87,8 +83,6 @@ def pad_boxes(
         >>> sv.pad_boxes(xyxy=xyxy, px=5, py=10)
         array([[ 5, 10, 35, 50],
                [10, 15, 40, 55]])
-
-        ```
     """
     if py is None:
         py = px
@@ -132,7 +126,6 @@ def denormalize_boxes(
             `(x_min, y_min, x_max, y_max)` format.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -144,17 +137,11 @@ def denormalize_boxes(
         array([[128., 144., 640., 432.],
                [384., 288., 896., 576.],
                [256.,  72., 768., 360.]])
-
-        ```
-
-        ```pycon
         >>> xyxy = np.array([
         ...     [256., 128., 768., 640.]
         ... ])
         >>> sv.denormalize_boxes(xyxy, (1280, 720), normalization_factor=1024.0)
         array([[320.,  90., 960., 450.]])
-
-        ```
     """
     width, height = resolution_wh
     result = cast(npt.NDArray[Any], xyxy.copy())
@@ -179,7 +166,6 @@ def move_boxes(
         Repositioned bounding boxes.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -190,8 +176,6 @@ def move_boxes(
         >>> sv.move_boxes(xyxy=xyxy, offset=offset)
         array([[15, 15, 25, 25],
                [35, 35, 45, 45]])
-
-        ```
     """
     return xyxy + np.hstack([offset, offset])
 
@@ -211,7 +195,6 @@ def move_oriented_boxes(
         Repositioned bounding boxes.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.boxes import move_oriented_boxes
         >>> xyxyxyxy = np.array([
@@ -239,8 +222,6 @@ def move_oriented_boxes(
                 [25, 45],
                 [35, 55],
                 [45, 45]]])
-
-        ```
     """
     return xyxyxyxy + offset
 
@@ -290,7 +271,6 @@ def xyxyxyxy_to_xyxy(
         ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> corners = np.array([
@@ -300,8 +280,6 @@ def xyxyxyxy_to_xyxy(
         >>> sv.xyxyxyxy_to_xyxy(corners)
         array([[ 0.,  0., 10.,  5.],
                [ 5.,  5., 15., 10.]], dtype=float32)
-
-        ```
     """
     xyxyxyxy = cast(npt.NDArray[np.number], np.asarray(xyxyxyxy))
     if xyxyxyxy.ndim != 3 or xyxyxyxy.shape[-2:] != (4, 2):
@@ -365,7 +343,6 @@ def _oriented_box_anchors(
         images but visible on rotating objects in video.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.boxes import _oriented_box_anchors
         >>> from supervision.geometry.core import Position
@@ -374,8 +351,6 @@ def _oriented_box_anchors(
         ... )
         >>> _oriented_box_anchors(corners, Position.BOTTOM_CENTER)
         array([[5., 4.]])
-
-        ```
     """
     corners = np.asarray(xyxyxyxy, dtype=np.float64)
     if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
@@ -419,7 +394,6 @@ def scale_boxes(
         Scaled bounding boxes.
 
     Examples:
-        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -429,8 +403,6 @@ def scale_boxes(
         >>> sv.scale_boxes(xyxy=xyxy, factor=1.5)
         array([[ 7.5,  7.5, 22.5, 22.5],
                [27.5, 27.5, 42.5, 42.5]])
-
-        ```
     """
     centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
     new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
@@ -449,7 +421,6 @@ def spread_out_boxes(
         max_iterations: Maximum number of iterations to run the algorithm for.
 
     Example:
-        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.boxes import spread_out_boxes
         >>> xyxy = np.array([
@@ -462,8 +433,6 @@ def spread_out_boxes(
         True
         >>> bool(spread_out[1, 0] > 12 and spread_out[1, 1] > 12)
         True
-
-        ```
     """
     if len(xyxy) == 0:
         return xyxy
