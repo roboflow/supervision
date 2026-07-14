@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.9.5 # v3.9.4
+    rev: 0737985b8f21a8d83195f6ced1045e7637fc82fb # v3.9.5
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
