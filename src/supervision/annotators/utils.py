@@ -427,7 +427,7 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
 
         ```
     """
-    hex_color = hex_color.strip().lstrip("#")
+    hex_color = hex_color.strip().removeprefix("#")
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:
