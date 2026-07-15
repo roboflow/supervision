@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -166,7 +166,7 @@ def _interior_point(contour: np.ndarray) -> np.ndarray:
     is therefore an interior sample. Falls back to the centroid for degenerate
     (sub-triangle or zero-height) contours where no such span exists.
     """
-    centroid = contour.mean(axis=0)
+    centroid = cast(np.ndarray, contour.mean(axis=0))
     if len(contour) < 3:
         return centroid
     y_scan = float(np.floor(centroid[1])) + 0.5
