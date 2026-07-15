@@ -115,10 +115,7 @@ def test_facade_exports_the_required_opencv_surface() -> None:
     assert _cv2.BACKEND_NAME == "opencv"
 
 
-@pytest.mark.parametrize(
-    "name",
-    OPENCV_CONSTANTS
-)
+@pytest.mark.parametrize("name", OPENCV_CONSTANTS)
 def test_fallback_constant_matches_opencv(name: str) -> None:
     """Keep each private fallback constant aligned with the OpenCV reference."""
     actual = getattr(_cv2, f"_{name}")
