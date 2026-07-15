@@ -13,10 +13,6 @@ date_modified: 2026-07-08
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
-!!! warning "Planned: OpenCV dependency change"
-
-    A future release will stop declaring an OpenCV package as a supervision dependency; users who need `cv2` directly will install their own OpenCV distribution (`opencv-python` or `opencv-python-headless`), and supervision's public API will keep working either way. This release ships `sv.ImageWindow` (see **Added**, below) as a forward-compatible replacement for `cv2.imshow`/`cv2.waitKey`/`cv2.namedWindow`, so display code can migrate ahead of that change. No breaking change yet — `cv2.imshow` and friends keep working unchanged as long as `opencv-python` is installed.
-
 ### Breaking Changes
 - `sv.JSONSink` now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as `"True"`/`"False"`, `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use strict string-typed schema validators must be updated. `sv.CSVSink` remains textual, but its custom-data slicing now matches `sv.JSONSink`: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
