@@ -1,467 +1,1350 @@
 {
-  "schema_version": 1,
-  "reference": {
-    "distribution": "opencv-python",
-    "reference_version": "4.10.0.84",
-    "supported_version_spec": ">=4.10,<5",
-    "color_order": "BGR",
-    "alpha_order": "BGRA",
-    "array_contract": "numpy.ndarray with image shape (H, W) or (H, W, C); image pixels use uint8 unless an operation explicitly says otherwise",
-    "required_symbols": [
-      "cvtColor",
-      "split",
-      "merge",
-      "flip",
-      "copyMakeBorder",
-      "addWeighted",
-      "convertScaleAbs",
-      "mean",
-      "resize",
-      "imread",
-      "imwrite",
-      "getRotationMatrix2D",
-      "warpAffine",
-      "blur",
-      "distanceTransform",
-      "contourArea",
-      "approxPolyDP",
-      "intersectConvexConvex",
-      "connectedComponents",
-      "connectedComponentsWithStats",
-      "findContours",
-      "line",
-      "rectangle",
-      "circle",
-      "ellipse",
-      "polylines",
-      "fillPoly",
-      "drawContours",
-      "getTextSize",
-      "putText",
-      "VideoCapture",
-      "VideoWriter",
-      "VideoWriter_fourcc"
-    ]
-  },
-  "dispatch_contract": {
-    "selection_time": "import-time",
-    "environment_variable": "SUPERVISION_BACKEND",
-    "accepted_values": ["auto", "opencv", "fallback"],
-    "default": "auto",
-    "runtime_switching": "unsupported",
-    "auto_missing_cv2": "fallback",
-    "forced_opencv_missing_cv2": "actionable_error",
-    "pr0_runtime_switch": "not implemented; this fixture defines the PR1 contract only"
-  },
-  "parity_tiers": {
-    "E": "bit-exact output or exact semantic result",
-    "T": "numeric tolerance recorded per operation and enforced against the OpenCV reference",
-    "D": "documented semantic or visual divergence with operation-specific invariants and golden coverage"
-  },
-  "operations": [
-    {
-      "name": "convert_color",
-      "cv2_symbols": ["cvtColor"],
-      "signature": "convert_color(image, code) -> ndarray",
-      "input_contract": "contiguous uint8 grayscale, BGR, BGRA, RGB, or HSV image",
-      "output_contract": "new contiguous uint8 image with the code-selected channel shape",
-      "error_contract": "ValueError for unsupported channel shape or conversion code",
-      "parity": [
-        {"case": "BGR/RGB and GRAY/BGR", "tier": "E", "max_abs": 0, "mean_abs": 0},
-        {"case": "BGR/GRAY", "tier": "T", "max_abs": 1, "mean_abs": 1},
-        {"case": "HSV/BGR", "tier": "T", "max_abs": 1, "mean_abs": 1}
-      ]
+    "schema_version": 1,
+    "reference": {
+        "distribution": "opencv-python",
+        "reference_version": "4.10.0.84",
+        "supported_version_spec": ">=4.10,<5",
+        "color_order": "BGR",
+        "alpha_order": "BGRA",
+        "array_contract": "numpy.ndarray with image shape (H, W) or (H, W, C); image pixels use uint8 unless an operation explicitly says otherwise",
+        "required_symbols": [
+            "cvtColor",
+            "split",
+            "merge",
+            "flip",
+            "copyMakeBorder",
+            "addWeighted",
+            "convertScaleAbs",
+            "mean",
+            "resize",
+            "imread",
+            "imwrite",
+            "getRotationMatrix2D",
+            "warpAffine",
+            "blur",
+            "distanceTransform",
+            "contourArea",
+            "approxPolyDP",
+            "intersectConvexConvex",
+            "connectedComponents",
+            "connectedComponentsWithStats",
+            "findContours",
+            "line",
+            "rectangle",
+            "circle",
+            "ellipse",
+            "polylines",
+            "fillPoly",
+            "drawContours",
+            "getTextSize",
+            "putText",
+            "VideoCapture",
+            "VideoWriter",
+            "VideoWriter_fourcc"
+        ]
     },
-    {
-      "name": "split_channels",
-      "cv2_symbols": ["split"],
-      "signature": "split_channels(image) -> tuple[ndarray, ...]",
-      "input_contract": "uint8 image with 1, 3, or 4 channels",
-      "output_contract": "one contiguous two-dimensional uint8 array per channel, preserving order",
-      "error_contract": "ValueError for unsupported image shape",
-      "parity": [{"case": "channel values and order", "tier": "E", "max_abs": 0, "mean_abs": 0}]
+    "dispatch_contract": {
+        "selection_time": "import-time",
+        "environment_variable": "SUPERVISION_BACKEND",
+        "accepted_values": [
+            "auto",
+            "opencv",
+            "fallback"
+        ],
+        "default": "auto",
+        "runtime_switching": "unsupported",
+        "auto_missing_cv2": "fallback",
+        "forced_opencv_missing_cv2": "actionable_error",
+        "pr0_runtime_switch": "not implemented; this fixture defines the PR1 contract only"
     },
-    {
-      "name": "merge_channels",
-      "cv2_symbols": ["merge"],
-      "signature": "merge_channels(channels) -> ndarray",
-      "input_contract": "non-empty equal-shaped two-dimensional uint8 channels",
-      "output_contract": "contiguous HWC uint8 image with input channel order",
-      "error_contract": "ValueError for empty or differently shaped channels",
-      "parity": [{"case": "channel values and order", "tier": "E", "max_abs": 0, "mean_abs": 0}]
+    "parity_tiers": {
+        "E": "bit-exact output or exact semantic result",
+        "T": "numeric tolerance recorded per operation and enforced against the OpenCV reference",
+        "D": "documented semantic or visual divergence with operation-specific invariants and golden coverage"
     },
-    {
-      "name": "flip",
-      "cv2_symbols": ["flip"],
-      "signature": "flip(image, flip_code) -> ndarray",
-      "input_contract": "uint8 image and flip code -1, 0, or 1",
-      "output_contract": "contiguous copy with unchanged shape and dtype",
-      "error_contract": "ValueError for unsupported flip code",
-      "parity": [{"case": "all flip codes", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "copy_make_border",
-      "cv2_symbols": ["copyMakeBorder"],
-      "signature": "copy_make_border(image, top, bottom, left, right, value) -> ndarray",
-      "input_contract": "uint8 grayscale, BGR, or BGRA image and non-negative integer borders",
-      "output_contract": "new image with requested dimensions; constant padding preserves BGR/BGRA order and sets BGRA padding alpha to zero",
-      "error_contract": "ValueError for negative borders or unsupported channel shape",
-      "parity": [{"case": "constant border", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "add_weighted",
-      "cv2_symbols": ["addWeighted"],
-      "signature": "add_weighted(src1, alpha, src2, beta, gamma) -> ndarray",
-      "input_contract": "equal-shaped uint8 images with matching channel shape",
-      "output_contract": "new uint8 image with saturating arithmetic and OpenCV-compatible tie rounding",
-      "error_contract": "ValueError for shape or channel mismatch",
-      "parity": [{"case": "uint8 arithmetic", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "convert_scale_abs",
-      "cv2_symbols": ["convertScaleAbs"],
-      "signature": "convert_scale_abs(image, alpha, beta) -> ndarray",
-      "input_contract": "numeric image and finite scale/offset values",
-      "output_contract": "uint8 absolute, scaled, saturated image",
-      "error_contract": "ValueError for non-finite scale or offset",
-      "parity": [{"case": "scale, absolute value, saturation", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "mean",
-      "cv2_symbols": ["mean"],
-      "signature": "mean(image, mask=None) -> tuple[float, ...]",
-      "input_contract": "numeric grayscale or multi-channel image; optional uint8 mask with matching H/W",
-      "output_contract": "four-value tuple padded with zeros, matching OpenCV channel order",
-      "error_contract": "ValueError for mask shape mismatch",
-      "parity": [{"case": "unmasked and masked channel means", "tier": "T", "max_abs": 1e-12, "mean_abs": 1e-12}]
-    },
-    {
-      "name": "resize",
-      "cv2_symbols": ["resize"],
-      "signature": "resize(image, size, interpolation) -> ndarray",
-      "input_contract": "non-empty numeric image and positive (width, height); nearest and linear interpolation are required",
-      "output_contract": "new contiguous image with requested dimensions and compatible dtype",
-      "error_contract": "ValueError for non-positive dimensions or unsupported interpolation",
-      "parity": [
-        {"case": "INTER_NEAREST", "tier": "E", "max_abs": 0, "mean_abs": 0},
-        {"case": "INTER_LINEAR", "tier": "T", "max_abs": 1, "mean_abs": 1}
-      ]
-    },
-    {
-      "name": "read_image",
-      "cv2_symbols": ["imread"],
-      "signature": "read_image(path, flags=-1) -> ndarray | None",
-      "input_contract": "filesystem path and unchanged, grayscale, or color read flag",
-      "output_contract": "BGR/BGRA/grayscale ndarray; unchanged preserves supported alpha and bit depth",
-      "error_contract": "return None for missing, unreadable, or unsupported input; do not raise for a normal decode miss",
-      "parity": [{"case": "codec decode pixels", "tier": "T", "max_abs": 1, "mean_abs": 1}]
-    },
-    {
-      "name": "write_image",
-      "cv2_symbols": ["imwrite"],
-      "signature": "write_image(path, image) -> bool",
-      "input_contract": "filesystem path and uint8 grayscale, BGR, or BGRA image",
-      "output_contract": "boolean success result; written files preserve BGR/BGRA semantics on read-back",
-      "error_contract": "return False for unsupported extension or write failure",
-      "parity": [{"case": "decoded pixels, not encoded bytes", "tier": "T", "max_abs": 2, "mean_abs": 1}]
-    },
-    {
-      "name": "rotation_matrix",
-      "cv2_symbols": ["getRotationMatrix2D"],
-      "signature": "rotation_matrix(center, angle, scale) -> ndarray",
-      "input_contract": "finite center, angle, and scale values",
-      "output_contract": "float64 matrix with shape (2, 3), mapping source coordinates like OpenCV",
-      "error_contract": "ValueError for non-finite values or zero scale",
-      "parity": [{"case": "matrix values", "tier": "T", "max_abs": 1e-12, "mean_abs": 1e-12}]
-    },
-    {
-      "name": "warp_affine",
-      "cv2_symbols": ["warpAffine"],
-      "signature": "warp_affine(image, matrix, size, interpolation=1) -> ndarray",
-      "input_contract": "numeric image, finite 2x3 matrix, positive output size, and supported interpolation",
-      "output_contract": "new image with requested dimensions and source dtype",
-      "error_contract": "ValueError for invalid matrix, size, or interpolation",
-      "parity": [{"case": "annotation-shaped canvas interior", "tier": "T", "max_abs": 5, "mean_abs": 1}]
-    },
-    {
-      "name": "blur",
-      "cv2_symbols": ["blur"],
-      "signature": "blur(image, kernel_size) -> ndarray",
-      "input_contract": "numeric image and positive odd or even kernel dimensions",
-      "output_contract": "same shape and dtype with BORDER_REFLECT_101-equivalent edge handling",
-      "error_contract": "ValueError for non-positive kernel dimensions",
-      "parity": [{"case": "uniform 5x5 blur", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "distance_transform",
-      "cv2_symbols": ["distanceTransform"],
-      "signature": "distance_transform(mask, distance_type, mask_size) -> ndarray",
-      "input_contract": "uint8 binary mask and supported L2 mask size",
-      "output_contract": "float32 distance image with zero at background",
-      "error_contract": "ValueError for non-binary mask or unsupported distance configuration",
-      "parity": [{"case": "L2 mask size 3", "tier": "D", "max_abs": 0.45, "mean_abs": 0.17, "notes": "fallback exact EDT is intentionally not bit-identical to OpenCV chamfer-3; threshold semantics require operation-specific tests"}]
-    },
-    {
-      "name": "contour_area",
-      "cv2_symbols": ["contourArea"],
-      "signature": "contour_area(contour, oriented=False) -> float",
-      "input_contract": "finite contour vertices shaped (N, 2) or (N, 1, 2)",
-      "output_contract": "shoelace area with OpenCV orientation convention",
-      "error_contract": "ValueError for fewer than three vertices or non-finite coordinates",
-      "parity": [{"case": "integer polygon vertices", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "approximate_polygon",
-      "cv2_symbols": ["approxPolyDP"],
-      "signature": "approximate_polygon(curve, epsilon, closed) -> ndarray",
-      "input_contract": "finite 2D curve with at least one vertex and non-negative epsilon",
-      "output_contract": "ordered curve with OpenCV-compatible shape and dtype",
-      "error_contract": "ValueError for invalid curve or negative epsilon",
-      "parity": [{"case": "closed and open Douglas-Peucker curves", "tier": "T", "max_abs": 1e-9, "mean_abs": 1e-9}]
-    },
-    {
-      "name": "intersect_convex_polygons",
-      "cv2_symbols": ["intersectConvexConvex"],
-      "signature": "intersect_convex_polygons(polygon1, polygon2) -> tuple[float, ndarray]",
-      "input_contract": "finite convex polygons with at least three vertices",
-      "output_contract": "intersection area and ordered float64 polygon; no float32 overshoot",
-      "error_contract": "ValueError for non-convex or invalid polygons",
-      "parity": [{"case": "OBB IoU intersection area", "tier": "T", "max_abs": 1e-9, "mean_abs": 1e-9}]
-    },
-    {
-      "name": "connected_components",
-      "cv2_symbols": ["connectedComponents"],
-      "signature": "connected_components(mask, connectivity=8) -> tuple[int, ndarray]",
-      "input_contract": "uint8 binary mask and connectivity 4 or 8",
-      "output_contract": "deterministically numbered labels with background label zero",
-      "error_contract": "ValueError for invalid connectivity or mask shape",
-      "parity": [{"case": "labels and deterministic tie ordering", "tier": "T", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "connected_components_with_stats",
-      "cv2_symbols": ["connectedComponentsWithStats"],
-      "signature": "connected_components_with_stats(mask, connectivity=8) -> tuple[int, ndarray, ndarray, ndarray]",
-      "input_contract": "uint8 binary mask and connectivity 4 or 8",
-      "output_contract": "labels, integer stats, and float centroids with background row",
-      "error_contract": "ValueError for invalid connectivity or mask shape",
-      "parity": [{"case": "component stats and centroids", "tier": "T", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "find_contours",
-      "cv2_symbols": ["findContours"],
-      "signature": "find_contours(mask, mode, method) -> tuple[list[ndarray], ndarray | None]",
-      "input_contract": "uint8 binary mask, RETR_TREE/RETR_CCOMP mode, and CHAIN_APPROX_SIMPLE or NONE method",
-      "output_contract": "ordered contours with OpenCV-compatible vertex shape; hierarchy may be discarded by callers",
-      "error_contract": "ValueError for non-binary mask, unsupported mode, or unsupported method",
-      "parity": [{"case": "contour topology and refill", "tier": "T", "max_abs": 0, "mean_abs": 0, "notes": "ordering, orientation, SIMPLE compression, and pathological masks remain explicit follow-up gates"}]
-    },
-    {
-      "name": "draw_line",
-      "cv2_symbols": ["line"],
-      "signature": "draw_line(scene, start, end, color, thickness, line_type=8) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and integer coordinates/color",
-      "output_contract": "mutates scene in place; no return value",
-      "error_contract": "ValueError for invalid scene shape or thickness",
-      "parity": [{"case": "geometry and filled-region invariants", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "anti-aliased edge pixels are allowed to differ and require golden-image budgets"}]
-    },
-    {
-      "name": "draw_rectangle",
-      "cv2_symbols": ["rectangle"],
-      "signature": "draw_rectangle(scene, start, end, color, thickness, line_type=8) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and integer coordinates/color",
-      "output_contract": "mutates scene in place; negative thickness means filled rectangle",
-      "error_contract": "ValueError for invalid scene shape or thickness",
-      "parity": [{"case": "filled and outlined geometry", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "golden-image budget required"}]
-    },
-    {
-      "name": "draw_circle",
-      "cv2_symbols": ["circle"],
-      "signature": "draw_circle(scene, center, radius, color, thickness, line_type=8) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and integer center/radius/color",
-      "output_contract": "mutates scene in place; negative thickness means filled circle",
-      "error_contract": "ValueError for negative radius or invalid scene shape",
-      "parity": [{"case": "filled and outlined geometry", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "golden-image budget required"}]
-    },
-    {
-      "name": "draw_ellipse",
-      "cv2_symbols": ["ellipse"],
-      "signature": "draw_ellipse(scene, center, axes, angle, start_angle, end_angle, color, thickness) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and finite ellipse geometry",
-      "output_contract": "mutates scene in place",
-      "error_contract": "ValueError for invalid axes, angles, or scene shape",
-      "parity": [{"case": "ellipse geometry", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "golden-image budget required"}]
-    },
-    {
-      "name": "draw_polylines",
-      "cv2_symbols": ["polylines"],
-      "signature": "draw_polylines(scene, points, closed, color, thickness, line_type=8) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and finite integer point arrays",
-      "output_contract": "mutates scene in place",
-      "error_contract": "ValueError for malformed point arrays or invalid scene shape",
-      "parity": [{"case": "polyline connectivity", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "golden-image budget required"}]
-    },
-    {
-      "name": "fill_polygon",
-      "cv2_symbols": ["fillPoly"],
-      "signature": "fill_polygon(scene, polygons, color) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and one or more finite integer polygons",
-      "output_contract": "mutates scene in place; filled region follows even-odd polygon semantics",
-      "error_contract": "ValueError for malformed polygons or invalid scene shape",
-      "parity": [{"case": "filled-region mask", "tier": "T", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "draw_contours",
-      "cv2_symbols": ["drawContours"],
-      "signature": "draw_contours(scene, contours, contour_index, color, thickness) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene and OpenCV-shaped contours",
-      "output_contract": "mutates scene in place",
-      "error_contract": "ValueError for invalid contour index or scene shape",
-      "parity": [{"case": "contour geometry and fills", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "golden-image budget required"}]
-    },
-    {
-      "name": "get_text_size",
-      "cv2_symbols": ["getTextSize"],
-      "signature": "get_text_size(text, font_face, font_scale, thickness) -> tuple[tuple[int, int], int]",
-      "input_contract": "string, accepted Hershey font face including italic modifier, finite non-negative scale, and non-negative thickness",
-      "output_contract": "integer (width, height) and integer baseline with OpenCV Hershey metrics",
-      "error_contract": "ValueError for unsupported font face, negative scale, or negative thickness",
-      "parity": [{"case": "all accepted faces, empty and multi-character strings", "tier": "E", "max_abs": 0, "mean_abs": 0}]
-    },
-    {
-      "name": "draw_text",
-      "cv2_symbols": ["putText"],
-      "signature": "draw_text(scene, text, origin, font_face, font_scale, color, thickness, line_type=8) -> None",
-      "input_contract": "mutable uint8 BGR/BGRA scene, supported text, accepted Hershey face, finite scale, and non-negative thickness",
-      "output_contract": "mutates scene in place using the same baseline convention as get_text_size",
-      "error_contract": "ValueError for unsupported font face or invalid scene/text parameters",
-      "parity": [{"case": "stroke placement and glyph rendering", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "font asset provenance and per-face rendering budgets remain PR5 gates"}]
-    },
-    {
-      "name": "open_video_reader",
-      "cv2_symbols": ["VideoCapture"],
-      "signature": "open_video_reader(path) -> VideoReaderProtocol",
-      "input_contract": "path-based file video; device indices are outside the Supervision fallback contract",
-      "output_contract": "is_opened, read, grab, get, set, release; frames are contiguous uint8 BGR arrays",
-      "error_contract": "MediaError for missing, invalid, or truncated files; release is idempotent",
-      "parity": [{"case": "CFR/VFR metadata, exact start seek, lifecycle", "tier": "T", "max_abs": 1, "mean_abs": 1}]
-    },
-    {
-      "name": "open_video_writer",
-      "cv2_symbols": ["VideoWriter", "VideoWriter_fourcc"],
-      "signature": "open_video_writer(path, fps, size, codec='mp4v') -> VideoWriterProtocol",
-      "input_contract": "path, positive fps, (width, height), contiguous uint8 BGR frames, and FourCC string",
-      "output_contract": "is_opened, write, release; release is idempotent and default mp4v is guaranteed",
-      "error_contract": "MediaError for unavailable encoder, invalid frame shape, or write failure",
-      "parity": [{"case": "default mp4v round-trip", "tier": "T", "max_abs": 255, "mean_abs": 3}, {"case": "optional codecs", "tier": "D", "max_abs": null, "mean_abs": null, "notes": "availability is platform/wheel dependent and must be capability-probed"}]
-    }
-  ],
-  "image_formats": [
-    {"format": "PNG", "extensions": [".png"], "read": true, "write": true, "alpha": "preserve with unchanged flag", "parity_tier": "T"},
-    {"format": "JPEG", "extensions": [".jpg", ".jpeg"], "read": true, "write": true, "alpha": "not supported", "parity_tier": "T"},
-    {"format": "BMP", "extensions": [".bmp"], "read": true, "write": true, "alpha": "not required", "parity_tier": "T"},
-    {"format": "TIFF", "extensions": [".tif", ".tiff"], "read": true, "write": true, "alpha": "preserve when supported by the codec", "parity_tier": "T"}
-  ],
-  "video_formats": {
-    "required_container": {"format": "MP4", "extension": ".mp4"},
-    "default_codec": {"fourcc": "mp4v", "encoder": "mpeg4", "availability": "guaranteed"},
-    "optional_codecs": [
-      {"fourcc": "avc1", "encoder": "libx264", "availability": "capability-dependent"},
-      {"fourcc": "h264", "encoder": "libx264", "availability": "capability-dependent"},
-      {"fourcc": "XVID", "encoder": "mpeg4", "availability": "capability-dependent"},
-      {"fourcc": "MJPG", "encoder": "mjpeg", "availability": "capability-dependent"},
-      {"fourcc": "vp09", "encoder": "libvpx-vp9", "availability": "capability-dependent"}
+    "operations": [
+        {
+            "name": "convert_color",
+            "cv2_symbols": [
+                "cvtColor"
+            ],
+            "signature": "convert_color(image, code) -> ndarray",
+            "input_contract": "contiguous uint8 grayscale, BGR, BGRA, RGB, or HSV image",
+            "output_contract": "new contiguous uint8 image with the code-selected channel shape",
+            "error_contract": "ValueError for unsupported channel shape or conversion code",
+            "parity": [
+                {
+                    "case": "BGR/RGB and GRAY/BGR",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                },
+                {
+                    "case": "BGR/GRAY",
+                    "tier": "T",
+                    "max_abs": 1,
+                    "mean_abs": 1
+                },
+                {
+                    "case": "HSV/BGR",
+                    "tier": "T",
+                    "max_abs": 1,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "split_channels",
+            "cv2_symbols": [
+                "split"
+            ],
+            "signature": "split_channels(image) -> tuple[ndarray, ...]",
+            "input_contract": "uint8 image with 1, 3, or 4 channels",
+            "output_contract": "one contiguous two-dimensional uint8 array per channel, preserving order",
+            "error_contract": "ValueError for unsupported image shape",
+            "parity": [
+                {
+                    "case": "channel values and order",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "merge_channels",
+            "cv2_symbols": [
+                "merge"
+            ],
+            "signature": "merge_channels(channels) -> ndarray",
+            "input_contract": "non-empty equal-shaped two-dimensional uint8 channels",
+            "output_contract": "contiguous HWC uint8 image with input channel order",
+            "error_contract": "ValueError for empty or differently shaped channels",
+            "parity": [
+                {
+                    "case": "channel values and order",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "flip",
+            "cv2_symbols": [
+                "flip"
+            ],
+            "signature": "flip(image, flip_code) -> ndarray",
+            "input_contract": "uint8 image and flip code -1, 0, or 1",
+            "output_contract": "contiguous copy with unchanged shape and dtype",
+            "error_contract": "ValueError for unsupported flip code",
+            "parity": [
+                {
+                    "case": "all flip codes",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "copy_make_border",
+            "cv2_symbols": [
+                "copyMakeBorder"
+            ],
+            "signature": "copy_make_border(image, top, bottom, left, right, value) -> ndarray",
+            "input_contract": "uint8 grayscale, BGR, or BGRA image and non-negative integer borders",
+            "output_contract": "new image with requested dimensions; constant padding preserves BGR/BGRA order and sets BGRA padding alpha to zero",
+            "error_contract": "ValueError for negative borders or unsupported channel shape",
+            "parity": [
+                {
+                    "case": "constant border",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "add_weighted",
+            "cv2_symbols": [
+                "addWeighted"
+            ],
+            "signature": "add_weighted(src1, alpha, src2, beta, gamma) -> ndarray",
+            "input_contract": "equal-shaped uint8 images with matching channel shape",
+            "output_contract": "new uint8 image with saturating arithmetic and OpenCV-compatible tie rounding",
+            "error_contract": "ValueError for shape or channel mismatch",
+            "parity": [
+                {
+                    "case": "uint8 arithmetic",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "convert_scale_abs",
+            "cv2_symbols": [
+                "convertScaleAbs"
+            ],
+            "signature": "convert_scale_abs(image, alpha, beta) -> ndarray",
+            "input_contract": "numeric image and finite scale/offset values",
+            "output_contract": "uint8 absolute, scaled, saturated image",
+            "error_contract": "ValueError for non-finite scale or offset",
+            "parity": [
+                {
+                    "case": "scale, absolute value, saturation",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "mean",
+            "cv2_symbols": [
+                "mean"
+            ],
+            "signature": "mean(image, mask=None) -> tuple[float, ...]",
+            "input_contract": "numeric grayscale or multi-channel image; optional uint8 mask with matching H/W",
+            "output_contract": "four-value tuple padded with zeros, matching OpenCV channel order",
+            "error_contract": "ValueError for mask shape mismatch",
+            "parity": [
+                {
+                    "case": "unmasked and masked channel means",
+                    "tier": "T",
+                    "max_abs": 1e-12,
+                    "mean_abs": 1e-12
+                }
+            ]
+        },
+        {
+            "name": "resize",
+            "cv2_symbols": [
+                "resize"
+            ],
+            "signature": "resize(image, size, interpolation) -> ndarray",
+            "input_contract": "non-empty numeric image and positive (width, height); nearest and linear interpolation are required",
+            "output_contract": "new contiguous image with requested dimensions and compatible dtype",
+            "error_contract": "ValueError for non-positive dimensions or unsupported interpolation",
+            "parity": [
+                {
+                    "case": "INTER_NEAREST",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                },
+                {
+                    "case": "INTER_LINEAR",
+                    "tier": "T",
+                    "max_abs": 1,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "read_image",
+            "cv2_symbols": [
+                "imread"
+            ],
+            "signature": "read_image(path, flags=-1) -> ndarray | None",
+            "input_contract": "filesystem path and unchanged, grayscale, or color read flag",
+            "output_contract": "BGR/BGRA/grayscale ndarray; unchanged preserves supported alpha and bit depth",
+            "error_contract": "return None for missing, unreadable, or unsupported input; do not raise for a normal decode miss",
+            "parity": [
+                {
+                    "case": "codec decode pixels",
+                    "tier": "T",
+                    "max_abs": 1,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "write_image",
+            "cv2_symbols": [
+                "imwrite"
+            ],
+            "signature": "write_image(path, image) -> bool",
+            "input_contract": "filesystem path and uint8 grayscale, BGR, or BGRA image",
+            "output_contract": "boolean success result; written files preserve BGR/BGRA semantics on read-back",
+            "error_contract": "return False for unsupported extension or write failure",
+            "parity": [
+                {
+                    "case": "decoded pixels, not encoded bytes",
+                    "tier": "T",
+                    "max_abs": 2,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "rotation_matrix",
+            "cv2_symbols": [
+                "getRotationMatrix2D"
+            ],
+            "signature": "rotation_matrix(center, angle, scale) -> ndarray",
+            "input_contract": "finite center, angle, and scale values",
+            "output_contract": "float64 matrix with shape (2, 3), mapping source coordinates like OpenCV",
+            "error_contract": "ValueError for non-finite values or zero scale",
+            "parity": [
+                {
+                    "case": "matrix values",
+                    "tier": "T",
+                    "max_abs": 1e-12,
+                    "mean_abs": 1e-12
+                }
+            ]
+        },
+        {
+            "name": "warp_affine",
+            "cv2_symbols": [
+                "warpAffine"
+            ],
+            "signature": "warp_affine(image, matrix, size, interpolation=1) -> ndarray",
+            "input_contract": "numeric image, finite 2x3 matrix, positive output size, and supported interpolation",
+            "output_contract": "new image with requested dimensions and source dtype",
+            "error_contract": "ValueError for invalid matrix, size, or interpolation",
+            "parity": [
+                {
+                    "case": "annotation-shaped canvas interior",
+                    "tier": "T",
+                    "max_abs": 5,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "blur",
+            "cv2_symbols": [
+                "blur"
+            ],
+            "signature": "blur(image, kernel_size) -> ndarray",
+            "input_contract": "numeric image and positive odd or even kernel dimensions",
+            "output_contract": "same shape and dtype with BORDER_REFLECT_101-equivalent edge handling",
+            "error_contract": "ValueError for non-positive kernel dimensions",
+            "parity": [
+                {
+                    "case": "uniform 5x5 blur",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "distance_transform",
+            "cv2_symbols": [
+                "distanceTransform"
+            ],
+            "signature": "distance_transform(mask, distance_type, mask_size) -> ndarray",
+            "input_contract": "uint8 binary mask and supported L2 mask size",
+            "output_contract": "float32 distance image with zero at background",
+            "error_contract": "ValueError for non-binary mask or unsupported distance configuration",
+            "parity": [
+                {
+                    "case": "L2 mask size 3",
+                    "tier": "D",
+                    "max_abs": 0.45,
+                    "mean_abs": 0.17,
+                    "notes": "fallback exact EDT is intentionally not bit-identical to OpenCV chamfer-3; threshold semantics require operation-specific tests"
+                }
+            ]
+        },
+        {
+            "name": "contour_area",
+            "cv2_symbols": [
+                "contourArea"
+            ],
+            "signature": "contour_area(contour, oriented=False) -> float",
+            "input_contract": "finite contour vertices shaped (N, 2) or (N, 1, 2)",
+            "output_contract": "shoelace area with OpenCV orientation convention",
+            "error_contract": "ValueError for fewer than three vertices or non-finite coordinates",
+            "parity": [
+                {
+                    "case": "integer polygon vertices",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "approximate_polygon",
+            "cv2_symbols": [
+                "approxPolyDP"
+            ],
+            "signature": "approximate_polygon(curve, epsilon, closed) -> ndarray",
+            "input_contract": "finite 2D curve with at least one vertex and non-negative epsilon",
+            "output_contract": "ordered curve with OpenCV-compatible shape and dtype",
+            "error_contract": "ValueError for invalid curve or negative epsilon",
+            "parity": [
+                {
+                    "case": "closed and open Douglas-Peucker curves",
+                    "tier": "T",
+                    "max_abs": 1e-09,
+                    "mean_abs": 1e-09
+                }
+            ]
+        },
+        {
+            "name": "intersect_convex_polygons",
+            "cv2_symbols": [
+                "intersectConvexConvex"
+            ],
+            "signature": "intersect_convex_polygons(polygon1, polygon2) -> tuple[float, ndarray]",
+            "input_contract": "finite convex polygons with at least three vertices",
+            "output_contract": "intersection area and ordered float64 polygon; no float32 overshoot",
+            "error_contract": "ValueError for non-convex or invalid polygons",
+            "parity": [
+                {
+                    "case": "OBB IoU intersection area",
+                    "tier": "T",
+                    "max_abs": 1e-09,
+                    "mean_abs": 1e-09
+                }
+            ]
+        },
+        {
+            "name": "connected_components",
+            "cv2_symbols": [
+                "connectedComponents"
+            ],
+            "signature": "connected_components(mask, connectivity=8) -> tuple[int, ndarray]",
+            "input_contract": "uint8 binary mask and connectivity 4 or 8",
+            "output_contract": "deterministically numbered labels with background label zero",
+            "error_contract": "ValueError for invalid connectivity or mask shape",
+            "parity": [
+                {
+                    "case": "labels and deterministic tie ordering",
+                    "tier": "T",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "connected_components_with_stats",
+            "cv2_symbols": [
+                "connectedComponentsWithStats"
+            ],
+            "signature": "connected_components_with_stats(mask, connectivity=8) -> tuple[int, ndarray, ndarray, ndarray]",
+            "input_contract": "uint8 binary mask and connectivity 4 or 8",
+            "output_contract": "labels, integer stats, and float centroids with background row",
+            "error_contract": "ValueError for invalid connectivity or mask shape",
+            "parity": [
+                {
+                    "case": "component stats and centroids",
+                    "tier": "T",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "find_contours",
+            "cv2_symbols": [
+                "findContours"
+            ],
+            "signature": "find_contours(mask, mode, method) -> tuple[list[ndarray], ndarray | None]",
+            "input_contract": "uint8 binary mask, RETR_TREE/RETR_CCOMP mode, and CHAIN_APPROX_SIMPLE or NONE method",
+            "output_contract": "ordered contours with OpenCV-compatible vertex shape; hierarchy may be discarded by callers",
+            "error_contract": "ValueError for non-binary mask, unsupported mode, or unsupported method",
+            "parity": [
+                {
+                    "case": "contour topology and refill",
+                    "tier": "T",
+                    "max_abs": 0,
+                    "mean_abs": 0,
+                    "notes": "ordering, orientation, SIMPLE compression, and pathological masks remain explicit follow-up gates"
+                }
+            ]
+        },
+        {
+            "name": "draw_line",
+            "cv2_symbols": [
+                "line"
+            ],
+            "signature": "draw_line(scene, start, end, color, thickness, line_type=8) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and integer coordinates/color",
+            "output_contract": "mutates scene in place; no return value",
+            "error_contract": "ValueError for invalid scene shape or thickness",
+            "parity": [
+                {
+                    "case": "geometry and filled-region invariants",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "anti-aliased edge pixels are allowed to differ and require golden-image budgets"
+                }
+            ]
+        },
+        {
+            "name": "draw_rectangle",
+            "cv2_symbols": [
+                "rectangle"
+            ],
+            "signature": "draw_rectangle(scene, start, end, color, thickness, line_type=8) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and integer coordinates/color",
+            "output_contract": "mutates scene in place; negative thickness means filled rectangle",
+            "error_contract": "ValueError for invalid scene shape or thickness",
+            "parity": [
+                {
+                    "case": "filled and outlined geometry",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "golden-image budget required"
+                }
+            ]
+        },
+        {
+            "name": "draw_circle",
+            "cv2_symbols": [
+                "circle"
+            ],
+            "signature": "draw_circle(scene, center, radius, color, thickness, line_type=8) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and integer center/radius/color",
+            "output_contract": "mutates scene in place; negative thickness means filled circle",
+            "error_contract": "ValueError for negative radius or invalid scene shape",
+            "parity": [
+                {
+                    "case": "filled and outlined geometry",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "golden-image budget required"
+                }
+            ]
+        },
+        {
+            "name": "draw_ellipse",
+            "cv2_symbols": [
+                "ellipse"
+            ],
+            "signature": "draw_ellipse(scene, center, axes, angle, start_angle, end_angle, color, thickness) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and finite ellipse geometry",
+            "output_contract": "mutates scene in place",
+            "error_contract": "ValueError for invalid axes, angles, or scene shape",
+            "parity": [
+                {
+                    "case": "ellipse geometry",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "golden-image budget required"
+                }
+            ]
+        },
+        {
+            "name": "draw_polylines",
+            "cv2_symbols": [
+                "polylines"
+            ],
+            "signature": "draw_polylines(scene, points, closed, color, thickness, line_type=8) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and finite integer point arrays",
+            "output_contract": "mutates scene in place",
+            "error_contract": "ValueError for malformed point arrays or invalid scene shape",
+            "parity": [
+                {
+                    "case": "polyline connectivity",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "golden-image budget required"
+                }
+            ]
+        },
+        {
+            "name": "fill_polygon",
+            "cv2_symbols": [
+                "fillPoly"
+            ],
+            "signature": "fill_polygon(scene, polygons, color) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and one or more finite integer polygons",
+            "output_contract": "mutates scene in place; filled region follows even-odd polygon semantics",
+            "error_contract": "ValueError for malformed polygons or invalid scene shape",
+            "parity": [
+                {
+                    "case": "filled-region mask",
+                    "tier": "T",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "draw_contours",
+            "cv2_symbols": [
+                "drawContours"
+            ],
+            "signature": "draw_contours(scene, contours, contour_index, color, thickness) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene and OpenCV-shaped contours",
+            "output_contract": "mutates scene in place",
+            "error_contract": "ValueError for invalid contour index or scene shape",
+            "parity": [
+                {
+                    "case": "contour geometry and fills",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "golden-image budget required"
+                }
+            ]
+        },
+        {
+            "name": "get_text_size",
+            "cv2_symbols": [
+                "getTextSize"
+            ],
+            "signature": "get_text_size(text, font_face, font_scale, thickness) -> tuple[tuple[int, int], int]",
+            "input_contract": "string, accepted Hershey font face including italic modifier, finite non-negative scale, and non-negative thickness",
+            "output_contract": "integer (width, height) and integer baseline with OpenCV Hershey metrics",
+            "error_contract": "ValueError for unsupported font face, negative scale, or negative thickness",
+            "parity": [
+                {
+                    "case": "all accepted faces, empty and multi-character strings",
+                    "tier": "E",
+                    "max_abs": 0,
+                    "mean_abs": 0
+                }
+            ]
+        },
+        {
+            "name": "draw_text",
+            "cv2_symbols": [
+                "putText"
+            ],
+            "signature": "draw_text(scene, text, origin, font_face, font_scale, color, thickness, line_type=8) -> None",
+            "input_contract": "mutable uint8 BGR/BGRA scene, supported text, accepted Hershey face, finite scale, and non-negative thickness",
+            "output_contract": "mutates scene in place using the same baseline convention as get_text_size",
+            "error_contract": "ValueError for unsupported font face or invalid scene/text parameters",
+            "parity": [
+                {
+                    "case": "stroke placement and glyph rendering",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "font asset provenance and per-face rendering budgets remain PR5 gates"
+                }
+            ]
+        },
+        {
+            "name": "open_video_reader",
+            "cv2_symbols": [
+                "VideoCapture"
+            ],
+            "signature": "open_video_reader(path) -> VideoReaderProtocol",
+            "input_contract": "path-based file video; device indices are outside the Supervision fallback contract",
+            "output_contract": "is_opened, read, grab, get, set, release; frames are contiguous uint8 BGR arrays",
+            "error_contract": "MediaError for missing, invalid, or truncated files; release is idempotent",
+            "parity": [
+                {
+                    "case": "CFR/VFR metadata, exact start seek, lifecycle",
+                    "tier": "T",
+                    "max_abs": 1,
+                    "mean_abs": 1
+                }
+            ]
+        },
+        {
+            "name": "open_video_writer",
+            "cv2_symbols": [
+                "VideoWriter",
+                "VideoWriter_fourcc"
+            ],
+            "signature": "open_video_writer(path, fps, size, codec='mp4v') -> VideoWriterProtocol",
+            "input_contract": "path, positive fps, (width, height), contiguous uint8 BGR frames, and FourCC string",
+            "output_contract": "is_opened, write, release; release is idempotent and default mp4v is guaranteed",
+            "error_contract": "MediaError for unavailable encoder, invalid frame shape, or write failure",
+            "parity": [
+                {
+                    "case": "default mp4v round-trip",
+                    "tier": "T",
+                    "max_abs": 255,
+                    "mean_abs": 3
+                },
+                {
+                    "case": "optional codecs",
+                    "tier": "D",
+                    "max_abs": null,
+                    "mean_abs": null,
+                    "notes": "availability is platform/wheel dependent and must be capability-probed"
+                }
+            ]
+        }
     ],
-    "audio": {"preserve": true, "method": "stream remux", "missing_audio": "video-only output remains valid"}
-  },
-  "hershey_fonts": {
-    "base_values": [0, 1, 2, 3, 4, 5, 6, 7],
-    "italic_modifier": 16,
-    "accepted_values": [0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23],
-    "source_candidate": "OpenCV modules/imgproc/src/hershey_fonts.cpp and drawing.cpp font tables",
-    "license_status": "maintainer attribution wording required before asset reuse",
-    "parity_status": "metric and rendering parity not yet proven"
-  },
-  "reference_cases": [
-    {
-      "id": "bgr_to_rgb",
-      "operation": "convert_color",
-      "cv2_code": "COLOR_BGR2RGB",
-      "input": {"dtype": "uint8", "data": [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]},
-      "expected": {"dtype": "uint8", "data": [[[30, 20, 10], [60, 50, 40]], [[90, 80, 70], [120, 110, 100]]]}
+    "image_formats": [
+        {
+            "format": "PNG",
+            "extensions": [
+                ".png"
+            ],
+            "read": true,
+            "write": true,
+            "alpha": "preserve with unchanged flag",
+            "parity_tier": "T"
+        },
+        {
+            "format": "JPEG",
+            "extensions": [
+                ".jpg",
+                ".jpeg"
+            ],
+            "read": true,
+            "write": true,
+            "alpha": "not supported",
+            "parity_tier": "T"
+        },
+        {
+            "format": "BMP",
+            "extensions": [
+                ".bmp"
+            ],
+            "read": true,
+            "write": true,
+            "alpha": "not required",
+            "parity_tier": "T"
+        },
+        {
+            "format": "TIFF",
+            "extensions": [
+                ".tif",
+                ".tiff"
+            ],
+            "read": true,
+            "write": true,
+            "alpha": "preserve when supported by the codec",
+            "parity_tier": "T"
+        }
+    ],
+    "video_formats": {
+        "required_container": {
+            "format": "MP4",
+            "extension": ".mp4"
+        },
+        "default_codec": {
+            "fourcc": "mp4v",
+            "encoder": "mpeg4",
+            "availability": "guaranteed"
+        },
+        "optional_codecs": [
+            {
+                "fourcc": "avc1",
+                "encoder": "libx264",
+                "availability": "capability-dependent"
+            },
+            {
+                "fourcc": "h264",
+                "encoder": "libx264",
+                "availability": "capability-dependent"
+            },
+            {
+                "fourcc": "XVID",
+                "encoder": "mpeg4",
+                "availability": "capability-dependent"
+            },
+            {
+                "fourcc": "MJPG",
+                "encoder": "mjpeg",
+                "availability": "capability-dependent"
+            },
+            {
+                "fourcc": "vp09",
+                "encoder": "libvpx-vp9",
+                "availability": "capability-dependent"
+            }
+        ],
+        "audio": {
+            "preserve": true,
+            "method": "stream remux",
+            "missing_audio": "video-only output remains valid"
+        }
     },
-    {
-      "id": "bgr_to_gray",
-      "operation": "convert_color",
-      "cv2_code": "COLOR_BGR2GRAY",
-      "input": {"dtype": "uint8", "data": [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]},
-      "expected": {"dtype": "uint8", "data": [[22, 52], [82, 112]]}
+    "hershey_fonts": {
+        "base_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "italic_modifier": 16,
+        "accepted_values": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+        ],
+        "source_candidate": "OpenCV modules/imgproc/src/hershey_fonts.cpp and drawing.cpp font tables",
+        "license_status": "maintainer attribution wording required before asset reuse",
+        "parity_status": "metric and rendering parity not yet proven"
     },
-    {
-      "id": "gray_to_bgr",
-      "operation": "convert_color",
-      "cv2_code": "COLOR_GRAY2BGR",
-      "input": {"dtype": "uint8", "data": [[0, 128], [255, 42]]},
-      "expected": {"dtype": "uint8", "data": [[[0, 0, 0], [128, 128, 128]], [[255, 255, 255], [42, 42, 42]]]}
-    },
-    {
-      "id": "hsv_to_bgr",
-      "operation": "convert_color",
-      "cv2_code": "COLOR_HSV2BGR",
-      "input": {"dtype": "uint8", "data": [[[0, 255, 255], [60, 255, 255]], [[120, 255, 255], [30, 128, 200]]]},
-      "expected": {"dtype": "uint8", "data": [[[0, 0, 255], [0, 255, 0]], [[255, 0, 0], [100, 200, 200]]]}
-    },
-    {
-      "id": "add_weighted",
-      "operation": "add_weighted",
-      "input": {"dtype": "uint8", "data": [[[10, 20, 30], [40, 50, 60]]]},
-      "other": {"dtype": "uint8", "data": [[[100, 110, 120], [130, 140, 150]]]},
-      "alpha": 0.5,
-      "beta": 0.5,
-      "gamma": 0,
-      "expected": {"dtype": "uint8", "data": [[[55, 65, 75], [85, 95, 105]]]}
-    },
-    {
-      "id": "convert_scale_abs",
-      "operation": "convert_scale_abs",
-      "input": {"dtype": "float32", "data": [[-2.0, 0.0, 2.0], [100.0, -100.0, 300.0]]},
-      "alpha": 1.0,
-      "beta": 0.0,
-      "expected": {"dtype": "uint8", "data": [[2, 0, 2], [100, 100, 255]]}
-    },
-    {
-      "id": "resize_nearest",
-      "operation": "resize",
-      "interpolation": "INTER_NEAREST",
-      "size": [4, 4],
-      "input": {"dtype": "uint8", "data": [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]]},
-      "expected": {"dtype": "uint8", "data": [[[1, 2, 3], [1, 2, 3], [4, 5, 6], [4, 5, 6]], [[1, 2, 3], [1, 2, 3], [4, 5, 6], [4, 5, 6]], [[7, 8, 9], [7, 8, 9], [10, 11, 12], [10, 11, 12]], [[7, 8, 9], [7, 8, 9], [10, 11, 12], [10, 11, 12]]]}
-    },
-    {
-      "id": "copy_make_border",
-      "operation": "copy_make_border",
-      "borders": [1, 1, 2, 1],
-      "value": 9,
-      "input": {"dtype": "uint8", "data": [[1, 2], [3, 4]]},
-      "expected": {"dtype": "uint8", "data": [[9, 9, 9, 9, 9], [9, 9, 1, 2, 9], [9, 9, 3, 4, 9], [9, 9, 9, 9, 9]]}
+    "reference_cases": [
+        {
+            "id": "bgr_to_rgb",
+            "operation": "convert_color",
+            "cv2_code": "COLOR_BGR2RGB",
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            10,
+                            20,
+                            30
+                        ],
+                        [
+                            40,
+                            50,
+                            60
+                        ]
+                    ],
+                    [
+                        [
+                            70,
+                            80,
+                            90
+                        ],
+                        [
+                            100,
+                            110,
+                            120
+                        ]
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            30,
+                            20,
+                            10
+                        ],
+                        [
+                            60,
+                            50,
+                            40
+                        ]
+                    ],
+                    [
+                        [
+                            90,
+                            80,
+                            70
+                        ],
+                        [
+                            120,
+                            110,
+                            100
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "bgr_to_gray",
+            "operation": "convert_color",
+            "cv2_code": "COLOR_BGR2GRAY",
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            10,
+                            20,
+                            30
+                        ],
+                        [
+                            40,
+                            50,
+                            60
+                        ]
+                    ],
+                    [
+                        [
+                            70,
+                            80,
+                            90
+                        ],
+                        [
+                            100,
+                            110,
+                            120
+                        ]
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        22,
+                        52
+                    ],
+                    [
+                        82,
+                        112
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "gray_to_bgr",
+            "operation": "convert_color",
+            "cv2_code": "COLOR_GRAY2BGR",
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        0,
+                        128
+                    ],
+                    [
+                        255,
+                        42
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            0,
+                            0,
+                            0
+                        ],
+                        [
+                            128,
+                            128,
+                            128
+                        ]
+                    ],
+                    [
+                        [
+                            255,
+                            255,
+                            255
+                        ],
+                        [
+                            42,
+                            42,
+                            42
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "hsv_to_bgr",
+            "operation": "convert_color",
+            "cv2_code": "COLOR_HSV2BGR",
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            0,
+                            255,
+                            255
+                        ],
+                        [
+                            60,
+                            255,
+                            255
+                        ]
+                    ],
+                    [
+                        [
+                            120,
+                            255,
+                            255
+                        ],
+                        [
+                            30,
+                            128,
+                            200
+                        ]
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            0,
+                            0,
+                            255
+                        ],
+                        [
+                            0,
+                            255,
+                            0
+                        ]
+                    ],
+                    [
+                        [
+                            255,
+                            0,
+                            0
+                        ],
+                        [
+                            100,
+                            200,
+                            200
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "add_weighted",
+            "operation": "add_weighted",
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            10,
+                            20,
+                            30
+                        ],
+                        [
+                            40,
+                            50,
+                            60
+                        ]
+                    ]
+                ]
+            },
+            "other": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            100,
+                            110,
+                            120
+                        ],
+                        [
+                            130,
+                            140,
+                            150
+                        ]
+                    ]
+                ]
+            },
+            "alpha": 0.5,
+            "beta": 0.5,
+            "gamma": 0,
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            55,
+                            65,
+                            75
+                        ],
+                        [
+                            85,
+                            95,
+                            105
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "convert_scale_abs",
+            "operation": "convert_scale_abs",
+            "input": {
+                "dtype": "float32",
+                "data": [
+                    [
+                        -2.0,
+                        0.0,
+                        2.0
+                    ],
+                    [
+                        100.0,
+                        -100.0,
+                        300.0
+                    ]
+                ]
+            },
+            "alpha": 1.0,
+            "beta": 0.0,
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        2,
+                        0,
+                        2
+                    ],
+                    [
+                        100,
+                        100,
+                        255
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "resize_nearest",
+            "operation": "resize",
+            "interpolation": "INTER_NEAREST",
+            "size": [
+                4,
+                4
+            ],
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        [
+                            4,
+                            5,
+                            6
+                        ]
+                    ],
+                    [
+                        [
+                            7,
+                            8,
+                            9
+                        ],
+                        [
+                            10,
+                            11,
+                            12
+                        ]
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        [
+                            4,
+                            5,
+                            6
+                        ],
+                        [
+                            4,
+                            5,
+                            6
+                        ]
+                    ],
+                    [
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ],
+                        [
+                            4,
+                            5,
+                            6
+                        ],
+                        [
+                            4,
+                            5,
+                            6
+                        ]
+                    ],
+                    [
+                        [
+                            7,
+                            8,
+                            9
+                        ],
+                        [
+                            7,
+                            8,
+                            9
+                        ],
+                        [
+                            10,
+                            11,
+                            12
+                        ],
+                        [
+                            10,
+                            11,
+                            12
+                        ]
+                    ],
+                    [
+                        [
+                            7,
+                            8,
+                            9
+                        ],
+                        [
+                            7,
+                            8,
+                            9
+                        ],
+                        [
+                            10,
+                            11,
+                            12
+                        ],
+                        [
+                            10,
+                            11,
+                            12
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "id": "copy_make_border",
+            "operation": "copy_make_border",
+            "borders": [
+                1,
+                1,
+                2,
+                1
+            ],
+            "value": 9,
+            "input": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        1,
+                        2
+                    ],
+                    [
+                        3,
+                        4
+                    ]
+                ]
+            },
+            "expected": {
+                "dtype": "uint8",
+                "data": [
+                    [
+                        9,
+                        9,
+                        9,
+                        9,
+                        9
+                    ],
+                    [
+                        9,
+                        9,
+                        1,
+                        2,
+                        9
+                    ],
+                    [
+                        9,
+                        9,
+                        3,
+                        4,
+                        9
+                    ],
+                    [
+                        9,
+                        9,
+                        9,
+                        9,
+                        9
+                    ]
+                ]
+            }
+        }
+    ],
+    "spike_evidence": {
+        "pyav": {
+            "status": "single-platform-evidence",
+            "runtime": "macOS arm64, CPython 3.10.11, PyAV 14.2.0, cv2 4.10.0",
+            "verified": [
+                "metadata",
+                "exact-start seek",
+                "writer mappings",
+                "audio remux",
+                "BGR color conversion"
+            ],
+            "open_gates": [
+                "Linux and Windows wheels",
+                "other Python versions",
+                "other source color tags",
+                "cross-platform encoder availability"
+            ]
+        },
+        "hershey": {
+            "status": "candidate-source-evaluated",
+            "source": "OpenCV hershey_fonts.cpp plus drawing.cpp font tables",
+            "verified": [
+                "all eight base faces",
+                "italic modifier mapping",
+                "source header reviewed"
+            ],
+            "open_gates": [
+                "maintainer attribution sign-off",
+                "stroke parser",
+                "metric parity",
+                "rendering parity",
+                "built-wheel asset inclusion"
+            ]
+        },
+        "image_arithmetic": {
+            "status": "single-platform-characterization",
+            "verified": [
+                "nine exact or +/-1 LSB operations",
+                "distance-transform divergence",
+                "warp-affine boundary caveat"
+            ],
+            "open_gates": [
+                "annotation-shaped warp-affine fixture",
+                "cross-platform rerun"
+            ]
+        }
     }
-  ],
-  "spike_evidence": {
-    "pyav": {
-      "status": "single-platform-evidence",
-      "runtime": "macOS arm64, CPython 3.10.11, PyAV 14.2.0, cv2 4.10.0",
-      "verified": ["metadata", "exact-start seek", "writer mappings", "audio remux", "BGR color conversion"],
-      "open_gates": ["Linux and Windows wheels", "other Python versions", "other source color tags", "cross-platform encoder availability"]
-    },
-    "hershey": {
-      "status": "candidate-source-evaluated",
-      "source": "OpenCV hershey_fonts.cpp plus drawing.cpp font tables",
-      "verified": ["all eight base faces", "italic modifier mapping", "source header reviewed"],
-      "open_gates": ["maintainer attribution sign-off", "stroke parser", "metric parity", "rendering parity", "built-wheel asset inclusion"]
-    },
-    "image_arithmetic": {
-      "status": "single-platform-characterization",
-      "verified": ["nine exact or +/-1 LSB operations", "distance-transform divergence", "warp-affine boundary caveat"],
-      "open_gates": ["annotation-shaped warp-affine fixture", "cross-platform rerun"]
-    }
-  }
 }
