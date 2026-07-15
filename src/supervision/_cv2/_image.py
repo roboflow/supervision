@@ -48,7 +48,17 @@ def _copy_make_border(
 
     height, width = image.shape[:2]
     shape = (height + top + bottom, width + left + right, *image.shape[2:])
-    result = np.full(shape, value, dtype=image.dtype)
+
+    fill_value: Any = value
+    if isinstance(value, Sequence):
+        if image.ndim == 2:
+            raise ValueError("Sequence border value requires a multi-channel image")
+        fill = np.asarray(value, dtype=image.dtype)
+        if fill.shape != (image.shape[2],):
+            raise ValueError("Border value must match the number of channels")
+        fill_value = fill.reshape((1, 1, -1))
+
+    result = np.full(shape, fill_value, dtype=image.dtype)
     result[top : top + height, left : left + width] = image
     return result
 
