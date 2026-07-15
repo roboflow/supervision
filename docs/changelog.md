@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-08
+date_modified: 2026-07-15
 ---
 
 # Changelog
@@ -18,6 +18,7 @@ date_modified: 2026-07-08
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed [#2427](https://github.com/roboflow/supervision/issues/2427): size-bucketed `sv.Precision` and `sv.F1Score` no longer count out-of-bucket detections as false positives. `sv.Recall` now matches only targets in the requested bucket, and all three metrics prioritize in-bucket targets during matching, matching COCO evaluation and `sv.MeanAveragePrecision`. A pixel-perfect detector now scores 1.0 in every bucket.
 - `sv.hex_to_rgba` now rejects multiple leading `#` characters instead of silently normalizing them, matching `sv.is_valid_hex` and the documented single optional prefix.
 - `sv.box_iou_batch` now upcasts box corners to `float64` before computing areas and intersections, returning `float32`. This fixes integer-dtype overflow (e.g. `int32` coordinates around `50_000` could previously wrap to a negative area and produce an incorrect `0.0` IoU) and gives full `float64` precision to callers that pass `float64`/`int64` coordinates directly. It does not recover precision already lost when coordinates are stored as `float32` before this function is called (e.g. `Detections.xyxy`, which is `float32` throughout the library) — such callers must upcast their own arrays to `float64`/`int64` before calling `box_iou_batch` to benefit from this fix. Results for small-coordinate inputs are unchanged.
 - Legacy COCO prediction loading in `sv.EvaluationDataset.load_predictions` now raises `ValueError` for image ids absent from the ground-truth COCO set instead of relying on a bare `assert`, so the check is no longer silently skipped under `python -O`.
