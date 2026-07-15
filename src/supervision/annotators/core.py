@@ -1769,7 +1769,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         """
         _validate_labels(labels, detections)
 
-        draw = ImageDraw.Draw(scene)
+        draw = ImageDraw.Draw(scene)  # type: ignore[arg-type]
         labels = get_labels_text(detections, labels)
         label_properties: npt.NDArray[np.float32] = self._get_label_properties(
             draw, detections, labels
