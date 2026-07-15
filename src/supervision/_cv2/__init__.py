@@ -7,7 +7,6 @@ from supervision._cv2._common import BackendUnavailableError, _unavailable
 from supervision._cv2._components import (
     _connected_components,
     _connected_components_with_stats,
-    _contains_holes,
 )
 from supervision._cv2._contours import _find_contours
 from supervision._cv2._geometry import (
