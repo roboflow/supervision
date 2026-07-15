@@ -156,6 +156,37 @@ def _point_in_polygon(point: np.ndarray, polygon: np.ndarray) -> bool:
     return inside
 
 
+def _interior_point(contour: np.ndarray) -> np.ndarray:
+    """Return a point guaranteed to lie inside a simple contour.
+
+    The polygon centroid can fall outside concave contours, which would corrupt
+    the parent/child hierarchy inferred by ``_parents``. Contour vertices are
+    integer pixel coordinates, so a horizontal scanline at a half-integer height
+    never passes through a vertex; the midpoint of its first edge-crossing span
+    is therefore an interior sample. Falls back to the centroid for degenerate
+    (sub-triangle or zero-height) contours where no such span exists.
+    """
+    centroid = contour.mean(axis=0)
+    if len(contour) < 3:
+        return centroid
+    y_scan = float(np.floor(centroid[1])) + 0.5
+    crossings: list[float] = []
+    previous = contour[-1]
+    for current in contour:
+        x_current, y_current = float(current[0]), float(current[1])
+        x_previous, y_previous = float(previous[0]), float(previous[1])
+        if (y_current > y_scan) != (y_previous > y_scan):
+            intersection = x_previous + (x_current - x_previous) * (
+                y_scan - y_previous
+            ) / (y_current - y_previous)
+            crossings.append(intersection)
+        previous = current
+    if len(crossings) < 2:
+        return centroid
+    crossings.sort()
+    return np.array([(crossings[0] + crossings[1]) / 2.0, y_scan])
+
+
 def _parents(contours: list[np.ndarray]) -> list[int]:
     """Infer the smallest containing contour for each traced border."""
     bounds = [
@@ -174,7 +205,7 @@ def _parents(contours: list[np.ndarray]) -> list[int]:
     areas = [abs(_polygon_area(contour)) for contour in contours]
     parents = [-1] * len(contours)
     for index, contour in enumerate(contours):
-        point = contour.mean(axis=0)
+        point = _interior_point(contour)
         candidates = [
             candidate
             for candidate, polygon in enumerate(contours)
@@ -222,8 +253,11 @@ def _order_contours(contours: list[np.ndarray]) -> tuple[list[np.ndarray], np.nd
         visit(index)
 
     ordered = [contours[index] for index in ordered_indices]
+    index_map = {
+        original: position for position, original in enumerate(ordered_indices)
+    }
     remapped_parents = [
-        -1 if parents[index] < 0 else ordered_indices.index(parents[index])
+        -1 if parents[index] < 0 else index_map[parents[index]]
         for index in ordered_indices
     ]
     hierarchy = np.full((1, len(ordered), 4), -1, dtype=np.int32)
