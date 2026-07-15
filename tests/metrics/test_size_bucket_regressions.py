@@ -126,6 +126,102 @@ def test_medium_bucket_mar_counts_global_rank_budget() -> None:
 
 
 @pytest.mark.parametrize(
+    ("metric_cls", "bucket_attrs", "score_attrs"),
+    [
+        pytest.param(
+            Precision,
+            ("medium_objects", "large_objects"),
+            ("precision_at_50", "precision_at_75"),
+            id="precision",
+        ),
+        pytest.param(
+            Recall,
+            ("medium_objects", "large_objects"),
+            ("recall_at_50", "recall_at_75"),
+            id="recall",
+        ),
+        pytest.param(
+            F1Score,
+            ("medium_objects", "large_objects"),
+            ("f1_50", "f1_75"),
+            id="f1",
+        ),
+        pytest.param(
+            MeanAverageRecall,
+            ("medium_objects", "large_objects"),
+            ("mAR_at_10", "mAR_at_100"),
+            id="mar",
+        ),
+    ],
+)
+def test_perfect_detector_scores_full_marks_in_every_bucket(
+    metric_cls, bucket_attrs, score_attrs
+):
+    """Bucketed metrics must score a perfect detector 1.0 in every bucket."""
+    xyxy = np.array(
+        [[0, 0, 50, 50], [100, 100, 250, 250]],
+        dtype=np.float32,
+    )
+    predictions = Detections(
+        xyxy=xyxy.copy(),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=xyxy.copy(),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+
+    result = (
+        metric_cls(metric_target=MetricTarget.BOXES)
+        .update(predictions, targets)
+        .compute()
+    )
+
+    for bucket_attr in bucket_attrs:
+        bucket_result = getattr(result, bucket_attr)
+        assert bucket_result is not None
+        for score_attr in score_attrs:
+            assert getattr(bucket_result, score_attr) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("metric_cls", "score_attr", "overall_expected"),
+    [
+        pytest.param(Precision, "precision_at_50", 0.5, id="precision"),
+        pytest.param(F1Score, "f1_50", 2 / 3, id="f1"),
+    ],
+)
+def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
+    metric_cls, score_attr, overall_expected
+):
+    """A stray large false positive must lower overall scores but leave the
+    medium bucket untouched."""
+    predictions = Detections(
+        xyxy=np.array(
+            [[0, 0, 50, 50], [200, 200, 350, 350]],
+            dtype=np.float32,
+        ),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = (
+        metric_cls(metric_target=MetricTarget.BOXES)
+        .update(predictions, targets)
+        .compute()
+    )
+
+    assert getattr(result, score_attr) == pytest.approx(overall_expected)
+    assert result.medium_objects is not None
+    assert getattr(result.medium_objects, score_attr) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
     ("metric_cls", "missing_side"),
     [
         pytest.param(Precision, "predictions", id="precision-predictions"),

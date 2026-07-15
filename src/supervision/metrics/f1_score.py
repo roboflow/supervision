@@ -159,15 +159,6 @@ class F1Score(Metric["F1ScoreResult"]):
           is ``zeros((0,))``.
         - Targets present: IoU matching produces ``matches`` array.
         """
-        if size_category != ObjectSizeCategory.ANY:
-            # Score the requested bucket on bucket-filtered targets so detections
-            # outside the bucket cannot consume the only available target.
-            targets_list = [
-                self._filter_detections_by_size(targets, size_category)
-                for targets in targets_list
-            ]
-            size_category = ObjectSizeCategory.ANY
-
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
@@ -278,6 +269,7 @@ class F1Score(Metric["F1ScoreResult"]):
                             target_class_ids,
                             iou,
                             iou_thresholds,
+                            target_scored_mask=target_size_mask,
                         )
                     )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
