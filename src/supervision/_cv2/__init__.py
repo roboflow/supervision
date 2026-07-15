@@ -41,7 +41,7 @@ _RETR_CCOMP = 2
 _RETR_TREE = 3
 
 if _IS_CV2_AVAILABLE:
-    from cv2 import (  # type: ignore[import-untyped,attr-defined]
+    from cv2 import (
         BORDER_CONSTANT,
         CAP_PROP_FPS,
         CAP_PROP_FRAME_COUNT,
@@ -135,39 +135,39 @@ else:
             "OpenCV is not installed and this operation has no fallback yet."
         )
 
-    VideoCapture = _unavailable  # type: ignore[misc]
-    VideoWriter = _unavailable  # type: ignore[misc]
-    VideoWriter_fourcc = _unavailable  # type: ignore[misc]
-    addWeighted = _unavailable  # type: ignore[misc]
-    approxPolyDP = _unavailable  # type: ignore[misc]
-    blur = _unavailable  # type: ignore[misc]
-    circle = _unavailable  # type: ignore[misc]
-    connectedComponents = _unavailable  # type: ignore[misc]
-    connectedComponentsWithStats = _unavailable  # type: ignore[misc]
-    contourArea = _unavailable  # type: ignore[misc]
-    convertScaleAbs = _unavailable  # type: ignore[misc]
-    copyMakeBorder = _unavailable  # type: ignore[misc]
-    cvtColor = _unavailable  # type: ignore[misc]
-    distanceTransform = _unavailable  # type: ignore[misc]
-    drawContours = _unavailable  # type: ignore[misc]
-    ellipse = _unavailable  # type: ignore[misc]
-    fillPoly = _unavailable  # type: ignore[misc]
-    findContours = _unavailable  # type: ignore[misc]
-    flip = _unavailable  # type: ignore[misc]
-    getRotationMatrix2D = _unavailable  # type: ignore[misc]
-    getTextSize = _unavailable  # type: ignore[misc]
-    imread = _unavailable  # type: ignore[misc]
-    imwrite = _unavailable  # type: ignore[misc]
-    intersectConvexConvex = _unavailable  # type: ignore[misc]
-    line = _unavailable  # type: ignore[misc]
-    mean = _unavailable  # type: ignore[misc]
-    merge = _unavailable  # type: ignore[misc]
-    polylines = _unavailable  # type: ignore[misc]
-    putText = _unavailable  # type: ignore[misc]
-    rectangle = _unavailable  # type: ignore[misc]
-    resize = _unavailable  # type: ignore[misc]
-    split = _unavailable  # type: ignore[misc]
-    warpAffine = _unavailable  # type: ignore[misc]
+    VideoCapture = _unavailable
+    VideoWriter = _unavailable
+    VideoWriter_fourcc = _unavailable
+    addWeighted = _unavailable
+    approxPolyDP = _unavailable
+    blur = _unavailable
+    circle = _unavailable
+    connectedComponents = _unavailable
+    connectedComponentsWithStats = _unavailable
+    contourArea = _unavailable
+    convertScaleAbs = _unavailable
+    copyMakeBorder = _unavailable
+    cvtColor = _unavailable
+    distanceTransform = _unavailable
+    drawContours = _unavailable
+    ellipse = _unavailable
+    fillPoly = _unavailable
+    findContours = _unavailable
+    flip = _unavailable
+    getRotationMatrix2D = _unavailable
+    getTextSize = _unavailable
+    imread = _unavailable
+    imwrite = _unavailable
+    intersectConvexConvex = _unavailable
+    line = _unavailable
+    mean = _unavailable
+    merge = _unavailable
+    polylines = _unavailable
+    putText = _unavailable
+    rectangle = _unavailable
+    resize = _unavailable
+    split = _unavailable
+    warpAffine = _unavailable
 
 
 __all__ = [

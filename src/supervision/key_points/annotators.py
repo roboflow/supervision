@@ -109,7 +109,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                     and not key_points.visible[detection_index, point_index]
                 ):
                     continue
-                cv2.circle(  # type: ignore[call-overload]
+                cv2.circle(
                     img=scene,
                     center=(int(x), int(y)),
                     radius=self.radius,
@@ -260,7 +260,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     ):
                         continue
 
-                cv2.line(  # type: ignore[call-overload]
+                cv2.line(
                     img=scene,
                     pt1=(int(xy_a[0]), int(xy_a[1])),
                     pt2=(int(xy_b[0]), int(xy_b[1])),
@@ -467,7 +467,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
         overlay = scene.copy()
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
-                cv2.ellipse(  # type: ignore[call-overload]
+                cv2.ellipse(
                     img=overlay,
                     center=center,
                     axes=axis_lengths,
@@ -479,7 +479,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
                     lineType=cv2.LINE_AA,
                 )
 
-        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)  # type: ignore[call-overload]
+        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
 
@@ -567,7 +567,7 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
-                cv2.ellipse(  # type: ignore[call-overload]
+                cv2.ellipse(
                     img=scene,
                     center=center,
                     axes=axis_lengths,
@@ -668,8 +668,8 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
         if len(key_points) == 0:
             return scene
 
-        h, w = scene.shape[:2]  # type: ignore[attr-defined]
-        composite: npt.NDArray[np.float32] = scene.astype(np.float32)  # type: ignore[attr-defined]
+        h, w = scene.shape[:2]
+        composite: npt.NDArray[np.float32] = scene.astype(np.float32)
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
@@ -712,7 +712,7 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
                 alpha_3 = scaled_alpha[:, :, np.newaxis]
                 roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
 
-        np.copyto(scene, composite.astype(np.uint8))  # type: ignore[arg-type]
+        np.copyto(scene, composite.astype(np.uint8))
         return scene
 
 
@@ -908,12 +908,12 @@ class VertexLabelAnnotator:
             all_labels, all_colors, all_text_colors, xyxy, xyxy_padded
         ):
             draw_rounded_rectangle(
-                scene=scene,  # type: ignore[arg-type]
+                scene=scene,
                 rect=Rect.from_xyxy(box_padded),
                 color=color,
                 border_radius=self.border_radius,
             )
-            cv2.putText(  # type: ignore[call-overload]
+            cv2.putText(
                 img=scene,
                 text=text,
                 org=(box[0], box[3]),

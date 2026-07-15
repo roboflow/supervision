@@ -88,10 +88,10 @@ def crop_image(
 
     if isinstance(image, np.ndarray):
         height, width = image.shape[:2]
-        x_min = int(np.clip(x_min, 0, width))  # type: ignore[assignment]
-        y_min = int(np.clip(y_min, 0, height))  # type: ignore[assignment]
-        x_max = int(np.clip(x_max, 0, width))  # type: ignore[assignment]
-        y_max = int(np.clip(y_max, 0, height))  # type: ignore[assignment]
+        x_min = int(np.clip(x_min, 0, width))
+        y_min = int(np.clip(y_min, 0, height))
+        x_max = int(np.clip(x_max, 0, width))
+        y_max = int(np.clip(y_max, 0, height))
         return image[y_min:y_max, x_min:x_max]
 
     if isinstance(image, Image.Image):
@@ -152,12 +152,12 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
-    width_old, height_old = image.shape[1], image.shape[0]  # type: ignore[attr-defined]
+    width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
     return cast(
         npt.NDArray[np.uint8],
-        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),  # type: ignore[arg-type]
+        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
     )
 
 
