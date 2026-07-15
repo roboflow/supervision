@@ -47,24 +47,6 @@ OPENCV_CONSTANTS = [
     "RETR_TREE",
 ]
 
-FALLBACK_BINDINGS = {
-    "addWeighted": "_add_weighted",
-    "blur": "_blur",
-    "convertScaleAbs": "_convert_scale_abs",
-    "copyMakeBorder": "_copy_make_border",
-    "cvtColor": "_cvt_color",
-    "distanceTransform": "_distance_transform",
-    "flip": "_flip",
-    "getRotationMatrix2D": "_get_rotation_matrix_2d",
-    "imread": "_imread",
-    "imwrite": "_imwrite",
-    "mean": "_mean",
-    "merge": "_merge",
-    "resize": "_resize",
-    "split": "_split",
-    "warpAffine": "_warp_affine",
-}
-
 
 def _run_without_opencv(source: str) -> None:
     """Run a Python snippet with cv2 imports blocked."""
@@ -189,8 +171,25 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
 @pytest.mark.parametrize(
     ("public_name", "private_name"),
     [
-        pytest.param(public, private, id=public)
-        for public, private in FALLBACK_BINDINGS.items()
+        pytest.param("addWeighted", "_add_weighted", id="addWeighted"),
+        pytest.param("blur", "_blur", id="blur"),
+        pytest.param("convertScaleAbs", "_convert_scale_abs", id="convertScaleAbs"),
+        pytest.param("copyMakeBorder", "_copy_make_border", id="copyMakeBorder"),
+        pytest.param("cvtColor", "_cvt_color", id="cvtColor"),
+        pytest.param(
+            "distanceTransform", "_distance_transform", id="distanceTransform"
+        ),
+        pytest.param("flip", "_flip", id="flip"),
+        pytest.param(
+            "getRotationMatrix2D", "_get_rotation_matrix_2d", id="getRotationMatrix2D"
+        ),
+        pytest.param("imread", "_imread", id="imread"),
+        pytest.param("imwrite", "_imwrite", id="imwrite"),
+        pytest.param("mean", "_mean", id="mean"),
+        pytest.param("merge", "_merge", id="merge"),
+        pytest.param("resize", "_resize", id="resize"),
+        pytest.param("split", "_split", id="split"),
+        pytest.param("warpAffine", "_warp_affine", id="warpAffine"),
     ],
 )
 def test_facade_binds_fallback_operation_without_opencv(

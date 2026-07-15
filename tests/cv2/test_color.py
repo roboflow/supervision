@@ -24,49 +24,47 @@ except (ImportError, OSError):
     )
 
 
-COLOR_CASES = [
-    pytest.param(
-        np.array(
-            [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
-            dtype=np.uint8,
-        ),
-        _COLOR_BGR2RGB,
-        cv2.COLOR_BGR2RGB,
-        0,
-        id="bgr-to-rgb",
-    ),
-    pytest.param(
-        np.array(
-            [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
-            dtype=np.uint8,
-        ),
-        _COLOR_BGR2GRAY,
-        cv2.COLOR_BGR2GRAY,
-        0,
-        id="bgr-to-gray",
-    ),
-    pytest.param(
-        np.array([[0, 64], [128, 255]], dtype=np.uint8),
-        _COLOR_GRAY2BGR,
-        cv2.COLOR_GRAY2BGR,
-        0,
-        id="gray-to-bgr",
-    ),
-    pytest.param(
-        np.array(
-            [[[0, 255, 255], [30, 255, 255]], [[60, 255, 255], [150, 255, 255]]],
-            dtype=np.uint8,
-        ),
-        _COLOR_HSV2BGR,
-        cv2.COLOR_HSV2BGR,
-        1,
-        id="hsv-to-bgr",
-    ),
-]
-
-
 @pytest.mark.parametrize(
-    ("source", "fallback_code", "opencv_code", "atol"), COLOR_CASES
+    ("source", "fallback_code", "opencv_code", "atol"),
+    [
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            _COLOR_BGR2RGB,
+            cv2.COLOR_BGR2RGB,
+            0,
+            id="bgr-to-rgb",
+        ),
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            _COLOR_BGR2GRAY,
+            cv2.COLOR_BGR2GRAY,
+            0,
+            id="bgr-to-gray",
+        ),
+        pytest.param(
+            np.array([[0, 64], [128, 255]], dtype=np.uint8),
+            _COLOR_GRAY2BGR,
+            cv2.COLOR_GRAY2BGR,
+            0,
+            id="gray-to-bgr",
+        ),
+        pytest.param(
+            np.array(
+                [[[0, 255, 255], [30, 255, 255]], [[60, 255, 255], [150, 255, 255]]],
+                dtype=np.uint8,
+            ),
+            _COLOR_HSV2BGR,
+            cv2.COLOR_HSV2BGR,
+            1,
+            id="hsv-to-bgr",
+        ),
+    ],
 )
 def test_fallback_color_operations_match_opencv(
     source: np.ndarray, fallback_code: int, opencv_code: int, atol: int
