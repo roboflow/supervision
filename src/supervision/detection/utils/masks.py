@@ -4,6 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
+from supervision._cv2._components import _contains_holes
 from supervision.detection.compact_mask import CompactMask
 
 
@@ -222,15 +223,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
-    mask_uint8 = mask.astype(np.uint8)
-    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-
-    if hierarchy is not None:
-        parent_contour_index = 3
-        for h in hierarchy[0]:
-            if h[parent_contour_index] != -1:
-                return True
-    return False
+    return _contains_holes(mask)
 
 
 def contains_multiple_segments(
@@ -426,7 +419,13 @@ def filter_segments_by_distance(
         return cast(npt.NDArray[np.bool_], mask.copy())
 
     areas = stats[1:, cv2.CC_STAT_AREA]
-    main_label = 1 + int(np.argmax(areas))
+    max_area = int(areas.max())
+    candidates = 1 + np.flatnonzero(areas == max_area)
+    # Use coordinates for equal-area ties so native and fallback labels agree.
+    main_label = min(
+        (int(label) for label in candidates),
+        key=lambda label: (int(stats[label, 0]), int(stats[label, 1]), label),
+    )
 
     if relative_distance is not None:
         diagonal = float(np.hypot(height, width))

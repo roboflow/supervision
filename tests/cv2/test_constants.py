@@ -43,7 +43,6 @@ OPENCV_CONSTANTS = [
     "INTER_NEAREST",
     "LINE_4",
     "LINE_AA",
-    "RETR_CCOMP",
     "RETR_TREE",
 ]
 
@@ -190,6 +189,25 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
         pytest.param("resize", "_resize", id="resize"),
         pytest.param("split", "_split", id="split"),
         pytest.param("warpAffine", "_warp_affine", id="warpAffine"),
+        pytest.param("approxPolyDP", "_approx_poly_dp", id="approxPolyDP"),
+        pytest.param(
+            "connectedComponents",
+            "_connected_components",
+            id="connectedComponents",
+        ),
+        pytest.param(
+            "connectedComponentsWithStats",
+            "_connected_components_with_stats",
+            id="connectedComponentsWithStats",
+        ),
+        pytest.param("contourArea", "_contour_area", id="contourArea"),
+        pytest.param("fillPoly", "_fill_poly", id="fillPoly"),
+        pytest.param("findContours", "_find_contours", id="findContours"),
+        pytest.param(
+            "intersectConvexConvex",
+            "_intersect_convex_convex",
+            id="intersectConvexConvex",
+        ),
     ],
 )
 def test_facade_binds_fallback_operation_without_opencv(
