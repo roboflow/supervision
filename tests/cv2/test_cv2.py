@@ -22,7 +22,8 @@ except (ImportError, OSError):
         allow_module_level=True,
     )
 
-REQUIRED_SYMBOLS = {
+
+OPENCV_CONSTANTS = [
     "BORDER_CONSTANT",
     "CAP_PROP_FPS",
     "CAP_PROP_FRAME_COUNT",
@@ -46,6 +47,9 @@ REQUIRED_SYMBOLS = {
     "LINE_AA",
     "RETR_CCOMP",
     "RETR_TREE",
+]
+
+REQUIRED_SYMBOLS = {
     "VideoCapture",
     "VideoWriter",
     "VideoWriter_fourcc",
@@ -79,33 +83,7 @@ REQUIRED_SYMBOLS = {
     "resize",
     "split",
     "warpAffine",
-}
-
-OPENCV_CONSTANTS = [
-    "BORDER_CONSTANT",
-    "CAP_PROP_FPS",
-    "CAP_PROP_FRAME_COUNT",
-    "CAP_PROP_FRAME_HEIGHT",
-    "CAP_PROP_FRAME_WIDTH",
-    "CAP_PROP_POS_FRAMES",
-    "CC_STAT_AREA",
-    "CHAIN_APPROX_SIMPLE",
-    "COLOR_BGR2GRAY",
-    "COLOR_BGR2RGB",
-    "COLOR_GRAY2BGR",
-    "COLOR_HSV2BGR",
-    "COLOR_RGB2BGR",
-    "DIST_L2",
-    "FONT_HERSHEY_SIMPLEX",
-    "IMREAD_COLOR",
-    "IMREAD_UNCHANGED",
-    "INTER_LINEAR",
-    "INTER_NEAREST",
-    "LINE_4",
-    "LINE_AA",
-    "RETR_CCOMP",
-    "RETR_TREE",
-]
+} | set(OPENCV_CONSTANTS)
 
 
 def test_facade_exports_the_required_opencv_surface() -> None:
@@ -115,10 +93,7 @@ def test_facade_exports_the_required_opencv_surface() -> None:
     assert _cv2.BACKEND_NAME == "opencv"
 
 
-@pytest.mark.parametrize(
-    "name",
-    OPENCV_CONSTANTS
-)
+@pytest.mark.parametrize("name", OPENCV_CONSTANTS)
 def test_fallback_constant_matches_opencv(name: str) -> None:
     """Keep each private fallback constant aligned with the OpenCV reference."""
     actual = getattr(_cv2, f"_{name}")
