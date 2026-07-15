@@ -5045,7 +5045,7 @@ integration with Supervision <a href="/trackers/">trackers</a>, <a href="/latest
 <div class="tabbed-block">
 <p>Use <a href="/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a>
 method, which accepts model results from both detection and segmentation models.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -5058,7 +5058,7 @@ method, which accepts model results from both detection and segmentation models.
 <div class="tabbed-block">
 <p>Use <a href="/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a>
 method, which accepts model results from both detection and segmentation models.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
@@ -8278,7 +8278,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        method, which accepts model results from both detection and segmentation models.</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        from inference import get_model</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>
@@ -8294,7 +8294,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a><span class="sd">        method, which accepts model results from both detection and segmentation models.</span>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>
@@ -8453,7 +8453,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-275"><a id="__codelineno-0-275" name="__codelineno-0-275"></a>
 </span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">            import torch</span>
 </span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a>
@@ -8492,7 +8492,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-314"><a id="__codelineno-0-314" name="__codelineno-0-314"></a>
 </span><span id="__span-0-315"><a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-316"><a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-318"><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">            from ultralytics import YOLO</span>
 </span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a>
@@ -8574,7 +8574,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a>
 </span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">            from super_gradients.training import models</span>
 </span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>
@@ -8629,7 +8629,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">            import tensorflow as tf</span>
 </span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">            import tensorflow_hub as hub</span>
 </span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">            import numpy as np</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>
 </span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">            module_handle = &quot;https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1&quot;</span>
 </span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">            model = hub.load(module_handle)</span>
@@ -8706,7 +8706,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>
 </span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">            from mmdet.apis import init_detector, inference_detector</span>
 </span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>
@@ -8826,7 +8826,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a>
 </span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">            from detectron2.engine import DefaultPredictor</span>
 </span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">            from detectron2.config import get_cfg</span>
@@ -8920,7 +8920,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-742"><a id="__codelineno-0-742" name="__codelineno-0-742"></a>
 </span><span id="__span-0-743"><a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-744"><a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-745"><a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-745"><a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-746"><a id="__codelineno-0-746" name="__codelineno-0-746"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-747"><a id="__codelineno-0-747" name="__codelineno-0-747"></a><span class="sd">            from inference import get_model</span>
 </span><span id="__span-0-748"><a id="__codelineno-0-748" name="__codelineno-0-748"></a>
@@ -9052,7 +9052,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-874"><a id="__codelineno-0-874" name="__codelineno-0-874"></a>
 </span><span id="__span-0-875"><a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-876"><a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-877"><a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-877"><a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-878"><a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-879"><a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">            from inference.models.sam3 import SegmentAnything3</span>
 </span><span id="__span-0-880"><a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">            from inference.core.entities.requests.sam3 import Sam3Prompt</span>
@@ -10385,7 +10385,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-2207"><a id="__codelineno-0-2207" name="__codelineno-0-2207"></a>
 </span><span id="__span-0-2208"><a id="__codelineno-0-2208" name="__codelineno-0-2208"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-2209"><a id="__codelineno-0-2209" name="__codelineno-0-2209"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-2210"><a id="__codelineno-0-2210" name="__codelineno-0-2210"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-2210"><a id="__codelineno-0-2210" name="__codelineno-0-2210"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-2211"><a id="__codelineno-0-2211" name="__codelineno-0-2211"></a><span class="sd">            from ncnn.model_zoo import get_model</span>
 </span><span id="__span-0-2212"><a id="__codelineno-0-2212" name="__codelineno-0-2212"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-2213"><a id="__codelineno-0-2213" name="__codelineno-0-2213"></a>
@@ -10928,7 +10928,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-2750"><a id="__codelineno-0-2750" name="__codelineno-0-2750"></a>
 </span><span id="__span-0-2751"><a id="__codelineno-0-2751" name="__codelineno-0-2751"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-2752"><a id="__codelineno-0-2752" name="__codelineno-0-2752"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-2753"><a id="__codelineno-0-2753" name="__codelineno-0-2753"></a><span class="sd">            import cv2</span>
+</span><span id="__span-0-2753"><a id="__codelineno-0-2753" name="__codelineno-0-2753"></a><span class="sd">            from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-2754"><a id="__codelineno-0-2754" name="__codelineno-0-2754"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-2755"><a id="__codelineno-0-2755" name="__codelineno-0-2755"></a><span class="sd">            from ultralytics import YOLO</span>
 </span><span id="__span-0-2756"><a id="__codelineno-0-2756" name="__codelineno-0-2756"></a>
@@ -11904,7 +11904,7 @@ or an item from the data.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -12007,7 +12007,7 @@ the detection count.</p>
 </span><span id="__span-0-2750"><a id="__codelineno-0-2750" name="__codelineno-0-2750"></a>
 </span><span id="__span-0-2751"><a id="__codelineno-0-2751" name="__codelineno-0-2751"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-2752"><a id="__codelineno-0-2752" name="__codelineno-0-2752"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-2753"><a id="__codelineno-0-2753" name="__codelineno-0-2753"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-2753"><a id="__codelineno-0-2753" name="__codelineno-0-2753"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-2754"><a id="__codelineno-0-2754" name="__codelineno-0-2754"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-2755"><a id="__codelineno-0-2755" name="__codelineno-0-2755"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-2756"><a id="__codelineno-0-2756" name="__codelineno-0-2756"></a>
@@ -12736,7 +12736,7 @@ class IDs, and confidences of the predictions.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultPredictor</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cfg</span>
@@ -12816,7 +12816,7 @@ class IDs, and confidences of the predictions.</p>
 </span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a>
 </span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">        from detectron2.engine import DefaultPredictor</span>
 </span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">        from detectron2.config import get_cfg</span>
@@ -13214,7 +13214,7 @@ than a dense boolean array.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -13402,7 +13402,7 @@ than a dense boolean array.</p>
 </span><span id="__span-0-742"><a id="__codelineno-0-742" name="__codelineno-0-742"></a>
 </span><span id="__span-0-743"><a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-744"><a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-745"><a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-745"><a id="__codelineno-0-745" name="__codelineno-0-745"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-746"><a id="__codelineno-0-746" name="__codelineno-0-746"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-747"><a id="__codelineno-0-747" name="__codelineno-0-747"></a><span class="sd">        from inference import get_model</span>
 </span><span id="__span-0-748"><a id="__codelineno-0-748" name="__codelineno-0-748"></a>
@@ -15091,7 +15091,7 @@ its object detection and visual grounding capabilities effectively.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mmdet.apis</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_detector</span><span class="p">,</span> <span class="n">inference_detector</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -15156,7 +15156,7 @@ its object detection and visual grounding capabilities effectively.</p>
 </span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>
 </span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">        from mmdet.apis import init_detector, inference_detector</span>
 </span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>
@@ -15265,7 +15265,7 @@ Supports object detection models.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ncnn.model_zoo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -15356,7 +15356,7 @@ Supports object detection models.</p>
 </span><span id="__span-0-2207"><a id="__codelineno-0-2207" name="__codelineno-0-2207"></a>
 </span><span id="__span-0-2208"><a id="__codelineno-0-2208" name="__codelineno-0-2208"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-2209"><a id="__codelineno-0-2209" name="__codelineno-0-2209"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-2210"><a id="__codelineno-0-2210" name="__codelineno-0-2210"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-2210"><a id="__codelineno-0-2210" name="__codelineno-0-2210"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-2211"><a id="__codelineno-0-2211" name="__codelineno-0-2211"></a><span class="sd">        from ncnn.model_zoo import get_model</span>
 </span><span id="__span-0-2212"><a id="__codelineno-0-2212" name="__codelineno-0-2212"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-2213"><a id="__codelineno-0-2213" name="__codelineno-0-2213"></a>
@@ -15919,7 +15919,7 @@ index for each polygon.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference.models.sam3</span><span class="w"> </span><span class="kn">import</span> <span class="n">SegmentAnything3</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference.core.entities.requests.sam3</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sam3Prompt</span>
@@ -16097,7 +16097,7 @@ index for each polygon.</p>
 </span><span id="__span-0-874"><a id="__codelineno-0-874" name="__codelineno-0-874"></a>
 </span><span id="__span-0-875"><a id="__codelineno-0-875" name="__codelineno-0-875"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-876"><a id="__codelineno-0-876" name="__codelineno-0-876"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-877"><a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-877"><a id="__codelineno-0-877" name="__codelineno-0-877"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-878"><a id="__codelineno-0-878" name="__codelineno-0-878"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-879"><a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="sd">        from inference.models.sam3 import SegmentAnything3</span>
 </span><span id="__span-0-880"><a id="__codelineno-0-880" name="__codelineno-0-880"></a><span class="sd">        from inference.core.entities.requests.sam3 import Sam3Prompt</span>
@@ -16321,7 +16321,7 @@ them to absolute pixel coordinates and reorders them to <code>xyxy</code>
   <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow_hub</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hub</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">module_handle</span> <span class="o">=</span> <span class="s2">&quot;https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1&quot;</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">module_handle</span><span class="p">)</span>
@@ -16429,7 +16429,7 @@ them to absolute pixel coordinates and reorders them to <code>xyxy</code>
 </span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">        import tensorflow as tf</span>
 </span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">        import tensorflow_hub as hub</span>
 </span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">        import numpy as np</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a>
 </span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">        module_handle = &quot;https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1&quot;</span>
 </span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">        model = hub.load(module_handle)</span>
@@ -16843,7 +16843,7 @@ dictionary will include class names.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -16961,7 +16961,7 @@ dictionary will include class names.</p>
 </span><span id="__span-0-314"><a id="__codelineno-0-314" name="__codelineno-0-314"></a>
 </span><span id="__span-0-315"><a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-316"><a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-318"><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a>
@@ -18713,7 +18713,7 @@ ImageDetectionPrediction is coming from
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">super_gradients.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -18779,7 +18779,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a>
 </span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">        from super_gradients.training import models</span>
 </span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>
@@ -18884,7 +18884,7 @@ ImageDetectionPrediction is coming from
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cv2</span> <span class="k">as</span> <span class="n">cv2</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -18941,7 +18941,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-275"><a id="__codelineno-0-275" name="__codelineno-0-275"></a>
 </span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">        import cv2</span>
+</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">        from supervision import _cv2 as cv2</span>
 </span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        import torch</span>
 </span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a>
