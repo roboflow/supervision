@@ -195,8 +195,7 @@ def test_perfect_detector_scores_full_marks_in_every_bucket(
 def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
     metric_cls, score_attr, overall_expected
 ):
-    """A stray large false positive must lower overall scores but leave the
-    medium bucket untouched."""
+    """A stray large false positive lowers overall scores, not the medium bucket."""
     predictions = Detections(
         xyxy=np.array(
             [[0, 0, 50, 50], [200, 200, 350, 350]],

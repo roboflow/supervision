@@ -263,13 +263,20 @@ class F1Score(Metric["F1ScoreResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
+                    # None keeps the matcher on its single-round fast path
+                    # when no size bucket is scored.
+                    target_scored_mask = (
+                        target_size_mask
+                        if size_category != ObjectSizeCategory.ANY
+                        else None
+                    )
                     matches, matched_target_indices = (
                         _match_detection_batch_with_target_indices(
                             prediction_class_ids,
                             target_class_ids,
                             iou,
                             iou_thresholds,
-                            target_scored_mask=target_size_mask,
+                            target_scored_mask=target_scored_mask,
                         )
                     )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
