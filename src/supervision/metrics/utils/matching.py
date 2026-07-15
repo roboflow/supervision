@@ -47,6 +47,21 @@ def _match_detection_batch_with_target_indices(
     This mirrors COCO evaluation, where detections prefer non-ignored ground
     truth, so an out-of-bucket target can never steal a prediction from an
     in-bucket one.
+
+    Examples:
+        >>> import numpy as np
+        >>> predictions_classes = np.array([0], dtype=np.int32)
+        >>> target_classes = np.array([0], dtype=np.int32)
+        >>> iou = np.array([[1.0]], dtype=np.float32)
+        >>> thresholds = np.array([0.5], dtype=np.float32)
+        >>> correct, matched = _match_detection_batch_with_target_indices(
+        ...     predictions_classes,
+        ...     target_classes,
+        ...     iou,
+        ...     thresholds,
+        ... )
+        >>> correct.tolist(), matched.tolist()
+        ([[True]], [[0]])
     """
     num_predictions = predictions_classes.shape[0]
     num_iou_levels = iou_thresholds.shape[0]

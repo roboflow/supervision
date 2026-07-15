@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics import (
     F1Score,
@@ -216,6 +217,124 @@ def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
     )
 
     assert getattr(result, score_attr) == pytest.approx(overall_expected)
+    assert result.medium_objects is not None
+    assert getattr(result.medium_objects, score_attr) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("metric_cls", "score_attr"),
+    [
+        pytest.param(Precision, "precision_at_50", id="precision"),
+        pytest.param(Recall, "recall_at_50", id="recall"),
+        pytest.param(F1Score, "f1_50", id="f1"),
+    ],
+)
+def test_explicit_area_metadata_controls_bucket_assignment(
+    metric_cls: type, score_attr: str
+) -> None:
+    """Explicit area metadata controls bucket assignment for scoring metrics."""
+    box = np.array([[0, 0, 10, 10]], dtype=np.float32)
+    predictions = Detections(
+        xyxy=box.copy(),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=box.copy(),
+        class_id=np.array([0], dtype=np.int32),
+        data={AREA_DATA_FIELD: np.array([2500.0], dtype=np.float32)},
+    )
+
+    result = (
+        metric_cls(metric_target=MetricTarget.BOXES)
+        .update(predictions, targets)
+        .compute()
+    )
+
+    assert result.small_objects is not None
+    assert result.medium_objects is not None
+    assert getattr(result.small_objects, score_attr) == pytest.approx(0.0)
+    assert getattr(result.medium_objects, score_attr) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("metric_cls", "score_attr"),
+    [
+        pytest.param(Precision, "precision_at_50", id="precision"),
+        pytest.param(Recall, "recall_at_50", id="recall"),
+        pytest.param(F1Score, "f1_50", id="f1"),
+    ],
+)
+def test_mask_bucket_ignores_out_of_bucket_predictions(
+    metric_cls: type, score_attr: str
+) -> None:
+    """Mask bucket scoring ignores predictions outside the requested bucket."""
+    masks = np.zeros((2, 128, 128), dtype=bool)
+    masks[0, :50, :50] = True
+    masks[1, 28:, 28:] = True
+    target_mask = masks[0:1].copy()
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [28, 28, 128, 128]], dtype=np.float32),
+        mask=masks,
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        mask=target_mask,
+        class_id=np.array([0], dtype=np.int32),
+    )
+
+    result = (
+        metric_cls(metric_target=MetricTarget.MASKS)
+        .update(predictions, targets)
+        .compute()
+    )
+
+    assert result.medium_objects is not None
+    assert getattr(result.medium_objects, score_attr) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("metric_cls", "score_attr"),
+    [
+        pytest.param(Precision, "precision_at_50", id="precision"),
+        pytest.param(Recall, "recall_at_50", id="recall"),
+        pytest.param(F1Score, "f1_50", id="f1"),
+    ],
+)
+def test_obb_bucket_ignores_out_of_bucket_predictions(
+    metric_cls: type, score_attr: str
+) -> None:
+    """OBB bucket scoring ignores predictions outside the requested bucket."""
+    target_obb = np.array([[[0, 0], [50, 0], [50, 50], [0, 50]]], dtype=np.float32)
+    prediction_obb = np.concatenate(
+        [
+            target_obb,
+            np.array(
+                [[[28, 28], [128, 28], [128, 128], [28, 128]]],
+                dtype=np.float32,
+            ),
+        ]
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [28, 28, 128, 128]], dtype=np.float32),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+        data={ORIENTED_BOX_COORDINATES: prediction_obb},
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+        data={ORIENTED_BOX_COORDINATES: target_obb},
+    )
+
+    result = (
+        metric_cls(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+        .update(predictions, targets)
+        .compute()
+    )
+
     assert result.medium_objects is not None
     assert getattr(result.medium_objects, score_attr) == pytest.approx(1.0)
 

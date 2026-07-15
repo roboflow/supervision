@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
-from supervision.config import COCO_RAW_SEGMENTATION
+from supervision.config import AREA_DATA_FIELD, COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     check_no_basename_collisions,
@@ -360,8 +360,8 @@ def detections_to_coco_annotations(
                     segmentation = list(raw_seg)
 
         stored_area = None
-        if "area" in data:
-            stored_area = float(np.asarray(data["area"]).item())
+        if AREA_DATA_FIELD in data:
+            stored_area = float(np.asarray(data[AREA_DATA_FIELD]).item())
 
         if stored_area is not None and np.isfinite(stored_area):
             area = stored_area
