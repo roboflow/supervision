@@ -453,8 +453,9 @@ def _annotate_detection_panel(
     Returns:
         Annotated copy of ``scene`` as a ``np.uint8`` array.
     """
-    import cv2  # lazy: only needed when save_directory_path is set
-
+    from supervision import (
+        _cv2 as cv2,  # lazy: only needed when save_directory_path is set
+    )
     from supervision.annotators.core import BoxAnnotator, LabelAnnotator
     from supervision.annotators.utils import ColorLookup
     from supervision.draw.color import ColorPalette
@@ -543,7 +544,9 @@ def _save_detection_validation_visualization(
         class_names: Optional list mapping class integer ids to name strings.
         metric_target: Coordinate representation used for IoU matching.
     """
-    import cv2  # lazy: only needed when save_directory_path is set
+    from supervision import (
+        _cv2 as cv2,  # lazy: only needed when save_directory_path is set
+    )
 
     tp_predictions, fp_predictions, fn_targets = _split_detections_by_outcome(
         predictions=predictions,

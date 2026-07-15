@@ -9,11 +9,11 @@ from itertools import chain
 from pathlib import Path
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (

@@ -2,10 +2,10 @@ import logging
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType

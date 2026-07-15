@@ -3426,7 +3426,7 @@ requires-dist = [
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "matplotlib", specifier = ">=3.6" },
     { name = "numpy", specifier = ">=1.21.2" },
-    { name = "opencv-python", specifier = ">=4.5.5.64" },
+    { name = "opencv-python", specifier = ">=4.5.5.64,<5" },
     { name = "pandas", marker = "extra == 'metrics'", specifier = ">=2" },
     { name = "pillow", specifier = ">=9.4" },
     { name = "pydeprecate", specifier = ">=0.9,<0.11" },

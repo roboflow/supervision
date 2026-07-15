@@ -5,10 +5,10 @@ from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.converters import mask_to_xyxy
 from supervision.utils.internal import warn_deprecated

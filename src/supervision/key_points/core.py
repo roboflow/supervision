@@ -83,7 +83,7 @@ class KeyPoints:
         conversion is needed.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRKeypointPreview
 
@@ -100,7 +100,7 @@ class KeyPoints:
         [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -117,7 +117,7 @@ class KeyPoints:
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -136,7 +136,7 @@ class KeyPoints:
 
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import mediapipe as mp
         import supervision as sv
 
@@ -398,7 +398,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -410,7 +410,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference_sdk import InferenceHTTPClient
 
@@ -489,7 +489,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -515,7 +515,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -610,7 +610,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -647,7 +647,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
             import super_gradients
@@ -706,7 +706,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -1112,7 +1112,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -1323,7 +1323,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from rfdetr import RFDETRKeypointPreview
 

@@ -5,10 +5,10 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Literal
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
