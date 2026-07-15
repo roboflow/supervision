@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
+import importlib
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-import cv2
 import numpy as np
+import pytest
 
 from supervision import _cv2
+
+# Use the real OpenCV module as the oracle for compatibility comparisons.
+try:
+    cv2 = importlib.import_module("cv2")
+except (ImportError, OSError):
+    pytest.skip(
+        "OpenCV is required as the reference implementation for this test module",
+        allow_module_level=True,
+    )
 
 REQUIRED_SYMBOLS = {
     "BORDER_CONSTANT",
