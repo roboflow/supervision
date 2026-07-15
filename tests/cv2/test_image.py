@@ -49,28 +49,54 @@ def test_fallback_flip_matches_opencv(flip_code: int, expected: np.ndarray) -> N
     np.testing.assert_array_equal(_flip(source, flip_code), cv2.flip(source, flip_code))
 
 
-def test_fallback_array_arithmetic_matches_opencv() -> None:
-    """Match OpenCV border, blend, scale, and mean semantics."""
+def test_fallback_copy_make_border_matches_opencv() -> None:
+    """Match OpenCV constant-border padding."""
     source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
-    other = np.full_like(source, 50)
-    mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
 
     np.testing.assert_array_equal(
         _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, 7),
         cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=7),
     )
+
+
+def test_fallback_add_weighted_matches_opencv() -> None:
+    """Match OpenCV weighted image blending."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    other = np.full_like(source, 50)
+
     np.testing.assert_array_equal(
         _add_weighted(source, 0.5, other, 0.5, 10),
         cv2.addWeighted(source, 0.5, other, 0.5, 10),
     )
+
+
+def test_fallback_add_weighted_supports_destination() -> None:
+    """Write weighted image blending results into the provided destination."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    other = np.full_like(source, 50)
     destination = np.empty_like(source)
+
     actual = _add_weighted(source, 0.5, other, 0.5, 10, dst=destination)
+
     assert actual is destination
     np.testing.assert_array_equal(actual, cv2.addWeighted(source, 0.5, other, 0.5, 10))
+
+
+def test_fallback_convert_scale_abs_matches_opencv() -> None:
+    """Match OpenCV absolute scale-and-convert semantics."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+
     np.testing.assert_array_equal(
         _convert_scale_abs(source, 1.5, -20),
         cv2.convertScaleAbs(source, alpha=1.5, beta=-20),
     )
+
+
+def test_fallback_mean_matches_opencv() -> None:
+    """Match OpenCV masked mean semantics."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
+
     assert _mean(source, mask) == cv2.mean(source, mask)
 
 
@@ -92,8 +118,8 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
     np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
 
 
-def test_fallback_image_io_preserves_bgr_and_contract(tmp_path: Path) -> None:
-    """Preserve BGR channel order and OpenCV missing-file/write contracts."""
+def test_fallback_image_io_preserves_bgr(tmp_path: Path) -> None:
+    """Preserve BGR channel order when writing and reading an image."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
     image_path = tmp_path / "image.png"
 
@@ -101,23 +127,45 @@ def test_fallback_image_io_preserves_bgr_and_contract(tmp_path: Path) -> None:
     actual = _imread(str(image_path), _IMREAD_COLOR)
     assert actual is not None
     np.testing.assert_array_equal(actual, image)
+
+
+def test_fallback_image_io_returns_none_for_missing_file(tmp_path: Path) -> None:
+    """Return None when reading a missing image file."""
     assert _imread(str(tmp_path / "missing.png"), _IMREAD_COLOR) is None
 
+
+def test_fallback_image_io_preserves_alpha(tmp_path: Path) -> None:
+    """Preserve alpha channels when reading unchanged images."""
     alpha = np.array([[[10, 20, 30, 40], [50, 60, 70, 80]]], dtype=np.uint8)
     alpha_path = tmp_path / "alpha.png"
+
     assert _imwrite(str(alpha_path), alpha)
     np.testing.assert_array_equal(
         _imread(str(alpha_path), _IMREAD_UNCHANGED),
         cv2.imread(str(alpha_path), cv2.IMREAD_UNCHANGED),
     )
 
+
+def test_fallback_image_io_preserves_sixteen_bit_unchanged(tmp_path: Path) -> None:
+    """Preserve sixteen-bit pixel values when reading unchanged images."""
     sixteen_bit = np.array([[0, 12345], [54321, 65535]], dtype=np.uint16)
     sixteen_bit_path = tmp_path / "sixteen-bit.png"
+
     assert _imwrite(str(sixteen_bit_path), sixteen_bit)
     np.testing.assert_array_equal(
         _imread(str(sixteen_bit_path), _IMREAD_UNCHANGED),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_UNCHANGED),
     )
+
+
+def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
+    tmp_path: Path,
+) -> None:
+    """Match OpenCV color conversion when reading a sixteen-bit image."""
+    sixteen_bit = np.array([[0, 12345], [54321, 65535]], dtype=np.uint16)
+    sixteen_bit_path = tmp_path / "sixteen-bit.png"
+
+    assert _imwrite(str(sixteen_bit_path), sixteen_bit)
     np.testing.assert_array_equal(
         _imread(str(sixteen_bit_path), _IMREAD_COLOR),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_COLOR),

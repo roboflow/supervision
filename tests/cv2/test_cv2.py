@@ -57,21 +57,38 @@ REQUIRED_SYMBOLS = {
 }
 
 
-def test_facade_exports_the_required_opencv_surface() -> None:
-    """Expose every OpenCV symbol used by production call sites."""
-    assert REQUIRED_SYMBOLS <= set(_cv2.__all__)
-    assert all(hasattr(_cv2, symbol) for symbol in REQUIRED_SYMBOLS)
+@pytest.mark.parametrize(
+    "symbol",
+    [
+        pytest.param(symbol, id=symbol.lower().replace("_", "-"))
+        for symbol in sorted(REQUIRED_SYMBOLS)
+    ],
+)
+def test_facade_exports_required_opencv_symbol(symbol: str) -> None:
+    """Expose each OpenCV symbol used by production call sites."""
+    assert symbol in _cv2.__all__
+    assert hasattr(_cv2, symbol)
+
+
+def test_facade_reports_opencv_backend() -> None:
+    """Report OpenCV when the native backend is available."""
     assert _cv2.BACKEND_NAME == "opencv"
 
 
-def test_facade_calls_the_package_imported_surface() -> None:
-    """Route production-style calls through the Supervision facade."""
+def test_facade_routes_color_calls_to_opencv() -> None:
+    """Route color conversion calls through the Supervision facade."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
 
     np.testing.assert_array_equal(
         _cv2.cvtColor(image, _cv2.COLOR_BGR2RGB),
         cv2.cvtColor(image, cv2.COLOR_BGR2RGB),
     )
+
+
+def test_facade_routes_resize_calls_to_opencv() -> None:
+    """Route resize calls through the Supervision facade."""
+    image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
+
     np.testing.assert_array_equal(
         _cv2.resize(image, (4, 2), interpolation=_cv2.INTER_NEAREST),
         cv2.resize(image, (4, 2), interpolation=cv2.INTER_NEAREST),
