@@ -100,7 +100,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -116,7 +116,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -275,7 +275,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
 
@@ -314,7 +314,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -396,7 +396,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from super_gradients.training import models
             import supervision as sv
 
@@ -451,7 +451,7 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            import cv2
+            from supervision import _cv2 as cv2
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
@@ -528,7 +528,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
 
@@ -648,7 +648,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -742,7 +742,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -874,7 +874,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference.models.sam3 import SegmentAnything3
             from inference.core.entities.requests.sam3 import Sam3Prompt
@@ -2207,7 +2207,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
 
@@ -2750,7 +2750,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -3329,7 +3329,7 @@ def merge_inner_detection_object_pair(
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 

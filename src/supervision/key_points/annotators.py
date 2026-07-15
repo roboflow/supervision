@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color

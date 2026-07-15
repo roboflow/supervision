@@ -1,11 +1,11 @@
 from collections.abc import Iterable
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
+from supervision import _cv2 as cv2
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text

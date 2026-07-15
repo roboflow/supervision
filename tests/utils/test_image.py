@@ -1,10 +1,10 @@
 import warnings
 
-import cv2
 import numpy as np
 import pytest
 from PIL import Image, ImageChops
 
+from supervision import _cv2 as cv2
 from supervision.utils.image import (
     ImageSink,
     _overlay_image,

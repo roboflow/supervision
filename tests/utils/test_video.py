@@ -6,10 +6,10 @@ from queue import Queue as StdQueue
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import cv2
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,

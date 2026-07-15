@@ -10,12 +10,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
 from supervision.detection.utils.converters import (

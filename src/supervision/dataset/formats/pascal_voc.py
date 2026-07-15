@@ -6,13 +6,13 @@ from xml.etree.ElementTree import Element, SubElement
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     check_no_basename_collisions,

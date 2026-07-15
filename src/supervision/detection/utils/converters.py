@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Literal, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+from supervision import _cv2 as cv2
 
 MIN_POLYGON_POINT_COUNT = 3
 CoordinateConvention = Literal["inclusive", "exclusive"]

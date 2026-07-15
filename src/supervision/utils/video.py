@@ -13,11 +13,11 @@ from queue import Empty, Full, Queue
 from types import TracebackType
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -293,7 +293,7 @@ def get_video_frames_generator(
         sources; `cv2.VideoCapture` must be released by the caller when done:
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
 
         cap = cv2.VideoCapture(0)  # 0 = default webcam
         try:
