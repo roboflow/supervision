@@ -13,23 +13,13 @@ date_modified: 2026-07-08
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
+!!! warning "Planned: OpenCV dependency change"
+
+    A future release will stop declaring an OpenCV package as a supervision dependency; users who need `cv2` directly will install their own OpenCV distribution (`opencv-python` or `opencv-python-headless`), and supervision's public API will keep working either way. This release ships `sv.ImageWindow` (see **Added**, below) as a forward-compatible replacement for `cv2.imshow`/`cv2.waitKey`/`cv2.namedWindow`, so display code can migrate ahead of that change. No breaking change yet — `cv2.imshow` and friends keep working unchanged as long as `opencv-python` is installed.
+
 ### Breaking Changes
 - `sv.JSONSink` now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as `"True"`/`"False"`, `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use strict string-typed schema validators must be updated. `sv.CSVSink` remains textual, but its custom-data slicing now matches `sv.JSONSink`: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
-
-!!! warning "Breaking change"
-    `supervision` now depends on `opencv-python-headless` instead of `opencv-python`. The headless wheel provides the same `cv2` API except for desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`, and mouse/keyboard callbacks), which are not available in headless builds. All non-GUI `cv2` behaviour — drawing, text metrics, contour hierarchy, video I/O, affine transforms, image I/O — is unchanged.
-
-    **Who is affected:** users who called `cv2.imshow`, `cv2.waitKey`, or `cv2.namedWindow` in their own scripts alongside `import supervision`, relying on supervision's transitive `opencv-python` dependency to provide those symbols.
-
-    **How to restore GUI support:** replace the headless wheel with the full one:
-    ```bash
-    pip uninstall -y opencv-python-headless
-    pip install opencv-python
-    ```
-    Both wheel families share the `cv2` namespace; keep only one installed at a time.
-
-    **Co-installation warning:** `opencv-python` and `opencv-python-headless` share the `cv2` namespace and install conflicting files to the same path. pip does not detect this — both wheels install silently, but the resulting `cv2` behavior is non-deterministic depending on install order. If you also install packages that bring in `opencv-python` (e.g. `ultralytics`, `inference-sdk`), you may end up with both wheels. Run the same commands shown above to remove the headless wheel afterward.
 
 ### Fixed
 - `sv.hex_to_rgba` now rejects multiple leading `#` characters instead of silently normalizing them, matching `sv.is_valid_hex` and the documented single optional prefix.
@@ -61,7 +51,7 @@ date_modified: 2026-07-08
 - Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
 
 ### Added
-- Added: [`sv.ImageWindow`](utils/image_window.md/#supervision.utils.image_window.ImageWindow) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey` under `opencv-python-headless`. Key differences from cv2:
+- Added: [`sv.ImageWindow`](utils/image_window.md/#supervision.utils.image_window.ImageWindow) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey`, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:
   - `wait_key()` returns a tkinter keysym `str` (e.g. `"q"`, `"Escape"`) or `None`, not an `int` — update `key == ord("q")` to `key == "q"`.
   - Mouse callback signature is `(x: int, y: int, event_type: str)` where `event_type` is `"down"`, `"up"`, or `"move"` — incompatible with cv2's `(event, x, y, flags, param)`.
   - Only left-button events are captured; scroll, right-button, and modifier flags have no equivalent.

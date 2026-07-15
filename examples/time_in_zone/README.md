@@ -30,7 +30,7 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
     uv pip install -r requirements.txt
     ```
 
-The three RTSP `*_stream_example.py` scripts display frames from an `InferencePipeline` callback running on a worker thread, so they use OpenCV HighGUI instead of `sv.ImageWindow`. Install `opencv-python` and keep only one OpenCV wheel installed to run those scripts. The file and naive-stream examples use `sv.ImageWindow` with the default headless dependency.
+The three RTSP `*_stream_example.py` scripts display frames from an `InferencePipeline` callback running on a worker thread, so they use OpenCV HighGUI instead of `sv.ImageWindow`. Install `opencv-python` and keep only one OpenCV wheel installed to run those scripts. The file and naive-stream examples use `sv.ImageWindow`, which works regardless of which OpenCV wheel (or none) is installed.
 
 ## 🛠 scripts
 
