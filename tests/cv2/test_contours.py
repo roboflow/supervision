@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 
 from supervision import _cv2
-from supervision._cv2._components import _connected_components
+from supervision._cv2._components import (
+    _connected_components,
+    _connected_components_with_stats,
+)
 from supervision._cv2._contours import _find_contours
 from supervision._cv2._geometry import _fill_poly, _intersect_convex_convex
 from supervision._cv2.constants import _CHAIN_APPROX_SIMPLE, _RETR_TREE
@@ -97,6 +100,9 @@ def test_geometry_consumers_use_fallback_bindings(
     )
 
     monkeypatch.setattr(_cv2, "connectedComponents", _connected_components)
+    monkeypatch.setattr(
+        _cv2, "connectedComponentsWithStats", _connected_components_with_stats
+    )
     monkeypatch.setattr(_cv2, "fillPoly", _fill_poly)
     monkeypatch.setattr(_cv2, "findContours", _find_contours)
     monkeypatch.setattr(_cv2, "intersectConvexConvex", _intersect_convex_convex)

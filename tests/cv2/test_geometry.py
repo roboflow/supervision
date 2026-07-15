@@ -23,6 +23,12 @@ except (ImportError, OSError):
     )
 
 
+def _sort_points_lexicographically(points: np.ndarray) -> np.ndarray:
+    """Sort 2D points row-wise so point sets can be compared order-independently."""
+    order = np.lexsort((points[:, 1], points[:, 0]))
+    return points[order]
+
+
 @pytest.mark.parametrize(
     ("contour", "oriented"),
     [
@@ -111,8 +117,8 @@ def test_intersect_convex_convex_matches_opencv(
 
     assert actual_polygon.shape == expected_polygon.shape
     np.testing.assert_allclose(
-        np.sort(actual_polygon.reshape(-1, 2), axis=0),
-        np.sort(expected_polygon.reshape(-1, 2), axis=0),
+        _sort_points_lexicographically(actual_polygon.reshape(-1, 2)),
+        _sort_points_lexicographically(expected_polygon.reshape(-1, 2)),
         atol=1e-6,
         rtol=0,
     )
