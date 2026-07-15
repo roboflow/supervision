@@ -139,7 +139,10 @@ def test_facade_calls_the_package_imported_surface() -> None:
 def test_facade_imports_without_opencv() -> None:
     """Keep fallback imports and constants valid when cv2 is unavailable."""
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
+    source_path = str(Path(__file__).resolve().parents[2] / "src")
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, (source_path, env.get("PYTHONPATH")))
+    )
     code = f"""
 import sys
 
@@ -176,7 +179,10 @@ else:
 def test_facade_does_not_hide_a_breaking_opencv_import() -> None:
     """Raise when cv2 imports but no longer exposes a required symbol."""
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
+    source_path = str(Path(__file__).resolve().parents[2] / "src")
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, (source_path, env.get("PYTHONPATH")))
+    )
     code = """
 import sys
 import types
