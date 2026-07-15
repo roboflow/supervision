@@ -81,31 +81,31 @@ REQUIRED_SYMBOLS = {
     "warpAffine",
 }
 
-OPENCV_CONSTANTS = {
-    "BORDER_CONSTANT": cv2.BORDER_CONSTANT,
-    "CAP_PROP_FPS": cv2.CAP_PROP_FPS,
-    "CAP_PROP_FRAME_COUNT": cv2.CAP_PROP_FRAME_COUNT,
-    "CAP_PROP_FRAME_HEIGHT": cv2.CAP_PROP_FRAME_HEIGHT,
-    "CAP_PROP_FRAME_WIDTH": cv2.CAP_PROP_FRAME_WIDTH,
-    "CAP_PROP_POS_FRAMES": cv2.CAP_PROP_POS_FRAMES,
-    "CC_STAT_AREA": cv2.CC_STAT_AREA,
-    "CHAIN_APPROX_SIMPLE": cv2.CHAIN_APPROX_SIMPLE,
-    "COLOR_BGR2GRAY": cv2.COLOR_BGR2GRAY,
-    "COLOR_BGR2RGB": cv2.COLOR_BGR2RGB,
-    "COLOR_GRAY2BGR": cv2.COLOR_GRAY2BGR,
-    "COLOR_HSV2BGR": cv2.COLOR_HSV2BGR,
-    "COLOR_RGB2BGR": cv2.COLOR_RGB2BGR,
-    "DIST_L2": cv2.DIST_L2,
-    "FONT_HERSHEY_SIMPLEX": cv2.FONT_HERSHEY_SIMPLEX,
-    "IMREAD_COLOR": cv2.IMREAD_COLOR,
-    "IMREAD_UNCHANGED": cv2.IMREAD_UNCHANGED,
-    "INTER_LINEAR": cv2.INTER_LINEAR,
-    "INTER_NEAREST": cv2.INTER_NEAREST,
-    "LINE_4": cv2.LINE_4,
-    "LINE_AA": cv2.LINE_AA,
-    "RETR_CCOMP": cv2.RETR_CCOMP,
-    "RETR_TREE": cv2.RETR_TREE,
-}
+OPENCV_CONSTANTS = [
+    "BORDER_CONSTANT",
+    "CAP_PROP_FPS",
+    "CAP_PROP_FRAME_COUNT",
+    "CAP_PROP_FRAME_HEIGHT",
+    "CAP_PROP_FRAME_WIDTH",
+    "CAP_PROP_POS_FRAMES",
+    "CC_STAT_AREA",
+    "CHAIN_APPROX_SIMPLE",
+    "COLOR_BGR2GRAY",
+    "COLOR_BGR2RGB",
+    "COLOR_GRAY2BGR",
+    "COLOR_HSV2BGR",
+    "COLOR_RGB2BGR",
+    "DIST_L2",
+    "FONT_HERSHEY_SIMPLEX",
+    "IMREAD_COLOR",
+    "IMREAD_UNCHANGED",
+    "INTER_LINEAR",
+    "INTER_NEAREST",
+    "LINE_4",
+    "LINE_AA",
+    "RETR_CCOMP",
+    "RETR_TREE",
+]
 
 
 def test_facade_exports_the_required_opencv_surface() -> None:
@@ -115,11 +115,16 @@ def test_facade_exports_the_required_opencv_surface() -> None:
     assert _cv2.BACKEND_NAME == "opencv"
 
 
-def test_facade_constants_match_opencv() -> None:
-    """Keep compatibility constants aligned with the OpenCV reference."""
-    facade_constants = {name: getattr(_cv2, name) for name in OPENCV_CONSTANTS}
+@pytest.mark.parametrize(
+    "name",
+    OPENCV_CONSTANTS
+)
+def test_fallback_constant_matches_opencv(name: str) -> None:
+    """Keep each private fallback constant aligned with the OpenCV reference."""
+    actual = getattr(_cv2, f"_{name}")
+    expected = getattr(cv2, name)
 
-    assert facade_constants == OPENCV_CONSTANTS
+    assert actual == expected
 
 
 def test_facade_calls_the_package_imported_surface() -> None:
@@ -143,6 +148,7 @@ def test_facade_imports_without_opencv() -> None:
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, env.get("PYTHONPATH")))
     )
+    expected_constants = {name: getattr(cv2, name) for name in OPENCV_CONSTANTS}
     code = f"""
 import sys
 
@@ -159,8 +165,10 @@ from supervision import _cv2
 
 assert _cv2._IS_CV2_AVAILABLE is False
 assert _cv2.BACKEND_NAME == "fallback"
-expected = {OPENCV_CONSTANTS!r}
+expected = {expected_constants!r}
 actual = {{name: getattr(_cv2, name) for name in expected}}
+fallback = {{name: getattr(_cv2, f"_{{name}}") for name in expected}}
+assert fallback == expected
 assert actual == expected
 try:
     _cv2.resize(None, (1, 1), interpolation=_cv2.INTER_NEAREST)
