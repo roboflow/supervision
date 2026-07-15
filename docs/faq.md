@@ -53,6 +53,27 @@ Install `supervision[metrics]`, then use `supervision.metrics.mean_average_preci
 
 Yes. Supervision is free and open source under the MIT license.
 
+## How do I process frames from a webcam with supervision?
+
+Supervision does not support live camera capture. Manage the capture device yourself with `cv2.VideoCapture`, which works regardless of which OpenCV wheel (`opencv-python` or `opencv-python-headless`) is installed, and pass individual frames to supervision annotators:
+
+```python
+import cv2  # requires: pip install opencv-python (or opencv-python-headless)
+import supervision as sv
+
+cap = cv2.VideoCapture(0)
+annotator = sv.BoxAnnotator()
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    # run your detector, then annotate:
+    # annotated = annotator.annotate(frame, detections)
+
+cap.release()
+```
+
 ## Where is the source code?
 
 The source code is available at [github.com/roboflow/supervision](https://github.com/roboflow/supervision).

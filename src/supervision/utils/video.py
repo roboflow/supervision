@@ -58,6 +58,22 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
+        """Read video metadata from a file path.
+
+        Args:
+            video_path: Path to the video file.
+
+        Returns:
+            A `VideoInfo` instance with width, height, fps, and total_frames.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
+            # VideoInfo(width=3840, height=2160, fps=25.0, total_frames=538)
+            ```
+        """
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
             raise Exception(f"Could not open video at {video_path}")
@@ -272,8 +288,23 @@ def get_video_frames_generator(
             frames of the video.
 
     Note:
-        The underlying `cv2.VideoCapture` is always released when the generator
-        is exhausted or closed, even if the consumer breaks out of iteration early.
+        For live camera streams, use `cv2.VideoCapture` with an integer device
+        index directly. `get_video_frames_generator` is designed for file-based
+        sources; `cv2.VideoCapture` must be released by the caller when done:
+
+        ```python
+        import cv2
+
+        cap = cv2.VideoCapture(0)  # 0 = default webcam
+        try:
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success:
+                    break
+                ...  # process frame
+        finally:
+            cap.release()
+        ```
 
     Examples:
         ```python

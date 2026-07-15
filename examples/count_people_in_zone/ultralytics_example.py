@@ -1,6 +1,5 @@
 import json
 
-import cv2
 import numpy as np
 from tqdm import tqdm
 from ultralytics import YOLO
@@ -116,7 +115,7 @@ def annotate(
     """
     annotated_frame = frame.copy()
     for zone, zone_annotator, box_annotator in zip(
-        zones, zone_annotators, box_annotators
+        zones, zone_annotators, box_annotators, strict=True
     ):
         detections_in_zone = detections[zone.trigger(detections=detections)]
         annotated_frame = zone_annotator.annotate(scene=annotated_frame)
@@ -167,6 +166,7 @@ def main(
                 )
                 sink.write_frame(annotated_frame)
     else:
+        window = sv.ImageWindow("Processed Video")
         for frame in tqdm(frames_generator, total=video_info.total_frames):
             detections = detect(frame, model, confidence_threshold, iou_threshold)
             annotated_frame = annotate(
@@ -176,11 +176,12 @@ def main(
                 box_annotators=box_annotators,
                 detections=detections,
             )
-            cv2.imshow("Processed Video", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
 
-        cv2.destroyAllWindows()
+        window.close()
 
 
 if __name__ == "__main__":
