@@ -4,6 +4,17 @@ from __future__ import annotations
 
 from supervision._cv2._color import _cvt_color, _merge, _split
 from supervision._cv2._common import BackendUnavailableError, _unavailable
+from supervision._cv2._components import (
+    _connected_components,
+    _connected_components_with_stats,
+)
+from supervision._cv2._contours import _find_contours
+from supervision._cv2._geometry import (
+    _approx_poly_dp,
+    _contour_area,
+    _fill_poly,
+    _intersect_convex_convex,
+)
 from supervision._cv2._image import (
     _add_weighted,
     _convert_scale_abs,
@@ -42,7 +53,6 @@ from supervision._cv2.constants import (
     _INTER_NEAREST,
     _LINE_4,
     _LINE_AA,
-    _RETR_CCOMP,
     _RETR_TREE,
 )
 
@@ -76,7 +86,6 @@ if _IS_CV2_AVAILABLE:
         INTER_NEAREST,
         LINE_4,
         LINE_AA,
-        RETR_CCOMP,
         RETR_TREE,
         VideoCapture,
         VideoWriter,
@@ -138,33 +147,32 @@ else:
     INTER_NEAREST = _INTER_NEAREST
     LINE_4 = _LINE_4
     LINE_AA = _LINE_AA
-    RETR_CCOMP = _RETR_CCOMP
     RETR_TREE = _RETR_TREE
 
     VideoCapture = _unavailable
     VideoWriter = _unavailable
     VideoWriter_fourcc = _unavailable
     addWeighted = _add_weighted
-    approxPolyDP = _unavailable
+    approxPolyDP = _approx_poly_dp
     blur = _blur
     circle = _unavailable
-    connectedComponents = _unavailable
-    connectedComponentsWithStats = _unavailable
-    contourArea = _unavailable
+    connectedComponents = _connected_components
+    connectedComponentsWithStats = _connected_components_with_stats
+    contourArea = _contour_area
     convertScaleAbs = _convert_scale_abs
     copyMakeBorder = _copy_make_border
     cvtColor = _cvt_color
     distanceTransform = _distance_transform
     drawContours = _unavailable
     ellipse = _unavailable
-    fillPoly = _unavailable
-    findContours = _unavailable
+    fillPoly = _fill_poly
+    findContours = _find_contours
     flip = _flip
     getRotationMatrix2D = _get_rotation_matrix_2d
     getTextSize = _unavailable
     imread = _imread
     imwrite = _imwrite
-    intersectConvexConvex = _unavailable
+    intersectConvexConvex = _intersect_convex_convex
     line = _unavailable
     mean = _mean
     merge = _merge
@@ -199,7 +207,6 @@ __all__ = [
     "INTER_NEAREST",
     "LINE_4",
     "LINE_AA",
-    "RETR_CCOMP",
     "RETR_TREE",
     "BackendUnavailableError",
     "VideoCapture",
