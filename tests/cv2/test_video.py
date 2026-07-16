@@ -83,6 +83,7 @@ def _run_without_opencv(source: str) -> None:
         capture_output=True,
         text=True,
         env=env,
+        timeout=60,
     )
     assert result.returncode == 0, result.stderr
 
