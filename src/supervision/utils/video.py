@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-import tempfile
 import threading
 import time
 from collections import deque
@@ -18,6 +14,7 @@ import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
+from supervision._cv2._video import _mux_audio
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -168,73 +165,6 @@ class VideoSink:
         if self.__writer is not None:
             self.__writer.release()
             self.__writer = None
-
-
-def _mux_audio(source_path: str, video_path: str) -> None:
-    """Mux audio from `source_path` into `video_path` in-place using ffmpeg.
-
-    Args:
-        source_path: Path to the original video file containing the audio stream.
-        video_path: Path to the video-only file to be updated with audio.
-    """
-    ffmpeg_path = shutil.which("ffmpeg")
-    if ffmpeg_path is None:
-        logger.warning(
-            "ffmpeg not found on PATH. Audio will not be preserved. "
-            "Install ffmpeg to enable audio preservation."
-        )
-        return
-
-    tmp_path = None
-    try:
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            suffix=os.path.splitext(video_path)[1],
-            dir=os.path.dirname(os.path.abspath(video_path)),
-        )
-        os.close(tmp_fd)
-        result = subprocess.run(  # noqa: S603
-            [
-                ffmpeg_path,
-                "-y",
-                "-loglevel",
-                "error",
-                "-nostats",
-                "-i",
-                video_path,
-                "-i",
-                source_path,
-                "-c:v",
-                "copy",
-                "-c:a",
-                "copy",
-                "-map",
-                "0:v:0",
-                "-map",
-                "1:a:0?",
-                "-shortest",
-                tmp_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=300,
-        )
-        if result.returncode != 0:
-            stderr_msg = result.stderr.decode(errors="replace").strip()
-            logger.warning(
-                "ffmpeg failed to mux audio (return code %d)%s. "
-                "The output video will not have audio.",
-                result.returncode,
-                f": {stderr_msg}" if stderr_msg else "",
-            )
-            return
-        os.replace(tmp_path, video_path)
-    except Exception as exc:
-        logger.warning(
-            "Audio muxing failed: %s. Output video will not have audio.", exc
-        )
-    finally:
-        if tmp_path is not None and os.path.exists(tmp_path):
-            os.remove(tmp_path)
 
 
 def _validate_and_setup_video(

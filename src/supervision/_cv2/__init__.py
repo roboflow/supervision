@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from supervision._cv2._color import _cvt_color, _merge, _split
-from supervision._cv2._common import BackendUnavailableError, _unavailable
+from supervision._cv2._common import BackendUnavailableError
 from supervision._cv2._components import (
     _connected_components,
     _connected_components_with_stats,
@@ -39,6 +39,11 @@ from supervision._cv2._transform import (
     _distance_transform,
     _get_rotation_matrix_2d,
     _warp_affine,
+)
+from supervision._cv2._video import (
+    _video_writer_fourcc,
+    _VideoCapture,
+    _VideoWriter,
 )
 from supervision._cv2.constants import (
     _BORDER_CONSTANT,
@@ -185,9 +190,9 @@ else:
     LINE_AA = _LINE_AA
     RETR_TREE = _RETR_TREE
 
-    VideoCapture = _unavailable
-    VideoWriter = _unavailable
-    VideoWriter_fourcc = _unavailable
+    VideoCapture = _VideoCapture
+    VideoWriter = _VideoWriter
+    VideoWriter_fourcc = _video_writer_fourcc
     addWeighted = _add_weighted
     approxPolyDP = _approx_poly_dp
     blur = _blur

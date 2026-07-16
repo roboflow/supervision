@@ -47,6 +47,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "av>=14.2.0",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
