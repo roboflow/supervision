@@ -5,12 +5,12 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-import cv2
 import numpy as np
 import pytest
 from tqdm.auto import tqdm as _real_tqdm
 
 from supervision import DetectionDataset
+from supervision import _cv2 as cv2
 
 
 def _create_dummy_yolo_dataset(root: str, num_images: int = 3) -> tuple[str, str, str]:
