@@ -80,7 +80,7 @@ def test_ordinary_tests_use_facade_instead_of_native_cv2() -> None:
 
 def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:
     """Run all non-reference tests in a process where cv2 cannot be imported."""
-    completed = subprocess.run(  # noqa: S603
+    completed = subprocess.run(
         [
             sys.executable,
             "-m",
