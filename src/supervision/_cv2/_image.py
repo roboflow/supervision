@@ -49,15 +49,17 @@ def _copy_make_border(
     height, width = image.shape[:2]
     shape = (height + top + bottom, width + left + right, *image.shape[2:])
 
-    fill_value: Any = value
-    if isinstance(value, Sequence):
-        values = np.asarray(value, dtype=image.dtype).reshape(-1)
-        if image.ndim == 2:
-            fill_value = values[0] if values.size else 0
-        else:
-            fill = np.zeros(image.shape[2], dtype=image.dtype)
-            fill[: min(values.size, image.shape[2])] = values[: image.shape[2]]
-            fill_value = fill.reshape((1, 1, -1))
+    # OpenCV's Scalar(v) fills only channel 0 and zero-pads the rest for
+    # multichannel images — a bare scalar is treated the same as a
+    # length-1 sequence, not broadcast to every channel.
+    sequence_value = value if isinstance(value, Sequence) else (value,)
+    values = np.asarray(sequence_value, dtype=image.dtype).reshape(-1)
+    if image.ndim == 2:
+        fill_value: Any = values[0] if values.size else 0
+    else:
+        fill = np.zeros(image.shape[2], dtype=image.dtype)
+        fill[: min(values.size, image.shape[2])] = values[: image.shape[2]]
+        fill_value = fill.reshape((1, 1, -1))
 
     result = np.full(shape, fill_value, dtype=image.dtype)
     result[top : top + height, left : left + width] = image

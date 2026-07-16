@@ -78,6 +78,14 @@ def test_fallback_flip_matches_opencv(flip_code: int, expected: np.ndarray) -> N
             (7, 8, 9, 10),
             id="multichannel-sequence-longer-than-channels-truncates",
         ),
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            100,
+            id="multichannel-scalar-fills-only-first-channel",
+        ),
     ],
 )
 def test_fallback_copy_make_border_matches_opencv(
