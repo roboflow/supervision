@@ -51,13 +51,18 @@ _ASCII_LAST = ord("~")
 _COORDINATE_ORIGIN = ord("R")
 
 
+def _normalize_resource_bytes(resource_bytes: bytes) -> bytes:
+    """Normalize text-resource line endings before checksum validation."""
+    return resource_bytes.replace(b"\r\n", b"\n")
+
+
 @lru_cache(maxsize=1)
 def _load_font_data() -> tuple[tuple[str, ...], dict[str, _FontData]]:
     """Load and verify the packaged OpenCV-derived glyph tables once."""
     resource_dir = files("supervision._cv2").joinpath("data")
     glyph_resource = resource_dir.joinpath("hershey_fonts.json")
     provenance_resource = resource_dir.joinpath("hershey_provenance.json")
-    glyph_bytes = glyph_resource.read_bytes()
+    glyph_bytes = _normalize_resource_bytes(glyph_resource.read_bytes())
     provenance = cast(
         dict[str, str],
         json.loads(provenance_resource.read_text(encoding="utf-8")),

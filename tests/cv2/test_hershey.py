@@ -14,7 +14,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from supervision._cv2._text import _get_text_size, _put_text
+from supervision._cv2._text import (
+    _get_text_size,
+    _normalize_resource_bytes,
+    _put_text,
+)
 
 try:
     cv2 = importlib.import_module("cv2")
@@ -121,7 +125,9 @@ def test_fallback_text_renders_every_font_face(font_face: int, italic: bool) -> 
 def test_fallback_text_data_has_verified_provenance() -> None:
     """Verify the packaged glyph data against its source manifest."""
     package_data = files("supervision._cv2").joinpath("data")
-    glyph_data = package_data.joinpath("hershey_fonts.json").read_bytes()
+    glyph_data = _normalize_resource_bytes(
+        package_data.joinpath("hershey_fonts.json").read_bytes()
+    )
     provenance = json.loads(
         package_data.joinpath("hershey_provenance.json").read_text(encoding="utf-8")
     )
@@ -129,6 +135,16 @@ def test_fallback_text_data_has_verified_provenance() -> None:
     assert hashlib.sha256(glyph_data).hexdigest() == provenance["data_sha256"]
     assert provenance["source"].endswith("modules/imgproc/src/hershey_fonts.cpp")
     assert provenance["license"] == "Intel-Willow-Garage-BSD-style"
+    assert provenance["checksum_normalization"] == "CRLF-to-LF"
+
+
+def test_fallback_text_checksum_normalizes_windows_line_endings() -> None:
+    """Keep the resource checksum stable for Windows CRLF checkouts."""
+    package_data = files("supervision._cv2").joinpath("data")
+    glyph_data = package_data.joinpath("hershey_fonts.json").read_bytes()
+    crlf_data = glyph_data.replace(b"\n", b"\r\n")
+
+    assert _normalize_resource_bytes(crlf_data) == _normalize_resource_bytes(glyph_data)
 
 
 def test_fallback_text_works_when_opencv_is_blocked() -> None:
