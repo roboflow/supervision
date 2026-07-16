@@ -220,7 +220,11 @@ def get_video_frames_generator(
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
         index directly. `get_video_frames_generator` is designed for file-based
-        sources; `cv2.VideoCapture` must be released by the caller when done:
+        sources; `cv2.VideoCapture` must be released by the caller when done.
+        This requires OpenCV to be installed — the PyAV-based fallback used
+        when OpenCV is unavailable only supports file paths, not webcam device
+        indexes; passing an integer source to it always leaves the capture
+        closed (`isOpened()` returns `False`):
 
         ```python
         from supervision import _cv2 as cv2
@@ -309,11 +313,11 @@ def process_video(
             Default is False.
         progress_message: Description shown in the progress bar.
         preserve_audio: If True, copy the audio stream from `source_path` into
-            `target_path` after frame processing. Requires `ffmpeg` on PATH
-            (e.g. `apt install ffmpeg`, `brew install ffmpeg`). If ffmpeg is
-            not found or the mux step fails, a warning is logged and the output
-            video is saved without audio — no exception is raised. Audio is
-            truncated to match the processed video duration. Default is False.
+            `target_path` after frame processing. Remuxing is done with PyAV;
+            no external `ffmpeg` executable is required. If the mux step
+            fails, a warning is logged and the output video is saved without
+            audio — no exception is raised. Audio is truncated to match the
+            processed video duration. Default is False.
 
     Returns:
         None

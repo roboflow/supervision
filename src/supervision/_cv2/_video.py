@@ -83,6 +83,7 @@ class _VideoCapture:
             self._opened = True
         except Exception as exc:
             self._error = exc
+            logger.warning("Failed to open video source %r: %s", source, exc)
             self.release()
 
     def isOpened(self) -> bool:
