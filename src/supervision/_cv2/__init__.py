@@ -9,10 +9,18 @@ from supervision._cv2._components import (
     _connected_components_with_stats,
 )
 from supervision._cv2._contours import _find_contours
+from supervision._cv2._drawing import (
+    _circle,
+    _draw_contours,
+    _ellipse,
+    _fill_poly,
+    _line,
+    _polylines,
+    _rectangle,
+)
 from supervision._cv2._geometry import (
     _approx_poly_dp,
     _contour_area,
-    _fill_poly,
     _intersect_convex_convex,
 )
 from supervision._cv2._image import (
@@ -155,7 +163,7 @@ else:
     addWeighted = _add_weighted
     approxPolyDP = _approx_poly_dp
     blur = _blur
-    circle = _unavailable
+    circle = _circle
     connectedComponents = _connected_components
     connectedComponentsWithStats = _connected_components_with_stats
     contourArea = _contour_area
@@ -163,8 +171,8 @@ else:
     copyMakeBorder = _copy_make_border
     cvtColor = _cvt_color
     distanceTransform = _distance_transform
-    drawContours = _unavailable
-    ellipse = _unavailable
+    drawContours = _draw_contours
+    ellipse = _ellipse
     fillPoly = _fill_poly
     findContours = _find_contours
     flip = _flip
@@ -173,12 +181,12 @@ else:
     imread = _imread
     imwrite = _imwrite
     intersectConvexConvex = _intersect_convex_convex
-    line = _unavailable
+    line = _line
     mean = _mean
     merge = _merge
-    polylines = _unavailable
+    polylines = _polylines
     putText = _unavailable
-    rectangle = _unavailable
+    rectangle = _rectangle
     resize = _resize
     split = _split
     warpAffine = _warp_affine
