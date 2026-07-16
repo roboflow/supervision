@@ -16,7 +16,13 @@ import pytest
 
 from supervision._cv2._text import _get_text_size, _put_text
 
-cv2 = importlib.import_module("cv2")
+try:
+    cv2 = importlib.import_module("cv2")
+except (ImportError, OSError):
+    pytest.skip(
+        "OpenCV is required as the reference implementation for this test module",
+        allow_module_level=True,
+    )
 
 FONT_FACES = [
     pytest.param(cv2.FONT_HERSHEY_SIMPLEX, id="simplex"),
