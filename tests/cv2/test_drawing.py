@@ -142,6 +142,18 @@ def test_fallback_draw_contours_fills_selected_contour() -> None:
     assert tuple(image[5, 5]) == (7, 8, 9)
 
 
+def test_fallback_draw_contours_rejects_hierarchy() -> None:
+    """Reject hierarchy-guided drawing the flat fallback cannot reproduce."""
+    image = np.zeros((12, 12, 3), dtype=np.uint8)
+    contours = [np.array([[[2, 2]], [[9, 2]], [[9, 9]], [[2, 9]]], dtype=np.int32)]
+    hierarchy = np.array([[[-1, -1, -1, -1]]], dtype=np.int32)
+
+    with pytest.raises(ValueError, match="hierarchy"):
+        _draw_contours(
+            image, contours, contourIdx=0, color=(7, 8, 9), hierarchy=hierarchy
+        )
+
+
 def test_draw_line_consumer_uses_fallback_without_opencv() -> None:
     """Exercise a Supervision drawing consumer in a cv2-blocked process."""
     source = """

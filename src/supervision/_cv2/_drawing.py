@@ -247,7 +247,13 @@ def _draw_contours(
     offset: tuple[int, int] = (0, 0),
 ) -> _ImageArray:
     """Draw selected contours with OpenCV-compatible in-place mutation."""
-    del lineType, hierarchy, maxLevel
+    del lineType, maxLevel
+    # OpenCV walks the hierarchy tree to also draw a contour's nested descendants;
+    # the fallback only does flat contourIdx selection, so reject a hierarchy
+    # instead of silently diverging. maxLevel is a no-op without a hierarchy, which
+    # matches OpenCV ignoring it whenever hierarchy is None.
+    if hierarchy is not None:
+        raise ValueError("Only None hierarchy is supported by the fallback")
     selected = contours if contourIdx < 0 else contours[contourIdx : contourIdx + 1]
 
     def draw_selected(draw: Any) -> None:
