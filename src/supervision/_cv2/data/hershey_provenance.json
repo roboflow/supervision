@@ -1,0 +1,5 @@
+{
+  "data_sha256": "6dd5d1c30e1d8739c14ff429915d65983486e3f2a1d53a169a8670bdc208fc51",
+  "license": "Intel-Willow-Garage-BSD-style",
+  "source": "https://raw.githubusercontent.com/opencv/opencv/4.11.0/modules/imgproc/src/hershey_fonts.cpp"
+}

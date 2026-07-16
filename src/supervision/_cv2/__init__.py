@@ -33,6 +33,7 @@ from supervision._cv2._image import (
     _mean,
     _resize,
 )
+from supervision._cv2._text import _get_text_size, _put_text
 from supervision._cv2._transform import (
     _blur,
     _distance_transform,
@@ -54,12 +55,21 @@ from supervision._cv2.constants import (
     _COLOR_HSV2BGR,
     _COLOR_RGB2BGR,
     _DIST_L2,
+    _FONT_HERSHEY_COMPLEX,
+    _FONT_HERSHEY_COMPLEX_SMALL,
+    _FONT_HERSHEY_DUPLEX,
+    _FONT_HERSHEY_PLAIN,
+    _FONT_HERSHEY_SCRIPT_COMPLEX,
+    _FONT_HERSHEY_SCRIPT_SIMPLEX,
     _FONT_HERSHEY_SIMPLEX,
+    _FONT_HERSHEY_TRIPLEX,
+    _FONT_ITALIC,
     _IMREAD_COLOR,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
     _LINE_4,
+    _LINE_8,
     _LINE_AA,
     _RETR_TREE,
 )
@@ -87,12 +97,21 @@ if _IS_CV2_AVAILABLE:
         COLOR_HSV2BGR,
         COLOR_RGB2BGR,
         DIST_L2,
+        FONT_HERSHEY_COMPLEX,
+        FONT_HERSHEY_COMPLEX_SMALL,
+        FONT_HERSHEY_DUPLEX,
+        FONT_HERSHEY_PLAIN,
+        FONT_HERSHEY_SCRIPT_COMPLEX,
+        FONT_HERSHEY_SCRIPT_SIMPLEX,
         FONT_HERSHEY_SIMPLEX,
+        FONT_HERSHEY_TRIPLEX,
+        FONT_ITALIC,
         IMREAD_COLOR,
         IMREAD_UNCHANGED,
         INTER_LINEAR,
         INTER_NEAREST,
         LINE_4,
+        LINE_8,
         LINE_AA,
         RETR_TREE,
         VideoCapture,
@@ -148,12 +167,21 @@ else:
     COLOR_HSV2BGR = _COLOR_HSV2BGR
     COLOR_RGB2BGR = _COLOR_RGB2BGR
     DIST_L2 = _DIST_L2
+    FONT_HERSHEY_COMPLEX = _FONT_HERSHEY_COMPLEX
+    FONT_HERSHEY_COMPLEX_SMALL = _FONT_HERSHEY_COMPLEX_SMALL
+    FONT_HERSHEY_DUPLEX = _FONT_HERSHEY_DUPLEX
+    FONT_HERSHEY_PLAIN = _FONT_HERSHEY_PLAIN
+    FONT_HERSHEY_SCRIPT_COMPLEX = _FONT_HERSHEY_SCRIPT_COMPLEX
+    FONT_HERSHEY_SCRIPT_SIMPLEX = _FONT_HERSHEY_SCRIPT_SIMPLEX
     FONT_HERSHEY_SIMPLEX = _FONT_HERSHEY_SIMPLEX
+    FONT_HERSHEY_TRIPLEX = _FONT_HERSHEY_TRIPLEX
+    FONT_ITALIC = _FONT_ITALIC
     IMREAD_COLOR = _IMREAD_COLOR
     IMREAD_UNCHANGED = _IMREAD_UNCHANGED
     INTER_LINEAR = _INTER_LINEAR
     INTER_NEAREST = _INTER_NEAREST
     LINE_4 = _LINE_4
+    LINE_8 = _LINE_8
     LINE_AA = _LINE_AA
     RETR_TREE = _RETR_TREE
 
@@ -177,7 +205,7 @@ else:
     findContours = _find_contours
     flip = _flip
     getRotationMatrix2D = _get_rotation_matrix_2d
-    getTextSize = _unavailable
+    getTextSize = _get_text_size
     imread = _imread
     imwrite = _imwrite
     intersectConvexConvex = _intersect_convex_convex
@@ -185,7 +213,7 @@ else:
     mean = _mean
     merge = _merge
     polylines = _polylines
-    putText = _unavailable
+    putText = _put_text
     rectangle = _rectangle
     resize = _resize
     split = _split
@@ -208,12 +236,21 @@ __all__ = [
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
     "DIST_L2",
+    "FONT_HERSHEY_COMPLEX",
+    "FONT_HERSHEY_COMPLEX_SMALL",
+    "FONT_HERSHEY_DUPLEX",
+    "FONT_HERSHEY_PLAIN",
+    "FONT_HERSHEY_SCRIPT_COMPLEX",
+    "FONT_HERSHEY_SCRIPT_SIMPLEX",
     "FONT_HERSHEY_SIMPLEX",
+    "FONT_HERSHEY_TRIPLEX",
+    "FONT_ITALIC",
     "IMREAD_COLOR",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
     "LINE_4",
+    "LINE_8",
     "LINE_AA",
     "RETR_TREE",
     "BackendUnavailableError",
