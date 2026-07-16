@@ -509,7 +509,7 @@ class F1Score(Metric["F1ScoreResult"]):
         f1_score = np.divide(
             2 * true_positives,
             denominator,
-            out=np.zeros(denominator.shape, dtype=float),
+            out=np.zeros_like(denominator, dtype=np.float64),
             where=denominator != 0,
         )
 
