@@ -1,10 +1,9 @@
 import os
-import shutil
 from pathlib import Path
 from queue import Empty, Full
 from queue import Queue as StdQueue
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -13,7 +12,6 @@ from supervision import _cv2 as cv2
 from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,
-    _mux_audio,
     get_video_frames_generator,
     process_video,
 )
@@ -623,59 +621,6 @@ def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
             callback=lambda frame, idx: frame,
         )
         mock_mux.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    ("which_rv", "run_kwargs"),
-    [
-        pytest.param(None, {}, id="ffmpeg_missing"),
-        pytest.param(
-            "/usr/bin/ffmpeg",
-            {"return_value": MagicMock(returncode=1, stderr=b"")},
-            id="ffmpeg_fails",
-        ),
-        pytest.param(
-            "/usr/bin/ffmpeg",
-            {"side_effect": OSError("mux failed")},
-            id="subprocess_raises",
-        ),
-    ],
-)
-def test_mux_audio_file_unchanged_on_failure(
-    dummy_video_path, tmp_path, which_rv, run_kwargs
-) -> None:
-    """_mux_audio leaves the output file unchanged when muxing cannot complete."""
-    target_path = str(tmp_path / "video.mp4")
-    shutil.copy(dummy_video_path, target_path)
-    original_size = os.path.getsize(target_path)
-
-    with (
-        patch("supervision.utils.video.shutil.which", return_value=which_rv),
-        patch("supervision.utils.video.subprocess.run", **run_kwargs),
-    ):
-        _mux_audio(source_path=dummy_video_path, video_path=target_path)
-
-    assert os.path.getsize(target_path) == original_size
-
-
-def test_mux_audio_replaces_file_on_success(dummy_video_path, tmp_path) -> None:
-    """_mux_audio calls os.replace with video_path as destination on success."""
-    target_path = str(tmp_path / "video.mp4")
-    shutil.copy(dummy_video_path, target_path)
-
-    success_result = MagicMock()
-    success_result.returncode = 0
-    success_result.stderr = b""
-
-    with (
-        patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"),
-        patch("supervision.utils.video.subprocess.run", return_value=success_result),
-        patch("supervision.utils.video.os.replace") as mock_replace,
-    ):
-        _mux_audio(source_path=dummy_video_path, video_path=target_path)
-
-    mock_replace.assert_called_once()
-    assert mock_replace.call_args[0][1] == target_path
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:

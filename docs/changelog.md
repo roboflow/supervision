@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-15
+date_modified: 2026-07-16
 ---
 
 # Changelog
@@ -48,6 +48,11 @@ date_modified: 2026-07-15
 - Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
 
 ### Added
+- Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking,
+  metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains
+  the primary backend when available; `av>=14.2.0` is now required alongside
+  OpenCV during the transition, with the later OpenCV-removal integration removing
+  the OpenCV dependency.
 - Added a cv2-free Hershey text fallback covering all eight OpenCV font faces,
   italic variants, exact text metrics, and packaged glyph provenance. OpenCV
   remains the primary renderer when available; the fallback uses the private
