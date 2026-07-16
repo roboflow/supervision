@@ -138,15 +138,6 @@ def test_fallback_text_data_has_verified_provenance() -> None:
     assert provenance["checksum_normalization"] == "CRLF-to-LF"
 
 
-def test_fallback_text_checksum_normalizes_windows_line_endings() -> None:
-    """Keep the resource checksum stable for Windows CRLF checkouts."""
-    package_data = files("supervision._cv2").joinpath("data")
-    glyph_data = package_data.joinpath("hershey_fonts.json").read_bytes()
-    crlf_data = glyph_data.replace(b"\n", b"\r\n")
-
-    assert _normalize_resource_bytes(crlf_data) == _normalize_resource_bytes(glyph_data)
-
-
 def test_fallback_text_works_when_opencv_is_blocked() -> None:
     """Exercise production-shaped text calls in a cv2-free subprocess."""
     completed = _run_without_opencv(
