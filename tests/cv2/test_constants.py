@@ -63,7 +63,7 @@ def _run_without_opencv(source: str) -> None:
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, env.get("PYTHONPATH")))
     )
-    subprocess.run(  # noqa: S603
+    subprocess.run(
         [sys.executable, "-c", source],
         check=True,
         env=env,

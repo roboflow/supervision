@@ -104,7 +104,7 @@ import types
 sys.modules["cv2"] = types.ModuleType("cv2")
 from supervision import _cv2
 """
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,
