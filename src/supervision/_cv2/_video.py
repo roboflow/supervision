@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from fractions import Fraction
 from pathlib import Path
 from typing import Any
@@ -186,8 +186,22 @@ class _VideoWriter:
         frame_size: tuple[int, int],
         is_color: bool = True,
     ) -> None:
-        """Open a PyAV writer for the requested codec and frame dimensions."""
-        del is_color
+        """Open a PyAV writer for the requested codec and frame dimensions.
+
+        The PyAV fallback always encodes 3-channel BGR frames, so grayscale
+        output is unsupported. ``is_color=False`` is rejected up front rather
+        than silently ignored, keeping the OpenCV-shaped contract honest for
+        callers that would otherwise expect single-channel writes.
+
+        Raises:
+            NotImplementedError: If ``is_color`` is ``False``; grayscale
+                writing is not supported by the PyAV fallback.
+        """
+        if not is_color:
+            raise NotImplementedError(
+                "PyAV video fallback only supports color (3-channel BGR) frames; "
+                "is_color=False is not implemented."
+            )
         self._container: Any = None
         self._stream: Any = None
         self._width, self._height = frame_size
@@ -274,6 +288,19 @@ def _timestamp_seconds(timestamp: int | None, time_base: Any) -> float | None:
     return None if timestamp is None else float(timestamp * time_base)
 
 
+def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
+    """Run a cleanup action, logging and suppressing any failure.
+
+    Cleanup steps in a ``finally`` block must never raise, otherwise a failing
+    ``container.close()`` (or file removal) would mask or replace the primary
+    result or the original exception that sent control into ``finally``.
+    """
+    try:
+        action()
+    except Exception as exc:
+        logger.debug("Cleanup step failed (%s): %s", description, exc)
+
+
 def _mux_audio(source_path: str, video_path: str) -> None:
     """Remux the source's first audio stream into the processed video with PyAV."""
     source_container: Any = None
@@ -354,11 +381,16 @@ def _mux_audio(source_path: str, video_path: str) -> None:
     except Exception as exc:
         logger.warning("Audio remuxing failed: %s. Output video has no audio.", exc)
     finally:
+        # Cleanup runs best-effort: a failing close/remove here must not mask the
+        # primary result or replace the original exception handled above.
         if output_container is not None:
-            output_container.close()
+            _best_effort_cleanup(output_container.close, "closing output container")
         if video_container is not None:
-            video_container.close()
+            _best_effort_cleanup(video_container.close, "closing video container")
         if source_container is not None:
-            source_container.close()
+            _best_effort_cleanup(source_container.close, "closing source container")
         if temporary_path is not None and os.path.exists(temporary_path):
-            os.remove(temporary_path)
+            leftover_path = temporary_path
+            _best_effort_cleanup(
+                lambda: os.remove(leftover_path), "removing temporary file"
+            )
