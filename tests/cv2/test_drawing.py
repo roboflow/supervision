@@ -24,10 +24,12 @@ from supervision._cv2._drawing import (
 try:
     cv2 = importlib.import_module("cv2")
 except (ImportError, OSError):
-    pytest.skip(
-        "OpenCV is required as the reference implementation for this test module",
-        allow_module_level=True,
-    )
+    cv2 = None
+
+requires_cv2 = pytest.mark.skipif(
+    cv2 is None,
+    reason="OpenCV is required as the reference implementation for this test",
+)
 
 
 def _assert_draws_on_canvas(result: np.ndarray, image: np.ndarray) -> None:
@@ -36,6 +38,7 @@ def _assert_draws_on_canvas(result: np.ndarray, image: np.ndarray) -> None:
     assert np.any(image)
 
 
+@requires_cv2
 def test_fallback_line_draws_and_matches_opencv_extent() -> None:
     """Draw a line in place with the same raster extent as OpenCV."""
     actual = np.zeros((20, 20, 3), dtype=np.uint8)
@@ -67,6 +70,7 @@ def test_fallback_rectangle_fills_the_requested_region() -> None:
     )
 
 
+@requires_cv2
 def test_fallback_scalar_color_matches_opencv_channel_padding() -> None:
     """Pad short scalar colors in BGR channel order like OpenCV."""
     actual = np.zeros((8, 8, 3), dtype=np.uint8)
