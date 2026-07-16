@@ -93,7 +93,7 @@ def _douglas_peucker(
             keep[split] = True
             pending.extend(((start, split), (split, end)))
 
-    return cast(npt.NDArray[np.float64], points[keep])  # type: ignore[redundant-cast]
+    return cast(npt.NDArray[np.float64], points[keep])
 
 
 def _approx_poly_dp(
