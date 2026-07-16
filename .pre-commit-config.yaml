@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3
+  python: python3.10
 
 ci:
   autofix_prs: true
@@ -81,5 +81,6 @@ repos:
     rev: v2.4.2
     hooks:
       - id: codespell
+        exclude: ^src/supervision/_cv2/data/hershey_fonts\.json$
         additional_dependencies:
           - "tomli>=2.0.1"
