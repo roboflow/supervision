@@ -73,6 +73,14 @@ def test_contour_area_matches_opencv(contour: np.ndarray, oriented: bool) -> Non
             0.5,
             id="collinear-runs",
         ),
+        pytest.param(
+            np.array(
+                [[4, 0], [8, 0], [12, 4], [12, 8], [8, 12], [4, 12], [0, 8], [0, 4]],
+                dtype=np.int32,
+            ),
+            0.5,
+            id="octagon",
+        ),
     ],
 )
 def test_approx_poly_dp_matches_opencv(contour: np.ndarray, epsilon: float) -> None:

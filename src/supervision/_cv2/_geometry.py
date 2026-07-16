@@ -110,11 +110,17 @@ def _approx_poly_dp(
     if closed and len(points) > 1 and np.array_equal(points[0], points[-1]):
         points = points[:-1]
     if closed and len(points) > 2:
-        deltas = points[:, np.newaxis] - points[np.newaxis, :]
-        distances = np.sum(deltas.astype(np.float64) ** 2, axis=2)
-        start, end = np.unravel_index(int(np.argmax(distances)), distances.shape)
-        if start > end:
-            start, end = end, start
+        # Seed the two split anchors the way OpenCV's approxPolyDP does: the point
+        # farthest from points[0], then the point farthest from that one. Two O(N)
+        # passes replace an O(N^2) all-pairs distance matrix while landing on cv2's
+        # own arc endpoints, which matters because approximate_polygon re-invokes
+        # this on the full-size polygon every simplification step.
+        coordinates = points.astype(np.float64)
+        anchor_a = int(np.argmax(np.sum((coordinates - coordinates[0]) ** 2, axis=1)))
+        anchor_b = int(
+            np.argmax(np.sum((coordinates - coordinates[anchor_a]) ** 2, axis=1))
+        )
+        start, end = sorted((anchor_a, anchor_b))
         first_arc = points[start : end + 1]
         second_arc = np.concatenate((points[end:], points[: start + 1]))
         first_simplified = _douglas_peucker(first_arc, epsilon)

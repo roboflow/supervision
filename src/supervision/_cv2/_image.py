@@ -74,7 +74,11 @@ def _add_weighted(
     dtype: int | None = None,
 ) -> npt.NDArray[Any]:
     """Blend two arrays with OpenCV-compatible saturation and optional mutation."""
-    del dtype
+    if dtype is not None and dtype != -1:
+        raise ValueError(
+            "addWeighted fallback only supports the default output depth; "
+            f"unsupported dtype: {dtype}"
+        )
     if source1.shape != source2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
     result = _cast_array_like_opencv(
