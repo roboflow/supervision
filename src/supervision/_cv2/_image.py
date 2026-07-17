@@ -67,9 +67,9 @@ def _copy_make_border(
 
 
 def _add_weighted(
-    source1: npt.NDArray[Any],
+    src1: npt.NDArray[Any],
     alpha: float,
-    source2: npt.NDArray[Any],
+    src2: npt.NDArray[Any],
     beta: float,
     gamma: float,
     dst: npt.NDArray[Any] | None = None,
@@ -81,11 +81,11 @@ def _add_weighted(
             "addWeighted fallback only supports the default output depth; "
             f"unsupported dtype: {dtype}"
         )
-    if source1.shape != source2.shape:
+    if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
     result = _cast_array_like_opencv(
-        source1.astype(np.float64) * alpha + source2.astype(np.float64) * beta + gamma,
-        source1.dtype,
+        src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
+        src1.dtype,
     )
     if dst is not None:
         dst[...] = result
