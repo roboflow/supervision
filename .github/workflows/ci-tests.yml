@@ -32,12 +32,12 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         cv2: ["none"]
         include:
-          - {os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python"}
-          - {os: "windows-latest", python-version: "3.14", cv2: "opencv-python"}
-          - {os: "macos-latest", python-version: "3.14", cv2: "opencv-python"}
-          - {os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python-headless"}
-          - {os: "windows-latest", python-version: "3.14", cv2: "opencv-python-headless"}
-          - {os: "macos-latest", python-version: "3.14", cv2: "opencv-python-headless"}
+          - { os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python" }
+          - { os: "windows-latest", python-version: "3.14", cv2: "opencv-python" }
+          - { os: "macos-latest", python-version: "3.14", cv2: "opencv-python" }
+          - { os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python-headless" }
+          - { os: "windows-latest", python-version: "3.14", cv2: "opencv-python-headless" }
+          - { os: "macos-latest", python-version: "3.14", cv2: "opencv-python-headless" }
     runs-on: ${{ matrix.os }}
     steps:
       - name: 📥 Checkout the repository
