@@ -2941,17 +2941,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3491,17 +3480,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fixed
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3964,7 +3942,12 @@
 <li>The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.</li>
 <li>The cv2-free fallback's <code>copyMakeBorder</code> now fills only channel 0 for a scalar border <code>value</code> on multichannel images, matching OpenCV's <code>Scalar(v)</code> semantics instead of broadcasting the value to every channel.</li>
 <li>The cv2-free fallback's <code>addWeighted</code> now raises <code>ValueError</code> for a non-default <code>dtype</code> instead of silently ignoring it.</li>
-<li>The cv2-free fallback's <code>approxPolyDP</code> now uses an O(N) farthest-point heuristic for closed contours instead of an O(N^2) full distance matrix, avoiding memory blowups on large contours.</li>
+<li>The cv2-free fallback's <code>approxPolyDP</code> now follows OpenCV's stack traversal, closed-contour anchor selection, and final cleanup. The implementation avoids the former O(N²) distance matrix and exactly matches OpenCV on the deterministic 100-polygon regression corpus.</li>
+<li>The cv2-free fallback now preserves OpenCV's half-pixel bilinear interpolation when downsampling uint8 images and its anchor selection for contours whose first point is explicitly repeated at the end.</li>
+<li>The cv2-free fallback now uses OpenCV's fixed-point uint8 BGR-to-gray arithmetic, matching all 16,777,216 input colors exactly. Edge-distance filtering applies an O(H×W) two-pass transform with fixed-point 3×3 chamfer weights, preserving threshold decisions without retaining a generic cv2 distance-transform API.</li>
+<li>Reduced cv2-free media overhead by vectorizing connected-component statistics, narrowing contour extraction to the geometry production uses, and rasterizing Pillow text into a clipped glyph-sized mask.</li>
+<li>Removed unused raw <code>distanceTransform</code>, <code>getRotationMatrix2D</code>, and <code>warpAffine</code> compatibility symbols. Their only production consumers now use smaller domain operations: a bounded two-pass chamfer transform for mask filtering and Pillow rotation for line-zone labels.</li>
+<li>PyAV audio/video remuxing now uses its stream-template API directly instead of maintaining a local codec-parameter copy helper.</li>
 <li>The cv2-free fallback now renders text with Pillow and the bundled DejaVu Sans face instead of reproducing OpenCV's Hershey stroke fonts. This drops the packaged 143 KB glyph table and its loader in favor of an existing dependency. Text drawn without cv2 now uses a proportional TrueType face, so glyph shapes and <code>getTextSize</code> metrics differ from OpenCV within the documented visual-divergence tier; the OpenCV path is unchanged. All Hershey font faces remain accepted for API compatibility but map to the same face (the italic modifier selects the oblique variant).</li>
 <li>The cv2-free fallback's <code>getTextSize</code> now derives its height and baseline padding directly from the same <code>stroke_width</code> <code>putText</code> renders with, instead of a separate approximation. For <code>thickness &gt; 2</code> the old formula under-padded the box, so a heavy stroke's descender pixels could fall outside the reported rectangle.</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/issues/2427">#2427</a>: size-bucketed <code>sv.Precision</code> and <code>sv.F1Score</code> no longer count out-of-bucket detections as false positives. <code>sv.Recall</code> now matches only targets in the requested bucket, and all three metrics prioritize in-bucket targets during matching, matching COCO evaluation and <code>sv.MeanAveragePrecision</code>. A pixel-perfect detector now scores 1.0 in every bucket.</li>
@@ -4003,10 +3986,6 @@
   the primary backend when available; <code>av&gt;=14.2.0</code> is now required alongside
   OpenCV during the transition, with the later OpenCV-removal integration removing
   the OpenCV dependency.</li>
-<li>Added a cv2-free Hershey text fallback covering all eight OpenCV font faces,
-  italic variants, exact text metrics, and packaged glyph provenance. OpenCV
-  remains the primary renderer when available; the fallback uses the private
-  <code>_cv2</code> facade with documented rasterization differences.</li>
 <li>Added: <a href="../utils/image_window/#supervision.utils.image_window.ImageWindow"><code>sv.ImageWindow</code></a> — tkinter + Pillow desktop window that replaces <code>cv2.imshow</code> / <code>cv2.waitKey</code>, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:</li>
 <li><code>wait_key()</code> returns a tkinter keysym <code>str</code> (e.g. <code>"q"</code>, <code>"Escape"</code>) or <code>None</code>, not an <code>int</code> — update <code>key == ord("q")</code> to <code>key == "q"</code>.</li>
 <li>Mouse callback signature is <code>(x: int, y: int, event_type: str)</code> where <code>event_type</code> is <code>"down"</code>, <code>"up"</code>, or <code>"move"</code> — incompatible with cv2's <code>(event, x, y, flags, param)</code>.</li>
@@ -4018,10 +3997,6 @@
 <li><code>Detections.from_inference(compact_masks=True)</code> — opt-in compact mask representation for Roboflow/Inference segmentation results; masks are cropped to detector bounding boxes (<a href="https://github.com/roboflow/supervision/pull/2367">#2367</a>)</li>
 <li><code>CompactMask.image_shape</code> — new public property returning <code>(H, W)</code> of the full image the mask is scoped to (<a href="https://github.com/roboflow/supervision/pull/2383">#2383</a>)</li>
 <li><code>sv.mask_to_roi</code> — explicit exclusive mask-bound helper for NumPy slicing and crop extraction. <code>sv.mask_to_xyxy</code> stays inclusive for compatibility with CompactMask and current box-based adapters, so the coordinate-convention migration path is now explicit instead of implicit.</li>
-</ul>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Fixed cv2-free Hershey resource checksum validation for Windows CRLF checkouts.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6028,7 +6003,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 17, 2026 15:11:45 UTC">July 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 17, 2026 15:31:57 UTC">July 17, 2026</span>
   </span>
 
     
@@ -6056,9 +6031,9 @@
     
     <nav>
       
-        <a href="https://github.com/Shehzad3684" class="md-author" title="@Shehzad3684">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/163031772?v=4&size=72" alt="Shehzad3684">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6066,9 +6041,9 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/Shehzad3684" class="md-author" title="@Shehzad3684">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/163031772?v=4&size=72" alt="Shehzad3684">
         </a>
       
         <a href="https://github.com/abhijithneilabraham" class="md-author" title="@abhijithneilabraham">
