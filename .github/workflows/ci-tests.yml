@@ -22,7 +22,7 @@ jobs:
       link-check: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   run-tests:
-    name: Import Test and Pytest Run
+    name: "Import Test and Pytest Run (cv2: ${{ matrix.cv2 }})"
     # needs: build  # todo: consider using this build package for testing
     timeout-minutes: 10
     strategy:
@@ -30,6 +30,14 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        cv2: ["none"]
+        include:
+          - {os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python"}
+          - {os: "windows-latest", python-version: "3.14", cv2: "opencv-python"}
+          - {os: "macos-latest", python-version: "3.14", cv2: "opencv-python"}
+          - {os: "ubuntu-latest", python-version: "3.14", cv2: "opencv-python-headless"}
+          - {os: "windows-latest", python-version: "3.14", cv2: "opencv-python-headless"}
+          - {os: "macos-latest", python-version: "3.14", cv2: "opencv-python-headless"}
     runs-on: ${{ matrix.os }}
     steps:
       - name: 📥 Checkout the repository
@@ -43,6 +51,15 @@ jobs:
 
       - name: 🚀 Install Packages
         run: uv sync --frozen --group dev --extra metrics
+
+      - name: 📷 Install selected OpenCV package
+        if: matrix.cv2 != 'none'
+        run: uv pip install ${{ matrix.cv2 }}
+
+      - name: 🧭 Confirm selected cv2 backend
+        env:
+          EXPECTED_BACKEND: ${{ matrix.cv2 == 'none' && 'fallback' || 'opencv' }}
+        run: python -c "import os; from supervision import _cv2; assert _cv2.BACKEND_NAME == os.environ['EXPECTED_BACKEND'], f\"expected {os.environ['EXPECTED_BACKEND']!r}, got {_cv2.BACKEND_NAME!r}\""
 
       - name: 📦 Run the Import test
         run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
