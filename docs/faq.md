@@ -25,6 +25,8 @@ pip install "supervision[metrics]"
 
 Sample asset utilities are part of the base package under `supervision.assets`.
 
+Supervision does not install OpenCV. Its image, drawing, and file-video APIs use the included fallback when `cv2` is unavailable, and automatically use a compatible `cv2` already present in your environment. See the [OpenCV migration guide](how_to/opencv_migration.md) when upgrading an existing environment or choosing an OpenCV wheel yourself.
+
 ## Which object detection models work with Supervision?
 
 Supervision is model agnostic. `sv.Detections` includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe.

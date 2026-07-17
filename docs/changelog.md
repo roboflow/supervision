@@ -14,6 +14,13 @@ date_modified: 2026-07-17
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
 ### Breaking Changes
+- Supervision no longer installs an OpenCV distribution or provides an OpenCV
+  extra. The default install uses the included fallback media backend; an
+  existing compatible `cv2` remains the preferred backend automatically. If
+  your application needs OpenCV-specific behavior, install exactly one wheel
+  family selected for that application (for example `opencv-python-headless` or
+  `opencv-python`), then restart the process. See the
+  [OpenCV migration guide](how_to/opencv_migration.md).
 - `sv.JSONSink` now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as `"True"`/`"False"`, `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use strict string-typed schema validators must be updated. `sv.CSVSink` remains textual, but its custom-data slicing now matches `sv.JSONSink`: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
@@ -63,9 +70,8 @@ date_modified: 2026-07-17
 ### Added
 - Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking,
   metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains
-  the primary backend when available; `av>=14.2.0` is now required alongside
-  OpenCV during the transition, with the later OpenCV-removal integration removing
-  the OpenCV dependency.
+  the primary backend when available, but Supervision no longer installs an OpenCV
+  distribution; `av>=14.2` is required for the fallback media backend.
 - Added: [`sv.ImageWindow`](utils/image_window.md/#supervision.utils.image_window.ImageWindow) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey`, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:
   - `wait_key()` returns a tkinter keysym `str` (e.g. `"q"`, `"Escape"`) or `None`, not an `int` — update `key == ord("q")` to `key == "q"`.
   - Mouse callback signature is `(x: int, y: int, event_type: str)` where `event_type` is `"down"`, `"up"`, or `"move"` — incompatible with cv2's `(event, x, y, flags, param)`.
