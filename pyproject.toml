@@ -101,7 +101,7 @@ build = [
 packages.find.where = [ "src" ]
 packages.find.include = [ "supervision*" ]
 include-package-data = false
-package-data.supervision = [ "_cv2/data/*", "py.typed" ]
+package-data.supervision = [ "py.typed" ]
 # exclude = [ "docs*", "tests*", "examples*" ]
 
 [tool.ruff]

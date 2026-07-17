@@ -133,6 +133,19 @@ def test_fallback_fill_poly_fills_multiple_channels() -> None:
     assert tuple(image[4, 5]) == (4, 5, 6)
 
 
+@requires_cv2
+def test_fallback_fill_poly_matches_opencv_for_mask_conversion() -> None:
+    """Fill an integer polygon with the same inclusive mask boundary as OpenCV."""
+    polygon = np.array([[2, 2], [6, 2], [6, 6], [2, 6]], dtype=np.int32)
+    actual = np.zeros((10, 10), dtype=np.uint8)
+    expected = np.zeros((10, 10), dtype=np.uint8)
+
+    _fill_poly(actual, [polygon], color=(1,))
+    cv2.fillPoly(expected, [polygon], color=(1,))
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_draw_contours_fills_selected_contour() -> None:
     """Fill the selected contour when drawContours receives a negative thickness."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)

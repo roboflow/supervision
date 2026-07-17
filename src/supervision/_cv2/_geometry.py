@@ -8,32 +8,6 @@ import numpy as np
 import numpy.typing as npt
 
 
-def _point_in_polygon(point: tuple[int, int], polygon: npt.NDArray[np.float64]) -> bool:
-    """Return whether an integer pixel lies inside or on a polygon boundary."""
-    x, y = point
-    inside = False
-    previous = polygon[-1]
-    for current in polygon:
-        x_current, y_current = current
-        x_previous, y_previous = previous
-        edge = current - previous
-        relative = np.array([x - x_previous, y - y_previous], dtype=np.float64)
-        if (
-            edge[0] * relative[1] - edge[1] * relative[0] == 0
-            and min(x_previous, x_current) <= x <= max(x_previous, x_current)
-            and min(y_previous, y_current) <= y <= max(y_previous, y_current)
-        ):
-            return True
-        if (y_current > y) != (y_previous > y):
-            intersection = (x_previous - x_current) * (y - y_current) / (
-                y_previous - y_current
-            ) + x_current
-            if x < intersection:
-                inside = not inside
-        previous = current
-    return inside
-
-
 def _as_points(contour: npt.NDArray[Any]) -> npt.NDArray[np.float64]:
     """Normalize an OpenCV contour to an ``(N, 2)`` float64 array."""
     points = np.asarray(contour)
@@ -189,38 +163,3 @@ def _intersect_convex_convex(
     dtype = np.asarray(first).dtype
     result_dtype = dtype if np.issubdtype(dtype, np.floating) else np.float32
     return area, output.astype(result_dtype, copy=False).reshape(-1, 1, 2)
-
-
-def _fill_poly(
-    image: npt.NDArray[Any],
-    polygons: list[npt.NDArray[Any]],
-    color: Any,
-    line_type: int = 8,
-    shift: int = 0,
-    offset: tuple[int, int] = (0, 0),
-) -> None:
-    """Fill integer polygons for the mask and polygon conversion consumers."""
-    if shift != 0:
-        raise ValueError("Only unshifted polygon coordinates are supported")
-    if image.ndim not in (2, 3):
-        raise ValueError("fillPoly expects a two- or three-dimensional image")
-    del line_type
-
-    values = np.asarray(image)
-    for polygon in polygons:
-        points = _as_points(polygon)
-        if len(points) < 3:
-            continue
-        points = points + np.asarray(offset, dtype=np.float64)
-        min_x = max(0, int(np.floor(points[:, 0].min())))
-        max_x = min(values.shape[1] - 1, int(np.ceil(points[:, 0].max())))
-        min_y = max(0, int(np.floor(points[:, 1].min())))
-        max_y = min(values.shape[0] - 1, int(np.ceil(points[:, 1].max())))
-        for y in range(min_y, max_y + 1):
-            for x in range(min_x, max_x + 1):
-                if not _point_in_polygon((x, y), points):
-                    continue
-                if values.ndim == 2:
-                    values[y, x] = color[0] if np.ndim(color) else color
-                else:
-                    values[y, x] = color
