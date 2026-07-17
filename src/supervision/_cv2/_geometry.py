@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -29,45 +29,135 @@ def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
     return area if oriented else abs(area)
 
 
-def _douglas_peucker(
-    points: npt.NDArray[np.float64], epsilon: float
+def _simplify_slices(
+    points: npt.NDArray[np.float64], epsilon_squared: float, closed: bool
 ) -> npt.NDArray[np.float64]:
-    """Simplify an open polyline with the Douglas-Peucker algorithm."""
-    if len(points) <= 2:
+    """Run OpenCV's stack-based Douglas-Peucker slice traversal."""
+    count = len(points)
+    stack: list[tuple[int, int]] = []
+    output: list[npt.NDArray[np.float64]] = []
+
+    if closed or np.array_equal(points[0], points[-1]):
+        closed = True
+        iterations = 3 if not np.array_equal(points[0], points[-1]) else 1
+        position = 0
+        right_start = 0
+        start_point = points[0]
+        within_epsilon = False
+        for _ in range(iterations):
+            position = (position + right_start) % count
+            start_point = points[position]
+            maximum_distance = 0.0
+            right_start = 0
+            for offset in range(1, count):
+                point = points[(position + offset) % count]
+                difference = point - start_point
+                distance = float(np.dot(difference, difference))
+                if distance > maximum_distance:
+                    maximum_distance = distance
+                    right_start = offset
+            within_epsilon = maximum_distance <= epsilon_squared
+
+        if within_epsilon:
+            output.append(start_point)
+        else:
+            split = (position + right_start) % count
+            stack.extend(((split, position), (position, split)))
+    else:
+        stack.append((0, count - 1))
+
+    while stack:
+        start, end = stack.pop()
+        start_point = points[start]
+        end_point = points[end]
+        position = (start + 1) % count
+        maximum_distance = 0.0
+        split = start
+
+        if position != end:
+            segment = end_point - start_point
+            while position != end:
+                point = points[position]
+                distance = abs(
+                    float(
+                        (point[1] - start_point[1]) * segment[0]
+                        - (point[0] - start_point[0]) * segment[1]
+                    )
+                )
+                if distance > maximum_distance:
+                    maximum_distance = distance
+                    split = position
+                position = (position + 1) % count
+            segment_length_squared = float(np.dot(segment, segment))
+            within_epsilon = (
+                maximum_distance * maximum_distance
+                <= epsilon_squared * segment_length_squared
+            )
+        else:
+            within_epsilon = True
+
+        if within_epsilon:
+            output.append(start_point)
+        else:
+            stack.extend(((split, end), (start, split)))
+
+    if not closed:
+        output.append(points[-1])
+    return np.asarray(output, dtype=np.float64)
+
+
+def _cleanup_approximation(
+    points: npt.NDArray[np.float64], epsilon_squared: float, closed: bool
+) -> npt.NDArray[np.float64]:
+    """Remove OpenCV's final near-collinear points from an approximation."""
+    count = len(points)
+    if count <= 2:
         return points
 
-    keep = np.zeros(len(points), dtype=bool)
-    keep[[0, -1]] = True
-    pending = [(0, len(points) - 1)]
-    epsilon_squared = float(epsilon) ** 2
+    destination = points.copy()
+    new_count = count
+    position = count - 1 if closed else 0
+    start_point = destination[position]
+    position = (position + 1) % count
+    write_position = position
+    point = destination[position]
+    position = (position + 1) % count
+    index = 0 if closed else 1
+    stop = count if closed else count - 1
 
-    while pending:
-        start, end = pending.pop()
-        segment = points[end] - points[start]
-        segment_length_squared = float(np.dot(segment, segment))
-        candidates = points[start + 1 : end]
-        if not len(candidates):
+    while index < stop and new_count > 2:
+        end_point = destination[position]
+        position = (position + 1) % count
+        segment = end_point - start_point
+        offset = point - start_point
+        distance = abs(float(offset[0] * segment[1] - offset[1] * segment[0]))
+        inner_product = float(np.dot(offset, end_point - point))
+        removable = (
+            distance * distance
+            <= 0.5 * epsilon_squared * float(np.dot(segment, segment))
+            and segment[0] != 0
+            and segment[1] != 0
+            and inner_product >= 0
+        )
+        if removable:
+            new_count -= 1
+            destination[write_position] = end_point
+            start_point = end_point
+            write_position = (write_position + 1) % count
+            point = destination[position]
+            position = (position + 1) % count
+            index += 2
             continue
 
-        if segment_length_squared == 0:
-            distances_squared = np.sum((candidates - points[start]) ** 2, axis=1)
-        else:
-            offsets = candidates - points[start]
-            projections = np.clip(
-                np.sum(offsets * segment, axis=1) / segment_length_squared,
-                0.0,
-                1.0,
-            )
-            closest = points[start] + projections[:, None] * segment
-            distances_squared = np.sum((candidates - closest) ** 2, axis=1)
+        destination[write_position] = point
+        start_point = point
+        write_position = (write_position + 1) % count
+        point = end_point
+        index += 1
 
-        relative_index = int(np.argmax(distances_squared))
-        if distances_squared[relative_index] > epsilon_squared:
-            split = start + 1 + relative_index
-            keep[split] = True
-            pending.extend(((start, split), (split, end)))
-
-    return cast(npt.NDArray[np.float64], points[keep])  # type: ignore[redundant-cast]
+    if not closed:
+        destination[write_position] = point
+    return np.asarray(destination[:new_count], dtype=np.float64)
 
 
 def _approx_poly_dp(
@@ -81,29 +171,9 @@ def _approx_poly_dp(
         dtype = np.asarray(contour).dtype
         return np.empty((0, 1, 2), dtype=dtype)
 
-    if closed and len(points) > 1 and np.array_equal(points[0], points[-1]):
-        points = points[:-1]
-    if closed and len(points) > 2:
-        # Seed the two split anchors the way OpenCV's approxPolyDP does: the point
-        # farthest from points[0], then the point farthest from that one. Two O(N)
-        # passes replace an O(N^2) all-pairs distance matrix while landing on cv2's
-        # own arc endpoints, which matters because approximate_polygon re-invokes
-        # this on the full-size polygon every simplification step.
-        coordinates = points.astype(np.float64)
-        anchor_a = int(np.argmax(np.sum((coordinates - coordinates[0]) ** 2, axis=1)))
-        anchor_b = int(
-            np.argmax(np.sum((coordinates - coordinates[anchor_a]) ** 2, axis=1))
-        )
-        start, end = sorted((anchor_a, anchor_b))
-        first_arc = points[start : end + 1]
-        second_arc = np.concatenate((points[end:], points[: start + 1]))
-        first_simplified = _douglas_peucker(first_arc, epsilon)
-        second_simplified = _douglas_peucker(second_arc, epsilon)
-        simplified = np.concatenate((first_simplified[:-1], second_simplified[:-1]))
-    else:
-        simplified = _douglas_peucker(points, epsilon)
-    if closed and len(simplified) > 1 and np.array_equal(simplified[0], simplified[-1]):
-        simplified = simplified[:-1]
+    epsilon_squared = float(epsilon) ** 2
+    simplified = _simplify_slices(points, epsilon_squared, closed)
+    simplified = _cleanup_approximation(simplified, epsilon_squared, closed)
 
     dtype = np.asarray(contour).dtype
     return simplified.astype(dtype, copy=False).reshape(-1, 1, 2)

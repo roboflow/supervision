@@ -13,9 +13,11 @@ from __future__ import annotations
 from functools import cache
 from typing import Any
 
+import numpy as np
 import numpy.typing as npt
+from PIL import Image, ImageDraw
 
-from supervision._cv2._drawing import _drawing_mask, _paint
+from supervision._cv2._drawing import _paint
 from supervision._cv2.constants import _FONT_ITALIC, _LINE_8
 
 _ImageArray = npt.NDArray[Any]
@@ -98,16 +100,34 @@ def _put_text(
     font = _load_font(fontFace, fontScale)
     stroke_width = _stroke_width(thickness)
     x, y = round(org[0]), round(org[1])
+    left, top, right, bottom = font.getbbox(
+        text, anchor="ls", stroke_width=stroke_width
+    )
+    width, height = right - left, bottom - top
+    if width <= 0 or height <= 0:
+        return img
 
-    def draw_text(draw: Any) -> None:
-        """Draw the string onto the one-bit mask at the baseline anchor."""
-        draw.text(
-            (x, y),
-            text,
-            fill=1,
-            font=font,
-            anchor="ls",
-            stroke_width=stroke_width,
-        )
+    mask_image = Image.new("1", (width, height))
+    ImageDraw.Draw(mask_image).text(
+        (-left, -top),
+        text,
+        fill=1,
+        font=font,
+        anchor="ls",
+        stroke_width=stroke_width,
+    )
+    mask = np.asarray(mask_image, dtype=bool)
 
-    return _paint(img, _drawing_mask(img, draw_text), color)
+    image_height, image_width = img.shape[:2]
+    x_start, y_start = max(0, x + left), max(0, y + top)
+    x_stop, y_stop = min(image_width, x + right), min(image_height, y + bottom)
+    if x_start >= x_stop or y_start >= y_stop:
+        return img
+    mask_x = x_start - (x + left)
+    mask_y = y_start - (y + top)
+    clipped_mask = mask[
+        mask_y : mask_y + (y_stop - y_start),
+        mask_x : mask_x + (x_stop - x_start),
+    ]
+    _paint(img[y_start:y_stop, x_start:x_stop], clipped_mask, color)
+    return img

@@ -16,6 +16,7 @@ from supervision._cv2._contours import _find_contours
 from supervision._cv2._drawing import _fill_poly
 from supervision._cv2._geometry import _intersect_convex_convex
 from supervision._cv2.constants import _CHAIN_APPROX_SIMPLE, _RETR_TREE
+from supervision.detection.utils.masks import _chamfer_distances
 
 try:
     cv2 = importlib.import_module("cv2")
@@ -54,7 +55,7 @@ except (ImportError, OSError):
     ],
 )
 def test_find_contours_matches_opencv(source: np.ndarray, expected_count: int) -> None:
-    """Match OpenCV contour vertices and hierarchy on representative masks."""
+    """Match required contour vertices without constructing unused hierarchy."""
     actual_contours, actual_hierarchy = _find_contours(
         source, _RETR_TREE, _CHAIN_APPROX_SIMPLE
     )
@@ -64,9 +65,25 @@ def test_find_contours_matches_opencv(source: np.ndarray, expected_count: int) -
 
     assert len(actual_contours) == expected_count
     assert len(actual_contours) == len(expected_contours)
-    for actual, expected in zip(actual_contours, expected_contours):
-        np.testing.assert_array_equal(actual, expected)
-    np.testing.assert_array_equal(actual_hierarchy, expected_hierarchy)
+    actual_geometry = sorted(
+        tuple(map(tuple, contour.reshape(-1, 2))) for contour in actual_contours
+    )
+    expected_geometry = sorted(
+        tuple(map(tuple, contour.reshape(-1, 2))) for contour in expected_contours
+    )
+    assert actual_geometry == expected_geometry
+    assert actual_hierarchy is None
+    assert expected_hierarchy is None or len(expected_hierarchy) == 1
+
+
+def test_facade_find_contours_returns_geometry_list() -> None:
+    """Expose the same geometry-only list contract on the native backend."""
+    source = np.pad(np.ones((4, 4), dtype=np.uint8), 2)
+
+    contours = _cv2.find_contours(source)
+
+    assert isinstance(contours, list)
+    assert len(contours) == 1
 
 
 def test_randomized_contours_preserve_opencv_geometry() -> None:
@@ -89,6 +106,21 @@ def test_randomized_contours_preserve_opencv_geometry() -> None:
         assert actual_geometry == expected_geometry
 
 
+def test_chamfer_distances_match_opencv_on_seeded_masks() -> None:
+    """Match OpenCV's 3x3 L2 distance field with bounded memory."""
+    rng = np.random.default_rng(20260717)
+
+    for _ in range(100):
+        shape = (int(rng.integers(2, 40)), int(rng.integers(2, 40)))
+        main_mask = rng.random(shape) < 0.15
+        if not np.any(main_mask):
+            main_mask[0, 0] = True
+        expected = cv2.distanceTransform((~main_mask).astype(np.uint8), cv2.DIST_L2, 3)
+        actual = _chamfer_distances(main_mask).astype(np.float32) / 65536
+
+        np.testing.assert_array_equal(actual, expected)
+
+
 def test_geometry_consumers_use_fallback_bindings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -105,7 +137,12 @@ def test_geometry_consumers_use_fallback_bindings(
         _cv2, "connectedComponentsWithStats", _connected_components_with_stats
     )
     monkeypatch.setattr(_cv2, "fillPoly", _fill_poly)
-    monkeypatch.setattr(_cv2, "findContours", _find_contours)
+    monkeypatch.setattr(
+        _cv2,
+        "find_contours",
+        lambda image: _find_contours(image, _RETR_TREE, _CHAIN_APPROX_SIMPLE)[0],
+    )
+    assert isinstance(_cv2.find_contours(np.ones((2, 2), dtype=np.uint8)), list)
     monkeypatch.setattr(_cv2, "intersectConvexConvex", _intersect_convex_convex)
 
     mask = np.zeros((10, 10), dtype=bool)
@@ -142,3 +179,43 @@ def test_geometry_consumers_use_fallback_bindings(
         dtype=np.float32,
     )
     assert oriented_box_iou_batch(boxes, boxes)[0, 1] == 1 / 3
+
+
+def test_edge_distance_uses_chamfer_threshold_without_distance_image() -> None:
+    """Preserve OpenCV's diagonal threshold while avoiding distanceTransform."""
+    from supervision.detection.utils.masks import filter_segments_by_distance
+
+    assert not hasattr(_cv2, "distanceTransform")
+    mask = np.zeros((7, 7), dtype=bool)
+    mask[1:3, 1:3] = True
+    mask[4, 4] = True
+
+    actual = filter_segments_by_distance(mask, absolute_distance=2.8, mode="edge")
+
+    np.testing.assert_array_equal(actual, mask)
+
+
+@pytest.mark.parametrize(
+    ("threshold", "keep_all"),
+    [
+        pytest.param(float("inf"), True, id="positive-infinity"),
+        pytest.param(float("nan"), False, id="nan"),
+        pytest.param(float("-inf"), False, id="negative-infinity"),
+    ],
+)
+def test_edge_distance_handles_non_finite_thresholds(
+    threshold: float, keep_all: bool
+) -> None:
+    """Handle non-finite edge thresholds without unsafe allocations."""
+    from supervision.detection.utils.masks import filter_segments_by_distance
+
+    mask = np.zeros((7, 7), dtype=bool)
+    mask[1:3, 1:3] = True
+    mask[5, 5] = True
+    expected = mask.copy()
+    if not keep_all:
+        expected[5, 5] = False
+
+    actual = filter_segments_by_distance(mask, absolute_distance=threshold, mode="edge")
+
+    np.testing.assert_array_equal(actual, expected)

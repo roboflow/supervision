@@ -135,7 +135,7 @@ def _resize(
     fy: float = 0,
     interpolation: int = _INTER_LINEAR,
 ) -> npt.NDArray[Any]:
-    """Resize an array using OpenCV-compatible nearest or half-pixel linear sampling."""
+    """Resize with exact nearest, Pillow uint8, or half-pixel numeric sampling."""
     source_height, source_width = src.shape[:2]
     width, height = dsize if dsize is not None else (0, 0)
     if width == 0 or height == 0:
@@ -155,6 +155,17 @@ def _resize(
 
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
+    from PIL import Image
+
+    size = (width, height)
+    if src.dtype == np.uint8 and (
+        src.ndim == 2 or (src.ndim == 3 and src.shape[2] in (3, 4))
+    ):
+        return np.ascontiguousarray(
+            np.asarray(
+                Image.fromarray(src).resize(size, resample=Image.Resampling.BILINEAR)
+            )
+        )
 
     y = (np.arange(height) + 0.5) * source_height / height - 0.5
     x = (np.arange(width) + 0.5) * source_width / width - 0.5
@@ -168,9 +179,9 @@ def _resize(
     wx = x - x_floor
 
     source = src.astype(np.float64)
-    top = source[y0[:, np.newaxis], x0]
+    top_left = source[y0[:, np.newaxis], x0]
     top_right = source[y0[:, np.newaxis], x1]
-    bottom = source[y1[:, np.newaxis], x0]
+    bottom_left = source[y1[:, np.newaxis], x0]
     bottom_right = source[y1[:, np.newaxis], x1]
     if src.ndim == 3:
         wy = wy[:, np.newaxis, np.newaxis]
@@ -178,13 +189,13 @@ def _resize(
     else:
         wy = wy[:, np.newaxis]
         wx = wx[np.newaxis, :]
-    result = (
-        top * (1 - wx) * (1 - wy)
+    resized = (
+        top_left * (1 - wx) * (1 - wy)
         + top_right * wx * (1 - wy)
-        + bottom * (1 - wx) * wy
+        + bottom_left * (1 - wx) * wy
         + bottom_right * wx * wy
     )
-    return np.ascontiguousarray(_cast_array_like_opencv(result, src.dtype))
+    return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
 def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
