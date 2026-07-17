@@ -1,4 +1,5 @@
 import importlib.metadata as importlib_metadata
+from typing import TYPE_CHECKING, Any
 
 try:
     # This will read version from pyproject.toml
@@ -52,7 +53,10 @@ from supervision.detection.line_zone import (
     LineZoneAnnotatorMulticlass,
 )
 from supervision.detection.tools.csv_sink import CSVSink
-from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.tools.inference_slicer import (
+    InferenceSlicer,
+    WindowedRasterDataset,
+)
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
@@ -62,6 +66,7 @@ from supervision.detection.utils.boxes import (
     move_boxes,
     pad_boxes,
     scale_boxes,
+    xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
     is_compressed_rle,
@@ -90,12 +95,15 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
     filter_segments_by_distance,
+    mask_to_roi,
     move_masks,
 )
 from supervision.detection.utils.polygons import (
@@ -121,11 +129,14 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
+    VertexEllipseAnnotator,
+    VertexEllipseAreaAnnotator,
+    VertexEllipseHaloAnnotator,
+    VertexEllipseOutlineAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
-from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
@@ -139,6 +150,7 @@ from supervision.utils.image import (
     scale_image,
     tint_image,
 )
+from supervision.utils.image_window import ImageWindow
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
@@ -148,8 +160,12 @@ from supervision.utils.video import (
     process_video,
 )
 
+if TYPE_CHECKING:
+    from supervision.tracker.byte_tracker.core import ByteTrack
+
 __all__ = [
     "LMM",
+    "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",
@@ -179,6 +195,7 @@ __all__ = [
     "HeatMapAnnotator",
     "IconAnnotator",
     "ImageSink",
+    "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
@@ -204,9 +221,14 @@ __all__ = [
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",
+    "VertexEllipseAnnotator",
+    "VertexEllipseAreaAnnotator",
+    "VertexEllipseHaloAnnotator",
+    "VertexEllipseOutlineAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "WindowedRasterDataset",
     "approximate_polygon",
     "box_iou",
     "box_iou_batch",
@@ -221,6 +243,7 @@ __all__ = [
     "contains_multiple_segments",
     "crop_image",
     "cv2_to_pillow",
+    "denormalize_boxes",
     "draw_filled_polygon",
     "draw_filled_rectangle",
     "draw_image",
@@ -247,10 +270,13 @@ __all__ = [
     "mask_non_max_suppression",
     "mask_to_polygons",
     "mask_to_rle",
+    "mask_to_roi",
     "mask_to_xyxy",
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",
+    "oriented_box_non_max_merge",
+    "oriented_box_non_max_suppression",
     "overlay_image",
     "pad_boxes",
     "pillow_to_cv2",
@@ -271,4 +297,15 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
+    "xyxyxyxy_to_xyxy",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily resolve deprecated compatibility exports."""
+    if name == "ByteTrack":
+        from supervision.tracker.byte_tracker.core import ByteTrack as byte_track
+
+        globals()[name] = byte_track
+        return byte_track
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

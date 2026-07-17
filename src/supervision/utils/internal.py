@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import functools
 import inspect
 import os
@@ -11,8 +9,9 @@ from typing import Any, Generic, TypeVar
 class SupervisionWarnings(Warning):
     """Supervision warning category.
     Set the deprecation warnings visibility for Supervision library.
-    You can set the environment variable SUPERVISON_DEPRECATION_WARNING to '0' to
-    disable the deprecation warnings.
+    You can set the environment variable SUPERVISION_DEPRECATION_WARNING to '0'
+    to disable the deprecation warnings. The legacy misspelled
+    SUPERVISON_DEPRECATION_WARNING variable is still accepted.
     """
 
     pass
@@ -32,9 +31,11 @@ def format_warning(
     return f"{category.__name__}: {message}\n"
 
 
-warnings.formatwarning = format_warning
-
-if os.getenv("SUPERVISON_DEPRECATION_WARNING") == "0":
+deprecation_warning_env = os.getenv(
+    "SUPERVISION_DEPRECATION_WARNING",
+    os.getenv("SUPERVISON_DEPRECATION_WARNING"),
+)
+if deprecation_warning_env == "0":
     warnings.simplefilter("ignore", SupervisionWarnings)
 else:
     warnings.simplefilter("always", SupervisionWarnings)
@@ -142,7 +143,7 @@ class classproperty(Generic[T]):
             ...
     """
 
-    def __init__(self, fget: Callable[..., T]):
+    def __init__(self, fget: Callable[..., T]) -> None:
         """
         Args:
             The function that is called when the property is accessed.

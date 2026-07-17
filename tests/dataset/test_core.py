@@ -1,14 +1,24 @@
-from __future__ import annotations
-
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
-from supervision import DetectionDataset, Detections
+from supervision import (
+    ClassificationDataset,
+    Classifications,
+    DetectionDataset,
+    Detections,
+)
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections, create_yolo_dataset
+
+
+def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
+    return np.full((4, 4, 3), fill_value, dtype=np.uint8)
 
 
 @pytest.mark.parametrize(
@@ -284,3 +294,487 @@ class TestClassNamePopulation:
                 np.testing.assert_array_equal(
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
+
+    def test_constructor_does_not_mutate_input_annotations(self) -> None:
+        """Adding class_name metadata must not mutate caller-owned Detections."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={"img1.png": annotation},
+        )
+
+        assert CLASS_NAME_DATA_FIELD not in annotation.data
+        assert CLASS_NAME_DATA_FIELD in dataset.annotations["img1.png"].data
+
+    @pytest.mark.parametrize(
+        ("class_id", "match"),
+        [
+            pytest.param([-1], "outside the valid range", id="negative"),
+            pytest.param([1], "outside the valid range", id="too-large"),
+        ],
+    )
+    def test_constructor_rejects_out_of_range_class_id(
+        self, class_id: list[int], match: str
+    ) -> None:
+        """Invalid class ids raise a clear ValueError instead of indexing arrays."""
+        annotations = {
+            "img1.png": _create_detections(xyxy=[[0, 0, 10, 10]], class_id=class_id)
+        }
+
+        with pytest.raises(ValueError, match=match):
+            DetectionDataset(
+                classes=["dog"],
+                images=["img1.png"],
+                annotations=annotations,
+            )
+
+    def test_constructor_rejects_non_integer_class_id(self) -> None:
+        """Non-integer class ids raise a clear ValueError before class-name mapping."""
+        annotations = {
+            "img1.png": Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0.5]),
+            )
+        }
+
+        with pytest.raises(ValueError, match="non-integer class_id"):
+            DetectionDataset(
+                classes=["dog"],
+                images=["img1.png"],
+                annotations=annotations,
+            )
+
+
+class TestDetectionDatasetInMemoryImages:
+    """Verify DetectionDataset keeps dict-provided images in memory (DAT-01)."""
+
+    @staticmethod
+    def _build_dataset(
+        images: dict[str, npt.NDArray[np.uint8]],
+    ) -> DetectionDataset:
+        annotations = {
+            path: _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            for path in images
+        }
+        return DetectionDataset(classes=["dog"], images=images, annotations=annotations)
+
+    def test_getitem_returns_in_memory_image(self) -> None:
+        """Indexing a dict-constructed dataset returns the in-memory array."""
+        image = _create_image(fill_value=7)
+        dataset = self._build_dataset({"imgX.jpg": image})
+
+        image_path, loaded_image, _ = dataset[0]
+
+        assert image_path == "imgX.jpg"
+        np.testing.assert_array_equal(loaded_image, image)
+
+    def test_len_counts_in_memory_images(self) -> None:
+        """`len` of a dict-constructed dataset equals the number of provided images."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+
+        dataset = self._build_dataset(images)
+
+        assert len(dataset) == 2
+
+    def test_merge_preserves_in_memory_pixel_access(self) -> None:
+        """Merging two in-memory datasets keeps pixel access without re-warning."""
+        image_1 = _create_image(fill_value=10)
+        image_2 = _create_image(fill_value=20)
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_1 = self._build_dataset({"img1.jpg": image_1})
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            ds_2 = self._build_dataset({"img2.jpg": image_2})
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            merged = DetectionDataset.merge([ds_1, ds_2])
+
+        assert len(merged) == 2
+        _, loaded_1, _ = merged[0]
+        _, loaded_2, _ = merged[1]
+        np.testing.assert_array_equal(loaded_1, image_1)
+        np.testing.assert_array_equal(loaded_2, image_2)
+
+    def test_split_preserves_in_memory_pixel_access_without_warning(self) -> None:
+        """Splitting an in-memory dataset keeps pixel access without re-warning."""
+        image_1 = _create_image(fill_value=11)
+        image_2 = _create_image(fill_value=22)
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            dataset = self._build_dataset({"img1.jpg": image_1, "img2.jpg": image_2})
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            train, test = dataset.split(split_ratio=0.5, shuffle=False)
+
+        assert train.image_paths == ["img1.jpg"]
+        assert test.image_paths == ["img2.jpg"]
+        _, loaded_train, _ = train[0]
+        _, loaded_test, _ = test[0]
+        np.testing.assert_array_equal(loaded_train, image_1)
+        np.testing.assert_array_equal(loaded_test, image_2)
+
+    def test_iteration_yields_in_memory_images(self) -> None:
+        """Iteration yields (path, image, annotation) with correct pixels."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+        dataset = self._build_dataset(images)
+
+        entries = list(dataset)
+
+        assert [path for path, _, _ in entries] == ["img1.jpg", "img2.jpg"]
+        for image_path, loaded_image, annotation in entries:
+            np.testing.assert_array_equal(loaded_image, images[image_path])
+            assert annotation is dataset.annotations[image_path]
+
+    def test_dict_input_emits_deprecation_warning(self) -> None:
+        """Passing a dict of images emits the SupervisionWarnings deprecation notice."""
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            self._build_dataset({"img1.jpg": _create_image(fill_value=3)})
+
+    def test_eq_reflexive_in_memory(self) -> None:
+        """In-memory dataset equals itself (reflexive __eq__ via pixel comparison)."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+        dataset = self._build_dataset(images)
+
+        assert dataset == dataset
+
+    def test_eq_same_pixels_returns_true(self) -> None:
+        """Two in-memory datasets with identical images and annotations are equal."""
+        images = {"img1.jpg": _create_image(fill_value=5)}
+        ds_a = self._build_dataset(images)
+        ds_b = self._build_dataset(dict(images))
+
+        assert ds_a == ds_b
+
+    def test_eq_different_pixels_returns_false(self) -> None:
+        """In-memory datasets with different pixel data are not equal."""
+        ds_a = self._build_dataset({"img1.jpg": _create_image(fill_value=1)})
+        ds_b = self._build_dataset({"img1.jpg": _create_image(fill_value=2)})
+
+        assert ds_a != ds_b
+
+
+class TestDatasetEqualityContracts:
+    """Dataset equality must respect class order and NumPy-backed annotations."""
+
+    def test_detection_dataset_class_order_matters(self) -> None:
+        """DetectionDataset equality is sensitive to the ordered class list."""
+        ds_a = DetectionDataset(classes=["cat", "dog"], images=[], annotations={})
+        ds_b = DetectionDataset(classes=["dog", "cat"], images=[], annotations={})
+
+        assert ds_a != ds_b
+
+    def test_classification_dataset_numpy_annotations(self) -> None:
+        """ClassificationDataset equality handles multi-value NumPy annotations."""
+        annotations = {
+            "img.png": Classifications(
+                class_id=np.array([0, 1], dtype=np.int_),
+                confidence=np.array([0.25, 0.75], dtype=np.float32),
+            )
+        }
+        ds_a = ClassificationDataset(
+            classes=["cat", "dog"],
+            images=["img.png"],
+            annotations=annotations,
+        )
+        ds_b = ClassificationDataset(
+            classes=["cat", "dog"],
+            images=["img.png"],
+            annotations={
+                "img.png": Classifications(
+                    class_id=np.array([0, 1], dtype=np.int_),
+                    confidence=np.array([0.25, 0.75], dtype=np.float32),
+                )
+            },
+        )
+        ds_c = ClassificationDataset(
+            classes=["dog", "cat"],
+            images=["img.png"],
+            annotations=annotations,
+        )
+
+        assert ds_a == ds_b
+        assert ds_a != ds_c
+
+
+class TestDetectionDatasetExportCollisions:
+    """Regression tests for the basename-collision guard on export (DAT-04)."""
+
+    def test_as_yolo_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images from different directories must not overwrite."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.png", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_yolo(images_directory_path=str(tmp_path / "images"))
+
+    def test_as_yolo_raises_on_same_stem_annotations(self, tmp_path: Path) -> None:
+        """Same-stem images must not overwrite annotations."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to YOLO annotation file"):
+            dataset.as_yolo(
+                images_directory_path=str(tmp_path / "images"),
+                annotations_directory_path=str(tmp_path / "labels"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images must not overwrite image files on export."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.jpg"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(tmp_path / "images"),
+            )
+
+    def test_as_pascal_voc_raises_on_same_stem_annotations(
+        self, tmp_path: Path
+    ) -> None:
+        """Same-stem images must not overwrite annotations."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.jpg", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.jpg": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                annotations_directory_path=str(tmp_path / "annotations"),
+            )
+
+    def test_as_pascal_voc_rejects_annotation_collisions_before_writing(
+        self, tmp_path: Path
+    ) -> None:
+        """Pascal VOC export preflights annotation collisions before copying images."""
+        source_root = tmp_path / "source"
+        source_a = source_root / "dir_a"
+        source_b = source_root / "dir_b"
+        source_a.mkdir(parents=True)
+        source_b.mkdir(parents=True)
+        image_a_path = source_a / "img.jpg"
+        image_b_path = source_b / "img.png"
+        image_a_path.write_bytes(b"image-a")
+        image_b_path.write_bytes(b"image-b")
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(image_a_path), str(image_b_path)],
+            annotations={
+                str(image_a_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                str(image_b_path): _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        images_directory = tmp_path / "images"
+        annotations_directory = tmp_path / "annotations"
+
+        with pytest.raises(ValueError, match="both map to Pascal VOC annotation file"):
+            dataset.as_pascal_voc(
+                images_directory_path=str(images_directory),
+                annotations_directory_path=str(annotations_directory),
+            )
+
+        assert not images_directory.exists()
+        assert not annotations_directory.exists()
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - DetectionDataset.split()
+# ---------------------------------------------------------------------------
+
+
+def _make_detection_dataset(
+    n: int, classes: list[str] | None = None
+) -> DetectionDataset:
+    """Build a DetectionDataset with n images using list[str] path API."""
+    if classes is None:
+        classes = ["cat"]
+    image_paths = [f"img{i}.jpg" for i in range(n)]
+    annotations = {
+        f"img{i}.jpg": _create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])
+        for i in range(n)
+    }
+    return DetectionDataset(
+        classes=classes, images=image_paths, annotations=annotations
+    )
+
+
+class TestDetectionDatasetSplit:
+    """DetectionDataset.split() partitions images correctly."""
+
+    def test_split_is_deterministic(self) -> None:
+        """Two calls with the same random_state produce identical partitions."""
+        ds = _make_detection_dataset(10)
+        train_a, test_a = ds.split(split_ratio=0.7, random_state=42)
+        train_b, test_b = ds.split(split_ratio=0.7, random_state=42)
+        assert train_a.image_paths == train_b.image_paths
+        assert test_a.image_paths == test_b.image_paths
+
+    def test_split_union_covers_all_images(self) -> None:
+        """Train + test together contain exactly the original image set."""
+        ds = _make_detection_dataset(10)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        combined = set(train.image_paths) | set(test.image_paths)
+        assert combined == set(ds.image_paths)
+
+    def test_split_partitions_are_disjoint(self) -> None:
+        """No image path appears in both train and test."""
+        ds = _make_detection_dataset(10)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert set(train.image_paths).isdisjoint(set(test.image_paths))
+
+    def test_split_ratio_zero_empties_train(self) -> None:
+        """split_ratio=0.0 sends all images to the test set."""
+        ds = _make_detection_dataset(6)
+        train, test = ds.split(split_ratio=0.0, shuffle=False)
+        assert len(train) == 0
+        assert len(test) == 6
+
+    def test_split_ratio_one_empties_test(self) -> None:
+        """split_ratio=1.0 sends all images to the train set."""
+        ds = _make_detection_dataset(6)
+        train, test = ds.split(split_ratio=1.0, shuffle=False)
+        assert len(train) == 6
+        assert len(test) == 0
+
+    def test_split_does_not_mutate_source_ordering(self) -> None:
+        """Calling split() twice does not change the source image_paths order."""
+        ds = _make_detection_dataset(8)
+        original_order = list(ds.image_paths)
+        ds.split(split_ratio=0.5, random_state=7)
+        ds.split(split_ratio=0.5, random_state=99)
+        assert ds.image_paths == original_order
+
+    def test_split_classes_preserved(self) -> None:
+        """Both halves inherit the full class list from the source dataset."""
+        ds = _make_detection_dataset(6, classes=["cat", "dog"])
+        train, test = ds.split(split_ratio=0.5, random_state=1)
+        assert train.classes == ["cat", "dog"]
+        assert test.classes == ["cat", "dog"]
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - ClassificationDataset folder-structure round-trip
+# ---------------------------------------------------------------------------
+
+
+class TestClassificationDatasetFolderRoundTrip:
+    """from_folder_structure -> as_folder_structure -> reload reproduces the dataset."""
+
+    def _make_folder_tree(self, root: Path) -> None:
+        """Write a tiny 2-class folder structure under root."""
+        from supervision import _cv2
+
+        for cls_name, colour in [("cats", 0), ("dogs", 128)]:
+            cls_dir = root / cls_name
+            cls_dir.mkdir(parents=True)
+            for idx in range(2):
+                img = np.full((8, 8, 3), colour, dtype=np.uint8)
+                _cv2.imwrite(str(cls_dir / f"{cls_name}_{idx}.png"), img)
+
+    def test_reload_has_same_classes(self, tmp_path: Path) -> None:
+        """Reloaded dataset has the same sorted class list."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        assert ds2.classes == ds.classes
+
+    def test_reload_has_same_image_count(self, tmp_path: Path) -> None:
+        """Reloaded dataset has the same number of images."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        assert len(ds2) == len(ds)
+
+    def test_reload_annotation_class_ids_match(self, tmp_path: Path) -> None:
+        """Reloaded annotations map each image to its original class folder."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        for image_path, ann in ds2.annotations.items():
+            class_id = int(ann.class_id[0])
+            assert 0 <= class_id < len(ds2.classes)
+            assert ds2.classes[class_id] == Path(image_path).parent.name
+
+    def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
+        """Clutter and non-image files do not break folder loading."""
+        root = tmp_path / "source"
+        cats = root / "cats"
+        cats.mkdir(parents=True)
+        (root / "README.md").write_text("notes", encoding="utf-8")
+        (cats / "README.md").write_text("notes", encoding="utf-8")
+        (cats / "classes.txt").write_text("cats", encoding="utf-8")
+        (cats / "cat.png").write_bytes(b"image")
+
+        dataset = ClassificationDataset.from_folder_structure(str(root))
+
+        assert dataset.classes == ["cats"]
+        assert dataset.image_paths == [str(cats / "cat.png")]

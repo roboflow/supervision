@@ -1,17 +1,17 @@
-from __future__ import annotations
-
 import json
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 
 from supervision import DetectionDataset, Detections
+from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
     coco_annotations_to_detections,
+    coco_annotations_to_masks,
     coco_categories_to_classes,
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
@@ -40,6 +40,14 @@ def mock_coco_annotation(
         "segmentation": segmentation,
         "iscrowd": int(iscrowd),
     }
+
+
+def _empty_raw_segs(n: int) -> np.ndarray:
+    """Object-dtype array of n empty lists for coco_raw_segmentation (bbox-only)."""
+    arr = np.empty(n, dtype=object)
+    for i in range(n):
+        arr[i] = []
+    return arr
 
 
 @pytest.fixture
@@ -243,6 +251,148 @@ def test_group_coco_annotations_by_image_id(
         assert result == expected_result
 
 
+def test_coco_annotations_to_detections_defaults_missing_area_and_iscrowd() -> None:
+    """COCO annotations missing optional area/iscrowd fields still load."""
+    annotation = {
+        "id": 1,
+        "image_id": 1,
+        "category_id": 1,
+        "bbox": [1, 2, 3, 4],
+        "segmentation": [],
+    }
+
+    detections = coco_annotations_to_detections(
+        image_annotations=[annotation],
+        resolution_wh=(10, 10),
+        with_masks=False,
+        use_iscrowd=True,
+    )
+
+    assert detections.data["iscrowd"].tolist() == [0]
+    assert detections.data["area"].tolist() == [12.0]
+
+
+def test_load_coco_annotations_can_skip_iscrowd_metadata(tmp_path: Path) -> None:
+    """use_iscrowd=False omits COCO metadata from loaded Detections.data."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    _, image_paths, annotations = load_coco_annotations(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+        use_iscrowd=False,
+    )
+
+    assert image_paths == [str(image_path)]
+    assert "iscrowd" not in annotations[str(image_path)].data
+    assert "area" not in annotations[str(image_path)].data
+
+
+def test_detection_dataset_from_coco_accepts_use_iscrowd_false(tmp_path: Path) -> None:
+    """DetectionDataset.from_coco forwards use_iscrowd to the COCO loader."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+        use_iscrowd=False,
+    )
+
+    assert "iscrowd" not in dataset.annotations[str(image_path)].data
+    assert "area" not in dataset.annotations[str(image_path)].data
+
+
+def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(
+    tmp_path: Path,
+) -> None:
+    """The fourth positional from_coco argument remains show_progress."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    image_path = images_dir / "image.jpg"
+    cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 2, 3, 4],
+                        "iscrowd": 1,
+                        "area": 12,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    dataset = DetectionDataset.from_coco(
+        str(images_dir),
+        str(annotations_path),
+        False,
+        False,
+    )
+
+    assert dataset.annotations[str(image_path)].data["iscrowd"].tolist() == [1]
+    assert dataset.annotations[str(image_path)].data["area"].tolist() == [12.0]
+
+
 @pytest.mark.parametrize(
     (
         "image_annotations",
@@ -281,6 +431,7 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(1)},
             ),
             DoesNotRaise(),
         ),  # single image annotations
@@ -299,6 +450,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0], dtype=int),
                     "area": np.array([100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(1),
                 },
             ),
             DoesNotRaise(),
@@ -320,6 +472,7 @@ def test_group_coco_annotations_by_image_id(
                     [[0, 0, 100, 100], [100, 100, 200, 200]], dtype=np.float32
                 ),
                 class_id=np.array([0, 0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(2)},
             ),
             DoesNotRaise(),
         ),  # two image annotations
@@ -343,6 +496,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0, 0], dtype=int),
                     "area": np.array([100 * 100, 100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(2),
                 },
             ),
             DoesNotRaise(),
@@ -832,11 +986,11 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
+                    category_id=1, bbox=(0, 0, 100, 100), area=100 * 100
                 )
             ],
             DoesNotRaise(),
-        ),  # no segmentation mask
+        ),  # no segmentation mask; internal class_id 0 -> COCO category_id 1
         (
             Detections(
                 xyxy=np.array([[0, 0, 4, 5]], dtype=np.float32),
@@ -858,7 +1012,7 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 4, 5),
                     area=4 * 5,
                     segmentation=[[0, 0, 0, 4, 3, 4, 3, 0]],
@@ -888,9 +1042,9 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 5, 5),
-                    area=5 * 5,
+                    area=13,
                     segmentation={
                         "size": [5, 5],
                         "counts": [0, 3, 2, 3, 2, 3, 5, 2, 3, 2],
@@ -921,9 +1075,9 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 5, 5),
-                    area=5 * 5,
+                    area=19,
                     segmentation={
                         "size": [5, 5],
                         "counts": [2, 10, 2, 3, 2, 6],
@@ -980,6 +1134,80 @@ def test_detections_to_coco_annotations_handles_empty_approximated_polygons() ->
     assert len(annotations) == 1
     assert annotations[0]["segmentation"] == []
     assert annotations[0]["iscrowd"] == 0
+
+
+_DISJOINT_2X2_MASK = np.array(
+    [
+        [
+            [1, 1, 0, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1],
+            [0, 0, 0, 1, 1],
+        ]
+    ],
+    dtype=bool,
+)
+
+_SINGLE_COMPONENT_MASK = np.array(
+    [
+        [
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ]
+    ],
+    dtype=bool,
+)
+
+
+def _make_iscrowd0_detections(mask: np.ndarray) -> Detections:
+    """Build a single-detection Detections with iscrowd=0 from a (1, H, W) mask."""
+    _, h, w = mask.shape
+    return Detections(
+        xyxy=np.array([[0, 0, w, h]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+        data={"iscrowd": np.array([0])},
+    )
+
+
+@pytest.mark.parametrize(
+    ("mask", "expected_segment_count"),
+    [
+        pytest.param(_DISJOINT_2X2_MASK, 2, id="disjoint-two-parts"),
+        pytest.param(_SINGLE_COMPONENT_MASK, 1, id="single-component"),
+    ],
+)
+def test_detections_to_coco_annotations_segmentation_count(
+    mask: np.ndarray, expected_segment_count: int
+) -> None:
+    """Non-crowd mask export produces one polygon list entry per connected component."""
+    annotations, _ = detections_to_coco_annotations(
+        detections=_make_iscrowd0_detections(mask), image_id=0, annotation_id=0
+    )
+
+    segmentation = annotations[0]["segmentation"]
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(segmentation, list)
+    assert len(segmentation) == expected_segment_count
+    assert all(len(part) >= 6 for part in segmentation)
+    assert all(np.isfinite(c) for part in segmentation for c in part)
+
+
+def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
+    """Two-part disjoint mask round-trips through COCO export and import unchanged."""
+    W, H = 5, 5
+    annotations, _ = detections_to_coco_annotations(
+        detections=_make_iscrowd0_detections(_DISJOINT_2X2_MASK),
+        image_id=0,
+        annotation_id=0,
+    )
+    reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
+
+    assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
@@ -1068,8 +1296,58 @@ def test_detections_to_coco_annotations_data_area_overrides_bbox_with_mask() -> 
     assert annotations[0]["area"] == 999.0
 
 
+def test_detections_to_coco_annotations_mask_area_when_no_data() -> None:
+    """Masked detections without stored area export pixel area, not bbox area."""
+    mask = np.zeros((1, 10, 10), dtype=bool)
+    mask[0, 0:4, 0:4] = True
+
+    detections = Detections(
+        xyxy=np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["area"] == 16.0
+
+
+def test_missing_coco_area_with_mask_exports_mask_pixel_area() -> None:
+    """Segmented COCO annotations without area export decoded mask area."""
+    detections = coco_annotations_to_detections(
+        image_annotations=[
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 10, 10],
+                "segmentation": [[0, 0, 5, 0, 5, 5, 0, 5]],
+            }
+        ],
+        resolution_wh=(10, 10),
+        with_masks=True,
+        use_iscrowd=True,
+    )
+    assert detections.mask is not None
+    expected_area = float(np.count_nonzero(detections.mask[0]))
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert annotations[0]["area"] == expected_area
+    assert annotations[0]["area"] != 100.0
+
+
 def test_detections_to_coco_annotations_fallback_area_when_no_data() -> None:
-    """When detections have no area in data, area should fall back to bbox area."""
+    """Box-only detections with no area in data fall back to bbox area."""
     detections = Detections(
         xyxy=np.array([[10.0, 20.0, 110.0, 120.0]], dtype=np.float32),
         class_id=np.array([0], dtype=int),
@@ -1157,6 +1435,31 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
 
     no_annotations_path = str(images_directory / "no_annotations.jpg")
     assert annotations[no_annotations_path] == Detections.empty()
+
+
+def test_coco_annotations_to_masks_handles_rle_polygon_and_invalid_dict() -> None:
+    image_annotations = [
+        {"id": 1, "segmentation": {"size": [5, 5], "counts": [15, 2, 3, 2, 3]}},
+        {"id": 2, "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]]},
+        {"id": 3, "segmentation": {"size": [5, 5]}},
+    ]
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "Skipping annotation 3: segmentation is a dict but missing 'counts' key "
+            r"\(expected RLE format\)"
+        ),
+    ):
+        masks = coco_annotations_to_masks(
+            image_annotations=image_annotations,
+            resolution_wh=(5, 5),
+        )
+
+    assert masks.shape == (3, 5, 5)
+    assert masks[0].any()
+    assert masks[1].any()
+    assert not masks[2].any()
 
 
 @pytest.mark.parametrize(
@@ -1274,6 +1577,37 @@ def test_load_coco_annotations_rejects_file_name_resolving_to_directory(
         )
 
 
+def test_load_coco_annotations_rejects_unresolvable_file_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reject file_name values whose resolved path cannot be computed."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": "bad.jpg", "width": 5, "height": 5}],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    original_resolve = Path.resolve
+
+    def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+        if self == images_directory / "bad.jpg":
+            raise OSError("unresolvable path")
+        return original_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+
+    with pytest.raises(ValueError, match="invalid path"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
 def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
     """Accept a legitimate nested file_name inside images/ without raising."""
     images_directory = tmp_path / "images"
@@ -1294,6 +1628,32 @@ def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
     )
     expected_path = str(images_directory / "train" / "image.jpg")
     assert expected_path in annotations
+
+
+def test_load_coco_annotations_rejects_duplicate_resolved_file_names(
+    tmp_path: Path,
+) -> None:
+    """Aliases for the same file resolve to one canonical COCO entry."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    (images_directory / "nested").mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {"id": 1, "file_name": "image.jpg", "width": 5, "height": 5},
+            {"id": 2, "file_name": "nested/../image.jpg", "width": 5, "height": 5},
+        ],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate entries for image"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
 
 
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
@@ -1451,6 +1811,86 @@ class TestFromCocoMasks:
         assert annotation.mask.shape == (1, 5, 5)
 
 
+# --- category_id 1-indexing (regression for #1181) ---
+
+
+@pytest.mark.parametrize(
+    ("classes", "expected_ids"),
+    [
+        ([], []),  # empty classes
+        (["object"], [1]),  # single class starts at 1
+        (["cat", "dog", "bird"], [1, 2, 3]),  # ids are sequential and 1-indexed
+    ],
+)
+def test_classes_to_coco_categories_ids_start_at_one(
+    classes: list[str], expected_ids: list[int]
+) -> None:
+    """COCO categories[].id must be 1-indexed (COCO spec / CVAT requirement)."""
+    categories = classes_to_coco_categories(classes=classes)
+
+    assert [category["id"] for category in categories] == expected_ids
+
+
+def test_detections_to_coco_annotations_category_id_is_one_indexed() -> None:
+    """Internal class_id k must serialize to COCO category_id k + 1."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [5, 5, 15, 15], [1, 1, 4, 4]], dtype=np.float32),
+        class_id=np.array([0, 1, 2], dtype=int),
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert [annotation["category_id"] for annotation in annotations] == [1, 2, 3]
+
+
+def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
+    tmp_path,
+) -> None:
+    """as_coco -> from_coco is lossless for internal class_ids while the
+    on-disk COCO category ids are 1-indexed (regression for #1181)."""
+    classes = ["cat", "dog"]
+    image_paths: list[str] = []
+    annotations: dict[str, Detections] = {}
+    expected_class_ids = {}
+    for index, class_id in enumerate([0, 1]):
+        path = str(tmp_path / f"image_{index}.jpg")
+        assert cv2.imwrite(path, np.zeros((10, 10, 3), dtype=np.uint8))
+        image_paths.append(path)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+        annotations[path] = detections
+        expected_class_ids[Path(path).name] = class_id
+    dataset = DetectionDataset(
+        classes=classes, images=image_paths, annotations=annotations
+    )
+
+    annotation_path = tmp_path / "annotations.json"
+    dataset.as_coco(annotations_path=str(annotation_path))
+
+    # On-disk COCO ids are 1-indexed.
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    assert sorted(category["id"] for category in payload["categories"]) == [1, 2]
+    assert sorted(ann["category_id"] for ann in payload["annotations"]) == [1, 2]
+
+    # Reading back preserves internal 0-indexed class_ids losslessly.
+    loaded = DetectionDataset.from_coco(
+        images_directory_path=str(tmp_path),
+        annotations_path=str(annotation_path),
+    )
+    assert loaded.classes == classes
+    for image_path, _, detections in loaded:
+        name = Path(image_path).name
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == [expected_class_ids[name]]
+
+
 # --- save_coco_annotations: cross-split id chaining (regression for #768) ---
 
 
@@ -1487,6 +1927,32 @@ def _read_ids(annotation_path) -> tuple[list[int], list[int]]:
     image_ids = [img["id"] for img in payload["images"]]
     annotation_ids = [ann["id"] for ann in payload["annotations"]]
     return image_ids, annotation_ids
+
+
+class TestSaveCocoAnnotationsCollisionGuard:
+    """COCO export must reject same-basename images before writing."""
+
+    def test_raises_on_duplicate_image_basenames(self, tmp_path: Path) -> None:
+        """Duplicate image basenames are rejected instead of being collapsed."""
+        image_paths = []
+        annotations: dict[str, Detections] = {}
+        for parent in ("dir_a", "dir_b"):
+            image_path = tmp_path / parent / "img.jpg"
+            image_path.parent.mkdir(parents=True, exist_ok=True)
+            assert cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+            image_path_str = str(image_path)
+            image_paths.append(image_path_str)
+            annotations[image_path_str] = Detections.empty()
+
+        dataset = DetectionDataset(
+            classes=["object"], images=image_paths, annotations=annotations
+        )
+
+        with pytest.raises(ValueError, match="COCO image file"):
+            save_coco_annotations(
+                dataset=dataset,
+                annotation_path=str(tmp_path / "annotations.json"),
+            )
 
 
 def test_save_coco_annotations_defaults_start_at_one(tmp_path):
@@ -1634,3 +2100,303 @@ def test_save_coco_annotations_zero_annotation_images(tmp_path):
     assert annotation_ids == []
     assert next_image_id == 3
     assert next_annotation_id == 1
+
+
+# --- Regression: legacy 0-indexed COCO files still load correctly (#1181) ---
+
+
+def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
+    """COCO files with 0-indexed category ids (written by supervision <=0.28.x)
+    must still load and produce correct internal 0-indexed class_ids."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    coco_data = {
+        "categories": [
+            {"id": 0, "name": "cat", "supercategory": "none"},
+            {"id": 1, "name": "dog", "supercategory": "none"},
+        ],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 0,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "iscrowd": 0,
+            },
+            {
+                "id": 2,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [1, 1, 3, 3],
+                "area": 9,
+                "iscrowd": 0,
+            },
+        ],
+    }
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+    )
+
+    assert dataset.classes == ["cat", "dog"]
+    dets = dataset.annotations[str(img_path)]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- save_coco_annotations ValueError guards ---
+
+
+@pytest.mark.parametrize(
+    ("starting_image_id", "starting_annotation_id"),
+    [
+        (0, 1),
+        (1, 0),
+        (0, 0),
+    ],
+)
+def test_save_coco_annotations_rejects_zero_starting_ids(
+    tmp_path, starting_image_id: int, starting_annotation_id: int
+) -> None:
+    """starting_image_id and starting_annotation_id below 1 must raise ValueError."""
+    dataset = DetectionDataset(classes=["object"], images=[], annotations={})
+    annotation_path = tmp_path / "annotations.json"
+
+    with pytest.raises(ValueError, match="must be >= 1"):
+        save_coco_annotations(
+            dataset=dataset,
+            annotation_path=str(annotation_path),
+            starting_image_id=starting_image_id,
+            starting_annotation_id=starting_annotation_id,
+        )
+
+
+# --- detections_to_coco_annotations: class_id=None guard ---
+
+
+def test_detections_to_coco_annotations_raises_when_class_id_is_none() -> None:
+    """Detections with no class_id must raise ValueError before +1 arithmetic."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=None,
+    )
+
+    with pytest.raises(ValueError, match="class_id"):
+        detections_to_coco_annotations(
+            detections=detections,
+            image_id=1,
+            annotation_id=1,
+        )
+
+
+# --- Round-trip: multi-class-per-image case ---
+
+
+def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
+    """Single image with two detections of different classes round-trips losslessly."""
+    img_path = str(tmp_path / "img.jpg")
+    assert cv2.imwrite(img_path, np.zeros((10, 10, 3), dtype=np.uint8))
+
+    dataset = DetectionDataset(
+        classes=["cat", "dog"],
+        images=[img_path],
+        annotations={
+            img_path: Detections(
+                xyxy=np.array([[0, 0, 5, 5], [1, 1, 4, 4]], dtype=np.float32),
+                class_id=np.array([0, 1], dtype=int),
+            )
+        },
+    )
+
+    annotation_path = tmp_path / "annotations.json"
+    dataset.as_coco(annotations_path=str(annotation_path))
+
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    assert sorted(ann["category_id"] for ann in payload["annotations"]) == [1, 2]
+
+    loaded = DetectionDataset.from_coco(
+        images_directory_path=str(tmp_path),
+        annotations_path=str(annotation_path),
+    )
+    dets = loaded.annotations[img_path]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- Regression: segmentation round-trip (#2285) ---
+
+
+def _coco_annotation_with_segmentation(
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float] = (0, 0, 5, 5),
+    area: float = 25,
+) -> dict:
+    return mock_coco_annotation(
+        annotation_id=1,
+        image_id=1,
+        category_id=1,
+        bbox=bbox,
+        area=area,
+        segmentation=segmentation,
+    )
+
+
+def _single_image_coco_data(annotation: dict) -> dict[str, object]:
+    return {
+        "info": {},
+        "licenses": [],
+        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [annotation],
+    }
+
+
+def test_detections_to_coco_annotations_exports_all_polygons() -> None:
+    """All polygons from a multi-component mask must be exported, not just the first."""
+    # Build a mask with two separate rectangles (disjoint components)
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[1:4, 1:4] = True  # top-left component
+    mask[14:18, 14:18] = True  # bottom-right component
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 4, 4]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+        data={"iscrowd": np.array([0], dtype=int)},
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    seg = annotations[0]["segmentation"]
+    # Both components must appear as separate polygon entries (list of lists)
+    assert isinstance(seg, list), "segmentation must be a list of polygons"
+    assert len(seg) >= 2
+
+
+@pytest.mark.parametrize(
+    ("segmentation", "bbox", "area", "expected_min_polygon_count"),
+    [
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4]],
+            (0, 0, 5, 5),
+            25,
+            1,
+            id="single-polygon",
+        ),
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4], [6, 6, 9, 6, 9, 9, 6, 9]],
+            (0, 0, 9, 9),
+            32,
+            2,
+            id="multi-polygon",
+        ),
+    ],
+)
+def test_coco_polygon_segmentation_survives_roundtrip(
+    tmp_path,
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float],
+    area: float,
+    expected_min_polygon_count: int,
+) -> None:
+    """COCO polygon segmentation survives the load/export sequence.
+
+    1. Write source COCO JSON with polygon segmentation.
+    2. Load it through DetectionDataset.from_coco().
+    3. Export it back to COCO JSON with as_coco().
+    4. Assert the exported segmentation keeps the expected polygon component count.
+    """
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    # 1. Write source COCO JSON with polygon segmentation.
+    ann_path = tmp_path / "annotations.json"
+    ann_path.write_text(
+        json.dumps(
+            _single_image_coco_data(
+                _coco_annotation_with_segmentation(
+                    segmentation=segmentation, bbox=bbox, area=area
+                )
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    # 2. Load it through the internal DetectionDataset representation.
+    ds = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(ann_path),
+    )
+
+    # 3. Export it back to COCO JSON.
+    out_ann_path = tmp_path / "out_annotations.json"
+    ds.as_coco(annotations_path=str(out_ann_path))
+
+    with open(out_ann_path) as f:
+        out = json.load(f)
+
+    # 4. Assert polygon component count survives the load/export sequence.
+    assert len(out["annotations"]) == 1
+    seg = out["annotations"][0]["segmentation"]
+    assert isinstance(seg, list)
+    assert len(seg) >= expected_min_polygon_count
+
+
+def test_coco_raw_segmentation_preserved_when_masks_not_decoded() -> None:
+    """When masks are NOT decoded (with_masks=False), raw polygon data stored in
+    data['segmentation'] is used as a lossless fallback so as_coco() still emits
+    non-empty segmentation."""
+    image_annotations = [
+        _coco_annotation_with_segmentation(segmentation=[[0, 0, 4, 0, 4, 4, 0, 4]])
+    ]
+
+    # Load WITHOUT mask decoding — mask must be None
+    detections = coco_annotations_to_detections(
+        image_annotations=image_annotations,
+        resolution_wh=(10, 10),
+        with_masks=False,
+    )
+    assert detections.mask is None
+    # Raw segmentation must be stored in data for fallback
+    assert "coco_raw_segmentation" in detections.data
+
+    # Export must still produce non-empty segmentation via fallback
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    assert annotations[0]["segmentation"] != []
+
+
+def test_coco_iscrowd_mask_exports_as_rle() -> None:
+    """Multi-segment mask exports segmentation as RLE dict (iscrowd inferred as 1)."""
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[1:3, 1:3] = True  # top-left component
+    mask[7:9, 7:9] = True  # bottom-right component (two separate regions)
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 8, 8]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    seg = annotations[0]["segmentation"]
+    assert isinstance(seg, dict), "multi-segment mask must export as RLE dict, not list"
+    assert "counts" in seg
+    assert "size" in seg

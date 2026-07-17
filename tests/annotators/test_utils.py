@@ -1,19 +1,23 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
 import pytest
 
 from supervision.annotators.utils import (
     ColorLookup,
+    Trace,
     hex_to_rgba,
     is_valid_hex,
+    resolve_color,
     resolve_color_idx,
+    resolve_text_background_xyxy,
     rgba_to_hex,
     wrap_text,
 )
 from supervision.detection.core import Detections
+from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position
 from tests.helpers import _create_detections
 
 
@@ -117,6 +121,37 @@ def test_resolve_color_idx(
         assert result == expected_result
 
 
+def test_resolve_color_accepts_negative_class_id() -> None:
+    """Negative class ids map deterministically instead of aborting annotation."""
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1])
+    palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+
+    result = resolve_color(
+        color=palette,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result == Color.from_hex("#0000ff")
+
+
+def test_resolve_color_accepts_palette_from_src_namespace() -> None:
+    """Palette instances imported through src.supervision still resolve by index."""
+    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+    result = resolve_color(
+        color=SrcColorPalette.DEFAULT,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result.as_bgr() == (251, 81, 163)
+
+
 @pytest.mark.parametrize(
     ("text", "max_line_length", "expected_result", "exception"),
     [
@@ -181,6 +216,35 @@ def test_wrap_text(
         assert result == expected_result
 
 
+def test_resolve_text_background_xyxy_rejects_unknown_position() -> None:
+    """Unsupported positions must raise instead of returning an implicit None."""
+    with pytest.raises(ValueError, match="Unsupported position"):
+        resolve_text_background_xyxy(
+            center_coordinates=(10, 10),
+            text_wh=(20, 10),
+            position=cast(Position, "invalid"),
+        )
+
+
+def test_trace_put_requires_tracker_id_before_mutation() -> None:
+    """Trace.put must not mutate internal history before validating tracker ids."""
+    trace = Trace()
+    detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+
+    before_frame_id = trace.current_frame_id
+    before_history = trace.frame_id.copy()
+    before_xy = trace.xy.copy()
+    before_tracker_id = trace.tracker_id.copy()
+
+    with pytest.raises(ValueError, match="tracker_id"):
+        trace.put(detections)
+
+    assert trace.current_frame_id == before_frame_id
+    assert np.array_equal(trace.frame_id, before_history)
+    assert np.array_equal(trace.xy, before_xy)
+    assert np.array_equal(trace.tracker_id, before_tracker_id)
+
+
 @pytest.mark.parametrize(
     ("hex_color", "expected_rgba"),
     [
@@ -198,8 +262,18 @@ def test_hex_to_rgba_valid(
     assert hex_to_rgba(hex_color) == expected_rgba
 
 
-@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII", "#FFF", "1234567"])
+@pytest.mark.parametrize(
+    "hex_color",
+    [
+        pytest.param("#FF00F", id="five-digits"),
+        pytest.param("#GGHHII", id="non-hex-digits"),
+        pytest.param("#FFF", id="short-form"),
+        pytest.param("1234567", id="seven-digits"),
+        pytest.param("##000000", id="multiple-prefixes"),
+    ],
+)
 def test_hex_to_rgba_invalid(hex_color: str) -> None:
+    """Invalid formats raise instead of being normalized into valid colors."""
     with pytest.raises(ValueError, match="Invalid hex"):
         hex_to_rgba(hex_color)
 

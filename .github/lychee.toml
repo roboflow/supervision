@@ -9,9 +9,16 @@ accept = [
     200, # OK
     408, # Request Timeout
     # 429 means the server received the request and is actively rate-limiting — the URL is
-    # reachable. Real dead links return 404, 410, 5xx, or fail to connect; none of those
-    # produce a 429, so accepting it here does not hide broken links.
+    # reachable. Real dead links return 404, 410, or fail to connect/resolve; none of
+    # those produce a 429, so accepting it here does not hide broken links.
     429, # Too Many Requests (rate-limited but reachable; does not mask dead links)
+    # CI regularly sees momentary 502/503/504 from large, healthy hosts (github.com,
+    # supervision.roboflow.com), and in-run retries tend to land inside the same
+    # incident window. Genuinely dead links surface as 404, 410, or connection/DNS
+    # failures, which remain rejected.
+    502, # Bad Gateway (transient upstream hiccup)
+    503, # Service Unavailable (transient overload or maintenance)
+    504, # Gateway Timeout (transient upstream hiccup)
 ]
 
 exclude = [
@@ -19,6 +26,7 @@ exclude = [
     "http://127.0.0.1:8000",  # hint for local docs server
     "https://sam2.metademolab.com/",  # returns 403 Forbidden
     "https://snyk.io/advisor/python/supervision/badge.svg",  # badge URL
+    "https://trendshift.io",  # badge API times out in CI
     "https://universe.roboflow.com/",
     "https://universe.roboflow.com/model-examples/segmented-animals-basic",
     # fixme: this page returns 401 Unauthorized when accessed and 404 Not Found when accessed with browser,

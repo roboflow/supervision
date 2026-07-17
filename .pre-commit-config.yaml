@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3
+  python: python3.10
 
 ci:
   autofix_prs: true
@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.8.3 # using tag; previously pinned SHA when tags were not persistent
+    rev: 0737985b8f21a8d83195f6ced1045e7637fc82fb # v3.9.5
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -37,9 +37,11 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.21.1
+    rev: v2.25.2
     hooks:
       - id: pyproject-fmt
+        additional_dependencies:
+          - "tomli>=2.0.1"
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
@@ -47,7 +49,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.15.21
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -61,21 +63,24 @@ repos:
         additional_dependencies:
           - "mdformat-mkdocs[recommended]>=2.1.0"
           - "mdformat-ruff"
-        args: ["--number"]
+        args: ["--number", "--wrap=no"]
         exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.2
+    rev: v2.3.0
     hooks:
       - id: mypy
+        language_version: python3.11
         additional_dependencies:
           - "numpy>=2.0"
           - "types-PyYAML"
           - "types-requests"
+          - "types-tqdm"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:
       - id: codespell
+        exclude: ^src/supervision/_cv2/data/hershey_fonts\.json$
         additional_dependencies:
           - "tomli>=2.0.1"

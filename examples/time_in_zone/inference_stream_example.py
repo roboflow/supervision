@@ -15,7 +15,7 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: list[int]):
+    def __init__(self, zone_configuration_path: str, classes: list[int]) -> None:
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
         self.fps_monitor = sv.FPSMonitor()

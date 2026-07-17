@@ -3,23 +3,34 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from copy import deepcopy
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
+from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     load_coco_annotations,
     save_coco_annotations,
 )
+from supervision.dataset.formats.createml import (
+    load_createml_annotations,
+    save_createml_annotations,
+)
+from supervision.dataset.formats.labelme import (
+    load_labelme_annotations,
+    save_labelme_annotations,
+)
 from supervision.dataset.formats.pascal_voc import (
-    detections_to_pascal_voc,
     load_pascal_voc_annotations,
+    save_pascal_voc_annotations,
 )
 from supervision.dataset.formats.yolo import (
     load_yolo_annotations,
@@ -28,6 +39,7 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.utils import (
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -36,6 +48,10 @@ from supervision.dataset.utils import (
 from supervision.detection.core import Detections
 from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
+
+_IMAGE_FILE_EXTENSIONS = frozenset(
+    {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+)
 
 
 class BaseDataset(ABC):
@@ -62,9 +78,11 @@ class DetectionDataset(BaseDataset):
     Attributes:
         classes: List containing dataset class names.
         images:
-            Accepts a list of image paths, or dictionaries of loaded cv2 images
-            with paths as keys. If you pass a list of paths, the dataset will
-            lazily load images on demand, which is much more memory-efficient.
+            Accepts a list of image paths. Passing a dict
+            (``Dict[str, np.ndarray]``) is deprecated in ``0.30.0`` and will
+            be removed in ``0.33.0``; use a list of paths instead.
+            When a list of paths is provided, images are loaded lazily on
+            demand, which is more memory-efficient.
         annotations: Dictionary mapping
             image path to annotations. The dictionary keys match
             match the keys in `images` or entries in the list of
@@ -83,20 +101,50 @@ class DetectionDataset(BaseDataset):
             raise ValueError(
                 "The keys of the images and annotations dictionaries must match."
             )
-        self.annotations = annotations
+        self.annotations = {
+            image_path: deepcopy(annotation)
+            for image_path, annotation in annotations.items()
+        }
 
-        if self.classes:
-            np_classes = np.array(self.classes)
-            for annotation in self.annotations.values():
-                if annotation.class_id is not None:
-                    annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[
-                        annotation.class_id
-                    ]
+        np_classes = np.array(self.classes)
+        for image_path, annotation in self.annotations.items():
+            class_ids = annotation.class_id
+            if class_ids is None:
+                continue
+            if not np.issubdtype(class_ids.dtype, np.integer):
+                raise ValueError(
+                    f"Detection annotation for image {image_path!r} contains "
+                    f"non-integer class_id values with dtype {class_ids.dtype}."
+                )
+
+            invalid_class_ids = class_ids[
+                (class_ids < 0) | (class_ids >= len(self.classes))
+            ]
+            if len(invalid_class_ids) > 0:
+                valid_range = (
+                    "empty"
+                    if len(self.classes) == 0
+                    else f"[0, {len(self.classes) - 1}]"
+                )
+                raise ValueError(
+                    f"Detection annotation for image {image_path!r} contains "
+                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
+                    f"range {valid_range} for {len(self.classes)} classes."
+                )
+
+            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is "
+                "deprecated in `0.30.0` and will be removed in `0.33.0`. Use "
+                "a list of paths `List[str]` instead."
+            )
 
     def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
         """Assumes that image is in dataset."""
@@ -105,7 +153,7 @@ class DetectionDataset(BaseDataset):
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f"Could not read image from path: {image_path}")
-        return image
+        return cast(npt.NDArray[np.uint8], image)
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)
@@ -136,7 +184,7 @@ class DetectionDataset(BaseDataset):
         if not isinstance(other, DetectionDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
@@ -162,7 +210,7 @@ class DetectionDataset(BaseDataset):
     ) -> tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
-            using the provided split_ratio.
+            using the provided split_ratio. The input dataset is not mutated.
 
         Args:
             split_ratio: The ratio of the training
@@ -204,27 +252,26 @@ class DetectionDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
-        if self._images_in_memory:
-            train_input = {path: self._images_in_memory[path] for path in train_paths}
-            test_input = {path: self._images_in_memory[path] for path in test_paths}
-        else:
-            train_input = train_paths
-            test_input = test_paths
         train_annotations = {path: self.annotations[path] for path in train_paths}
         test_annotations = {path: self.annotations[path] for path in test_paths}
 
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images=train_input,
+            images=train_paths,
             annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images=test_input,
+            images=test_paths,
             annotations=test_annotations,
         )
+        if self._images_in_memory:
+            train_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in train_paths
+            }
+            test_dataset._images_in_memory = {
+                path: self._images_in_memory[path] for path in test_paths
+            }
         return train_dataset, test_dataset
 
     @classmethod
@@ -321,11 +368,14 @@ class DetectionDataset(BaseDataset):
                     detections=annotations[image_path],
                 )
 
-        return cls(
+        merged_dataset = cls(
             classes=classes,
-            images=images_in_memory or image_paths,
+            images=image_paths,
             annotations=annotations,
         )
+        if all_in_memory:
+            merged_dataset._images_in_memory = images_in_memory
+        return merged_dataset
 
     def as_pascal_voc(
         self,
@@ -334,10 +384,13 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
+        show_progress: bool = False,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format.
+        and their corresponding annotations in PASCAL VOC format. Both output
+        layouts are preflighted before any files are written so a collision in
+        either target fails without partial output.
 
         Args:
             images_directory_path: The path to the directory
@@ -357,32 +410,43 @@ class DetectionDataset(BaseDataset):
             approximation_percentage: The percentage of
                 polygon points to be removed from the input polygon,
                 in the range [0, 1). Argument is used only for segmentation datasets.
+            show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same stem (when
+                annotations_directory_path is set), which would cause one
+                output file to overwrite another. Rename images to ensure
+                unique basenames before exporting a merged dataset.
         """
+        if images_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
+            )
+
         if images_directory_path:
             save_dataset_images(
                 dataset=self,
                 images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_directory_path:
-            Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-            for image_path, image, annotations in self:
-                annotation_name = Path(image_path).stem
-                annotations_path = os.path.join(
-                    annotations_directory_path, f"{annotation_name}.xml"
-                )
-                image_name = Path(image_path).name
-                pascal_voc_xml = detections_to_pascal_voc(
-                    detections=annotations,
-                    classes=self.classes,
-                    filename=image_name,
-                    image_shape=image.shape,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )
-
-                with open(annotations_path, "w") as f:
-                    f.write(pascal_voc_xml)
+            save_pascal_voc_annotations(
+                dataset=self,
+                annotations_directory_path=annotations_directory_path,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+                show_progress=show_progress,
+            )
 
     @classmethod
     def from_pascal_voc(
@@ -390,6 +454,7 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_directory_path: str,
         force_masks: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
@@ -400,6 +465,7 @@ class DetectionDataset(BaseDataset):
                 containing the PASCAL VOC XML annotations.
             force_masks: If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
+            show_progress: If True, display a progress bar during loading.
 
         Returns:
             A DetectionDataset instance containing
@@ -420,7 +486,8 @@ class DetectionDataset(BaseDataset):
 
             ds = sv.DetectionDataset.from_pascal_voc(
                 images_directory_path=f"{dataset.location}/train/images",
-                annotations_directory_path=f"{dataset.location}/train/labels"
+                annotations_directory_path=f"{dataset.location}/train/labels",
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -432,6 +499,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             force_masks=force_masks,
+            show_progress=show_progress,
         )
 
         return DetectionDataset(
@@ -446,6 +514,7 @@ class DetectionDataset(BaseDataset):
         data_yaml_path: str,
         force_masks: bool = False,
         is_obb: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -463,6 +532,7 @@ class DetectionDataset(BaseDataset):
             is_obb: If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
+            show_progress: If True, display a progress bar during loading.
 
         Returns:
             A DetectionDataset instance
@@ -483,7 +553,8 @@ class DetectionDataset(BaseDataset):
             ds = sv.DetectionDataset.from_yolo(
                 images_directory_path=f"{dataset.location}/train/images",
                 annotations_directory_path=f"{dataset.location}/train/labels",
-                data_yaml_path=f"{dataset.location}/data.yaml"
+                data_yaml_path=f"{dataset.location}/data.yaml",
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -496,6 +567,7 @@ class DetectionDataset(BaseDataset):
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
             is_obb=is_obb,
+            show_progress=show_progress,
         )
         return DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations
@@ -509,6 +581,8 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
+        is_obb: bool = False,
+        show_progress: bool = False,
     ) -> None:
         """
         Exports the dataset to YOLO format. This method saves the
@@ -537,10 +611,52 @@ class DetectionDataset(BaseDataset):
                 be removed from the input polygon, in the range [0, 1).
                 This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
+            is_obb: If True, exports annotations in OBB format
+                (`class_id x1 y1 x2 y2 x3 y3 x4 y4`) using the oriented
+                corners stored in `detections.data["xyxyxyxy"]`. Mirrors
+                `from_yolo(..., is_obb=True)`. Masks are ignored when
+                `is_obb=True`.
+            show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two image paths share the same basename (when
+                images_directory_path is set) or the same annotation
+                file name (when annotations_directory_path is set),
+                which would cause one output file to overwrite another.
         """
+        if is_obb and (
+            min_image_area_percentage != 0.0
+            or max_image_area_percentage != 1.0
+            or approximation_percentage != 0.0
+        ):
+            import warnings
+
+            warnings.warn(
+                "`min_image_area_percentage`, `max_image_area_percentage`, and "
+                "`approximation_percentage` have no effect when `is_obb=True`; "
+                "OBB annotations use corner coordinates directly.",
+                UserWarning,
+                stacklevel=2,
+            )
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).stem + ".txt",
+                output_kind="YOLO annotation",
+            )
+
         if images_directory_path is not None:
             save_dataset_images(
-                dataset=self, images_directory_path=images_directory_path
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_directory_path is not None:
             save_yolo_annotations(
@@ -549,9 +665,212 @@ class DetectionDataset(BaseDataset):
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                show_progress=show_progress,
+                is_obb=is_obb,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+
+    @classmethod
+    def from_labelme(
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        force_masks: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from LabelMe formatted data.
+
+        LabelMe stores one JSON file per image, each containing a list of
+        ``shapes``. ``rectangle`` shapes are loaded as bounding boxes and
+        ``polygon`` shapes as masks (with their bounding boxes); other shape
+        types are skipped. Class names are inferred from the labels present in
+        the files. When an image file contains a ``polygon`` shape, or when
+        ``force_masks=True`` is set, both ``rectangle`` and ``polygon`` shapes
+        produce masks: rectangles via a four-corner polygon fill.
+
+        Args:
+            images_directory_path: The path to the
+                directory containing the images.
+            annotations_directory_path: The path to the directory
+                containing the LabelMe ``.json`` annotation files.
+            force_masks: If True, forces masks to be loaded for all
+                annotations, regardless of whether polygon shapes are present.
+                Requires ``imageWidth`` and ``imageHeight`` in every JSON file.
+
+        Returns:
+            A DetectionDataset instance containing
+                the loaded images and annotations.
+
+        Raises:
+            ValueError: If an annotation is malformed - for example
+                ``imagePath`` is empty or resolves to ``..``, a shape is
+                missing its ``label`` or ``points``, or a mask is required but
+                ``imageWidth`` / ``imageHeight`` are missing or zero.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset.from_labelme(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+            )
+
+            ds.classes
+            # ['dog', 'person']
+            ```
+        """
+        classes, image_paths, annotations = load_labelme_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            force_masks=force_masks,
+        )
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
+
+    def as_labelme(
+        self,
+        images_directory_path: str | None = None,
+        annotations_directory_path: str | None = None,
+    ) -> None:
+        """
+        Exports the dataset to LabelMe format. This method saves the images and
+        their corresponding annotations as per-image LabelMe ``.json`` files.
+        Masked detections are written as ``polygon`` shapes whose vertices
+        approximate the mask contour, so masks are not bit-exact on round-trip.
+        Because the bounding box is recomputed from the quantized polygon contour
+        on re-import, bounding boxes for masked detections may also shift by
+        approximately one pixel after a save-load cycle.
+
+        Args:
+            images_directory_path: The path to the directory
+                where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path: The path to the directory where the
+                LabelMe ``.json`` files should be saved.
+                If not provided, annotations will not be saved.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(...)
+
+            ds.as_labelme(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+            )
+            ```
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self, images_directory_path=images_directory_path
+            )
+        if annotations_directory_path is not None:
+            save_labelme_annotations(
+                dataset=self,
+                annotations_directory_path=annotations_directory_path,
+            )
+
+    @classmethod
+    def from_createml(
+        cls,
+        images_directory_path: str,
+        annotations_path: str,
+        show_progress: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from CreateML formatted data.
+
+        CreateML stores object-detection annotations in a single JSON file as a
+        list of per-image entries, with each box expressed as a pixel-space
+        centre point plus width and height. Class names are inferred from the
+        labels present in the file.
+
+        Args:
+            images_directory_path: The path to the directory containing the
+                images.
+            annotations_path: The path to the CreateML json annotation file.
+            show_progress: If True, display a progress bar during loading.
+
+        Returns:
+            A DetectionDataset instance containing the loaded images and
+            annotations.
+
+        Examples:
+            ```python
+            import roboflow
+            from roboflow import Roboflow
+            import supervision as sv
+
+            roboflow.login()
+            rf = Roboflow()
+
+            project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            dataset = project.version(PROJECT_VERSION).download("createml")
+
+            ds = sv.DetectionDataset.from_createml(
+                images_directory_path=f"{dataset.location}/train",
+                annotations_path=f"{dataset.location}/train/_annotations.createml.json",
+            )
+
+            ds.classes
+            # ['dog', 'person']
+            ```
+        """
+        classes, image_paths, annotations = load_createml_annotations(
+            images_directory_path=images_directory_path,
+            annotations_path=annotations_path,
+            show_progress=show_progress,
+        )
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
+
+    def as_createml(
+        self,
+        images_directory_path: str | None = None,
+        annotations_path: str | None = None,
+        show_progress: bool = False,
+    ) -> None:
+        """
+        Exports the dataset to CreateML format. This method saves the
+        images and their corresponding annotations in CreateML format.
+
+        Args:
+            images_directory_path: The path to the directory where the images
+                should be saved. If not provided, images will not be saved.
+            annotations_path: The path to the CreateML json annotation file.
+                If not provided, the annotations will not be saved.
+            show_progress: If True, display a progress bar while saving images.
+
+        Returns:
+            None. Side-effects only: writes images and/or annotation file.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
+            ds.as_createml(
+                images_directory_path="/tmp/images",
+                annotations_path="/tmp/annotations.json",
+            )
+            ```
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
+            )
+        if annotations_path is not None:
+            save_createml_annotations(
+                dataset=self,
+                annotations_path=annotations_path,
+            )
 
     @classmethod
     def from_coco(
@@ -559,6 +878,9 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_path: str,
         force_masks: bool = False,
+        show_progress: bool = False,
+        *,
+        use_iscrowd: bool = True,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from COCO formatted data.
@@ -570,6 +892,9 @@ class DetectionDataset(BaseDataset):
             force_masks: If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
+            show_progress: If True, display a progress bar during loading.
+            use_iscrowd: If True, includes COCO ``iscrowd`` and ``area``
+                annotation fields in ``Detections.data``.
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
@@ -589,6 +914,7 @@ class DetectionDataset(BaseDataset):
             ds = sv.DetectionDataset.from_coco(
                 images_directory_path=f"{dataset.location}/train",
                 annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -599,6 +925,8 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,
+            use_iscrowd=use_iscrowd,
+            show_progress=show_progress,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
@@ -611,6 +939,7 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         starting_image_id: int = 1,
         starting_annotation_id: int = 1,
+        show_progress: bool = False,
     ) -> tuple[int, int]:
         """
         Exports the dataset to COCO format. This method saves the
@@ -654,6 +983,7 @@ class DetectionDataset(BaseDataset):
             starting_annotation_id: First annotation id to assign in the
                 exported file. Defaults to ``1``. Override for the same
                 multi-split reason as ``starting_image_id``.
+            show_progress: If True, display a progress bar during saving.
 
         Returns:
             A ``(next_image_id, next_annotation_id)`` tuple containing the
@@ -687,7 +1017,9 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path is not None:
             save_dataset_images(
-                dataset=self, images_directory_path=images_directory_path
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_path is not None:
             return save_coco_annotations(
@@ -698,6 +1030,7 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
                 starting_image_id=starting_image_id,
                 starting_annotation_id=starting_annotation_id,
+                show_progress=show_progress,
             )
         return starting_image_id, starting_annotation_id
 
@@ -749,7 +1082,7 @@ class ClassificationDataset(BaseDataset):
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f"Could not read image from path: {image_path}")
-        return image
+        return cast(npt.NDArray[np.uint8], image)
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)
@@ -782,7 +1115,7 @@ class ClassificationDataset(BaseDataset):
         if not isinstance(other, ClassificationDataset):
             return False
 
-        if set(self.classes) != set(other.classes):
+        if self.classes != other.classes:
             return False
 
         if self.image_paths != other.image_paths:
@@ -873,20 +1206,28 @@ class ClassificationDataset(BaseDataset):
 
         return train_dataset, test_dataset
 
-    def as_folder_structure(self, root_directory_path: str) -> None:
+    def as_folder_structure(
+        self, root_directory_path: str, show_progress: bool = False
+    ) -> None:
         """
         Saves the dataset as a multi-class folder structure.
 
         Args:
             root_directory_path: The path to the directory
                 where the dataset will be saved.
+            show_progress: If True, display a progress bar during saving.
         """
         os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_save_path, image, annotation in self:
+        for image_save_path, image, annotation in tqdm(
+            self,
+            total=len(self),
+            desc="Saving classification images",
+            disable=not show_progress,
+        ):
             image_name = Path(image_save_path).name
             class_id = (
                 annotation.class_id[0]
@@ -898,12 +1239,17 @@ class ClassificationDataset(BaseDataset):
             cv2.imwrite(image_save_path, image)
 
     @classmethod
-    def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
+    def from_folder_structure(
+        cls, root_directory_path: str, show_progress: bool = False
+    ) -> ClassificationDataset:
         """
         Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
-            root_directory_path: The path to the dataset directory.
+            root_directory_path: The path to the dataset directory. Hidden
+                entries, root-level files, nested directories, and files whose
+                suffix is not a supported image extension are ignored.
+            show_progress: If True, display a progress bar during loading.
 
         Returns:
             The dataset.
@@ -922,22 +1268,41 @@ class ClassificationDataset(BaseDataset):
 
             cd = sv.ClassificationDataset.from_folder_structure(
                 root_directory_path=f"{dataset.location}/train"
+                # pass show_progress=True to enable a tqdm progress bar
             )
             ```
         """
-        classes = os.listdir(root_directory_path)
-        classes = sorted(set(classes))
+        root_directory = Path(root_directory_path)
+        classes = sorted(
+            {
+                entry.name
+                for entry in root_directory.iterdir()
+                if entry.is_dir() and not entry.name.startswith(".")
+            }
+        )
 
         image_paths = []
         annotations = {}
 
-        for class_name in classes:
-            class_id = classes.index(class_name)
+        for class_id, class_name in enumerate(
+            tqdm(
+                classes,
+                total=len(classes),
+                desc="Loading classification dataset",
+                disable=not show_progress,
+            )
+        ):
+            class_directory = root_directory / class_name
 
-            for image in os.listdir(os.path.join(root_directory_path, class_name)):
-                image_path = str(os.path.join(root_directory_path, class_name, image))
-                image_paths.append(image_path)
-                annotations[image_path] = Classifications(
+            for image_path in sorted(
+                class_directory.iterdir(), key=lambda path: path.name
+            ):
+                if image_path.name.startswith(".") or not image_path.is_file():
+                    continue
+                if image_path.suffix.lower() not in _IMAGE_FILE_EXTENSIONS:
+                    continue
+                image_paths.append(str(image_path))
+                annotations[str(image_path)] = Classifications(
                     class_id=np.array([class_id]),
                 )
 

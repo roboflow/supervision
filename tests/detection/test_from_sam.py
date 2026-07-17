@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
+from supervision.detection.utils.converters import mask_to_rle
 
 SERVERLESS_SAM3_DICT = {
     "prompt_results": [
@@ -109,6 +108,44 @@ def test_from_sam(
         assert detections.mask.shape == expected_mask_shape
     else:
         assert detections.mask is None
+
+
+def test_from_sam_decodes_coco_rle_masks() -> None:
+    """COCO RLE SAM outputs are decoded to dense boolean masks."""
+    small_mask = np.zeros((4, 4), dtype=bool)
+    small_mask[3, 3] = True
+    large_mask = np.zeros((4, 4), dtype=bool)
+    large_mask[:2, :2] = True
+    sam_result = [
+        {
+            "segmentation": {
+                "size": [4, 4],
+                "counts": mask_to_rle(small_mask, compressed=True),
+            },
+            "bbox": [3, 3, 1, 1],
+            "area": 1,
+        },
+        {
+            "segmentation": {
+                "size": [4, 4],
+                "counts": mask_to_rle(large_mask, compressed=True),
+            },
+            "bbox": [0, 0, 2, 2],
+            "area": 4,
+        },
+    ]
+
+    detections = Detections.from_sam(sam_result=sam_result)
+
+    assert len(detections) == 2
+    assert isinstance(detections.mask, np.ndarray)
+    assert detections.mask.dtype == bool
+    assert detections.mask.shape == (2, 4, 4)
+    np.testing.assert_array_equal(detections.mask, np.stack([large_mask, small_mask]))
+    np.testing.assert_array_equal(
+        detections.xyxy,
+        np.array([[0, 0, 2, 2], [3, 3, 4, 4]], dtype=np.float32),
+    )
 
 
 @pytest.mark.parametrize(

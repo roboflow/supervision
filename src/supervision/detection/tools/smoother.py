@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import cast
 
 import numpy as np
 
@@ -29,6 +26,9 @@ class DetectionsSmoother:
           [Roboflow Trackers](/latest/trackers/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
+        - When detections in a frame disagree on confidence presence — some tracks
+          carry confidence scores and others do not — `confidence` is set to `None`
+          for all smoothed detections in that frame.
 
     Example:
         ```pycon
@@ -94,6 +94,33 @@ class DetectionsSmoother:
             lambda: deque(maxlen=length)
         )
 
+    def reset(self) -> None:
+        """
+        Clears the per-track detection history so the smoother can be reused
+        across independent streams without carrying over frames from a
+        previous stream. The configured window `length` is preserved.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> smoother = sv.DetectionsSmoother()
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     confidence=np.array([0.5]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> _ = smoother.update_with_detections(detections)
+            >>> len(smoother.tracks)
+            1
+            >>> smoother.reset()
+            >>> len(smoother.tracks)
+            0
+
+            ```
+        """
+        self.tracks.clear()
+
     def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the smoother with a new set of detections from a frame.
@@ -115,7 +142,7 @@ class DetectionsSmoother:
             tracker_id_value = detections.tracker_id[detection_idx]
             tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
+            self.tracks[tracker_id].append(detections.select(detection_idx))
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -125,9 +152,24 @@ class DetectionsSmoother:
             if all([d is None for d in self.tracks[track_id]]):
                 del self.tracks[track_id]
 
-        return self.get_smoothed_detections()
+        current_track_ids = {int(track_id) for track_id in detections.tracker_id}
+        return self.get_smoothed_detections(track_ids=current_track_ids)
 
     def get_track(self, track_id: int) -> Detections | None:
+        """Return the smoothed `Detections` for a single track.
+
+        Averages `xyxy` over all valid (non-`None`) frames in the track window.
+        `confidence` is averaged only over frames that carry it; frames with
+        `confidence=None` are excluded. Returns `None` when the track is unknown
+        or its entire window is empty.
+
+        Args:
+            track_id: The tracker ID whose smoothed detection to retrieve.
+
+        Returns:
+            Smoothed `Detections` for the track, or `None` if the track is
+            unknown or all frames in its window are empty.
+        """
         track = self.tracks.get(track_id, None)
         if track is None:
             return None
@@ -137,17 +179,37 @@ class DetectionsSmoother:
             return None
 
         ret = deepcopy(valid[0])
-        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
-        ret.confidence = np.mean([d.confidence for d in valid], axis=0)
+        ret.xyxy = np.mean(np.stack([d.xyxy for d in valid], axis=0), axis=0)
+        # Average confidence only over frames that carry it; frames with
+        # confidence=None contribute nothing to the mean. Retain None when
+        # no frame in the window carries confidence.
+        confidences = [d.confidence for d in valid if d.confidence is not None]
+        ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
 
         return ret
 
-    def get_smoothed_detections(self) -> Detections:
+    def get_smoothed_detections(self, track_ids: set[int] | None = None) -> Detections:
+        """Return the smoothed detections for the requested active tracks.
+
+        Args:
+            track_ids: Optional set of track IDs to include in the output. When
+                provided, tracks absent from the current frame are excluded from the
+                emitted detections but their history stays cached.
+        """
         tracked_detections = []
         for track_id in self.tracks:
+            if track_ids is not None and track_id not in track_ids:
+                continue
             track = self.get_track(track_id)
             if track is not None:
                 tracked_detections.append(track)
+
+        # Detections.merge requires all-or-none for optional fields.
+        # When tracks disagree on confidence presence, drop it from all to
+        # prevent ValueError inside Detections.merge (stack_or_none invariant).
+        if tracked_detections and any(d.confidence is None for d in tracked_detections):
+            for d in tracked_detections:
+                d.confidence = None
 
         detections = Detections.merge(tracked_detections)
         if len(detections) == 0:

@@ -24,7 +24,7 @@ download_assets(VideoAssets.VEHICLES_2)
 
 First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
 
-Create a YOLO model instance and load the source video using supervision's `VideoInfo` helper. The model will process each frame during inference, while `VideoInfo` extracts resolution and frame-rate metadata needed by the polygon zone annotator. A shared color palette ensures consistent zone coloring throughout the output video.
+Create a YOLO model instance and download the source video. The model will process each frame during inference. A shared color palette ensures consistent zone coloring throughout the output video.
 
 ```python
 import numpy as np
@@ -32,13 +32,13 @@ import supervision as sv
 import cv2
 
 from ultralytics import YOLO
+from supervision.assets import VideoAssets, download_assets
 
 model = YOLO("yolov8s.pt")
 
-VIDEO = str(VideoAssets.VEHICLES_2)
+VIDEO = download_assets(VideoAssets.VEHICLES_2)
 
-colors = sv.ColorPalette.default()
-video_info = sv.VideoInfo.from_video_path(VIDEO)
+colors = sv.ColorPalette.DEFAULT
 ```
 
 ## Calculate Coordinates
@@ -80,10 +80,7 @@ With the coordinates of the zones to draw ready, we can set up our zones:
 Instantiate a `PolygonZone` for each polygon array, pairing it with a `PolygonZoneAnnotator` for visual overlay and a `BoxAnnotator` for drawing detection boxes. Each zone will later trigger on incoming detections to determine which objects fall inside its boundaries, enabling per-zone counting in the inference callback.
 
 ```python
-zones = [
-    sv.PolygonZone(polygon=polygon, frame_resolution_wh=video_info.resolution_wh)
-    for polygon in polygons
-]
+zones = [sv.PolygonZone(polygon=polygon) for polygon in polygons]
 zone_annotators = [
     sv.PolygonZoneAnnotator(
         zone=zone,
@@ -98,8 +95,6 @@ box_annotators = [
     sv.BoxAnnotator(
         color=colors.by_idx(index),
         thickness=4,
-        text_thickness=4,
-        text_scale=2,
     )
     for index in range(len(polygons))
 ]
@@ -121,9 +116,7 @@ def process_frame(frame: np.ndarray, i) -> np.ndarray:
     ):
         mask = zone.trigger(detections=detections)
         detections_filtered = detections[mask]
-        frame = box_annotator.annotate(
-            scene=frame, detections=detections_filtered, skip_label=True
-        )
+        frame = box_annotator.annotate(scene=frame, detections=detections_filtered)
         frame = zone_annotator.annotate(scene=frame)
 
     return frame

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -62,37 +63,36 @@ class STrack:
     @staticmethod
     def multi_predict(stracks: list[STrack], shared_kalman: KalmanFilter) -> None:
         if len(stracks) > 0:
-            multi_mean = []
+            multi_mean_states = []
             multi_covariance = []
             for i, st in enumerate(stracks):
                 assert st.mean is not None
                 assert st.covariance is not None
-                multi_mean.append(st.mean.copy())
+                multi_mean_states.append(st.mean.copy())
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
-                    multi_mean[i][7] = 0
+                    multi_mean_states[i][7] = 0
 
-            multi_mean, multi_covariance = shared_kalman.multi_predict(
-                np.asarray(multi_mean), np.asarray(multi_covariance)
+            predicted_mean, predicted_covariance = shared_kalman.multi_predict(
+                np.asarray(multi_mean_states), np.asarray(multi_covariance)
             )
-            for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
+            for i, (mean, cov) in enumerate(zip(predicted_mean, predicted_covariance)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 
     def activate(self, kalman_filter: KalmanFilter, frame_id: int) -> None:
-        """Start a new tracklet"""
+        """Start a new tracklet after its first detection."""
         self.kalman_filter = kalman_filter
         self.internal_track_id = self.internal_id_counter.new_id()
         self.mean, self.covariance = self.kalman_filter.initiate(
             self.tlwh_to_xyah(self._tlwh)
         )
 
-        self.tracklet_len = 0
+        self.tracklet_len = 1
         self.state = TrackState.Tracked
-        if frame_id == 1:
+        if frame_id == 1 and self.tracklet_len >= self.minimum_consecutive_frames:
             self.is_activated = True
-            if self.minimum_consecutive_frames == 1:
-                self.external_track_id = self.external_id_counter.new_id()
+            self.external_track_id = self.external_id_counter.new_id()
 
         self.frame_id = frame_id
         self.start_frame = frame_id
@@ -129,7 +129,7 @@ class STrack:
             self.mean, self.covariance, self.tlwh_to_xyah(new_tlwh)
         )
         self.state = TrackState.Tracked
-        if self.tracklet_len == self.minimum_consecutive_frames:
+        if self.tracklet_len >= self.minimum_consecutive_frames:
             self.is_activated = True
             if self.external_track_id == self.external_id_counter.NO_ID:
                 self.external_track_id = self.external_id_counter.new_id()
@@ -142,11 +142,11 @@ class STrack:
         width, height)`.
         """
         if self.mean is None:
-            return self._tlwh.copy()
+            return cast(npt.NDArray[np.float32], self._tlwh.copy())
         ret = self.mean[:4].copy()
         ret[2] *= ret[3]
         ret[:2] -= ret[2:] / 2
-        return ret
+        return cast(npt.NDArray[np.float32], ret)
 
     @property
     def tlbr(self) -> npt.NDArray[np.float32]:
@@ -155,7 +155,7 @@ class STrack:
         """
         ret = self.tlwh.copy()
         ret[2:] += ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], ret)
 
     @staticmethod
     def tlwh_to_xyah(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -165,7 +165,7 @@ class STrack:
         ret = np.asarray(tlwh).copy()
         ret[:2] += ret[2:] / 2
         ret[2] /= ret[3]
-        return ret
+        return cast(npt.NDArray[np.float32], ret)
 
     def to_xyah(self) -> npt.NDArray[np.float32]:
         return self.tlwh_to_xyah(self.tlwh)
@@ -174,13 +174,13 @@ class STrack:
     def tlbr_to_tlwh(tlbr: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], ret)
 
     @staticmethod
     def tlwh_to_tlbr(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], ret)
 
     def __repr__(self) -> str:
         return f"OT_{self.internal_track_id}_({self.start_frame}-{self.frame_id})"

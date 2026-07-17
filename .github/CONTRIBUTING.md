@@ -12,6 +12,7 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 
 - [Contribution Guidelines](#contribution-guidelines)
     - [Contributing Features](#contributing-features)
+    - [API Design Principles](#api-design-principles)
 - [How to Contribute Changes](#how-to-contribute-changes)
 - [Installation for Contributors](#installation-for-contributors)
 - [Code Style and Quality](#code-style-and-quality)
@@ -40,6 +41,15 @@ Supervision is designed to provide generic utilities to solve problems. Thus, we
 For example, counting objects that cross a line anywhere on an image is a common problem in computer vision, but counting objects that cross a line 75% of the way through is less useful.
 
 Before you contribute a new feature, consider submitting an Issue to discuss the feature so the community can weigh in and assist.
+
+### API Design Principles
+
+Supervision APIs should remain generic, composable, and predictable across model families. Before adding a new integration, annotator option, or data conversion method, check the existing `sv.Detections`, `sv.KeyPoints`, and annotator patterns and follow these principles:
+
+1. **Model integrations normalize raw external outputs into existing Supervision containers.** Use `sv.Detections` for detection, segmentation, and other instance-level predictions that include boxes, masks, class ids, confidence scores, or extra per-instance fields. Use `sv.KeyPoints` for standalone keypoint or pose predictions when keypoints exist independently of detection boxes (e.g. pure pose estimation, landmark detection on pre-cropped images). Use `Detections.keypoints` when keypoints are always co-incident with boxes from the same model — the field stores an `(n, K, 2)` or `(n, K, 3)` array where the optional third channel is per-point confidence in `[0, 1]`.
+2. **Do not add a `from_<model>` method when the model already returns a Supervision object.** `from_*` methods are for converting raw outputs from external packages such as Ultralytics, Transformers, Inference, or MediaPipe. If a model's `predict()` method already returns `sv.Detections`, keep that result type and store additional structured payloads in `detections.data` or `detections.metadata` using documented keys.
+3. **Annotators render data; filtering and visibility are container state.** Filtering by confidence, class id, tracker id, geometry, or custom data should happen before annotation through the container slicing APIs, for example `detections[detections.confidence > 0.7]` or `key_points[key_points.confidence > 0.5]`. Per-point presentation state, such as a `KeyPoints.visible` mask, may live on the container and be honored consistently by annotators.
+4. **Annotator constructor arguments should describe visual presentation, not model-quality gates.** Use constructor arguments for color, thickness, opacity, text, position, style, and generic visualization parameters such as sigma levels. Annotators may skip invalid geometry defensively, including missing points, zero-area boxes, non-finite coordinates, or points marked invisible on the container. They should not introduce confidence thresholds or model-specific quality gates as rendering options.
 
 ## How to Contribute Changes
 
@@ -230,9 +240,41 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 `supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
+Every docstring should include a usage example. When the example only uses `supervision`, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer `>>>` doctest format so it is automatically verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for when fenced ```` ```python ```` blocks are appropriate instead.
+
 ### Type checking
 
-Currently, there is no systematic type checking with mypy implemented in the project. This is a known limitation that may be addressed in future updates.
+Type hints are required on all new code. mypy is enforced by the pre-commit hook configured in `.pre-commit-config.yaml` — your PR will fail CI if mypy reports errors.
+
+### Readability
+
+Avoid multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
+
+### Performance
+
+- Avoid unnecessary copies of NumPy arrays.
+- Prefer vectorized operations over Python loops in hot paths.
+- Lazy-import heavy framework dependencies (`torch`, `transformers`, `ultralytics`) inside the function that needs them — never at module top level.
+
+### Deprecation policy
+
+**Minimum window**: deprecated APIs must remain for at least **3 minor releases** before removal. Example: deprecated in `0.29.0` → removed in `0.32.0`.
+
+Use the appropriate mechanism depending on what is being deprecated:
+
+- **Module-level alias**: `supervision.utils.internal.warn_deprecated` in the deprecated module's `__init__.py`
+- **Renamed parameter**: `supervision.utils.internal.deprecated_parameter` decorator
+- **Public function, method, or class**: `@deprecated` from `pydeprecate`
+
+Always specify both the deprecation version and the planned removal version in the message or decorator arguments.
+
+### Deprecated module aliases
+
+`supervision.keypoint` is deprecated since `0.27.0` and will be removed in `0.30.0`. Always import from `supervision.key_points`:
+
+```python
+from supervision.key_points import KeyPoints  # correct
+```
 
 ## 📝 Documentation
 
@@ -258,9 +300,7 @@ You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/)
 
 ## 🧑‍🍳 Cookbooks
 
-We are always looking for new examples and cookbooks to add to the `supervision`
-documentation. If you have a use case that you think would be helpful to others, please
-submit a PR with your example. Here are some guidelines for submitting a new example:
+We are always looking for new examples and cookbooks to add to the `supervision` documentation. If you have a use case that you think would be helpful to others, please submit a PR with your example. Here are some guidelines for submitting a new example:
 
 - Create a new notebook in the [`docs/notebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
 - Add a link to the new notebook in [`docs/theme/cookbooks.html`](https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html). Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.
@@ -285,6 +325,87 @@ To run tests with coverage:
 ```bash
 uv run pytest --cov=supervision
 ```
+
+### Test Structure
+
+Follow **Arrange-Act-Assert (AAA)**: one setup block, one action, one assertion group per test. Never put two independent actions in the same test.
+
+**Class grouping:** Group related tests into a class. The class name carries the unit under test; method names describe the expected outcome only — not the mechanism.
+
+```python
+class TestDetectionsWithNms:
+    def test_keeps_highest_confidence_detection(self): ...
+    def test_suppresses_lower_score_when_overlap_exceeds_threshold(self): ...
+    def test_raises_when_confidence_missing(self): ...
+```
+
+**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case — not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and survives reordering.
+
+```python
+@pytest.mark.parametrize(
+    ("overlap_metric", "expected_keep"),
+    [
+        pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+        pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+    ],
+)
+def test_overlap_metric_determines_suppression(
+    overlap_metric: OverlapMetric, expected_keep: list[bool]
+) -> None:
+    """Small box inside large: IOU keeps both; IOS suppresses small."""
+    ...
+```
+
+**Docstrings:** Every test function/method requires at minimum a one-line docstring (within the project line length configured in `pyproject.toml`). Describe the scenario, not the implementation.
+
+### Doctests
+
+**Guidance:** when an example uses only `supervision`, NumPy, and the standard library — no optional extras (e.g. no `--extra metrics` packages), no external files, no network, no devices — prefer `>>>` doctest format so it is automatically verified by the test suite. Fenced ```` ```python ```` blocks are appropriate when the example cannot reasonably be executed (e.g. loading a third-party model, reading a video file) or when the primary purpose is demonstrating error/exception behaviour rather than return values.
+
+Doctests run automatically as part of the test suite via `--doctest-modules` in `pyproject.toml`. The `ELLIPSIS` and `NORMALIZE_WHITESPACE` flags are enabled globally, so `...` matches any output fragment and minor whitespace differences are ignored.
+
+```bash
+uv run pytest --doctest-modules src/
+```
+
+**Writing a doctest**
+
+Use the `Example:` section of a Google-style docstring. Prefix each input line with `>>>` and each continuation line with `...`. Place expected output immediately after the last input line with no blank line between them.
+
+```python
+def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple) -> np.ndarray:
+    """Clip bounding boxes to frame boundaries.
+
+    Args:
+        xyxy: Box coordinates as (N, 4) float array.
+        resolution_wh: Frame size as (width, height).
+
+    Returns:
+        Clipped boxes as (N, 4) float array.
+
+    Example:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> boxes = np.array([[-10, -5, 120, 80]], dtype=np.float32)
+        >>> sv.clip_boxes(boxes, resolution_wh=(100, 60))
+        array([[ 0.,  0., 100.,  60.]], dtype=float32)
+    """
+```
+
+### Key rules
+
+- **Single-line expression** — write the repr as expected output: `>>> len(result)` → `1`
+- **Multi-line statement** — use `...` continuation: `>>> arr = np.array([` / `...     [1, 2],` / `... ])`
+- **Print output** — write the printed string as expected output (no quotes).
+- **`None` return** — no output line needed (suppress with assignment or `_ =`).
+- **Large/variable arrays** — use `ELLIPSIS`: `array([...])` matches any content.
+- **`# doctest: +SKIP`** — use only as a last resort for genuinely non-runnable lines (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the example into two blocks instead.
+
+Fenced ```` ```python ```` blocks remain appropriate for:
+
+- Examples that import optional extras (`supervision[metrics]`, `torch`, `ultralytics`).
+- Examples that read files, capture video, or require a running service.
+- Illustrative pseudocode that is intentionally incomplete.
 
 ## 🔍 PR Review Guidelines
 

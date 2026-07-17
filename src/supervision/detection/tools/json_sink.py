@@ -21,9 +21,12 @@ class JSONSink:
 
         JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
-        When a list or tuple value in custom_data (or detections.data) has the
-        same length as the detection count, each element is written to the
-        corresponding detection row; any other value is broadcast to all rows.
+        When a NumPy array, list, or tuple value in custom_data (or
+        detections.data) has the same length as the detection count, each
+        element is written to the corresponding detection row; any other value
+        is broadcast to all rows.
+        NumPy scalars (e.g. ``np.int64``, ``np.float32``) are serialized as
+        JSON numbers; NumPy arrays are serialized as JSON arrays.
 
     Args:
         file_name: The name of the JSON file where the detections will be stored.
@@ -79,13 +82,42 @@ class JSONSink:
 
         self.file = open(self.file_name, "w")
 
+    @staticmethod
+    def _json_default(value: Any) -> Any:
+        """Return a JSON-serializable equivalent of a NumPy scalar or array.
+
+        Called as the ``default`` hook by :func:`json.dump`. Converts
+        :class:`numpy.generic` scalars via ``.item()`` and
+        :class:`numpy.ndarray` instances via ``.tolist()``.
+
+        Args:
+            value: Object the standard JSON encoder could not serialize.
+
+        Returns:
+            A Python scalar or nested list equivalent of ``value``.
+
+        Raises:
+            TypeError: If ``value`` is neither a NumPy scalar nor an ndarray.
+        """
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        raise TypeError(
+            f"Object of type {type(value).__name__} is not JSON serializable"
+        )
+
     def write_and_close(self) -> None:
         """
         Write and close the JSON file.
         """
         if self.file:
-            json.dump(self.data, self.file, indent=4)
-            self.file.close()
+            try:
+                json.dump(
+                    self.data, self.file, indent=4, default=JSONSink._json_default
+                )
+            finally:
+                self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
@@ -94,7 +126,7 @@ class JSONSink:
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
-            - np.ndarray with ndim >= 1: return value[i]
+            - np.ndarray with len equal to n: return value[i]
             - list or tuple with len equal to n: return value[i]
             - any other type: return as-is for broadcasting
 
@@ -108,7 +140,7 @@ class JSONSink:
             otherwise value unchanged.
         """
         if isinstance(value, np.ndarray):
-            return value if value.ndim == 0 else value[i]
+            return value[i] if value.ndim > 0 and len(value) == n else value
         if isinstance(value, (list, tuple)) and len(value) == n:
             return value[i]
         return value
@@ -122,9 +154,9 @@ class JSONSink:
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
-        ``custom_data``. List and tuple values in ``custom_data`` with length
-        equal to ``len(detections.xyxy)`` are sliced one element per row; all
-        other values are broadcast to every row.
+        ``custom_data``. NumPy array, list, and tuple values in
+        ``custom_data`` with length equal to ``len(detections.xyxy)`` are
+        sliced one element per row; all other values are broadcast to every row.
 
         Args:
             detections: Detection data to serialize into row dictionaries.
@@ -156,12 +188,11 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = str(JSONSink._slice_value(value, i, n))
+                    row[key] = JSONSink._slice_value(value, i, n)
 
             if custom_data:
                 for key, value in custom_data.items():
-                    v = JSONSink._slice_value(value, i, n)
-                    row[key] = str(v) if isinstance(value, np.ndarray) else v
+                    row[key] = JSONSink._slice_value(value, i, n)
 
             parsed_rows.append(row)
         return parsed_rows

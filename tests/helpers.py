@@ -8,12 +8,31 @@ for generating synthetic test data and performing custom assertions.
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
 import numpy as np
+from PIL import Image
 
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
+
+
+def make_panoptic_png(segment_map: np.ndarray) -> bytes:
+    """Encode a segment-ID array as a 24-bit RGBA PNG byte string.
+
+    Segment IDs are stored in RGB little-endian order so tests can cover
+    panoptic labels above 255 without collisions.
+    """
+    segment_map_u32 = np.asarray(segment_map, dtype=np.uint32)
+    arr = np.zeros((*segment_map_u32.shape, 4), dtype=np.uint8)
+    arr[:, :, 0] = (segment_map_u32 & 0xFF).astype(np.uint8)
+    arr[:, :, 1] = ((segment_map_u32 >> 8) & 0xFF).astype(np.uint8)
+    arr[:, :, 2] = ((segment_map_u32 >> 16) & 0xFF).astype(np.uint8)
+    arr[:, :, 3] = 255
+    buf = io.BytesIO()
+    Image.fromarray(arr).save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def _create_detections(
@@ -80,6 +99,8 @@ def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,
     class_id: list[int] | None = None,
+    detection_confidence: list[float] | None = None,
+    visible: list[list[bool]] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
     """
@@ -91,8 +112,9 @@ def _create_key_points(
     Args:
         xy: Keypoint coordinates in `(x, y)` format for
             each detection.
-        confidence: Confidence scores for each keypoint.
+        confidence: Per-keypoint confidence scores.
         class_id: Class identifiers for each keypoint set.
+        detection_confidence: Detection-level confidence scores.
         data: Additional data to be associated with
             each keypoint set.
 
@@ -112,7 +134,7 @@ def _create_key_points(
         <BLANKLINE>
                [[20., 20.],
                 [30., 30.]]], dtype=float32)
-        >>> key_points.confidence
+        >>> key_points.keypoint_confidence
         array([[0.5, 0.8],
                [0.9, 0.1]], dtype=float32)
         >>> key_points.class_id
@@ -124,9 +146,15 @@ def _create_key_points(
 
     return KeyPoints(
         xy=np.array(xy, dtype=np.float32),
-        confidence=(
+        keypoint_confidence=(
             confidence if confidence is None else np.array(confidence, dtype=np.float32)
         ),
+        detection_confidence=(
+            detection_confidence
+            if detection_confidence is None
+            else np.array(detection_confidence, dtype=np.float32)
+        ),
+        visible=(visible if visible is None else np.array(visible, dtype=bool)),
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
@@ -185,7 +213,7 @@ def _generate_random_boxes(
     return out
 
 
-def assert_almost_equal(actual, expected, tolerance=1e-5):
+def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
     """
     Assert that two values are equal within a specified tolerance.
 
@@ -239,7 +267,7 @@ def assert_image_mostly_same(
 class _FakeTensor:
     """Minimal tensor wrapper for cpu().numpy() and int()."""
 
-    def __init__(self, arr: np.ndarray):
+    def __init__(self, arr: np.ndarray) -> None:
         self._arr = np.asarray(arr)
 
     def cpu(self) -> _FakeTensor:
@@ -255,7 +283,7 @@ class _FakeTensor:
 class _FakeYOLOv5Results:
     """YOLOv5-like results exposing pred list."""
 
-    def __init__(self, pred0: np.ndarray):
+    def __init__(self, pred0: np.ndarray) -> None:
         self.pred = [_FakeTensor(pred0)]
 
 
@@ -268,7 +296,7 @@ class _FakeUltralyticsBoxes:
         conf: np.ndarray,
         cls: np.ndarray,
         id_: np.ndarray | None = None,
-    ):
+    ) -> None:
         self.xyxy = _FakeTensor(xyxy)
         self.conf = _FakeTensor(conf)
         self.cls = _FakeTensor(cls)
@@ -278,7 +306,7 @@ class _FakeUltralyticsBoxes:
 class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
-    def __init__(self, boxes, names: dict[int, str], length: int = 0):
+    def __init__(self, boxes, names: dict[int, str], length: int = 0) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
@@ -292,7 +320,7 @@ class _FakeUltralyticsResults:
 class _FakeYoloNasPrediction:
     """YOLO-NAS-like prediction struct."""
 
-    def __init__(self, bboxes_xyxy, confidence, labels):
+    def __init__(self, bboxes_xyxy, confidence, labels) -> None:
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
@@ -301,14 +329,14 @@ class _FakeYoloNasPrediction:
 class _FakeYoloNasResults:
     """YOLO-NAS-like results exposing prediction."""
 
-    def __init__(self, prediction: _FakeYoloNasPrediction):
+    def __init__(self, prediction: _FakeYoloNasPrediction) -> None:
         self.prediction = prediction
 
 
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses, labels=None):
+    def __init__(self, poses, labels=None) -> None:
         self.poses = np.array(poses, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
@@ -317,20 +345,20 @@ class _FakeYoloNasKeyPoint:
 class _FakeYoloNasKeyPointResults:
     """YOLO-NAS-like results exposing key points."""
 
-    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None):
+    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None) -> None:
         self.prediction = prediction
         self.class_names = class_names
 
 
 class _FakeMediapipeLandmark:
-    def __init__(self, x, y, visibility=1.0):
+    def __init__(self, x, y, visibility=1.0) -> None:
         self.x = x
         self.y = y
         self.visibility = visibility
 
 
 class _FakeMediapipePose:
-    def __init__(self, landmarks: list[_FakeMediapipeLandmark]):
+    def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
 
 
@@ -342,7 +370,7 @@ class _FakeMediapipeResults:
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
         multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
-    ):
+    ) -> None:
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
         self.multi_face_landmarks = multi_face_landmarks
@@ -393,7 +421,7 @@ def create_yolo_dataset(
     """
     from pathlib import Path
 
-    import cv2
+    from supervision import _cv2 as cv2
 
     if classes is None:
         classes = ["class_0", "class_1"]
@@ -457,6 +485,113 @@ def create_yolo_dataset(
         "image_size": image_size,
         "image_annotations": image_annotations,
     }
+
+
+class _FakeDetachTensor:
+    """Fake torch.Tensor supporting the cpu().detach().numpy() call chain."""
+
+    def __init__(self, arr: np.ndarray) -> None:
+        self._arr = np.asarray(arr)
+
+    def cpu(self) -> _FakeDetachTensor:
+        """Return self to allow chaining."""
+        return self
+
+    def detach(self) -> _FakeDetachTensor:
+        """Return self to allow chaining."""
+        return self
+
+    def numpy(self) -> np.ndarray:
+        """Return underlying array."""
+        return self._arr
+
+
+class _FakeDetectron2Boxes:
+    """Fake Detectron2 Boxes exposing .tensor for the cpu().numpy() chain."""
+
+    def __init__(self, xyxy: np.ndarray) -> None:
+        self.tensor = _FakeTensor(xyxy)
+
+
+class _FakeDetectron2Instances:
+    """Fake Detectron2 Instances: pred_boxes, scores, pred_classes, optional masks."""
+
+    def __init__(
+        self,
+        xyxy: np.ndarray,
+        scores: np.ndarray,
+        class_ids: np.ndarray,
+        masks: np.ndarray | None = None,
+    ) -> None:
+        self.pred_boxes = _FakeDetectron2Boxes(xyxy)
+        self.scores = _FakeTensor(scores)
+        self.pred_classes = _FakeTensor(class_ids)
+        if masks is not None:
+            self.pred_masks = _FakeTensor(masks)
+
+
+class _FakeMMDetPredInstances:
+    """Fake MMDetection pred_instances supporting the 'masks' in membership check."""
+
+    def __init__(
+        self,
+        xyxy: np.ndarray,
+        scores: np.ndarray,
+        labels: np.ndarray,
+        masks: np.ndarray | None = None,
+    ) -> None:
+        self.bboxes = _FakeTensor(xyxy)
+        self.scores = _FakeTensor(scores)
+        self.labels = _FakeTensor(labels)
+        self._masks: np.ndarray | None = masks
+        if masks is not None:
+            self.masks = _FakeTensor(masks)
+
+    def __contains__(self, key: str) -> bool:
+        """Return True for 'masks' only when masks were provided at construction."""
+        return key == "masks" and self._masks is not None
+
+
+class _FakeMMDetResults:
+    """Fake MMDetection inference result wrapping pred_instances."""
+
+    def __init__(self, pred_instances: _FakeMMDetPredInstances) -> None:
+        self.pred_instances = pred_instances
+
+
+class _FakeDeepSparseResults:
+    """Fake DeepSparse inference result with list attributes boxes, scores, labels."""
+
+    def __init__(
+        self,
+        boxes: list[np.ndarray],
+        scores: list[np.ndarray],
+        labels: list[np.ndarray],
+    ) -> None:
+        self.boxes = boxes
+        self.scores = scores
+        self.labels = labels
+
+
+class _FakeNCNNRect:
+    """Fake ncnn Rect with x, y, w, h as numpy float32 scalars supporting .astype()."""
+
+    def __init__(self, x: float, y: float, w: float, h: float) -> None:
+        self.x = np.float32(x)
+        self.y = np.float32(y)
+        self.w = np.float32(w)
+        self.h = np.float32(h)
+
+
+class _FakeNCNNObject:
+    """Fake ncnn detected object with rect, prob, label."""
+
+    def __init__(
+        self, x: float, y: float, w: float, h: float, prob: float, label: int
+    ) -> None:
+        self.rect = _FakeNCNNRect(x, y, w, h)
+        self.prob = prob
+        self.label = label
 
 
 def create_predictions_with_class_iou_tests(

@@ -1,13 +1,11 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
+from supervision import _cv2 as cv2
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -40,25 +38,20 @@ class PolygonZone:
         mask: The 2D bool mask for the polygon zone
 
     Example:
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-        import numpy as np
-        import cv2
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[180, 100, 220, 200], [400, 400, 450, 500]])
+        ... )
+        >>> is_detections_in_zone = polygon_zone.trigger(detections)
+        >>> is_detections_in_zone
+        array([ True, False])
+        >>> polygon_zone.current_count
+        1
 
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = YOLO("yolo11s")
-        tracker = sv.ByteTrack()
-
-        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
-        polygon_zone = sv.PolygonZone(polygon=polygon)
-
-        result = model.infer(image)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        detections = tracker.update_with_detections(detections)
-
-        is_detections_in_zone = polygon_zone.trigger(detections)
-        print(polygon_zone.current_count)
         ```
     """
 
@@ -67,7 +60,7 @@ class PolygonZone:
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
         require_all_anchors: bool = True,
-    ):
+    ) -> None:
         self.polygon = polygon.astype(int)
         # Materialize once so we can safely accept generators without exhausting them.
         self.triggering_anchors = list(triggering_anchors)
@@ -101,11 +94,11 @@ class PolygonZone:
         """
         if len(detections) == 0:
             self.current_count = 0
-            return np.array([], dtype=bool)
+            return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
         all_anchors = np.array(
             [
-                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
                 for anchors in self.triggering_anchors
             ]
         )
@@ -119,7 +112,7 @@ class PolygonZone:
         reduce = np.all if self.require_all_anchors else np.any
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
 
 
 class PolygonZoneAnnotator:
@@ -140,6 +133,20 @@ class PolygonZoneAnnotator:
         center: The center of the polygon for text placement
         display_in_zone_count: Show the label of the zone or not. Default is True
         opacity: The opacity of zone filling when drawn on the scene. Default is 0
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> zone_annotator = sv.PolygonZoneAnnotator(zone=polygon_zone, thickness=2)
+        >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
+        >>> annotated_scene = zone_annotator.annotate(scene=scene)
+        >>> annotated_scene.shape
+        (400, 400, 3)
+
+        ```
     """
 
     def __init__(
@@ -153,7 +160,7 @@ class PolygonZoneAnnotator:
         text_padding: int = 10,
         display_in_zone_count: bool = True,
         opacity: float = 0,
-    ):
+    ) -> None:
         self.zone = zone
         self.color = color
         self.thickness = thickness

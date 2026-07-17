@@ -156,11 +156,16 @@ Desktop.ini
 
 # local data
 data/
+!src/supervision/_cv2/data/
+!src/supervision/_cv2/data/*
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
-.claude/logs
+.claude/logs/
 .claude/state/
+.claude/worktrees/
+.developments/
 .plans/
+.notes/
 .reports/
 .temp/
 .tmp/
@@ -169,3 +174,7 @@ _resolutions/
 _reviews/
 tasks/
 *.local.md
+
+output/
+notebooks/
+releases/

@@ -7,15 +7,17 @@ status: deprecated
 
 These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.
 
-- [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal planned for `supervision-0.30.0`.
-- `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. Will be removed in `supervision-0.30.0`.
-- `create_tiles` in `supervision.utils.image` is deprecated. Will be removed in `supervision-0.31.0`.
-- `ensure_cv2_image_for_processing` in `supervision.utils.conversion` is deprecated. Will be removed in `supervision-0.31.0`.
-- Keypoint validation utilities in `supervision.validators` are deprecated. Will be removed in `supervision-0.31.0`.
-- `normalized_xyxy` argument in [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) is renamed to `xyxy`. Passing `normalized_xyxy=` emits a `FutureWarning`; support will be removed in `supervision-0.30.0`.
-- `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated. These functions moved to `supervision.detection.utils.converters`. Will be removed in `supervision-0.30.0`.
-- `sv.LMM` enum is deprecated and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
-- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in `supervision-0.28.0` in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal is planned for `supervision-0.31.0`.
+- `supervision.keypoint` module is deprecated in `supervision-0.27.0`; use `supervision.key_points` instead. It will be removed in `supervision-0.31.0`.
+- `create_tiles` in `supervision.utils.image` is deprecated in `supervision-0.27.0`. It will be removed in `supervision-0.31.0`.
+- `ensure_cv2_image_for_processing` in `supervision.utils.conversion` is deprecated in `supervision-0.27.0`. It will be removed in `supervision-0.31.0`.
+- Keypoint validation utilities in `supervision.validators` are deprecated in `supervision-0.27.0`. They will be removed in `supervision-0.31.0`.
+- `normalized_xyxy` argument in [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) is deprecated in `supervision-0.27.0` and renamed to `xyxy`. Passing `normalized_xyxy=` emits a `FutureWarning`; support will be removed in `supervision-0.31.0`.
+- `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated in `supervision-0.28.0`. These functions moved to `supervision.detection.utils.converters` and will be removed from `supervision.dataset.utils` in `supervision-0.31.0`.
+- `sv.LMM` enum is deprecated in `supervision-0.27.0` and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
+- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) classmethod is deprecated in `supervision-0.26.0` and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- `KeyPoints.confidence` is deprecated in `supervision-0.29.0`. Use `KeyPoints.keypoint_confidence` instead. It will be removed in `supervision-0.32.0`.
+- Public `validate_*` helper functions are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`. Supervision internals now use private `_validate_*` helpers.
 
 # Removed
 

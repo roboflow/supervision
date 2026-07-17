@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -17,6 +16,9 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.utils.matching import (
+    _match_detection_batch_with_target_indices,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -27,7 +29,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class Precision(Metric):
+class Precision(Metric["PrecisionResult"]):
     """
     Precision is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of predicted detections. We calculate
@@ -132,48 +134,118 @@ class Precision(Metric):
             The precision metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
-
-        small_predictions, small_targets = self._filter_predictions_and_targets_by_size(
+        result.small_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.SMALL
         )
-        result.small_objects = self._compute(small_predictions, small_targets)
-
-        medium_predictions, medium_targets = (
-            self._filter_predictions_and_targets_by_size(
-                self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
-            )
+        result.medium_objects = self._compute(
+            self._predictions_list, self._targets_list, ObjectSizeCategory.MEDIUM
         )
-        result.medium_objects = self._compute(medium_predictions, medium_targets)
-
-        large_predictions, large_targets = self._filter_predictions_and_targets_by_size(
+        result.large_objects = self._compute(
             self._predictions_list, self._targets_list, ObjectSizeCategory.LARGE
         )
-        result.large_objects = self._compute(large_predictions, large_targets)
 
         return result
 
     def _compute(
-        self, predictions_list: list[Detections], targets_list: list[Detections]
+        self,
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
+        size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> PrecisionResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        """Build per-image stats tuples and delegate to class-level computation.
+
+        Each stats tuple is
+        ``(matches, ignored_matches, confidence, class_ids, true_class_ids)``:
+        - Both empty: skip (no information).
+        - Targets empty, predictions present: all predictions are FPs; true_class_ids
+          is ``zeros((0,))``.
+        - Targets present: IoU matching produces ``matches`` array.
+        """
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
+            prediction_size_mask = np.ones(len(predictions), dtype=bool)
+            target_size_mask = np.ones(len(targets), dtype=bool)
+            if size_category != ObjectSizeCategory.ANY:
+                if len(predictions) > 0:
+                    prediction_size_mask = (
+                        get_detection_size_category(predictions, self._metric_target)
+                        == size_category.value
+                    )
+                if len(targets) > 0:
+                    target_size_mask = (
+                        get_detection_size_category(targets, self._metric_target)
+                        == size_category.value
+                    )
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image); every
+                # prediction is a false positive.
+                if predictions.class_id is None or predictions.confidence is None:
+                    raise ValueError(
+                        "Precision metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)[
+                    prediction_size_mask
+                ]
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )[prediction_size_mask]
+                if len(prediction_class_ids) == 0:
+                    continue
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        prediction_confidence,
+                        prediction_class_ids,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "Precision metric requires `class_id` on both predictions "
+                        "and targets."
+                    )
                 if len(predictions) == 0:
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)[
+                        target_size_mask
+                    ]
+                    if len(target_class_ids) == 0:
+                        continue
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=np.float32),
                             np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            target_class_ids,
                         )
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "Precision metric requires `confidence` on predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
@@ -187,22 +259,59 @@ class Precision(Metric):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
-                        iou,
-                        iou_thresholds,
+                    # None keeps the matcher on its single-round fast path
+                    # when no size bucket is scored.
+                    target_scored_mask = (
+                        target_size_mask
+                        if size_category != ObjectSizeCategory.ANY
+                        else None
                     )
+                    matches, matched_target_indices = (
+                        _match_detection_batch_with_target_indices(
+                            prediction_class_ids,
+                            target_class_ids,
+                            iou,
+                            iou_thresholds,
+                            target_scored_mask=target_scored_mask,
+                        )
+                    )
+                    ignored_matches = np.zeros_like(matches, dtype=bool)
+                    if size_category != ObjectSizeCategory.ANY:
+                        valid_target_match = matched_target_indices >= 0
+                        matched_scored_target = np.zeros_like(matches, dtype=bool)
+                        if np.any(valid_target_match):
+                            matched_scored_target[valid_target_match] = (
+                                target_size_mask[
+                                    matched_target_indices[valid_target_match]
+                                ]
+                            )
+                        prediction_scored = (
+                            prediction_size_mask[:, None] | matched_scored_target
+                        )
+                        ignored_matches = ~prediction_scored | (
+                            valid_target_match & ~matched_scored_target
+                        )
+                        prediction_keep = np.any(~ignored_matches, axis=1)
+                        matches = (
+                            matches[prediction_keep]
+                            & matched_scored_target[prediction_keep]
+                        )
+                        ignored_matches = ignored_matches[prediction_keep]
+                        prediction_confidence = prediction_confidence[prediction_keep]
+                        prediction_class_ids = prediction_class_ids[prediction_keep]
+                        target_class_ids = target_class_ids[target_size_mask]
+                        if (
+                            len(prediction_class_ids) == 0
+                            and len(target_class_ids) == 0
+                        ):
+                            continue
                     stats.append(
                         (
                             matches,
-                            predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            ignored_matches,
+                            prediction_confidence,
+                            prediction_class_ids,
+                            target_class_ids,
                         )
                     )
 
@@ -239,6 +348,7 @@ class Precision(Metric):
     def _compute_precision_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
+        ignored_matches: npt.NDArray[np.bool_],
         prediction_confidence: npt.NDArray[np.float32],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
@@ -247,14 +357,28 @@ class Precision(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute precision scores from concatenated stats across all images.
+
+        ``unique_classes`` is the union of GT and predicted classes so that
+        predictions of classes absent from GT still count as false positives.
+        """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
+        ignored_matches = ignored_matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Predictions whose class never appears in the ground truth are still
+        # false positives, so include those classes in the confusion matrix
+        # (their true-instance count is zero).
+        unique_classes = np.unique(
+            np.concatenate((true_class_ids, prediction_class_ids))
+        )
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
-            matches, prediction_class_ids, unique_classes, class_counts
+            matches, ignored_matches, prediction_class_ids, unique_classes, class_counts
         )
 
         # Shape: CxThx3 -> CxTh
@@ -268,9 +392,15 @@ class Precision(Metric):
             precision_scores = self._compute_precision(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            precision_scores = np.average(
-                precision_per_class, axis=0, weights=class_counts
-            )
+            if class_counts.sum() == 0:
+                # No ground-truth support (e.g. only false-positive classes, or a
+                # size bucket with predictions but no targets): weighting is
+                # undefined, so report 0 as the empty case did before.
+                precision_scores = np.zeros(precision_per_class.shape[1])
+            else:
+                precision_scores = np.average(
+                    precision_per_class, axis=0, weights=class_counts
+                )
 
         return precision_scores, precision_per_class, unique_classes
 
@@ -281,33 +411,15 @@ class Precision(Metric):
         iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        num_predictions, num_iou_levels = (
-            predictions_classes.shape[0],
-            iou_thresholds.shape[0],
+        result_correct, _ = _match_detection_batch_with_target_indices(
+            predictions_classes, target_classes, iou, iou_thresholds
         )
-        correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
-        correct_class = target_classes[:, None] == predictions_classes
-
-        for i, iou_level in enumerate(iou_thresholds):
-            matched_indices = np.where((iou >= iou_level) & correct_class)
-
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
-        result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
+        sorted_ignored_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
@@ -321,6 +433,8 @@ class Precision(Metric):
         Args:
             sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
+            sorted_ignored_matches: shape (P, Th), that is True
+                if the prediction should not affect the given IoU threshold.
             sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
             unique_classes: shape (C,), containing the unique
@@ -350,11 +464,13 @@ class Precision(Metric):
                 false_negatives = np.full(num_thresholds, num_true)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
+                false_positives = (~sorted_ignored_matches[is_class]).sum(0)
                 false_negatives = np.zeros(num_thresholds)
             else:
                 true_positives = sorted_matches[is_class].sum(0)
-                false_positives = (1 - sorted_matches[is_class]).sum(0)
+                false_positives = (
+                    ~sorted_matches[is_class] & ~sorted_ignored_matches[is_class]
+                ).sum(0)
                 false_negatives = num_true - true_positives
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
@@ -398,12 +514,15 @@ class Precision(Metric):
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
-            return result_boxes
+            return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
-                return result_masks
+                return cast(npt.NDArray[Any], detections.mask)
+            if len(detections) > 0:
+                raise ValueError(
+                    "Precision with `MetricTarget.MASKS` requires detections to "
+                    "include masks."
+                )
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
@@ -425,8 +544,6 @@ class Precision(Metric):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             empty_obb: npt.NDArray[np.float32] = np.empty((0, 4, 2), dtype=np.float32)
             return empty_obb
-
-        raise ValueError(f"Invalid metric target: {self._metric_target}")
 
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -494,10 +611,12 @@ class PrecisionResult:
         precision_scores: the precision scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         precision_per_class: the precision scores per class and
-            IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
+            IoU threshold. Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `precision_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `precision_per_class`. Classes
+            that appear only in predictions (no ground-truth instances) are
+            included; their per-threshold precision values will be `0.0`.
         small_objects: the Precision metric results
             for small objects (area < 32²).
         medium_objects: the Precision metric results
@@ -636,6 +755,8 @@ class PrecisionResult:
             https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
         ){ align=center width="800" }
         """
+
+        from matplotlib import pyplot as plt
 
         labels = ["Precision@50", "Precision@75"]
         values = [self.precision_at_50, self.precision_at_75]

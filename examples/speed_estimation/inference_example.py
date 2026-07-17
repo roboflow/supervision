@@ -44,7 +44,7 @@ def main(
     roboflow_api_key: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
+) -> None:
     """
     Vehicle Speed Estimation using Inference and Supervision.
 
@@ -96,6 +96,7 @@ def main(
     coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
     with sv.VideoSink(target_video_path, video_info) as sink:
+        window = sv.ImageWindow("frame")
         for frame in frame_generator:
             results = model.infer(
                 frame, confidence=confidence_threshold, iou=iou_threshold
@@ -109,7 +110,7 @@ def main(
             )
             points = view_transformer.transform_points(points=points).astype(int)
 
-            for tracker_id, [_, y] in zip(detections.tracker_id, points):
+            for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
                 coordinates[tracker_id].append(y)
 
             labels = []
@@ -136,10 +137,11 @@ def main(
             )
 
             sink.write_frame(annotated_frame)
-            cv2.imshow("frame", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
-        cv2.destroyAllWindows()
+        window.close()
 
 
 if __name__ == "__main__":
