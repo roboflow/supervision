@@ -49,9 +49,9 @@ def _validate_metadata(wheel: Path) -> None:
 def _validate_manifest(manifest: Path) -> None:
     """Keep the installed-wheel fallback smoke contract explicit and complete."""
     checks = {
-        line.strip()
+        s
         for line in manifest.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.startswith("#")
+        if (s := line.strip()) and not s.startswith("#")
     }
     if checks != _MANIFEST_CHECKS:
         raise ValueError(
