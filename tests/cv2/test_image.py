@@ -229,9 +229,7 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
     """Keep float-mask interpolation on the established numeric path."""
     rng = np.random.default_rng(20260717)
-    for _ in range(3836):
-        source = rng.random((17, 23), dtype=np.float32)
-
+    source = rng.random((3836, 17, 23), dtype=np.float32)[-1]
     actual = _resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
 
     assert actual[8, 27] == np.float32(0.49999991059303284)
