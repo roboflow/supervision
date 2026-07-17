@@ -1,9 +1,14 @@
 ---
 comments: true
-status: new
 ---
 
 # Mean Average Recall
+
+Install the metrics extra before using this API:
+
+```bash
+pip install "supervision[metrics]"
+```
 
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.mean_average_recall.MeanAverageRecall">MeanAverageRecall</a></h2>
