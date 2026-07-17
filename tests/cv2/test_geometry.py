@@ -109,6 +109,19 @@ def test_approx_poly_dp_matches_opencv_for_irregular_closed_contours() -> None:
         np.testing.assert_array_equal(actual, expected)
 
 
+def test_approx_poly_dp_preserves_explicitly_closed_contour_anchors() -> None:
+    """Match OpenCV anchors when the first contour point is repeated at the end."""
+    contour = np.array(
+        [[48, 68], [63, 62], [-39, 73], [44, -81], [48, 68]], dtype=np.int32
+    )
+    epsilon = 12.301107
+
+    actual = _approx_poly_dp(contour, epsilon, closed=True)
+    expected = cv2.approxPolyDP(contour, epsilon, closed=True)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 @pytest.mark.parametrize(
     ("first", "second"),
     [

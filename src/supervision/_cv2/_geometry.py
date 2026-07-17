@@ -39,12 +39,11 @@ def _simplify_slices(
 
     if closed or np.array_equal(points[0], points[-1]):
         closed = True
-        iterations = 3 if not np.array_equal(points[0], points[-1]) else 1
         position = 0
         right_start = 0
         start_point = points[0]
         within_epsilon = False
-        for _ in range(iterations):
+        for _ in range(3):
             position = (position + right_start) % count
             start_point = points[position]
             maximum_distance = 0.0

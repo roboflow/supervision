@@ -107,7 +107,7 @@ def test_randomized_contours_preserve_opencv_geometry() -> None:
 
 
 def test_chamfer_distances_match_opencv_on_seeded_masks() -> None:
-    """Match OpenCV's 3x3 L2 distance field with bounded memory."""
+    """Match OpenCV's platform-dependent 3x3 L2 coefficients within 20 µpx."""
     rng = np.random.default_rng(20260717)
 
     for _ in range(100):
@@ -118,7 +118,7 @@ def test_chamfer_distances_match_opencv_on_seeded_masks() -> None:
         expected = cv2.distanceTransform((~main_mask).astype(np.uint8), cv2.DIST_L2, 3)
         actual = _chamfer_distances(main_mask).astype(np.float32) / 65536
 
-        np.testing.assert_array_equal(actual, expected)
+        np.testing.assert_allclose(actual, expected, atol=2e-5, rtol=0)
 
 
 def test_geometry_consumers_use_fallback_bindings(

@@ -204,6 +204,28 @@ def test_fallback_linear_resize_preserves_random_uint8_contract() -> None:
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
 
 
+def test_fallback_linear_resize_matches_opencv_when_downsampling_uint8() -> None:
+    """Preserve OpenCV's half-pixel interpolation for uint8 downsampling."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (7, 11, 3), dtype=np.uint8)
+
+    actual = _resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_linear_resize_preserves_rgba_channels() -> None:
+    """Avoid Pillow alpha premultiplication when resizing uint8 RGBA arrays."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (9, 7, 4), dtype=np.uint8)
+
+    actual = _resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
     """Keep float-mask interpolation on the established numeric path."""
     rng = np.random.default_rng(20260717)
