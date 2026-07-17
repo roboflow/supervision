@@ -506,7 +506,12 @@ class F1Score(Metric["F1ScoreResult"]):
 
         # Alternate formula, avoids multiple zero division checks
         denominator = 2 * true_positives + false_positives + false_negatives
-        f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
+        f1_score = np.divide(
+            2 * true_positives,
+            denominator,
+            out=np.zeros_like(denominator, dtype=np.float64),
+            where=denominator != 0,
+        )
 
         result_f1_score: npt.NDArray[np.float64] = f1_score
         return result_f1_score

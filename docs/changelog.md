@@ -18,6 +18,7 @@ date_modified: 2026-07-16
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Fixed [#2437](https://github.com/roboflow/supervision/pull/2437): `sv.F1Score` no longer emits a spurious `RuntimeWarning` when true positives, false positives, and false negatives are all zero (denominator 0); the score remains `0.0`.
 - The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.
 - The cv2-free fallback's `copyMakeBorder` now fills only channel 0 for a scalar border `value` on multichannel images, matching OpenCV's `Scalar(v)` semantics instead of broadcasting the value to every channel.
 - The cv2-free fallback's `addWeighted` now raises `ValueError` for a non-default `dtype` instead of silently ignoring it.
