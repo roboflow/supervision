@@ -1,7 +1,7 @@
-import cv2
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
     draw_filled_rectangle,

@@ -36,12 +36,21 @@ OPENCV_CONSTANTS = [
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
     "DIST_L2",
+    "FONT_HERSHEY_COMPLEX",
+    "FONT_HERSHEY_COMPLEX_SMALL",
+    "FONT_HERSHEY_DUPLEX",
+    "FONT_HERSHEY_PLAIN",
+    "FONT_HERSHEY_SCRIPT_COMPLEX",
+    "FONT_HERSHEY_SCRIPT_SIMPLEX",
     "FONT_HERSHEY_SIMPLEX",
+    "FONT_HERSHEY_TRIPLEX",
+    "FONT_ITALIC",
     "IMREAD_COLOR",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
     "LINE_4",
+    "LINE_8",
     "LINE_AA",
     "RETR_TREE",
 ]
@@ -54,7 +63,7 @@ def _run_without_opencv(source: str) -> None:
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, env.get("PYTHONPATH")))
     )
-    subprocess.run(  # noqa: S603
+    subprocess.run(
         [sys.executable, "-c", source],
         check=True,
         env=env,
@@ -201,6 +210,9 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
             id="connectedComponentsWithStats",
         ),
         pytest.param("contourArea", "_contour_area", id="contourArea"),
+        pytest.param("circle", "_circle", id="circle"),
+        pytest.param("drawContours", "_draw_contours", id="drawContours"),
+        pytest.param("ellipse", "_ellipse", id="ellipse"),
         pytest.param("fillPoly", "_fill_poly", id="fillPoly"),
         pytest.param("findContours", "_find_contours", id="findContours"),
         pytest.param(
@@ -208,6 +220,9 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
             "_intersect_convex_convex",
             id="intersectConvexConvex",
         ),
+        pytest.param("line", "_line", id="line"),
+        pytest.param("polylines", "_polylines", id="polylines"),
+        pytest.param("rectangle", "_rectangle", id="rectangle"),
     ],
 )
 def test_facade_binds_fallback_operation_without_opencv(

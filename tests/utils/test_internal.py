@@ -104,7 +104,7 @@ with warnings.catch_warnings(record=True) as recorded:
 
 print(json.dumps([str(item.message) for item in recorded]))
 """
-    completed = subprocess.run(  # noqa: S603 - trusted fixed command in a test helper.
+    completed = subprocess.run(
         [sys.executable, "-c", script],
         check=True,
         capture_output=True,
