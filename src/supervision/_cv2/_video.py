@@ -261,29 +261,6 @@ class _VideoWriter:
             container.close()
 
 
-def _copy_stream(container: Any, source_stream: Any) -> Any:
-    """Create an output stream with the codec parameters needed for remuxing."""
-    codec = source_stream.codec_context.name
-    if source_stream.type == "video":
-        rate = source_stream.average_rate or source_stream.base_rate
-    else:
-        rate = source_stream.sample_rate
-    output_stream = container.add_stream(codec, rate=rate)
-
-    if source_stream.type == "video":
-        output_stream.width = source_stream.width
-        output_stream.height = source_stream.height
-        if source_stream.codec_context.format is not None:
-            output_stream.pix_fmt = source_stream.codec_context.format.name
-    else:
-        output_stream.layout = source_stream.layout.name
-
-    extradata = source_stream.codec_context.extradata
-    if extradata:
-        output_stream.codec_context.extradata = extradata
-    return output_stream
-
-
 def _timestamp_seconds(timestamp: int | None, time_base: Any) -> float | None:
     """Convert a stream timestamp to seconds while preserving missing values."""
     return None if timestamp is None else float(timestamp * time_base)
@@ -324,8 +301,8 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             temporary_path = temporary_file.name
 
         output_container = av.open(temporary_path, mode="w")
-        output_video = _copy_stream(output_container, target_video)
-        output_audio = _copy_stream(output_container, source_audio)
+        output_video = output_container.add_stream_from_template(target_video)
+        output_audio = output_container.add_stream_from_template(source_audio)
 
         # Copy encoded packets to avoid a lossy decode/re-encode cycle for both streams.
         video_base: int | None = None

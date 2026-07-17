@@ -34,13 +34,11 @@ REQUIRED_SYMBOLS = {
     "convertScaleAbs",
     "copyMakeBorder",
     "cvtColor",
-    "distanceTransform",
     "drawContours",
     "ellipse",
     "fillPoly",
-    "findContours",
+    "find_contours",
     "flip",
-    "getRotationMatrix2D",
     "getTextSize",
     "imread",
     "imwrite",
@@ -53,7 +51,6 @@ REQUIRED_SYMBOLS = {
     "rectangle",
     "resize",
     "split",
-    "warpAffine",
 }
 
 

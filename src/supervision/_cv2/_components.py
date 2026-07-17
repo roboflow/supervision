@@ -55,23 +55,49 @@ def _connected_components_with_stats(
 ]:
     """Return labels, bounding-box statistics, and centroids for components."""
     del ltype
+    from scipy import ndimage
+
     count, labels = _label(image, connectivity)
-    stats = np.zeros((count + 1, 5), dtype=np.int32)
-    centroids = np.zeros((count + 1, 2), dtype=np.float64)
-    for component in range(count + 1):
-        rows, columns = np.nonzero(labels == component)
-        if len(rows) == 0:
+    component_count = count + 1
+    flat_labels = labels.ravel()
+    rows, columns = np.indices(labels.shape)
+    areas = np.bincount(flat_labels, minlength=component_count)
+    x_sums = np.bincount(
+        flat_labels, weights=columns.ravel(), minlength=component_count
+    )
+    y_sums = np.bincount(flat_labels, weights=rows.ravel(), minlength=component_count)
+
+    centroids = np.zeros((component_count, 2), dtype=np.float64)
+    populated = areas != 0
+    centroids[populated, 0] = x_sums[populated] / areas[populated]
+    centroids[populated, 1] = y_sums[populated] / areas[populated]
+
+    stats = np.zeros((component_count, 5), dtype=np.int32)
+    stats[:, 4] = areas.astype(np.int32)
+    objects = ndimage.find_objects(labels, max_label=count)
+    for component, bounds in enumerate(objects, start=1):
+        if bounds is None:
             continue
-        x_min, x_max = int(columns.min()), int(columns.max())
-        y_min, y_max = int(rows.min()), int(rows.max())
-        stats[component] = (
-            x_min,
-            y_min,
-            x_max - x_min + 1,
-            y_max - y_min + 1,
-            len(rows),
+        row_slice, column_slice = bounds
+        stats[component, :4] = (
+            column_slice.start,
+            row_slice.start,
+            column_slice.stop - column_slice.start,
+            row_slice.stop - row_slice.start,
         )
-        centroids[component] = (float(columns.mean()), float(rows.mean()))
+
+    background_mask = labels == 0
+    if np.any(background_mask):
+        row_hits = np.any(background_mask, axis=1)
+        col_hits = np.any(background_mask, axis=0)
+        y_indices = np.flatnonzero(row_hits)
+        x_indices = np.flatnonzero(col_hits)
+        stats[0, :4] = (
+            int(x_indices[0]),
+            int(y_indices[0]),
+            int(x_indices[-1] - x_indices[0] + 1),
+            int(y_indices[-1] - y_indices[0] + 1),
+        )
     return count + 1, labels, stats, centroids
 
 

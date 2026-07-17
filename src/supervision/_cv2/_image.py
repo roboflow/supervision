@@ -135,7 +135,7 @@ def _resize(
     fy: float = 0,
     interpolation: int = _INTER_LINEAR,
 ) -> npt.NDArray[Any]:
-    """Resize an array using OpenCV-compatible nearest or half-pixel linear sampling."""
+    """Resize with exact nearest or OpenCV-compatible linear sampling."""
     source_height, source_width = src.shape[:2]
     width, height = dsize if dsize is not None else (0, 0)
     if width == 0 or height == 0:
@@ -156,6 +156,26 @@ def _resize(
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
+    if src.dtype == np.uint8 and (
+        src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3)
+    ):
+        from PIL import Image
+
+        size = (width, height)
+        image = Image.fromarray(src)
+        if width >= source_width and height >= source_height:
+            resized = image.resize(size, resample=Image.Resampling.BILINEAR)
+        else:
+            # Affine sampling keeps Pillow from widening its bilinear kernel
+            # during reduction and maps pixel centers like INTER_LINEAR.
+            resized = image.transform(
+                size,
+                Image.Transform.AFFINE,
+                (source_width / width, 0, 0, 0, source_height / height, 0),
+                resample=Image.Resampling.BILINEAR,
+            )
+        return np.ascontiguousarray(np.asarray(resized))
+
     y = (np.arange(height) + 0.5) * source_height / height - 0.5
     x = (np.arange(width) + 0.5) * source_width / width - 0.5
     y_floor = np.floor(y).astype(np.int64)
@@ -168,9 +188,9 @@ def _resize(
     wx = x - x_floor
 
     source = src.astype(np.float64)
-    top = source[y0[:, np.newaxis], x0]
+    top_left = source[y0[:, np.newaxis], x0]
     top_right = source[y0[:, np.newaxis], x1]
-    bottom = source[y1[:, np.newaxis], x0]
+    bottom_left = source[y1[:, np.newaxis], x0]
     bottom_right = source[y1[:, np.newaxis], x1]
     if src.ndim == 3:
         wy = wy[:, np.newaxis, np.newaxis]
@@ -178,13 +198,13 @@ def _resize(
     else:
         wy = wy[:, np.newaxis]
         wx = wx[np.newaxis, :]
-    result = (
-        top * (1 - wx) * (1 - wy)
+    resized = (
+        top_left * (1 - wx) * (1 - wy)
         + top_right * wx * (1 - wy)
-        + bottom * (1 - wx) * wy
+        + bottom_left * (1 - wx) * wy
         + bottom_right * wx * wy
     )
-    return np.ascontiguousarray(_cast_array_like_opencv(result, src.dtype))
+    return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
 def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
