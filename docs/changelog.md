@@ -18,6 +18,7 @@ date_modified: 2026-07-16
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- `save_coco_annotations` (and therefore `DetectionDataset.as_coco`) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data ([#2442](https://github.com/roboflow/supervision/pull/2442)).
 - The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.
 - The cv2-free fallback's `copyMakeBorder` now fills only channel 0 for a scalar border `value` on multichannel images, matching OpenCV's `Scalar(v)` semantics instead of broadcasting the value to every channel.
 - The cv2-free fallback's `addWeighted` now raises `ValueError` for a non-default `dtype` instead of silently ignoring it.
