@@ -542,7 +542,7 @@ def _resize_crop(
     Returns:
         int32 RLE array for the resized crop.
     """
-    import cv2
+    from supervision import _cv2 as cv2
 
     # All-False: skip decode entirely.
     if _rle_area(rle) == 0:

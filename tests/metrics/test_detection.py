@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
 from typing import ClassVar
 
-import cv2
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
+from supervision import _cv2 as cv2
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget

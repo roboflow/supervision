@@ -1,9 +1,10 @@
 from typing import Any, Literal, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
+from supervision._cv2._components import _contains_holes
 from supervision.detection.compact_mask import CompactMask
 
 
@@ -222,15 +223,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
-    mask_uint8 = mask.astype(np.uint8)
-    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-
-    if hierarchy is not None:
-        parent_contour_index = 3
-        for h in hierarchy[0]:
-            if h[parent_contour_index] != -1:
-                return True
-    return False
+    return _contains_holes(mask)
 
 
 def contains_multiple_segments(
@@ -325,6 +318,50 @@ def resize_masks(
     resized_masks = masks[:, yv, xv]
 
     return resized_masks.reshape(masks.shape[0], new_height, new_width)
+
+
+def _chamfer_distances(main_mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
+    """Return OpenCV 3x3 L2 chamfer distances as fixed-point integers."""
+    height, width = main_mask.shape
+    horizontal_vertical = 62587
+    diagonal = 89738
+    infinity = np.iinfo(np.int64).max // 4
+    distances = np.where(main_mask, 0, infinity).astype(np.int64)
+    horizontal_costs = np.arange(width, dtype=np.int64) * horizontal_vertical
+
+    for row in range(height):
+        current = distances[row]
+        if row:
+            previous = distances[row - 1]
+            upper_left = np.full(width, infinity, dtype=np.int64)
+            upper_right = np.full(width, infinity, dtype=np.int64)
+            upper_left[1:] = previous[:-1] + diagonal
+            upper_right[:-1] = previous[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, previous + horizontal_vertical, upper_left, upper_right)
+            )
+        distances[row] = (
+            np.minimum.accumulate(current - horizontal_costs) + horizontal_costs
+        )
+
+    for row in range(height - 1, -1, -1):
+        current = distances[row]
+        if row + 1 < height:
+            following = distances[row + 1]
+            lower_left = np.full(width, infinity, dtype=np.int64)
+            lower_right = np.full(width, infinity, dtype=np.int64)
+            lower_left[1:] = following[:-1] + diagonal
+            lower_right[:-1] = following[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, following + horizontal_vertical, lower_left, lower_right)
+            )
+        reversed_current = current[::-1]
+        distances[row] = (
+            np.minimum.accumulate(reversed_current - horizontal_costs)
+            + horizontal_costs
+        )[::-1]
+
+    return distances
 
 
 def filter_segments_by_distance(
@@ -426,7 +463,13 @@ def filter_segments_by_distance(
         return cast(npt.NDArray[np.bool_], mask.copy())
 
     areas = stats[1:, cv2.CC_STAT_AREA]
-    main_label = 1 + int(np.argmax(areas))
+    max_area = int(areas.max())
+    candidates = 1 + np.flatnonzero(areas == max_area)
+    # Use coordinates for equal-area ties so native and fallback labels agree.
+    main_label = min(
+        (int(label) for label in candidates),
+        key=lambda label: (int(stats[label, 0]), int(stats[label, 1]), label),
+    )
 
     if relative_distance is not None:
         diagonal = float(np.hypot(height, width))
@@ -445,17 +488,22 @@ def filter_segments_by_distance(
         nearby = 1 + np.where(distances <= threshold)[0]
         keep_labels[nearby] = True
     elif mode == "edge":
-        main_mask = (labels == main_label).astype(np.uint8)
-        inverse = 1 - main_mask
-        distance_transform = cv2.distanceTransform(inverse, cv2.DIST_L2, 3)
+        main_mask = labels == main_label
+        if np.isnan(threshold) or threshold < 0:
+            nearby_main = np.zeros_like(main_mask)
+        elif np.isposinf(threshold):
+            nearby_main = np.ones_like(main_mask)
+        else:
+            fixed_distances = _chamfer_distances(main_mask)
+            distances = fixed_distances.astype(np.float32) / 65536
+            nearby_main = distances <= threshold
         for label in range(1, num_labels):
             if label == main_label:
                 continue
             component = labels == label
             if not np.any(component):
                 continue
-            min_distance = float(distance_transform[component].min())
-            if min_distance <= threshold:
+            if np.any(nearby_main & component):
                 keep_labels[label] = True
     else:
         raise ValueError("mode must be 'edge' or 'centroid'")

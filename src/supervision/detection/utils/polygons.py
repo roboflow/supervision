@@ -1,6 +1,7 @@
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+from supervision import _cv2 as cv2
 
 
 def filter_polygons_by_area(

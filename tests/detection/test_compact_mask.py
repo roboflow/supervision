@@ -5,6 +5,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
@@ -1546,8 +1547,6 @@ class TestCompactMaskResize:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_dense_parity_roundtrip(self, seed: int) -> None:
         """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
-        import cv2
-
         rng = np.random.default_rng(seed + 500)
         img_h, img_w = 80, 120
         target_h, target_w = 40, 60
@@ -1600,8 +1599,6 @@ class TestRleResize:
 
     def test_2x_upscale(self) -> None:
         """2x upscale of a 2x2 mask doubles each pixel."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1622,8 +1619,6 @@ class TestRleResize:
 
     def test_2x_downscale(self) -> None:
         """2x downscale of a 4x4 block mask halves dimensions."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1646,8 +1641,6 @@ class TestRleResize:
 
     def test_non_square_scale(self) -> None:
         """Non-square resize: 4x6 to 2x3 with independent axis scaling."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((4, 6), dtype=bool)
@@ -1706,8 +1699,6 @@ class TestRleResize:
 
     def test_single_pixel_true_upscale(self) -> None:
         """Single True pixel in a 3x3 mask upscaled preserves position."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((3, 3), dtype=bool)
@@ -1724,8 +1715,6 @@ class TestRleResize:
     @pytest.mark.parametrize("seed", list(range(45)))
     def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
         """_rle_resize matches cv2.resize(INTER_NEAREST) within 1-pixel tolerance."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(seed + 7000)
@@ -1764,8 +1753,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Single-row and single-col crops scale correctly with cv2 parity."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 31 + dst_shape[1] * 17)
@@ -1794,8 +1781,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Prime-sized crops with non-integer scale ratios match cv2 exactly."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 101 + dst_shape[1] * 53)
@@ -1857,8 +1842,6 @@ class TestRleResize:
         Checkerboard yields ~1 run per pixel, far above the 0.25 threshold.
         Result must match cv2.resize(INTER_NEAREST) within 1 pixel.
         """
-        import cv2
-
         from supervision.detection.compact_mask import (
             _L3_DENSITY_THRESHOLD,
             _resize_crop,

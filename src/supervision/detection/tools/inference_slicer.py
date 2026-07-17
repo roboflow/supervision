@@ -183,7 +183,7 @@ class InferenceSlicer:
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRMedium
 
@@ -237,7 +237,7 @@ class InferenceSlicer:
         that benefit from batched forward passes:
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import numpy as np
         import supervision as sv
 

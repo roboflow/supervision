@@ -1,10 +1,10 @@
 import os
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
 

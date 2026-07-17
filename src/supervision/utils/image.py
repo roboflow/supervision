@@ -13,7 +13,6 @@ from pathlib import Path
 from types import TracebackType
 from typing import Literal, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import (  # type: ignore[import-untyped,unused-ignore]
@@ -22,6 +21,7 @@ from deprecate import (  # type: ignore[import-untyped,unused-ignore]
 )
 from PIL import Image
 
+from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text

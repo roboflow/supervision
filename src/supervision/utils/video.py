@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-import tempfile
 import threading
 import time
 from collections import deque
@@ -13,11 +9,12 @@ from queue import Empty, Full, Queue
 from types import TracebackType
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
+from supervision._cv2._video import _mux_audio
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -58,6 +55,22 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
+        """Read video metadata from a file path.
+
+        Args:
+            video_path: Path to the video file.
+
+        Returns:
+            A `VideoInfo` instance with width, height, fps, and total_frames.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
+            # VideoInfo(width=3840, height=2160, fps=25.0, total_frames=538)
+            ```
+        """
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
             raise Exception(f"Could not open video at {video_path}")
@@ -154,73 +167,6 @@ class VideoSink:
             self.__writer = None
 
 
-def _mux_audio(source_path: str, video_path: str) -> None:
-    """Mux audio from `source_path` into `video_path` in-place using ffmpeg.
-
-    Args:
-        source_path: Path to the original video file containing the audio stream.
-        video_path: Path to the video-only file to be updated with audio.
-    """
-    ffmpeg_path = shutil.which("ffmpeg")
-    if ffmpeg_path is None:
-        logger.warning(
-            "ffmpeg not found on PATH. Audio will not be preserved. "
-            "Install ffmpeg to enable audio preservation."
-        )
-        return
-
-    tmp_path = None
-    try:
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            suffix=os.path.splitext(video_path)[1],
-            dir=os.path.dirname(os.path.abspath(video_path)),
-        )
-        os.close(tmp_fd)
-        result = subprocess.run(  # noqa: S603
-            [
-                ffmpeg_path,
-                "-y",
-                "-loglevel",
-                "error",
-                "-nostats",
-                "-i",
-                video_path,
-                "-i",
-                source_path,
-                "-c:v",
-                "copy",
-                "-c:a",
-                "copy",
-                "-map",
-                "0:v:0",
-                "-map",
-                "1:a:0?",
-                "-shortest",
-                tmp_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=300,
-        )
-        if result.returncode != 0:
-            stderr_msg = result.stderr.decode(errors="replace").strip()
-            logger.warning(
-                "ffmpeg failed to mux audio (return code %d)%s. "
-                "The output video will not have audio.",
-                result.returncode,
-                f": {stderr_msg}" if stderr_msg else "",
-            )
-            return
-        os.replace(tmp_path, video_path)
-    except Exception as exc:
-        logger.warning(
-            "Audio muxing failed: %s. Output video will not have audio.", exc
-        )
-    finally:
-        if tmp_path is not None and os.path.exists(tmp_path):
-            os.remove(tmp_path)
-
-
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ) -> tuple[cv2.VideoCapture, int, int]:
@@ -272,8 +218,27 @@ def get_video_frames_generator(
             frames of the video.
 
     Note:
-        The underlying `cv2.VideoCapture` is always released when the generator
-        is exhausted or closed, even if the consumer breaks out of iteration early.
+        For live camera streams, use `cv2.VideoCapture` with an integer device
+        index directly. `get_video_frames_generator` is designed for file-based
+        sources; `cv2.VideoCapture` must be released by the caller when done.
+        This requires OpenCV to be installed — the PyAV-based fallback used
+        when OpenCV is unavailable only supports file paths, not webcam device
+        indexes; passing an integer source to it always leaves the capture
+        closed (`isOpened()` returns `False`):
+
+        ```python
+        from supervision import _cv2 as cv2
+
+        cap = cv2.VideoCapture(0)  # 0 = default webcam
+        try:
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success:
+                    break
+                ...  # process frame
+        finally:
+            cap.release()
+        ```
 
     Examples:
         ```python
@@ -348,11 +313,11 @@ def process_video(
             Default is False.
         progress_message: Description shown in the progress bar.
         preserve_audio: If True, copy the audio stream from `source_path` into
-            `target_path` after frame processing. Requires `ffmpeg` on PATH
-            (e.g. `apt install ffmpeg`, `brew install ffmpeg`). If ffmpeg is
-            not found or the mux step fails, a warning is logged and the output
-            video is saved without audio — no exception is raised. Audio is
-            truncated to match the processed video duration. Default is False.
+            `target_path` after frame processing. Remuxing is done with PyAV;
+            no external `ffmpeg` executable is required. If the mux step
+            fails, a warning is logged and the output video is saved without
+            audio — no exception is raised. Audio is truncated to match the
+            processed video duration. Default is False.
 
     Returns:
         None

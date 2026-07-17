@@ -1,9 +1,10 @@
 import os
 
-import cv2
 import numpy as np
 from _pytest.fixtures import fixture
 from PIL import Image
+
+from supervision import _cv2 as cv2
 
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets"))
 ALL_IMAGES_LIST = [os.path.join(ASSETS_DIR, f"{i}.jpg") for i in range(1, 6)]
