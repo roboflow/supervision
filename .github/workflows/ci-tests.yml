@@ -70,6 +70,9 @@ jobs:
       - name: 📦 Run the Import test
         run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
+      - name: 📋 Print installed packages
+        run: uv pip list
+
       - name: 🧪 Run the Test
         run: pytest src/ tests/ --cov=supervision --cov-report=xml
 
