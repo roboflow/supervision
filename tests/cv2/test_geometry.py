@@ -10,7 +10,6 @@ import pytest
 from supervision._cv2._geometry import (
     _approx_poly_dp,
     _contour_area,
-    _fill_poly,
     _intersect_convex_convex,
 )
 
@@ -73,6 +72,14 @@ def test_contour_area_matches_opencv(contour: np.ndarray, oriented: bool) -> Non
             0.5,
             id="collinear-runs",
         ),
+        pytest.param(
+            np.array(
+                [[4, 0], [8, 0], [12, 4], [12, 8], [8, 12], [4, 12], [0, 8], [0, 4]],
+                dtype=np.int32,
+            ),
+            0.5,
+            id="octagon",
+        ),
     ],
 )
 def test_approx_poly_dp_matches_opencv(contour: np.ndarray, epsilon: float) -> None:
@@ -122,15 +129,3 @@ def test_intersect_convex_convex_matches_opencv(
         atol=1e-6,
         rtol=0,
     )
-
-
-def test_fill_poly_matches_opencv_for_mask_conversion() -> None:
-    """Fill an integer polygon with the same inclusive mask boundary as OpenCV."""
-    polygon = np.array([[2, 2], [6, 2], [6, 6], [2, 6]], dtype=np.int32)
-    actual = np.zeros((10, 10), dtype=np.uint8)
-    expected = np.zeros((10, 10), dtype=np.uint8)
-
-    _fill_poly(actual, [polygon], color=(1,))
-    cv2.fillPoly(expected, [polygon], color=(1,))
-
-    np.testing.assert_array_equal(actual, expected)

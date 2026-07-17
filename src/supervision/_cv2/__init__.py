@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from supervision._cv2._color import _cvt_color, _merge, _split
-from supervision._cv2._common import BackendUnavailableError, _unavailable
+from supervision._cv2._common import BackendUnavailableError
 from supervision._cv2._components import (
     _connected_components,
     _connected_components_with_stats,
@@ -33,11 +33,17 @@ from supervision._cv2._image import (
     _mean,
     _resize,
 )
+from supervision._cv2._text import _get_text_size, _put_text
 from supervision._cv2._transform import (
     _blur,
     _distance_transform,
     _get_rotation_matrix_2d,
     _warp_affine,
+)
+from supervision._cv2._video import (
+    _video_writer_fourcc,
+    _VideoCapture,
+    _VideoWriter,
 )
 from supervision._cv2.constants import (
     _BORDER_CONSTANT,
@@ -54,12 +60,21 @@ from supervision._cv2.constants import (
     _COLOR_HSV2BGR,
     _COLOR_RGB2BGR,
     _DIST_L2,
+    _FONT_HERSHEY_COMPLEX,
+    _FONT_HERSHEY_COMPLEX_SMALL,
+    _FONT_HERSHEY_DUPLEX,
+    _FONT_HERSHEY_PLAIN,
+    _FONT_HERSHEY_SCRIPT_COMPLEX,
+    _FONT_HERSHEY_SCRIPT_SIMPLEX,
     _FONT_HERSHEY_SIMPLEX,
+    _FONT_HERSHEY_TRIPLEX,
+    _FONT_ITALIC,
     _IMREAD_COLOR,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
     _LINE_4,
+    _LINE_8,
     _LINE_AA,
     _RETR_TREE,
 )
@@ -72,7 +87,7 @@ else:
     _IS_CV2_AVAILABLE = True
 
 if _IS_CV2_AVAILABLE:
-    from cv2 import (
+    from cv2 import (  # type: ignore[attr-defined]
         BORDER_CONSTANT,
         CAP_PROP_FPS,
         CAP_PROP_FRAME_COUNT,
@@ -87,17 +102,26 @@ if _IS_CV2_AVAILABLE:
         COLOR_HSV2BGR,
         COLOR_RGB2BGR,
         DIST_L2,
+        FONT_HERSHEY_COMPLEX,
+        FONT_HERSHEY_COMPLEX_SMALL,
+        FONT_HERSHEY_DUPLEX,
+        FONT_HERSHEY_PLAIN,
+        FONT_HERSHEY_SCRIPT_COMPLEX,
+        FONT_HERSHEY_SCRIPT_SIMPLEX,
         FONT_HERSHEY_SIMPLEX,
+        FONT_HERSHEY_TRIPLEX,
+        FONT_ITALIC,
         IMREAD_COLOR,
         IMREAD_UNCHANGED,
         INTER_LINEAR,
         INTER_NEAREST,
         LINE_4,
+        LINE_8,
         LINE_AA,
         RETR_TREE,
         VideoCapture,
         VideoWriter,
-        VideoWriter_fourcc,
+        VideoWriter_fourcc,  # type: ignore[attr-defined]
         addWeighted,
         approxPolyDP,
         blur,
@@ -148,48 +172,59 @@ else:
     COLOR_HSV2BGR = _COLOR_HSV2BGR
     COLOR_RGB2BGR = _COLOR_RGB2BGR
     DIST_L2 = _DIST_L2
+    FONT_HERSHEY_COMPLEX = _FONT_HERSHEY_COMPLEX
+    FONT_HERSHEY_COMPLEX_SMALL = _FONT_HERSHEY_COMPLEX_SMALL
+    FONT_HERSHEY_DUPLEX = _FONT_HERSHEY_DUPLEX
+    FONT_HERSHEY_PLAIN = _FONT_HERSHEY_PLAIN
+    FONT_HERSHEY_SCRIPT_COMPLEX = _FONT_HERSHEY_SCRIPT_COMPLEX
+    FONT_HERSHEY_SCRIPT_SIMPLEX = _FONT_HERSHEY_SCRIPT_SIMPLEX
     FONT_HERSHEY_SIMPLEX = _FONT_HERSHEY_SIMPLEX
+    FONT_HERSHEY_TRIPLEX = _FONT_HERSHEY_TRIPLEX
+    FONT_ITALIC = _FONT_ITALIC
     IMREAD_COLOR = _IMREAD_COLOR
     IMREAD_UNCHANGED = _IMREAD_UNCHANGED
     INTER_LINEAR = _INTER_LINEAR
     INTER_NEAREST = _INTER_NEAREST
     LINE_4 = _LINE_4
+    LINE_8 = _LINE_8
     LINE_AA = _LINE_AA
     RETR_TREE = _RETR_TREE
 
-    VideoCapture = _unavailable
-    VideoWriter = _unavailable
-    VideoWriter_fourcc = _unavailable
-    addWeighted = _add_weighted
-    approxPolyDP = _approx_poly_dp
-    blur = _blur
-    circle = _circle
-    connectedComponents = _connected_components
-    connectedComponentsWithStats = _connected_components_with_stats
-    contourArea = _contour_area
-    convertScaleAbs = _convert_scale_abs
-    copyMakeBorder = _copy_make_border
-    cvtColor = _cvt_color
-    distanceTransform = _distance_transform
-    drawContours = _draw_contours
-    ellipse = _ellipse
-    fillPoly = _fill_poly
-    findContours = _find_contours
-    flip = _flip
-    getRotationMatrix2D = _get_rotation_matrix_2d
-    getTextSize = _unavailable
-    imread = _imread
-    imwrite = _imwrite
-    intersectConvexConvex = _intersect_convex_convex
-    line = _line
-    mean = _mean
-    merge = _merge
-    polylines = _polylines
-    putText = _unavailable
-    rectangle = _rectangle
-    resize = _resize
-    split = _split
-    warpAffine = _warp_affine
+    # Fallback implementations when cv2 is not available. Suppress type errors because
+    # fallback types differ from cv2 types, but are functionally equivalent.
+    VideoCapture = _VideoCapture  # type: ignore[assignment,misc]
+    VideoWriter = _VideoWriter  # type: ignore[assignment,misc]
+    VideoWriter_fourcc = _video_writer_fourcc  # type: ignore[assignment]
+    addWeighted = _add_weighted  # type: ignore[assignment]
+    approxPolyDP = _approx_poly_dp  # type: ignore[assignment]
+    blur = _blur  # type: ignore[assignment]
+    circle = _circle  # type: ignore[assignment]
+    connectedComponents = _connected_components  # type: ignore[assignment]
+    connectedComponentsWithStats = _connected_components_with_stats  # type: ignore[assignment]
+    contourArea = _contour_area  # type: ignore[assignment]
+    convertScaleAbs = _convert_scale_abs  # type: ignore[assignment]
+    copyMakeBorder = _copy_make_border  # type: ignore[assignment]
+    cvtColor = _cvt_color  # type: ignore[assignment]
+    distanceTransform = _distance_transform  # type: ignore[assignment]
+    drawContours = _draw_contours  # type: ignore[assignment]
+    ellipse = _ellipse  # type: ignore[assignment]
+    fillPoly = _fill_poly  # type: ignore[assignment]
+    findContours = _find_contours  # type: ignore[assignment]
+    flip = _flip  # type: ignore[assignment]
+    getRotationMatrix2D = _get_rotation_matrix_2d  # type: ignore[assignment]
+    getTextSize = _get_text_size  # type: ignore[assignment]
+    imread = _imread  # type: ignore[assignment]
+    imwrite = _imwrite  # type: ignore[assignment]
+    intersectConvexConvex = _intersect_convex_convex  # type: ignore[assignment]
+    line = _line  # type: ignore[assignment]
+    mean = _mean  # type: ignore[assignment]
+    merge = _merge  # type: ignore[assignment]
+    polylines = _polylines  # type: ignore[assignment]
+    putText = _put_text  # type: ignore[assignment]
+    rectangle = _rectangle  # type: ignore[assignment]
+    resize = _resize  # type: ignore[assignment]
+    split = _split  # type: ignore[assignment]
+    warpAffine = _warp_affine  # type: ignore[assignment]
 
 
 __all__ = [
@@ -208,12 +243,21 @@ __all__ = [
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
     "DIST_L2",
+    "FONT_HERSHEY_COMPLEX",
+    "FONT_HERSHEY_COMPLEX_SMALL",
+    "FONT_HERSHEY_DUPLEX",
+    "FONT_HERSHEY_PLAIN",
+    "FONT_HERSHEY_SCRIPT_COMPLEX",
+    "FONT_HERSHEY_SCRIPT_SIMPLEX",
     "FONT_HERSHEY_SIMPLEX",
+    "FONT_HERSHEY_TRIPLEX",
+    "FONT_ITALIC",
     "IMREAD_COLOR",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
     "LINE_4",
+    "LINE_8",
     "LINE_AA",
     "RETR_TREE",
     "BackendUnavailableError",

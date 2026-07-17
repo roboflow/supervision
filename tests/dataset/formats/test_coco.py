@@ -2,11 +2,11 @@ import json
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 
 from supervision import DetectionDataset, Detections
+from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,

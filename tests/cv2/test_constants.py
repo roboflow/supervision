@@ -36,12 +36,21 @@ OPENCV_CONSTANTS = [
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
     "DIST_L2",
+    "FONT_HERSHEY_COMPLEX",
+    "FONT_HERSHEY_COMPLEX_SMALL",
+    "FONT_HERSHEY_DUPLEX",
+    "FONT_HERSHEY_PLAIN",
+    "FONT_HERSHEY_SCRIPT_COMPLEX",
+    "FONT_HERSHEY_SCRIPT_SIMPLEX",
     "FONT_HERSHEY_SIMPLEX",
+    "FONT_HERSHEY_TRIPLEX",
+    "FONT_ITALIC",
     "IMREAD_COLOR",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
     "LINE_4",
+    "LINE_8",
     "LINE_AA",
     "RETR_TREE",
 ]
@@ -54,7 +63,7 @@ def _run_without_opencv(source: str) -> None:
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, env.get("PYTHONPATH")))
     )
-    subprocess.run(  # noqa: S603
+    subprocess.run(
         [sys.executable, "-c", source],
         check=True,
         env=env,

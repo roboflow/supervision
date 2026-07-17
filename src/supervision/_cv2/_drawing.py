@@ -32,7 +32,7 @@ def _color_for_image(image: _ImageArray, color: Any) -> Any:
     if values.size == 0:
         return np.zeros(channels, dtype=image.dtype)
     if values.size < channels:
-        values = np.pad(values, (0, channels - values.size))
+        return np.pad(values, (0, channels - values.size))
     return values[:channels]
 
 
@@ -97,7 +97,9 @@ def _rectangle(
     """Draw or fill an inclusive-axis-aligned rectangle in place."""
     del lineType
     _validate_shift(shift)
-    first, second = _point(pt1), _point(pt2)
+    first_point, second_point = _point(pt1), _point(pt2)
+    first = tuple(min(left, right) for left, right in zip(first_point, second_point))
+    second = tuple(max(left, right) for left, right in zip(first_point, second_point))
     if thickness < 0:
         mask = _drawing_mask(img, lambda draw: draw.rectangle([first, second], fill=1))
     else:
@@ -205,7 +207,15 @@ def _polylines(
     def draw_polylines(draw: Any) -> None:
         for polygon in pts:
             points = _points(polygon)
-            if len(points) < 2:
+            if not points:
+                continue
+            points = [
+                point
+                for index, point in enumerate(points)
+                if index == 0 or point != points[index - 1]
+            ]
+            if len(points) == 1:
+                draw.point(points[0], fill=1)
                 continue
             if isClosed:
                 points.append(points[0])
@@ -229,7 +239,11 @@ def _fill_poly(
     def draw_polygons(draw: Any) -> None:
         for polygon in pts:
             points = _points(polygon, offset=offset)
-            if len(points) >= 3:
+            if len(points) == 1:
+                draw.point(points[0], fill=1)
+            elif len(points) == 2:
+                draw.line(points, fill=1)
+            elif len(points) >= 3:
                 draw.polygon(points, fill=1)
 
     return _paint(img, _drawing_mask(img, draw_polygons), color)

@@ -13,7 +13,8 @@ from supervision._cv2._components import (
     _connected_components_with_stats,
 )
 from supervision._cv2._contours import _find_contours
-from supervision._cv2._geometry import _fill_poly, _intersect_convex_convex
+from supervision._cv2._drawing import _fill_poly
+from supervision._cv2._geometry import _intersect_convex_convex
 from supervision._cv2.constants import _CHAIN_APPROX_SIMPLE, _RETR_TREE
 
 try:

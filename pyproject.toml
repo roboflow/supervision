@@ -47,6 +47,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "av>=14.2",
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
@@ -166,6 +167,7 @@ lint.per-file-ignores."src/**" = [
 ]
 lint.per-file-ignores."tests/**" = [
   "S101", # Use of `assert` detected
+  "S603", # `subprocess` call: subprocess with hardcoded args in test utilities is safe
 ]
 lint.unfixable = []
 # Allow unused variables when underscore-prefixed.
@@ -191,8 +193,12 @@ mypy_path = "src"
 explicit_package_bases = true
 ignore_missing_imports = false
 python_version = "3.10"
+warn_unused_ignores = true
 strict = true
-overrides = [ { module = [ "examples.*", "tests.*" ], ignore_errors = true } ]
+overrides = [
+  { module = [ "examples.*", "tests.*" ], ignore_errors = true },
+  { module = [ "supervision._cv2" ], warn_unused_ignores = false },
+]
 
 [tool.pytest]
 ini_options.testpaths = [ "src", "tests" ]

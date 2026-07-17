@@ -2,36 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-
-
-def _point_in_polygon(point: tuple[int, int], polygon: npt.NDArray[np.float64]) -> bool:
-    """Return whether an integer pixel lies inside or on a polygon boundary."""
-    x, y = point
-    inside = False
-    previous = polygon[-1]
-    for current in polygon:
-        x_current, y_current = current
-        x_previous, y_previous = previous
-        edge = current - previous
-        relative = np.array([x - x_previous, y - y_previous], dtype=np.float64)
-        if (
-            edge[0] * relative[1] - edge[1] * relative[0] == 0
-            and min(x_previous, x_current) <= x <= max(x_previous, x_current)
-            and min(y_previous, y_current) <= y <= max(y_previous, y_current)
-        ):
-            return True
-        if (y_current > y) != (y_previous > y):
-            intersection = (x_previous - x_current) * (y - y_current) / (
-                y_previous - y_current
-            ) + x_current
-            if x < intersection:
-                inside = not inside
-        previous = current
-    return inside
 
 
 def _as_points(contour: npt.NDArray[Any]) -> npt.NDArray[np.float64]:
@@ -93,7 +67,7 @@ def _douglas_peucker(
             keep[split] = True
             pending.extend(((start, split), (split, end)))
 
-    return points[keep]
+    return cast(npt.NDArray[np.float64], points[keep])  # type: ignore[redundant-cast]
 
 
 def _approx_poly_dp(
@@ -109,7 +83,25 @@ def _approx_poly_dp(
 
     if closed and len(points) > 1 and np.array_equal(points[0], points[-1]):
         points = points[:-1]
-    simplified = _douglas_peucker(points, epsilon)
+    if closed and len(points) > 2:
+        # Seed the two split anchors the way OpenCV's approxPolyDP does: the point
+        # farthest from points[0], then the point farthest from that one. Two O(N)
+        # passes replace an O(N^2) all-pairs distance matrix while landing on cv2's
+        # own arc endpoints, which matters because approximate_polygon re-invokes
+        # this on the full-size polygon every simplification step.
+        coordinates = points.astype(np.float64)
+        anchor_a = int(np.argmax(np.sum((coordinates - coordinates[0]) ** 2, axis=1)))
+        anchor_b = int(
+            np.argmax(np.sum((coordinates - coordinates[anchor_a]) ** 2, axis=1))
+        )
+        start, end = sorted((anchor_a, anchor_b))
+        first_arc = points[start : end + 1]
+        second_arc = np.concatenate((points[end:], points[: start + 1]))
+        first_simplified = _douglas_peucker(first_arc, epsilon)
+        second_simplified = _douglas_peucker(second_arc, epsilon)
+        simplified = np.concatenate((first_simplified[:-1], second_simplified[:-1]))
+    else:
+        simplified = _douglas_peucker(points, epsilon)
     if closed and len(simplified) > 1 and np.array_equal(simplified[0], simplified[-1]):
         simplified = simplified[:-1]
 
@@ -171,38 +163,3 @@ def _intersect_convex_convex(
     dtype = np.asarray(first).dtype
     result_dtype = dtype if np.issubdtype(dtype, np.floating) else np.float32
     return area, output.astype(result_dtype, copy=False).reshape(-1, 1, 2)
-
-
-def _fill_poly(
-    image: npt.NDArray[Any],
-    polygons: list[npt.NDArray[Any]],
-    color: Any,
-    line_type: int = 8,
-    shift: int = 0,
-    offset: tuple[int, int] = (0, 0),
-) -> None:
-    """Fill integer polygons for the mask and polygon conversion consumers."""
-    if shift != 0:
-        raise ValueError("Only unshifted polygon coordinates are supported")
-    if image.ndim not in (2, 3):
-        raise ValueError("fillPoly expects a two- or three-dimensional image")
-    del line_type
-
-    values = np.asarray(image)
-    for polygon in polygons:
-        points = _as_points(polygon)
-        if len(points) < 3:
-            continue
-        points = points + np.asarray(offset, dtype=np.float64)
-        min_x = max(0, int(np.floor(points[:, 0].min())))
-        max_x = min(values.shape[1] - 1, int(np.ceil(points[:, 0].max())))
-        min_y = max(0, int(np.floor(points[:, 1].min())))
-        max_y = min(values.shape[0] - 1, int(np.ceil(points[:, 1].max())))
-        for y in range(min_y, max_y + 1):
-            for x in range(min_x, max_x + 1):
-                if not _point_in_polygon((x, y), points):
-                    continue
-                if values.ndim == 2:
-                    values[y, x] = color[0] if np.ndim(color) else color
-                else:
-                    values[y, x] = color
