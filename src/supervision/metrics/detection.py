@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import itertools
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -20,6 +21,7 @@ from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
+    mask_iou_batch,
     oriented_box_iou_batch,
 )
 from supervision.metrics.core import MetricTarget
@@ -27,13 +29,6 @@ from supervision.metrics.utils.matching import _greedy_match
 
 if TYPE_CHECKING:
     from matplotlib.figure import Figure
-
-
-def _assert_supported_target(metric_target: MetricTarget) -> None:
-    if metric_target == MetricTarget.MASKS:
-        raise ValueError(
-            "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
-        )
 
 
 def _validated_class_ids(
@@ -71,9 +66,13 @@ def detections_to_tensor(
     Args:
         detections: Detections/Targets in the format of sv.Detections.
         with_confidence: Whether to include confidence as the last column.
-        metric_target: The type of detection data to use.
-            Supports `MetricTarget.BOXES` and
-            `MetricTarget.ORIENTED_BOUNDING_BOXES`.
+        metric_target: The type of detection data to use. Supports
+            `MetricTarget.BOXES`, `MetricTarget.ORIENTED_BOUNDING_BOXES`, and
+            `MetricTarget.MASKS`. For `MetricTarget.MASKS`, this function
+            still returns a box-shaped tensor (see table below) — mask pixels
+            cannot be flattened into a tensor row the way box/OBB coordinates
+            can, so callers needing mask IoU must pass masks separately (see
+            `ConfusionMatrix.from_tensors`'s `prediction_masks`/`target_masks`).
 
     Returns:
         Detections as a float32 numpy array. Shape depends on `metric_target`
@@ -83,17 +82,20 @@ def detections_to_tensor(
         |----------------------------------------|-------------------|-----------|
         | `MetricTarget.BOXES`                   | `False`           | `(N, 5)`  |
         | `MetricTarget.BOXES`                   | `True`            | `(N, 6)`  |
+        | `MetricTarget.MASKS`                   | `False`           | `(N, 5)`  |
+        | `MetricTarget.MASKS`                   | `True`            | `(N, 6)`  |
         | `MetricTarget.ORIENTED_BOUNDING_BOXES` | `False`           | `(N, 9)`  |
         | `MetricTarget.ORIENTED_BOUNDING_BOXES` | `True`            | `(N, 10)` |
 
         Column layout:
 
-        - `BOXES`: ``[x_min, y_min, x_max, y_max, class_id [, confidence]]``
+        - `BOXES` / `MASKS`: ``[x_min, y_min, x_max, y_max, class_id [, confidence]]``
+          (for `MASKS`, the box columns are carried for class/confidence only —
+          unused for IoU)
         - `ORIENTED_BOUNDING_BOXES`:
           ``[x1, y1, x2, y2, x3, y3, x4, y4, class_id [, confidence]]``
 
     Raises:
-        ValueError: If `metric_target` is `MetricTarget.MASKS`.
         ValueError: If `detections.class_id` is `None`.
         ValueError: If `with_confidence=True` and `detections.confidence` is `None`.
         ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
@@ -128,8 +130,6 @@ def detections_to_tensor(
 
         ```
     """
-    _assert_supported_target(metric_target)
-
     if detections.class_id is None:
         raise ValueError(
             "ConfusionMatrix can only be calculated for Detections with class_id"
@@ -297,7 +297,17 @@ def _split_detections_by_outcome(
         )
 
     # IoU computation mirrors evaluate_detection_batch — keep in sync if either changes.
-    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+    if metric_target == MetricTarget.MASKS:
+        if targets.mask is None or filtered_predictions.mask is None:
+            raise ValueError(
+                "_split_detections_by_outcome with MetricTarget.MASKS requires "
+                "masks on both predictions and targets."
+            )
+        iou_matrix = mask_iou_batch(
+            masks_true=np.asarray(targets.mask).astype(bool),
+            masks_detection=np.asarray(filtered_predictions.mask).astype(bool),
+        )
+    elif metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         iou_matrix = oriented_box_iou_batch(
             boxes_true=np.asarray(
                 targets.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
@@ -701,14 +711,16 @@ class ConfusionMatrix:
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
             metric_target: The type of detection data to use.
-                Supports `MetricTarget.BOXES` (default) and
-                `MetricTarget.ORIENTED_BOUNDING_BOXES`. When using
+                Supports `MetricTarget.BOXES` (default),
+                `MetricTarget.ORIENTED_BOUNDING_BOXES`, and
+                `MetricTarget.MASKS`. When using
                 `MetricTarget.ORIENTED_BOUNDING_BOXES`, each `Detections`
                 object must include OBB coordinates in
                 `detections.data[ORIENTED_BOX_COORDINATES]` as a float32
                 array of shape `(N, 8)` (flat) or `(N, 4, 2)` (as stored by
                 `from_ultralytics`); both are normalised to `(N, 8)` internally.
-                `MetricTarget.MASKS` is not supported.
+                When using `MetricTarget.MASKS`, every `prediction`/`target`
+                pair must have `.mask` set (raises `ValueError` otherwise).
 
         Returns:
             New instance of ConfusionMatrix.
@@ -743,6 +755,8 @@ class ConfusionMatrix:
         """
         prediction_tensors = []
         target_tensors = []
+        prediction_masks: list[npt.NDArray[np.bool_]] = []
+        target_masks: list[npt.NDArray[np.bool_]] = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
                 detections_to_tensor(
@@ -754,6 +768,14 @@ class ConfusionMatrix:
                     target, with_confidence=False, metric_target=metric_target
                 )
             )
+            if metric_target == MetricTarget.MASKS:
+                if prediction.mask is None or target.mask is None:
+                    raise ValueError(
+                        "ConfusionMatrix with MetricTarget.MASKS requires masks "
+                        "on both predictions and targets."
+                    )
+                prediction_masks.append(np.asarray(prediction.mask).astype(bool))
+                target_masks.append(np.asarray(target.mask).astype(bool))
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
@@ -761,6 +783,8 @@ class ConfusionMatrix:
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
             metric_target=metric_target,
+            prediction_masks=prediction_masks or None,
+            target_masks=target_masks or None,
         )
 
     @classmethod
@@ -772,6 +796,8 @@ class ConfusionMatrix:
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
+        prediction_masks: list[npt.NDArray[np.bool_]] | None = None,
+        target_masks: list[npt.NDArray[np.bool_]] | None = None,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -780,15 +806,18 @@ class ConfusionMatrix:
             predictions: Each element of the list describes a single
                 image and has `shape = (M, 6)` or `shape = (M, 10)` depending on
                 `metric_target`.
-                If `MetricTarget.BOXES`, each row is in
-                `(x_min, y_min, x_max, y_max, class, conf)` format.
+                If `MetricTarget.BOXES` or `MetricTarget.MASKS`, each row is in
+                `(x_min, y_min, x_max, y_max, class, conf)` format (box
+                columns unused for IoU under `MetricTarget.MASKS` — see
+                `prediction_masks`).
                 If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
                 `(x1, y1, x2, y2, x3, y3, x4, y4, class, conf)` format.
             targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` or `shape = (N, 9)` depending on
                 `metric_target`.
-                If `MetricTarget.BOXES`, each row is in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                If `MetricTarget.BOXES` or `MetricTarget.MASKS`, each row is in
+                `(x_min, y_min, x_max, y_max, class)` format (box columns
+                unused for IoU under `MetricTarget.MASKS` — see `target_masks`).
                 If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
                 `(x1, y1, x2, y2, x3, y3, x4, y4, class)` format.
             classes: Model class names.
@@ -798,7 +827,13 @@ class ConfusionMatrix:
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
                 Determines expected tensor shapes (see Args above for column
-                layouts). `MetricTarget.MASKS` is not supported.
+                layouts).
+            prediction_masks: Required when `metric_target` is
+                `MetricTarget.MASKS`. One 3D boolean `(M, H, W)` mask array
+                per element of `predictions`, same order and length.
+            target_masks: Required when `metric_target` is
+                `MetricTarget.MASKS`. One 3D boolean `(N, H, W)` mask array
+                per element of `targets`, same order and length.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -833,14 +868,38 @@ class ConfusionMatrix:
 
             ```
         """
-        _assert_supported_target(metric_target)
         _validate_input_tensors(predictions, targets, metric_target=metric_target)
+
+        if metric_target == MetricTarget.MASKS:
+            if prediction_masks is None or target_masks is None:
+                raise ValueError(
+                    "ConfusionMatrix.from_tensors with MetricTarget.MASKS "
+                    "requires prediction_masks and target_masks."
+                )
+            if len(prediction_masks) != len(predictions) or len(target_masks) != len(
+                targets
+            ):
+                raise ValueError(
+                    "prediction_masks and target_masks must have the same "
+                    "length as predictions and targets, respectively."
+                )
+            prediction_mask_iter: Iterator[npt.NDArray[np.bool_] | None] = iter(
+                prediction_masks
+            )
+            target_mask_iter: Iterator[npt.NDArray[np.bool_] | None] = iter(
+                target_masks
+            )
+        else:
+            prediction_mask_iter = itertools.repeat(None)
+            target_mask_iter = itertools.repeat(None)
 
         num_classes = len(classes)
         matrix: npt.NDArray[np.int32] = np.zeros(
             (num_classes + 1, num_classes + 1), dtype=np.int32
         )
-        for true_batch, detection_batch in zip(targets, predictions):
+        for true_batch, detection_batch, true_mask, detection_mask in zip(
+            targets, predictions, target_mask_iter, prediction_mask_iter
+        ):
             matrix += cls.evaluate_detection_batch(
                 predictions=detection_batch,
                 targets=true_batch,
@@ -848,6 +907,8 @@ class ConfusionMatrix:
                 conf_threshold=conf_threshold,
                 iou_threshold=iou_threshold,
                 metric_target=metric_target,
+                prediction_mask=detection_mask,
+                target_mask=true_mask,
             )
         return cls(
             matrix=matrix,
@@ -865,6 +926,8 @@ class ConfusionMatrix:
         conf_threshold: float,
         iou_threshold: float,
         metric_target: MetricTarget = MetricTarget.BOXES,
+        prediction_mask: npt.NDArray[np.bool_] | None = None,
+        target_mask: npt.NDArray[np.bool_] | None = None,
     ) -> npt.NDArray[np.int32]:
         """
         Calculate confusion matrix for a batch of detections for a single image.
@@ -873,15 +936,19 @@ class ConfusionMatrix:
             predictions: Batch prediction. Describes a single image and
                 has `shape = (M, 6)` or `shape = (M, 10)` depending on
                 `metric_target`.
-                If `MetricTarget.BOXES`, each row is in
-                `(x_min, y_min, x_max, y_max, class, conf)` format.
+                If `MetricTarget.BOXES` or `MetricTarget.MASKS`, each row is in
+                `(x_min, y_min, x_max, y_max, class, conf)` format (the box
+                columns are present but unused for IoU when `metric_target`
+                is `MetricTarget.MASKS` — see `prediction_mask`).
                 If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
                 `(x1, y1, x2, y2, x3, y3, x4, y4, class, conf)` format.
             targets: Batch target labels. Describes a single image and
                 has `shape = (N, 5)` or `shape = (N, 9)` depending on
                 `metric_target`.
-                If `MetricTarget.BOXES`, each row is in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                If `MetricTarget.BOXES` or `MetricTarget.MASKS`, each row is in
+                `(x_min, y_min, x_max, y_max, class)` format (the box columns
+                are present but unused for IoU when `metric_target` is
+                `MetricTarget.MASKS` — see `target_mask`).
                 If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
                 `(x1, y1, x2, y2, x3, y3, x4, y4, class)` format.
             num_classes: Number of classes.
@@ -890,15 +957,21 @@ class ConfusionMatrix:
             iou_threshold: Detection iou threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
-                Determines IoU function (`box_iou_batch` vs
-                `oriented_box_iou_batch`) and coordinate column count.
-                `MetricTarget.MASKS` is not supported.
+                Determines IoU function (`box_iou_batch`,
+                `oriented_box_iou_batch`, or `mask_iou_batch`) and coordinate
+                column count.
+            prediction_mask: Required when `metric_target` is
+                `MetricTarget.MASKS`. 3D boolean `np.ndarray` of shape
+                `(M, H, W)` — one mask per row of `predictions`, same order.
+                Not embedded in `predictions` because mask pixels can't be
+                flattened into a tensor row the way box/OBB coordinates can.
+            target_mask: Required when `metric_target` is `MetricTarget.MASKS`.
+                3D boolean `np.ndarray` of shape `(N, H, W)` — one mask per
+                row of `targets`, same order.
 
         Returns:
             Confusion matrix based on a single image.
         """
-        _assert_supported_target(metric_target)
-
         expected_pred_cols = (
             10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
         )
@@ -954,7 +1027,17 @@ class ConfusionMatrix:
         detection_boxes = detection_batch_filtered[:, :coords_dim]
 
         # Calculate IoU matrix
-        if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        if metric_target == MetricTarget.MASKS:
+            if prediction_mask is None or target_mask is None:
+                raise ValueError(
+                    "evaluate_detection_batch with MetricTarget.MASKS requires "
+                    "prediction_mask and target_mask."
+                )
+            iou_batch = mask_iou_batch(
+                masks_true=target_mask,
+                masks_detection=prediction_mask[confidence >= conf_threshold],
+            )
+        elif metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             iou_batch = oriented_box_iou_batch(
                 boxes_true=true_boxes, boxes_detection=detection_boxes
             )
@@ -1067,9 +1150,10 @@ class ConfusionMatrix:
                 are written directly to this directory (no subdirectory is added).
                 When ``None`` (default), no images are saved.
             metric_target: The type of detection data to use.
-                Supports `MetricTarget.BOXES` and
-                `MetricTarget.ORIENTED_BOUNDING_BOXES`. Passed through to
-                `from_detections`. `MetricTarget.MASKS` is not supported.
+                Supports `MetricTarget.BOXES`, `MetricTarget.ORIENTED_BOUNDING_BOXES`,
+                and `MetricTarget.MASKS`. Passed through to `from_detections`
+                (and to the per-image validation mosaic, when
+                `save_directory_path` is set).
 
         Returns:
             New instance of ConfusionMatrix.

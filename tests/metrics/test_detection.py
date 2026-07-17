@@ -53,8 +53,10 @@ def _call_confusion_matrix_from_tensors_masks() -> None:
 
 
 def _call_confusion_matrix_evaluate_detection_batch_masks() -> None:
+    # Confidence (last column) must clear conf_threshold, else predictions are
+    # filtered out before the IoU dispatch (and its mask-presence check) runs.
     ConfusionMatrix.evaluate_detection_batch(
-        predictions=np.zeros((1, 6), dtype=np.float32),
+        predictions=np.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.9]], dtype=np.float32),
         targets=np.zeros((1, 5), dtype=np.float32),
         num_classes=1,
         conf_threshold=0.3,
@@ -281,17 +283,19 @@ class TestDetectionMetrics:
                 None,
                 pytest.raises(ValueError, match="ORIENTED_BOUNDING_BOXES requested"),
             ),  # OBB requested but data missing
-            (
+            pytest.param(
                 Detections(
                     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
                     class_id=np.array([0]),
                     confidence=np.array([0.5], dtype=np.float32),
+                    mask=np.ones((1, 10, 10), dtype=bool),
                 ),
                 False,
                 MetricTarget.MASKS,
-                None,
-                pytest.raises(ValueError, match=r"MetricTarget\.MASKS"),
-            ),  # MASKS requested but not supported
+                np.array([[0, 0, 10, 10, 0]], dtype=np.float32),
+                DoesNotRaise(),
+                id="masks-produces-box-shaped-tensor",
+            ),  # MASKS target: box columns carried, mask pixels not embedded
             (
                 _create_detections(
                     xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]],
@@ -1428,6 +1432,152 @@ class TestDetectionMetrics:
         assert cm_sensitivity_obb.matrix[0, 0] == 0
         assert cm_sensitivity_boxes.matrix[0, 0] == 1
 
+    def test_confusion_matrix_masks(self):
+        """
+        Verify MASKS support in ConfusionMatrix.
+        Test scenarios:
+        1. Perfect mask overlap (TP)
+        2. Mask IoU != box IoU (identical/overlapping boxes, disjoint masks)
+        3. IoU-threshold sensitivity on a partial mask overlap
+        """
+        classes = ["box"]
+
+        # Perfect mask overlap
+        full_mask = np.ones((1, 10, 10), dtype=bool)
+        gt = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                mask=full_mask,
+            )
+        ]
+        pred = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                mask=full_mask,
+            )
+        ]
+
+        cm_masks = ConfusionMatrix.from_detections(
+            predictions=pred,
+            targets=gt,
+            classes=classes,
+            metric_target=MetricTarget.MASKS,
+        )
+        # Expected TP = 1
+        assert cm_masks.matrix[0, 0] == 1
+        assert cm_masks.matrix.sum() == 1
+
+        # Mask IoU != box IoU: identical/fully-overlapping boxes, but the
+        # masks occupy disjoint halves of that box (mask IoU = 0).
+        top_half_mask = np.zeros((1, 10, 10), dtype=bool)
+        top_half_mask[:, 0:5, :] = True
+        bottom_half_mask = np.zeros((1, 10, 10), dtype=bool)
+        bottom_half_mask[:, 5:10, :] = True
+
+        gt_split = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                mask=top_half_mask,
+            )
+        ]
+        pred_split = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                mask=bottom_half_mask,
+            )
+        ]
+
+        cm_split_masks = ConfusionMatrix.from_detections(
+            predictions=pred_split,
+            targets=gt_split,
+            classes=classes,
+            metric_target=MetricTarget.MASKS,
+        )
+        # Disjoint masks → mask IoU = 0 → FN + FP, despite identical boxes.
+        assert cm_split_masks.matrix[0, 1] == 1  # FN
+        assert cm_split_masks.matrix[1, 0] == 1  # FP
+
+        cm_split_boxes = ConfusionMatrix.from_detections(
+            predictions=pred_split,
+            targets=gt_split,
+            classes=classes,
+            metric_target=MetricTarget.BOXES,
+        )
+        # Same detections in BOXES mode: identical boxes → box IoU = 1 → TP.
+        assert cm_split_boxes.matrix[0, 0] == 1
+
+        # IoU-threshold sensitivity: partial overlap, mask IoU = 36/92 ≈ 0.391.
+        gt_partial_mask = np.zeros((1, 10, 10), dtype=bool)
+        gt_partial_mask[:, 0:8, 0:8] = True
+        pred_partial_mask = np.zeros((1, 10, 10), dtype=bool)
+        pred_partial_mask[:, 2:10, 2:10] = True
+
+        gt_partial = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                mask=gt_partial_mask,
+            )
+        ]
+        pred_partial = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                mask=pred_partial_mask,
+            )
+        ]
+
+        cm_partial_low_threshold = ConfusionMatrix.from_detections(
+            predictions=pred_partial,
+            targets=gt_partial,
+            classes=classes,
+            iou_threshold=0.3,  # below 0.391 → match
+            metric_target=MetricTarget.MASKS,
+        )
+        assert cm_partial_low_threshold.matrix[0, 0] == 1  # TP
+
+        cm_partial_high_threshold = ConfusionMatrix.from_detections(
+            predictions=pred_partial,
+            targets=gt_partial,
+            classes=classes,
+            iou_threshold=0.5,  # above 0.391 → no match
+            metric_target=MetricTarget.MASKS,
+        )
+        assert cm_partial_high_threshold.matrix[0, 1] == 1  # FN
+        assert cm_partial_high_threshold.matrix[1, 0] == 1  # FP
+
+    def test_confusion_matrix_masks_missing_mask(self):
+        """MetricTarget.MASKS raises ValueError when a Detections object has
+        no mask set."""
+        gt = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+            )
+        ]
+        pred = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+            )
+        ]
+
+        with pytest.raises(ValueError, match=r"(?i)requires masks"):
+            ConfusionMatrix.from_detections(
+                predictions=pred,
+                targets=gt,
+                classes=["box"],
+                metric_target=MetricTarget.MASKS,
+            )
+
     def test_confusion_matrix_obb_regression_1760(self):
         """Regression for #1760: thin OBBs with same AABB must not match.
 
@@ -1570,9 +1720,10 @@ class TestDetectionMetrics:
             ),
         ],
     )
-    def test_confusion_matrix_masks_rejection(self, call):
-        """MetricTarget.MASKS raises ValueError at every public entry point."""
-        with pytest.raises(ValueError, match=r"MetricTarget\.MASKS"):
+    def test_confusion_matrix_masks_requires_masks(self, call):
+        """MetricTarget.MASKS raises ValueError when masks aren't provided,
+        at every public entry point."""
+        with pytest.raises(ValueError, match=r"(?i)requires.*mask"):
             call()
 
     def test_confusion_matrix_multiclass_obb(self):
