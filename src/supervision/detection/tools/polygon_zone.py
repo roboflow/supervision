@@ -34,6 +34,10 @@ class PolygonZone:
             the zone only when *every* anchor in `triggering_anchors` is inside.
             If `False`, the detection triggers as soon as *any* anchor is inside.
             Has no effect when `triggering_anchors` has a single entry.
+            This is anchor-based, not a true geometric box/polygon intersection
+            test: it fires only when a listed anchor point lands inside the mask.
+            Use mask/IoU-based approaches instead when full-overlap semantics are
+            required.
         current_count: The current count of detected objects within the zone
         mask: The 2D bool mask for the polygon zone
 
@@ -51,6 +55,19 @@ class PolygonZone:
         array([ True, False])
         >>> polygon_zone.current_count
         1
+
+        ```
+
+        ```pycon
+        >>> polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+        >>> polygon_zone = sv.PolygonZone(
+        ...     polygon=polygon,
+        ...     triggering_anchors=[sv.Position.TOP_LEFT, sv.Position.BOTTOM_RIGHT],
+        ...     require_all_anchors=False,
+        ... )
+        >>> detections = sv.Detections(xyxy=np.array([[80, 80, 120, 120]]))
+        >>> polygon_zone.trigger(detections)
+        array([ True])
 
         ```
     """
