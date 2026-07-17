@@ -59,7 +59,13 @@ jobs:
       - name: 🧭 Confirm selected cv2 backend
         env:
           EXPECTED_BACKEND: ${{ matrix.cv2 == 'none' && 'fallback' || 'opencv' }}
-        run: python -c "import os; from supervision import _cv2; assert _cv2.BACKEND_NAME == os.environ['EXPECTED_BACKEND'], f\"expected {os.environ['EXPECTED_BACKEND']!r}, got {_cv2.BACKEND_NAME!r}\""
+        run: |
+          import os
+          from supervision import _cv2
+
+          expected = os.environ["EXPECTED_BACKEND"]
+          assert _cv2.BACKEND_NAME == expected, f"expected {expected!r}, got {_cv2.BACKEND_NAME!r}"
+        shell: python
 
       - name: 📦 Run the Import test
         run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
