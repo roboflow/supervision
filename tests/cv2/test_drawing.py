@@ -188,7 +188,7 @@ assert np.any(result)
     environment["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, environment.get("PYTHONPATH")))
     )
-    completed = subprocess.run(  # noqa: S603
+    completed = subprocess.run(
         [sys.executable, "-c", source],
         capture_output=True,
         text=True,

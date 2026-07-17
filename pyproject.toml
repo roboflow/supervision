@@ -167,6 +167,7 @@ lint.per-file-ignores."src/**" = [
 ]
 lint.per-file-ignores."tests/**" = [
   "S101", # Use of `assert` detected
+  "S603", # `subprocess` call: subprocess with hardcoded args in test utilities is safe
 ]
 lint.unfixable = []
 # Allow unused variables when underscore-prefixed.

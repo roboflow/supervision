@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -93,7 +93,7 @@ def _douglas_peucker(
             keep[split] = True
             pending.extend(((start, split), (split, end)))
 
-    return points[keep]
+    return cast(npt.NDArray[np.float64], points[keep])  # type: ignore[redundant-cast]
 
 
 def _approx_poly_dp(
@@ -109,7 +109,25 @@ def _approx_poly_dp(
 
     if closed and len(points) > 1 and np.array_equal(points[0], points[-1]):
         points = points[:-1]
-    simplified = _douglas_peucker(points, epsilon)
+    if closed and len(points) > 2:
+        # Seed the two split anchors the way OpenCV's approxPolyDP does: the point
+        # farthest from points[0], then the point farthest from that one. Two O(N)
+        # passes replace an O(N^2) all-pairs distance matrix while landing on cv2's
+        # own arc endpoints, which matters because approximate_polygon re-invokes
+        # this on the full-size polygon every simplification step.
+        coordinates = points.astype(np.float64)
+        anchor_a = int(np.argmax(np.sum((coordinates - coordinates[0]) ** 2, axis=1)))
+        anchor_b = int(
+            np.argmax(np.sum((coordinates - coordinates[anchor_a]) ** 2, axis=1))
+        )
+        start, end = sorted((anchor_a, anchor_b))
+        first_arc = points[start : end + 1]
+        second_arc = np.concatenate((points[end:], points[: start + 1]))
+        first_simplified = _douglas_peucker(first_arc, epsilon)
+        second_simplified = _douglas_peucker(second_arc, epsilon)
+        simplified = np.concatenate((first_simplified[:-1], second_simplified[:-1]))
+    else:
+        simplified = _douglas_peucker(points, epsilon)
     if closed and len(simplified) > 1 and np.array_equal(simplified[0], simplified[-1]):
         simplified = simplified[:-1]
 

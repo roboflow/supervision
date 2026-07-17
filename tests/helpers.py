@@ -421,7 +421,7 @@ def create_yolo_dataset(
     """
     from pathlib import Path
 
-    import cv2
+    from supervision import _cv2 as cv2
 
     if classes is None:
         classes = ["class_0", "class_1"]
