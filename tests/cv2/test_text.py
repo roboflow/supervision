@@ -179,6 +179,17 @@ class TestPutText:
                 bottomLeftOrigin=True,
             )
 
+    def test_clips_text_at_image_boundaries(self) -> None:
+        """Clip the cropped Pillow mask when the baseline starts off-canvas."""
+        image = np.zeros((32, 64, 3), dtype=np.uint8)
+
+        result = _put_text(
+            image, "clip", (-8, 12), _FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255)
+        )
+
+        assert result is image
+        assert np.any(image)
+
 
 class TestFallbackWithoutOpenCV:
     """Production-shaped text calls with OpenCV imports blocked."""

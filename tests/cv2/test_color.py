@@ -91,6 +91,16 @@ def test_fallback_split_matches_opencv() -> None:
         np.testing.assert_array_equal(actual_channel, expected_channel)
 
 
+def test_fallback_bgr_to_gray_matches_opencv_fixed_point_rounding() -> None:
+    """Match OpenCV at a color where floating coefficients round differently."""
+    source = np.array([[[0, 1, 187]]], dtype=np.uint8)
+
+    actual = _cvt_color(source, _COLOR_BGR2GRAY)
+    expected = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_merge_matches_opencv() -> None:
     """Match OpenCV channel merging."""
     bgr = np.array(

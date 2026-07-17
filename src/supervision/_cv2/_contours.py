@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -137,146 +137,6 @@ def _compress_contour(contour: np.ndarray) -> np.ndarray:
     return np.asarray(keep, dtype=np.int32)
 
 
-def _point_in_polygon(point: np.ndarray, polygon: np.ndarray) -> bool:
-    """Return whether a point is inside a polygon using an even-odd walk."""
-    x, y = float(point[0]), float(point[1])
-    inside = False
-    previous = polygon[-1]
-    for current in polygon:
-        x_current, y_current = float(current[0]), float(current[1])
-        x_previous, y_previous = float(previous[0]), float(previous[1])
-        crosses = (y_current > y) != (y_previous > y)
-        if crosses:
-            intersection = (x_previous - x_current) * (y - y_current) / (
-                y_previous - y_current
-            ) + x_current
-            if x < intersection:
-                inside = not inside
-        previous = current
-    return inside
-
-
-def _interior_point(contour: np.ndarray) -> np.ndarray:
-    """Return a point guaranteed to lie inside a simple contour.
-
-    The polygon centroid can fall outside concave contours, which would corrupt
-    the parent/child hierarchy inferred by ``_parents``. Contour vertices are
-    integer pixel coordinates, so a horizontal scanline at a half-integer height
-    never passes through a vertex; the midpoint of its first edge-crossing span
-    is therefore an interior sample. Falls back to the centroid for degenerate
-    (sub-triangle or zero-height) contours where no such span exists.
-    """
-    centroid = cast(np.ndarray, contour.mean(axis=0))
-    if len(contour) < 3:
-        return centroid
-    y_scan = float(np.floor(centroid[1])) + 0.5
-    crossings: list[float] = []
-    previous = contour[-1]
-    for current in contour:
-        x_current, y_current = float(current[0]), float(current[1])
-        x_previous, y_previous = float(previous[0]), float(previous[1])
-        if (y_current > y_scan) != (y_previous > y_scan):
-            intersection = x_previous + (x_current - x_previous) * (
-                y_scan - y_previous
-            ) / (y_current - y_previous)
-            crossings.append(intersection)
-        previous = current
-    if len(crossings) < 2:
-        return centroid
-    crossings.sort()
-    return np.array([(crossings[0] + crossings[1]) / 2.0, y_scan])
-
-
-def _parents(contours: list[np.ndarray]) -> list[int]:
-    """Infer the smallest containing contour for each traced border."""
-    bounds = [
-        (
-            contour[:, 0].min(),
-            contour[:, 1].min(),
-            contour[:, 0].max(),
-            contour[:, 1].max(),
-        )
-        for contour in contours
-    ]
-    bounding_areas = [
-        (x_max - x_min + 1) * (y_max - y_min + 1)
-        for x_min, y_min, x_max, y_max in bounds
-    ]
-    areas = [abs(_polygon_area(contour)) for contour in contours]
-    parents = [-1] * len(contours)
-    for index, contour in enumerate(contours):
-        point = _interior_point(contour)
-        candidates = [
-            candidate
-            for candidate, polygon in enumerate(contours)
-            if candidate != index
-            and (
-                areas[candidate] > areas[index]
-                or (
-                    areas[candidate] == areas[index]
-                    and bounding_areas[candidate] > bounding_areas[index]
-                )
-            )
-            and _point_in_polygon(point, polygon)
-        ]
-        if candidates:
-            parents[index] = min(
-                candidates,
-                key=lambda candidate: (areas[candidate], bounding_areas[candidate]),
-            )
-    return parents
-
-
-def _polygon_area(contour: np.ndarray) -> float:
-    """Compute a signed area for hierarchy construction."""
-    x = contour[:, 0].astype(np.float64)
-    y = contour[:, 1].astype(np.float64)
-    return 0.5 * float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
-
-
-def _order_contours(contours: list[np.ndarray]) -> tuple[list[np.ndarray], np.ndarray]:
-    """Order contours and construct OpenCV-shaped tree hierarchy metadata."""
-    parents = _parents(contours)
-    children = {
-        parent: [index for index, value in enumerate(parents) if value == parent]
-        for parent in range(-1, len(contours))
-    }
-    ordered_indices: list[int] = []
-
-    def visit(index: int) -> None:
-        """Append a contour followed by its children in scan order."""
-        ordered_indices.append(index)
-        for child in reversed(children.get(index, [])):
-            visit(child)
-
-    for index in reversed(children.get(-1, [])):
-        visit(index)
-
-    ordered = [contours[index] for index in ordered_indices]
-    index_map = {
-        original: position for position, original in enumerate(ordered_indices)
-    }
-    remapped_parents = [
-        -1 if parents[index] < 0 else index_map[parents[index]]
-        for index in ordered_indices
-    ]
-    hierarchy = np.full((1, len(ordered), 4), -1, dtype=np.int32)
-    for parent in range(-1, len(ordered)):
-        siblings = [
-            index for index, value in enumerate(remapped_parents) if value == parent
-        ]
-        for position, index in enumerate(siblings):
-            if position + 1 < len(siblings):
-                hierarchy[0, index, 0] = siblings[position + 1]
-            if position > 0:
-                hierarchy[0, index, 1] = siblings[position - 1]
-        if parent >= 0 and siblings:
-            hierarchy[0, parent, 2] = siblings[0]
-    for index, parent in enumerate(remapped_parents):
-        hierarchy[0, index, 3] = parent
-    return ordered, hierarchy
-
-
 def _find_contours(
     image: npt.NDArray[Any], mode: int, method: int
 ) -> tuple[list[npt.NDArray[np.int32]], npt.NDArray[np.int32] | None]:
@@ -291,5 +151,4 @@ def _find_contours(
     traced = [_compress_contour(contour) for contour in _trace_borders(values != 0)]
     if not traced:
         return [], None
-    contours, hierarchy = _order_contours(traced)
-    return [contour.reshape(-1, 1, 2) for contour in contours], hierarchy
+    return [contour.reshape(-1, 1, 2) for contour in traced], None

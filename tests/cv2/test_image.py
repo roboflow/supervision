@@ -191,6 +191,51 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
     np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
 
 
+def test_fallback_linear_resize_preserves_random_uint8_contract() -> None:
+    """Preserve dtype, contiguity, and the one-LSB visual interpolation budget."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (17, 23, 3), dtype=np.uint8)
+
+    actual = _resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == source.dtype
+    assert actual.flags.c_contiguous
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_linear_resize_matches_opencv_when_downsampling_uint8() -> None:
+    """Preserve OpenCV's half-pixel interpolation for uint8 downsampling."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (7, 11, 3), dtype=np.uint8)
+
+    actual = _resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_linear_resize_preserves_rgba_channels() -> None:
+    """Avoid Pillow alpha premultiplication when resizing uint8 RGBA arrays."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (9, 7, 4), dtype=np.uint8)
+
+    actual = _resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
+    """Keep float-mask interpolation on the established numeric path."""
+    rng = np.random.default_rng(20260717)
+    source = rng.random((3836, 17, 23), dtype=np.float32)[-1]
+    actual = _resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+
+    assert actual[8, 27] == np.float32(0.49999991059303284)
+    assert not bool((actual > 0.5)[8, 27])
+
+
 def test_fallback_image_io_preserves_bgr(tmp_path: Path) -> None:
     """Preserve BGR channel order when writing and reading an image."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)

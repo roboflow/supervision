@@ -85,6 +85,19 @@ def test_connected_components_checkerboard_preserves_component_partition() -> No
         )
 
 
+def test_connected_components_with_stats_matches_high_component_image() -> None:
+    """Match all OpenCV statistics on a high-component checkerboard."""
+    source = np.indices((64, 64)).sum(axis=0).astype(np.uint8) % 2
+
+    actual = _connected_components_with_stats(source, connectivity=4)
+    expected = cv2.connectedComponentsWithStats(source, connectivity=4)
+
+    assert actual[0] == expected[0]
+    np.testing.assert_array_equal(actual[1], expected[1])
+    np.testing.assert_array_equal(actual[2], expected[2])
+    np.testing.assert_array_equal(actual[3], expected[3])
+
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     [

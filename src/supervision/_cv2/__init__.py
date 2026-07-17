@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import numpy.typing as npt
+
 from supervision._cv2._color import _cvt_color, _merge, _split
 from supervision._cv2._common import BackendUnavailableError
 from supervision._cv2._components import (
@@ -34,12 +38,7 @@ from supervision._cv2._image import (
     _resize,
 )
 from supervision._cv2._text import _get_text_size, _put_text
-from supervision._cv2._transform import (
-    _blur,
-    _distance_transform,
-    _get_rotation_matrix_2d,
-    _warp_affine,
-)
+from supervision._cv2._transform import _blur
 from supervision._cv2._video import (
     _video_writer_fourcc,
     _VideoCapture,
@@ -59,7 +58,6 @@ from supervision._cv2.constants import (
     _COLOR_GRAY2BGR,
     _COLOR_HSV2BGR,
     _COLOR_RGB2BGR,
-    _DIST_L2,
     _FONT_HERSHEY_COMPLEX,
     _FONT_HERSHEY_COMPLEX_SMALL,
     _FONT_HERSHEY_DUPLEX,
@@ -95,13 +93,11 @@ if _IS_CV2_AVAILABLE:
         CAP_PROP_FRAME_WIDTH,
         CAP_PROP_POS_FRAMES,
         CC_STAT_AREA,
-        CHAIN_APPROX_SIMPLE,
         COLOR_BGR2GRAY,
         COLOR_BGR2RGB,
         COLOR_GRAY2BGR,
         COLOR_HSV2BGR,
         COLOR_RGB2BGR,
-        DIST_L2,
         FONT_HERSHEY_COMPLEX,
         FONT_HERSHEY_COMPLEX_SMALL,
         FONT_HERSHEY_DUPLEX,
@@ -118,7 +114,6 @@ if _IS_CV2_AVAILABLE:
         LINE_4,
         LINE_8,
         LINE_AA,
-        RETR_TREE,
         VideoCapture,
         VideoWriter,
         VideoWriter_fourcc,  # type: ignore[attr-defined]
@@ -132,13 +127,10 @@ if _IS_CV2_AVAILABLE:
         convertScaleAbs,
         copyMakeBorder,
         cvtColor,
-        distanceTransform,
         drawContours,
         ellipse,
         fillPoly,
-        findContours,
         flip,
-        getRotationMatrix2D,
         getTextSize,
         imread,
         imwrite,
@@ -151,7 +143,9 @@ if _IS_CV2_AVAILABLE:
         rectangle,
         resize,
         split,
-        warpAffine,
+    )
+    from cv2 import (
+        findContours as _find_contours_impl,
     )
 
     BACKEND_NAME = "opencv"
@@ -165,13 +159,11 @@ else:
     CAP_PROP_FRAME_WIDTH = _CAP_PROP_FRAME_WIDTH
     CAP_PROP_POS_FRAMES = _CAP_PROP_POS_FRAMES
     CC_STAT_AREA = _CC_STAT_AREA
-    CHAIN_APPROX_SIMPLE = _CHAIN_APPROX_SIMPLE
     COLOR_BGR2GRAY = _COLOR_BGR2GRAY
     COLOR_BGR2RGB = _COLOR_BGR2RGB
     COLOR_GRAY2BGR = _COLOR_GRAY2BGR
     COLOR_HSV2BGR = _COLOR_HSV2BGR
     COLOR_RGB2BGR = _COLOR_RGB2BGR
-    DIST_L2 = _DIST_L2
     FONT_HERSHEY_COMPLEX = _FONT_HERSHEY_COMPLEX
     FONT_HERSHEY_COMPLEX_SMALL = _FONT_HERSHEY_COMPLEX_SMALL
     FONT_HERSHEY_DUPLEX = _FONT_HERSHEY_DUPLEX
@@ -188,7 +180,6 @@ else:
     LINE_4 = _LINE_4
     LINE_8 = _LINE_8
     LINE_AA = _LINE_AA
-    RETR_TREE = _RETR_TREE
 
     # Fallback implementations when cv2 is not available. Suppress type errors because
     # fallback types differ from cv2 types, but are functionally equivalent.
@@ -205,13 +196,11 @@ else:
     convertScaleAbs = _convert_scale_abs  # type: ignore[assignment]
     copyMakeBorder = _copy_make_border  # type: ignore[assignment]
     cvtColor = _cvt_color  # type: ignore[assignment]
-    distanceTransform = _distance_transform  # type: ignore[assignment]
     drawContours = _draw_contours  # type: ignore[assignment]
     ellipse = _ellipse  # type: ignore[assignment]
     fillPoly = _fill_poly  # type: ignore[assignment]
-    findContours = _find_contours  # type: ignore[assignment]
+    _find_contours_impl = _find_contours
     flip = _flip  # type: ignore[assignment]
-    getRotationMatrix2D = _get_rotation_matrix_2d  # type: ignore[assignment]
     getTextSize = _get_text_size  # type: ignore[assignment]
     imread = _imread  # type: ignore[assignment]
     imwrite = _imwrite  # type: ignore[assignment]
@@ -224,7 +213,12 @@ else:
     rectangle = _rectangle  # type: ignore[assignment]
     resize = _resize  # type: ignore[assignment]
     split = _split  # type: ignore[assignment]
-    warpAffine = _warp_affine  # type: ignore[assignment]
+
+
+def find_contours(image: npt.NDArray[Any]) -> list[npt.NDArray[Any]]:
+    """Return the contour geometry required by mask-to-polygon conversion."""
+    contours, _ = _find_contours_impl(image, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+    return list(contours)
 
 
 __all__ = [
@@ -236,13 +230,11 @@ __all__ = [
     "CAP_PROP_FRAME_WIDTH",
     "CAP_PROP_POS_FRAMES",
     "CC_STAT_AREA",
-    "CHAIN_APPROX_SIMPLE",
     "COLOR_BGR2GRAY",
     "COLOR_BGR2RGB",
     "COLOR_GRAY2BGR",
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
-    "DIST_L2",
     "FONT_HERSHEY_COMPLEX",
     "FONT_HERSHEY_COMPLEX_SMALL",
     "FONT_HERSHEY_DUPLEX",
@@ -259,7 +251,6 @@ __all__ = [
     "LINE_4",
     "LINE_8",
     "LINE_AA",
-    "RETR_TREE",
     "BackendUnavailableError",
     "VideoCapture",
     "VideoWriter",
@@ -274,13 +265,11 @@ __all__ = [
     "convertScaleAbs",
     "copyMakeBorder",
     "cvtColor",
-    "distanceTransform",
     "drawContours",
     "ellipse",
     "fillPoly",
-    "findContours",
+    "find_contours",
     "flip",
-    "getRotationMatrix2D",
     "getTextSize",
     "imread",
     "imwrite",
@@ -293,5 +282,4 @@ __all__ = [
     "rectangle",
     "resize",
     "split",
-    "warpAffine",
 ]

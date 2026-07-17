@@ -3,7 +3,13 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision import Detections, LineZone, LineZoneAnnotatorMulticlass
+from supervision import (
+    Detections,
+    LineZone,
+    LineZoneAnnotator,
+    LineZoneAnnotatorMulticlass,
+)
+from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
 from tests.helpers import _create_detections
 
@@ -985,3 +991,32 @@ def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
 
     assert annotated_frame.shape == frame.shape
     assert not np.array_equal(annotated_frame, frame)
+
+
+def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
+    """Render a rotated BGRA count label through the domain-specific Pillow path."""
+    upright = LineZoneAnnotator._make_label_image(
+        "out: 7",
+        text_scale=0.75,
+        text_thickness=1,
+        text_padding=4,
+        text_color=Color.WHITE,
+        text_box_show=True,
+        text_box_color=Color.BLACK,
+        line_angle_degrees=0,
+    )
+    label = LineZoneAnnotator._make_label_image(
+        "out: 7",
+        text_scale=0.75,
+        text_thickness=1,
+        text_padding=4,
+        text_color=Color.WHITE,
+        text_box_show=True,
+        text_box_color=Color.BLACK,
+        line_angle_degrees=37,
+    )
+
+    assert label.ndim == 3
+    assert label.shape[2] == 4
+    assert np.any(label[..., 3])
+    assert not np.array_equal(label[..., 3], upright[..., 3])

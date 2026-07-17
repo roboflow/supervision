@@ -658,7 +658,12 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         false_negatives = confusion_matrix[..., 2]
 
         denominator = true_positives + false_negatives
-        recall = np.where(denominator == 0, 0, true_positives / denominator)
+        recall = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(denominator, dtype=np.float64),
+            where=denominator != 0,
+        )
 
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall
