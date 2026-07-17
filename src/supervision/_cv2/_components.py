@@ -86,11 +86,18 @@ def _connected_components_with_stats(
             row_slice.stop - row_slice.start,
         )
 
-    background_rows, background_columns = np.nonzero(labels == 0)
-    if len(background_rows):
-        x_min, x_max = int(background_columns.min()), int(background_columns.max())
-        y_min, y_max = int(background_rows.min()), int(background_rows.max())
-        stats[0, :4] = (x_min, y_min, x_max - x_min + 1, y_max - y_min + 1)
+    background_mask = labels == 0
+    if np.any(background_mask):
+        row_hits = np.any(background_mask, axis=1)
+        col_hits = np.any(background_mask, axis=0)
+        y_indices = np.flatnonzero(row_hits)
+        x_indices = np.flatnonzero(col_hits)
+        stats[0, :4] = (
+            int(x_indices[0]),
+            int(y_indices[0]),
+            int(x_indices[-1] - x_indices[0] + 1),
+            int(y_indices[-1] - y_indices[0] + 1),
+        )
     return count + 1, labels, stats, centroids
 
 
