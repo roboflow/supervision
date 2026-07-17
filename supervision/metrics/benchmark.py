@@ -1,6 +1,5 @@
 # supervision/metrics/benchmark.py
 
-from typing import Dict, Optional
 
 from supervision.detection.core import Detections
 
@@ -10,7 +9,7 @@ class BenchmarkEvaluator:
         self,
         ground_truth: Detections,
         predictions: Detections,
-        class_map: Optional[Dict[str, str]] = None,
+        class_map: dict[str, str] | None = None,
         iou_threshold: float = 0.5,
     ):
         self.ground_truth = ground_truth
@@ -18,7 +17,7 @@ class BenchmarkEvaluator:
         self.class_map = class_map or {}
         self.iou_threshold = iou_threshold
 
-    def compute_precision_recall(self) -> Dict[str, float]:
+    def compute_precision_recall(self) -> dict[str, float]:
         """
         Compute basic precision and recall metrics.
         For demo purposes — you will expand this.
