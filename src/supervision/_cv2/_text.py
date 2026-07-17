@@ -46,20 +46,29 @@ def _load_font(font_face: int, font_scale: float) -> Any:
     return ImageFont.truetype(_font_path(bool(font_face & _FONT_ITALIC)), size)
 
 
+def _stroke_width(thickness: int) -> int:
+    """Map an OpenCV stroke thickness to the Pillow stroke_width it renders with."""
+    return max(0, thickness - 1)
+
+
 def _get_text_size(
     text: str, fontFace: int, fontScale: float, thickness: int
 ) -> tuple[tuple[int, int], int]:
     """Return an OpenCV-shaped ``((width, height), baseline)`` for the face.
 
     Height is the font ascent and baseline the descent, both string-independent
-    like OpenCV's contract, so consumers get stable row heights. Thickness pads
-    the box the way OpenCV widens strokes.
+    like OpenCV's contract, so consumers get stable row heights. Padding uses
+    the same stroke_width _put_text renders with: Pillow's stroke dilates the
+    glyph outline by stroke_width pixels on every side, so width grows by
+    twice that (left and right) while height and baseline each grow by one
+    stroke_width (top and bottom).
     """
     font = _load_font(fontFace, fontScale)
     ascent, descent = font.getmetrics()
-    width = round(font.getlength(text)) + max(0, thickness)
-    height = ascent + (thickness + 1) // 2
-    baseline = descent + thickness // 2
+    stroke_width = _stroke_width(thickness)
+    width = round(font.getlength(text)) + 2 * stroke_width
+    height = ascent + stroke_width
+    baseline = descent + stroke_width
     return (width, height), baseline
 
 
@@ -87,7 +96,7 @@ def _put_text(
         return img
 
     font = _load_font(fontFace, fontScale)
-    stroke_width = max(0, thickness - 1)
+    stroke_width = _stroke_width(thickness)
     x, y = round(org[0]), round(org[1])
 
     def draw_text(draw: Any) -> None:

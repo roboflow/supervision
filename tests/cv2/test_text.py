@@ -142,6 +142,28 @@ class TestPutText:
         assert rows.min() >= org[1] - height
         assert rows.max() <= org[1] + baseline
 
+    def test_reported_baseline_encloses_thick_stroke_descent(self) -> None:
+        """Keep the baseline padding matching the stroke_width putText renders.
+
+        A thickness of 7 (stroke_width 6) is past the point where the old
+        ``thickness // 2`` baseline formula under-padded relative to the
+        ``thickness - 1`` stroke_width _put_text actually uses, letting
+        descender pixels fall outside the reported box.
+        """
+        image = np.zeros((160, 320, 3), dtype=np.uint8)
+        org = (20, 100)
+        (_, height), baseline = _get_text_size(
+            "person 0.87", _FONT_HERSHEY_SIMPLEX, 1.0, 7
+        )
+
+        _put_text(
+            image, "person 0.87", org, _FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 7
+        )
+
+        rows, _ = np.nonzero(np.any(image, axis=2))
+        assert rows.min() >= org[1] - height
+        assert rows.max() <= org[1] + baseline
+
     def test_rejects_bottom_left_origin(self) -> None:
         """Reject the unsupported inverted-axis origin mode."""
         image = np.zeros((32, 64, 3), dtype=np.uint8)
