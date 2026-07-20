@@ -10,9 +10,14 @@ from supervision.detection.core import (
     _merge_detection_group,
     _merge_obb_corners,
     merge_inner_detection_object_pair,
+    merge_inner_detections_objects,
 )
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
-from supervision.detection.utils.iou_and_nms import OverlapMetric
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    box_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -1109,6 +1114,29 @@ class TestDetectionsObbDispatch:
         result = getattr(detections, method)(threshold=0.5)
 
         assert len(result) == 2
+
+    def test_deprecated_merge_uses_obb_iou_before_merging(self) -> None:
+        """Deprecated inner merge keeps separated OBBs despite overlapping envelopes."""
+        quad_a = _rotated_rect(50, 50, 100, 10, 45)
+        quad_b = _rotated_rect(58, 50, 100, 10, -45)
+        detections_a = _make_obb_detections([quad_a], [0.9], [0])
+        detections_b = _make_obb_detections([quad_b], [0.8], [0])
+
+        obb_iou = oriented_box_iou_batch(
+            detections_a.data[ORIENTED_BOX_COORDINATES],
+            detections_b.data[ORIENTED_BOX_COORDINATES],
+        )[0, 0]
+        aabb_iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)[0, 0]
+
+        assert obb_iou < 0.5
+        assert aabb_iou > 0.5
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = merge_inner_detections_objects(
+                [detections_a, detections_b], threshold=0.5
+            )
+
+        np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
 
     @pytest.mark.parametrize(
         "method",

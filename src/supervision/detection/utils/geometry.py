@@ -35,11 +35,23 @@ def detection_area(detections: Detections) -> npt.NDArray[np.generic]:
 
     Returns:
         A 1-D array containing the area of each detection.
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.detection.core import Detections
+        >>> detections = Detections(
+        ...     xyxy=np.array([[0, 0, 2, 3]], dtype=np.float32)
+        ... )
+        >>> detection_area(detections)  # doctest: +ELLIPSIS
+        array([6.], dtype=float32)
     """
     if detections.mask is not None:
         if isinstance(detections.mask, CompactMask):
             return detections.mask.area
-        return np.array([np.sum(mask) for mask in detections.mask])
+        mask_area = np.count_nonzero(detections.mask, axis=(1, 2)).astype(
+            np.int64, copy=False
+        )
+        return cast(npt.NDArray[np.int64], mask_area)
     if ORIENTED_BOX_COORDINATES in detections.data:
         return obb_polygon_area(
             cast(npt.NDArray[np.number], detections.data[ORIENTED_BOX_COORDINATES])
@@ -69,6 +81,15 @@ def detection_iou(
     Returns:
         A matrix of pairwise overlaps with shape
             ``(len(detections_true), len(detections_detection))``.
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.detection.core import Detections
+        >>> detections = Detections(
+        ...     xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32)
+        ... )
+        >>> detection_iou(detections, detections)  # doctest: +ELLIPSIS
+        array([[1.]], dtype=float32)
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     if detections_true.mask is not None and detections_detection.mask is not None:

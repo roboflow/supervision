@@ -30,7 +30,7 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     xywh_to_xyxy,
 )
-from supervision.detection.utils.geometry import detection_area
+from supervision.detection.utils.geometry import detection_area, detection_iou
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
@@ -42,10 +42,8 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
-    mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_non_max_merge,
@@ -2961,16 +2959,7 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        if detections_1.mask is not None and detections_2.mask is not None:
-            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
-                0
-            ]
-        else:
-            iou = box_iou_batch(
-                detections_1.xyxy,
-                detections_2.xyxy,
-                overlap_metric,
-            )[0]
+        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 import pytest
@@ -191,22 +190,19 @@ class TestDetectionArea:
         np.testing.assert_allclose(areas, np.array([200.0, 200.0]))
         assert axis_aligned.box_area[0] != pytest.approx(rotated.box_area[0])
 
-    def test_mask_area_is_stable_under_nearest_rotation(self) -> None:
-        """Mask area stays close after raster rotation despite resampling."""
-        mask = np.zeros((80, 80), dtype=np.uint8)
+    def test_mask_area_handles_rotated_arrays(self) -> None:
+        """Mask area counts true pixels consistently after array rotation."""
+        mask = np.zeros((80, 80), dtype=bool)
         mask[30:50, 25:55] = 1
-        matrix = cv2.getRotationMatrix2D((40, 40), 25, 1.0)
-        rotated_mask = cv2.warpAffine(
-            mask, matrix, (80, 80), flags=cv2.INTER_NEAREST
-        ).astype(bool)
+        rotated_mask = np.rot90(mask)
         detections = Detections(
             xyxy=np.array([[0, 0, 79, 79], [0, 0, 79, 79]], dtype=np.float32),
-            mask=np.stack([mask.astype(bool), rotated_mask]),
+            mask=np.stack([mask, rotated_mask]),
         )
 
         area = detection_area(detections)
 
-        np.testing.assert_allclose(area[0], area[1], atol=8)
+        np.testing.assert_array_equal(area, np.array([600, 600], dtype=np.int64))
 
 
 class TestDetectionIou:
@@ -269,3 +265,49 @@ class TestDetectionIou:
         iou = detection_iou(empty, non_empty)
 
         assert iou.shape == (0, 1)
+
+    @pytest.mark.parametrize(
+        ("left_kind", "right_kind", "expected_geometry"),
+        [
+            pytest.param("mask", "obb", "box", id="mask-vs-obb-falls-back-to-box"),
+            pytest.param("mask", "aabb", "box", id="mask-vs-aabb-falls-back-to-box"),
+            pytest.param("obb", "aabb", "box", id="obb-vs-aabb-falls-back-to-box"),
+            pytest.param("compact", "mask", "mask", id="compact-vs-dense-uses-mask"),
+            pytest.param(
+                "compact", "compact", "mask", id="compact-vs-compact-uses-mask"
+            ),
+        ],
+    )
+    def test_mixed_geometry_dispatch_uses_shared_geometry_only_when_available(
+        self, left_kind: str, right_kind: str, expected_geometry: str
+    ) -> None:
+        """Mixed geometry uses AABB fallback unless both operands carry masks."""
+        image_shape = (16, 16)
+        mask = np.zeros((1, *image_shape), dtype=bool)
+        mask[0, 2:10, 2:10] = True
+        xyxy = _full_image_xyxy(1, image_shape)
+        compact_mask = CompactMask.from_dense(
+            masks=mask, xyxy=xyxy, image_shape=image_shape
+        )
+        obb = _detections_from_quads(
+            [np.array([[0, 0], [15, 0], [15, 15], [0, 15]], dtype=np.float32)],
+            xyxy=xyxy,
+        )
+        detections_by_kind = {
+            "mask": Detections(xyxy=xyxy, mask=mask),
+            "compact": Detections(xyxy=xyxy, mask=compact_mask),
+            "obb": obb,
+            "aabb": Detections(xyxy=xyxy),
+        }
+        detections_left = detections_by_kind[left_kind]
+        detections_right = detections_by_kind[right_kind]
+
+        result = detection_iou(detections_left, detections_right)
+
+        if expected_geometry == "mask":
+            assert detections_left.mask is not None
+            assert detections_right.mask is not None
+            expected = mask_iou_batch(detections_left.mask, detections_right.mask)
+        else:
+            expected = box_iou_batch(detections_left.xyxy, detections_right.xyxy)
+        np.testing.assert_allclose(result, expected)
