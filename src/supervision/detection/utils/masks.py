@@ -21,6 +21,7 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         Int64 array of shape ``(N,)`` with the True-pixel count per mask.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.masks import count_mask_pixels
         >>> m = np.zeros((2, 4, 4), dtype=bool)
@@ -28,6 +29,8 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         >>> m[1, :3, :3] = True  # 9 pixels
         >>> count_mask_pixels(m)
         array([4, 9])
+
+        ```
     """
     return np.fromiter(
         (np.count_nonzero(m) for m in masks), dtype=np.int64, count=len(masks)
