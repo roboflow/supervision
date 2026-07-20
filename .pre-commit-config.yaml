@@ -8,6 +8,14 @@ ci:
   autoupdate_commit_msg: "chore(pre_commit): ⬆ pre_commit autoupdate"
 
 repos:
+  - repo: local
+    hooks:
+      - id: check-doctest-fences
+        name: check doctest fences
+        entry: python .github/scripts/check_doctest_fences.py
+        language: system
+        files: ^src/.*\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
