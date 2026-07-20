@@ -12,20 +12,34 @@ DOCTEST_PROMPT_RE = re.compile(r"^\s*>>>")
 FENCE_RE = re.compile(r"^\s*```(?P<language>[A-Za-z0-9_-]*)\s*$")
 
 
-def check_file(path: Path) -> list[str]:
-    """Return doctest fence violations for a single source file."""
-    if not path.is_file() or path.suffix != ".py" or "src" not in path.parts:
-        return []
+def _check_content(content: str, path: Path) -> list[str]:
+    r"""Return doctest fence violations for file content.
 
+    Examples:
+        ```pycon
+        >>> from pathlib import Path
+        >>> _check_content('```pycon\n>>> len([1])\n1\n\n```\n', Path('src/a.py'))
+        []
+        >>> _check_content('>>> len([1])\n1\n', Path('src/a.py'))
+        ['src/a.py:1: doctest prompt must be inside a ```pycon fenced block']
+        >>> violations = _check_content(
+        ...     '```pycon\n>>> len([1])\n1\n```\n', Path('src/a.py')
+        ... )
+        >>> violations == [
+        ...     'src/a.py:4: pycon doctest block must include exactly one blank line '
+        ...     'before the closing fence'
+        ... ]
+        True
+
+        ```
+    """
     violations: list[str] = []
     active_fence_language: str | None = None
     in_invalid_doctest_block = False
     line_before_previous = ""
     previous_line = ""
 
-    for line_number, line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, line in enumerate(content.splitlines(), start=1):
         fence_match = FENCE_RE.match(line)
         if fence_match is not None:
             in_invalid_doctest_block = False
@@ -63,6 +77,14 @@ def check_file(path: Path) -> list[str]:
         previous_line = line
 
     return violations
+
+
+def check_file(path: Path) -> list[str]:
+    """Return doctest fence violations for a single source file."""
+    if not path.is_file() or path.suffix != ".py" or "src" not in path.parts:
+        return []
+
+    return _check_content(content=path.read_text(encoding="utf-8"), path=path)
 
 
 def main() -> int:
