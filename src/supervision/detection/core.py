@@ -15,6 +15,7 @@ from supervision.config import (
     ORIENTED_BOX_COORDINATES,
 )
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.geometry_dispatch import detection_area, detection_iou
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
@@ -35,7 +36,6 @@ from supervision.detection.utils.converters import (
     rle_to_mask,
     xywh_to_xyxy,
 )
-from supervision.detection.utils.geometry import detection_area, detection_iou
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
