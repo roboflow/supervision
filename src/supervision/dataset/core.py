@@ -472,7 +472,7 @@ class DetectionDataset(BaseDataset):
                 the loaded images and annotations.
 
         Examples:
-            ```python
+            ```pycon
             import roboflow
             from roboflow import Roboflow
             import supervision as sv
@@ -539,7 +539,7 @@ class DetectionDataset(BaseDataset):
                 containing the loaded images and annotations.
 
         Examples:
-            ```python
+            ```pycon
             import roboflow
             from roboflow import Roboflow
             import supervision as sv
@@ -709,7 +709,7 @@ class DetectionDataset(BaseDataset):
                 ``imageWidth`` / ``imageHeight`` are missing or zero.
 
         Examples:
-            ```python
+            ```pycon
             import supervision as sv
 
             ds = sv.DetectionDataset.from_labelme(
@@ -753,7 +753,7 @@ class DetectionDataset(BaseDataset):
                 If not provided, annotations will not be saved.
 
         Examples:
-            ```python
+            ```pycon
             import supervision as sv
 
             ds = sv.DetectionDataset(...)
@@ -800,7 +800,7 @@ class DetectionDataset(BaseDataset):
             annotations.
 
         Examples:
-            ```python
+            ```pycon
             import roboflow
             from roboflow import Roboflow
             import supervision as sv
@@ -850,7 +850,7 @@ class DetectionDataset(BaseDataset):
             None. Side-effects only: writes images and/or annotation file.
 
         Examples:
-            ```python
+            ```pycon
             import supervision as sv
 
             ds = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
@@ -900,7 +900,7 @@ class DetectionDataset(BaseDataset):
                 the loaded images and annotations.
 
         Examples:
-            ```python
+            ```pycon
             import roboflow
             from roboflow import Roboflow
             import supervision as sv
@@ -994,7 +994,7 @@ class DetectionDataset(BaseDataset):
             unchanged so chaining still composes.
 
         Example:
-            ```python
+            ```pycon
             # Exporting train, valid, and test splits with non-colliding ids
             # so the three annotation files can later be merged into one COCO.
             next_image_id, next_annotation_id = train_ds.as_coco(
@@ -1255,7 +1255,7 @@ class ClassificationDataset(BaseDataset):
             The dataset.
 
         Examples:
-            ```python
+            ```pycon
             import roboflow
             from roboflow import Roboflow
             import supervision as sv

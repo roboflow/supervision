@@ -182,7 +182,7 @@ class InferenceSlicer:
             number of slices passed when ``batch_size > 1``.
 
     Example:
-        ```python
+        ```pycon
         from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRMedium
@@ -198,7 +198,7 @@ class InferenceSlicer:
         detections = slicer(image)
         ```
 
-        ```python
+        ```pycon
         import supervision as sv
         from PIL import Image
         from ultralytics import YOLO
@@ -215,7 +215,7 @@ class InferenceSlicer:
         detections = slicer(image)
         ```
 
-        ```python
+        ```pycon
         import rasterio
         import supervision as sv
 
@@ -236,7 +236,7 @@ class InferenceSlicer:
         Batch inference — pass multiple slices per callback call for GPU models
         that benefit from batched forward passes:
 
-        ```python
+        ```pycon
         from supervision import _cv2 as cv2
         import numpy as np
         import supervision as sv

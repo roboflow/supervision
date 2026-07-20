@@ -33,7 +33,7 @@ class JSONSink:
             Defaults to 'output.json'.
 
     Example:
-        ```python
+        ```pycon
         import supervision as sv
         from ultralytics import YOLO
 

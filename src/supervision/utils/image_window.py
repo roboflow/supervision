@@ -44,7 +44,7 @@ class ImageWindow:
             ``False``, frames are stretched to fill the window exactly.
 
     Examples:
-        ```python
+        ```pycon
         import supervision as sv
 
         window = sv.ImageWindow("preview")
@@ -58,7 +58,7 @@ class ImageWindow:
 
         Context-manager form closes automatically:
 
-        ```python
+        ```pycon
         import supervision as sv
 
         with sv.ImageWindow("preview") as window:

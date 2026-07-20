@@ -57,7 +57,7 @@ class DetectionsSmoother:
         ```
 
 
-        ```python
+        ```pycon
         import supervision as sv
 
         from ultralytics import YOLO

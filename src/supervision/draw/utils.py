@@ -30,7 +30,7 @@ def draw_line(
         The scene with the line drawn on it
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_line
         from supervision.draw.color import Color
@@ -71,7 +71,7 @@ def draw_rectangle(
         The scene with the rectangle drawn on it
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_rectangle
         from supervision.draw.color import Color
@@ -111,7 +111,7 @@ def draw_filled_rectangle(
         The scene with the rectangle drawn on it
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_filled_rectangle
         from supervision.draw.color import Color
@@ -169,7 +169,7 @@ def draw_rounded_rectangle(
         The image with the rounded rectangle drawn on it.
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_rounded_rectangle
         from supervision.draw.color import Color
@@ -244,7 +244,7 @@ def draw_polygon(
         The scene with the polygon drawn on it.
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_polygon
         from supervision.draw.color import Color
@@ -278,7 +278,7 @@ def draw_filled_polygon(
         The scene with the polygon drawn on it.
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_filled_polygon
         from supervision.draw.color import Color
@@ -407,7 +407,7 @@ def draw_image(
         ValueError: For invalid opacity or rectangle dimensions.
 
     Example:
-        ```python
+        ```pycon
         import numpy as np
         from supervision.draw.utils import draw_image
         from supervision.geometry.core import Rect
