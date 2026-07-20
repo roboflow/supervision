@@ -196,8 +196,11 @@ def _decode_compact_masks(
         mixed-modality guard triggers.
 
     Examples:
+        ```pycon
         >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
         True
+
+        ```
     """
     coco_compact_map: dict[int, CompactMask] = {}
     if coco_rle_pending:
