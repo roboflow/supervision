@@ -18,7 +18,8 @@ date_modified: 2026-07-17
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
-- Geometry-aware IoU dispatch now powers the deprecated inner-detection merge path, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold. Dense mask area calculation now uses a batched reduction.
+- Geometry-aware IoU dispatch now powers the deprecated `merge_inner_detections_objects`, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold ([#2374](https://github.com/roboflow/supervision/pull/2374)).
+- `Detections.area`'s dense-mask branch now reuses the shared `count_mask_pixels` helper instead of a duplicated reduction, restoring its SIMD-popcount fast path ([#2374](https://github.com/roboflow/supervision/pull/2374)).
 - `save_coco_annotations` (and therefore `DetectionDataset.as_coco`) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data ([#2442](https://github.com/roboflow/supervision/pull/2442)).
 - Fixed [#2437](https://github.com/roboflow/supervision/pull/2437): `sv.F1Score` no longer emits a spurious `RuntimeWarning` when true positives, false positives, and false negatives are all zero (denominator 0); the score remains `0.0`.
 - The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.
@@ -60,6 +61,7 @@ date_modified: 2026-07-17
 - Fixed [#2382](https://github.com/roboflow/supervision/pull/2382): `sv.Detections.get_anchors_coordinates` now uses oriented bounding box corners (`data["xyxyxyxy"]`) when OBB data is present, instead of falling back to the axis-aligned envelope. Anchors on rotated detections now lie on the oriented body rather than drifting to the envelope. Non-OBB detections and `Position.CENTER_OF_MASS` (which requires a mask) are unaffected.
 - Fixed [#2396](https://github.com/roboflow/supervision/pull/2396): `sv.BackgroundOverlayAnnotator.annotate` no longer leaves detection regions tinted when bounding boxes have negative coordinates (extend outside the left or top scene boundary); boxes are now clipped to scene bounds before the detection region is restored.
 - Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
+
 ### Added
 - Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking,
   metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains
