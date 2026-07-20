@@ -1639,6 +1639,29 @@ class TestDetectionsObbDispatch:
 
         np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
 
+    def test_deprecated_merge_chain_across_three_with_changing_geometry(self) -> None:
+        """N>2 chain: an OBB pair merges first, then falls back to box IoU for a
+        third, AABB-only detection — exercises detection_iou across changing
+        geometry richness mid-chain."""
+        quad_a = _rotated_rect(50, 50, 20, 10, 10)
+        quad_b = _rotated_rect(52, 50, 20, 10, -10)
+        detections_a = _make_obb_detections([quad_a], [0.9], [0])
+        detections_b = _make_obb_detections([quad_b], [0.85], [0])
+        detections_c = Detections(
+            xyxy=np.array([[35, 40, 65, 60]], dtype=np.float32),
+            confidence=np.array([0.7], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = merge_inner_detections_objects(
+                [detections_a, detections_b, detections_c], threshold=0.3
+            )
+
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.class_id, np.array([0]))
+
     @pytest.mark.parametrize(
         "method",
         [

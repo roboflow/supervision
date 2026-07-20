@@ -7,14 +7,15 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.geometry_dispatch import detection_area, detection_iou
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
-from supervision.detection.utils.geometry import detection_area, detection_iou
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
 )
+from supervision.detection.utils.masks import count_mask_pixels
 
 
 def _rotated_rect(
@@ -82,6 +83,23 @@ class TestDetectionArea:
 
         np.testing.assert_array_equal(area, np.array([15], dtype=np.int64))
 
+    def test_dense_mask_branch_reuses_count_mask_pixels(self) -> None:
+        """Dense-mask area delegates to the shared SIMD-popcount helper, not a
+        reimplemented reduction, so the fast path used elsewhere (e.g.
+        ``metrics.utils.object_size``) isn't silently forked here too."""
+        mask = np.zeros((3, 10, 10), dtype=bool)
+        mask[0, :2, :2] = True
+        mask[1, :3, :3] = True
+        detections = Detections(
+            xyxy=np.tile(np.array([[0, 0, 9, 9]], dtype=np.float32), (3, 1)),
+            mask=mask,
+        )
+
+        area = detection_area(detections)
+
+        np.testing.assert_array_equal(area, count_mask_pixels(mask))
+        assert area.dtype == np.int64
+
     def test_returns_compact_mask_area(self) -> None:
         """CompactMask inputs use CompactMask.area without dense materialisation."""
         masks = np.zeros((2, 12, 12), dtype=bool)
@@ -144,6 +162,17 @@ class TestDetectionArea:
                 ),
                 id="empty-obb",
             ),
+            pytest.param(
+                Detections(
+                    xyxy=np.empty((0, 4), dtype=np.float32),
+                    mask=CompactMask.from_dense(
+                        masks=np.empty((0, 8, 8), dtype=bool),
+                        xyxy=np.empty((0, 4), dtype=np.float32),
+                        image_shape=(8, 8),
+                    ),
+                ),
+                id="empty-compact-mask",
+            ),
         ],
     )
     def test_returns_empty_array_for_empty_detections(
@@ -204,6 +233,15 @@ class TestDetectionArea:
 
         np.testing.assert_array_equal(area, np.array([600, 600], dtype=np.int64))
 
+    def test_degenerate_collinear_obb_has_zero_area(self) -> None:
+        """A collinear (zero-area) OBB reports 0 rather than a well-formed area."""
+        collinear = np.array([[0, 0], [5, 0], [10, 0], [15, 0]], dtype=np.float32)
+        detections = _detections_from_quads([collinear])
+
+        area = detection_area(detections)
+
+        np.testing.assert_allclose(area, np.array([0.0]))
+
 
 class TestDetectionIou:
     """Tests for geometry-aware IoU dispatch."""
@@ -242,6 +280,18 @@ class TestDetectionIou:
             oriented_box_iou_batch(square[np.newaxis], diamond[np.newaxis]),
         )
         assert iou[0, 0] < box_iou_batch(shared_xyxy, shared_xyxy)[0, 0]
+
+    def test_degenerate_collinear_obb_yields_zero_iou_without_error(self) -> None:
+        """A zero-area (collinear) OBB denominator yields 0 IoU, not NaN or a crash."""
+        collinear = np.array([[0, 0], [5, 0], [10, 0], [15, 0]], dtype=np.float32)
+        square = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        detections_a = _detections_from_quads([collinear])
+        detections_b = _detections_from_quads([square])
+
+        iou = detection_iou(detections_a, detections_b)
+
+        assert not np.isnan(iou).any()
+        np.testing.assert_allclose(iou, np.array([[0.0]]))
 
     def test_returns_box_iou_when_no_richer_geometry_is_present(self) -> None:
         """AABB IoU is the fallback when neither operand carries richer geometry."""
