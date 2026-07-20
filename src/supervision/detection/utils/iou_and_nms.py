@@ -504,12 +504,15 @@ def oriented_box_iou_batch(
             :attr:`~supervision.config.OverlapMetric.IOS`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> a = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
         >>> b = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
         >>> sv.oriented_box_iou_batch(a, b)  # doctest: +ELLIPSIS
         array([[0.333...]])
+
+        ```
     """
 
     for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
@@ -1426,6 +1429,7 @@ def oriented_box_non_max_suppression(
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1443,6 +1447,8 @@ def oriented_box_non_max_suppression(
         ... )
         >>> keep
         array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
@@ -1549,6 +1555,7 @@ def oriented_box_non_max_merge(
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1566,6 +1573,8 @@ def oriented_box_non_max_merge(
         ... )
         >>> len(groups)
         1
+
+        ```
     """
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":

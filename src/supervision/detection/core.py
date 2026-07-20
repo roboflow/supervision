@@ -2260,10 +2260,13 @@ class Detections:
             An empty Detections object.
 
         Example:
+            ```pycon
             >>> from supervision import Detections
             >>> empty_detections = Detections.empty()
             >>> empty_detections.xyxy.shape
             (0, 4)
+
+            ```
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2353,6 +2356,7 @@ class Detections:
                 `image_shape` when mixing mask types.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> detections_1 = sv.Detections(
@@ -2374,6 +2378,8 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+            ```
 
         Compact mask merge example:
 
@@ -2605,6 +2611,7 @@ class Detections:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(
@@ -2613,6 +2620,8 @@ class Detections:
             ... )
             >>> detections.get_data("class_name").tolist()
             ['cat']
+
+            ```
         """
         return self.data.get(key)
 
@@ -2631,11 +2640,14 @@ class Detections:
             even when the selection is empty or the input has zero detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
+
+            ```
         """
         mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
@@ -2808,6 +2820,7 @@ class Detections:
                 where n is the number of detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> corners = np.array(
@@ -2834,6 +2847,8 @@ class Detections:
             ... )
             >>> detections.area
             array([ 9, 25])
+
+            ```
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
