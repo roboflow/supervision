@@ -30,6 +30,7 @@ def draw_line(
         The scene with the line drawn on it
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_line
         >>> from supervision.draw.color import Color
@@ -40,6 +41,8 @@ def draw_line(
         ... )
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     cv2.line(
         scene,
@@ -70,6 +73,7 @@ def draw_rectangle(
         The scene with the rectangle drawn on it
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_rectangle
         >>> from supervision.draw.color import Color
@@ -79,6 +83,8 @@ def draw_rectangle(
         >>> result = draw_rectangle(scene, rect, color=Color.RED)
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     cv2.rectangle(
         scene,
@@ -109,6 +115,7 @@ def draw_filled_rectangle(
         The scene with the rectangle drawn on it
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_filled_rectangle
         >>> from supervision.draw.color import Color
@@ -118,6 +125,8 @@ def draw_filled_rectangle(
         >>> result = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     if opacity == 1:
         cv2.rectangle(
@@ -166,6 +175,7 @@ def draw_rounded_rectangle(
         The image with the rounded rectangle drawn on it.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_rounded_rectangle
         >>> from supervision.draw.color import Color
@@ -175,6 +185,8 @@ def draw_rounded_rectangle(
         >>> result = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
         >>> result.shape
         (200, 300, 3)
+
+        ```
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
@@ -240,6 +252,7 @@ def draw_polygon(
         The scene with the polygon drawn on it.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_polygon
         >>> from supervision.draw.color import Color
@@ -248,6 +261,8 @@ def draw_polygon(
         >>> result = draw_polygon(scene, polygon, color=Color.RED)
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
@@ -273,6 +288,7 @@ def draw_filled_polygon(
         The scene with the polygon drawn on it.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_filled_polygon
         >>> from supervision.draw.color import Color
@@ -281,6 +297,8 @@ def draw_filled_polygon(
         >>> result = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
@@ -329,6 +347,7 @@ def draw_text(
         The input scene with the text drawn on it.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.geometry.core import Point
         >>> from supervision.draw.utils import draw_text
@@ -339,6 +358,8 @@ def draw_text(
         ... )
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
     text_width, text_height = cv2.getTextSize(
         text=text,
@@ -398,6 +419,7 @@ def draw_image(
         ValueError: For invalid opacity or rectangle dimensions.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_image
         >>> from supervision.geometry.core import Rect
@@ -407,6 +429,8 @@ def draw_image(
         >>> result = draw_image(scene, image, opacity=0.8, rect=rect)
         >>> result.shape
         (100, 100, 3)
+
+        ```
     """
 
     # Validate and load image
@@ -478,11 +502,14 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
         Recommended font scale factor.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> sv.calculate_optimal_text_scale((1920, 1080))
         1.08
         >>> sv.calculate_optimal_text_scale((640, 480))
         0.48
+
+        ```
     """
     return min(resolution_wh) * 1e-3
 
@@ -500,11 +527,14 @@ def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
         Recommended line thickness in pixels.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> sv.calculate_optimal_line_thickness((1920, 1080))
         4
         >>> sv.calculate_optimal_line_thickness((640, 480))
         2
+
+        ```
     """
     if min(resolution_wh) < 1080:
         return 2
