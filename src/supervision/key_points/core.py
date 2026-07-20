@@ -82,7 +82,7 @@ class KeyPoints:
         `sv.KeyPoints` directly from `model.predict()` — no additional
         conversion is needed.
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRKeypointPreview
@@ -99,7 +99,7 @@ class KeyPoints:
         method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
         [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
@@ -116,7 +116,7 @@ class KeyPoints:
         Use [`sv.KeyPoints.from_inference`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_inference)
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
@@ -135,7 +135,7 @@ class KeyPoints:
         pose result.
 
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import mediapipe as mp
         import supervision as sv
@@ -166,7 +166,7 @@ class KeyPoints:
         Use [`sv.KeyPoints.from_transformers`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_transformers)
         method, which accepts [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) result.
 
-        ```pycon
+        ```python
         from PIL import Image
         import requests
         import supervision as sv
@@ -397,7 +397,7 @@ class KeyPoints:
                 and class names, and confidences of each keypoint.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
@@ -409,7 +409,7 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_inference(result)
             ```
 
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from inference_sdk import InferenceHTTPClient
@@ -488,7 +488,7 @@ class KeyPoints:
             [MediaPipe website](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models).
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
@@ -514,7 +514,7 @@ class KeyPoints:
                 pose_landmarker_result, (image_width, image_height))
             ```
 
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
@@ -609,7 +609,7 @@ class KeyPoints:
                 and class names, and confidences of each keypoint.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -646,7 +646,7 @@ class KeyPoints:
                 and class names, and confidences of each keypoint.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import torch
             import supervision as sv
@@ -705,7 +705,7 @@ class KeyPoints:
                 and class names, and confidences of each keypoint.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
@@ -756,7 +756,7 @@ class KeyPoints:
                 and class names, and confidences of each keypoint.
 
         Examples:
-            ```pycon
+            ```python
             from PIL import Image
             import requests
             import supervision as sv
@@ -1074,7 +1074,7 @@ class KeyPoints:
             A subset of the KeyPoints object or an item from the data field.
 
         Examples:
-            ```pycon
+            ```python
             import supervision as sv
 
             key_points = sv.KeyPoints(...)
@@ -1111,7 +1111,7 @@ class KeyPoints:
             value: The value to set for the key.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -1322,7 +1322,7 @@ class KeyPoints:
                 is None.
 
         Examples:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from rfdetr import RFDETRKeypointPreview

@@ -78,7 +78,7 @@ def createml_annotations_to_detections(
             cannot be converted to float.
 
     Examples:
-        ```pycon
+        ```python
         import supervision as sv
         from supervision.dataset.formats.createml import (
             createml_annotations_to_detections,
@@ -241,7 +241,7 @@ def detections_to_createml_annotations(
         ValueError: If ``detections.class_id`` is ``None``.
 
     Examples:
-        ```pycon
+        ```python
         import numpy as np
         import supervision as sv
         from supervision.dataset.formats.createml import (
@@ -302,7 +302,7 @@ def save_createml_annotations(
             the same CreateML ``image`` entry.
 
     Examples:
-        ```pycon
+        ```python
         import supervision as sv
         from supervision.dataset.formats.createml import save_createml_annotations
 

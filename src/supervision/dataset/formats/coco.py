@@ -66,7 +66,7 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
         A list of COCO category dictionaries with 1-indexed ``id`` values.
 
     Examples:
-        ```pycon
+        ```python
         from supervision.dataset.formats.coco import classes_to_coco_categories
 
         classes_to_coco_categories(classes=["cat", "dog"])
@@ -281,7 +281,7 @@ def detections_to_coco_annotations(
         force polygon output regardless of mask topology.
 
     Examples:
-        ```pycon
+        ```python
         import numpy as np
         from supervision import Detections
         from supervision.dataset.formats.coco import (
@@ -642,7 +642,7 @@ def save_coco_annotations(
             the same COCO ``file_name``.
 
     Example:
-        ```pycon
+        ```python
         import supervision as sv
         from supervision.dataset.formats.coco import save_coco_annotations
 

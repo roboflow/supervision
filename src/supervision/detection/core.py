@@ -99,7 +99,7 @@ class Detections:
         Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
         method, which accepts model results from both detection and segmentation models.
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
@@ -115,7 +115,7 @@ class Detections:
         Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics)
         method, which accepts model results from both detection and segmentation models.
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
@@ -131,7 +131,7 @@ class Detections:
         Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers)
         method, which accepts model results from both detection and segmentation models.
 
-        ```pycon
+        ```python
         import torch
         import supervision as sv
         from PIL import Image
@@ -274,7 +274,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import torch
             import supervision as sv
@@ -313,7 +313,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -395,7 +395,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             from super_gradients.training import models
             import supervision as sv
@@ -447,7 +447,7 @@ class Detections:
             :class:`Detections` object.
 
         Example:
-            ```pycon
+            ```python
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
@@ -491,7 +491,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from deepsparse import Pipeline
 
@@ -527,7 +527,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
@@ -576,7 +576,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import torch
             import supervision as sv
             from PIL import Image
@@ -647,7 +647,7 @@ class Detections:
                 class IDs, and confidences of the predictions.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
@@ -741,7 +741,7 @@ class Detections:
                 than a dense boolean array.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
@@ -803,7 +803,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from segment_anything import (
                 sam_model_registry,
@@ -873,7 +873,7 @@ class Detections:
                 index for each polygon.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from inference.models.sam3 import SegmentAnything3
@@ -996,7 +996,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import requests
             import supervision as sv
 
@@ -1095,7 +1095,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             import paddle
             from ppdet.engine import Trainer
@@ -1161,7 +1161,7 @@ class Detections:
             ValueError: If the specified LMM is not supported.
 
         !!! example "PaliGemma"
-            ```pycon
+            ```python
 
             import supervision as sv
 
@@ -1230,7 +1230,7 @@ class Detections:
                 - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
 
 
-            ```pycon
+            ```python
             import supervision as sv
 
             qwen_2_5_vl_result = \"\"\"```json
@@ -1261,7 +1261,7 @@ class Detections:
 
         !!! example "Qwen3-VL"
 
-            ```pycon
+            ```python
             import supervision as sv
 
             qwen_3_vl_result = \"\"\"```json
@@ -1337,7 +1337,7 @@ class Detections:
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
-            ```pycon
+            ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json
@@ -1382,7 +1382,7 @@ class Detections:
 
                 For example, using the `google-generativeai` client:
 
-                ```pycon
+            ```python
                 from google.generativeai import types
 
                 response = model.generate_content(
@@ -1439,7 +1439,7 @@ class Detections:
                 When using the google-genai library, it is recommended to set
                 thinking_budget=0 in thinking_config for more direct and faster responses.
 
-                ```pycon
+                ```python
                 from google.generativeai import types
 
                 model.generate_content(
@@ -1460,7 +1460,7 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-            ```pycon
+                ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json
@@ -1505,7 +1505,7 @@ class Detections:
                 and return them in the proper JSON format with normalized coordinates.
 
 
-            ```pycon
+            ```python
             import supervision as sv
 
             moondream_result = {
@@ -1556,7 +1556,7 @@ class Detections:
                 <image>\\n<|grounding|>Detect the giraffes
                 ```
 
-            ```pycon
+            ```python
             from PIL import Image
             import supervision as sv
 
@@ -1640,7 +1640,7 @@ class Detections:
             ValueError: If the specified VLM is not supported.
 
         !!! example "PaliGemma"
-            ```pycon
+            ```python
 
             import supervision as sv
 
@@ -1709,7 +1709,7 @@ class Detections:
                 - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
 
 
-            ```pycon
+            ```python
             import supervision as sv
 
             qwen_2_5_vl_result = \"\"\"```json
@@ -1740,7 +1740,7 @@ class Detections:
 
         !!! example "Qwen3-VL"
 
-            ```pycon
+            ```python
             import supervision as sv
 
             qwen_3_vl_result = \"\"\"```json
@@ -1791,7 +1791,7 @@ class Detections:
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
-            ```pycon
+            ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json
@@ -1833,7 +1833,7 @@ class Detections:
                 when using a single image with text, place the text prompt after the image
                 part in the `contents` array. For example, with the `google-genai` client:
 
-                ```pycon
+            ```
                 response = model.generate_content(
                     [
                         {
@@ -1889,7 +1889,7 @@ class Detections:
                 When using the google-genai library, it is recommended to set
                 thinking_budget=0 in thinking_config for more direct and faster responses.
 
-                ```pycon
+                ```python
                 from google.generativeai import types
 
                 model.generate_content(
@@ -1910,7 +1910,7 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-            ```pycon
+                ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json
@@ -1955,7 +1955,7 @@ class Detections:
                 and return them in the proper JSON format with normalized coordinates.
 
 
-            ```pycon
+            ```python
             import supervision as sv
 
             moondream_result = {
@@ -2006,7 +2006,7 @@ class Detections:
                 <image>\\n<|grounding|>Detect the giraffes
                 ```
 
-            ```pycon
+            ```python
             from PIL import Image
             import supervision as sv
 
@@ -2149,7 +2149,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             import easyocr
 
@@ -2206,7 +2206,7 @@ class Detections:
             A new Detections object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
@@ -2377,7 +2377,7 @@ class Detections:
 
         Compact mask merge example:
 
-            ```pycon
+            ```python
             import numpy as np
             import supervision as sv
             from supervision.detection.compact_mask import CompactMask
@@ -2722,7 +2722,7 @@ class Detections:
             A subset of the Detections object or an item from the data field.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
 
             detections = sv.Detections()
@@ -2749,7 +2749,7 @@ class Detections:
             value: The value to set for the key.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -2867,7 +2867,7 @@ class Detections:
                 number of boxes (width / height for each box).
 
         Examples:
-            ```pycon
+            ```python
             import numpy as np
             import supervision as sv
 
@@ -2920,7 +2920,7 @@ class Detections:
             when conversion is not needed.
 
         Example:
-            ```pycon
+            ```python
             import numpy as np
             import supervision as sv
             detections = sv.Detections(
@@ -3328,7 +3328,7 @@ def merge_inner_detection_object_pair(
             object.
 
     Example:
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model

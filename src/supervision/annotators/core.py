@@ -329,7 +329,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
@@ -1599,7 +1599,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             The annotated ``scene`` array.
 
         Example:
-            ```pycon
+            ```python
             import numpy as np
             import supervision as sv
 
@@ -1979,7 +1979,7 @@ class IconAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
 
             image = ...
@@ -2208,7 +2208,7 @@ class TraceAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from ultralytics import YOLO
 
@@ -2382,7 +2382,7 @@ class HeatMapAnnotator(BaseAnnotator):
             scene is returned unchanged without raising a ``RuntimeWarning``.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from ultralytics import YOLO
 
@@ -2483,7 +2483,7 @@ class PixelateAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
 
             image = ...
@@ -3338,7 +3338,7 @@ class ComparisonAnnotator:
             The annotated image.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
 
             image = ...

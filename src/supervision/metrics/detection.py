@@ -1075,7 +1075,7 @@ class ConfusionMatrix:
             New instance of ConfusionMatrix.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from ultralytics import YOLO
 
@@ -1347,7 +1347,7 @@ class MeanAveragePrecision:
             New instance of MeanAveragePrecision.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from ultralytics import YOLO
 

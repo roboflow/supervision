@@ -35,7 +35,7 @@ class VideoInfo:
             default is None
 
     Examples:
-        ```pycon
+        ```python
         import supervision as sv
 
         video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
@@ -64,7 +64,7 @@ class VideoInfo:
             A `VideoInfo` instance with width, height, fps, and total_frames.
 
         Examples:
-            ```pycon
+            ```python
             import supervision as sv
 
             video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
@@ -98,7 +98,7 @@ class VideoSink:
         codec: FOURCC code for video format
 
     Example:
-        ```pycon
+        ```python
         import supervision as sv
 
         video_info = sv.VideoInfo.from_video_path("<SOURCE_VIDEO_PATH>")
@@ -226,7 +226,7 @@ def get_video_frames_generator(
         indexes; passing an integer source to it always leaves the capture
         closed (`isOpened()` returns `False`):
 
-        ```pycon
+        ```python
         from supervision import _cv2 as cv2
 
         cap = cv2.VideoCapture(0)  # 0 = default webcam
@@ -241,7 +241,7 @@ def get_video_frames_generator(
         ```
 
     Examples:
-        ```pycon
+        ```python
         import supervision as sv
 
         for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
@@ -323,7 +323,7 @@ def process_video(
         None
 
     Example:
-        ```pycon
+        ```python
         import supervision as sv
         from rfdetr import RFDETRMedium
 
@@ -455,7 +455,7 @@ class FPSMonitor:
                 benchmarking.
 
         Examples:
-            ```pycon
+            ```python
             import supervision as sv
 
             frames_generator = sv.get_video_frames_generator(

@@ -101,7 +101,7 @@ class ByteTrack:
             detections: The detections to pass through the tracker.
 
         Example:
-            ```pycon
+            ```python
             import supervision as sv
             from ultralytics import YOLO
 

@@ -74,7 +74,7 @@ class Classifications:
             A new Classifications object.
 
         Example:
-            ```pycon
+            ```python
             from PIL import Image
             import clip
             import supervision as sv
@@ -114,7 +114,7 @@ class Classifications:
             A new Classifications object.
 
         Example:
-            ```pycon
+            ```python
             from supervision import _cv2 as cv2
             from ultralytics import YOLO
             import supervision as sv
@@ -146,7 +146,7 @@ class Classifications:
             A new Classifications object.
 
         Example:
-            ```pycon
+            ```python
             from PIL import Image
             import timm
             from timm.data import resolve_data_config, create_transform

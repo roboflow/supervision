@@ -201,7 +201,7 @@ def load_labelme_annotations(
             missing ``imageWidth`` / ``imageHeight``.
 
     Examples:
-        ```pycon
+        ```python
         from supervision.dataset.formats.labelme import load_labelme_annotations
 
         classes, image_paths, annotations = load_labelme_annotations(
@@ -369,7 +369,7 @@ def save_labelme_annotations(
             which would cause one annotation file to overwrite another.
 
     Examples:
-        ```pycon
+        ```python
         import supervision as sv
         from supervision.dataset.formats.labelme import save_labelme_annotations
 
