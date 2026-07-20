@@ -29,7 +29,7 @@ def draw_line(
     Returns:
         The scene with the line drawn on it
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_line
         >>> from supervision.draw.color import Color
@@ -69,7 +69,7 @@ def draw_rectangle(
     Returns:
         The scene with the rectangle drawn on it
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_rectangle
         >>> from supervision.draw.color import Color
@@ -108,7 +108,7 @@ def draw_filled_rectangle(
     Returns:
         The scene with the rectangle drawn on it
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_filled_rectangle
         >>> from supervision.draw.color import Color
@@ -165,7 +165,7 @@ def draw_rounded_rectangle(
     Returns:
         The image with the rounded rectangle drawn on it.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_rounded_rectangle
         >>> from supervision.draw.color import Color
@@ -239,7 +239,7 @@ def draw_polygon(
     Returns:
         The scene with the polygon drawn on it.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_polygon
         >>> from supervision.draw.color import Color
@@ -272,7 +272,7 @@ def draw_filled_polygon(
     Returns:
         The scene with the polygon drawn on it.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_filled_polygon
         >>> from supervision.draw.color import Color
@@ -328,7 +328,7 @@ def draw_text(
     Returns:
         The input scene with the text drawn on it.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.geometry.core import Point
         >>> from supervision.draw.utils import draw_text
@@ -397,7 +397,7 @@ def draw_image(
         OSError: If the image path exists but cannot be decoded.
         ValueError: For invalid opacity or rectangle dimensions.
 
-    Example:
+    Examples:
         >>> import numpy as np
         >>> from supervision.draw.utils import draw_image
         >>> from supervision.geometry.core import Rect
@@ -477,7 +477,7 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     Returns:
         Recommended font scale factor.
 
-    Example:
+    Examples:
         >>> import supervision as sv
         >>> sv.calculate_optimal_text_scale((1920, 1080))
         1.08
@@ -499,7 +499,7 @@ def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     Returns:
         Recommended line thickness in pixels.
 
-    Example:
+    Examples:
         >>> import supervision as sv
         >>> sv.calculate_optimal_line_thickness((1920, 1080))
         4
