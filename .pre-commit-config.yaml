@@ -36,7 +36,7 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
 
-  - repo: https://github.com/JoC0de/pre-commit-prettier
+  - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.9.5 # v3.9.5
     hooks:
       - id: prettier
