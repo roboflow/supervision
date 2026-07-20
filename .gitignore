@@ -156,6 +156,8 @@ Desktop.ini
 
 # local data
 data/
+!src/supervision/_cv2/data/
+!src/supervision/_cv2/data/*
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
 .claude/logs/

@@ -5,6 +5,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
@@ -43,20 +44,28 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         ("mask_2d", "description"),
         [
-            (np.zeros((5, 5), dtype=bool), "all-False"),
-            (np.ones((5, 5), dtype=bool), "all-True"),
-            (np.eye(4, dtype=bool), "diagonal"),
-            (
+            pytest.param(np.zeros((5, 5), dtype=bool), "all-False", id="all-false"),
+            pytest.param(np.ones((5, 5), dtype=bool), "all-True", id="all-true"),
+            pytest.param(np.eye(4, dtype=bool), "diagonal", id="diagonal"),
+            pytest.param(
                 np.array([[True, True, False], [True, False, False]], dtype=bool),
                 "L-shape",
+                id="l-shape",
             ),
-            (
+            pytest.param(
                 np.indices((4, 4)).sum(axis=0) % 2 == 0,
                 "checkerboard",
+                id="checkerboard",
             ),
-            (np.zeros((1, 1), dtype=bool), "single-pixel-False"),
-            (np.ones((1, 1), dtype=bool), "single-pixel-True"),
-            (np.zeros((0, 0), dtype=bool), "empty"),
+            pytest.param(
+                np.zeros((1, 1), dtype=bool),
+                "single-pixel-False",
+                id="single-pixel-false",
+            ),
+            pytest.param(
+                np.ones((1, 1), dtype=bool), "single-pixel-True", id="single-pixel-true"
+            ),
+            pytest.param(np.zeros((0, 0), dtype=bool), "empty", id="empty"),
         ],
     )
     def test_encode_decode_round_trip(
@@ -78,10 +87,13 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         "mask_2d",
         [
-            np.zeros((6, 6), dtype=bool),
-            np.ones((6, 6), dtype=bool),
-            np.eye(6, dtype=bool),
-            np.array([[True, False, True], [False, True, False]], dtype=bool),
+            pytest.param(np.zeros((6, 6), dtype=bool), id="all-false"),
+            pytest.param(np.ones((6, 6), dtype=bool), id="all-true"),
+            pytest.param(np.eye(6, dtype=bool), id="diagonal"),
+            pytest.param(
+                np.array([[True, False, True], [False, True, False]], dtype=bool),
+                id="mixed",
+            ),
         ],
     )
     def test_area_matches_numpy_sum(self, mask_2d: np.ndarray) -> None:
@@ -93,18 +105,20 @@ class TestRleHelpers:
         ("mask_2d", "expected_rle"),
         [
             # 2x3; F-order flat: [F,T,T,F,T,F] -> 1F,2T,1F,1T,1F
-            (
+            pytest.param(
                 np.array([[False, True, True], [True, False, False]]),
                 [1, 2, 1, 1, 1],
+                id="2x3-mixed",
             ),
             # 3x3 all-False -> single run of 9
-            (np.zeros((3, 3), dtype=bool), [9]),
+            pytest.param(np.zeros((3, 3), dtype=bool), [9], id="3x3-all-false"),
             # 3x1 all-True; F-order scan starts True -> leading zero prepended
-            (np.ones((3, 1), dtype=bool), [0, 3]),
+            pytest.param(np.ones((3, 1), dtype=bool), [0, 3], id="3x1-all-true"),
             # 2x2; F-order flat: [F,T,F,T] -> alternating single-pixel runs
-            (
+            pytest.param(
                 np.array([[False, False], [True, True]]),
                 [1, 1, 1, 1],
+                id="2x2-alternating",
             ),
         ],
     )
@@ -117,10 +131,12 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         "mask_2d",
         [
-            np.array([[False, True, True], [True, False, False]]),
-            np.zeros((4, 4), dtype=bool),
-            np.array([[False, False], [True, True]]),
-            np.ones((3, 1), dtype=bool),
+            pytest.param(
+                np.array([[False, True, True], [True, False, False]]), id="l-shape"
+            ),
+            pytest.param(np.zeros((4, 4), dtype=bool), id="all-false"),
+            pytest.param(np.array([[False, False], [True, True]]), id="alternating"),
+            pytest.param(np.ones((3, 1), dtype=bool), id="all-true"),
         ],
     )
     def test_encode_agrees_with_mask_to_rle(self, mask_2d: np.ndarray) -> None:
@@ -139,12 +155,13 @@ class TestFromDenseToDense:
     @pytest.mark.parametrize(
         ("num_masks", "image_shape"),
         [
-            (0, (50, 50)),
-            (1, (50, 50)),
-            (5, (50, 50)),
+            pytest.param(0, (50, 50), id="zero-masks"),
+            pytest.param(1, (50, 50), id="single-mask"),
+            pytest.param(5, (50, 50), id="five-masks"),
         ],
     )
     def test_round_trip(self, num_masks: int, image_shape: tuple[int, int]) -> None:
+        """from_dense -> to_dense round-trips losslessly for N=0, 1, and 5 masks."""
         rng = np.random.default_rng(42)
         img_h, img_w = image_shape
         masks = rng.integers(0, 2, size=(num_masks, img_h, img_w)).astype(bool)
@@ -163,6 +180,326 @@ class TestFromDenseToDense:
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
 
+class TestFromCocoRle:
+    """Tests for CompactMask.from_coco_rle."""
+
+    def test_empty_collection_has_dense_empty_shape(self) -> None:
+        """Empty COCO RLE input should return an empty CompactMask."""
+        compact = CompactMask.from_coco_rle(
+            rles=[],
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            image_shape=(3, 5),
+        )
+
+        assert len(compact) == 0
+        assert compact.shape == (0, 3, 5)
+        assert compact.area.shape == (0,)
+        np.testing.assert_array_equal(
+            compact.to_dense(), np.zeros((0, 3, 5), dtype=bool)
+        )
+
+    @pytest.mark.parametrize(
+        ("masks", "xyxy"),
+        [
+            pytest.param(
+                np.array(
+                    [
+                        [
+                            [False, True, False, False, False],
+                            [False, True, True, False, False],
+                            [False, False, False, True, False],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+                np.array([[1, 0, 3, 2]], dtype=np.float32),
+                id="non-square-crop",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[-2, 1, 8, 3]], dtype=np.float32),
+                id="clipped-box",
+            ),
+            pytest.param(
+                np.zeros((1, 4, 5), dtype=bool),
+                np.array([[0, 0, 4, 3]], dtype=np.float32),
+                id="all-false",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[0, 0, 4, 3]], dtype=np.float32),
+                id="all-true-full-image",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[1, 1, 3, 2]], dtype=np.float32),
+                id="all-true-crop",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[3, 2, 1, 2]], dtype=np.float32),
+                id="invalid-box",
+            ),
+            pytest.param(
+                np.array([[[True]]], dtype=bool),
+                np.array([[0, 0, 0, 0]], dtype=np.float32),
+                id="single-pixel-image",
+            ),
+        ],
+    )
+    def test_matches_dense_reference(self, masks: np.ndarray, xyxy: np.ndarray) -> None:
+        """COCO RLE construction should match dense decode plus from_dense."""
+        image_shape = masks.shape[1:]
+        rles = [
+            {
+                "size": list(image_shape),
+                "counts": mask_to_rle(mask, compressed=True),
+            }
+            for mask in masks
+        ]
+
+        compact = CompactMask.from_coco_rle(
+            rles=rles, xyxy=xyxy, image_shape=image_shape
+        )
+
+        reference = CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+        np.testing.assert_array_equal(compact.area, reference.area)
+        np.testing.assert_array_equal(compact.bbox_xyxy, reference.bbox_xyxy)
+
+    def test_matches_dense_reference_for_multiple_masks(self) -> None:
+        """COCO RLE construction handles N>1 batches."""
+        masks = np.zeros((2, 5, 6), dtype=bool)
+        masks[0, 1:3, 1:4] = True
+        masks[1, 3:5, 4:6] = True
+        xyxy = np.array([[1, 1, 3, 2], [4, 3, 5, 4]], dtype=np.float32)
+        image_shape = masks.shape[1:]
+        rles = [
+            {"size": list(image_shape), "counts": mask_to_rle(mask)} for mask in masks
+        ]
+
+        compact = CompactMask.from_coco_rle(
+            rles=rles, xyxy=xyxy, image_shape=image_shape
+        )
+
+        reference = CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+
+    def test_out_of_frame_box_returns_empty_crop(self) -> None:
+        """Boxes with no image intersection do not collapse onto edge pixels."""
+        mask = np.zeros((4, 5), dtype=bool)
+        mask[2, 4] = True
+        rles = [{"size": [4, 5], "counts": mask_to_rle(mask)}]
+        xyxy = np.array([[5, 2, 6, 2]], dtype=np.float32)
+
+        compact = CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(4, 5))
+
+        assert compact.area.tolist() == [0]
+        np.testing.assert_array_equal(compact.to_dense(), np.zeros((1, 4, 5), bool))
+
+    def test_rejects_rle_size_mismatch(self) -> None:
+        """COCO RLE size should match the explicit image shape."""
+        rles = [{"size": [2, 2], "counts": [4]}]
+        xyxy = np.array([[0, 0, 1, 1]], dtype=np.float32)
+
+        with pytest.raises(ValueError, match="RLE size"):
+            CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(3, 2))
+
+    @pytest.mark.parametrize(
+        ("rles", "xyxy_arr", "image_shape", "err_match"),
+        [
+            pytest.param(
+                [{"size": [0, 4], "counts": [0]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (0, 4),
+                "positive",
+                id="zero-height",
+            ),
+            pytest.param(
+                [{"size": [4, 0], "counts": [0]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 0),
+                "positive",
+                id="zero-width",
+            ),
+            pytest.param(
+                [{"size": [4, 4], "counts": [16]}],
+                np.array([[0, 0, 3, 3, 0]], dtype=np.float32),
+                (4, 4),
+                "shape",
+                id="xyxy-shape-mismatch",
+            ),
+            pytest.param(
+                [42],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "mapping",
+                id="non-mapping-rle-item",
+            ),
+            pytest.param(
+                [{"size": [4, 4]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "'size' and 'counts'",
+                id="missing-counts-key",
+            ),
+            pytest.param(
+                [{"size": [4, 4], "counts": [1, 2, 3]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "sum",
+                id="counts-sum-mismatch",
+            ),
+            pytest.param(
+                [],
+                np.empty((0, 4), dtype=np.float32),
+                (32769, 4),
+                "maximum",
+                id="max-image-dimension-exceeded",
+            ),
+        ],
+    )
+    def test_raises_on_invalid_input(
+        self,
+        rles: list,
+        xyxy_arr: np.ndarray,
+        image_shape: tuple,
+        err_match: str,
+    ) -> None:
+        """from_coco_rle raises ValueError for each documented invalid-input path."""
+        with pytest.raises(ValueError, match=err_match):
+            CompactMask.from_coco_rle(rles=rles, xyxy=xyxy_arr, image_shape=image_shape)
+
+    def test_transcodes_without_dense_decode_helpers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """COCO RLE construction should avoid full-mask dense decode helpers."""
+        rles = [{"size": [4, 4], "counts": "52203"}]
+        xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+
+        def fail_dense_helper(*args: object, **kwargs: object) -> None:
+            raise AssertionError("dense helper should not be called")
+
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._mask_to_rle_counts",
+            fail_dense_helper,
+        )
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._rle_counts_to_mask",
+            fail_dense_helper,
+        )
+
+        compact = CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(4, 4))
+
+        assert compact.shape == (1, 4, 4)
+
+    def test_large_image_column_split_path(self) -> None:
+        """from_coco_rle hits column-split path on large images (H*W > 307200)."""
+        H, W = 720, 1280
+        assert H * W > 640 * 480, (
+            "test must use image above _SMALL_IMAGE_DENSE_THRESHOLD"
+        )
+        rng = np.random.default_rng(42)
+        mask = rng.integers(0, 2, (H, W), dtype=np.uint8).astype(bool)
+        xyxy = np.array([[0, 0, W - 1, H - 1]], dtype=np.float32)
+        rle = {"size": [H, W], "counts": mask_to_rle(mask, compressed=True)}
+
+        compact = CompactMask.from_coco_rle(rles=[rle], xyxy=xyxy, image_shape=(H, W))
+        reference = CompactMask.from_dense(mask[np.newaxis], xyxy, image_shape=(H, W))
+
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+
+    def test_bytes_counts_match_string_counts(self) -> None:
+        """from_coco_rle accepts bytes-encoded compressed counts."""
+        # Both encodings of "52203" should produce identical crops.
+        rle_str = {"size": [4, 4], "counts": "52203"}
+        rle_bytes = {"size": [4, 4], "counts": b"52203"}
+        xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+
+        cm_str = CompactMask.from_coco_rle(
+            rles=[rle_str], xyxy=xyxy, image_shape=(4, 4)
+        )
+        cm_bytes = CompactMask.from_coco_rle(
+            rles=[rle_bytes], xyxy=xyxy, image_shape=(4, 4)
+        )
+
+        np.testing.assert_array_equal(cm_str.to_dense(), cm_bytes.to_dense())
+
+
+class TestCocoRleCountsToArray:
+    """Tests for _coco_rle_counts_to_array input-format decoding."""
+
+    @pytest.mark.parametrize(
+        "counts",
+        [
+            pytest.param("52203", id="str-input"),
+            pytest.param(b"52203", id="bytes-input"),
+        ],
+    )
+    def test_str_and_bytes_decode_identically(self, counts: object) -> None:
+        """str and bytes inputs decode to the same run-length array."""
+        from supervision.detection.compact_mask import _coco_rle_counts_to_array
+
+        result = _coco_rle_counts_to_array(counts)
+        assert result.dtype == np.int32
+        assert result.sum() == 16  # total pixels in a 4x4 image
+
+    @pytest.mark.parametrize(
+        ("counts", "err_match"),
+        [
+            pytest.param([2**31], "Invalid", id="int32-overflow"),
+            pytest.param([[4, 8], [3, 5]], "one-dimensional", id="two-dimensional"),
+            pytest.param([4, -1, 8], "non-negative", id="negative-count"),
+            pytest.param(None, "Invalid", id="none"),
+            pytest.param("", "empty", id="empty-string"),
+        ],
+    )
+    def test_invalid_counts_raise_value_error(
+        self, counts: object, err_match: str
+    ) -> None:
+        """Invalid COCO RLE counts raise ValueError."""
+        from supervision.detection.compact_mask import _coco_rle_counts_to_array
+
+        with pytest.raises(ValueError, match=err_match):
+            _coco_rle_counts_to_array(counts)
+
+
+class TestRleTrimColRuns:
+    """Tests for _rle_trim_col_runs row-crop behavior."""
+
+    @pytest.mark.parametrize(
+        ("col_runs", "height", "y1", "y2"),
+        [
+            pytest.param([0, 2, 3], 5, 0, 2, id="starts-at-row-zero"),
+            pytest.param([2, 1, 2], 5, 2, 2, id="single-row-crop"),
+            pytest.param([1, 3, 2], 6, 2, 4, id="straddles-both-bounds"),
+            pytest.param([3, 2, 1], 6, 4, 5, id="starts-inside-true-run"),
+            pytest.param([0, 6], 6, 1, 4, id="all-true-col-interior-crop"),
+        ],
+    )
+    def test_matches_decode_slice_encode(
+        self, col_runs: list[int], height: int, y1: int, y2: int
+    ) -> None:
+        """Trimmed column runs match dense slice then encode."""
+        from supervision.detection.compact_mask import _rle_trim_col_runs
+
+        column = _rle_counts_to_mask(np.array(col_runs, dtype=np.int32), height, 1)
+        expected = _mask_to_rle_counts(column[y1 : y2 + 1, :]).tolist()
+
+        result = _rle_trim_col_runs(col_runs, y1, y2)
+
+        assert result == expected
+        assert sum(result) == y2 - y1 + 1
+
+    def test_returns_all_false_when_no_runs_reach_crop(self) -> None:
+        """Truncated input before y1 returns an all-False crop."""
+        from supervision.detection.compact_mask import _rle_trim_col_runs
+
+        result = _rle_trim_col_runs([2], y1=3, y2=4)
+
+        assert result == [2]
+
+
 class TestGetItem:
     """Tests for CompactMask.__getitem__.
 
@@ -174,6 +511,7 @@ class TestGetItem:
     """
 
     def test_int_returns_2d_dense(self) -> None:
+        """Integer index returns a dense (H, W) array matching the source mask."""
         img_h, img_w = 30, 40
         rng = np.random.default_rng(0)
         masks = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
@@ -186,6 +524,7 @@ class TestGetItem:
         np.testing.assert_array_equal(result, masks[1])
 
     def test_list_returns_compact_mask(self) -> None:
+        """List of indices returns a new CompactMask with the selected detections."""
         img_h, img_w = 20, 20
         masks = np.zeros((4, img_h, img_w), dtype=bool)
         for mask_idx in range(4):
@@ -203,6 +542,7 @@ class TestGetItem:
         np.testing.assert_array_equal(subset[1], masks[2])
 
     def test_slice_returns_compact_mask(self) -> None:
+        """Slice indexing returns a new CompactMask with the sliced detections."""
         img_h, img_w = 20, 20
         masks = np.zeros((5, img_h, img_w), dtype=bool)
         cm = _make_cm(masks, (img_h, img_w))
@@ -212,6 +552,7 @@ class TestGetItem:
         assert len(subset) == 3
 
     def test_bool_ndarray(self) -> None:
+        """Boolean ndarray selector filters detections like NumPy boolean masking."""
         img_h, img_w = 15, 15
         rng = np.random.default_rng(7)
         masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
@@ -247,16 +588,19 @@ class TestProperties:
     """
 
     def test_len(self) -> None:
+        """len() returns the number of masks in the collection."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert len(cm) == 3
 
     def test_shape(self) -> None:
+        """shape follows the (N, H, W) dense array convention."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert cm.shape == (3, 10, 10)
 
     def test_shape_empty(self) -> None:
+        """shape reports N=0 for an empty CompactMask while keeping (H, W)."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -266,10 +610,12 @@ class TestProperties:
         assert cm.shape == (0, 480, 640)
 
     def test_dtype(self) -> None:
+        """dtype is always bool regardless of the input mask dtype."""
         cm = _make_cm(np.zeros((1, 5, 5), dtype=bool), (5, 5))
         assert cm.dtype == np.dtype(bool)
 
     def test_area_matches_dense(self) -> None:
+        """area returns per-mask True-pixel counts matching np.sum on dense masks."""
         img_h, img_w = 20, 20
         rng = np.random.default_rng(3)
         masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
@@ -279,6 +625,7 @@ class TestProperties:
         np.testing.assert_array_equal(cm.area, expected)
 
     def test_area_empty(self) -> None:
+        """area is an empty (0,) array for an empty CompactMask."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -1200,8 +1547,6 @@ class TestCompactMaskResize:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_dense_parity_roundtrip(self, seed: int) -> None:
         """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
-        import cv2
-
         rng = np.random.default_rng(seed + 500)
         img_h, img_w = 80, 120
         target_h, target_w = 40, 60
@@ -1254,8 +1599,6 @@ class TestRleResize:
 
     def test_2x_upscale(self) -> None:
         """2x upscale of a 2x2 mask doubles each pixel."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1276,8 +1619,6 @@ class TestRleResize:
 
     def test_2x_downscale(self) -> None:
         """2x downscale of a 4x4 block mask halves dimensions."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1300,8 +1641,6 @@ class TestRleResize:
 
     def test_non_square_scale(self) -> None:
         """Non-square resize: 4x6 to 2x3 with independent axis scaling."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((4, 6), dtype=bool)
@@ -1360,8 +1699,6 @@ class TestRleResize:
 
     def test_single_pixel_true_upscale(self) -> None:
         """Single True pixel in a 3x3 mask upscaled preserves position."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((3, 3), dtype=bool)
@@ -1378,8 +1715,6 @@ class TestRleResize:
     @pytest.mark.parametrize("seed", list(range(45)))
     def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
         """_rle_resize matches cv2.resize(INTER_NEAREST) within 1-pixel tolerance."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(seed + 7000)
@@ -1418,8 +1753,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Single-row and single-col crops scale correctly with cv2 parity."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 31 + dst_shape[1] * 17)
@@ -1448,8 +1781,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Prime-sized crops with non-integer scale ratios match cv2 exactly."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 101 + dst_shape[1] * 53)
@@ -1511,8 +1842,6 @@ class TestRleResize:
         Checkerboard yields ~1 run per pixel, far above the 0.25 threshold.
         Result must match cv2.resize(INTER_NEAREST) within 1 pixel.
         """
-        import cv2
-
         from supervision.detection.compact_mask import (
             _L3_DENSITY_THRESHOLD,
             _resize_crop,

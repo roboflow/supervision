@@ -62,7 +62,8 @@ def move_detections(
     """Translate detections by a pixel offset, repositioning boxes and masks.
 
     Args:
-        detections: Detections object to be moved.
+        detections: Detections object to be moved. The input is left unchanged;
+            a fresh copy is returned.
         offset: An array of shape `(2,)` containing offset values in the
             format `[dx, dy]`.
         resolution_wh: The width and height of the desired mask
@@ -71,6 +72,7 @@ def move_detections(
     Returns:
         Repositioned Detections object.
     """
+    detections = detections.select(slice(None))
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
@@ -154,6 +156,11 @@ class InferenceSlicer:
             objects. IoU and NMS are computed directly on the RLE crops
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
+
+            When ``compact_masks=True``, each detection's CompactMask crop spans
+            the entire slice tile bbox (not the tight detection bbox). Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            merged result to tighten crops to the detection bounding boxes.
         batch_size: Number of slices passed to the callback per call.
             Defaults to ``1``, which uses the single-image callback contract
             (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
@@ -176,7 +183,7 @@ class InferenceSlicer:
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRMedium
 
@@ -230,7 +237,7 @@ class InferenceSlicer:
         that benefit from batched forward passes:
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import numpy as np
         import supervision as sv
 
@@ -500,9 +507,13 @@ class InferenceSlicer:
             and isinstance(detections.mask, np.ndarray)
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
+            full_slice_xyxy = np.tile(
+                np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                (len(detections), 1),
+            )
             detections.mask = CompactMask.from_dense(
                 detections.mask,
-                detections.xyxy,
+                full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
 
@@ -586,9 +597,13 @@ class InferenceSlicer:
             for det, image_slice in zip(detections_in_slices, slices):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
+                    full_slice_xyxy = np.tile(
+                        np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                        (len(det), 1),
+                    )
                     det.mask = CompactMask.from_dense(
                         det.mask,
-                        det.xyxy,
+                        full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
 

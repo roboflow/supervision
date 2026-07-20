@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from PIL import Image, ImageChops
 
 from supervision.utils.conversion import (
@@ -96,6 +97,62 @@ def test_cv2_to_pillow(
     )
 
 
+def test_cv2_to_pillow_bgr_reorders_channels_to_rgb() -> None:
+    """A BGR array is converted to an RGB-mode image with swapped channels."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+    image[:, :, 0] = 10  # B
+    image[:, :, 1] = 20  # G
+    image[:, :, 2] = 30  # R
+
+    # when
+    result = cv2_to_pillow(image)
+
+    # then
+    assert result.mode == "RGB"
+    assert result.getpixel((0, 0)) == (30, 20, 10)
+
+
+def test_cv2_to_pillow_grayscale_passes_through() -> None:
+    """A 2-D grayscale array becomes an L-mode image of the same size."""
+    # given
+    image = np.zeros((4, 5), dtype=np.uint8)
+
+    # when
+    result = cv2_to_pillow(image)
+
+    # then
+    assert result.mode == "L"
+    assert result.size == (5, 4)
+
+
+def test_cv2_to_pillow_bgra_reorders_channels_to_rgba() -> None:
+    """A BGRA array is converted to an RGBA-mode image with swapped channels."""
+    # given
+    image = np.zeros((2, 2, 4), dtype=np.uint8)
+    image[:, :, 0] = 10  # B
+    image[:, :, 1] = 20  # G
+    image[:, :, 2] = 30  # R
+    image[:, :, 3] = 255  # A
+
+    # when
+    result = cv2_to_pillow(image)
+
+    # then
+    assert result.mode == "RGBA"
+    assert result.getpixel((0, 0)) == (30, 20, 10, 255)
+
+
+def test_cv2_to_pillow_invalid_shape_raises() -> None:
+    """An unsupported channel count raises ValueError."""
+    # given
+    image = np.zeros((2, 2, 2), dtype=np.uint8)
+
+    # when / then
+    with pytest.raises(ValueError, match="Expected shape"):
+        cv2_to_pillow(image)
+
+
 def test_pillow_to_cv2(
     empty_cv2_image: np.ndarray, empty_pillow_image: Image.Image
 ) -> None:
@@ -106,6 +163,17 @@ def test_pillow_to_cv2(
     assert np.allclose(result, empty_cv2_image), (
         "Conversion to OpenCV image expected not to change the content of image"
     )
+
+
+def test_pillow_to_cv2_handles_palette_images() -> None:
+    """Palette images must resolve their palette colors before BGR conversion."""
+    image = Image.new("P", (1, 1))
+    image.putpalette([0, 0, 0, 255, 0, 0] + [0, 0, 0] * 254)
+    image.putdata([1])
+
+    result = pillow_to_cv2(image=image)
+
+    np.testing.assert_array_equal(result, np.array([[[0, 0, 255]]], dtype=np.uint8))
 
 
 def test_images_to_cv2_when_empty_input_provided() -> None:

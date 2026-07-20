@@ -45,4 +45,10 @@ print(len(detections))
 
 GeoTIFF inputs must use a projected coordinate reference system. Reproject geographic rasters before passing them to `InferenceSlicer`.
 
+<div class="md-typeset">
+    <h2><a href="#supervision.detection.tools.inference_slicer.WindowedRasterDataset">WindowedRasterDataset</a></h2>
+</div>
+
+:::supervision.detection.tools.inference_slicer.WindowedRasterDataset
+
 :::supervision.detection.tools.inference_slicer.InferenceSlicer

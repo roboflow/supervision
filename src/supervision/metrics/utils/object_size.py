@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils.masks import count_mask_pixels
 from supervision.metrics.core import MetricTarget
 
 if TYPE_CHECKING:
@@ -127,6 +128,41 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
     return result
 
 
+def get_area_size_category(
+    areas: npt.NDArray[np.number],
+) -> npt.NDArray[np.int_]:
+    """Get object size categories from per-detection pixel areas.
+
+    Args:
+        areas: One-dimensional pixel areas shaped (N,).
+
+    Returns:
+        The size category of each area, matching the enum values of
+        `ObjectSizeCategory`. Shaped (N,).
+
+    Raises:
+        ValueError: If `areas` is not one-dimensional.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.metrics.utils.object_size import get_area_size_category
+        >>> get_area_size_category(np.array([100, 2500, 10000]))
+        array([1, 2, 3])
+
+        ```
+    """
+    if len(areas.shape) != 1:
+        raise ValueError("Areas must be shaped (N,)")
+
+    result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
+    sm, lg = SIZE_THRESHOLDS
+    result[areas < sm] = ObjectSizeCategory.SMALL.value
+    result[(areas >= sm) & (areas < lg)] = ObjectSizeCategory.MEDIUM.value
+    result[areas >= lg] = ObjectSizeCategory.LARGE.value
+    return result
+
+
 def get_mask_size_category(
     mask: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
@@ -159,7 +195,12 @@ def get_mask_size_category(
     else:
         if len(mask.shape) != 3:
             raise ValueError("Masks must be shaped (N, H, W)")
-        areas = np.sum(mask, axis=(1, 2))
+        # count_mask_pixels uses np.count_nonzero (no axis), which dispatches
+        # to SIMD popcount over the bool buffer and is ~6x faster than the
+        # vectorized np.sum(mask, axis=(1, 2)). Do not "simplify" back to
+        # np.sum(axis=(1,2)); benchmark before reverting. dtype=np.int64 keeps
+        # areas consistent across platforms (Windows NumPy defaults to int32).
+        areas = count_mask_pixels(mask)
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
@@ -218,8 +259,11 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
 def get_detection_size_category(
     detections: Detections, metric_target: MetricTarget = MetricTarget.BOXES
 ) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of a detections object.
+    """Get the size category of each detection.
+
+    Explicit area metadata takes precedence for every metric target, matching
+    COCO-style evaluation. Geometry, mask, or oriented-box content remains the
+    fallback when area metadata is absent.
 
     Args:
         detections: The detections object.
@@ -229,7 +273,35 @@ def get_detection_size_category(
     Returns:
         The size category of each bounding box, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
+
+    Raises:
+        ValueError: If area metadata is not one-dimensional or is not aligned
+            with the detections.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.config import AREA_DATA_FIELD
+        >>> from supervision.detection.core import Detections
+        >>> detections = Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     data={AREA_DATA_FIELD: np.array([2500.0])},
+        ... )
+        >>> get_detection_size_category(detections)
+        array([2])
+
+        ```
     """
+    area_data = detections.data.get(AREA_DATA_FIELD)
+    if area_data is not None:
+        areas = np.asarray(area_data, dtype=np.float64)
+        if len(areas.shape) != 1 or len(areas) != len(detections):
+            raise ValueError(
+                "Detection area metadata must be shaped (N,) and aligned "
+                "with detections"
+            )
+        return get_area_size_category(areas)
+
     if metric_target == MetricTarget.BOXES:
         return get_bbox_size_category(detections.xyxy)
     if metric_target == MetricTarget.MASKS:

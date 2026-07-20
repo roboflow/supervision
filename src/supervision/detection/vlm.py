@@ -23,7 +23,8 @@ class LMM(Enum):
     """
     Enum specifying supported Large Multimodal Models (LMMs).
 
-    .. deprecated:: 0.27.0
+    !!! deprecated "Deprecated"
+
         `LMM` is deprecated and will be removed in `supervision-0.31.0`.
         Use `VLM` instead.
 
@@ -447,7 +448,9 @@ def from_deepseek_vl_2(
         A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
             shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
             optional array of shape `(n,)` with class indices, and `class_name`
-            is an array of shape `(n,)` with class labels.
+            is an array of shape `(n,)` with class labels. When the input
+            contains no detections (or all are filtered by `classes`), returns
+            `(np.empty((0, 4)), np.empty(0), np.empty(0))`.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -476,8 +479,14 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy_list, dtype=np.float32)
-    class_name = np.array(class_name_list)
+    xyxy = (
+        np.array(xyxy_list, dtype=np.float32)
+        if xyxy_list
+        else np.empty((0, 4), dtype=np.float32)
+    )
+    class_name = (
+        np.array(class_name_list) if class_name_list else np.array([], dtype=object)
+    )
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
@@ -515,8 +524,13 @@ def from_florence_2(
             optional array of shape `(n, h, w)` with segmentation masks, and
             `obb_boxes` is an optional array of shape `(n, 4, 2)` with oriented
             bounding boxes.
+
+    Raises:
+        ValueError: If the top-level Florence 2 payload has multiple tasks or
+            if a task payload is malformed.
     """
-    assert len(result) == 1, f"Expected result with a single element. Got: {result}"
+    if len(result) != 1:
+        raise ValueError(f"Expected result with a single element. Got: {result}")
     task = next(iter(result.keys()))
     if task not in SUPPORTED_TASKS_FLORENCE_2:
         raise ValueError(
@@ -565,18 +579,18 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(result, str), (
-            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
-        )
+        if not isinstance(result, str):
+            raise ValueError(f"Expected string as {task} result, got {type(result)}")
 
         if result == "No object detected.":
             return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
-        assert match is not None, (
-            f"Expected string to end in location tags, but got {result}"
-        )
+        if match is None:
+            raise ValueError(
+                f"Expected string to end in location tags, but got {result}"
+            )
 
         w, h = _validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)

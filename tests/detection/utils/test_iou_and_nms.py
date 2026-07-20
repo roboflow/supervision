@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -10,6 +11,8 @@ from supervision.detection.utils.iou_and_nms import (
     _group_overlapping_boxes,
     box_iou,
     box_iou_batch,
+    box_iou_batch_with_jaccard,
+    box_non_max_merge,
     box_non_max_suppression,
     mask_iou_batch,
     mask_non_max_merge,
@@ -18,6 +21,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _generate_random_boxes
 
 
@@ -598,7 +602,7 @@ def test_mask_non_max_suppression(
                 ]
             ),
             0.6,
-            [[0, 1]],
+            [[0], [1]],
             DoesNotRaise(),
         ),  # two masks partially overlapping with no category, no merge
         (
@@ -665,6 +669,94 @@ def test_mask_non_max_merge(
         sorted_result = sorted([sorted(group) for group in result])
         sorted_expected_result = sorted([sorted(group) for group in expected_result])
         assert sorted_result == sorted_expected_result
+
+
+def test_mask_non_max_merge_ignores_mask_dimension_for_exact_iou() -> None:
+    """Mask NMM ignores downscale dimension and uses exact mask overlap."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0, 0] = True
+    masks[0, 0, 1] = True
+    masks[1, 0, 0] = True
+    masks[1, 1, 0] = True
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.9,
+        mask_dimension=1,
+    )
+
+    assert sorted([sorted(group) for group in result]) == [[0], [1]]
+
+
+def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
+    """Mask NMM supports legacy positional trailing args with warning."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0:2, 0:2] = True
+    masks[1, 0:2, 0:2] = True
+
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        legacy_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            640,
+            OverlapMetric.IOU,
+        )
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        reordered_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            OverlapMetric.IOU,
+            640,
+        )
+
+    assert legacy_result == [[0, 1]]
+    assert reordered_result == [[0, 1]]
+
+
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
 
 
 @pytest.mark.parametrize(
@@ -1160,6 +1252,73 @@ def test_box_iou_batch_symmetric_large(
     )
 
 
+def _boundary_box_pair(
+    origin: int, side: int = 50, shift: int = 25, dtype: type = np.float64
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build two overlapping boxes sharing an origin for precision tests.
+
+    Both boxes are `side`x`side`; the second is shifted by `shift` along x so
+    the intersection is `shift`x`side` and the union is `2*side**2 - shift*side`.
+    """
+    box_a = np.array([[origin, origin, origin + side, origin + side]], dtype=dtype)
+    box_b = np.array(
+        [[origin + shift, origin, origin + side + shift, origin + side]],
+        dtype=dtype,
+    )
+    return box_a, box_b
+
+
+@pytest.mark.parametrize(
+    ("origin", "overlap_metric", "expected"),
+    [
+        pytest.param(
+            2**24 + 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-above-2pow24"
+        ),
+        pytest.param(2**24 + 1, OverlapMetric.IOS, 0.5, id="ios-float64-above-2pow24"),
+        pytest.param(2**24, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-at-2pow24"),
+        pytest.param(
+            2**24 - 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-just-below-2pow24"
+        ),
+    ],
+)
+def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
+    origin: int,
+    overlap_metric: OverlapMetric,
+    expected: float,
+) -> None:
+    """`float64`/`int64` inputs keep full precision at the `2**24` boundary.
+
+    `float64` accumulation is exact for these integer-valued coordinates, so the
+    result must match the analytic value. Two 50x50 boxes shifted by 25 in x give
+    intersection 25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5.
+    This does not exercise the `float32`-storage case, which cannot be recovered
+    inside this function; it guards the `float64`/`int64` accumulation path only.
+    """
+    box_a, box_b = _boundary_box_pair(origin, dtype=np.float64)
+
+    result = box_iou_batch(
+        boxes_true=box_a, boxes_detection=box_b, overlap_metric=overlap_metric
+    )
+
+    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+
+
+def test_box_iou_batch_int32_input_does_not_overflow() -> None:
+    """`int32` coordinates with large areas must not overflow to a wrong IoU.
+
+    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`.
+    Before upcasting the corners to `float64`, this made the union non-positive
+    and the function returned `0.0`; it must now return the analytic IoU of 1/3.
+    """
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
+
+    result = box_iou_batch(boxes_true=box_a, boxes_detection=box_b)
+
+    assert result[0, 0] != 0.0
+    assert result[0, 0] == pytest.approx(1.0 / 3.0, rel=1e-6)
+
+
 @pytest.mark.parametrize(
     "scale",
     [
@@ -1583,6 +1742,68 @@ class TestOrientedBoxNonMaxMerge:
         assert sorted_groups == [[0, 1], [2]]
 
 
+class TestIouThresholdValidation:
+    """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
+
+    @pytest.mark.parametrize(
+        ("function", "kwargs"),
+        [
+            pytest.param(
+                box_non_max_suppression,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nms",
+            ),
+            pytest.param(
+                box_non_max_merge,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nmm",
+            ),
+            pytest.param(
+                mask_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nms",
+            ),
+            pytest.param(
+                mask_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nmm",
+            ),
+            pytest.param(
+                oriented_box_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nms",
+            ),
+            pytest.param(
+                oriented_box_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nmm",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
+    def test_rejects_thresholds_outside_closed_unit_interval(
+        self,
+        function: Callable[..., object],
+        kwargs: dict[str, object],
+        iou_threshold: float,
+    ) -> None:
+        """Each public overlap filter rejects thresholds outside [0, 1]."""
+        with pytest.raises(ValueError, match="closed range from 0 to 1"):
+            function(iou_threshold=iou_threshold, **kwargs)
+
+
 def _naive_mask_iou(
     masks_true: np.ndarray,
     masks_detection: np.ndarray,
@@ -1739,3 +1960,225 @@ class TestMaskIouBatch:
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         assert result.shape == (3, 500)
+
+
+def _reference_jaccard_loop(
+    boxes_true: list[list[float]],
+    boxes_detection: list[list[float]],
+    is_crowd: list[bool],
+) -> np.ndarray:
+    """Independent per-pair COCO Jaccard reference, shape (len(dt), len(gt))."""
+    eps = np.spacing(1)
+    out = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+    for gt_idx, (gx, gy, gw, gh) in enumerate(boxes_true):
+        for dt_idx, (dx, dy, dw, dh) in enumerate(boxes_detection):
+            inter_w = max(min(dx + dw, gx + gw) - max(dx, gx), 0.0)
+            inter_h = max(min(dy + dh, gy + gh) - max(dy, gy), 0.0)
+            area_inter = inter_w * inter_h
+            area_det = max(dw, 0.0) * max(dh, 0.0)
+            area_gt = max(gw, 0.0) * max(gh, 0.0)
+            if is_crowd[gt_idx]:
+                out[dt_idx, gt_idx] = area_inter / (area_det + eps)
+            else:
+                out[dt_idx, gt_idx] = area_inter / (
+                    area_det + area_gt - area_inter + eps
+                )
+    return out
+
+
+class TestBoxIouBatchWithJaccard:
+    """Verify the vectorized COCO-style Jaccard IoU batch."""
+
+    # ~1080 pairs: (1x1) + (3x5=15) + (20x50=1000) + (8x8=64) + (3x4=12)
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt", "seed"),
+        [
+            pytest.param(1, 1, 1, id="single-pair"),
+            pytest.param(3, 5, 2, id="small-batch"),
+            pytest.param(20, 50, 3, id="busy-batch"),
+            pytest.param(8, 8, 4, id="degenerate-and-crowd"),
+            pytest.param(3, 4, 5, id="all-crowd-multi-gt"),
+        ],
+    )
+    def test_matches_per_pair_reference(self, n_gt: int, n_dt: int, seed: int) -> None:
+        """Vectorized output equals an independent per-pair Jaccard loop."""
+        rng = np.random.default_rng(seed)
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(0, 40, (n, 2))
+            if seed == 4 and n:  # inject zero/negative-width degenerate boxes
+                wh[rng.integers(0, n), 0] = rng.choice([0.0, -5.0])
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true, boxes_detection = _boxes(n_gt), _boxes(n_dt)
+        is_crowd = (rng.random(n_gt) < 0.3).tolist()
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    def test_crowd_uses_detection_area_as_union(self) -> None:
+        """A crowd gt enclosing the detection scores 1.0 (union == detection area)."""
+        boxes_true = [[0.0, 0.0, 100.0, 100.0]]
+        boxes_detection = [[10.0, 10.0, 20.0, 20.0]]  # fully inside the gt
+        crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [True])
+        non_crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False])
+        assert crowd[0, 0] == pytest.approx(1.0)
+        assert non_crowd[0, 0] == pytest.approx(0.04)  # 400 / 10000
+
+    @pytest.mark.parametrize(
+        ("boxes_true", "boxes_detection", "is_crowd", "expected_iou"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[20.0, 20.0, 10.0, 10.0]],
+                [False],
+                0.0,
+                id="non-overlapping-non-crowd",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[0.0, 0.0, 10.0, 10.0]],
+                [False],
+                1.0,
+                id="identical-non-crowd",
+            ),
+        ],
+    )
+    def test_non_crowd_uses_standard_iou(
+        self,
+        boxes_true: list[list[float]],
+        boxes_detection: list[list[float]],
+        is_crowd: list[bool],
+        expected_iou: float,
+    ) -> None:
+        """Non-crowd GTs use standard IoU (intersection / union)."""
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+
+        assert result[0, 0] == pytest.approx(expected_iou)
+
+    def test_all_crowd_multi_gt_matches_reference(self) -> None:
+        """All-crowd 3-GT x 4-det batch matches per-pair reference loop."""
+        rng = np.random.default_rng(5)
+        n_gt, n_dt = 3, 4
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(1, 40, (n, 2))
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true = _boxes(n_gt)
+        boxes_detection = _boxes(n_dt)
+        is_crowd = [True] * n_gt
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt"),
+        [pytest.param(0, 3, id="empty-gt"), pytest.param(3, 0, id="empty-dt")],
+    )
+    def test_empty_input_returns_empty_array(self, n_gt: int, n_dt: int) -> None:
+        """Empty gt or detections yields an empty array, preserving the contract."""
+        boxes_true = [[0.0, 0.0, 10.0, 10.0]] * n_gt
+        boxes_detection = [[0.0, 0.0, 10.0, 10.0]] * n_dt
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False] * n_gt)
+        assert result.size == 0
+
+    def test_mismatched_is_crowd_length_raises(self) -> None:
+        """`is_crowd` must align with `boxes_true`."""
+        with pytest.raises(ValueError, match="`is_crowd` length"):
+            box_iou_batch_with_jaccard(
+                [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
+            )
+
+
+# ---------------------------------------------------------------------------
+# box_non_max_merge
+# ---------------------------------------------------------------------------
+
+
+class TestBoxNonMaxMerge:
+    """box_non_max_merge groups overlapping boxes into clusters."""
+
+    def test_empty_input_returns_empty_list(self) -> None:
+        """An empty predictions array produces no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert result == []
+
+    def test_non_overlapping_boxes_each_own_group(self) -> None:
+        """Boxes with zero overlap remain in separate singleton groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [20, 20, 30, 30, 0.8],
+                [50, 50, 60, 60, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 3
+        assert all(len(g) == 1 for g in result)
+
+    def test_identical_boxes_merged_into_one_group(self) -> None:
+        """Perfectly overlapping boxes (IoU=1) are merged into a single group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [0, 0, 10, 10, 0.8],
+                [0, 0, 10, 10, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 3
+
+    def test_two_distinct_clusters(self) -> None:
+        """Two groups of overlapping boxes produce exactly two merge groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [1, 1, 11, 11, 0.85],
+                [50, 50, 60, 60, 0.8],
+                [51, 51, 61, 61, 0.75],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.3)
+        assert len(result) == 2
+        group_sizes = sorted(len(g) for g in result)
+        assert group_sizes == [2, 2]
+
+    def test_6col_different_class_ids_not_merged(self) -> None:
+        """Identical boxes with different class_ids stay in separate groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 1],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 2
+        assert all(len(g) == 1 for g in result)
+
+    def test_6col_same_class_id_merged(self) -> None:
+        """Identical boxes with the same class_id are merged into one group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 0],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 2
