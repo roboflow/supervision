@@ -23,7 +23,7 @@ def check_file(path: Path) -> list[str]:
     line_before_previous = ""
     previous_line = ""
 
-    for line_number, line in enumerate(path.read_text().splitlines(), start=1):
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         fence_match = FENCE_RE.match(line)
         if fence_match is not None:
             in_invalid_doctest_block = False

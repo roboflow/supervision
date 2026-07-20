@@ -13,7 +13,7 @@ repos:
       - id: check-doctest-fences
         name: check doctest fences
         entry: python .github/scripts/check_doctest_fences.py
-        language: system
+        language: python
         files: ^src/.*\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
