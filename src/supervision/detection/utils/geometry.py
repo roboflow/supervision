@@ -37,6 +37,7 @@ def detection_area(detections: Detections) -> npt.NDArray[np.generic]:
         A 1-D array containing the area of each detection.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.core import Detections
         >>> detections = Detections(
@@ -44,6 +45,8 @@ def detection_area(detections: Detections) -> npt.NDArray[np.generic]:
         ... )
         >>> detection_area(detections)  # doctest: +ELLIPSIS
         array([6.], dtype=float32)
+
+        ```
     """
     if detections.mask is not None:
         if isinstance(detections.mask, CompactMask):
@@ -83,6 +86,7 @@ def detection_iou(
             ``(len(detections_true), len(detections_detection))``.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.core import Detections
         >>> detections = Detections(
@@ -90,6 +94,8 @@ def detection_iou(
         ... )
         >>> detection_iou(detections, detections)  # doctest: +ELLIPSIS
         array([[1.]], dtype=float32)
+
+        ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     if detections_true.mask is not None and detections_detection.mask is not None:
