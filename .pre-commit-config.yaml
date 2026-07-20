@@ -37,7 +37,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.5 # v3.9.5
+    rev: v3.9.5
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
