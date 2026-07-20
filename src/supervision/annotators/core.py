@@ -3,13 +3,13 @@ from functools import lru_cache
 from math import sqrt
 from typing import Any, ClassVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
+from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
@@ -330,7 +330,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 

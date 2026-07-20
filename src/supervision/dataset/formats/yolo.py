@@ -346,6 +346,7 @@ def detections_to_yolo_annotations(
             ``'xyxyxyxy'`` in ``detections.data``.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.core import Detections
         >>> from supervision.dataset.formats.yolo import detections_to_yolo_annotations
@@ -355,6 +356,8 @@ def detections_to_yolo_annotations(
         ... )
         >>> detections_to_yolo_annotations(detections, image_shape=(100, 100, 3))
         ['0 0.50000 0.50000 0.80000 0.80000']
+
+        ```
     """
     if (
         is_obb
@@ -463,10 +466,13 @@ def save_yolo_annotations(
             saving annotations.
 
     Examples:
+        ```pycon
         >>> from supervision.dataset.core import DetectionDataset
         >>> from supervision.dataset.formats.yolo import save_yolo_annotations
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_yolo_annotations(dataset, "/tmp/labels")
+
+        ```
     """
     check_no_basename_collisions(
         image_paths=dataset.image_paths,

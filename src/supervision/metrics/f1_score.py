@@ -159,15 +159,6 @@ class F1Score(Metric["F1ScoreResult"]):
           is ``zeros((0,))``.
         - Targets present: IoU matching produces ``matches`` array.
         """
-        if size_category != ObjectSizeCategory.ANY:
-            # Score the requested bucket on bucket-filtered targets so detections
-            # outside the bucket cannot consume the only available target.
-            targets_list = [
-                self._filter_detections_by_size(targets, size_category)
-                for targets in targets_list
-            ]
-            size_category = ObjectSizeCategory.ANY
-
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
@@ -272,12 +263,20 @@ class F1Score(Metric["F1ScoreResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
+                    # None keeps the matcher on its single-round fast path
+                    # when no size bucket is scored.
+                    target_scored_mask = (
+                        target_size_mask
+                        if size_category != ObjectSizeCategory.ANY
+                        else None
+                    )
                     matches, matched_target_indices = (
                         _match_detection_batch_with_target_indices(
                             prediction_class_ids,
                             target_class_ids,
                             iou,
                             iou_thresholds,
+                            target_scored_mask=target_scored_mask,
                         )
                     )
                     ignored_matches = np.zeros_like(matches, dtype=bool)
@@ -507,7 +506,12 @@ class F1Score(Metric["F1ScoreResult"]):
 
         # Alternate formula, avoids multiple zero division checks
         denominator = 2 * true_positives + false_positives + false_negatives
-        f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
+        f1_score = np.divide(
+            2 * true_positives,
+            denominator,
+            out=np.zeros_like(denominator, dtype=np.float64),
+            where=denominator != 0,
+        )
 
         result_f1_score: npt.NDArray[np.float64] = f1_score
         return result_f1_score

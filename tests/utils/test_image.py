@@ -1,10 +1,10 @@
 import warnings
 
-import cv2
 import numpy as np
 import pytest
 from PIL import Image, ImageChops
 
+from supervision import _cv2 as cv2
 from supervision.utils.image import (
     ImageSink,
     _overlay_image,
@@ -261,11 +261,10 @@ def test_crop_image_clips_out_of_bounds_coordinates() -> None:
     image_pil = Image.fromarray(image_np)
     xyxy = (-2, -1, 3, 3)
     expected = image_np[0:3, 0:3]
-    expected_pil = np.repeat(expected[:, :, None], 3, axis=2)
 
     np.testing.assert_array_equal(crop_image(image=image_np, xyxy=xyxy), expected)
     np.testing.assert_array_equal(
-        np.asarray(crop_image(image=image_pil, xyxy=xyxy)), expected_pil
+        np.asarray(crop_image(image=image_pil, xyxy=xyxy)), expected
     )
 
 

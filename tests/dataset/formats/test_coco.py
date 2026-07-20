@@ -2,11 +2,11 @@ import json
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 
 from supervision import DetectionDataset, Detections
+from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
@@ -2100,6 +2100,69 @@ def test_save_coco_annotations_zero_annotation_images(tmp_path):
     assert annotation_ids == []
     assert next_image_id == 3
     assert next_annotation_id == 1
+
+
+class TestSaveCocoAnnotationsHeaderSizeReads:
+    """Annotation export must read image sizes without decoding pixels."""
+
+    def test_labels_only_export_does_not_decode_images(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A labels-only export never loads image pixel data."""
+
+        def _fail_on_decode(self: DetectionDataset, image_path: str) -> None:
+            """Fail the test if the export tries to load an image."""
+            raise AssertionError(f"export decoded image pixels: {image_path}")
+
+        dataset = _tiny_detection_dataset(
+            tmp_path, "img", num_images=2, dets_per_image=1
+        )
+        monkeypatch.setattr(DetectionDataset, "_get_image", _fail_on_decode)
+        annotation_path = tmp_path / "annotations.json"
+
+        save_coco_annotations(dataset=dataset, annotation_path=str(annotation_path))
+
+        image_ids, annotation_ids = _read_ids(annotation_path)
+        assert image_ids == [1, 2]
+        assert annotation_ids == [1, 2]
+
+    def test_header_sizes_match_image_dimensions(self, tmp_path: Path) -> None:
+        """Sizes read from headers match the real (non-square) image shape."""
+        image_path = str(tmp_path / "img.jpg")
+        assert cv2.imwrite(image_path, np.zeros((8, 12, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: Detections.empty()},
+        )
+        annotation_path = tmp_path / "annotations.json"
+
+        save_coco_annotations(dataset=dataset, annotation_path=str(annotation_path))
+
+        with open(annotation_path) as f:
+            coco = json.load(f)
+        assert coco["images"][0]["height"] == 8
+        assert coco["images"][0]["width"] == 12
+
+    def test_in_memory_images_use_array_shape(self, tmp_path: Path) -> None:
+        """Datasets built from in-memory arrays take sizes from the arrays."""
+        from supervision.utils.internal import SupervisionWarnings
+
+        image_key = "in_memory.jpg"
+        with pytest.warns(SupervisionWarnings):
+            dataset = DetectionDataset(
+                classes=["object"],
+                images={image_key: np.zeros((6, 9, 3), dtype=np.uint8)},
+                annotations={image_key: Detections.empty()},
+            )
+        annotation_path = tmp_path / "annotations.json"
+
+        save_coco_annotations(dataset=dataset, annotation_path=str(annotation_path))
+
+        with open(annotation_path) as f:
+            coco = json.load(f)
+        assert coco["images"][0]["height"] == 6
+        assert coco["images"][0]["width"] == 9
 
 
 # --- Regression: legacy 0-indexed COCO files still load correctly (#1181) ---

@@ -1,6 +1,7 @@
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+from supervision import _cv2 as cv2
 
 
 def filter_polygons_by_area(
@@ -88,6 +89,7 @@ def approximate_polygon(
     Examples:
         Reduce a polygon to at most half its original point count:
 
+        ```pycon
         >>> import numpy as np
         >>> polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10],
         ...                     [5, 10], [5, 5], [3, 7], [1, 9]])
@@ -102,6 +104,8 @@ def approximate_polygon(
         >>> tiny = np.array([[0, 0], [5, 0], [2, 4]])
         >>> approximate_polygon(tiny, percentage=0.5) is tiny
         True
+
+        ```
     """
 
     if percentage < 0 or percentage >= 1:

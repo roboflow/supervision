@@ -100,7 +100,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -116,7 +116,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -275,7 +275,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
 
@@ -314,7 +314,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -396,7 +396,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from super_gradients.training import models
             import supervision as sv
 
@@ -451,7 +451,7 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            import cv2
+            from supervision import _cv2 as cv2
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
@@ -528,7 +528,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
 
@@ -648,7 +648,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -742,7 +742,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -874,7 +874,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference.models.sam3 import SegmentAnything3
             from inference.core.entities.requests.sam3 import Sam3Prompt
@@ -2207,7 +2207,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
 
@@ -2260,10 +2260,13 @@ class Detections:
             An empty Detections object.
 
         Example:
+            ```pycon
             >>> from supervision import Detections
             >>> empty_detections = Detections.empty()
             >>> empty_detections.xyxy.shape
             (0, 4)
+
+            ```
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2353,6 +2356,7 @@ class Detections:
                 `image_shape` when mixing mask types.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> detections_1 = sv.Detections(
@@ -2374,6 +2378,8 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+            ```
 
         Compact mask merge example:
 
@@ -2605,6 +2611,7 @@ class Detections:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(
@@ -2613,6 +2620,8 @@ class Detections:
             ... )
             >>> detections.get_data("class_name").tolist()
             ['cat']
+
+            ```
         """
         return self.data.get(key)
 
@@ -2631,11 +2640,14 @@ class Detections:
             even when the selection is empty or the input has zero detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
+
+            ```
         """
         mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
@@ -2750,7 +2762,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -2808,6 +2820,7 @@ class Detections:
                 where n is the number of detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> corners = np.array(
@@ -2834,6 +2847,8 @@ class Detections:
             ... )
             >>> detections.area
             array([ 9, 25])
+
+            ```
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
@@ -3329,7 +3344,7 @@ def merge_inner_detection_object_pair(
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 

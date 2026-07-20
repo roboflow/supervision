@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Literal, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+from supervision import _cv2 as cv2
 
 MIN_POLYGON_POINT_COUNT = 3
 CoordinateConvention = Literal["inclusive", "exclusive"]
@@ -391,9 +392,7 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
         ```
     """
 
-    contours, _ = cv2.findContours(
-        mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours = cv2.find_contours(mask.astype(np.uint8))
     return [
         np.squeeze(contour, axis=1)
         for contour in contours

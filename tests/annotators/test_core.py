@@ -6,12 +6,12 @@ import warnings
 from collections.abc import Iterator
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import pytest
 from PIL import Image
 
 import supervision.annotators.core as annotators_core
+from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.core import (
     BackgroundOverlayAnnotator,

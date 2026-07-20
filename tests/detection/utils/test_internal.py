@@ -1,10 +1,10 @@
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
-import cv2
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
