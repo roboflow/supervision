@@ -13,6 +13,8 @@ from supervision._cv2._image import (
     _convert_scale_abs,
     _copy_make_border,
     _flip,
+    _imdecode,
+    _imencode,
     _imread,
     _imwrite,
     _mean,
@@ -274,6 +276,47 @@ def test_fallback_image_io_preserves_sixteen_bit_unchanged(tmp_path: Path) -> No
         _imread(str(sixteen_bit_path), _IMREAD_UNCHANGED),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_UNCHANGED),
     )
+
+
+def test_fallback_in_memory_codec_preserves_bgr() -> None:
+    """Preserve BGR channel order across an encode and decode round trip."""
+    image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
+
+    success, encoded = _imencode(".png", image)
+
+    assert success
+    assert encoded is not None
+    decoded = _imdecode(encoded, _IMREAD_COLOR)
+    assert decoded is not None
+    np.testing.assert_array_equal(decoded, image)
+
+
+def test_fallback_imdecode_matches_opencv_for_jpeg() -> None:
+    """Decode OpenCV-encoded JPEG bytes identically to cv2.imdecode."""
+    image = np.full((4, 4, 3), (10, 20, 30), dtype=np.uint8)
+    encoded = cv2.imencode(".jpg", image)[1]
+
+    np.testing.assert_array_equal(
+        _imdecode(encoded, _IMREAD_COLOR),
+        cv2.imdecode(encoded, cv2.IMREAD_COLOR),
+    )
+
+
+def test_fallback_imdecode_returns_none_for_invalid_bytes() -> None:
+    """Return None when decoding bytes that are not an image."""
+    invalid = np.frombuffer(b"not an image", dtype=np.uint8)
+
+    assert _imdecode(invalid, _IMREAD_COLOR) is None
+
+
+def test_fallback_imencode_reports_failure_for_unknown_extension() -> None:
+    """Report failure when encoding to an extension Pillow cannot handle."""
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    success, encoded = _imencode(".unknown", image)
+
+    assert not success
+    assert encoded is None
 
 
 def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(

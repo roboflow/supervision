@@ -32,6 +32,8 @@ from supervision._cv2._image import (
     _convert_scale_abs,
     _copy_make_border,
     _flip,
+    _imdecode,
+    _imencode,
     _imread,
     _imwrite,
     _mean,
@@ -132,6 +134,8 @@ if _IS_CV2_AVAILABLE:
         fillPoly,
         flip,
         getTextSize,
+        imdecode,
+        imencode,
         imread,
         imwrite,
         intersectConvexConvex,
@@ -202,6 +206,8 @@ else:
     _find_contours_impl = _find_contours
     flip = _flip  # type: ignore[assignment]
     getTextSize = _get_text_size  # type: ignore[assignment]
+    imdecode = _imdecode  # type: ignore[assignment]
+    imencode = _imencode  # type: ignore[assignment]
     imread = _imread  # type: ignore[assignment]
     imwrite = _imwrite  # type: ignore[assignment]
     intersectConvexConvex = _intersect_convex_convex  # type: ignore[assignment]
@@ -271,6 +277,8 @@ __all__ = [
     "find_contours",
     "flip",
     "getTextSize",
+    "imdecode",
+    "imencode",
     "imread",
     "imwrite",
     "intersectConvexConvex",
