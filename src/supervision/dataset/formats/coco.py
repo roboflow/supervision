@@ -416,6 +416,7 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
         to original COCO class id (1 to 90 with skipped ids).
 
     Examples:
+        ```pycon
         >>> import json
         >>> import os
         >>> import tempfile
@@ -443,6 +444,8 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
         {0: 1, 1: 3}
         >>> os.path.exists(annotations_path)
         False
+
+        ```
     """
     coco_data = read_json_file(annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])

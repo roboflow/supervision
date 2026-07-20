@@ -931,6 +931,7 @@ class KeyPoints:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import KeyPoints
             >>> key_points = KeyPoints(
@@ -939,6 +940,8 @@ class KeyPoints:
             ... )
             >>> key_points.get_data("class_name").tolist()
             ['person']
+
+            ```
         """
         return self.data.get(key)
 
@@ -958,11 +961,14 @@ class KeyPoints:
             A new `KeyPoints` instance containing the selected rows or anchors.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import KeyPoints
             >>> key_points = KeyPoints(xy=np.array([[[0, 1]], [[2, 3]]]))
             >>> key_points.select([1]).xy.tolist()
             [[[2, 3]]]
+
+            ```
         """
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
@@ -1210,6 +1216,7 @@ class KeyPoints:
                 same keys.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> key_points_1 = sv.KeyPoints(
@@ -1229,6 +1236,8 @@ class KeyPoints:
             array([0, 1])
             >>> merged.data['class_name']
             array(['person', 'dog'], dtype='<U6')
+
+            ```
         """
         key_points_list = [
             key_points for key_points in key_points_list if not key_points.is_empty()
