@@ -1,11 +1,11 @@
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 from defusedxml import ElementTree
 
+from supervision import _cv2 as cv2
 from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,

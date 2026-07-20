@@ -390,13 +390,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> MeanAverageRecallResult:
         if size_category != ObjectSizeCategory.ANY:
-            # Score the requested bucket on bucket-filtered targets so detections
-            # outside the bucket cannot consume the only available target.
+            # Recall is unaffected by false-positive bookkeeping, and out-of-bucket
+            # predictions must still consume top-K rank slots, so bucket-filtering
+            # the targets is all the size handling mAR needs.
             targets_list = [
                 self._filter_detections_by_size(targets, size_category)
                 for targets in targets_list
             ]
-            size_category = ObjectSizeCategory.ANY
 
         iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
@@ -658,7 +658,12 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         false_negatives = confusion_matrix[..., 2]
 
         denominator = true_positives + false_negatives
-        recall = np.where(denominator == 0, 0, true_positives / denominator)
+        recall = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(denominator, dtype=np.float64),
+            where=denominator != 0,
+        )
 
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall

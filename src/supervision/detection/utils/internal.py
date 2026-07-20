@@ -2,10 +2,10 @@ import logging
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
@@ -196,8 +196,11 @@ def _decode_compact_masks(
         mixed-modality guard triggers.
 
     Examples:
+        ```pycon
         >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
         True
+
+        ```
     """
     coco_compact_map: dict[int, CompactMask] = {}
     if coco_rle_pending:
@@ -324,11 +327,14 @@ def process_roboflow_result(
         tracker IDs are dropped to preserve alignment with ``xyxy``.
 
     Examples:
+        ```pycon
         >>> from supervision.detection.utils.internal import process_roboflow_result
         >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
         >>> _, _, _, _, _, data = process_roboflow_result(result)
         >>> data["class_name"].dtype.kind
         'U'
+
+        ```
     """
     if not roboflow_result["predictions"]:
         return (
@@ -702,6 +708,7 @@ def cross_product(
         negative = to the right; zero = on the line.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.geometry.core import Point, Vector
         >>> anchors = np.array([[[10.0, 5.0]], [[20.0, 5.0]]])
@@ -709,6 +716,8 @@ def cross_product(
         >>> cross_product(anchors, vector)
         array([[5.],
                [5.]])
+
+        ```
     """
     vector_at_zero = np.array(
         [

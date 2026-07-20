@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch_with_jaccard,
@@ -1531,9 +1531,12 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 # Use area from data if available, otherwise calculate from the
                 # metric target content (bbox, mask or oriented box)
                 area = None
-                if image_targets.data is not None and "area" in image_targets.data:
+                if (
+                    image_targets.data is not None
+                    and AREA_DATA_FIELD in image_targets.data
+                ):
                     area_data: npt.NDArray[np.float32] = np.asarray(
-                        image_targets.data["area"], dtype=np.float32
+                        image_targets.data[AREA_DATA_FIELD], dtype=np.float32
                     )
                     area = float(area_data[target_idx])
 
@@ -1611,10 +1614,10 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 area = None
                 if (
                     image_predictions.data is not None
-                    and "area" in image_predictions.data
+                    and AREA_DATA_FIELD in image_predictions.data
                 ):
                     area_data: npt.NDArray[np.float32] = np.asarray(
-                        image_predictions.data["area"], dtype=np.float32
+                        image_predictions.data[AREA_DATA_FIELD], dtype=np.float32
                     )
                     area = float(area_data[pred_idx])
 

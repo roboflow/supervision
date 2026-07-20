@@ -141,7 +141,7 @@ byte_track_warnings = [
 
 raise SystemExit(1 if byte_track_warnings else 0)
 """
-    completed = subprocess.run(  # noqa: S603 - trusted fixed command in a test helper.
+    completed = subprocess.run(
         [sys.executable, "-c", script],
         check=False,
         capture_output=True,

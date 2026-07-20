@@ -5,10 +5,10 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Literal
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
@@ -730,12 +730,14 @@ class LineZoneAnnotator:
         if 90 < line_angle_degrees % 360 < 270:
             annotation = cv2.flip(annotation, flipCode=-1).astype(np.uint8)
 
-        rotation_angle = -line_angle_degrees
-        rotation_matrix = cv2.getRotationMatrix2D(
-            annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
-        )
-        annotation = cv2.warpAffine(
-            annotation, rotation_matrix, annotation_shape
+        from PIL import Image
+
+        annotation = np.asarray(
+            Image.fromarray(annotation).rotate(
+                -line_angle_degrees,
+                resample=Image.Resampling.BILINEAR,
+                center=annotation_center.as_xy_float_tuple(),
+            )
         ).astype(np.uint8)
 
         return annotation

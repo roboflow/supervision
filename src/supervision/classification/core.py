@@ -115,7 +115,7 @@ class Classifications:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from ultralytics import YOLO
             import supervision as sv
 

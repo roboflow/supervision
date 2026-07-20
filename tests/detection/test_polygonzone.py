@@ -44,6 +44,23 @@ class TestPolygonZoneInit:
         with exception:
             sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
+    def test_generator_triggering_anchors_is_materialized(self):
+        """A generator passed for triggering_anchors must not be silently exhausted.
+
+        Calls trigger() twice on the same zone: a materialized list keeps returning
+        results on repeated calls, whereas an un-materialized generator would be
+        exhausted after the first trigger() and silently yield no anchors on the
+        second.
+        """
+        zone = sv.PolygonZone(
+            POLYGON, triggering_anchors=(p for p in [sv.Position.CENTER])
+        )
+        detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]], class_id=[0]
+        )
+        assert zone.trigger(detections)[0]
+        assert zone.trigger(detections)[0]
+
 
 class TestPolygonZoneTrigger:
     @pytest.mark.parametrize(
@@ -164,6 +181,106 @@ class TestPolygonZoneTrigger:
         )
         result = zone.trigger(detections)
         assert result[0]
+
+    def test_anchor_on_polygon_boundary_included_any_mode(self) -> None:
+        """With require_all_anchors=False and multiple anchors, an anchor landing
+        exactly on the polygon boundary is enough to trigger, even though the
+        other anchors of the same detection fall outside the polygon."""
+        polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+        anchors = [sv.Position.TOP_LEFT, sv.Position.BOTTOM_RIGHT]
+        # TOP_LEFT = (-50, -50) is outside; BOTTOM_RIGHT = (100, 100) is exactly
+        # the polygon corner (boundary), which counts as inside.
+        detections = _create_detections(
+            xyxy=[[-50.0, -50.0, 100.0, 100.0]],
+            class_id=[0],
+        )
+        any_anchor_zone = sv.PolygonZone(
+            polygon, triggering_anchors=anchors, require_all_anchors=False
+        )
+        all_anchors_zone = sv.PolygonZone(
+            polygon, triggering_anchors=anchors, require_all_anchors=True
+        )
+        assert any_anchor_zone.trigger(detections)[0]
+        assert not all_anchors_zone.trigger(detections)[0]
+
+    def test_require_all_anchors_false_triggers_on_any_anchor(self) -> None:
+        """With require_all_anchors=False, any anchor inside triggers."""
+        # Box [85, 85, 115, 115] has only BOTTOM_RIGHT (115, 115) inside POLYGON
+        # ([100, 100]..[200, 200]); the other three corners are outside.
+        detections = _create_detections(xyxy=[[85.0, 85.0, 115.0, 115.0]], class_id=[0])
+        anchors = (
+            sv.Position.TOP_LEFT,
+            sv.Position.TOP_RIGHT,
+            sv.Position.BOTTOM_LEFT,
+            sv.Position.BOTTOM_RIGHT,
+        )
+        all_required = sv.PolygonZone(POLYGON, triggering_anchors=anchors)
+        any_anchor = sv.PolygonZone(
+            POLYGON, triggering_anchors=anchors, require_all_anchors=False
+        )
+        assert not all_required.trigger(detections)[0]
+        result = any_anchor.trigger(detections)
+        assert result[0]
+        assert any_anchor.current_count == 1
+
+    def test_require_all_anchors_false_all_outside_does_not_trigger(self) -> None:
+        """With require_all_anchors=False, a detection with every anchor outside the
+        zone still does not trigger (exercises the np.any all-False branch)."""
+        # Box [0, 0, 20, 20] has all four corners well outside POLYGON
+        # ([100, 100]..[200, 200]).
+        detections = _create_detections(xyxy=[[0.0, 0.0, 20.0, 20.0]], class_id=[0])
+        anchors = (
+            sv.Position.TOP_LEFT,
+            sv.Position.TOP_RIGHT,
+            sv.Position.BOTTOM_LEFT,
+            sv.Position.BOTTOM_RIGHT,
+        )
+        any_anchor = sv.PolygonZone(
+            POLYGON, triggering_anchors=anchors, require_all_anchors=False
+        )
+        result = any_anchor.trigger(detections)
+        assert not result[0]
+        assert any_anchor.current_count == 0
+
+    def test_require_all_anchors_default_matches_explicit_true(self) -> None:
+        """Omitting require_all_anchors and passing require_all_anchors=True
+        explicitly must produce identical trigger() results, pinning the
+        documented default (True)."""
+        anchors = (
+            sv.Position.TOP_LEFT,
+            sv.Position.TOP_RIGHT,
+            sv.Position.BOTTOM_LEFT,
+            sv.Position.BOTTOM_RIGHT,
+        )
+        default_zone = sv.PolygonZone(POLYGON, triggering_anchors=anchors)
+        explicit_true_zone = sv.PolygonZone(
+            POLYGON, triggering_anchors=anchors, require_all_anchors=True
+        )
+        assert np.array_equal(
+            default_zone.trigger(DETECTIONS), explicit_true_zone.trigger(DETECTIONS)
+        )
+
+    def test_require_all_anchors_has_no_effect_with_single_anchor(self) -> None:
+        """With a single triggering anchor, require_all_anchors is a no-op: both
+        settings must produce identical trigger() results (per the docstring:
+        "Has no effect when triggering_anchors has a single entry")."""
+        # Box [140, 140, 160, 160] has its BOTTOM_CENTER inside POLYGON.
+        detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]], class_id=[0]
+        )
+        require_all = sv.PolygonZone(
+            POLYGON,
+            triggering_anchors=[sv.Position.BOTTOM_CENTER],
+            require_all_anchors=True,
+        )
+        require_any = sv.PolygonZone(
+            POLYGON,
+            triggering_anchors=[sv.Position.BOTTOM_CENTER],
+            require_all_anchors=False,
+        )
+        assert np.array_equal(
+            require_all.trigger(detections), require_any.trigger(detections)
+        )
 
     def test_half_pixel_anchor_uses_nearest_pixel(self) -> None:
         """Half-pixel anchors should not be biased toward the larger x and y."""

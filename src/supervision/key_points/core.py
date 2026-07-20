@@ -83,7 +83,7 @@ class KeyPoints:
         conversion is needed.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRKeypointPreview
 
@@ -100,7 +100,7 @@ class KeyPoints:
         [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -117,7 +117,7 @@ class KeyPoints:
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -136,7 +136,7 @@ class KeyPoints:
 
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import mediapipe as mp
         import supervision as sv
 
@@ -398,7 +398,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -410,7 +410,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference_sdk import InferenceHTTPClient
 
@@ -489,7 +489,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -515,7 +515,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -610,7 +610,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -647,7 +647,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
             import super_gradients
@@ -706,7 +706,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -931,6 +931,7 @@ class KeyPoints:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import KeyPoints
             >>> key_points = KeyPoints(
@@ -939,6 +940,8 @@ class KeyPoints:
             ... )
             >>> key_points.get_data("class_name").tolist()
             ['person']
+
+            ```
         """
         return self.data.get(key)
 
@@ -958,11 +961,14 @@ class KeyPoints:
             A new `KeyPoints` instance containing the selected rows or anchors.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import KeyPoints
             >>> key_points = KeyPoints(xy=np.array([[[0, 1]], [[2, 3]]]))
             >>> key_points.select([1]).xy.tolist()
             [[[2, 3]]]
+
+            ```
         """
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
@@ -1112,7 +1118,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -1210,6 +1216,7 @@ class KeyPoints:
                 same keys.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> key_points_1 = sv.KeyPoints(
@@ -1229,6 +1236,8 @@ class KeyPoints:
             array([0, 1])
             >>> merged.data['class_name']
             array(['person', 'dog'], dtype='<U6')
+
+            ```
         """
         key_points_list = [
             key_points for key_points in key_points_list if not key_points.is_empty()
@@ -1323,7 +1332,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from rfdetr import RFDETRKeypointPreview
 

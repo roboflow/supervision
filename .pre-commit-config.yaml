@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3
+  python: python3.10
 
 ci:
   autofix_prs: true
@@ -8,6 +8,14 @@ ci:
   autoupdate_commit_msg: "chore(pre_commit): ⬆ pre_commit autoupdate"
 
 repos:
+  - repo: local
+    hooks:
+      - id: check-doctest-fences
+        name: check doctest fences
+        entry: python .github/scripts/check_doctest_fences.py
+        language: python
+        files: ^src/.*\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -29,7 +37,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: fc2da0552b28c24c836d045bfb6c3057b3d11e62 # v3.9.4
+    rev: 0737985b8f21a8d83195f6ced1045e7637fc82fb # v3.9.5
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -37,7 +45,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.25.1
+    rev: v2.25.2
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
@@ -49,7 +57,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.21
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -67,7 +75,7 @@ repos:
         exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
+    rev: v2.3.0
     hooks:
       - id: mypy
         language_version: python3.11
@@ -81,5 +89,6 @@ repos:
     rev: v2.4.2
     hooks:
       - id: codespell
+        exclude: ^src/supervision/_cv2/data/hershey_fonts\.json$
         additional_dependencies:
           - "tomli>=2.0.1"
