@@ -1640,9 +1640,7 @@ class TestDetectionsObbDispatch:
         np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
 
     def test_deprecated_merge_chain_across_three_with_changing_geometry(self) -> None:
-        """N>2 chain: an OBB pair merges first, then falls back to box IoU for a
-        third, AABB-only detection — exercises detection_iou across changing
-        geometry richness mid-chain."""
+"""N>2 chain: merge OBB pair first, then fall back to box IoU for AABB-only detection."""
         quad_a = _rotated_rect(50, 50, 20, 10, 10)
         quad_b = _rotated_rect(52, 50, 20, 10, -10)
         detections_a = _make_obb_detections([quad_a], [0.9], [0])

@@ -84,9 +84,7 @@ class TestDetectionArea:
         np.testing.assert_array_equal(area, np.array([15], dtype=np.int64))
 
     def test_dense_mask_branch_reuses_count_mask_pixels(self) -> None:
-        """Dense-mask area delegates to the shared SIMD-popcount helper, not a
-        reimplemented reduction, so the fast path used elsewhere (e.g.
-        ``metrics.utils.object_size``) isn't silently forked here too."""
+"""Dense-mask area delegates to count_mask_pixels to keep the shared fast path."""
         mask = np.zeros((3, 10, 10), dtype=bool)
         mask[0, :2, :2] = True
         mask[1, :3, :3] = True
