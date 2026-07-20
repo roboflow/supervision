@@ -14,11 +14,14 @@ def _greedy_match(
     is accepted only when neither the target nor the prediction has been matched.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> iou = np.array([[1.0, 0.667], [0.333, 0.538]], dtype=np.float32)
         >>> matched_indices = np.where(iou >= 0.5)
         >>> list(_greedy_match(iou, matched_indices))
         [(0, 0), (1, 1)]
+
+        ```
     """
     target_idx = matched_indices[0]
     pred_idx = matched_indices[1]
@@ -49,6 +52,7 @@ def _match_detection_batch_with_target_indices(
     in-bucket one.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> predictions_classes = np.array([0], dtype=np.int32)
         >>> target_classes = np.array([0], dtype=np.int32)
@@ -62,6 +66,8 @@ def _match_detection_batch_with_target_indices(
         ... )
         >>> correct.tolist(), matched.tolist()
         ([[True]], [[0]])
+
+        ```
     """
     num_predictions = predictions_classes.shape[0]
     num_iou_levels = iou_thresholds.shape[0]

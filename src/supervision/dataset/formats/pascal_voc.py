@@ -44,6 +44,7 @@ def object_to_pascal_voc(
         ``<bndbox>``, and optionally ``<polygon>`` children.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.dataset.formats.pascal_voc import object_to_pascal_voc
         >>> elem = object_to_pascal_voc(np.array([0, 0, 9, 9]), name="cat")
@@ -51,6 +52,8 @@ def object_to_pascal_voc(
         '1'
         >>> elem.find("bndbox/xmax").text
         '10'
+
+        ```
     """
     root = Element("object")
 
@@ -409,6 +412,7 @@ def save_pascal_voc_annotations(
         ValueError: If two image paths map to the same ``.xml`` output name.
 
     Examples:
+        ```pycon
         >>> import tempfile
         >>> from supervision.dataset.core import DetectionDataset
         >>> from supervision.dataset.formats.pascal_voc import (
@@ -417,6 +421,8 @@ def save_pascal_voc_annotations(
         >>> dataset = DetectionDataset(classes=[], images={}, annotations={})
         >>> with tempfile.TemporaryDirectory() as tmpdir:
         ...     save_pascal_voc_annotations(dataset, tmpdir)
+
+        ```
     """
 
     check_no_basename_collisions(
