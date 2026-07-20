@@ -52,6 +52,7 @@ def object_to_pascal_voc(
         '1'
         >>> elem.find("bndbox/xmax").text
         '10'
+
         ```
     """
     root = Element("object")
@@ -420,6 +421,7 @@ def save_pascal_voc_annotations(
         >>> dataset = DetectionDataset(classes=[], images={}, annotations={})
         >>> with tempfile.TemporaryDirectory() as tmpdir:
         ...     save_pascal_voc_annotations(dataset, tmpdir)
+
         ```
     """
 

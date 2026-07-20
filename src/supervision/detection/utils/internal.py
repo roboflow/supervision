@@ -199,6 +199,7 @@ def _decode_compact_masks(
         ```pycon
         >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
         True
+
         ```
     """
     coco_compact_map: dict[int, CompactMask] = {}

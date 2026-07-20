@@ -20,6 +20,7 @@ def _greedy_match(
         >>> matched_indices = np.where(iou >= 0.5)
         >>> list(_greedy_match(iou, matched_indices))
         [(0, 0), (1, 1)]
+
         ```
     """
     target_idx = matched_indices[0]
@@ -65,6 +66,7 @@ def _match_detection_batch_with_target_indices(
         ... )
         >>> correct.tolist(), matched.tolist()
         ([[True]], [[0]])
+
         ```
     """
     num_predictions = predictions_classes.shape[0]

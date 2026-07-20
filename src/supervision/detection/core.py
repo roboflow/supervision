@@ -1382,7 +1382,7 @@ class Detections:
 
                 For example, using the `google-generativeai` client:
 
-            ```python
+                ```python
                 from google.generativeai import types
 
                 response = model.generate_content(
@@ -1460,7 +1460,7 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-                ```python
+            ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json
@@ -1833,7 +1833,7 @@ class Detections:
                 when using a single image with text, place the text prompt after the image
                 part in the `contents` array. For example, with the `google-genai` client:
 
-            ```
+                ```python
                 response = model.generate_content(
                     [
                         {
@@ -1910,7 +1910,7 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-                ```python
+            ```python
             import supervision as sv
 
             gemini_response_text = \"\"\"```json

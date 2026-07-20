@@ -173,6 +173,7 @@ def check_no_basename_collisions(
         Traceback (most recent call last):
         ...
         ValueError: Cannot export dataset: image paths 'a/img.jpg' and ...
+
         ```
     """
     seen: dict[str, tuple[str, str]] = {}  # casefold(key) → (original name, image_path)
@@ -212,6 +213,7 @@ def save_dataset_images(
         >>> from supervision.dataset.utils import save_dataset_images
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
+
         ```
     """
     check_no_basename_collisions(
@@ -258,6 +260,7 @@ def train_test_split(
         ... )
         >>> len(train), len(test)
         (3, 2)
+
         ```
     """
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic

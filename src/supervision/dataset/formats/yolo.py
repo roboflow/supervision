@@ -341,9 +341,9 @@ def detections_to_yolo_annotations(
 
     Raises:
         ValueError: If any detection has ``class_id=None`` or a non-integer
-        ``class_id``.
+            ``class_id``.
         ValueError: If ``is_obb=True`` and any non-empty detection is missing
-        ``'xyxyxyxy'`` in ``detections.data``.
+            ``'xyxyxyxy'`` in ``detections.data``.
 
     Examples:
         ```pycon
@@ -356,6 +356,7 @@ def detections_to_yolo_annotations(
         ... )
         >>> detections_to_yolo_annotations(detections, image_shape=(100, 100, 3))
         ['0 0.50000 0.50000 0.80000 0.80000']
+
         ```
     """
     if (
@@ -470,6 +471,7 @@ def save_yolo_annotations(
         >>> from supervision.dataset.formats.yolo import save_yolo_annotations
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_yolo_annotations(dataset, "/tmp/labels")
+
         ```
     """
     check_no_basename_collisions(
