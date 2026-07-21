@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from pathlib import Path
 from queue import Empty, Full
 from queue import Queue as StdQueue
@@ -518,7 +520,7 @@ def test_get_video_frames_generator(dummy_video_path) -> None:
     assert all(frame.shape == (480, 640, 3) for frame in frames)
 
 
-def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path):
+def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path) -> None:
     """Verify that the prefetch path yields identical frames to the sync path.
 
     Scenario: Iterating over a video with prefetch=4 and again with prefetch=0
@@ -533,7 +535,7 @@ def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path):
         assert np.array_equal(a, b)
 
 
-def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path):
+def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path) -> None:
     """Verify that reader-thread exceptions reach the consumer, not get swallowed.
 
     Scenario: Passing a non-existent file path to the prefetch path so the reader
@@ -542,11 +544,14 @@ def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path):
         RuntimeError wrapping the original error; the consumer does not hang.
     """
     missing_path = str(tmp_path / "does_not_exist.mp4")
-    with pytest.raises((Exception, RuntimeError)):
+    with pytest.raises(RuntimeError) as exc_info:
         list(get_video_frames_generator(missing_path, prefetch=4))
+    assert exc_info.value.__cause__ is not None
 
 
-def test_get_video_frames_generator_prefetch_early_termination(dummy_video_path):
+def test_get_video_frames_generator_prefetch_early_termination(
+    dummy_video_path,
+) -> None:
     """Verify that breaking out of the prefetched generator does not block reuse.
 
     Scenario: Consuming only 3 frames from a 10-frame video with prefetch=4, then
@@ -645,6 +650,115 @@ def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None
     generator.close()
 
     assert fake_capture.released
+
+
+def test_get_video_frames_generator_prefetch_negative_raises(dummy_video_path) -> None:
+    """Negative prefetch raises ValueError when the generator is first consumed.
+
+    Scenario: Creating get_video_frames_generator with prefetch=-1 and pulling the
+        first item; because the function is a generator, the guard fires on the first
+        `next()`, not at call time.
+    Expected: A ValueError naming the invalid prefetch value is raised.
+    """
+    generator = get_video_frames_generator(dummy_video_path, prefetch=-1)
+    with pytest.raises(ValueError, match="prefetch must be >= 0"):
+        next(generator)
+
+
+def test_get_video_frames_generator_prefetch_stride_early_termination(
+    dummy_video_path,
+) -> None:
+    """Breaking early with stride>1 and prefetch>0 exits cleanly without hanging.
+
+    Scenario: Consuming only 2 frames from a 10-frame video with stride=2 and
+        prefetch=4, then creating a fresh strided prefetch generator on the same file.
+    Expected: The break exits cleanly (no hang); exactly 2 valid frames are taken, and
+        a fresh strided prefetch generator still yields all 5 strided frames.
+    """
+    taken = []
+    for frame in get_video_frames_generator(dummy_video_path, stride=2, prefetch=4):
+        taken.append(frame)
+        if len(taken) >= 2:
+            break
+    assert len(taken) == 2
+    assert all(isinstance(f, np.ndarray) and f.shape == (480, 640, 3) for f in taken)
+    # A fresh strided prefetch generator on the same file must still work fully.
+    fresh = get_video_frames_generator(dummy_video_path, stride=2, prefetch=4)
+    assert len(list(fresh)) == 5
+
+
+def test_get_video_frames_generator_prefetch_consumer_exception_cleans_up_thread(
+    dummy_video_path,
+) -> None:
+    """A consumer exception propagates and the prefetch reader thread is cleaned up.
+
+    Scenario: Raising inside the for-loop body while iterating a prefetch=4 generator,
+        so the anonymous generator is closed as the exception unwinds.
+    Expected: The RuntimeError propagates to the caller, and the reader thread is
+        joined by the generator's finally (active thread count returns to baseline).
+    """
+
+    def consume_then_raise() -> None:
+        """Consume the prefetch generator and raise from inside the loop body."""
+        for _frame in get_video_frames_generator(dummy_video_path, prefetch=4):
+            raise RuntimeError("consumer boom")
+
+    baseline_threads = threading.active_count()
+    with pytest.raises(RuntimeError, match="consumer boom"):
+        consume_then_raise()
+    assert threading.active_count() == baseline_threads
+
+
+def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -> None:
+    """A reader stuck in a slow read must not make the outer generator hang on close.
+
+    Scenario: The background reader blocks in a slow `read()` that outlives the
+        generator's `finally: thread.join(timeout=2.0)`; the consumer closes the
+        generator after one frame.
+    Expected: `close()` returns without hanging or raising — the bounded join gives up
+        and the daemon reader is left to exit on its own.
+    """
+
+    class SlowCapture:
+        """Fake capture that serves one frame then blocks on the next read."""
+
+        def __init__(self) -> None:
+            self.released = False
+            self.calls = 0
+            self.block = threading.Event()
+
+        def read(self):
+            """Return one frame, then block on subsequent reads to simulate a hang."""
+            self.calls += 1
+            if self.calls == 1:
+                return True, np.zeros((2, 2, 3), dtype=np.uint8)
+            self.block.wait(timeout=10.0)
+            return False, None
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """Record that the capture was released."""
+            self.released = True
+
+    slow_capture = SlowCapture()
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (slow_capture, 0, 100),
+    )
+
+    generator = get_video_frames_generator("dummy", prefetch=4)
+    first_frame = next(generator)
+    start = time.monotonic()
+    generator.close()
+    elapsed = time.monotonic() - start
+    # Release the daemon reader so it can exit cleanly after the test.
+    slow_capture.block.set()
+
+    assert isinstance(first_frame, np.ndarray)
+    assert elapsed < 5.0
 
 
 def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
