@@ -1,5 +1,7 @@
 CLASS_NAME_DATA_FIELD: str = "class_name"
 COCO_RAW_SEGMENTATION: str = "coco_raw_segmentation"
+#: Key for per-detection area metadata in ``Detections.data``.
+AREA_DATA_FIELD: str = "area"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel

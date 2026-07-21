@@ -13,18 +13,29 @@ from supervision.tracker.byte_tracker.single_object_track import STrack, TrackSt
 from supervision.tracker.byte_tracker.utils import IdCounter
 
 
+def _valid_tracking_tensors(
+    tensors: npt.NDArray[np.float32],
+) -> npt.NDArray[np.bool_]:
+    """Identify finite tensors with positive-width and positive-height boxes."""
+    bboxes = tensors[:, :4]
+    widths = bboxes[:, 2] - bboxes[:, 0]
+    heights = bboxes[:, 3] - bboxes[:, 1]
+    return np.isfinite(tensors).all(axis=1) & (widths > 0) & (heights > 0)
+
+
 @deprecated_class(
     target=TargetMode.NOTIFY,
     deprecated_in="0.28.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 class ByteTrack:
     """
     Initialize the ByteTrack object.
 
-    .. deprecated:: 0.28.0
+    !!! deprecated "Deprecated"
+
         `ByteTrack` is deprecated since `supervision-0.28.0` and will be removed in
-        `supervision-0.30.0`. Use `ByteTrackTracker` from the `trackers` package
+        `supervision-0.31.0`. Use `ByteTrackTracker` from the `trackers` package
         instead (`pip install trackers`). Note: the update method is renamed from
         `update_with_detections()` to `update()`.
 
@@ -65,6 +76,8 @@ class ByteTrack:
 
         self.frame_id = 0
         self.det_thresh = self.track_activation_threshold + 0.1
+        if self.det_thresh > 1.0:
+            self.det_thresh = self.track_activation_threshold
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.minimum_consecutive_frames = minimum_consecutive_frames
         self.kalman_filter = KalmanFilter()
@@ -138,13 +151,14 @@ class ByteTrack:
             iou_costs: npt.NDArray[np.float32] = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            detections.tracker_id = np.full(len(detections), -1, dtype=int)
+            tracked_detections = detections.select(slice(None))
+            tracked_detections.tracker_id = np.full(len(detections), -1, dtype=int)
             for i_detection, i_track in matches:
-                detections.tracker_id[i_detection] = int(
+                tracked_detections.tracker_id[i_detection] = int(
                     tracks[i_track].external_track_id
                 )
 
-            return detections.select(detections.tracker_id != -1)
+            return tracked_detections.select(tracked_detections.tracker_id != -1)
 
         else:
             detections = Detections.empty()
@@ -184,10 +198,11 @@ class ByteTrack:
         lost_stracks = []
         removed_stracks = []
 
+        tensors = tensors[_valid_tracking_tensors(tensors)]
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
-        remain_inds = scores > self.track_activation_threshold
+        remain_inds = scores >= self.track_activation_threshold
         inds_low = scores > 0.1
         inds_high = scores < self.track_activation_threshold
 

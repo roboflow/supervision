@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
+from supervision import _cv2
 from tests.helpers import assert_image_mostly_same
 
 
@@ -24,8 +25,11 @@ class TestVertexAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         # Check that the scene has been modified
+        similarity_threshold = 0.8 if _cv2.BACKEND_NAME == "opencv" else 0.75
         assert_image_mostly_same(
-            original=scene, annotated=result, similarity_threshold=0.8
+            original=scene,
+            annotated=result,
+            similarity_threshold=similarity_threshold,
         )
 
     def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points):
@@ -41,9 +45,12 @@ class TestVertexAnnotator:
         annotator = sv.VertexAnnotator(color=color, radius=radius)
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
+        similarity_threshold = 0.7 if _cv2.BACKEND_NAME == "opencv" else 0.65
         # Check that the scene has been modified
         assert_image_mostly_same(
-            original=scene, annotated=result, similarity_threshold=0.7
+            original=scene,
+            annotated=result,
+            similarity_threshold=similarity_threshold,
         )
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
@@ -161,6 +168,24 @@ class TestEdgeAnnotator:
         annotator = sv.EdgeAnnotator(edges=[(1, 2)])
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
+
+    @pytest.mark.parametrize(
+        "edges",
+        [
+            pytest.param([(0, 1)], id="zero-based"),
+            pytest.param([(1, 3)], id="too-large"),
+        ],
+    )
+    def test_invalid_edges_raise(self, scene, edges):
+        """Edges must use valid 1-based keypoint indices."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [90.0, 90.0]]], dtype=np.float32),
+            visible=np.array([[True, True]]),
+        )
+        annotator = sv.EdgeAnnotator(edges=edges)
+
+        with pytest.raises(ValueError, match="1-based"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
 
     def test_annotate_no_edges_found(self, scene):
         """

@@ -1,15 +1,22 @@
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 from xml.etree.ElementTree import Element, SubElement
 
-import cv2
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
+
 import numpy as np
 import numpy.typing as npt
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
 from tqdm.auto import tqdm
 
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision import _cv2 as cv2
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
@@ -37,6 +44,7 @@ def object_to_pascal_voc(
         ``<bndbox>``, and optionally ``<polygon>`` children.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.dataset.formats.pascal_voc import object_to_pascal_voc
         >>> elem = object_to_pascal_voc(np.array([0, 0, 9, 9]), name="cat")
@@ -44,6 +52,8 @@ def object_to_pascal_voc(
         '1'
         >>> elem.find("bndbox/xmax").text
         '10'
+
+        ```
     """
     root = Element("object")
 
@@ -173,7 +183,9 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = str(parseString(tostring(annotation)).toprettyxml(indent="  "))
+    xml_string = str(
+        parseString(tostring(annotation).decode("utf-8")).toprettyxml(indent="  ")
+    )
     return xml_string
 
 
@@ -184,8 +196,7 @@ def load_pascal_voc_annotations(
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
-    Loads PASCAL VOC XML annotations and returns the image name,
-        a Detections instance, and a list of class names.
+    Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.
@@ -196,17 +207,17 @@ def load_pascal_voc_annotations(
         show_progress: If True, display a progress bar during loading.
 
     Returns:
-        A tuple with a list
-            of class names, a list of paths to images, and a dictionary with image
-            paths as keys and corresponding Detections instances as values.
+        A tuple with a list of class names, a sorted list of paths to images,
+            and a dictionary with image paths as keys and corresponding
+            Detections instances as values.
     """
 
-    image_paths = [
+    image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
         )
-    ]
+    )
 
     classes: list[str] = []
     annotations = {}
@@ -225,6 +236,8 @@ def load_pascal_voc_annotations(
 
         tree = parse(annotation_path)
         root = tree.getroot()
+        if root is None:
+            raise ValueError(f"Failed to parse XML root from {annotation_path}")
 
         image = cv2.imread(image_path)
         if image is None:
@@ -269,6 +282,14 @@ def detections_from_xml_obj(
             </polygon>
         </object>
     </annotation>
+
+    Args:
+        root: Parsed Pascal VOC ``<annotation>`` XML element.
+        classes: Existing class names used to assign stable class ids.
+        resolution_wh: Image resolution as ``(width, height)`` for mask
+            rasterization.
+        force_masks: If True, returns a mask array for every object even when
+            no ``<polygon>`` element is present.
 
     Returns:
         A tuple containing a Detections object and an
@@ -322,7 +343,7 @@ def detections_from_xml_obj(
     # https://github.com/roboflow/supervision/issues/144
     xyxy_arr -= 1
 
-    for k in set(class_names):
+    for k in sorted(set(class_names)):
         if k not in extended_classes:
             extended_classes.append(k)
     class_id = np.array(
@@ -359,3 +380,76 @@ def _get_required_text(element: Element, tag: str) -> str:
     if child is None or child.text is None:
         raise ValueError(f"Missing '{tag}' in Pascal VOC annotation.")
     return child.text
+
+
+def save_pascal_voc_annotations(
+    dataset: "DetectionDataset",
+    annotations_directory_path: str,
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+    show_progress: bool = False,
+) -> None:
+    """Write Pascal VOC XML annotation files for every image in *dataset*.
+
+    Args:
+        dataset: Dataset whose annotations are saved.
+        annotations_directory_path: Destination directory for ``.xml`` files;
+            created automatically if it does not exist.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area. Detections below this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``0.0`` keeps all detections.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area. Detections above this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``1.0`` keeps all detections.
+        approximation_percentage: Fraction of polygon vertices to remove when
+            approximating instance masks as polygons. Range ``[0, 1)``. Default
+            ``0.75`` applies aggressive simplification.
+        show_progress: If ``True``, display a tqdm progress bar while writing
+            annotation files. Default ``False``.
+
+    Raises:
+        ValueError: If two image paths map to the same ``.xml`` output name.
+
+    Examples:
+        ```pycon
+        >>> import tempfile
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.formats.pascal_voc import (
+        ...     save_pascal_voc_annotations,
+        ... )
+        >>> dataset = DetectionDataset(classes=[], images={}, annotations={})
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     save_pascal_voc_annotations(dataset, tmpdir)
+
+        ```
+    """
+
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: f"{Path(image_path).stem}.xml",
+        output_kind="Pascal VOC annotation",
+    )
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_path, image, annotations in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving Pascal VOC annotations",
+        disable=not show_progress,
+    ):
+        annotation_name = Path(image_path).stem
+        annotations_path = os.path.join(
+            annotations_directory_path, f"{annotation_name}.xml"
+        )
+        image_name = Path(image_path).name
+        pascal_voc_xml = detections_to_pascal_voc(
+            detections=annotations,
+            classes=dataset.classes,
+            filename=image_name,
+            image_shape=(image.shape[0], image.shape[1], image.shape[2]),
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        with open(annotations_path, "w") as f:
+            f.write(pascal_voc_xml)

@@ -12,12 +12,16 @@ from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
     _rle_counts_to_mask,
     is_compressed_rle,
+    mask_to_polygons,
     mask_to_rle,
     mask_to_xyxy,
+    polygon_to_mask,
+    polygon_to_xyxy,
     rle_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_mask,
+    xyxy_to_polygons,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
@@ -314,17 +318,25 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     np.testing.assert_array_equal(result, expected)
 
 
-def _mask_to_xyxy_reference(masks: np.ndarray) -> np.ndarray:
+def _mask_to_xyxy_reference(
+    masks: np.ndarray, coordinate_convention: str = "inclusive"
+) -> np.ndarray:
     """Per-mask `np.where` loop used as a ground-truth oracle."""
     xyxy = np.zeros((masks.shape[0], 4), dtype=int)
     for i, mask in enumerate(masks):
         rows, cols = np.where(mask)
         if len(rows) > 0 and len(cols) > 0:
+            if coordinate_convention == "exclusive":
+                x_max = int(cols.max()) + 1
+                y_max = int(rows.max()) + 1
+            else:
+                x_max = int(cols.max())
+                y_max = int(rows.max())
             xyxy[i, :] = [
                 int(cols.min()),
                 int(rows.min()),
-                int(cols.max()),
-                int(rows.max()),
+                x_max,
+                y_max,
             ]
     return xyxy
 
@@ -393,6 +405,52 @@ class TestMaskToXyxy:
         assert result.dtype == reference.dtype
         np.testing.assert_array_equal(result, reference)
 
+    def test_mask_to_xyxy_exclusive_matches_reference(self) -> None:
+        """Exclusive bounds should return one-past-the-end coordinates."""
+        masks = np.array(
+            [
+                [[False, False], [False, True]],
+                [[True, True], [True, True]],
+            ],
+            dtype=bool,
+        )
+
+        result = mask_to_xyxy(masks, coordinate_convention="exclusive")
+        reference = _mask_to_xyxy_reference(masks, coordinate_convention="exclusive")
+
+        np.testing.assert_array_equal(result, reference)
+
+    def test_xyxy_to_mask_exclusive_round_trip(self) -> None:
+        """Exclusive boxes should round-trip through `xyxy_to_mask`."""
+        boxes = np.array([[1, 1, 3, 3], [0, 0, 2, 1]], dtype=float)
+
+        result = xyxy_to_mask(
+            boxes=boxes,
+            resolution_wh=(4, 4),
+            coordinate_convention="exclusive",
+        )
+
+        expected = np.array(
+            [
+                [
+                    [False, False, False, False],
+                    [False, True, True, False],
+                    [False, True, True, False],
+                    [False, False, False, False],
+                ],
+                [
+                    [True, True, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, False],
+                ],
+            ],
+            dtype=bool,
+        )
+
+        assert result.dtype == np.bool_
+        np.testing.assert_array_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     ("mask", "compressed", "expected_rle", "exception"),
@@ -454,14 +512,14 @@ class TestMaskToXyxy:
             np.array([[[]]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask must be 2D"),
-        ),  # raises AssertionError because mask dimensionality is not 2D
+            pytest.raises(ValueError, match="Input mask must be 2D"),
+        ),  # raises ValueError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask cannot be empty"),
-        ),  # raises AssertionError because mask is empty
+            pytest.raises(ValueError, match="Input mask cannot be empty"),
+        ),  # raises ValueError because mask is empty
     ],
 )
 def test_mask_to_rle(
@@ -878,3 +936,148 @@ def test_mask_rle_counts_round_trip(mask_2d: npt.NDArray[np.bool_]) -> None:
     rle = _mask_to_rle_counts(mask_2d)
     recovered = _rle_counts_to_mask(rle, h, w)
     np.testing.assert_array_equal(recovered, mask_2d)
+
+
+# ---------------------------------------------------------------------------
+# xyxy_to_polygons
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("box", "expected_shape"),
+    [
+        pytest.param(
+            np.array([[0, 0, 10, 20]], dtype=np.float32),
+            (1, 4, 2),
+            id="single-box",
+        ),
+        pytest.param(
+            np.array([[0, 0, 10, 20], [5, 5, 15, 25]], dtype=np.float32),
+            (2, 4, 2),
+            id="two-boxes",
+        ),
+        pytest.param(
+            np.empty((0, 4), dtype=np.float32),
+            (0, 4, 2),
+            id="empty",
+        ),
+    ],
+)
+def test_xyxy_to_polygons_shape(
+    box: npt.NDArray[np.float32], expected_shape: tuple[int, ...]
+) -> None:
+    """xyxy_to_polygons returns (N, 4, 2) with correct dtype and corner ordering."""
+    result = xyxy_to_polygons(box)
+    assert result.shape == expected_shape
+    assert result.dtype == box.dtype
+
+
+def test_xyxy_to_polygons_corners() -> None:
+    """The four polygon corners match the four corners of the input box."""
+    box = np.array([[2, 3, 8, 11]], dtype=np.int32)
+    result = xyxy_to_polygons(box)
+    # corners: TL, TR, BR, BL
+    expected = np.array([[[2, 3], [8, 3], [8, 11], [2, 11]]], dtype=np.int32)
+    np.testing.assert_array_equal(result, expected)
+
+
+# ---------------------------------------------------------------------------
+# polygon_to_mask
+# ---------------------------------------------------------------------------
+
+
+def test_polygon_to_mask_fills_interior() -> None:
+    """A square polygon fills the interior pixels with 1s."""
+    polygon = np.array([[1, 1], [5, 1], [5, 5], [1, 5]], dtype=np.int32)
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.dtype == np.uint8
+    # interior pixel should be 1
+    assert mask[3, 3] == 1
+    # corner outside polygon should be 0
+    assert mask[0, 0] == 0
+
+
+def test_polygon_to_mask_full_canvas() -> None:
+    """A polygon covering the entire canvas yields an all-ones mask."""
+    w, h = 10, 10
+    polygon = np.array([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]], dtype=np.int32)
+    mask = polygon_to_mask(polygon, resolution_wh=(w, h))
+    assert mask.sum() == w * h
+
+
+# ---------------------------------------------------------------------------
+# mask_to_polygons
+# ---------------------------------------------------------------------------
+
+
+def test_mask_to_polygons_empty_mask_returns_empty_list() -> None:
+    """An all-False mask produces no polygons."""
+    mask = np.zeros((20, 20), dtype=bool)
+    result = mask_to_polygons(mask)
+    assert result == []
+
+
+def test_mask_to_polygons_single_region() -> None:
+    """A mask with one connected region produces exactly one polygon."""
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[4:16, 4:16] = True
+    result = mask_to_polygons(mask)
+    assert len(result) == 1
+    assert result[0].shape[1] == 2
+
+
+def test_mask_to_polygons_two_regions() -> None:
+    """A mask with two disconnected blobs produces two polygons."""
+    mask = np.zeros((30, 60), dtype=bool)
+    mask[2:8, 2:8] = True
+    mask[2:8, 30:36] = True
+    result = mask_to_polygons(mask)
+    assert len(result) == 2
+
+
+def test_mask_to_polygons_polygon_to_mask_round_trip() -> None:
+    """mask_to_polygons -> polygon_to_mask recovers most of the original mask area."""
+    h, w = 20, 20
+    mask = np.zeros((h, w), dtype=bool)
+    mask[3:14, 3:14] = True
+    polygons = mask_to_polygons(mask)
+    assert len(polygons) == 1
+    recovered = polygon_to_mask(polygons[0], resolution_wh=(w, h)).astype(bool)
+    intersection = (mask & recovered).sum()
+    union = (mask | recovered).sum()
+    iou = intersection / union
+    assert iou > 0.9
+
+
+# ---------------------------------------------------------------------------
+# polygon_to_xyxy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("polygon", "expected"),
+    [
+        pytest.param(
+            np.array([[1, 2], [5, 2], [5, 8], [1, 8]]),
+            np.array([1, 2, 5, 8]),
+            id="rectangle",
+        ),
+        pytest.param(
+            np.array([[3, 3], [7, 1], [10, 6], [5, 9]]),
+            np.array([3, 1, 10, 9]),
+            id="irregular-quad",
+        ),
+        pytest.param(
+            np.array([[4, 4]]),
+            np.array([4, 4, 4, 4]),
+            id="single-point",
+        ),
+    ],
+)
+def test_polygon_to_xyxy(
+    polygon: npt.NDArray[np.int_], expected: npt.NDArray[np.int_]
+) -> None:
+    """polygon_to_xyxy returns the tight axis-aligned bounding box."""
+    result = polygon_to_xyxy(polygon)
+    np.testing.assert_array_equal(result, expected)

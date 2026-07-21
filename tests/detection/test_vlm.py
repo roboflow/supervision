@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 import numpy as np
 import pytest
 
+import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.vlm import (
@@ -14,7 +15,57 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
 )
+
+
+@pytest.mark.parametrize(
+    ("result", "resolution_wh", "classes", "expected_xyxy", "expected_class_name"),
+    [
+        pytest.param(
+            '```json\n[{"bbox_2d": [100, 200, 300, 400], "label": "cat"}]\n```',
+            (640, 480),
+            None,
+            np.array([[64.0, 96.0, 192.0, 192.0]]),
+            np.array(["cat"], dtype=str),
+            id="single-detection-scales-from-1000x1000",
+        ),
+        pytest.param(
+            "```json\n[]\n```",
+            (640, 480),
+            None,
+            np.empty((0, 4)),
+            np.empty(0, dtype=str),
+            id="empty-json-array-returns-empty",
+        ),
+        pytest.param(
+            "```json\n"
+            '[{"bbox_2d": [0, 0, 500, 500], "label": "dog"},'
+            ' {"bbox_2d": [500, 500, 1000, 1000], "label": "cat"}]\n```',
+            (640, 480),
+            ["cat"],
+            np.array([[320.0, 240.0, 640.0, 480.0]]),
+            np.array(["cat"], dtype=str),
+            id="classes-filter-keeps-only-matching",
+        ),
+    ],
+)
+def test_from_qwen_3_vl(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_xyxy: np.ndarray,
+    expected_class_name: np.ndarray,
+) -> None:
+    """from_qwen_3_vl scales from implicit 1000x1000 input space to resolution_wh."""
+    xyxy, _class_id, class_name = from_qwen_3_vl(
+        result=result,
+        resolution_wh=resolution_wh,
+        classes=classes,
+    )
+
+    np.testing.assert_allclose(xyxy, expected_xyxy)
+    np.testing.assert_array_equal(class_name, expected_class_name)
 
 
 @pytest.mark.parametrize(
@@ -942,6 +993,39 @@ def test_florence_2(
 
 
 @pytest.mark.parametrize(
+    ("florence_result", "match"),
+    [
+        pytest.param(
+            {
+                "<REGION_TO_CATEGORY>": (
+                    "some object<loc_300><loc_400><loc_500><loc_600>"
+                ),
+                "<REGION_TO_DESCRIPTION>": "other",
+            },
+            "single element",
+            id="multiple-top-level-tasks",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": 123},
+            "Expected string as <REGION_TO_CATEGORY> result",
+            id="non-string-region-result",
+        ),
+        pytest.param(
+            {"<REGION_TO_CATEGORY>": "some object"},
+            "Expected string to end in location tags",
+            id="missing-location-tags",
+        ),
+    ],
+)
+def test_florence_2_invalid_payloads_raise_value_error(
+    florence_result: dict[str, object], match: str
+) -> None:
+    """Malformed Florence 2 region payloads raise `ValueError`."""
+    with pytest.raises(ValueError, match=match):
+        from_florence_2(florence_result, (10, 10))
+
+
+@pytest.mark.parametrize(
     ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (
@@ -1194,19 +1278,19 @@ def test_from_google_gemini_2_5(
     ("exception", "result", "resolution_wh", "classes", "expected_detections"),
     [
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "",
             (100, 100),
             None,
-            None,
-        ),  # empty text
+            Detections.empty(),
+        ),  # empty text -> empty detections (aligned with other VLM parsers)
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "random text",
             (100, 100),
             None,
-            None,
-        ),  # random text
+            Detections.empty(),
+        ),  # random text -> empty detections
         (
             does_not_raise(),
             "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
@@ -1297,6 +1381,29 @@ def test_from_deepseek_vl_2(
         )
 
 
+@pytest.mark.parametrize(
+    ("result", "classes"),
+    [
+        pytest.param("", None, id="empty_string"),
+        pytest.param("no tags here", None, id="no_tags"),
+        pytest.param("", ["cat"], id="empty_string_with_classes"),
+    ],
+)
+def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
+    result: str, classes: list[str] | None
+) -> None:
+    """A result with no ref/det pairs yields empty Detections instead of raising."""
+    detections = Detections.from_vlm(
+        vlm=VLM.DEEPSEEK_VL_2,
+        result=result,
+        resolution_wh=(1000, 1000),
+        classes=classes,
+    )
+
+    assert len(detections) == 0
+    assert detections.xyxy.shape == (0, 4)
+
+
 def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     """A non-data-URI mask must not skip the item's confidence and desync arrays."""
     result = (
@@ -1315,6 +1422,33 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert np.allclose(confidence, [0.8, 0.9])
     assert masks is not None
     assert masks.shape == (2, 480, 640)
+
+
+def test_from_vlm_unsupported_future_enum_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown VLM members should raise instead of returning empty detections."""
+
+    class FakeVLM:
+        PALIGEMMA = object()
+        FLORENCE_2 = object()
+        QWEN_2_5_VL = object()
+        QWEN_3_VL = object()
+        DEEPSEEK_VL_2 = object()
+        GOOGLE_GEMINI_2_0 = object()
+        GOOGLE_GEMINI_2_5 = object()
+        MOONDREAM = object()
+        FUTURE = object()
+
+    monkeypatch.setattr(detection_core, "VLM", FakeVLM)
+    monkeypatch.setattr(
+        detection_core,
+        "_validate_vlm_parameters",
+        lambda vlm, result, kwargs: vlm,
+    )
+
+    with pytest.raises(ValueError, match="Unsupported VLM value"):
+        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")
 
 
 @pytest.mark.parametrize(

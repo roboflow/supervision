@@ -5,9 +5,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from supervision.config import AREA_DATA_FIELD
+from supervision.detection.core import Detections
+from supervision.metrics.core import MetricTarget
 from supervision.metrics.utils.object_size import (
     SIZE_THRESHOLDS,
     ObjectSizeCategory,
+    get_detection_size_category,
     get_mask_size_category,
 )
 
@@ -60,3 +64,43 @@ class TestGetMaskSizeCategory:
                 ObjectSizeCategory.LARGE.value,
             ],
         )
+
+
+def test_detection_size_category_prefers_explicit_area_metadata() -> None:
+    """Explicit area metadata overrides geometry for size categorization."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        data={AREA_DATA_FIELD: np.array([2500.0], dtype=np.float32)},
+    )
+
+    result = get_detection_size_category(detections, MetricTarget.BOXES)
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.MEDIUM.value])
+
+
+def test_detection_size_category_falls_back_without_area_metadata() -> None:
+    """Geometry remains the fallback when explicit area metadata is absent."""
+    detections = Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+
+    result = get_detection_size_category(detections, MetricTarget.BOXES)
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.SMALL.value])
+
+
+@pytest.mark.parametrize(
+    "area_data",
+    [
+        pytest.param(np.array([[2500.0]], dtype=np.float32), id="two-dimensional"),
+    ],
+)
+def test_detection_size_category_rejects_invalid_area_metadata(
+    area_data: np.ndarray,
+) -> None:
+    """Invalid area metadata is rejected instead of misaligning detections."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        data={AREA_DATA_FIELD: area_data},
+    )
+
+    with pytest.raises(ValueError, match="area metadata"):
+        get_detection_size_category(detections, MetricTarget.BOXES)

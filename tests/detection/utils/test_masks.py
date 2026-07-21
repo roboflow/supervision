@@ -13,12 +13,20 @@ from supervision.detection.utils.masks import (
     contains_holes,
     contains_multiple_segments,
     filter_segments_by_distance,
+    mask_to_roi,
     move_masks,
+    resize_masks,
 )
 
 
 class TestMaskROIHelpers:
     """Tests for _mask_to_roi, _compact_masks_to_roi, _masks_to_roi helpers."""
+
+    def test_mask_to_roi_public_helper_exposes_exclusive_bounds(self) -> None:
+        """Public mask_to_roi should return slice-friendly exclusive bounds."""
+        mask = np.zeros((10, 15), dtype=bool)
+        mask[3, 5] = True
+        assert mask_to_roi(mask) == (5, 3, 6, 4)
 
     def test_mask_to_roi_all_false_returns_none(self):
         """All-false mask should return None."""
@@ -127,12 +135,34 @@ class TestMaskROIHelpers:
         assert x2 >= 21  # floor(20.0) + 1
         assert y2 >= 21
 
+    def test_masks_to_roi_dense_with_xyxy_falls_back_for_pixels_outside_box(self):
+        """Dense xyxy path scans pixels when true pixels fall outside the box union."""
+        masks = np.zeros((1, 30, 40), dtype=bool)
+        masks[0, 10:12, 10:12] = True
+        masks[0, 25:27, 30:32] = True
+        xyxy = np.array([[10.0, 10.0, 11.0, 11.0]])
+
+        result = _masks_to_roi(masks, (30, 40), xyxy)
+
+        assert result == (10, 10, 32, 27)
+
     def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self):
         """All-false masks with xyxy provided should still return None."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         xyxy = np.array([[5.0, 5.0, 20.0, 20.0], [10.0, 10.0, 25.0, 25.0]])
         result = _masks_to_roi(masks, (30, 40), xyxy)
         assert result is None
+
+
+def test_resize_masks_does_not_upscale_small_masks() -> None:
+    """resize_masks returns small masks unchanged instead of upscaling."""
+    masks = np.zeros((2, 4, 5), dtype=bool)
+    masks[:, 1:3, 2:4] = True
+
+    result = resize_masks(masks, max_dimension=640)
+
+    assert result is masks
+    assert result.shape == (2, 4, 5)
 
 
 @pytest.mark.parametrize(

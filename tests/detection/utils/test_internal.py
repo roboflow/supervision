@@ -4,14 +4,64 @@ from typing import Any
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
+    extract_ultralytics_masks,
     get_data_item,
     merge_data,
     merge_metadata,
     process_roboflow_result,
 )
+
+
+class _FakeMasksData:
+    """Ultralytics-like mask tensor exposing shape and cpu().numpy()."""
+
+    def __init__(self, arr: np.ndarray) -> None:
+        self._arr = np.asarray(arr, dtype=np.float32)
+        self.shape = self._arr.shape
+
+    def cpu(self) -> "_FakeMasksData":
+        return self
+
+    def numpy(self) -> np.ndarray:
+        return self._arr
+
+
+class _FakeMasks:
+    """Ultralytics-like masks container holding a data tensor."""
+
+    def __init__(self, data: _FakeMasksData) -> None:
+        self.data = data
+
+    def __bool__(self) -> bool:
+        return True
+
+
+class _FakeYOLOMaskResults:
+    """Minimal Ultralytics results exposing masks and orig_shape."""
+
+    def __init__(self, masks_arr: np.ndarray, orig_shape: tuple[int, int]) -> None:
+        self.masks = _FakeMasks(_FakeMasksData(masks_arr))
+        self.orig_shape = orig_shape
+
+
+def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
+    """Resized proto masks threshold at 0.5, so interpolated edges don't dilate."""
+    orig_shape = (4, 4)
+    proto = np.array([[[1.0, 1.0], [0.0, 0.0]]], dtype=np.float32)
+    results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
+
+    masks = extract_ultralytics_masks(results)
+
+    resized = cv2.resize(proto[0], (orig_shape[1], orig_shape[0]))
+    assert masks is not None
+    assert masks.dtype == bool
+    np.testing.assert_array_equal(masks[0], resized > 0.5)
+    # A naive `> 0` cast would flag the interpolated boundary row as True.
+    assert masks[0].sum() < int((resized > 0).sum())
 
 
 def _pred(
@@ -123,15 +173,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
-        ),  # single incorrect instance segmentation result with no points
+        ),  # single invalid polygon result with no points falls back to box-only
         (
             _result_1k(
                 _pred(
@@ -141,15 +191,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.empty((0, 4)),
-                np.empty(0),
-                np.empty(0),
+                np.array([[175.0, 275.0, 225.0, 325.0]]),
+                np.array([0.9]),
+                np.array([0]),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
             ),
             DoesNotRaise(),
-        ),  # single incorrect instance segmentation result with no enough points
+        ),  # single invalid polygon result with too few points falls back to box-only
         (
             _result_1k(
                 _pred(
@@ -195,15 +245,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 ),
             ),
             (
-                np.array([[175.0, 275.0, 225.0, 325.0]]),
-                np.array([0.9]),
-                np.array([0]),
-                TEST_MASK,
+                np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 7]),
                 None,
-                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "truck"])},
             ),
             DoesNotRaise(),
-        ),  # two instance segmentation results - one correct, one incorrect
+        ),  # mixed valid polygon and invalid polygon keeps boxes and drops masks
         (
             _result(_pred(rle={"size": [4, 4], "counts": "52203"})),
             (
@@ -470,6 +520,32 @@ def test_process_roboflow_result_uses_rle_mask_when_rle_invalid() -> None:
     assert isinstance(dense_result[3], np.ndarray)
     assert isinstance(compact_result[3], CompactMask)
     np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
+def test_process_roboflow_result_invalid_polygon_is_box_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Predictions with fewer than three polygon points are kept as box-only."""
+    roboflow_result = _result(_pred(points=[{"x": 1, "y": 1}, {"x": 2, "y": 2}]))
+
+    with caplog.at_level("WARNING"):
+        xyxy, confidence, class_id, masks, tracker_ids, data = process_roboflow_result(
+            roboflow_result=roboflow_result
+        )
+
+    np.testing.assert_array_equal(xyxy, np.array([[0.5, 0.5, 2.5, 2.5]]))
+    np.testing.assert_array_equal(confidence, np.array([0.9]))
+    np.testing.assert_array_equal(class_id, np.array([0]))
+    assert masks is None
+    assert tracker_ids is None
+    np.testing.assert_array_equal(data[CLASS_NAME_DATA_FIELD], np.array(["person"]))
+    assert "fewer than 3 points" in caplog.text
+
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+    np.testing.assert_array_equal(compact_result[0], xyxy)
+    assert compact_result[3] is None
 
 
 def test_polygon_prediction_compact_masks_true() -> None:
@@ -1005,13 +1081,27 @@ def test_get_data_item(
         (
             [{"key1": [1, 2, 3]}, {"key1": np.array([1, 2, 3])}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Empty lists and numpy arrays for the same key
         (
             [{"key1": []}, {"key1": np.array([])}],
             None,
-            pytest.raises(ValueError, match="type\\(other_value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical multi-dimensional lists across metadata dictionaries
         (
@@ -1047,7 +1137,14 @@ def test_get_data_item(
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": np.arange(4).reshape(2, 2)}],
             None,
-            pytest.raises(ValueError, match="type\\(value\\)"),
+            pytest.raises(
+                ValueError,
+                match=(
+                    r"Conflicting metadata for key: 'key1': "
+                    r"(?:<class 'list'>, <class 'numpy\.ndarray'>|"
+                    r"<class 'numpy\.ndarray'>, <class 'list'>)\."
+                ),
+            ),
         ),
         # Identical higher-dimensional (3D) numpy arrays across
         # metadata dictionaries
@@ -1125,3 +1222,58 @@ def test_process_roboflow_result_compact_masks_rle_mask_size_mismatch() -> None:
 
     assert isinstance(compact_result[3], CompactMask)
     np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
+# ---------------------------------------------------------------------------
+# cross_product — regression + unit tests (GitHub #2384)
+# ---------------------------------------------------------------------------
+import warnings  # noqa: E402
+
+from supervision.detection.utils.internal import cross_product  # noqa: E402
+from supervision.geometry.core import Point, Vector  # noqa: E402
+
+
+def test_cross_product_no_deprecation_warning() -> None:
+    """Regression for #2384: cross_product must not fire DeprecationWarning."""
+    anchors = np.array([[[5.0, 5.0]]])
+    v = Vector(start=Point(0, 0), end=Point(10, 0))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        cross_product(anchors, v)
+
+
+@pytest.mark.parametrize(
+    ("anchors", "vector", "expected_sign"),
+    [
+        pytest.param(
+            np.array([[[5.0, 5.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            1,
+            id="above",
+        ),
+        pytest.param(
+            np.array([[[5.0, -5.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            -1,
+            id="below",
+        ),
+        pytest.param(
+            np.array([[[5.0, 0.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            0,
+            id="on-line",
+        ),
+        pytest.param(
+            np.array([[[3.0, 3.0]]]),
+            Vector(Point(1, 1), Point(5, 1)),
+            1,
+            id="offset-start",
+        ),
+    ],
+)
+def test_cross_product_sign(
+    anchors: np.ndarray, vector: Vector, expected_sign: int
+) -> None:
+    """Verify cross_product returns correct sign for known anchor/vector pairs."""
+    result = cross_product(anchors, vector)
+    assert int(np.sign(result[0, 0])) == expected_sign

@@ -1,11 +1,17 @@
+import random
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 from typing import TypeVar
 
+import numpy as np
 import pytest
 
+import supervision.dataset.utils as dataset_utils
 from supervision import Detections
 from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     train_test_split,
@@ -85,6 +91,24 @@ def test_train_test_split(
             shuffle=shuffle,
         )
         assert result == expected_result
+
+
+def test_approximate_mask_with_polygons_default_preserves_polygon(
+    monkeypatch,
+) -> None:
+    """Default mask polygon conversion forwards zero simplification."""
+    percentages: list[float] = []
+
+    def fake_approximate_polygon(polygon: np.ndarray, percentage: float) -> np.ndarray:
+        """Capture simplification percentage while preserving the polygon."""
+        percentages.append(percentage)
+        return polygon
+
+    monkeypatch.setattr(dataset_utils, "approximate_polygon", fake_approximate_polygon)
+
+    approximate_mask_with_polygons(np.ones((3, 3), dtype=bool))
+
+    assert percentages == [0.0]
 
 
 @pytest.mark.parametrize(
@@ -229,3 +253,71 @@ def test_map_detections_class_id(
             source_to_target_mapping=source_to_target_mapping, detections=detections
         )
         assert result == expected_result
+
+
+class TestTrainTestSplitRngIsolation:
+    """Regression tests for train_test_split RNG isolation (DAT-02)."""
+
+    def test_does_not_mutate_input_list(self) -> None:
+        """split() must not reorder the caller's list in place."""
+        data = list(range(10))
+        original = data.copy()
+        train_test_split(data=data, train_ratio=0.5, random_state=42, shuffle=True)
+        assert data == original
+
+    def test_does_not_pollute_global_rng(self) -> None:
+        """split() must not disturb the process-global random state."""
+        state_before = random.getstate()
+        train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        assert random.getstate() == state_before
+
+    def test_result_independent_of_global_rng(self) -> None:
+        """A fixed random_state yields the same split regardless of global RNG."""
+        first = train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        for _ in range(5):
+            random.random()  # noqa: S311 — perturb global RNG; split must ignore it
+        second = train_test_split(
+            data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True
+        )
+        assert first == second
+
+
+class TestCheckNoBasenameCollisions:
+    """Regression tests for export basename collision detection (DAT-04)."""
+
+    def test_raises_on_colliding_output_names(self) -> None:
+        """Two source paths mapping to one output name must raise ValueError."""
+        with pytest.raises(ValueError, match="both map to image file"):
+            check_no_basename_collisions(
+                image_paths=["a/img.jpg", "b/img.jpg"],
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+
+    def test_passes_on_unique_output_names(self) -> None:
+        """Distinct output names must not raise."""
+        check_no_basename_collisions(
+            image_paths=["a/img1.jpg", "b/img2.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_passes_on_empty_image_paths(self) -> None:
+        """Empty list must not raise (vacuously no collision)."""
+        check_no_basename_collisions(
+            image_paths=[],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )
+
+    def test_passes_on_single_image_path(self) -> None:
+        """Single element list cannot collide with itself."""
+        check_no_basename_collisions(
+            image_paths=["dir/only.jpg"],
+            key=lambda image_path: Path(image_path).name,
+            output_kind="image",
+        )

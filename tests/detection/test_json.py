@@ -168,8 +168,8 @@ from tests.helpers import _create_detections
                     "confidence": 0.949999988079071,
                     "tracker_id": "",
                     "class_name": "unknown",
-                    "is_detected": "True",
-                    "score": "1",
+                    "is_detected": True,
+                    "score": 1,
                     "frame_number": 46,
                 },
                 {
@@ -181,8 +181,8 @@ from tests.helpers import _create_detections
                     "confidence": "",
                     "tracker_id": "",
                     "class_name": "artifact",
-                    "is_detected": "False",
-                    "score": "0.85",
+                    "is_detected": False,
+                    "score": 0.85,
                     "frame_number": 47,
                 },
             ],
@@ -251,7 +251,7 @@ from tests.helpers import _create_detections
                     "class_id": 0,
                     "confidence": 0.8999999761581421,
                     "tracker_id": "",
-                    "area": "400.0",
+                    "area": 400.0,
                 },
                 {
                     "x_min": 50,
@@ -261,7 +261,7 @@ from tests.helpers import _create_detections
                     "class_id": 1,
                     "confidence": 0.800000011920929,
                     "tracker_id": "",
-                    "area": "400.0",
+                    "area": 400.0,
                 },
                 {
                     "x_min": 15,
@@ -271,7 +271,7 @@ from tests.helpers import _create_detections
                     "class_id": 2,
                     "confidence": 0.699999988079071,
                     "tracker_id": "",
-                    "area": "400.0",
+                    "area": 400.0,
                 },
             ],
         ),  # numpy array in custom_data sliced per detection row
@@ -432,6 +432,55 @@ def test_json_sink_serializes_nested_numpy_array_custom_data(tmp_path: Any) -> N
     with open(file_name) as f:
         data = json.load(f)
     assert data[0]["meta"]["arr"] == [1, 2, 3]
+
+
+@pytest.mark.parametrize(
+    ("custom_data", "expected_value"),
+    [
+        pytest.param(
+            {"embedding": np.array([1, 2, 3])},
+            [1, 2, 3],
+            id="custom_data_ndarray_length_mismatch",
+        )
+    ],
+)
+def test_json_sink_broadcasts_ndarray_when_length_mismatches_detection_count(
+    tmp_path: Any, custom_data: dict[str, Any] | None, expected_value: list[float]
+) -> None:
+    """Mismatched ndarray data is broadcast and serialized as a JSON array."""
+    file_name = str(tmp_path / "test_mismatched_array.json")
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+    )
+
+    with sv.JSONSink(file_name) as sink:
+        sink.append(detections, custom_data=custom_data)
+    with open(file_name) as f:
+        data = json.load(f)
+
+    assert data[0]["embedding"] == expected_value
+    assert data[1]["embedding"] == expected_value
+
+
+def test_json_sink_serializes_matching_ndarray_rows_as_json_arrays(
+    tmp_path: Any,
+) -> None:
+    """Matching 2D ndarray row data serializes as JSON arrays, not strings."""
+    file_name = str(tmp_path / "test_matching_array_rows.json")
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+        data={"embedding": np.array([[1, 2], [3, 4]])},
+    )
+
+    with sv.JSONSink(file_name) as sink:
+        sink.append(detections, custom_data={"score": np.array([0.5, 0.75])})
+    with open(file_name) as f:
+        data = json.load(f)
+
+    assert data[0]["embedding"] == [1, 2]
+    assert data[1]["embedding"] == [3, 4]
+    assert data[0]["score"] == 0.5
+    assert data[1]["score"] == 0.75
 
 
 def test_json_default_raises_for_unserializable_type() -> None:

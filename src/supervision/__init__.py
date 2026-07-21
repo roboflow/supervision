@@ -1,4 +1,5 @@
 import importlib.metadata as importlib_metadata
+from typing import TYPE_CHECKING, Any
 
 try:
     # This will read version from pyproject.toml
@@ -90,9 +91,11 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou_batch_with_jaccard,
     box_non_max_merge,
     box_non_max_suppression,
+    box_soft_non_max_suppression,
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
@@ -102,6 +105,7 @@ from supervision.detection.utils.masks import (
     contains_holes,
     contains_multiple_segments,
     filter_segments_by_distance,
+    mask_to_roi,
     move_masks,
 )
 from supervision.detection.utils.polygons import (
@@ -135,7 +139,6 @@ from supervision.key_points.annotators import (
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
-from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
@@ -149,6 +152,7 @@ from supervision.utils.image import (
     scale_image,
     tint_image,
 )
+from supervision.utils.image_window import ImageWindow
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
@@ -158,8 +162,12 @@ from supervision.utils.video import (
     process_video,
 )
 
+if TYPE_CHECKING:
+    from supervision.tracker.byte_tracker.core import ByteTrack
+
 __all__ = [
     "LMM",
+    "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",
@@ -189,6 +197,7 @@ __all__ = [
     "HeatMapAnnotator",
     "IconAnnotator",
     "ImageSink",
+    "ImageWindow",
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
@@ -228,6 +237,7 @@ __all__ = [
     "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
+    "box_soft_non_max_suppression",
     "calculate_masks_centroids",
     "calculate_optimal_line_thickness",
     "calculate_optimal_text_scale",
@@ -236,6 +246,7 @@ __all__ = [
     "contains_multiple_segments",
     "crop_image",
     "cv2_to_pillow",
+    "denormalize_boxes",
     "draw_filled_polygon",
     "draw_filled_rectangle",
     "draw_image",
@@ -260,8 +271,10 @@ __all__ = [
     "mask_iou_batch",
     "mask_non_max_merge",
     "mask_non_max_suppression",
+    "mask_soft_non_max_suppression",
     "mask_to_polygons",
     "mask_to_rle",
+    "mask_to_roi",
     "mask_to_xyxy",
     "move_boxes",
     "move_masks",
@@ -288,4 +301,15 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
+    "xyxyxyxy_to_xyxy",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily resolve deprecated compatibility exports."""
+    if name == "ByteTrack":
+        from supervision.tracker.byte_tracker.core import ByteTrack as byte_track
+
+        globals()[name] = byte_track
+        return byte_track
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

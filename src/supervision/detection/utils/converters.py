@@ -1,10 +1,14 @@
-from typing import Any, cast
+from __future__ import annotations
 
-import cv2
+from typing import Any, Literal, cast
+
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
+
 MIN_POLYGON_POINT_COUNT = 3
+CoordinateConvention = Literal["inclusive", "exclusive"]
 
 
 def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -19,6 +23,19 @@ def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         An array of polygons (N, 4, 2), where each polygon is
             represented as a list of four coordinates in the format `(x, y)`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> box = np.array([[10, 20, 30, 40]])
+        >>> sv.xyxy_to_polygons(box)
+        array([[[10, 20],
+                [30, 20],
+                [30, 40],
+                [10, 40]]])
+
+        ```
     """
     polygon = np.zeros((box.shape[0], 4, 2), dtype=box.dtype)
     polygon[:, :, 0] = box[:, [0, 2, 2, 0]]
@@ -40,6 +57,17 @@ def polygon_to_mask(
     Returns:
         The generated 2D mask, where the polygon is marked with
             `1`s and the rest is filled with `0`s.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[2, 2], [6, 2], [6, 6], [2, 6]])
+        >>> mask = sv.polygon_to_mask(polygon, resolution_wh=(10, 10))
+        >>> int(mask.sum())
+        25
+
+        ```
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
@@ -197,12 +225,19 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
     return result.astype(float)
 
 
-def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
+def mask_to_xyxy(
+    masks: npt.NDArray[np.bool_],
+    coordinate_convention: CoordinateConvention = "inclusive",
+) -> npt.NDArray[np.int_]:
     """
     Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
 
     Args:
         masks: A 3D `np.array` of shape `(N, H, W)` containing 2D bool masks.
+        coordinate_convention: How to interpret the returned max corner.
+            Use `"inclusive"` to preserve the legacy Supervision behavior,
+            where `x_max` and `y_max` are the last covered pixel. Use
+            `"exclusive"` for half-open boxes that match area and IoU arithmetic.
 
     Returns:
         A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
@@ -233,9 +268,19 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     cols_any = cast(npt.NDArray[np.bool_], masks.any(axis=1))  # (N, W)
 
     x_min = cols_any.argmax(axis=1)
-    x_max = width - 1 - cols_any[:, ::-1].argmax(axis=1)
     y_min = rows_any.argmax(axis=1)
-    y_max = height - 1 - rows_any[:, ::-1].argmax(axis=1)
+
+    if coordinate_convention == "inclusive":
+        x_max = width - 1 - cols_any[:, ::-1].argmax(axis=1)
+        y_max = height - 1 - rows_any[:, ::-1].argmax(axis=1)
+    elif coordinate_convention == "exclusive":
+        x_max = width - cols_any[:, ::-1].argmax(axis=1)
+        y_max = height - rows_any[:, ::-1].argmax(axis=1)
+    else:
+        raise ValueError(
+            "coordinate_convention must be 'inclusive' or 'exclusive', "
+            f"got {coordinate_convention!r}."
+        )
 
     xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(int)
     # Empty masks have no bounds; keep the original all-zeros box for them.
@@ -244,7 +289,9 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
 
 
 def xyxy_to_mask(
-    boxes: npt.NDArray[np.number], resolution_wh: tuple[int, int]
+    boxes: npt.NDArray[np.number],
+    resolution_wh: tuple[int, int],
+    coordinate_convention: CoordinateConvention = "inclusive",
 ) -> npt.NDArray[np.bool_]:
     """
     Converts a 2D `np.ndarray` of bounding boxes into a 3D `np.ndarray` of bool masks.
@@ -254,6 +301,10 @@ def xyxy_to_mask(
             `(x_min, y_min, x_max, y_max)`.
         resolution_wh: A tuple `(width, height)` specifying the resolution of
             the output masks.
+        coordinate_convention: How to interpret `x_max` and `y_max`.
+            Use `"inclusive"` for closed boxes with the legacy Supervision
+            convention. Use `"exclusive"` for half-open boxes that align with
+            box area and IoU calculations.
 
     Returns:
         A 3D `np.ndarray` of shape `(N, height, width)` containing 2D bool masks
@@ -293,11 +344,21 @@ def xyxy_to_mask(
     for i, (x_min, y_min, x_max, y_max) in enumerate(boxes):
         x_min = max(0, int(x_min))
         y_min = max(0, int(y_min))
-        x_max = min(width - 1, int(x_max))
-        y_max = min(height - 1, int(y_max))
-
-        if x_max >= x_min and y_max >= y_min:
-            masks[i, y_min : y_max + 1, x_min : x_max + 1] = True
+        if coordinate_convention == "inclusive":
+            x_max = min(width - 1, int(x_max))
+            y_max = min(height - 1, int(y_max))
+            if x_max >= x_min and y_max >= y_min:
+                masks[i, y_min : y_max + 1, x_min : x_max + 1] = True
+        elif coordinate_convention == "exclusive":
+            x_max = min(width, int(x_max))
+            y_max = min(height, int(y_max))
+            if x_max > x_min and y_max > y_min:
+                masks[i, y_min:y_max, x_min:x_max] = True
+        else:
+            raise ValueError(
+                "coordinate_convention must be 'inclusive' or 'exclusive', "
+                f"got {coordinate_convention!r}."
+            )
 
     return masks
 
@@ -315,11 +376,23 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
             of shape `(N, 2)`, containing the `x`, `y` coordinates of the
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
             are excluded from the output.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.zeros((10, 10), dtype=bool)
+        >>> mask[2:6, 2:6] = True
+        >>> sv.mask_to_polygons(mask)
+        [array([[2, 2],
+               [2, 5],
+               [5, 5],
+               [5, 2]], dtype=int32)]
+
+        ```
     """
 
-    contours, _ = cv2.findContours(
-        mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    )
+    contours = cv2.find_contours(mask.astype(np.uint8))
     return [
         np.squeeze(contour, axis=1)
         for contour in contours
@@ -676,7 +749,7 @@ def mask_to_rle(
             When ``compressed`` is ``True``, a COCO compressed RLE string.
 
     Raises:
-        AssertionError: If input mask is not 2D or is empty.
+        ValueError: If input mask is not 2D or is empty.
 
     Examples:
         ```pycon
@@ -715,8 +788,10 @@ def mask_to_rle(
     ![mask_to_rle](https://media.roboflow.com/supervision-docs/
     mask-to-rle.png){ align=center width="800" }
     """
-    assert mask.ndim == 2, "Input mask must be 2D"
-    assert mask.size != 0, "Input mask cannot be empty"
+    if mask.ndim != 2:
+        raise ValueError("Input mask must be 2D")
+    if mask.size == 0:
+        raise ValueError("Input mask cannot be empty")
 
     counts: list[int] = cast(list[int], _mask_to_rle_counts(mask).tolist())
     if compressed:
@@ -735,6 +810,16 @@ def polygon_to_xyxy(polygon: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Returns:
         A 1D NumPy array containing the bounding box
             `(x_min, y_min, x_max, y_max)` of the input polygon.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[10, 20], [30, 20], [30, 40], [10, 40]])
+        >>> sv.polygon_to_xyxy(polygon)
+        array([10, 20, 30, 40])
+
+        ```
     """
     x_min, y_min = np.min(polygon, axis=0)
     x_max, y_max = np.max(polygon, axis=0)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import reduce
@@ -13,6 +14,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection._geometry_dispatch import detection_area, detection_iou
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -26,12 +28,12 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
-    obb_polygon_area,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
+    rle_to_mask,
     xywh_to_xyxy,
 )
 from supervision.detection.utils.internal import (
@@ -45,18 +47,17 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
-    mask_iou_batch,
+    box_soft_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
-    count_mask_pixels,
 )
 from supervision.detection.vlm import (
     LMM,
@@ -72,8 +73,16 @@ from supervision.detection.vlm import (
     from_qwen_3_vl,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import _validate_detections_fields, _validate_resolution
+from supervision.utils.internal import (
+    SupervisionWarnings,
+    get_instance_variables,
+    warn_deprecated,
+)
+from supervision.validators import (
+    _validate_data,
+    _validate_detections_fields,
+    _validate_resolution,
+)
 
 
 @dataclass
@@ -90,7 +99,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -106,7 +115,7 @@ class Detections:
         method, which accepts model results from both detection and segmentation models.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -265,7 +274,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
 
@@ -304,7 +313,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -335,9 +344,11 @@ class Detections:
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
-            masks = cast(
-                npt.NDArray[np.bool_], extract_ultralytics_masks(ultralytics_results)
-            )
+            masks = extract_ultralytics_masks(ultralytics_results)
+            if masks is None:
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
@@ -384,7 +395,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from super_gradients.training import models
             import supervision as sv
 
@@ -439,7 +450,7 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            import cv2
+            from supervision import _cv2 as cv2
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
@@ -453,7 +464,9 @@ class Detections:
 
         # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
         # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
-        boxes = tensorflow_results["detection_boxes"][0].numpy()
+        # `.numpy()` may share memory with the source tensor, so copy before the
+        # in-place scaling to avoid mutating the caller's result / double-scaling.
+        boxes = tensorflow_results["detection_boxes"][0].numpy().copy()
         boxes[:, [0, 2]] *= resolution_wh[1]
         boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
@@ -514,7 +527,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
 
@@ -634,7 +647,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -728,7 +741,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -807,12 +820,33 @@ class Detections:
         sorted_generated_masks = sorted(
             sam_result, key=lambda x: x["area"], reverse=True
         )
+        if len(sorted_generated_masks) == 0:
+            return cls.empty()
 
         xywh = np.array([mask["bbox"] for mask in sorted_generated_masks])
-        mask = np.array([mask["segmentation"] for mask in sorted_generated_masks])
+        segmentations = [mask["segmentation"] for mask in sorted_generated_masks]
+        first_segmentation = segmentations[0]
 
-        if np.asarray(xywh).shape[0] == 0:
-            return cls.empty()
+        if all(isinstance(segmentation, np.ndarray) for segmentation in segmentations):
+            mask = np.stack(segmentations, axis=0)
+        elif all(isinstance(segmentation, dict) for segmentation in segmentations):
+            image_height, image_width = cast(
+                tuple[int, int], tuple(int(v) for v in first_segmentation["size"])
+            )
+            mask = np.stack(
+                [
+                    rle_to_mask(
+                        segmentation["counts"],
+                        (image_width, image_height),
+                    )
+                    for segmentation in segmentations
+                ],
+                axis=0,
+            )
+        else:
+            raise ValueError(
+                "SAM segmentations must all be dense arrays or COCO RLE dictionaries."
+            )
 
         xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
@@ -839,7 +873,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference.models.sam3 import SegmentAnything3
             from inference.core.entities.requests.sam3 import Sam3Prompt
@@ -1006,19 +1040,36 @@ class Detections:
             x1 = x0 + bbox["w"]
             y1 = y0 + bbox["h"]
 
-            for tag in tags:
-                confidence = tag["confidence"]
-                class_name: str = tag["name"]
-                class_id_val: int | None = inverted_map.get(class_name, None)
+            selected_tag: dict[str, Any] | None = None
+            selected_class_id: int | None = None
+            for tag in sorted(
+                tags, key=lambda candidate: candidate["confidence"], reverse=True
+            ):
+                class_name = tag["name"]
+                class_id_val = inverted_map.get(class_name, None)
 
                 if is_dynamic_mapping and class_id_val is None:
                     class_id_val = len(inverted_map)
                     inverted_map[class_name] = class_id_val
 
                 if class_id_val is not None:
-                    xyxy.append([x0, y0, x1, y1])
-                    confidences.append(confidence)
-                    class_ids.append(class_id_val)
+                    selected_tag = tag
+                    selected_class_id = class_id_val
+                    break
+
+            if selected_tag is None:
+                if tags:
+                    warnings.warn(
+                        "Azure detection skipped because none of its tags matched "
+                        "the provided class_map.",
+                        category=SupervisionWarnings,
+                        stacklevel=2,
+                    )
+                continue
+
+            xyxy.append([x0, y0, x1, y1])
+            confidences.append(selected_tag["confidence"])
+            class_ids.append(cast(int, selected_class_id))
 
         if len(xyxy) == 0:
             return Detections.empty()
@@ -1088,10 +1139,12 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm: The type of LMM (Large Multimodal Model) to use.
@@ -1530,18 +1583,10 @@ class Detections:
             "Use `Detections.from_vlm` instead."
         )
 
-        # filler logic mapping old from_lmm to new from_vlm
-        lmm_to_vlm = {
-            LMM.PALIGEMMA: VLM.PALIGEMMA,
-            LMM.FLORENCE_2: VLM.FLORENCE_2,
-            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
-            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
-            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-        }
-
+        # LMM and VLM are mirror enums (identical string values) so value-based
+        # lookup is exhaustive by construction — no hand-maintained mapping needed.
         if isinstance(lmm, LMM):
-            vlm = lmm_to_vlm[lmm]
+            vlm = VLM(lmm.value)
 
         elif isinstance(lmm, str):
             try:
@@ -1551,7 +1596,7 @@ class Detections:
                     f"Invalid LMM string '{lmm}'. Must be one of "
                     f"{[m.value for m in LMM]}"
                 )
-            vlm = lmm_to_vlm[lmm_enum]
+            vlm = VLM(lmm_enum.value)
 
         else:
             raise ValueError(
@@ -1574,7 +1619,7 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
-        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
@@ -1986,7 +2031,10 @@ class Detections:
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
@@ -1994,7 +2042,10 @@ class Detections:
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_2_5_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
@@ -2005,7 +2056,10 @@ class Detections:
             )
 
         if vlm == VLM.QWEN_3_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
@@ -2014,13 +2068,19 @@ class Detections:
             )
 
         if vlm == VLM.DEEPSEEK_VL_2:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.FLORENCE_2:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 empty = cls.empty()
@@ -2036,18 +2096,27 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be dict."
+                )
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
@@ -2058,7 +2127,7 @@ class Detections:
                 data=data,
             )
 
-        return cls.empty()
+        raise ValueError(f"Unsupported VLM value: {vlm}.")
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:
@@ -2067,6 +2136,10 @@ class Detections:
         [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
 
         Results are placed in the `data` field with the key `"class_name"`.
+        When EasyOCR returns quadrilateral corners, the original corners are
+        preserved in ``ORIENTED_BOX_COORDINATES``. Call EasyOCR with
+        ``detail=1`` so bounding boxes are available; ``detail=0`` returns text
+        strings only and cannot be converted into detections.
 
         Args:
             easyocr_results: The output Results instance from EasyOCR.
@@ -2088,7 +2161,17 @@ class Detections:
         if len(easyocr_results) == 0:
             return cls.empty()
 
-        bbox = np.array([result[0] for result in easyocr_results])
+        if isinstance(easyocr_results[0], str):
+            raise ValueError(
+                "EasyOCR results produced with detail=0 do not include bounding "
+                "boxes. Call reader.readtext(..., detail=1) instead."
+            )
+
+        bbox = np.array([result[0] for result in easyocr_results], dtype=np.float32)
+        if bbox.ndim != 3 or bbox.shape[1:] != (4, 2):
+            raise ValueError(
+                "EasyOCR results must contain four corner points per detection."
+            )
         xyxy = np.hstack((np.min(bbox, axis=1), np.max(bbox, axis=1)))
         confidence = np.array(
             [
@@ -2098,12 +2181,14 @@ class Detections:
         )
         ocr_text = np.array([result[1] for result in easyocr_results])
 
+        data: _DetectionDataType = {
+            CLASS_NAME_DATA_FIELD: ocr_text,
+            ORIENTED_BOX_COORDINATES: bbox,
+        }
         return cls(
             xyxy=xyxy.astype(np.float32),
             confidence=confidence.astype(np.float32),
-            data={
-                CLASS_NAME_DATA_FIELD: ocr_text,
-            },
+            data=data,
         )
 
     @classmethod
@@ -2121,7 +2206,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             from ncnn.model_zoo import get_model
             import supervision as sv
 
@@ -2174,10 +2259,13 @@ class Detections:
             An empty Detections object.
 
         Example:
+            ```pycon
             >>> from supervision import Detections
             >>> empty_detections = Detections.empty()
             >>> empty_detections.xyxy.shape
             (0, 4)
+
+            ```
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2267,6 +2355,7 @@ class Detections:
                 `image_shape` when mixing mask types.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> detections_1 = sv.Detections(
@@ -2288,6 +2377,8 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+            ```
 
         Compact mask merge example:
 
@@ -2519,6 +2610,7 @@ class Detections:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(
@@ -2527,6 +2619,8 @@ class Detections:
             ... )
             >>> detections.get_data("class_name").tolist()
             ['cat']
+
+            ```
         """
         return self.data.get(key)
 
@@ -2540,35 +2634,78 @@ class Detections:
             index: Row index, indices, slice, or boolean mask selecting detections.
 
         Returns:
-            A `Detections` instance containing the selected rows. Empty detections
-            are returned unchanged.
+            A new `Detections` instance containing the selected rows. Always returns
+            a fresh copy — arrays and metadata are never shared with the original,
+            even when the selection is empty or the input has zero detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
+
+            ```
         """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
-            return self
+            if isinstance(self.mask, CompactMask):
+                mask = self.mask[:0]
+            elif self.mask is not None:
+                mask = self.mask[:0].copy()
+            else:
+                mask = None
+            data = {
+                key: value.copy() if isinstance(value, np.ndarray) else list(value)
+                for key, value in self.data.items()
+            }
+            return Detections(
+                xyxy=self.xyxy.copy(),
+                mask=mask,
+                confidence=(
+                    self.confidence.copy() if self.confidence is not None else None
+                ),
+                class_id=self.class_id.copy() if self.class_id is not None else None,
+                tracker_id=(
+                    self.tracker_id.copy() if self.tracker_id is not None else None
+                ),
+                data=data,
+                metadata=dict(self.metadata),
+            )
         if isinstance(index, (int, np.integer)):
             index = [int(index)]
         array_index = cast(
             slice | list[int] | npt.NDArray[np.integer | np.bool_], index
         )
+        data = {
+            key: value.copy() if isinstance(value, np.ndarray) else list(value)
+            for key, value in get_data_item(self.data, array_index).items()
+        }
+        if isinstance(self.mask, CompactMask):
+            mask = self.mask[cast(Any, array_index)]
+        elif self.mask is not None:
+            mask = self.mask[cast(Any, array_index)].copy()
+        else:
+            mask = None
         return Detections(
-            xyxy=self.xyxy[array_index],
-            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
+            xyxy=self.xyxy[array_index].copy(),
+            mask=mask,
             confidence=(
-                self.confidence[array_index] if self.confidence is not None else None
+                self.confidence[array_index].copy()
+                if self.confidence is not None
+                else None
             ),
-            class_id=self.class_id[array_index] if self.class_id is not None else None,
+            class_id=(
+                self.class_id[array_index].copy() if self.class_id is not None else None
+            ),
             tracker_id=(
-                self.tracker_id[array_index] if self.tracker_id is not None else None
+                self.tracker_id[array_index].copy()
+                if self.tracker_id is not None
+                else None
             ),
-            data=get_data_item(self.data, array_index),
-            metadata=self.metadata,
+            data=data,
+            metadata=dict(self.metadata),
         )
 
     def __getitem__(
@@ -2624,7 +2761,7 @@ class Detections:
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -2640,6 +2777,11 @@ class Detections:
                  in detections.class_id
              ]
             ```
+
+        Raises:
+            TypeError: If `value` is not a `np.ndarray` or `list`.
+            ValueError: If `value` has a length or shape incompatible with
+                the detection count.
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -2647,6 +2789,7 @@ class Detections:
         if isinstance(value, list):
             value = np.array(value)
 
+        _validate_data({key: value}, len(self))
         self.data[key] = value
 
     @property
@@ -2676,6 +2819,7 @@ class Detections:
                 where n is the number of detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> corners = np.array(
@@ -2702,16 +2846,10 @@ class Detections:
             ... )
             >>> detections.area
             array([ 9, 25])
+
+            ```
         """
-        if self.mask is not None:
-            if isinstance(self.mask, CompactMask):
-                return self.mask.area
-            return count_mask_pixels(self.mask)
-        if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(
-                cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])
-            )
-        return self.box_area
+        return detection_area(self)
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
@@ -2820,9 +2958,40 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             data=self.data,
-            metadata=self.metadata,
+            metadata=dict(self.metadata),
         )
         return new
+
+    def _build_nms_predictions(
+        self, class_agnostic: bool, operation_name: str
+    ) -> npt.NDArray[np.floating]:
+        """Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
+
+        Callers must already have verified `self.confidence is not None`.
+        """
+        if class_agnostic:
+            return cast(
+                npt.NDArray[np.floating],
+                np.hstack(
+                    (self.xyxy, cast(np.ndarray, self.confidence).reshape(-1, 1))
+                ),
+            )
+        if self.class_id is None:
+            raise ValueError(
+                f"Detections class_id must be given for {operation_name} to be "
+                f"executed. If you intended to perform class agnostic "
+                f"{operation_name} set class_agnostic=True."
+            )
+        return cast(
+            npt.NDArray[np.floating],
+            np.hstack(
+                (
+                    self.xyxy,
+                    cast(np.ndarray, self.confidence).reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            ),
+        )
 
     def with_nms(
         self,
@@ -2851,36 +3020,18 @@ class Detections:
                 after non-maximum suppression.
 
         Raises:
-            AssertionError: If `confidence` is None and class_agnostic is False.
+            ValueError: If `confidence` is None and class_agnostic is False.
                 If `class_id` is None and class_agnostic is False.
         """
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMS to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for NMS to be executed."
+            )
 
-        if class_agnostic:
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
-            )
-        else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMS to be executed. If you"
-                " intended to perform class agnostic NMS set class_agnostic=True."
-            )
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack(
-                    (
-                        self.xyxy,
-                        self.confidence.reshape(-1, 1),
-                        self.class_id.reshape(-1, 1),
-                    )
-                ),
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMS")
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
@@ -2906,6 +3057,79 @@ class Detections:
             )
 
         return self.select(indices)
+
+    def with_soft_nms(
+        self,
+        sigma: float = 0.5,
+        class_agnostic: bool = False,
+        score_threshold: float | None = None,
+    ) -> Detections:
+        """
+        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch
+        order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        axis-aligned box IoU is used. Oriented-box detections are not given
+        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
+
+        Unlike `with_nms`, which discards overlapping detections outright,
+        Soft-NMS keeps every detection and instead rescales its confidence by
+        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+        overlap. By default (`score_threshold=None`) nothing is dropped — the
+        method only rescales confidence, despite the "suppression" name; pass
+        `score_threshold` to additionally filter the decayed scores into a real
+        subset, matching `with_nms`'s return contract.
+
+        Args:
+            sigma: Controls the strength of the confidence decay; must be
+                greater than `0`. The lower the value the stronger the decay.
+                No value of `sigma` reproduces `with_nms`'s hard cutoff —
+                Soft-NMS never drops detections on its own.
+            class_agnostic: Whether to perform class-agnostic Soft-NMS. If
+                True, the class_id of each detection will be ignored.
+                Defaults to False.
+            score_threshold: If given, detections whose decayed confidence is
+                at or below this value are dropped, producing a real subset
+                (like `with_nms`). If `None` (default), all detections are
+                kept, with their confidence rescaled in place on the returned
+                copy.
+
+        Returns:
+            A new Detections object with decayed confidence scores and,
+                if `score_threshold` is given, filtered to a real subset.
+                The original `Detections` instance is never modified.
+
+        Raises:
+            ValueError: If `confidence` is None.
+                If `class_id` is None and class_agnostic is False.
+                If `sigma` is not greater than `0`.
+        """
+        if len(self) == 0:
+            return self
+
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for Soft-NMS to be executed."
+            )
+
+        predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
+
+        if self.mask is not None:
+            decayed_confidence = mask_soft_non_max_suppression(
+                predictions=predictions,
+                masks=self.mask,
+                sigma=sigma,
+            )
+        else:
+            decayed_confidence = box_soft_non_max_suppression(
+                predictions=predictions,
+                sigma=sigma,
+            )
+
+        result = self.select(np.arange(len(self)))
+        result.confidence = decayed_confidence
+
+        if score_threshold is None:
+            return result
+        return result.select(decayed_confidence > score_threshold)
 
     def with_nmm(
         self,
@@ -2944,7 +3168,7 @@ class Detections:
             Groups of size 1 keep the original OBB unchanged.
 
         Raises:
-            AssertionError: If `confidence` is None or `class_id` is None and
+            ValueError: If `confidence` is None or `class_id` is None and
                 class_agnostic is False.
 
         ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width="800" }
@@ -2952,30 +3176,12 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMM to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for NMM to be executed."
+            )
 
-        if class_agnostic:
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
-            )
-        else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMM to be executed. If you"
-                " intended to perform class agnostic NMM set class_agnostic=True."
-            )
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack(
-                    (
-                        self.xyxy,
-                        self.confidence.reshape(-1, 1),
-                        self.class_id.reshape(-1, 1),
-                    )
-                ),
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMM")
 
         if self.mask is not None:
             merge_groups = mask_non_max_merge(
@@ -3120,10 +3326,31 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
         )
         data = winner.data
 
-    # Mask union via logical OR
+    # Mask union via logical OR. Preserve CompactMask outputs without re-cropping
+    # to the merged box, because source masks may legitimately extend outside it.
     masks = [d.mask for d in detections if d.mask is not None]
     if masks:
-        mask = np.logical_or.reduce(np.concatenate(masks, axis=0))[np.newaxis]
+        if all(isinstance(m, CompactMask) for m in masks):
+            compact_masks = cast(list[CompactMask], masks)
+            image_shape = compact_masks[0].image_shape
+            if any(m.image_shape != image_shape for m in compact_masks):
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes."
+                )
+            union_mask = np.zeros(image_shape, dtype=bool)
+            for compact_mask in compact_masks:
+                union_mask |= compact_mask.to_dense()[0]
+            union_xyxy = mask_to_xyxy(union_mask[np.newaxis]).astype(np.float32)
+            mask = CompactMask.from_dense(
+                masks=union_mask[np.newaxis],
+                xyxy=union_xyxy,
+                image_shape=image_shape,
+            )
+        else:
+            dense_masks = [
+                m.to_dense() if isinstance(m, CompactMask) else m for m in masks
+            ]
+            mask = np.logical_or.reduce(np.concatenate(dense_masks, axis=0))[np.newaxis]
     else:
         mask = None
 
@@ -3170,7 +3397,7 @@ def merge_inner_detection_object_pair(
 
     Example:
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -3252,16 +3479,7 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        if detections_1.mask is not None and detections_2.mask is not None:
-            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
-                0
-            ]
-        else:
-            iou = box_iou_batch(
-                detections_1.xyxy,
-                detections_2.xyxy,
-                overlap_metric,
-            )[0]
+        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
