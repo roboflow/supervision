@@ -30,16 +30,16 @@ def draw_line(
         The scene with the line drawn on it
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_line
-        from supervision.draw.color import Color
-        from supervision.geometry.core import Point
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_line
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Point
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> scene = draw_line(
+        ...     scene, start=Point(x=10, y=10), end=Point(x=90, y=90), color=Color.RED
+        ... )
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        scene = draw_line(
-            scene, start=Point(x=10, y=10), end=Point(x=90, y=90), color=Color.RED
-        )
         ```
     """
     cv2.line(
@@ -71,15 +71,15 @@ def draw_rectangle(
         The scene with the rectangle drawn on it
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_rectangle
-        from supervision.draw.color import Color
-        from supervision.geometry.core import Rect
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=50, height=30)
+        >>> scene = draw_rectangle(scene, rect, color=Color.RED)
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        rect = Rect(x=10, y=10, width=50, height=30)
-        scene = draw_rectangle(scene, rect, color=Color.RED)
         ```
     """
     cv2.rectangle(
@@ -111,15 +111,15 @@ def draw_filled_rectangle(
         The scene with the rectangle drawn on it
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_filled_rectangle
-        from supervision.draw.color import Color
-        from supervision.geometry.core import Rect
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_filled_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=50, height=30)
+        >>> scene = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        rect = Rect(x=10, y=10, width=50, height=30)
-        scene = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
         ```
     """
     if opacity == 1:
@@ -169,15 +169,15 @@ def draw_rounded_rectangle(
         The image with the rounded rectangle drawn on it.
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_rounded_rectangle
-        from supervision.draw.color import Color
-        from supervision.geometry.core import Rect
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_rounded_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((200, 300, 3), dtype=np.uint8)
+        >>> rect = Rect(x=20, y=30, width=120, height=80)
+        >>> scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
 
-        scene = np.zeros((200, 300, 3), dtype=np.uint8)
-        rect = Rect(x=20, y=30, width=120, height=80)
-        scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
         ```
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
@@ -244,14 +244,14 @@ def draw_polygon(
         The scene with the polygon drawn on it.
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_polygon
-        from supervision.draw.color import Color
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_polygon
+        >>> from supervision.draw.color import Color
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
+        >>> scene = draw_polygon(scene, polygon, color=Color.RED)
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
-        scene = draw_polygon(scene, polygon, color=Color.RED)
         ```
     """
     cv2.polylines(
@@ -278,14 +278,14 @@ def draw_filled_polygon(
         The scene with the polygon drawn on it.
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_filled_polygon
-        from supervision.draw.color import Color
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_filled_polygon
+        >>> from supervision.draw.color import Color
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
+        >>> scene = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
-        scene = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
         ```
     """
     if opacity == 1:
@@ -407,15 +407,15 @@ def draw_image(
         ValueError: For invalid opacity or rectangle dimensions.
 
     Example:
-        ```python
-        import numpy as np
-        from supervision.draw.utils import draw_image
-        from supervision.geometry.core import Rect
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_image
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> image = np.full((40, 40, 3), 255, dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=40, height=40)
+        >>> scene = draw_image(scene, image, opacity=0.8, rect=rect)
 
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        image = np.full((40, 40, 3), 255, dtype=np.uint8)
-        rect = Rect(x=10, y=10, width=40, height=40)
-        scene = draw_image(scene, image, opacity=0.8, rect=rect)
         ```
     """
 

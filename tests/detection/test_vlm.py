@@ -12,6 +12,7 @@ from supervision.detection.vlm import (
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
+    from_google_gemini_3_5,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -1437,6 +1438,7 @@ def test_from_vlm_unsupported_future_enum_raises(
         DEEPSEEK_VL_2 = object()
         GOOGLE_GEMINI_2_0 = object()
         GOOGLE_GEMINI_2_5 = object()
+        GOOGLE_GEMINI_3_5 = object()
         MOONDREAM = object()
         FUTURE = object()
 
@@ -1462,6 +1464,10 @@ def test_from_vlm_unsupported_future_enum_raises(
             from_google_gemini_2_5, "[1, 2, 3]", id="gemini_2_5_non_dict_items"
         ),
         pytest.param(from_google_gemini_2_5, "42", id="gemini_2_5_non_list"),
+        pytest.param(
+            from_google_gemini_3_5, "[1, 2, 3]", id="gemini_3_5_non_dict_items"
+        ),
+        pytest.param(from_google_gemini_3_5, "42", id="gemini_3_5_non_list"),
         pytest.param(from_qwen_2_5_vl, "[1, 2, 3]", id="qwen_2_5_non_dict_items"),
         pytest.param(from_qwen_2_5_vl, "42", id="qwen_2_5_non_list"),
     ],
@@ -1475,3 +1481,82 @@ def test_vlm_parsers_degrade_on_malformed_json(parser, result):
     xyxy = parser(result=result, **kwargs)[0]
 
     assert xyxy.shape == (0, 4)
+
+
+def test_from_google_gemini_2_5_recovers_malformed_array():
+    """A single broken entry must not discard the whole array; recover the rest."""
+    result = (
+        "```json\n"
+        "[\n"
+        '  {"box_2d": [10, 20, 110, 120], "label": "cat"},\n'
+        '  {"box_2d": [50, 100, 150, 200], "person"},\n'
+        '  {"box_2d": [30, 40, 130, 140], "label": "dog"}\n'
+        "]\n"
+        "```"
+    )
+
+    xyxy, _, class_name, _, _ = from_google_gemini_2_5(
+        result=result, resolution_wh=(640, 480)
+    )
+
+    assert xyxy.shape == (2, 4)
+    assert list(class_name) == ["cat", "dog"]
+
+
+def test_from_google_gemini_2_0_recovers_malformed_array():
+    """The 2.0 parser must also salvage valid entries around a broken one."""
+    result = (
+        "```json\n"
+        "[\n"
+        '  {"box_2d": [10, 20, 110, 120], "label": "cat"},\n'
+        '  {"box_2d": [50, 100, 150, 200], "person"},\n'
+        '  {"box_2d": [30, 40, 130, 140], "label": "dog"}\n'
+        "]\n"
+        "```"
+    )
+
+    xyxy, _, class_name = from_google_gemini_2_0(
+        result=result, resolution_wh=(640, 480)
+    )
+
+    assert xyxy.shape == (2, 4)
+    assert list(class_name) == ["cat", "dog"]
+
+
+def test_from_google_gemini_3_5_parses_detections():
+    """The 3.5 parser reuses the 2.5 format and returns boxes rescaled to resolution."""
+    result = (
+        "```json\n"
+        "[\n"
+        '  {"box_2d": [10, 20, 110, 120], "label": "cat"},\n'
+        '  {"box_2d": [50, 100, 150, 200], "label": "dog"}\n'
+        "]\n"
+        "```"
+    )
+
+    xyxy, _, class_name, _, _ = from_google_gemini_3_5(
+        result=result, resolution_wh=(640, 480)
+    )
+
+    assert xyxy.shape == (2, 4)
+    assert list(class_name) == ["cat", "dog"]
+
+
+def test_from_google_gemini_3_5_recovers_malformed_array():
+    """The 3.5 parser must salvage valid entries around a broken one, like 2.5."""
+    result = (
+        "```json\n"
+        "[\n"
+        '  {"box_2d": [10, 20, 110, 120], "label": "cat"},\n'
+        '  {"box_2d": [50, 100, 150, 200], "person"},\n'
+        '  {"box_2d": [30, 40, 130, 140], "label": "dog"}\n'
+        "]\n"
+        "```"
+    )
+
+    xyxy, _, class_name, _, _ = from_google_gemini_3_5(
+        result=result, resolution_wh=(640, 480)
+    )
+
+    assert xyxy.shape == (2, 4)
+    assert list(class_name) == ["cat", "dog"]

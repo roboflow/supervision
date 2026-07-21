@@ -20,6 +20,7 @@ date_modified: 2026-07-21
 
 ### Fixed
 
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.GOOGLE_GEMINI_3_5` now salvages the valid entries from a partially malformed JSON array (e.g. a single object with a syntax error) instead of discarding the whole response.
 - Geometry-aware IoU dispatch now powers the deprecated `merge_inner_detections_objects`, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold ([#2374](https://github.com/roboflow/supervision/pull/2374)).
 - `save_coco_annotations` (and therefore `DetectionDataset.as_coco`) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data ([#2442](https://github.com/roboflow/supervision/pull/2442)).
 - Fixed [#2437](https://github.com/roboflow/supervision/pull/2437): `sv.F1Score` no longer emits a spurious `RuntimeWarning` when true positives, false positives, and false negatives are all zero (denominator 0); the score remains `0.0`.
@@ -65,6 +66,7 @@ date_modified: 2026-07-21
 
 ### Added
 
+- `sv.VLM.GOOGLE_GEMINI_3_5` — `sv.Detections.from_vlm` now parses Google Gemini 3.5 output (detection and segmentation), reusing the Gemini 2.5 JSON format (`box_2d` + `label`, optional `mask`/`confidence`).
 - `sv.get_video_frames_generator` now accepts `prefetch: int = 0` ([#2273](https://github.com/roboflow/supervision/pull/2273)). When `> 0`, frames are decoded on a background daemon thread and buffered in a bounded queue, overlapping I/O with consumer processing. Default `0` preserves the existing synchronous behaviour.
 - Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking, metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains the primary backend when available; `av>=14.2.0` is now required alongside OpenCV during the transition, with the later OpenCV-removal integration removing the OpenCV dependency.
 - Added: [`sv.ImageWindow`](utils/image_window.md/#supervision.utils.image_window.ImageWindow) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey`, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:
