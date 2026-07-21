@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy.typing as npt
@@ -151,6 +152,14 @@ if _IS_CV2_AVAILABLE:
     BACKEND_NAME = "opencv"
 else:
     BACKEND_NAME = "fallback"
+
+    warnings.warn(
+        "OpenCV (`opencv-python`) is not installed; supervision is using its "
+        "pure NumPy fallback backend instead. Some operations may be slower "
+        "or behave slightly differently. Install `opencv-python` for full "
+        "performance and compatibility.",
+        stacklevel=2,
+    )
 
     BORDER_CONSTANT = _BORDER_CONSTANT
     CAP_PROP_FPS = _CAP_PROP_FPS
