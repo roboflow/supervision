@@ -216,6 +216,11 @@ def get_video_frames_generator(
         prefetch: If > 0, decode frames in a background thread and buffer up to
             this many frames in a bounded queue. Useful when the consumer (e.g.
             CPU inference) is the bottleneck and can overlap with decode I/O.
+            This works best when the consumer releases the GIL during frame
+            processing (common for numpy/PyTorch/ONNX C-extension calls). Pure
+            Python per-frame consumers that hold the GIL (for example, heavy
+            Python loops, PIL usage, or pandas `apply`) usually see little
+            speedup.
             Default 0 keeps the original synchronous behaviour unchanged. Note:
             each buffered frame occupies width x height x 3 bytes of uncompressed
             memory; use `sv.VideoInfo.from_video_path()` to size appropriately.
@@ -225,6 +230,12 @@ def get_video_frames_generator(
 
     Raises:
         ValueError: If `prefetch` is negative.
+        RuntimeError: If `prefetch` is greater than 0 and the background reader
+            thread encounters a decode/open error, raised as
+            `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
+            drained after buffered frames, so when `prefetch` > 0 the consumer may
+            yield up to `prefetch` additional good frames before the exception is
+            raised.
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
@@ -333,9 +344,8 @@ def _prefetched_frames_generator(
                     except Full:
                         if stop_event.is_set():
                             return
-        except BaseException as exc:
-            if isinstance(exc, Exception):
-                sentinel = exc
+        except Exception as exc:
+            sentinel = exc
         finally:
             while not stop_event.is_set():
                 try:
