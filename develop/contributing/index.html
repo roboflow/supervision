@@ -3688,19 +3688,15 @@
 <p>Please read and adhere to our <a href="https://supervision.roboflow.com/latest/code_of_conduct/">Code of Conduct</a>. This document outlines the expected behavior for all participants in our project.</p>
 <h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="#contribution-guidelines">Contribution Guidelines</a><ul>
+<li><a href="#contribution-guidelines">Contribution Guidelines</a></li>
 <li><a href="#contributing-features">Contributing Features</a></li>
 <li><a href="#api-design-principles">API Design Principles</a></li>
-</ul>
-</li>
 <li><a href="#how-to-contribute-changes">How to Contribute Changes</a></li>
 <li><a href="#installation-for-contributors">Installation for Contributors</a></li>
-<li><a href="#code-style-and-quality">Code Style and Quality</a><ul>
+<li><a href="#code-style-and-quality">Code Style and Quality</a></li>
 <li><a href="#pre-commit-tool">Pre-commit tool</a></li>
 <li><a href="#docstrings">Docstrings</a></li>
 <li><a href="#type-checking">Type checking</a></li>
-</ul>
-</li>
 <li><a href="#documentation">Documentation</a></li>
 <li><a href="#cookbooks">Cookbooks</a></li>
 <li><a href="#tests">Tests</a></li>
@@ -3788,8 +3784,8 @@
 <h2 id="installation-for-contributors">Installation for Contributors<a class="headerlink" href="#installation-for-contributors" title="Permanent link">&para;</a></h2>
 <p>Before starting your work on the project, set up your development environment:</p>
 <ol>
-<li>
-<p><strong>Clone your fork of the project:</strong></p>
+<li><strong>Clone your fork of the project:</strong></li>
+</ol>
 <p><strong>Option A: Recommended for most contributors (shallow clone of develop branch):</strong></p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
@@ -3803,15 +3799,15 @@
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>git<span class="w"> </span>checkout<span class="w"> </span>develop
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Set up the upstream remote:</strong></p>
+<ol>
+<li><strong>Set up the upstream remote:</strong></li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/roboflow/supervision.git
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>git<span class="w"> </span>fetch<span class="w"> </span>upstream
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Create and activate a virtual environment:</strong></p>
+<ol>
+<li><strong>Create and activate a virtual environment:</strong></li>
+</ol>
 <p><strong>On Linux/macOS:</strong></p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
@@ -3820,49 +3816,47 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python -m venv .venv
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>.venv\Scripts\activate
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Install <code>uv</code>:</strong></p>
+<ol>
+<li><strong>Install <code>uv</code>:</strong></li>
+</ol>
 <p>Follow the instructions on the <a href="https://docs.astral.sh/uv/getting-started/installation/">uv installation page</a>.</p>
-</li>
-<li>
-<p><strong>Install project dependencies:</strong></p>
+<ol>
+<li><strong>Install project dependencies:</strong></li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>pyproject.toml<span class="w"> </span>--group<span class="w"> </span>dev<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>--extra<span class="w"> </span>metrics
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Verify the setup:</strong></p>
+<ol>
+<li><strong>Verify the setup:</strong></li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </span></code></pre></div>
-</li>
-</ol>
 <h2 id="code-style-and-quality">🎨 Code Style and Quality<a class="headerlink" href="#code-style-and-quality" title="Permanent link">&para;</a></h2>
 <h3 id="pre-commit-tool">Pre-commit tool<a class="headerlink" href="#pre-commit-tool" title="Permanent link">&para;</a></h3>
 <p>This project uses the <a href="https://pre-commit.com/">pre-commit</a> tool to maintain code quality and consistency. Before submitting a pull request or making any commits, it is important to run the pre-commit tool to ensure that your changes meet the project's guidelines.</p>
 <p>Furthermore, we have integrated a pre-commit GitHub Action into our workflow. This means that with every pull request opened, the pre-commit checks will be automatically enforced, streamlining the code review process and ensuring that all contributions adhere to our quality standards.</p>
 <p>To run the pre-commit tool, follow these steps:</p>
 <ol>
-<li>
-<p><strong>Install pre-commit</strong> (already included if you followed the installation steps above):</p>
+<li><strong>Install pre-commit</strong> (already included if you followed the installation steps above):</li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev
 </span></code></pre></div>
-</li>
+<ol>
 <li>
 <p><strong>Navigate to the project's root directory</strong> (if not already there).</p>
 </li>
 <li>
 <p><strong>Run pre-commit checks</strong>:</p>
+</li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </span></code></pre></div>
 <p>This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.</p>
-</li>
-<li>
-<p><strong>Install pre-commit as a git hook</strong> (optional but recommended):</p>
+<ol>
+<li><strong>Install pre-commit as a git hook</strong> (optional but recommended):</li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
 </span></code></pre></div>
 <p>This will automatically run pre-commit checks every time you make a <code>git commit</code>.</p>
-</li>
-</ol>
 <h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
 <p>All new functions and classes in <code>supervision</code> should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.</p>
 <p><code>supervision</code> adheres to the <a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google Python docstring style</a>. Please refer to the style guide while writing docstrings for your contribution.</p>
@@ -3894,19 +3888,17 @@
 <p>The <code>supervision</code> documentation is stored in a folder called <code>docs</code>. The project documentation is built using <code>mkdocs</code>.</p>
 <p>To run the documentation locally:</p>
 <ol>
-<li>
-<p><strong>Install documentation dependencies</strong> (if not already installed):</p>
+<li><strong>Install documentation dependencies</strong> (if not already installed):</li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Start the documentation server</strong>:</p>
+<ol>
+<li><strong>Start the documentation server</strong>:</li>
+</ol>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve
 </span></code></pre></div>
-</li>
-<li>
-<p><strong>Access the documentation</strong> at <code>http://127.0.0.1:8000</code> in your browser.</p>
-</li>
+<ol>
+<li><strong>Access the documentation</strong> at <code>http://127.0.0.1:8000</code> in your browser.</li>
 </ol>
 <p>You can learn more about mkdocs on the <a href="https://www.mkdocs.org/">mkdocs website</a>.</p>
 <h2 id="cookbooks">🧑‍🍳 Cookbooks<a class="headerlink" href="#cookbooks" title="Permanent link">&para;</a></h2>
