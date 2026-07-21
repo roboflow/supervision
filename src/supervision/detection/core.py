@@ -70,6 +70,7 @@ from supervision.detection.vlm import (
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
+    from_google_gemini_3_5,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -1145,6 +1146,7 @@ class Detections:
         | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
         | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
@@ -1625,6 +1627,7 @@ class Detections:
         | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
@@ -2121,6 +2124,21 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
+            return cls(
+                xyxy=gemini_result[0],
+                class_id=gemini_result[1],
+                mask=gemini_result[4],
+                confidence=gemini_result[3],
+                data=data,
+            )
+
+        if vlm == VLM.GOOGLE_GEMINI_3_5:
+            if not isinstance(result, str):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be str."
+                )
+            gemini_result = from_google_gemini_3_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
                 xyxy=gemini_result[0],
