@@ -258,11 +258,14 @@ def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]
         ValueError: If `corners` does not have shape `(N, 4, 2)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.boxes import obb_polygon_area
         >>> corners = np.array([[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32)
         >>> obb_polygon_area(corners)
         array([50.])
+
+        ```
     """
     corners = cast(npt.NDArray[np.number], np.asarray(corners))
     if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
