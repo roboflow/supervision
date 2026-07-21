@@ -68,11 +68,21 @@ repos:
     rev: 1.0.0
     hooks:
       - id: mdformat
+        name: mdformat (gfm)
+        exclude: ^docs/
         additional_dependencies:
+          - "mdformat-frontmatter"
+          - "mdformat-gfm"
+          - "mdformat-ruff"
+        args: ["--number", "--wrap=no"]
+      - id: mdformat
+        name: mdformat (mkdocs)
+        files: ^docs/
+        additional_dependencies:
+          - "mdformat-frontmatter"
           - "mdformat-mkdocs[recommended]>=2.1.0"
           - "mdformat-ruff"
         args: ["--number", "--wrap=no"]
-        exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.3.0

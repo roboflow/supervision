@@ -2,7 +2,7 @@
 
 This file provides context-aware guidance for GitHub Copilot when working in the Supervision repository.
 
----
+______________________________________________________________________
 
 ## 📚 Repository Overview
 
@@ -12,7 +12,7 @@ This file provides context-aware guidance for GitHub Copilot when working in the
 - **Key Dependencies**: NumPy, OpenCV, SciPy
 - **License**: MIT
 
----
+______________________________________________________________________
 
 ## 🏗️ Project Structure
 
@@ -30,7 +30,7 @@ supervision/
 └── examples/            # Usage examples
 ```
 
----
+______________________________________________________________________
 
 ## 🔧 Development Commands
 
@@ -61,7 +61,7 @@ uv run pytest --cov=supervision
 uv run mkdocs serve
 ```
 
----
+______________________________________________________________________
 
 ## 💻 Code Conventions
 
@@ -77,8 +77,8 @@ uv run mkdocs serve
 - **Linting**: Enforced by `ruff-check` (pre-commit)
 - **Type Hints**: Required on all new code
 - **Docstrings**: Required using [Google Python style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-    - Must include usage examples with primitive values
-    - Serve as runnable documentation
+  - Must include usage examples with primitive values
+  - Serve as runnable documentation
 
 ### Performance
 
@@ -92,7 +92,7 @@ uv run mkdocs serve
 - Maintain backward compatibility unless explicitly breaking
 - Prefer functional utilities over complex classes
 
----
+______________________________________________________________________
 
 ## 🧪 Testing Requirements
 
@@ -103,7 +103,7 @@ All new features must include:
 - Clear test names describing what they validate
 - Proper assertions (not just "no exception raised")
 
----
+______________________________________________________________________
 
 ## 📝 Documentation Requirements
 
@@ -114,7 +114,7 @@ For new public functions/classes:
 - Entry in appropriate `docs/*.md` file
 - Reference in `mkdocs.yml` navigation
 
----
+______________________________________________________________________
 
 ## 🔍 Pull Request Reviews
 
@@ -129,7 +129,7 @@ Quick checklist:
 - Score code quality, testing, docs (n/5 scale)
 - Use inline comments + GitHub suggestion format
 
----
+______________________________________________________________________
 
 ## 🌿 Branching & Commits
 
@@ -137,7 +137,7 @@ Quick checklist:
 - Use **conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`, `chore:`
 - All PRs target `develop` branch
 
----
+______________________________________________________________________
 
 ## 🎯 Context-Aware Behavior
 
