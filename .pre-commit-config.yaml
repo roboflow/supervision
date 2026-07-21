@@ -80,7 +80,7 @@ repos:
         files: ^docs/
         additional_dependencies:
           - "mdformat-frontmatter"
-          - "mdformat-mkdocs"
+          - "mdformat-mkdocs[recommended]>=2.1.0"
           - "mdformat-ruff"
         args: ["--number", "--wrap=no"]
 

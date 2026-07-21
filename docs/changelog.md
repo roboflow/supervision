@@ -1084,7 +1084,7 @@ date_modified: 2026-07-21
     ```python
     import supervision as sv
 
-    paligemma_result = "<loc0256>" < loc0256 > "" < loc0768 > "" < loc0768 > " cat"
+    paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
     detections = sv.Detections.from_lmm(
         sv.LMM.PALIGEMMA,
         paligemma_result,
