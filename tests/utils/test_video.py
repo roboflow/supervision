@@ -761,6 +761,94 @@ def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -
     assert elapsed < 5.0
 
 
+def test_get_video_frames_generator_prefetch_yields_buffered_frames_before_error(
+    monkeypatch,
+) -> None:
+    """Frames already decoded before a mid-stream failure are yielded, then raised.
+
+    Scenario: A fake capture successfully reads 3 frames, then raises on the 4th
+        `read()` call, with `prefetch=4` so all 3 good frames fit in the queue ahead
+        of the sentinel.
+    Expected: The consumer receives exactly the 3 good frames in order, then the
+        wrapping `RuntimeError` — matching the documented "buffered frames before
+        RuntimeError" ordering guarantee.
+    """
+
+    class FailAfterNCapture:
+        """Fake capture that serves N frames then raises on the next read."""
+
+        def __init__(self, good_reads: int) -> None:
+            self.good_reads = good_reads
+            self.calls = 0
+            self.released = False
+
+        def read(self):
+            """Return a frame for the first `good_reads` calls, then raise."""
+            self.calls += 1
+            if self.calls <= self.good_reads:
+                return True, np.full((2, 2, 3), self.calls, dtype=np.uint8)
+            raise OSError("simulated mid-stream decode failure")
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """Record that the capture was released."""
+            self.released = True
+
+    fake_capture = FailAfterNCapture(good_reads=3)
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (fake_capture, 0, 100),
+    )
+
+    collected = []
+
+    def consume() -> None:
+        """Drain the generator into `collected`, letting the error propagate."""
+        for frame in get_video_frames_generator("dummy", prefetch=4):
+            collected.append(frame)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        consume()
+    assert len(collected) == 3
+    assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> None:
+    """The prefetch path yields nothing and returns cleanly for a zero-frame video.
+
+    Scenario: A fake capture reports failure on the very first `read()`, simulating
+        an empty video, with `prefetch=4`.
+    Expected: The generator yields no frames and returns without hanging on the
+        initial `frame_queue.get`/`thread.is_alive()` poll.
+    """
+
+    class EmptyCapture:
+        """Fake capture that yields zero frames."""
+
+        def read(self):
+            """Report immediate end-of-stream."""
+            return False, None
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """No-op release for the empty-video fake."""
+
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (EmptyCapture(), 0, 100),
+    )
+
+    frames = list(get_video_frames_generator("dummy", prefetch=4))
+
+    assert frames == []
+
+
 def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator correctly handles the stride parameter.
