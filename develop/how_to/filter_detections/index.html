@@ -3637,7 +3637,7 @@
 <h3 id="how-do-i-filter-by-confidence-threshold">How do I filter by confidence threshold?<a class="headerlink" href="#how-do-i-filter-by-confidence-threshold" title="Permanent link">&para;</a></h3>
 <p><code>detections[detections.confidence &gt; 0.5]</code> returns only detections above the threshold. Chain with class filters for precise results.</p>
 <h3 id="how-do-i-filter-by-bounding-box-area">How do I filter by bounding box area?<a class="headerlink" href="#how-do-i-filter-by-bounding-box-area" title="Permanent link">&para;</a></h3>
-<p><code>detections[detections.area &gt; 1000]</code> filters by pixel area. If masks are present, <code>detections.area</code> uses mask area; otherwise it uses bounding box area from <code>xyxy</code>. Use <code>detections.box_area</code> when you specifically need bounding box area.</p>
+<p><code>detections[detections.area &gt; 1000]</code> filters by pixel area. If masks are present, <code>detections.area</code> uses mask area; otherwise, if oriented-box coordinates are present, it uses oriented polygon area; all remaining detections use bounding box area from <code>xyxy</code>. Use <code>detections.box_area</code> when you specifically need axis-aligned bounding box area.</p>
 <h3 id="can-i-filter-by-box-aspect-ratio-or-dimensions">Can I filter by box aspect ratio or dimensions?<a class="headerlink" href="#can-i-filter-by-box-aspect-ratio-or-dimensions" title="Permanent link">&para;</a></h3>
 <p>Yes. Use <code>detections.box_aspect_ratio</code> for aspect ratio filtering. If you need explicit box dimensions, compute them from <code>detections.xyxy</code> as <code>width = detections.xyxy[:, 2] - detections.xyxy[:, 0]</code> and <code>height = detections.xyxy[:, 3] - detections.xyxy[:, 1]</code>.</p>
 <h3 id="how-do-i-remove-duplicate-detections-nms-from-my-results">How do I remove duplicate detections (NMS) from my results?<a class="headerlink" href="#how-do-i-remove-duplicate-detections-nms-from-my-results" title="Permanent link">&para;</a></h3>
@@ -3668,7 +3668,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 14:15:05 UTC">June 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 21, 2026 10:37:20 UTC">July 21, 2026</span>
   </span>
 
     
@@ -3696,9 +3696,9 @@
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/mvanhorn" class="md-author" title="@mvanhorn">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/455140?v=4&size=72" alt="mvanhorn">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3706,21 +3706,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
-        </a>
-      
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/filter_detections.md" class="md-author md-author--more">
-            +4
+            +6
           </a>
         
       
