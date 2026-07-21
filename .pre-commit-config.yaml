@@ -69,9 +69,16 @@ repos:
     hooks:
       - id: mdformat
         additional_dependencies:
-          - "mdformat-mkdocs[recommended]>=2.1.0"
+          - "mdformat-frontmatter"
+          - "mdformat-gfm"
           - "mdformat-ruff"
-        args: ["--number", "--wrap=no"]
+        args:
+          - "--number"
+          - "--wrap=no"
+          - "--extensions"
+          - "gfm"
+          - "--extensions"
+          - "frontmatter"
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.3.0
