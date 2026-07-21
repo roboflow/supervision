@@ -14,6 +14,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection._geometry_dispatch import detection_area, detection_iou
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -27,7 +28,6 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
-    obb_polygon_area,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -47,11 +47,9 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
     box_soft_non_max_suppression,
-    mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
@@ -60,7 +58,6 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
-    count_mask_pixels,
 )
 from supervision.detection.vlm import (
     LMM,
@@ -2852,15 +2849,7 @@ class Detections:
 
             ```
         """
-        if self.mask is not None:
-            if isinstance(self.mask, CompactMask):
-                return self.mask.area
-            return count_mask_pixels(self.mask)
-        if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(
-                cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])
-            )
-        return self.box_area
+        return detection_area(self)
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
@@ -3490,16 +3479,7 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        if detections_1.mask is not None and detections_2.mask is not None:
-            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
-                0
-            ]
-        else:
-            iou = box_iou_batch(
-                detections_1.xyxy,
-                detections_2.xyxy,
-                overlap_metric,
-            )[0]
+        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
