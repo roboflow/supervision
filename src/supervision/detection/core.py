@@ -14,6 +14,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection._geometry_dispatch import detection_area, detection_iou
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -27,7 +28,6 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
-    obb_polygon_area,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -47,18 +47,17 @@ from supervision.detection.utils.internal import (
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
     box_non_max_merge,
     box_non_max_suppression,
-    mask_iou_batch,
+    box_soft_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
-    count_mask_pixels,
 )
 from supervision.detection.vlm import (
     LMM,
@@ -2260,10 +2259,13 @@ class Detections:
             An empty Detections object.
 
         Example:
+            ```pycon
             >>> from supervision import Detections
             >>> empty_detections = Detections.empty()
             >>> empty_detections.xyxy.shape
             (0, 4)
+
+            ```
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2353,6 +2355,7 @@ class Detections:
                 `image_shape` when mixing mask types.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> detections_1 = sv.Detections(
@@ -2374,6 +2377,8 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+            ```
 
         Compact mask merge example:
 
@@ -2605,6 +2610,7 @@ class Detections:
             The stored data value, or `None` when the key is absent.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(
@@ -2613,6 +2619,8 @@ class Detections:
             ... )
             >>> detections.get_data("class_name").tolist()
             ['cat']
+
+            ```
         """
         return self.data.get(key)
 
@@ -2631,11 +2639,14 @@ class Detections:
             even when the selection is empty or the input has zero detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> from supervision import Detections
             >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
             >>> detections.select([1]).xyxy.tolist()
             [[1, 1, 2, 2]]
+
+            ```
         """
         mask: npt.NDArray[np.bool_] | CompactMask | None
         if len(self) == 0:
@@ -2808,6 +2819,7 @@ class Detections:
                 where n is the number of detections.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> corners = np.array(
@@ -2834,16 +2846,10 @@ class Detections:
             ... )
             >>> detections.area
             array([ 9, 25])
+
+            ```
         """
-        if self.mask is not None:
-            if isinstance(self.mask, CompactMask):
-                return self.mask.area
-            return count_mask_pixels(self.mask)
-        if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(
-                cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])
-            )
-        return self.box_area
+        return detection_area(self)
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
@@ -2956,6 +2962,37 @@ class Detections:
         )
         return new
 
+    def _build_nms_predictions(
+        self, class_agnostic: bool, operation_name: str
+    ) -> npt.NDArray[np.floating]:
+        """Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
+
+        Callers must already have verified `self.confidence is not None`.
+        """
+        if class_agnostic:
+            return cast(
+                npt.NDArray[np.floating],
+                np.hstack(
+                    (self.xyxy, cast(np.ndarray, self.confidence).reshape(-1, 1))
+                ),
+            )
+        if self.class_id is None:
+            raise ValueError(
+                f"Detections class_id must be given for {operation_name} to be "
+                f"executed. If you intended to perform class agnostic "
+                f"{operation_name} set class_agnostic=True."
+            )
+        return cast(
+            npt.NDArray[np.floating],
+            np.hstack(
+                (
+                    self.xyxy,
+                    cast(np.ndarray, self.confidence).reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            ),
+        )
+
     def with_nms(
         self,
         threshold: float = 0.5,
@@ -2994,28 +3031,7 @@ class Detections:
                 "Detections confidence must be given for NMS to be executed."
             )
 
-        if class_agnostic:
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
-            )
-        else:
-            if self.class_id is None:
-                raise ValueError(
-                    "Detections class_id must be given for NMS to be executed. If "
-                    "you intended to perform class agnostic NMS "
-                    "set class_agnostic=True."
-                )
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack(
-                    (
-                        self.xyxy,
-                        self.confidence.reshape(-1, 1),
-                        self.class_id.reshape(-1, 1),
-                    )
-                ),
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMS")
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
@@ -3041,6 +3057,79 @@ class Detections:
             )
 
         return self.select(indices)
+
+    def with_soft_nms(
+        self,
+        sigma: float = 0.5,
+        class_agnostic: bool = False,
+        score_threshold: float | None = None,
+    ) -> Detections:
+        """
+        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch
+        order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        axis-aligned box IoU is used. Oriented-box detections are not given
+        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
+
+        Unlike `with_nms`, which discards overlapping detections outright,
+        Soft-NMS keeps every detection and instead rescales its confidence by
+        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+        overlap. By default (`score_threshold=None`) nothing is dropped — the
+        method only rescales confidence, despite the "suppression" name; pass
+        `score_threshold` to additionally filter the decayed scores into a real
+        subset, matching `with_nms`'s return contract.
+
+        Args:
+            sigma: Controls the strength of the confidence decay; must be
+                greater than `0`. The lower the value the stronger the decay.
+                No value of `sigma` reproduces `with_nms`'s hard cutoff —
+                Soft-NMS never drops detections on its own.
+            class_agnostic: Whether to perform class-agnostic Soft-NMS. If
+                True, the class_id of each detection will be ignored.
+                Defaults to False.
+            score_threshold: If given, detections whose decayed confidence is
+                at or below this value are dropped, producing a real subset
+                (like `with_nms`). If `None` (default), all detections are
+                kept, with their confidence rescaled in place on the returned
+                copy.
+
+        Returns:
+            A new Detections object with decayed confidence scores and,
+                if `score_threshold` is given, filtered to a real subset.
+                The original `Detections` instance is never modified.
+
+        Raises:
+            ValueError: If `confidence` is None.
+                If `class_id` is None and class_agnostic is False.
+                If `sigma` is not greater than `0`.
+        """
+        if len(self) == 0:
+            return self
+
+        if self.confidence is None:
+            raise ValueError(
+                "Detections confidence must be given for Soft-NMS to be executed."
+            )
+
+        predictions = self._build_nms_predictions(class_agnostic, "Soft-NMS")
+
+        if self.mask is not None:
+            decayed_confidence = mask_soft_non_max_suppression(
+                predictions=predictions,
+                masks=self.mask,
+                sigma=sigma,
+            )
+        else:
+            decayed_confidence = box_soft_non_max_suppression(
+                predictions=predictions,
+                sigma=sigma,
+            )
+
+        result = self.select(np.arange(len(self)))
+        result.confidence = decayed_confidence
+
+        if score_threshold is None:
+            return result
+        return result.select(decayed_confidence > score_threshold)
 
     def with_nmm(
         self,
@@ -3092,28 +3181,7 @@ class Detections:
                 "Detections confidence must be given for NMM to be executed."
             )
 
-        if class_agnostic:
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
-            )
-        else:
-            if self.class_id is None:
-                raise ValueError(
-                    "Detections class_id must be given for NMM to be executed. If "
-                    "you intended to perform class agnostic NMM "
-                    "set class_agnostic=True."
-                )
-            predictions = cast(
-                npt.NDArray[np.floating],
-                np.hstack(
-                    (
-                        self.xyxy,
-                        self.confidence.reshape(-1, 1),
-                        self.class_id.reshape(-1, 1),
-                    )
-                ),
-            )
+        predictions = self._build_nms_predictions(class_agnostic, "NMM")
 
         if self.mask is not None:
             merge_groups = mask_non_max_merge(
@@ -3411,16 +3479,7 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        if detections_1.mask is not None and detections_2.mask is not None:
-            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
-                0
-            ]
-        else:
-            iou = box_iou_batch(
-                detections_1.xyxy,
-                detections_2.xyxy,
-                overlap_metric,
-            )[0]
+        iou = detection_iou(detections_1, detections_2, overlap_metric)[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)

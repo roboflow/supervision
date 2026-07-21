@@ -504,12 +504,15 @@ def oriented_box_iou_batch(
             :attr:`~supervision.config.OverlapMetric.IOS`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> a = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
         >>> b = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
         >>> sv.oriented_box_iou_batch(a, b)  # doctest: +ELLIPSIS
         array([[0.333...]])
+
+        ```
     """
 
     for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
@@ -953,6 +956,91 @@ def mask_non_max_suppression(
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
+def mask_soft_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    sigma: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    mask_dimension: int = 640,
+) -> npt.NDArray[np.floating]:
+    """
+    Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
+
+    Unlike `mask_non_max_suppression`, which discards overlapping masks outright,
+    Soft-NMS keeps every detection and instead rescales its confidence by
+    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+    overlap — the caller decides whether and where to threshold the result.
+    A smaller `sigma` produces a stronger decay.
+
+    The 3rd positional parameter here is `sigma`, not `iou_threshold` as in
+    `mask_non_max_suppression` — Soft-NMS has no threshold to suppress at, only
+    a decay strength, so the two signatures intentionally diverge at that
+    position.
+
+    IoU is computed exactly on the full-resolution masks for both dense and
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs. The
+    `mask_dimension` parameter is kept for signature parity with
+    `mask_non_max_suppression` but is not used — dense masks are **not** resized
+    before IoU computation.
+
+    Args:
+        predictions: A 2D array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
+        masks: A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        sigma: Controls the strength of the confidence decay; must be greater
+            than `0`. No value of `sigma` reproduces hard
+            `mask_non_max_suppression` output — Soft-NMS never drops masks, only
+            rescales confidence.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
+        mask_dimension: Deprecated, unused. Kept for signature parity with
+            `mask_non_max_suppression`.
+
+    Returns:
+        An array containing the updated (decayed) confidence scores, in the
+            same order as the input `predictions`.
+
+    Raises:
+        ValueError: If `sigma` is not greater than `0`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_soft_non_max_suppression(predictions, masks, sigma=0.5)
+        array([0.9       , 0.10826823])
+
+        ```
+    """
+    _validate_sigma(sigma)
+    rows, columns = predictions.shape
+
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+
+    sort_index = predictions[:, 4].argsort()[::-1]
+    predictions = predictions[sort_index]
+    masks = masks[sort_index]
+
+    ious = mask_iou_batch(masks, masks, overlap_metric)
+    categories = predictions[:, 5]
+
+    decayed = _soft_nms_decay_from_iou_matrix(
+        ious, categories, predictions[:, 4], sigma
+    )
+    return decayed[sort_index.argsort()]
+
+
 def _prepare_predictions_for_nms(
     predictions: npt.NDArray[np.floating],
 ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating], npt.NDArray[np.floating]]:
@@ -990,6 +1078,36 @@ def _nms_loop_from_iou_matrix(
         condition = (iou > iou_threshold) & (categories == category)
         keep = keep & ~condition
     return keep
+
+
+def _validate_sigma(sigma: float) -> None:
+    """Raise `ValueError` when a Soft-NMS `sigma` is not strictly positive."""
+    if not sigma > 0:
+        raise ValueError(f"Value of `sigma` must be greater than 0, {sigma} given.")
+
+
+def _soft_nms_decay_from_iou_matrix(
+    ious: npt.NDArray[np.floating],
+    categories: npt.NDArray[np.floating],
+    scores: npt.NDArray[np.floating],
+    sigma: float,
+) -> npt.NDArray[np.floating]:
+    """Vectorized Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
+
+    Assumes `ious`, `categories`, and `scores` are all sorted by descending score
+    (as produced by `_prepare_predictions_for_nms`), and that `ious` is square with
+    row/column order matching `categories`. Each detection's score is decayed once
+    per higher-scoring, same-category detection that precedes it — equivalent to
+    the reference single-pass (no re-sort) Soft-NMS loop, computed as a single
+    vectorized closed form: `decayed[j] = scores[j] * exp(-sum_i(ious[i, j]**2) /
+    sigma)` summed over same-category `i < j`.
+    """
+    rows = len(ious)
+    same_category = categories[:, None] == categories[None, :]
+    precedes = np.triu(np.ones((rows, rows), dtype=bool), k=1)
+    weighted_iou_sq = np.where(precedes & same_category, ious**2, 0.0)
+    decay_exponent = weighted_iou_sq.sum(axis=0)
+    return cast(npt.NDArray[np.floating], scores * np.exp(-decay_exponent / sigma))
 
 
 def box_non_max_suppression(
@@ -1036,6 +1154,61 @@ def box_non_max_suppression(
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
     result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
     return result
+
+
+def box_soft_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    sigma: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.floating]:
+    """
+    Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
+
+    Unlike `box_non_max_suppression`, which discards overlapping boxes outright,
+    Soft-NMS keeps every detection and instead rescales its confidence by
+    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
+    overlap — the caller decides whether and where to threshold the result.
+    A smaller `sigma` produces a stronger decay.
+
+    Args:
+        predictions: An array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`.
+        sigma: Controls the strength of the confidence decay; must be greater
+            than `0`. No value of `sigma` reproduces hard
+            `box_non_max_suppression` output — Soft-NMS never drops boxes, only
+            rescales confidence.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+
+    Returns:
+        An array containing the updated (decayed) confidence scores, in the
+            same order as the input `predictions`.
+
+    Raises:
+        ValueError: If `sigma` is not greater than `0`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_soft_non_max_suppression(predictions, sigma=0.5)
+        array([0.9       , 0.10826823])
+
+        ```
+    """
+    _validate_sigma(sigma)
+    sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
+    ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
+    decayed = _soft_nms_decay_from_iou_matrix(
+        ious, categories, predictions[:, 4], sigma
+    )
+    result_scores: npt.NDArray[np.floating] = decayed[sort_index.argsort()]
+    return result_scores
 
 
 def _group_overlapping_masks(
@@ -1426,6 +1599,7 @@ def oriented_box_non_max_suppression(
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1443,6 +1617,8 @@ def oriented_box_non_max_suppression(
         ... )
         >>> keep
         array([ True, False])
+
+        ```
     """
     _validate_iou_threshold(iou_threshold)
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
@@ -1549,6 +1725,7 @@ def oriented_box_non_max_merge(
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1566,6 +1743,8 @@ def oriented_box_non_max_merge(
         ... )
         >>> len(groups)
         1
+
+        ```
     """
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
