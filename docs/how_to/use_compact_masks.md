@@ -23,7 +23,7 @@ This guide covers the four main integration points:
 3. [Skipping mask materialisation for box/label annotators](#skip-unnecessary-materialisation)
 4. [Merging mixed dense and compact detections](#merge-mixed-detections)
 
-______________________________________________________________________
+---
 
 ## Ingest COCO RLE Payloads
 
@@ -59,7 +59,7 @@ detections = sv.Detections(
 
 `from_coco_rle` uses run-length arithmetic scoped to each bounding box so no dense pixel array is ever created. Uncompressed integer count lists are also accepted in place of compressed strings.
 
-______________________________________________________________________
+---
 
 ## Parse Inference Results
 
@@ -86,7 +86,7 @@ To convert an existing dense-mask `Detections` to compact at any point:
 detections_compact = detections.to_compact_masks()
 ```
 
-______________________________________________________________________
+---
 
 ## Skip Unnecessary Materialisation
 
@@ -123,7 +123,7 @@ All others default to `requires_mask = False`.
 
     `PolygonAnnotator` and `MaskAnnotator` both operate directly on `CompactMask` without materialising the full `(N, H, W)` frame — passing compact detections to them is already efficient.
 
-______________________________________________________________________
+---
 
 ## Merge Mixed Detections
 
@@ -165,7 +165,7 @@ Merge rules:
 
 All `CompactMask` inputs must share the same `image_shape`; mismatches raise `ValueError`.
 
-______________________________________________________________________
+---
 
 ## Performance Notes
 
@@ -180,7 +180,7 @@ These estimates apply to the **parsing and annotation stage**, not end-to-end pi
 
 Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks covering less than ~20% of total pixels.
 
-______________________________________________________________________
+---
 
 ## API Reference
 
