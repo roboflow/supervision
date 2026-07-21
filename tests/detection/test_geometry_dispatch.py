@@ -5,9 +5,9 @@ import numpy.typing as npt
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection._geometry_dispatch import detection_area, detection_iou
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
-from supervision.detection.geometry_dispatch import detection_area, detection_iou
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
