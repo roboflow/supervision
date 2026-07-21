@@ -899,6 +899,8 @@ date_modified: 2026-07-21
         start=60,
         iterative_seek=True
     ):
+        # process frame
+        pass
 
     ```
 
@@ -949,10 +951,12 @@ date_modified: 2026-07-21
     )
 
     path, image, annotation = ds_train[0]
-        # loads image on demand
+    # loads image on demand
+    # iterate to inspect all entries
 
     for path, image, annotation in ds_train:
         # loads image on demand
+        pass
     ```
 
 - Added [#1296](https://github.com/roboflow/supervision/pull/1296): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm) now supports parsing results from the [Florence 2](https://huggingface.co/microsoft/Florence-2-large) model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our [Colab notebook](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb).
@@ -991,7 +995,7 @@ date_modified: 2026-07-21
     ```python
     import cv2
     import supervision as sv
-    import
+    from inference import get_model
 
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
@@ -1015,7 +1019,7 @@ date_modified: 2026-07-21
         is_obb=True,
     )
 
-    _, image, detections in train_ds[0]
+    _, image, detections = train_ds[0]
 
     obb_annotator = OrientedBoxAnnotator()
     annotated_image = obb_annotator.annotate(scene=image.copy(), detections=detections)
@@ -1484,8 +1488,8 @@ date_modified: 2026-07-21
 
     bounding_box_annotator = sv.BoundingBoxAnnotator()
     annotated_frame = bounding_box_annotator.annotate(
-    scene=image.copy(),
-    detections=detections
+        scene=image.copy(),
+        detections=detections
     )
     ```
 
@@ -1512,8 +1516,8 @@ date_modified: 2026-07-21
     model = YOLO(...)
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
-    result = model(image_slice)[0]
-    return sv.Detections.from_ultralytics(result)
+        result = model(image_slice)[0]
+        return sv.Detections.from_ultralytics(result)
 
     slicer = sv.InferenceSlicer(callback = callback)
 
@@ -1546,12 +1550,12 @@ date_modified: 2026-07-21
 
     model = YOLO(...)
     def callback(image: np.ndarray) -> sv.Detections:
-    result = model(image)[0]
-    return sv.Detections.from_yolov8(result)
+        result = model(image)[0]
+        return sv.Detections.from_yolov8(result)
 
     mean_average_precision = sv.MeanAveragePrecision.benchmark(
-    dataset = dataset,
-    callback = callback
+        dataset=dataset,
+        callback=callback
     )
 
     mean_average_precision.map50_95
@@ -1586,12 +1590,12 @@ date_modified: 2026-07-21
 
     model = YOLO(...)
     def callback(image: np.ndarray) -> sv.Detections:
-    result = model(image)[0]
-    return sv.Detections.from_yolov8(result)
+        result = model(image)[0]
+        return sv.Detections.from_yolov8(result)
 
     confusion_matrix = sv.ConfusionMatrix.benchmark(
-    dataset = dataset,
-    callback = callback
+        dataset=dataset,
+        callback=callback
     )
 
     confusion_matrix.matrix
@@ -1625,13 +1629,13 @@ date_modified: 2026-07-21
     import supervision as sv
 
     ds = sv.DetectionDataset.from_coco(
-    images_directory_path='...',
-    annotations_path='...'
+        images_directory_path='...',
+        annotations_path='...'
     )
 
     ds.as_coco(
-    images_directory_path='...',
-    annotations_path='...'
+        images_directory_path='...',
+        annotations_path='...'
     )
     ```
 
@@ -1671,11 +1675,11 @@ date_modified: 2026-07-21
     import supervision as sv
 
     cs = sv.ClassificationDataset.from_folder_structure(
-    root_directory_path='...'
+        root_directory_path='...'
     )
 
     cs.as_folder_structure(
-    root_directory_path='...'
+        root_directory_path='...'
     )
     ```
 
@@ -1713,8 +1717,8 @@ date_modified: 2026-07-21
     import supervision as sv
 
     with sv.ImageSink(target_dir_path='target/directory/path') as sink:
-    for image in sv.get_video_frames_generator(source_path='source_video.mp4', stride=10):
-    sink.save_image(image=image)
+        for image in sv.get_video_frames_generator(source_path='source_video.mp4', stride=10):
+            sink.save_image(image=image)
     ```
 
 - Fixed [#106](https://github.com/roboflow/supervision/issues/106): inconvenient handling of [`sv.PolygonZone`](https://supervision.roboflow.com/0.8.0/detection/tools/polygon_zone/#polygonzone) coordinates. Now `sv.PolygonZone` accepts coordinates in the form of `[[x1, y1], [x2, y2], ...]` that can be both integers and floats.
