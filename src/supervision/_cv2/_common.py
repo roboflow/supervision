@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, NoReturn
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -10,14 +10,6 @@ import numpy.typing as npt
 
 class BackendUnavailableError(RuntimeError):
     """Raised when an OpenCV operation is used without an available backend."""
-
-
-def _unavailable(*args: object, **kwargs: object) -> NoReturn:
-    """Fail clearly until a later domain PR provides the fallback operation."""
-    del args, kwargs
-    raise BackendUnavailableError(
-        "OpenCV is not installed and this operation has no fallback yet."
-    )
 
 
 def _cast_array_like_opencv(

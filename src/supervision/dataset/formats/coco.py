@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import AREA_DATA_FIELD, COCO_RAW_SEGMENTATION
@@ -415,6 +416,7 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
         to original COCO class id (1 to 90 with skipped ids).
 
     Examples:
+        ```pycon
         >>> import json
         >>> import os
         >>> import tempfile
@@ -442,6 +444,8 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
         {0: 1, 1: 3}
         >>> os.path.exists(annotations_path)
         False
+
+        ```
     """
     coco_data = read_json_file(annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
@@ -577,6 +581,21 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
     return bool(annotation.get("segmentation"))
 
 
+def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[int, int]:
+    """Return ``(height, width)`` for ``image_path`` without decoding pixels.
+
+    Uses the in-memory array when the dataset holds one; otherwise reads the
+    size from the file header via lazy ``PIL.Image.open``, which parses only
+    image metadata — the same optimization the YOLO loader uses (#1636).
+    """
+    if dataset._images_in_memory:
+        image_height, image_width = dataset._images_in_memory[image_path].shape[:2]
+        return image_height, image_width
+    with Image.open(image_path) as image:
+        image_width, image_height = image.size
+    return image_height, image_width
+
+
 def save_coco_annotations(
     dataset: DetectionDataset,
     annotation_path: str,
@@ -667,13 +686,16 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = starting_image_id, starting_annotation_id
-    for image_path, image, annotation in tqdm(
-        dataset,
-        total=len(dataset),
+    for image_path in tqdm(
+        dataset.image_paths,
         desc="Saving COCO annotations",
         disable=not show_progress,
     ):
-        image_height, image_width, _ = image.shape
+        annotation = dataset.annotations[image_path]
+        # Only the image size is needed here, so read it from the file header
+        # (or the in-memory array) instead of iterating the dataset, which
+        # would fully decode every image just to inspect its shape.
+        image_height, image_width = _image_resolution_hw(dataset, image_path)
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
             "id": image_id,

@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import os
-import shutil
-import subprocess
-import tempfile
 import threading
 import time
 from collections import deque
@@ -18,6 +14,7 @@ import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
+from supervision._cv2._video import _mux_audio
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -170,73 +167,6 @@ class VideoSink:
             self.__writer = None
 
 
-def _mux_audio(source_path: str, video_path: str) -> None:
-    """Mux audio from `source_path` into `video_path` in-place using ffmpeg.
-
-    Args:
-        source_path: Path to the original video file containing the audio stream.
-        video_path: Path to the video-only file to be updated with audio.
-    """
-    ffmpeg_path = shutil.which("ffmpeg")
-    if ffmpeg_path is None:
-        logger.warning(
-            "ffmpeg not found on PATH. Audio will not be preserved. "
-            "Install ffmpeg to enable audio preservation."
-        )
-        return
-
-    tmp_path = None
-    try:
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            suffix=os.path.splitext(video_path)[1],
-            dir=os.path.dirname(os.path.abspath(video_path)),
-        )
-        os.close(tmp_fd)
-        result = subprocess.run(  # noqa: S603
-            [
-                ffmpeg_path,
-                "-y",
-                "-loglevel",
-                "error",
-                "-nostats",
-                "-i",
-                video_path,
-                "-i",
-                source_path,
-                "-c:v",
-                "copy",
-                "-c:a",
-                "copy",
-                "-map",
-                "0:v:0",
-                "-map",
-                "1:a:0?",
-                "-shortest",
-                tmp_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            timeout=300,
-        )
-        if result.returncode != 0:
-            stderr_msg = result.stderr.decode(errors="replace").strip()
-            logger.warning(
-                "ffmpeg failed to mux audio (return code %d)%s. "
-                "The output video will not have audio.",
-                result.returncode,
-                f": {stderr_msg}" if stderr_msg else "",
-            )
-            return
-        os.replace(tmp_path, video_path)
-    except Exception as exc:
-        logger.warning(
-            "Audio muxing failed: %s. Output video will not have audio.", exc
-        )
-    finally:
-        if tmp_path is not None and os.path.exists(tmp_path):
-            os.remove(tmp_path)
-
-
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ) -> tuple[cv2.VideoCapture, int, int]:
@@ -267,6 +197,7 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
+    prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -282,15 +213,38 @@ def get_video_frames_generator(
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
+        prefetch: If > 0, decode frames in a background thread and buffer up to
+            this many frames in a bounded queue. Useful when the consumer (e.g.
+            CPU inference) is the bottleneck and can overlap with decode I/O.
+            This works best when the consumer releases the GIL during frame
+            processing (common for numpy/PyTorch/ONNX C-extension calls). Pure
+            Python per-frame consumers that hold the GIL (for example, heavy
+            Python loops, PIL usage, or pandas `apply`) usually see little
+            speedup.
+            Default 0 keeps the original synchronous behaviour unchanged. Note:
+            each buffered frame occupies width x height x 3 bytes of uncompressed
+            memory; use `sv.VideoInfo.from_video_path()` to size appropriately.
 
     Returns:
-        A generator that yields the
-            frames of the video.
+        A generator that yields the frames of the video.
+
+    Raises:
+        ValueError: If `prefetch` is negative.
+        RuntimeError: If `prefetch` is greater than 0 and the background reader
+            thread encounters a decode/open error, raised as
+            `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
+            drained after buffered frames, so when `prefetch` > 0 the consumer may
+            yield up to `prefetch` additional good frames before the exception is
+            raised.
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
         index directly. `get_video_frames_generator` is designed for file-based
-        sources; `cv2.VideoCapture` must be released by the caller when done:
+        sources; `cv2.VideoCapture` must be released by the caller when done.
+        This requires OpenCV to be installed — the PyAV-based fallback used
+        when OpenCV is unavailable only supports file paths, not webcam device
+        indexes; passing an integer source to it always leaves the capture
+        closed (`isOpened()` returns `False`):
 
         ```python
         from supervision import _cv2 as cv2
@@ -312,8 +266,27 @@ def get_video_frames_generator(
 
         for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
             ...
+
+        # Prefetch frames in a background thread to overlap I/O with CPU inference:
+        for frame in sv.get_video_frames_generator(
+            source_path="<SOURCE_VIDEO_PATH>", prefetch=8
+        ):
+            ...
         ```
     """
+    if prefetch < 0:
+        raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
+    if prefetch > 0:
+        yield from _prefetched_frames_generator(
+            source_path=source_path,
+            stride=stride,
+            start=start,
+            end=end,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+        return
+
     video, start, end = _validate_and_setup_video(
         source_path, start, end, iterative_seek
     )
@@ -332,6 +305,73 @@ def get_video_frames_generator(
             frame_position += stride
     finally:
         video.release()
+
+
+def _prefetched_frames_generator(
+    source_path: str,
+    stride: int,
+    start: int,
+    end: int | None,
+    iterative_seek: bool,
+    prefetch: int,
+) -> Generator[npt.NDArray[np.uint8], None, None]:
+    """Read frames into a bounded queue on a daemon thread.
+
+    Sentinel protocol: None = normal EOF, Exception instance = reader error.
+    """
+    frame_queue: Queue[npt.NDArray[np.uint8] | BaseException | None] = Queue(
+        maxsize=prefetch
+    )
+    stop_event = threading.Event()
+
+    def reader() -> None:
+        sentinel: BaseException | None = None
+        try:
+            for frame in get_video_frames_generator(
+                source_path=source_path,
+                stride=stride,
+                start=start,
+                end=end,
+                iterative_seek=iterative_seek,
+                prefetch=0,
+            ):
+                if stop_event.is_set():
+                    return
+                while True:
+                    try:
+                        frame_queue.put(frame, timeout=0.1)
+                        break
+                    except Full:
+                        if stop_event.is_set():
+                            return
+        except Exception as exc:
+            sentinel = exc
+        finally:
+            while not stop_event.is_set():
+                try:
+                    frame_queue.put(sentinel, timeout=0.1)
+                    return
+                except Full:
+                    pass
+
+    thread = threading.Thread(target=reader, daemon=True)
+    thread.start()
+    try:
+        while True:
+            try:
+                item = frame_queue.get(timeout=0.5)
+            except Empty:
+                if not thread.is_alive():
+                    break
+                continue
+            if isinstance(item, BaseException):
+                raise RuntimeError(f"Reader thread raised: {item!r}") from item
+            if item is None:
+                break
+            yield item
+    finally:
+        stop_event.set()
+        thread.join(timeout=2.0)
 
 
 def process_video(
@@ -379,11 +419,11 @@ def process_video(
             Default is False.
         progress_message: Description shown in the progress bar.
         preserve_audio: If True, copy the audio stream from `source_path` into
-            `target_path` after frame processing. Requires `ffmpeg` on PATH
-            (e.g. `apt install ffmpeg`, `brew install ffmpeg`). If ffmpeg is
-            not found or the mux step fails, a warning is logged and the output
-            video is saved without audio — no exception is raised. Audio is
-            truncated to match the processed video duration. Default is False.
+            `target_path` after frame processing. Remuxing is done with PyAV;
+            no external `ffmpeg` executable is required. If the mux step
+            fails, a warning is logged and the output video is saved without
+            audio — no exception is raised. Audio is truncated to match the
+            processed video duration. Default is False.
 
     Returns:
         None

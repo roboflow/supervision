@@ -21,6 +21,7 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         Int64 array of shape ``(N,)`` with the True-pixel count per mask.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.masks import count_mask_pixels
         >>> m = np.zeros((2, 4, 4), dtype=bool)
@@ -28,6 +29,8 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         >>> m[1, :3, :3] = True  # 9 pixels
         >>> count_mask_pixels(m)
         array([4, 9])
+
+        ```
     """
     return np.fromiter(
         (np.count_nonzero(m) for m in masks), dtype=np.int64, count=len(masks)
@@ -320,6 +323,50 @@ def resize_masks(
     return resized_masks.reshape(masks.shape[0], new_height, new_width)
 
 
+def _chamfer_distances(main_mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
+    """Return OpenCV 3x3 L2 chamfer distances as fixed-point integers."""
+    height, width = main_mask.shape
+    horizontal_vertical = 62587
+    diagonal = 89738
+    infinity = np.iinfo(np.int64).max // 4
+    distances = np.where(main_mask, 0, infinity).astype(np.int64)
+    horizontal_costs = np.arange(width, dtype=np.int64) * horizontal_vertical
+
+    for row in range(height):
+        current = distances[row]
+        if row:
+            previous = distances[row - 1]
+            upper_left = np.full(width, infinity, dtype=np.int64)
+            upper_right = np.full(width, infinity, dtype=np.int64)
+            upper_left[1:] = previous[:-1] + diagonal
+            upper_right[:-1] = previous[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, previous + horizontal_vertical, upper_left, upper_right)
+            )
+        distances[row] = (
+            np.minimum.accumulate(current - horizontal_costs) + horizontal_costs
+        )
+
+    for row in range(height - 1, -1, -1):
+        current = distances[row]
+        if row + 1 < height:
+            following = distances[row + 1]
+            lower_left = np.full(width, infinity, dtype=np.int64)
+            lower_right = np.full(width, infinity, dtype=np.int64)
+            lower_left[1:] = following[:-1] + diagonal
+            lower_right[:-1] = following[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, following + horizontal_vertical, lower_left, lower_right)
+            )
+        reversed_current = current[::-1]
+        distances[row] = (
+            np.minimum.accumulate(reversed_current - horizontal_costs)
+            + horizontal_costs
+        )[::-1]
+
+    return distances
+
+
 def filter_segments_by_distance(
     mask: npt.NDArray[np.bool_],
     absolute_distance: float | None = 100.0,
@@ -444,17 +491,22 @@ def filter_segments_by_distance(
         nearby = 1 + np.where(distances <= threshold)[0]
         keep_labels[nearby] = True
     elif mode == "edge":
-        main_mask = (labels == main_label).astype(np.uint8)
-        inverse = 1 - main_mask
-        distance_transform = cv2.distanceTransform(inverse, cv2.DIST_L2, 3)
+        main_mask = labels == main_label
+        if np.isnan(threshold) or threshold < 0:
+            nearby_main = np.zeros_like(main_mask)
+        elif np.isposinf(threshold):
+            nearby_main = np.ones_like(main_mask)
+        else:
+            fixed_distances = _chamfer_distances(main_mask)
+            distances = fixed_distances.astype(np.float32) / 65536
+            nearby_main = distances <= threshold
         for label in range(1, num_labels):
             if label == main_label:
                 continue
             component = labels == label
             if not np.any(component):
                 continue
-            min_distance = float(distance_transform[component].min())
-            if min_distance <= threshold:
+            if np.any(nearby_main & component):
                 keep_labels[label] = True
     else:
         raise ValueError("mode must be 'edge' or 'centroid'")

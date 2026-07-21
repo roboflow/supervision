@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-15
+date_modified: 2026-07-21
 ---
 
 # Changelog
@@ -18,6 +18,20 @@ date_modified: 2026-07-15
 - `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing `mask_dimension` positionally now emits a deprecation warning, and the parameter is scheduled for removal in `0.33.0` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 ### Fixed
+- Geometry-aware IoU dispatch now powers the deprecated `merge_inner_detections_objects`, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold ([#2374](https://github.com/roboflow/supervision/pull/2374)).
+- `save_coco_annotations` (and therefore `DetectionDataset.as_coco`) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data ([#2442](https://github.com/roboflow/supervision/pull/2442)).
+- Fixed [#2437](https://github.com/roboflow/supervision/pull/2437): `sv.F1Score` no longer emits a spurious `RuntimeWarning` when true positives, false positives, and false negatives are all zero (denominator 0); the score remains `0.0`.
+- The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.
+- The cv2-free fallback's `copyMakeBorder` now fills only channel 0 for a scalar border `value` on multichannel images, matching OpenCV's `Scalar(v)` semantics instead of broadcasting the value to every channel.
+- The cv2-free fallback's `addWeighted` now raises `ValueError` for a non-default `dtype` instead of silently ignoring it.
+- The cv2-free fallback's `approxPolyDP` now follows OpenCV's stack traversal, closed-contour anchor selection, and final cleanup. The implementation avoids the former O(N²) distance matrix and exactly matches OpenCV on the deterministic 100-polygon regression corpus.
+- The cv2-free fallback now preserves OpenCV's half-pixel bilinear interpolation when downsampling uint8 images and its anchor selection for contours whose first point is explicitly repeated at the end.
+- The cv2-free fallback now uses OpenCV's fixed-point uint8 BGR-to-gray arithmetic, matching all 16,777,216 input colors exactly. Edge-distance filtering applies an O(H×W) two-pass transform with fixed-point 3×3 chamfer weights, preserving threshold decisions without retaining a generic cv2 distance-transform API.
+- Reduced cv2-free media overhead by vectorizing connected-component statistics, narrowing contour extraction to the geometry production uses, and rasterizing Pillow text into a clipped glyph-sized mask.
+- Removed unused raw `distanceTransform`, `getRotationMatrix2D`, and `warpAffine` compatibility symbols. Their only production consumers now use smaller domain operations: a bounded two-pass chamfer transform for mask filtering and Pillow rotation for line-zone labels.
+- PyAV audio/video remuxing now uses its stream-template API directly instead of maintaining a local codec-parameter copy helper.
+- The cv2-free fallback now renders text with Pillow and the bundled DejaVu Sans face instead of reproducing OpenCV's Hershey stroke fonts. This drops the packaged 143 KB glyph table and its loader in favor of an existing dependency. Text drawn without cv2 now uses a proportional TrueType face, so glyph shapes and `getTextSize` metrics differ from OpenCV within the documented visual-divergence tier; the OpenCV path is unchanged. All Hershey font faces remain accepted for API compatibility but map to the same face (the italic modifier selects the oblique variant).
+- The cv2-free fallback's `getTextSize` now derives its height and baseline padding directly from the same `stroke_width` `putText` renders with, instead of a separate approximation. For `thickness > 2` the old formula under-padded the box, so a heavy stroke's descender pixels could fall outside the reported rectangle.
 - Fixed [#2427](https://github.com/roboflow/supervision/issues/2427): size-bucketed `sv.Precision` and `sv.F1Score` no longer count out-of-bucket detections as false positives. `sv.Recall` now matches only targets in the requested bucket, and all three metrics prioritize in-bucket targets during matching, matching COCO evaluation and `sv.MeanAveragePrecision`. A pixel-perfect detector now scores 1.0 in every bucket.
 - `sv.hex_to_rgba` now rejects multiple leading `#` characters instead of silently normalizing them, matching `sv.is_valid_hex` and the documented single optional prefix.
 - `sv.box_iou_batch` now upcasts box corners to `float64` before computing areas and intersections, returning `float32`. This fixes integer-dtype overflow (e.g. `int32` coordinates around `50_000` could previously wrap to a negative area and produce an incorrect `0.0` IoU) and gives full `float64` precision to callers that pass `float64`/`int64` coordinates directly. It does not recover precision already lost when coordinates are stored as `float32` before this function is called (e.g. `Detections.xyxy`, which is `float32` throughout the library) — such callers must upcast their own arrays to `float64`/`int64` before calling `box_iou_batch` to benefit from this fix. Results for small-coordinate inputs are unchanged.
@@ -48,6 +62,12 @@ date_modified: 2026-07-15
 - Fixed: dataset IO/export edge cases now avoid mutating caller-owned `Detections` during `DetectionDataset` construction, reject non-integer and out-of-range class ids with a clear `ValueError`, load COCO annotations that omit optional `iscrowd`/`area` fields, expose `DetectionDataset.from_coco(use_iscrowd=...)` without changing the existing positional `show_progress` argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.
 
 ### Added
+- `sv.get_video_frames_generator` now accepts `prefetch: int = 0` ([#2273](https://github.com/roboflow/supervision/pull/2273)). When `> 0`, frames are decoded on a background daemon thread and buffered in a bounded queue, overlapping I/O with consumer processing. Default `0` preserves the existing synchronous behaviour.
+- Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking,
+  metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains
+  the primary backend when available; `av>=14.2.0` is now required alongside
+  OpenCV during the transition, with the later OpenCV-removal integration removing
+  the OpenCV dependency.
 - Added: [`sv.ImageWindow`](utils/image_window.md/#supervision.utils.image_window.ImageWindow) — tkinter + Pillow desktop window that replaces `cv2.imshow` / `cv2.waitKey`, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:
   - `wait_key()` returns a tkinter keysym `str` (e.g. `"q"`, `"Escape"`) or `None`, not an `int` — update `key == ord("q")` to `key == "q"`.
   - Mouse callback signature is `(x: int, y: int, event_type: str)` where `event_type` is `"down"`, `"up"`, or `"move"` — incompatible with cv2's `(event, x, y, flags, param)`.

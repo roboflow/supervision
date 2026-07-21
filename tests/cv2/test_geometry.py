@@ -10,7 +10,6 @@ import pytest
 from supervision._cv2._geometry import (
     _approx_poly_dp,
     _contour_area,
-    _fill_poly,
     _intersect_convex_convex,
 )
 
@@ -73,10 +72,50 @@ def test_contour_area_matches_opencv(contour: np.ndarray, oriented: bool) -> Non
             0.5,
             id="collinear-runs",
         ),
+        pytest.param(
+            np.array(
+                [[4, 0], [8, 0], [12, 4], [12, 8], [8, 12], [4, 12], [0, 8], [0, 4]],
+                dtype=np.int32,
+            ),
+            0.5,
+            id="octagon",
+        ),
     ],
 )
 def test_approx_poly_dp_matches_opencv(contour: np.ndarray, epsilon: float) -> None:
     """Match OpenCV's closed Douglas-Peucker output."""
+    actual = _approx_poly_dp(contour, epsilon, closed=True)
+    expected = cv2.approxPolyDP(contour, epsilon, closed=True)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_approx_poly_dp_matches_opencv_for_irregular_closed_contours() -> None:
+    """Match OpenCV anchor selection and cleanup on irregular closed contours."""
+    rng = np.random.default_rng(20260717)
+
+    for _ in range(100):
+        count = int(rng.integers(4, 40))
+        angles = np.sort(rng.uniform(0, 2 * np.pi, count))
+        radii = rng.uniform(10, 100, count)
+        contour = np.rint(
+            np.column_stack((np.cos(angles) * radii, np.sin(angles) * radii))
+        ).astype(np.int32)
+        epsilon = float(rng.uniform(0, 10))
+
+        actual = _approx_poly_dp(contour, epsilon, closed=True)
+        expected = cv2.approxPolyDP(contour, epsilon, closed=True)
+
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_approx_poly_dp_preserves_explicitly_closed_contour_anchors() -> None:
+    """Match OpenCV anchors when the first contour point is repeated at the end."""
+    contour = np.array(
+        [[48, 68], [63, 62], [-39, 73], [44, -81], [48, 68]], dtype=np.int32
+    )
+    epsilon = 12.301107
+
     actual = _approx_poly_dp(contour, epsilon, closed=True)
     expected = cv2.approxPolyDP(contour, epsilon, closed=True)
 
@@ -124,13 +163,20 @@ def test_intersect_convex_convex_matches_opencv(
     )
 
 
-def test_fill_poly_matches_opencv_for_mask_conversion() -> None:
-    """Fill an integer polygon with the same inclusive mask boundary as OpenCV."""
-    polygon = np.array([[2, 2], [6, 2], [6, 6], [2, 6]], dtype=np.int32)
-    actual = np.zeros((10, 10), dtype=np.uint8)
-    expected = np.zeros((10, 10), dtype=np.uint8)
+def test_intersect_convex_convex_bounds_float32_roundoff() -> None:
+    """Bound OpenCV float32 area drift across rotated-rectangle intersections."""
+    rng = np.random.default_rng(20260717)
 
-    _fill_poly(actual, [polygon], color=(1,))
-    cv2.fillPoly(expected, [polygon], color=(1,))
+    for _ in range(200):
+        centers = rng.uniform(-100, 100, (2, 2))
+        sizes = rng.uniform(1, 100, (2, 2))
+        angles = rng.uniform(0, 180, 2)
+        polygons = [
+            cv2.boxPoints((tuple(center), tuple(size), float(angle)))
+            for center, size, angle in zip(centers, sizes, angles)
+        ]
 
-    np.testing.assert_array_equal(actual, expected)
+        actual_area, _ = _intersect_convex_convex(polygons[0], polygons[1])
+        expected_area, _ = cv2.intersectConvexConvex(polygons[0], polygons[1])
+
+        assert actual_area == pytest.approx(expected_area, abs=5e-4)

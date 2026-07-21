@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3
+  python: python3.10
 
 ci:
   autofix_prs: true
@@ -8,6 +8,14 @@ ci:
   autoupdate_commit_msg: "chore(pre_commit): ⬆ pre_commit autoupdate"
 
 repos:
+  - repo: local
+    hooks:
+      - id: check-doctest-fences
+        name: check doctest fences
+        entry: python .github/scripts/check_doctest_fences.py
+        language: python
+        files: ^src/.*\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -28,8 +36,8 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
 
-  - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: 0737985b8f21a8d83195f6ced1045e7637fc82fb # v3.9.5
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.5
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -37,7 +45,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.25.2
+    rev: v2.25.3
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
@@ -49,7 +57,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: v0.15.22
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -78,8 +86,9 @@ repos:
           - "types-tqdm"
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
+        exclude: ^src/supervision/_cv2/data/hershey_fonts\.json$
         additional_dependencies:
           - "tomli>=2.0.1"

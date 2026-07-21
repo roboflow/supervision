@@ -49,13 +49,52 @@ def test_fallback_flip_matches_opencv(flip_code: int, expected: np.ndarray) -> N
     np.testing.assert_array_equal(_flip(source, flip_code), cv2.flip(source, flip_code))
 
 
-def test_fallback_copy_make_border_matches_opencv() -> None:
-    """Match OpenCV constant-border padding."""
-    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
-
+@pytest.mark.parametrize(
+    ("source", "value"),
+    [
+        pytest.param(
+            np.array([[0, 100], [200, 255]], dtype=np.uint8),
+            7,
+            id="grayscale-scalar",
+        ),
+        pytest.param(
+            np.array([[0, 100], [200, 255]], dtype=np.uint8),
+            (5, 9, 20),
+            id="grayscale-sequence-uses-first-element",
+        ),
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            (7, 8),
+            id="multichannel-sequence-shorter-than-channels-pads-with-zero",
+        ),
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            (7, 8, 9, 10),
+            id="multichannel-sequence-longer-than-channels-truncates",
+        ),
+        pytest.param(
+            np.array(
+                [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]],
+                dtype=np.uint8,
+            ),
+            100,
+            id="multichannel-scalar-fills-only-first-channel",
+        ),
+    ],
+)
+def test_fallback_copy_make_border_matches_opencv(
+    source: np.ndarray, value: int | tuple[int, ...]
+) -> None:
+    """Match OpenCV constant-border padding for scalar and Sequence values."""
     np.testing.assert_array_equal(
-        _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, 7),
-        cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=7),
+        _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
+        cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),
     )
 
 
@@ -80,6 +119,40 @@ def test_fallback_add_weighted_supports_destination() -> None:
 
     assert actual is destination
     np.testing.assert_array_equal(actual, cv2.addWeighted(source, 0.5, other, 0.5, 10))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param(None, id="none"),
+        pytest.param(-1, id="opencv-sentinel"),
+    ],
+)
+def test_fallback_add_weighted_accepts_default_dtype(dtype: int | None) -> None:
+    """Treat both None and OpenCV's -1 sentinel as the default output depth."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    other = np.full_like(source, 50)
+
+    np.testing.assert_array_equal(
+        _add_weighted(source, 0.5, other, 0.5, 10, dtype=dtype),
+        cv2.addWeighted(source, 0.5, other, 0.5, 10),
+    )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param(0, id="cv-8u"),
+        pytest.param(5, id="cv-32f"),
+    ],
+)
+def test_fallback_add_weighted_rejects_non_default_dtype(dtype: int) -> None:
+    """Fail loud when a caller requests an unsupported output depth."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    other = np.full_like(source, 50)
+
+    with pytest.raises(ValueError, match="output depth"):
+        _add_weighted(source, 0.5, other, 0.5, 10, dtype=dtype)
 
 
 def test_fallback_convert_scale_abs_matches_opencv() -> None:
@@ -116,6 +189,51 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
 
     assert actual.shape == expected.shape
     np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
+
+
+def test_fallback_linear_resize_preserves_random_uint8_contract() -> None:
+    """Preserve dtype, contiguity, and the one-LSB visual interpolation budget."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (17, 23, 3), dtype=np.uint8)
+
+    actual = _resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == source.dtype
+    assert actual.flags.c_contiguous
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_linear_resize_matches_opencv_when_downsampling_uint8() -> None:
+    """Preserve OpenCV's half-pixel interpolation for uint8 downsampling."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (7, 11, 3), dtype=np.uint8)
+
+    actual = _resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (1, 18), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_linear_resize_preserves_rgba_channels() -> None:
+    """Avoid Pillow alpha premultiplication when resizing uint8 RGBA arrays."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, (9, 7, 4), dtype=np.uint8)
+
+    actual = _resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
+    """Keep float-mask interpolation on the established numeric path."""
+    rng = np.random.default_rng(20260717)
+    source = rng.random((3836, 17, 23), dtype=np.float32)[-1]
+    actual = _resize(source, (31, 29), interpolation=cv2.INTER_LINEAR)
+
+    assert actual[8, 27] == np.float32(0.49999991059303284)
+    assert not bool((actual > 0.5)[8, 27])
 
 
 def test_fallback_image_io_preserves_bgr(tmp_path: Path) -> None:

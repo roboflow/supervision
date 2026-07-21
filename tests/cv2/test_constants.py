@@ -29,21 +29,27 @@ OPENCV_CONSTANTS = [
     "CAP_PROP_FRAME_WIDTH",
     "CAP_PROP_POS_FRAMES",
     "CC_STAT_AREA",
-    "CHAIN_APPROX_SIMPLE",
     "COLOR_BGR2GRAY",
     "COLOR_BGR2RGB",
     "COLOR_GRAY2BGR",
     "COLOR_HSV2BGR",
     "COLOR_RGB2BGR",
-    "DIST_L2",
+    "FONT_HERSHEY_COMPLEX",
+    "FONT_HERSHEY_COMPLEX_SMALL",
+    "FONT_HERSHEY_DUPLEX",
+    "FONT_HERSHEY_PLAIN",
+    "FONT_HERSHEY_SCRIPT_COMPLEX",
+    "FONT_HERSHEY_SCRIPT_SIMPLEX",
     "FONT_HERSHEY_SIMPLEX",
+    "FONT_HERSHEY_TRIPLEX",
+    "FONT_ITALIC",
     "IMREAD_COLOR",
     "IMREAD_UNCHANGED",
     "INTER_LINEAR",
     "INTER_NEAREST",
     "LINE_4",
+    "LINE_8",
     "LINE_AA",
-    "RETR_TREE",
 ]
 
 
@@ -54,7 +60,7 @@ def _run_without_opencv(source: str) -> None:
     env["PYTHONPATH"] = os.pathsep.join(
         filter(None, (source_path, env.get("PYTHONPATH")))
     )
-    subprocess.run(  # noqa: S603
+    subprocess.run(
         [sys.executable, "-c", source],
         check=True,
         env=env,
@@ -175,20 +181,13 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
         pytest.param("convertScaleAbs", "_convert_scale_abs", id="convertScaleAbs"),
         pytest.param("copyMakeBorder", "_copy_make_border", id="copyMakeBorder"),
         pytest.param("cvtColor", "_cvt_color", id="cvtColor"),
-        pytest.param(
-            "distanceTransform", "_distance_transform", id="distanceTransform"
-        ),
         pytest.param("flip", "_flip", id="flip"),
-        pytest.param(
-            "getRotationMatrix2D", "_get_rotation_matrix_2d", id="getRotationMatrix2D"
-        ),
         pytest.param("imread", "_imread", id="imread"),
         pytest.param("imwrite", "_imwrite", id="imwrite"),
         pytest.param("mean", "_mean", id="mean"),
         pytest.param("merge", "_merge", id="merge"),
         pytest.param("resize", "_resize", id="resize"),
         pytest.param("split", "_split", id="split"),
-        pytest.param("warpAffine", "_warp_affine", id="warpAffine"),
         pytest.param("approxPolyDP", "_approx_poly_dp", id="approxPolyDP"),
         pytest.param(
             "connectedComponents",
@@ -205,7 +204,6 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
         pytest.param("drawContours", "_draw_contours", id="drawContours"),
         pytest.param("ellipse", "_ellipse", id="ellipse"),
         pytest.param("fillPoly", "_fill_poly", id="fillPoly"),
-        pytest.param("findContours", "_find_contours", id="findContours"),
         pytest.param(
             "intersectConvexConvex",
             "_intersect_convex_convex",

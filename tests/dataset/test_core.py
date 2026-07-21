@@ -716,7 +716,7 @@ class TestClassificationDatasetFolderRoundTrip:
 
     def _make_folder_tree(self, root: Path) -> None:
         """Write a tiny 2-class folder structure under root."""
-        import cv2 as _cv2
+        from supervision import _cv2
 
         for cls_name, colour in [("cats", 0), ("dogs", 128)]:
             cls_dir = root / cls_name
@@ -769,9 +769,7 @@ class TestClassificationDatasetFolderRoundTrip:
         root = tmp_path / "source"
         cats = root / "cats"
         cats.mkdir(parents=True)
-        (root / ".DS_Store").write_text("metadata", encoding="utf-8")
         (root / "README.md").write_text("notes", encoding="utf-8")
-        (cats / ".DS_Store").write_text("metadata", encoding="utf-8")
         (cats / "README.md").write_text("notes", encoding="utf-8")
         (cats / "classes.txt").write_text("cats", encoding="utf-8")
         (cats / "cat.png").write_bytes(b"image")

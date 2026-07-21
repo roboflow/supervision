@@ -33,12 +33,21 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
     if code == _COLOR_BGR2GRAY:
         if image.ndim != 3 or image.shape[2] != 3:
             raise ValueError("BGR2GRAY conversion requires a three-channel image")
-        values = (
+        if image.dtype == np.uint8:
+            values = image.astype(np.uint32)
+            weighted = (
+                values[..., 0] * 3735
+                + values[..., 1] * 19235
+                + values[..., 2] * 9798
+                + (1 << 14)
+            ) >> 15
+            return weighted.astype(np.uint8)
+        float_values = (
             image[..., 0].astype(np.float64) * 0.114
             + image[..., 1].astype(np.float64) * 0.587
             + image[..., 2].astype(np.float64) * 0.299
         )
-        return _cast_array_like_opencv(values, image.dtype)
+        return _cast_array_like_opencv(float_values, image.dtype)
 
     if code == _COLOR_HSV2BGR:
         if image.ndim != 3 or image.shape[2] != 3:

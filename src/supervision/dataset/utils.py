@@ -164,6 +164,7 @@ def check_no_basename_collisions(
         ValueError: If two image paths map to the same output file name.
 
     Examples:
+        ```pycon
         >>> from pathlib import Path
         >>> from supervision.dataset.utils import check_no_basename_collisions
         >>> check_no_basename_collisions(
@@ -172,6 +173,8 @@ def check_no_basename_collisions(
         Traceback (most recent call last):
         ...
         ValueError: Cannot export dataset: image paths 'a/img.jpg' and ...
+
+        ```
     """
     seen: dict[str, tuple[str, str]] = {}  # casefold(key) → (original name, image_path)
     for image_path in image_paths:
@@ -205,10 +208,13 @@ def save_dataset_images(
             saving images.
 
     Examples:
+        ```pycon
         >>> from supervision.dataset.core import DetectionDataset
         >>> from supervision.dataset.utils import save_dataset_images
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
+
+        ```
     """
     check_no_basename_collisions(
         image_paths=dataset.image_paths,
@@ -248,11 +254,14 @@ def train_test_split(
         The split data. The input list is copied and never mutated.
 
     Examples:
+        ```pycon
         >>> train, test = train_test_split(
         ...     [1, 2, 3, 4, 5], train_ratio=0.6, random_state=0
         ... )
         >>> len(train), len(test)
         (3, 2)
+
+        ```
     """
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
     if shuffle:
