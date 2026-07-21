@@ -1,0 +1,124 @@
+import numpy as np
+import numpy.typing as npt
+from PIL import Image
+
+from supervision import _cv2 as cv2
+from supervision.draw.base import ImageType
+from supervision.utils.conversion import pillow_to_cv2
+
+
+def plot_image(
+    image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
+) -> None:
+    """
+    Plots image using matplotlib.
+
+    Args:
+        image: The frame to be displayed ImageType
+             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        size: The size of the plot in inches.
+        cmap: the colormap to use for single channel images.
+
+    Examples:
+        ```pycon
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> sv.plot_image(image=image, size=(16, 16))
+        ...
+
+        ```
+    """
+    if isinstance(image, Image.Image):
+        image_np = pillow_to_cv2(image)
+    else:
+        image_np = image
+
+    # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=size)
+
+    if image_np.ndim == 2:
+        plt.imshow(image_np, cmap=cmap)
+    else:
+        plt.imshow(cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB))
+
+    plt.axis("off")
+    plt.show()
+
+
+def plot_images_grid(
+    images: list[ImageType],
+    grid_size: tuple[int, int],
+    titles: list[str] | None = None,
+    size: tuple[int, int] = (12, 12),
+    cmap: str | None = "gray",
+) -> None:
+    """
+    Plots images in a grid using matplotlib.
+
+    Args:
+       images: A list of images as ImageType
+             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+       grid_size: A tuple specifying the number
+            of rows and columns for the grid.
+       titles: A list of titles for each image.
+            Defaults to None.
+       size: A tuple specifying the width and
+            height of the entire plot in inches.
+       cmap: the colormap to use for single channel images.
+
+    Raises:
+       ValueError: If the number of images exceeds the grid size.
+
+    Examples:
+        ```pycon
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> from PIL import Image
+        >>> image1 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> image2 = Image.new('RGB', (100, 100))
+        >>> image3 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> images = [image1, image2, image3]
+        >>> titles = ["Image 1", "Image 2", "Image 3"]
+        >>> sv.plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
+        ...
+
+        ```
+    """
+    nrows, ncols = grid_size
+
+    images_np: list[npt.NDArray[np.uint8]] = [
+        pillow_to_cv2(img) if isinstance(img, Image.Image) else img for img in images
+    ]
+
+    if len(images_np) > nrows * ncols:
+        raise ValueError(
+            "The number of images exceeds the grid size. Please increase the grid size"
+            " or reduce the number of images."
+        )
+
+    # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
+    import matplotlib.pyplot as plt
+
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+
+    for idx, ax in enumerate(axes.flat):
+        if idx < len(images_np):
+            if images_np[idx].ndim == 2:
+                ax.imshow(images_np[idx], cmap=cmap)
+            else:
+                ax.imshow(cv2.cvtColor(images_np[idx], cv2.COLOR_BGR2RGB))
+
+            if titles is not None and idx < len(titles):
+                ax.set_title(titles[idx])
+
+        ax.axis("off")
+    plt.show()

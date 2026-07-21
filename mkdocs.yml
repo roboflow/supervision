@@ -1,11 +1,10 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
+site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers."
 repo_name: roboflow/supervision
-repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2024. All rights reserved.
+copyright: Roboflow 2026. All rights reserved.
 
 extra:
   social:
@@ -13,12 +12,8 @@ extra:
       link: https://github.com/roboflow
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/supervision
-    - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/u/roboflow
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/roboflow
-    - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/company/roboflow-ai/
     - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
     - icon: fontawesome/brands/discord
@@ -31,10 +26,13 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
 
 nav:
-  - Supervision: index.md
+  - Home: index.md
+  - About: about.md
+  - Contact: contact.md
+  - FAQ: faq.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
@@ -42,13 +40,20 @@ nav:
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
-
-  - Reference - Code API:
+      - Benchmark a Model: how_to/benchmark_a_model.md
+      - Count in Zone: how_to/count_in_zone.md
+      - Use Compact Masks: how_to/use_compact_masks.md
+  - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
-          - Double Detection Filter: detection/double_detection_filter.md
-          - Utils: detection/utils.md
+          - Compact Mask: detection/compact_mask.md
+          - Converters: detection/utils/converters.md
+          - IoU and NMS: detection/utils/iou_and_nms.md
+          - Boxes: detection/utils/boxes.md
+          - Masks: detection/utils/masks.md
+          - Polygons: detection/utils/polygons.md
+          - VLM Utils: detection/utils/vlms.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
@@ -63,17 +68,19 @@ nav:
       - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
-          - Utils: datasets/utils.md
       - Metrics:
           - mAP: metrics/mean_average_precision.md
+          - mAR: metrics/mean_average_recall.md
           - Precision: metrics/precision.md
           - Recall: metrics/recall.md
           - F1 Score: metrics/f1_score.md
           - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:
+          - Conversion: utils/conversion.md
           - Video: utils/video.md
           - Image: utils/image.md
+          - Image Window: utils/image_window.md
           - Iterables: utils/iterables.md
           - Notebook: utils/notebook.md
           - File: utils/file.md
@@ -81,12 +88,10 @@ nav:
           - Geometry: utils/geometry.md
       - Assets: assets.md
   - Cookbooks: cookbooks.md
-  - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
-  - Contribute:
-      - Contributing: contributing.md
-      - Code of Conduct: code_of_conduct.md
-      - License: license.md
-  - Release Notes:
+  - Contributing: contributing.md
+  - Code of Conduct: code_of_conduct.md
+  - License: license.md
+  - Changelog:
       - Changelog: changelog.md
       - Deprecated: deprecated.md
 
@@ -104,16 +109,14 @@ theme:
     - content.tooltips
     - content.code.annotate
     - navigation.tabs
+    - navigation.tabs.sticky
 
   palette:
-    # Palette for light mode
     - scheme: default
       primary: "custom"
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-
-    # Palette toggle for dark mode
     - scheme: slate
       primary: "custom"
       toggle:
@@ -121,11 +124,8 @@ theme:
         name: Switch to light mode
 
   font:
-    text: Roboto
-    code: Roboto Mono
-    features:
-      - content.code.copy
-      - content.code.annotate
+    text: Inter
+    code: IBM Plex Mono
 
 plugins:
   - search
@@ -138,18 +138,23 @@ plugins:
       default_handler: python
       handlers:
         python:
+          paths: [supervision]
+          load_external_modules: true
           options:
             parameter_headings: true
-            paths: [supervision]
-            load_external_modules: true
             allow_inspection: true
             show_bases: true
             group_by_category: true
             docstring_style: google
             show_symbol_type_heading: true
+            show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
-          domains: [std, py]
+            show_signature_annotations: true
+            show_docstring_examples: true
+          inventories:
+            - url: https://docs.python-requests.org/en/master/objects.inv
+              domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
@@ -160,7 +165,16 @@ plugins:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+
+  # uses Pygments + prompt stripping
+  - pymdownx.superfences:
+      custom_fences:
+        - name: pycon
+          class: pycon
+          lexer: pycon
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.inlinehilite
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
@@ -172,18 +186,33 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       check_paths: true
+
+  # Pygments pycon lexer with prompt stripping enabled
   - pymdownx.highlight:
+      line_spans: __span
       anchor_linenums: true
+      pygments_lang_class: true
+      linenums: false
+      auto_title: false
+      extend_pygments_lang:
+        - name: pycon
+          lang: pycon
+          options:
+            strip_prompt: true
+            strip_continuation_prompt: true
+
+  - pymdownx.arithmatex:
+      generic: true
 
 extra_javascript:
-  - "https://widget.kapa.ai/kapa-widget.bundle.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/pycon_copy.js"
+  - "javascripts/segment.js"
+  - "javascripts/mathjax.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+  - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
-# Messages shown during document build
-# Reference: https://www.mkdocs.org/user-guide/configuration/#validation
-# Values: [warn, info, ignore]
 validation:
   nav:
     absolute_links: ignore

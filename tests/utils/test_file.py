@@ -1,0 +1,104 @@
+import os
+from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
+
+import pytest
+
+from supervision.utils.file import list_files_with_extensions, read_txt_file
+
+FILE_1_CONTENT = """Line 1
+Line 2
+Line 3
+"""
+
+FILE_2_CONTENT = """   \nLine 2
+
+Line 4
+
+"""
+
+FILE_3_CONTENT = """
+Line 2
+
+Line 4
+
+"""
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_and_teardown_files():
+    with open("file_1.txt", "w") as file:
+        file.write(FILE_1_CONTENT)
+    with open("file_2.txt", "w") as file:
+        file.write(FILE_2_CONTENT)
+    with open("file_3.txt", "w") as file:
+        file.write(FILE_3_CONTENT)
+
+    yield
+
+    os.remove("file_1.txt")
+    os.remove("file_2.txt")
+    os.remove("file_3.txt")
+
+
+@pytest.mark.parametrize(
+    ("file_name", "skip_empty", "expected_result", "exception"),
+    [
+        ("file_1.txt", False, ["Line 1", "Line 2", "Line 3"], DoesNotRaise()),
+        ("file_2.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),
+        ("file_2.txt", False, ["   ", "Line 2", "", "Line 4", ""], DoesNotRaise()),
+        ("file_3.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),
+        ("file_3.txt", False, ["", "Line 2", "", "Line 4", ""], DoesNotRaise()),
+        (
+            "file_4.txt",
+            True,
+            None,
+            pytest.raises(FileNotFoundError, match=r"file_4\.txt"),
+        ),
+    ],
+)
+def test_read_txt_file(
+    file_name: str,
+    skip_empty: bool,
+    expected_result: list[str] | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = read_txt_file(file_name, skip_empty)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("filenames_to_create", "extension", "expected_names"),
+    [
+        (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
+        (["image.JPG"], "jpg", {"image.JPG"}),
+        (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
+        (
+            ["archive.backup.tar.gz", "archive.backup.gz"],
+            "tar.gz",
+            {"archive.backup.tar.gz"},
+        ),
+        (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
+    ],
+    ids=[
+        "leading_dot",
+        "case_insensitive",
+        "multi_part_full",
+        "multi_part_filename_tail",
+        "multi_part_suffix",
+    ],
+)
+def test_list_files_with_extensions_normalization(
+    tmp_path: Path,
+    filenames_to_create: list[str],
+    extension: str,
+    expected_names: set[str],
+) -> None:
+    """Extension matching normalizes leading dots, case, and multi-part extensions."""
+    for filename in filenames_to_create:
+        (tmp_path / filename).touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=[extension])
+
+    assert {p.name for p in result} == expected_names

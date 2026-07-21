@@ -1,9 +1,14 @@
 ---
 comments: true
-status: new
 ---
 
 # F1 Score
+
+Install the metrics extra before using this API:
+
+```bash
+pip install "supervision[metrics]"
+```
 
 <div class="md-typeset">
     <h2><a href="#supervision.metrics.f1_score.F1Score">F1Score</a></h2>

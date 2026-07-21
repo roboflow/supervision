@@ -1,9 +1,6 @@
-import argparse
 import json
 import os
-from typing import List, Tuple
 
-import cv2
 import numpy as np
 from inference.core.models.roboflow import RoboflowInferenceModel
 from inference.models.utils import get_roboflow_model
@@ -14,7 +11,7 @@ import supervision as sv
 COLORS = sv.ColorPalette.DEFAULT
 
 
-def load_zones_config(file_path: str) -> List[np.ndarray]:
+def load_zones_config(file_path: str) -> list[np.ndarray]:
     """
     Load polygon zone configurations from a JSON file.
 
@@ -28,16 +25,14 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
     Returns:
     List[np.ndarray]: A list of polygons, each represented as a NumPy array.
     """
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         data = json.load(file)
         return [np.array(polygon, np.int32) for polygon in data["polygons"]]
 
 
 def initiate_annotators(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> Tuple[
-    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoundingBoxAnnotator]
-]:
+    polygons: list[np.ndarray], resolution_wh: tuple[int, int]
+) -> tuple[list[sv.PolygonZone], list[sv.PolygonZoneAnnotator], list[sv.BoxAnnotator]]:
     line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
@@ -54,7 +49,7 @@ def initiate_annotators(
             text_thickness=line_thickness * 2,
             text_scale=text_scale * 2,
         )
-        box_annotator = sv.BoundingBoxAnnotator(
+        box_annotator = sv.BoxAnnotator(
             color=COLORS.by_idx(index), thickness=line_thickness
         )
         zones.append(zone)
@@ -65,7 +60,10 @@ def initiate_annotators(
 
 
 def detect(
-    frame: np.ndarray, model: RoboflowInferenceModel, confidence_threshold: float = 0.5
+    frame: np.ndarray,
+    model: RoboflowInferenceModel,
+    confidence_threshold: float = 0.5,
+    iou_threshold: float = 0.7,
 ) -> sv.Detections:
     """
     Detect objects in a frame using Inference model, filtering detections by class ID
@@ -76,7 +74,8 @@ def detect(
         model (RoboflowInferenceModel): The Inference model used for processing the
             frame.
         confidence_threshold (float): The confidence threshold for filtering
-            detections. Default is 0.5.
+            detections.
+        iou_threshold (float): The IoU threshold for non-maximum suppression.
 
     Returns:
         sv.Detections: Filtered detections after processing the frame with the Inference
@@ -86,7 +85,7 @@ def detect(
         This function is specifically tailored for an Inference model and assumes class
         ID 0 for filtering.
     """
-    results = model.infer(frame)[0]
+    results = model.infer(frame, confidence=confidence_threshold, iou=iou_threshold)[0]
     detections = sv.Detections.from_inference(results)
     filter_by_class = detections.class_id == 0
     filter_by_confidence = detections.confidence > confidence_threshold
@@ -95,9 +94,9 @@ def detect(
 
 def annotate(
     frame: np.ndarray,
-    zones: List[sv.PolygonZone],
-    zone_annotators: List[sv.PolygonZoneAnnotator],
-    box_annotators: List[sv.BoundingBoxAnnotator],
+    zones: list[sv.PolygonZone],
+    zone_annotators: list[sv.PolygonZoneAnnotator],
+    box_annotators: list[sv.BoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
     """
@@ -108,7 +107,7 @@ def annotate(
         zones (List[sv.PolygonZone]): A list of polygon zones used for detection.
         zone_annotators (List[sv.PolygonZoneAnnotator]): A list of annotators for
             drawing zone annotations.
-        box_annotators (List[sv.BoundingBoxAnnotator]): A list of annotators for
+        box_annotators (List[sv.BoxAnnotator]): A list of annotators for
             drawing box annotations.
         detections (sv.Detections): Detections to be used for annotation.
 
@@ -117,7 +116,7 @@ def annotate(
     """
     annotated_frame = frame.copy()
     for zone, zone_annotator, box_annotator in zip(
-        zones, zone_annotators, box_annotators
+        zones, zone_annotators, box_annotators, strict=True
     ):
         detections_in_zone = detections[zone.trigger(detections=detections)]
         annotated_frame = zone_annotator.annotate(scene=annotated_frame)
@@ -127,78 +126,49 @@ def annotate(
     return annotated_frame
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Counting people in zones with Inference and Supervision"
-    )
+def main(
+    zone_configuration_path: str,
+    source_video_path: str,
+    model_id: str = "yolov8x-1280",
+    roboflow_api_key: str | None = None,
+    target_video_path: str | None = None,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+) -> None:
+    """
+    Counting people in zones with Inference and Supervision.
 
-    parser.add_argument(
-        "--zone_configuration_path",
-        required=True,
-        help="Path to the zone configuration JSON file",
-        type=str,
-    )
-    parser.add_argument(
-        "--model_id",
-        default="yolov8x-1280",
-        help="Roboflow model ID",
-        type=str,
-    )
-    parser.add_argument(
-        "--roboflow_api_key",
-        default=None,
-        help="Roboflow API KEY",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default=None,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.7,
-        help="IOU threshold for the model",
-        type=float,
-    )
-
-    args = parser.parse_args()
-
-    api_key = args.roboflow_api_key
+    Args:
+        zone_configuration_path: Path to the zone configuration JSON file
+        source_video_path: Path to the source video file
+        model_id: Roboflow model ID
+        roboflow_api_key: Roboflow API KEY
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
+    api_key = roboflow_api_key
     api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
     if api_key is None:
         raise ValueError(
             "Roboflow API key is missing. Please provide it as an argument or set the "
             "ROBOFLOW_API_KEY environment variable."
         )
-    args.roboflow_api_key = api_key
+    roboflow_api_key = api_key
 
-    video_info = sv.VideoInfo.from_video_path(args.source_video_path)
-    polygons = load_zones_config(args.zone_configuration_path)
+    video_info = sv.VideoInfo.from_video_path(source_video_path)
+    polygons = load_zones_config(zone_configuration_path)
     zones, zone_annotators, box_annotators = initiate_annotators(
         polygons=polygons, resolution_wh=video_info.resolution_wh
     )
 
-    model = get_roboflow_model(model_id=args.model_id, api_key=args.roboflow_api_key)
+    model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
 
-    frames_generator = sv.get_video_frames_generator(args.source_video_path)
-    if args.target_video_path is not None:
-        with sv.VideoSink(args.target_video_path, video_info) as sink:
+    frames_generator = sv.get_video_frames_generator(source_video_path)
+    if target_video_path is not None:
+        with sv.VideoSink(target_video_path, video_info) as sink:
             for frame in tqdm(frames_generator, total=video_info.total_frames):
-                detections = detect(frame, model, args.confidence_threshold)
+                detections = detect(frame, model, confidence_threshold, iou_threshold)
                 annotated_frame = annotate(
                     frame=frame,
                     zones=zones,
@@ -208,8 +178,9 @@ if __name__ == "__main__":
                 )
                 sink.write_frame(annotated_frame)
     else:
+        window = sv.ImageWindow("Processed Video")
         for frame in tqdm(frames_generator, total=video_info.total_frames):
-            detections = detect(frame, model, args.confidence_threshold)
+            detections = detect(frame, model, confidence_threshold, iou_threshold)
             annotated_frame = annotate(
                 frame=frame,
                 zones=zones,
@@ -217,8 +188,16 @@ if __name__ == "__main__":
                 box_annotators=box_annotators,
                 detections=detections,
             )
-            cv2.imshow("Processed Video", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
 
-        cv2.destroyAllWindows()
+        window.close()
+
+
+if __name__ == "__main__":
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

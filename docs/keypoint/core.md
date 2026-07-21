@@ -4,4 +4,4 @@ comments: true
 
 # Keypoint Detection
 
-:::supervision.keypoint.core.KeyPoints
+:::supervision.key_points.core.KeyPoints
