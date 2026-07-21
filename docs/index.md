@@ -145,7 +145,7 @@ You can install `supervision` in a [**Python>=3.10**](https://www.python.org/) e
 
 - **Detect and Annotate**
 
-    ---
+    ______________________________________________________________________
 
     Annotate predictions from a range of object detection and segmentation models
 
@@ -153,7 +153,7 @@ You can install `supervision` in a [**Python>=3.10**](https://www.python.org/) e
 
 - **Track Objects**
 
-    ---
+    ______________________________________________________________________
 
     Discover how to enhance video analysis by implementing seamless object tracking
 
@@ -161,7 +161,7 @@ You can install `supervision` in a [**Python>=3.10**](https://www.python.org/) e
 
 - **Detect Small Objects**
 
-    ---
+    ______________________________________________________________________
 
     Learn how to detect small objects in images
 
@@ -169,7 +169,7 @@ You can install `supervision` in a [**Python>=3.10**](https://www.python.org/) e
 
 - **Count Objects Crossing Line**
 
-    ---
+    ______________________________________________________________________
 
     Explore methods to accurately count and analyze objects crossing a predefined line
 
@@ -177,13 +177,13 @@ You can install `supervision` in a [**Python>=3.10**](https://www.python.org/) e
 
 - > **Filter Objects in Zone**
 
-    ---
+    ______________________________________________________________________
 
     Master the techniques to selectively filter and focus on objects within a specific zone
 
 - **Cheatsheet**
 
-    ---
+    ______________________________________________________________________
 
     Access a quick reference guide to the most common `supervision` functions
 
