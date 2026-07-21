@@ -72,7 +72,6 @@ repos:
           - "mdformat-mkdocs[recommended]>=2.1.0"
           - "mdformat-ruff"
         args: ["--number", "--wrap=no"]
-        exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.3.0
