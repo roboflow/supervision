@@ -1,18 +1,21 @@
 from __future__ import annotations
 
+__all__ = ["check_no_basename_collisions", "train_test_split"]
+
 import copy
 import os
 import random
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from tqdm.auto import tqdm
 
+from supervision import _cv2 as cv2
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
 from supervision.detection.utils.converters import (
@@ -27,20 +30,26 @@ from supervision.detection.utils.polygons import (
 )
 
 
-@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
 def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
-    """Deprecated. Use `supervision.detection.utils.converters.mask_to_rle`."""
+    """Deprecated since 0.28.0.
+
+    Use `supervision.detection.utils.converters.mask_to_rle`.
+    """
     return cast(list[int] | str, void(mask, compressed))
 
 
-@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
 def rle_to_mask(
     rle: npt.NDArray[np.integer] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
-    """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
+    """Deprecated since 0.28.0.
+
+    Use `supervision.detection.utils.converters.rle_to_mask`.
+    """
     return cast(npt.NDArray[np.bool_], void(rle, resolution_wh))
 
 
@@ -54,8 +63,13 @@ def approximate_mask_with_polygons(
     mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
+    approximation_percentage: float = 0.0,
 ) -> list[npt.NDArray[np.number]]:
+    """Filter mask polygons by area and optionally simplify them.
+
+    The default `approximation_percentage=0.0` preserves the original contour
+    unless callers explicitly ask for simplification.
+    """
     height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
@@ -126,6 +140,56 @@ def map_detections_class_id(
     return detections_copy
 
 
+def check_no_basename_collisions(
+    image_paths: list[str],
+    key: Callable[[str], str],
+    output_kind: str,
+) -> None:
+    """Raise if two image paths would be written to the same output file.
+
+    Dataset image paths may share a basename when they originate from different
+    directories (a legal, common state after :meth:`DetectionDataset.merge`).
+    Exporting them into a single flat output directory keyed on the basename or
+    stem would silently overwrite one file with another and mispair images with
+    their annotations. This guard detects such collisions before any file is
+    written and names the colliding source paths.
+
+    Args:
+        image_paths: The dataset image paths about to be written.
+        key: Maps an image path to the output file name it would be written to.
+        output_kind: Human-readable description of the output (e.g. ``"image"``
+            or ``"YOLO annotation"``) used in the error message.
+
+    Raises:
+        ValueError: If two image paths map to the same output file name.
+
+    Examples:
+        ```pycon
+        >>> from pathlib import Path
+        >>> from supervision.dataset.utils import check_no_basename_collisions
+        >>> check_no_basename_collisions(
+        ...     ["a/img.jpg", "b/img.jpg"], lambda p: Path(p).name, "image"
+        ... )
+        Traceback (most recent call last):
+        ...
+        ValueError: Cannot export dataset: image paths 'a/img.jpg' and ...
+
+        ```
+    """
+    seen: dict[str, tuple[str, str]] = {}  # casefold(key) → (original name, image_path)
+    for image_path in image_paths:
+        output_name = key(image_path)
+        case_key = output_name.casefold()
+        if case_key in seen:
+            first_name, first_path = seen[case_key]
+            raise ValueError(
+                f"Cannot export dataset: image paths {first_path!r} and "
+                f"{image_path!r} both map to {output_kind} file {first_name!r}. "
+                "Ensure all image basenames are unique before exporting."
+            )
+        seen[case_key] = (output_name, image_path)
+
+
 def save_dataset_images(
     dataset: DetectionDataset,
     images_directory_path: str,
@@ -144,11 +208,19 @@ def save_dataset_images(
             saving images.
 
     Examples:
+        ```pycon
         >>> from supervision.dataset.core import DetectionDataset
         >>> from supervision.dataset.utils import save_dataset_images
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_dataset_images(dataset, "/tmp/images")
+
+        ```
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="image",
+    )
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in tqdm(
         dataset.image_paths,
@@ -179,13 +251,24 @@ def train_test_split(
         shuffle: Whether to shuffle the data before splitting.
 
     Returns:
-        The split data.
-    """
-    if random_state is not None:
-        random.seed(random_state)
+        The split data. The input list is copied and never mutated.
 
+    Examples:
+        ```pycon
+        >>> train, test = train_test_split(
+        ...     [1, 2, 3, 4, 5], train_ratio=0.6, random_state=0
+        ... )
+        >>> len(train), len(test)
+        (3, 2)
+
+        ```
+    """
+    rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
     if shuffle:
-        random.shuffle(data)
+        data = list(data)
+        rng.shuffle(data)
+    else:
+        data = list(data)  # copy to guarantee non-mutation
 
     split_index = int(len(data) * train_ratio)
     return data[:split_index], data[split_index:]

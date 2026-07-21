@@ -14,11 +14,14 @@ def _greedy_match(
     is accepted only when neither the target nor the prediction has been matched.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> iou = np.array([[1.0, 0.667], [0.333, 0.538]], dtype=np.float32)
         >>> matched_indices = np.where(iou >= 0.5)
         >>> list(_greedy_match(iou, matched_indices))
         [(0, 0), (1, 1)]
+
+        ```
     """
     target_idx = matched_indices[0]
     pred_idx = matched_indices[1]
@@ -31,3 +34,63 @@ def _greedy_match(
             matched_targets.add(t)
             matched_preds.add(p)
             yield t, p
+
+
+def _match_detection_batch_with_target_indices(
+    predictions_classes: npt.NDArray[np.int32],
+    target_classes: npt.NDArray[np.int32],
+    iou: npt.NDArray[np.float32],
+    iou_thresholds: npt.NDArray[np.float32],
+    target_scored_mask: npt.NDArray[np.bool_] | None = None,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.int32]]:
+    """Match predictions to targets and retain target indices per IoU threshold.
+
+    When ``target_scored_mask`` is provided, scored targets are matched first and
+    only predictions left unmatched may then match unscored (ignored) targets.
+    This mirrors COCO evaluation, where detections prefer non-ignored ground
+    truth, so an out-of-bucket target can never steal a prediction from an
+    in-bucket one.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> predictions_classes = np.array([0], dtype=np.int32)
+        >>> target_classes = np.array([0], dtype=np.int32)
+        >>> iou = np.array([[1.0]], dtype=np.float32)
+        >>> thresholds = np.array([0.5], dtype=np.float32)
+        >>> correct, matched = _match_detection_batch_with_target_indices(
+        ...     predictions_classes,
+        ...     target_classes,
+        ...     iou,
+        ...     thresholds,
+        ... )
+        >>> correct.tolist(), matched.tolist()
+        ([[True]], [[0]])
+
+        ```
+    """
+    num_predictions = predictions_classes.shape[0]
+    num_iou_levels = iou_thresholds.shape[0]
+    correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
+    matched_targets = np.full((num_predictions, num_iou_levels), -1, dtype=np.int32)
+    correct_class = target_classes[:, None] == predictions_classes
+
+    for i, iou_level in enumerate(iou_thresholds):
+        candidate_pairs = (iou >= iou_level) & correct_class
+        if target_scored_mask is None:
+            match_rounds = [candidate_pairs]
+        else:
+            match_rounds = [
+                candidate_pairs & target_scored_mask[:, None],
+                candidate_pairs & ~target_scored_mask[:, None],
+            ]
+
+        for round_pairs in match_rounds:
+            unmatched_predictions = matched_targets[:, i] < 0
+            matched_indices = np.where(round_pairs & unmatched_predictions)
+
+            for target_idx, prediction_idx in _greedy_match(iou, matched_indices):
+                correct[prediction_idx, i] = True
+                matched_targets[prediction_idx, i] = target_idx
+
+    return correct, matched_targets

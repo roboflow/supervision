@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.dataset.utils import check_no_basename_collisions
 from supervision.detection.core import Detections
 from supervision.utils.file import read_json_file, save_json_file
 
@@ -20,7 +21,8 @@ def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
 
     Rejects annotations whose ``image`` field escapes ``images_directory_path``
     (via ``..`` traversal, an absolute path, or a symlink pointing outside),
-    mirroring the protection used by the COCO loader.
+    mirroring the protection used by the COCO loader. Returns the canonical
+    resolved path so aliases collapse to a single dataset entry.
     """
     images_directory_resolved = Path(images_directory_path).resolve()
     image_path = Path(images_directory_path) / Path(image_name)
@@ -49,7 +51,7 @@ def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
             f"resolves to directory {resolved_image_path}. Expected a path "
             "to an image file."
         )
-    return str(image_path)
+    return str(resolved_image_path)
 
 
 def createml_annotations_to_detections(
@@ -149,16 +151,16 @@ def load_createml_annotations(
 
         - ``classes`` (``list[str]``): globally sorted class names inferred from
           all labels present in the file.
-        - ``image_paths`` (``list[str]``): joined (but not fully resolved) path
-          for every entry in the JSON, in file order.
-        - ``annotations`` (``dict[str, Detections]``): mapping from joined image
-          path to its ``Detections``.
+        - ``image_paths`` (``list[str]``): canonical resolved path for every
+          entry in the JSON, in file order.
+        - ``annotations`` (``dict[str, Detections]``): mapping from canonical
+          resolved image path to its ``Detections``.
 
     Raises:
         ValueError: If the JSON root is not a list.
         ValueError: If an entry is missing the required ``"image"`` key.
         ValueError: If an annotation is missing required coordinate or label keys.
-        ValueError: If the same image filename appears more than once in the file.
+        ValueError: If two entries resolve to the same image path.
         ValueError: If an annotation's ``image`` field resolves to the images
             directory itself or to a path outside it (e.g. via ``..`` traversal
             or an absolute path).
@@ -287,13 +289,17 @@ def save_createml_annotations(
     ``"img.jpg"`` rather than ``"/data/train/img.jpg"``). This matches CreateML
     convention and means the loader reconstructs paths relative to
     ``images_directory_path``. As a consequence, two images with the same
-    basename from different directories will produce duplicate ``"image"`` keys
-    in the output and cannot be round-tripped correctly.
+    basename from different directories would collapse to the same ``"image"``
+    key, so the exporter rejects that case before writing.
 
     Args:
         dataset: The ``DetectionDataset`` to write.
         annotations_path: Output path for the CreateML JSON file. Parent
             directories are created if they do not already exist.
+
+    Raises:
+        ValueError: If two image paths share the same basename and would map to
+            the same CreateML ``image`` entry.
 
     Examples:
         ```python
@@ -304,6 +310,11 @@ def save_createml_annotations(
         save_createml_annotations(dataset, "/tmp/annotations.json")
         ```
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: Path(image_path).name,
+        output_kind="CreateML image",
+    )
     Path(annotations_path).parent.mkdir(parents=True, exist_ok=True)
     createml_data: list[CreateMLDict] = [
         {

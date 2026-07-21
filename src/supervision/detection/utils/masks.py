@@ -1,9 +1,10 @@
 from typing import Any, Literal, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
+from supervision._cv2._components import _contains_holes
 from supervision.detection.compact_mask import CompactMask
 
 
@@ -20,6 +21,7 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         Int64 array of shape ``(N,)`` with the True-pixel count per mask.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.masks import count_mask_pixels
         >>> m = np.zeros((2, 4, 4), dtype=bool)
@@ -27,6 +29,8 @@ def count_mask_pixels(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
         >>> m[1, :3, :3] = True  # 9 pixels
         >>> count_mask_pixels(m)
         array([4, 9])
+
+        ```
     """
     return np.fromiter(
         (np.count_nonzero(m) for m in masks), dtype=np.int64, count=len(masks)
@@ -125,6 +129,17 @@ def calculate_masks_centroids(
     Returns:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks = np.zeros((1, 10, 10), dtype=bool)
+        >>> masks[0, 2:6, 2:6] = True
+        >>> sv.calculate_masks_centroids(masks)
+        array([[4, 4]])
+
+        ```
     """
     if isinstance(masks, CompactMask):
         # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
@@ -211,15 +226,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
-    mask_uint8 = mask.astype(np.uint8)
-    _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-
-    if hierarchy is not None:
-        parent_contour_index = 3
-        for h in hierarchy[0]:
-            if h[parent_contour_index] != -1:
-                return True
-    return False
+    return _contains_holes(mask)
 
 
 def contains_multiple_segments(
@@ -300,7 +307,9 @@ def resize_masks(
     """
     max_height: int = masks.shape[1]
     max_width: int = masks.shape[2]
-    scale = min(max_dimension / max_height, max_dimension / max_width)
+    scale = min(1.0, max_dimension / max_height, max_dimension / max_width)
+    if scale == 1.0:
+        return masks
 
     new_height = int(scale * max_height)
     new_width = int(scale * max_width)
@@ -312,6 +321,50 @@ def resize_masks(
     resized_masks = masks[:, yv, xv]
 
     return resized_masks.reshape(masks.shape[0], new_height, new_width)
+
+
+def _chamfer_distances(main_mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int64]:
+    """Return OpenCV 3x3 L2 chamfer distances as fixed-point integers."""
+    height, width = main_mask.shape
+    horizontal_vertical = 62587
+    diagonal = 89738
+    infinity = np.iinfo(np.int64).max // 4
+    distances = np.where(main_mask, 0, infinity).astype(np.int64)
+    horizontal_costs = np.arange(width, dtype=np.int64) * horizontal_vertical
+
+    for row in range(height):
+        current = distances[row]
+        if row:
+            previous = distances[row - 1]
+            upper_left = np.full(width, infinity, dtype=np.int64)
+            upper_right = np.full(width, infinity, dtype=np.int64)
+            upper_left[1:] = previous[:-1] + diagonal
+            upper_right[:-1] = previous[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, previous + horizontal_vertical, upper_left, upper_right)
+            )
+        distances[row] = (
+            np.minimum.accumulate(current - horizontal_costs) + horizontal_costs
+        )
+
+    for row in range(height - 1, -1, -1):
+        current = distances[row]
+        if row + 1 < height:
+            following = distances[row + 1]
+            lower_left = np.full(width, infinity, dtype=np.int64)
+            lower_right = np.full(width, infinity, dtype=np.int64)
+            lower_left[1:] = following[:-1] + diagonal
+            lower_right[:-1] = following[1:] + diagonal
+            current = np.minimum.reduce(
+                (current, following + horizontal_vertical, lower_left, lower_right)
+            )
+        reversed_current = current[::-1]
+        distances[row] = (
+            np.minimum.accumulate(reversed_current - horizontal_costs)
+            + horizontal_costs
+        )[::-1]
+
+    return distances
 
 
 def filter_segments_by_distance(
@@ -413,7 +466,13 @@ def filter_segments_by_distance(
         return cast(npt.NDArray[np.bool_], mask.copy())
 
     areas = stats[1:, cv2.CC_STAT_AREA]
-    main_label = 1 + int(np.argmax(areas))
+    max_area = int(areas.max())
+    candidates = 1 + np.flatnonzero(areas == max_area)
+    # Use coordinates for equal-area ties so native and fallback labels agree.
+    main_label = min(
+        (int(label) for label in candidates),
+        key=lambda label: (int(stats[label, 0]), int(stats[label, 1]), label),
+    )
 
     if relative_distance is not None:
         diagonal = float(np.hypot(height, width))
@@ -432,17 +491,22 @@ def filter_segments_by_distance(
         nearby = 1 + np.where(distances <= threshold)[0]
         keep_labels[nearby] = True
     elif mode == "edge":
-        main_mask = (labels == main_label).astype(np.uint8)
-        inverse = 1 - main_mask
-        distance_transform = cv2.distanceTransform(inverse, cv2.DIST_L2, 3)
+        main_mask = labels == main_label
+        if np.isnan(threshold) or threshold < 0:
+            nearby_main = np.zeros_like(main_mask)
+        elif np.isposinf(threshold):
+            nearby_main = np.ones_like(main_mask)
+        else:
+            fixed_distances = _chamfer_distances(main_mask)
+            distances = fixed_distances.astype(np.float32) / 65536
+            nearby_main = distances <= threshold
         for label in range(1, num_labels):
             if label == main_label:
                 continue
             component = labels == label
             if not np.any(component):
                 continue
-            min_distance = float(distance_transform[component].min())
-            if min_distance <= threshold:
+            if np.any(nearby_main & component):
                 keep_labels[label] = True
     else:
         raise ValueError("mode must be 'edge' or 'centroid'")
@@ -450,13 +514,14 @@ def filter_segments_by_distance(
     return keep_labels[labels]
 
 
-def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
+def mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
     """Return exclusive ``(x1, y1, x2, y2)`` bounds for true mask pixels.
 
-    Unlike :func:`~supervision.detection.utils.converters.mask_to_xyxy`,
-    this function uses **exclusive** upper bounds (``+1``) and returns
-    ``None`` for empty masks (instead of zeros). These semantics are
-    required for NumPy slice-based ROI extraction.
+    Use this helper when you need NumPy slice semantics. Unlike
+    :func:`~supervision.detection.utils.converters.mask_to_xyxy`, this
+    function uses exclusive upper bounds (``+1``) and returns ``None`` for
+    empty masks instead of zeros. The inclusive ``mask_to_xyxy`` convention
+    stays in place for compatibility with CompactMask and box-based adapters.
 
     Args:
         mask: 2D boolean array of shape ``(H, W)``.
@@ -464,12 +529,26 @@ def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | Non
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when the mask
         has no true pixels.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.masks import mask_to_roi
+        >>> mask = np.zeros((10, 10), dtype=bool)
+        >>> mask[2:5, 3:6] = True
+        >>> mask_to_roi(mask)
+        (3, 2, 6, 5)
+
+        ```
     """
     rows = np.flatnonzero(np.any(mask, axis=1))
     if len(rows) == 0:
         return None
     cols = np.flatnonzero(np.any(mask, axis=0))
     return int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
+
+
+_mask_to_roi = mask_to_roi
 
 
 def _compact_masks_to_roi(
@@ -516,7 +595,8 @@ def _masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
         xyxy: Optional detection boxes of shape ``(N, 4)`` in
             ``[x1, y1, x2, y2]`` format. When provided, the dense path
-            uses box union (O(N)) instead of a full pixel scan (O(N·H·W)).
+            first checks whether all true pixels fall within the box union;
+            if so the box bounds are returned without a full pixel scan.
 
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
@@ -527,18 +607,33 @@ def _masks_to_roi(
     mask_array = np.asarray(masks, dtype=bool)
     if mask_array.size == 0 or not mask_array.any():
         return None
-    # Fast path: union of detection boxes (O(N)) avoids full N·H·W pixel scan.
-    # supervision xyxy uses inclusive max coords; floor(x2)+1 converts to exclusive.
+    # Fast path: union of detection boxes (O(N)) avoids a full N·H·W pixel scan
+    # when boxes are mask-derived. Guard it with an `any()` check over the ROI so
+    # loose boxes cannot clip true pixels that lie outside the box union.
     if xyxy is not None and len(xyxy) > 0:
         image_h, image_w = image_shape
-        return (
+        box_roi = (
             max(0, int(np.floor(xyxy[:, 0].min()))),
             max(0, int(np.floor(xyxy[:, 1].min()))),
             min(image_w, int(np.floor(xyxy[:, 2].max())) + 1),
             min(image_h, int(np.floor(xyxy[:, 3].max())) + 1),
         )
+        x1, y1, x2, y2 = box_roi
+        if x1 < x2 and y1 < y2:
+            union = mask_array if mask_array.ndim == 2 else np.any(mask_array, axis=0)
+            # Return box bounds only when all true pixels fall within the box.
+            # Slice-based checks avoid allocating a full-frame copy.
+            if (
+                union[y1:y2, x1:x2].any()
+                and not union[:y1].any()
+                and not union[y2:].any()
+                and not union[y1:y2, :x1].any()
+                and not union[y1:y2, x2:].any()
+            ):
+                return box_roi
+            return mask_to_roi(union)
     if mask_array.ndim == 2:
         union = mask_array
     else:
         union = np.any(mask_array, axis=0)
-    return _mask_to_roi(union)
+    return mask_to_roi(union)

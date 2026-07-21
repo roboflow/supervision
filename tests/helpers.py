@@ -8,12 +8,31 @@ for generating synthetic test data and performing custom assertions.
 
 from __future__ import annotations
 
+import io
 from typing import Any
 
 import numpy as np
+from PIL import Image
 
 from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
+
+
+def make_panoptic_png(segment_map: np.ndarray) -> bytes:
+    """Encode a segment-ID array as a 24-bit RGBA PNG byte string.
+
+    Segment IDs are stored in RGB little-endian order so tests can cover
+    panoptic labels above 255 without collisions.
+    """
+    segment_map_u32 = np.asarray(segment_map, dtype=np.uint32)
+    arr = np.zeros((*segment_map_u32.shape, 4), dtype=np.uint8)
+    arr[:, :, 0] = (segment_map_u32 & 0xFF).astype(np.uint8)
+    arr[:, :, 1] = ((segment_map_u32 >> 8) & 0xFF).astype(np.uint8)
+    arr[:, :, 2] = ((segment_map_u32 >> 16) & 0xFF).astype(np.uint8)
+    arr[:, :, 3] = 255
+    buf = io.BytesIO()
+    Image.fromarray(arr).save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def _create_detections(
@@ -402,7 +421,7 @@ def create_yolo_dataset(
     """
     from pathlib import Path
 
-    import cv2
+    from supervision import _cv2 as cv2
 
     if classes is None:
         classes = ["class_0", "class_1"]
@@ -466,6 +485,113 @@ def create_yolo_dataset(
         "image_size": image_size,
         "image_annotations": image_annotations,
     }
+
+
+class _FakeDetachTensor:
+    """Fake torch.Tensor supporting the cpu().detach().numpy() call chain."""
+
+    def __init__(self, arr: np.ndarray) -> None:
+        self._arr = np.asarray(arr)
+
+    def cpu(self) -> _FakeDetachTensor:
+        """Return self to allow chaining."""
+        return self
+
+    def detach(self) -> _FakeDetachTensor:
+        """Return self to allow chaining."""
+        return self
+
+    def numpy(self) -> np.ndarray:
+        """Return underlying array."""
+        return self._arr
+
+
+class _FakeDetectron2Boxes:
+    """Fake Detectron2 Boxes exposing .tensor for the cpu().numpy() chain."""
+
+    def __init__(self, xyxy: np.ndarray) -> None:
+        self.tensor = _FakeTensor(xyxy)
+
+
+class _FakeDetectron2Instances:
+    """Fake Detectron2 Instances: pred_boxes, scores, pred_classes, optional masks."""
+
+    def __init__(
+        self,
+        xyxy: np.ndarray,
+        scores: np.ndarray,
+        class_ids: np.ndarray,
+        masks: np.ndarray | None = None,
+    ) -> None:
+        self.pred_boxes = _FakeDetectron2Boxes(xyxy)
+        self.scores = _FakeTensor(scores)
+        self.pred_classes = _FakeTensor(class_ids)
+        if masks is not None:
+            self.pred_masks = _FakeTensor(masks)
+
+
+class _FakeMMDetPredInstances:
+    """Fake MMDetection pred_instances supporting the 'masks' in membership check."""
+
+    def __init__(
+        self,
+        xyxy: np.ndarray,
+        scores: np.ndarray,
+        labels: np.ndarray,
+        masks: np.ndarray | None = None,
+    ) -> None:
+        self.bboxes = _FakeTensor(xyxy)
+        self.scores = _FakeTensor(scores)
+        self.labels = _FakeTensor(labels)
+        self._masks: np.ndarray | None = masks
+        if masks is not None:
+            self.masks = _FakeTensor(masks)
+
+    def __contains__(self, key: str) -> bool:
+        """Return True for 'masks' only when masks were provided at construction."""
+        return key == "masks" and self._masks is not None
+
+
+class _FakeMMDetResults:
+    """Fake MMDetection inference result wrapping pred_instances."""
+
+    def __init__(self, pred_instances: _FakeMMDetPredInstances) -> None:
+        self.pred_instances = pred_instances
+
+
+class _FakeDeepSparseResults:
+    """Fake DeepSparse inference result with list attributes boxes, scores, labels."""
+
+    def __init__(
+        self,
+        boxes: list[np.ndarray],
+        scores: list[np.ndarray],
+        labels: list[np.ndarray],
+    ) -> None:
+        self.boxes = boxes
+        self.scores = scores
+        self.labels = labels
+
+
+class _FakeNCNNRect:
+    """Fake ncnn Rect with x, y, w, h as numpy float32 scalars supporting .astype()."""
+
+    def __init__(self, x: float, y: float, w: float, h: float) -> None:
+        self.x = np.float32(x)
+        self.y = np.float32(y)
+        self.w = np.float32(w)
+        self.h = np.float32(h)
+
+
+class _FakeNCNNObject:
+    """Fake ncnn detected object with rect, prob, label."""
+
+    def __init__(
+        self, x: float, y: float, w: float, h: float, prob: float, label: int
+    ) -> None:
+        self.rect = _FakeNCNNRect(x, y, w, h)
+        self.prob = prob
+        self.label = label
 
 
 def create_predictions_with_class_iou_tests(

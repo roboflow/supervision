@@ -12,6 +12,7 @@ from supervision.dataset.formats.labelme import (
     detections_to_labelme_shapes,
     labelme_shapes_to_detections,
     load_labelme_annotations,
+    save_labelme_annotations,
 )
 from supervision.detection.core import Detections
 
@@ -725,3 +726,22 @@ class TestAsLabelmeRoundTrip:
         union = float((original | reloaded).sum())
         iou = intersection / union
         assert iou >= 0.95, f"mask round-trip IoU {iou:.4f} below threshold"
+
+
+class TestSaveLabelmeAnnotations:
+    """LabelMe export must reject same-stem images before writing."""
+
+    def test_raises_on_duplicate_image_stems(self, tmp_path: Path) -> None:
+        """Images sharing a stem would overwrite each other's .json and are rejected."""
+        image_paths = ["dir_a/img.jpg", "dir_b/img.jpg"]
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=image_paths,
+            annotations={path: Detections.empty() for path in image_paths},
+        )
+
+        with pytest.raises(ValueError, match="LabelMe annotation file"):
+            save_labelme_annotations(
+                dataset=dataset,
+                annotations_directory_path=str(tmp_path / "annotations"),
+            )

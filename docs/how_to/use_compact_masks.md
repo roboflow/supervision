@@ -12,6 +12,10 @@ date_modified: 2026-07-01
 
 [CompactMask][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
 
+!!! Note
+
+    `sv.mask_to_xyxy` keeps supervision's inclusive max-coordinate convention for compatibility with `CompactMask` and current box-based adapters. Use `sv.mask_to_roi` when you need exclusive slice bounds for NumPy indexing or crop extraction.
+
 This guide covers the four main integration points:
 
 1. [Ingesting COCO RLE payloads directly as CompactMask](#ingest-coco-rle-payloads)

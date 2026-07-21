@@ -94,6 +94,33 @@ class DetectionsSmoother:
             lambda: deque(maxlen=length)
         )
 
+    def reset(self) -> None:
+        """
+        Clears the per-track detection history so the smoother can be reused
+        across independent streams without carrying over frames from a
+        previous stream. The configured window `length` is preserved.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> smoother = sv.DetectionsSmoother()
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     confidence=np.array([0.5]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> _ = smoother.update_with_detections(detections)
+            >>> len(smoother.tracks)
+            1
+            >>> smoother.reset()
+            >>> len(smoother.tracks)
+            0
+
+            ```
+        """
+        self.tracks.clear()
+
     def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the smoother with a new set of detections from a frame.
@@ -125,7 +152,8 @@ class DetectionsSmoother:
             if all([d is None for d in self.tracks[track_id]]):
                 del self.tracks[track_id]
 
-        return self.get_smoothed_detections()
+        current_track_ids = {int(track_id) for track_id in detections.tracker_id}
+        return self.get_smoothed_detections(track_ids=current_track_ids)
 
     def get_track(self, track_id: int) -> Detections | None:
         """Return the smoothed `Detections` for a single track.
@@ -160,9 +188,18 @@ class DetectionsSmoother:
 
         return ret
 
-    def get_smoothed_detections(self) -> Detections:
+    def get_smoothed_detections(self, track_ids: set[int] | None = None) -> Detections:
+        """Return the smoothed detections for the requested active tracks.
+
+        Args:
+            track_ids: Optional set of track IDs to include in the output. When
+                provided, tracks absent from the current frame are excluded from the
+                emitted detections but their history stays cached.
+        """
         tracked_detections = []
         for track_id in self.tracks:
+            if track_ids is not None and track_id not in track_ids:
+                continue
             track = self.get_track(track_id)
             if track is not None:
                 tracked_detections.append(track)

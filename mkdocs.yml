@@ -53,7 +53,7 @@ nav:
           - Boxes: detection/utils/boxes.md
           - Masks: detection/utils/masks.md
           - Polygons: detection/utils/polygons.md
-          - VLMs: detection/utils/vlms.md
+          - VLM Utils: detection/utils/vlms.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
@@ -77,8 +77,10 @@ nav:
           - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:
+          - Conversion: utils/conversion.md
           - Video: utils/video.md
           - Image: utils/image.md
+          - Image Window: utils/image_window.md
           - Iterables: utils/iterables.md
           - Notebook: utils/notebook.md
           - File: utils/file.md
@@ -86,6 +88,9 @@ nav:
           - Geometry: utils/geometry.md
       - Assets: assets.md
   - Cookbooks: cookbooks.md
+  - Contributing: contributing.md
+  - Code of Conduct: code_of_conduct.md
+  - License: license.md
   - Changelog:
       - Changelog: changelog.md
       - Deprecated: deprecated.md

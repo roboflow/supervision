@@ -5,6 +5,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
@@ -43,20 +44,28 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         ("mask_2d", "description"),
         [
-            (np.zeros((5, 5), dtype=bool), "all-False"),
-            (np.ones((5, 5), dtype=bool), "all-True"),
-            (np.eye(4, dtype=bool), "diagonal"),
-            (
+            pytest.param(np.zeros((5, 5), dtype=bool), "all-False", id="all-false"),
+            pytest.param(np.ones((5, 5), dtype=bool), "all-True", id="all-true"),
+            pytest.param(np.eye(4, dtype=bool), "diagonal", id="diagonal"),
+            pytest.param(
                 np.array([[True, True, False], [True, False, False]], dtype=bool),
                 "L-shape",
+                id="l-shape",
             ),
-            (
+            pytest.param(
                 np.indices((4, 4)).sum(axis=0) % 2 == 0,
                 "checkerboard",
+                id="checkerboard",
             ),
-            (np.zeros((1, 1), dtype=bool), "single-pixel-False"),
-            (np.ones((1, 1), dtype=bool), "single-pixel-True"),
-            (np.zeros((0, 0), dtype=bool), "empty"),
+            pytest.param(
+                np.zeros((1, 1), dtype=bool),
+                "single-pixel-False",
+                id="single-pixel-false",
+            ),
+            pytest.param(
+                np.ones((1, 1), dtype=bool), "single-pixel-True", id="single-pixel-true"
+            ),
+            pytest.param(np.zeros((0, 0), dtype=bool), "empty", id="empty"),
         ],
     )
     def test_encode_decode_round_trip(
@@ -78,10 +87,13 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         "mask_2d",
         [
-            np.zeros((6, 6), dtype=bool),
-            np.ones((6, 6), dtype=bool),
-            np.eye(6, dtype=bool),
-            np.array([[True, False, True], [False, True, False]], dtype=bool),
+            pytest.param(np.zeros((6, 6), dtype=bool), id="all-false"),
+            pytest.param(np.ones((6, 6), dtype=bool), id="all-true"),
+            pytest.param(np.eye(6, dtype=bool), id="diagonal"),
+            pytest.param(
+                np.array([[True, False, True], [False, True, False]], dtype=bool),
+                id="mixed",
+            ),
         ],
     )
     def test_area_matches_numpy_sum(self, mask_2d: np.ndarray) -> None:
@@ -93,18 +105,20 @@ class TestRleHelpers:
         ("mask_2d", "expected_rle"),
         [
             # 2x3; F-order flat: [F,T,T,F,T,F] -> 1F,2T,1F,1T,1F
-            (
+            pytest.param(
                 np.array([[False, True, True], [True, False, False]]),
                 [1, 2, 1, 1, 1],
+                id="2x3-mixed",
             ),
             # 3x3 all-False -> single run of 9
-            (np.zeros((3, 3), dtype=bool), [9]),
+            pytest.param(np.zeros((3, 3), dtype=bool), [9], id="3x3-all-false"),
             # 3x1 all-True; F-order scan starts True -> leading zero prepended
-            (np.ones((3, 1), dtype=bool), [0, 3]),
+            pytest.param(np.ones((3, 1), dtype=bool), [0, 3], id="3x1-all-true"),
             # 2x2; F-order flat: [F,T,F,T] -> alternating single-pixel runs
-            (
+            pytest.param(
                 np.array([[False, False], [True, True]]),
                 [1, 1, 1, 1],
+                id="2x2-alternating",
             ),
         ],
     )
@@ -117,10 +131,12 @@ class TestRleHelpers:
     @pytest.mark.parametrize(
         "mask_2d",
         [
-            np.array([[False, True, True], [True, False, False]]),
-            np.zeros((4, 4), dtype=bool),
-            np.array([[False, False], [True, True]]),
-            np.ones((3, 1), dtype=bool),
+            pytest.param(
+                np.array([[False, True, True], [True, False, False]]), id="l-shape"
+            ),
+            pytest.param(np.zeros((4, 4), dtype=bool), id="all-false"),
+            pytest.param(np.array([[False, False], [True, True]]), id="alternating"),
+            pytest.param(np.ones((3, 1), dtype=bool), id="all-true"),
         ],
     )
     def test_encode_agrees_with_mask_to_rle(self, mask_2d: np.ndarray) -> None:
@@ -139,12 +155,13 @@ class TestFromDenseToDense:
     @pytest.mark.parametrize(
         ("num_masks", "image_shape"),
         [
-            (0, (50, 50)),
-            (1, (50, 50)),
-            (5, (50, 50)),
+            pytest.param(0, (50, 50), id="zero-masks"),
+            pytest.param(1, (50, 50), id="single-mask"),
+            pytest.param(5, (50, 50), id="five-masks"),
         ],
     )
     def test_round_trip(self, num_masks: int, image_shape: tuple[int, int]) -> None:
+        """from_dense -> to_dense round-trips losslessly for N=0, 1, and 5 masks."""
         rng = np.random.default_rng(42)
         img_h, img_w = image_shape
         masks = rng.integers(0, 2, size=(num_masks, img_h, img_w)).astype(bool)
@@ -494,6 +511,7 @@ class TestGetItem:
     """
 
     def test_int_returns_2d_dense(self) -> None:
+        """Integer index returns a dense (H, W) array matching the source mask."""
         img_h, img_w = 30, 40
         rng = np.random.default_rng(0)
         masks = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
@@ -506,6 +524,7 @@ class TestGetItem:
         np.testing.assert_array_equal(result, masks[1])
 
     def test_list_returns_compact_mask(self) -> None:
+        """List of indices returns a new CompactMask with the selected detections."""
         img_h, img_w = 20, 20
         masks = np.zeros((4, img_h, img_w), dtype=bool)
         for mask_idx in range(4):
@@ -523,6 +542,7 @@ class TestGetItem:
         np.testing.assert_array_equal(subset[1], masks[2])
 
     def test_slice_returns_compact_mask(self) -> None:
+        """Slice indexing returns a new CompactMask with the sliced detections."""
         img_h, img_w = 20, 20
         masks = np.zeros((5, img_h, img_w), dtype=bool)
         cm = _make_cm(masks, (img_h, img_w))
@@ -532,6 +552,7 @@ class TestGetItem:
         assert len(subset) == 3
 
     def test_bool_ndarray(self) -> None:
+        """Boolean ndarray selector filters detections like NumPy boolean masking."""
         img_h, img_w = 15, 15
         rng = np.random.default_rng(7)
         masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
@@ -567,16 +588,19 @@ class TestProperties:
     """
 
     def test_len(self) -> None:
+        """len() returns the number of masks in the collection."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert len(cm) == 3
 
     def test_shape(self) -> None:
+        """shape follows the (N, H, W) dense array convention."""
         masks = np.zeros((3, 10, 10), dtype=bool)
         cm = _make_cm(masks, (10, 10))
         assert cm.shape == (3, 10, 10)
 
     def test_shape_empty(self) -> None:
+        """shape reports N=0 for an empty CompactMask while keeping (H, W)."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -586,10 +610,12 @@ class TestProperties:
         assert cm.shape == (0, 480, 640)
 
     def test_dtype(self) -> None:
+        """dtype is always bool regardless of the input mask dtype."""
         cm = _make_cm(np.zeros((1, 5, 5), dtype=bool), (5, 5))
         assert cm.dtype == np.dtype(bool)
 
     def test_area_matches_dense(self) -> None:
+        """area returns per-mask True-pixel counts matching np.sum on dense masks."""
         img_h, img_w = 20, 20
         rng = np.random.default_rng(3)
         masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
@@ -599,6 +625,7 @@ class TestProperties:
         np.testing.assert_array_equal(cm.area, expected)
 
     def test_area_empty(self) -> None:
+        """area is an empty (0,) array for an empty CompactMask."""
         cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
@@ -1520,8 +1547,6 @@ class TestCompactMaskResize:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_dense_parity_roundtrip(self, seed: int) -> None:
         """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
-        import cv2
-
         rng = np.random.default_rng(seed + 500)
         img_h, img_w = 80, 120
         target_h, target_w = 40, 60
@@ -1574,8 +1599,6 @@ class TestRleResize:
 
     def test_2x_upscale(self) -> None:
         """2x upscale of a 2x2 mask doubles each pixel."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1596,8 +1619,6 @@ class TestRleResize:
 
     def test_2x_downscale(self) -> None:
         """2x downscale of a 4x4 block mask halves dimensions."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.array(
@@ -1620,8 +1641,6 @@ class TestRleResize:
 
     def test_non_square_scale(self) -> None:
         """Non-square resize: 4x6 to 2x3 with independent axis scaling."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((4, 6), dtype=bool)
@@ -1680,8 +1699,6 @@ class TestRleResize:
 
     def test_single_pixel_true_upscale(self) -> None:
         """Single True pixel in a 3x3 mask upscaled preserves position."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         mask = np.zeros((3, 3), dtype=bool)
@@ -1698,8 +1715,6 @@ class TestRleResize:
     @pytest.mark.parametrize("seed", list(range(45)))
     def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
         """_rle_resize matches cv2.resize(INTER_NEAREST) within 1-pixel tolerance."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(seed + 7000)
@@ -1738,8 +1753,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Single-row and single-col crops scale correctly with cv2 parity."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 31 + dst_shape[1] * 17)
@@ -1768,8 +1781,6 @@ class TestRleResize:
         self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
     ) -> None:
         """Prime-sized crops with non-integer scale ratios match cv2 exactly."""
-        import cv2
-
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(src_shape[0] * 101 + dst_shape[1] * 53)
@@ -1831,8 +1842,6 @@ class TestRleResize:
         Checkerboard yields ~1 run per pixel, far above the 0.25 threshold.
         Result must match cv2.resize(INTER_NEAREST) within 1 pixel.
         """
-        import cv2
-
         from supervision.detection.compact_mask import (
             _L3_DENSITY_THRESHOLD,
             _resize_crop,

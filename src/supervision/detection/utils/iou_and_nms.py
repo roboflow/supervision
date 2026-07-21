@@ -5,12 +5,13 @@ from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.masks import resize_masks
+from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.utils.internal import warn_deprecated
 
 
 class OverlapFilter(Enum):
@@ -84,6 +85,15 @@ class OverlapMetric(Enum):
         raise ValueError(
             f"Invalid value type: {type(value)}. Must be an instance of "
             f"{cls.__name__} or str."
+        )
+
+
+def _validate_iou_threshold(iou_threshold: float) -> None:
+    """Raise `ValueError` when an IoU threshold falls outside `[0, 1]`."""
+    if not 0 <= iou_threshold <= 1:
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
         )
 
 
@@ -216,8 +226,17 @@ def box_iou_batch(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
-    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T
+    # Upcast the corners to float64 right after unpacking so every subtraction
+    # and multiplication below runs in float64. This prevents integer-dtype
+    # overflow: an int32 box area such as 50000 * 50000 = 2.5e9 wraps to a
+    # negative value in int32 before any later cast could run, yielding wrong
+    # (often zero) IoU. Upcasting here also gives full float64 precision to
+    # float64/int64 callers. It does NOT recover precision already lost when a
+    # caller stores coordinates as float32 upstream, because that float32
+    # rounding happens before this function is ever called. The final matrix is
+    # cast back to float32 to preserve the public return-type contract.
+    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T.astype(np.float64)
+    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T.astype(np.float64)
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
@@ -225,7 +244,7 @@ def box_iou_batch(
             npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
         )
 
-    x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
+    x_min_inter = np.empty((count_true, count_det), dtype=np.float64)
     x_max_inter = np.empty_like(x_min_inter)
     y_min_inter = np.empty_like(x_min_inter)
     y_max_inter = np.empty_like(x_min_inter)
@@ -485,12 +504,15 @@ def oriented_box_iou_batch(
             :attr:`~supervision.config.OverlapMetric.IOS`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> a = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
         >>> b = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
         >>> sv.oriented_box_iou_batch(a, b)  # doctest: +ELLIPSIS
         array([[0.333...]])
+
+        ```
     """
 
     for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
@@ -782,6 +804,19 @@ def mask_iou_batch(
         ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
             ``(N, H, W)`` arrays, or if they do not share the same
             spatial dimensions ``(H, W)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks_true = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_true[:, :2, :2] = True
+        >>> masks_detection = np.zeros((1, 4, 4), dtype=bool)
+        >>> masks_detection[:, :3, :3] = True
+        >>> sv.mask_iou_batch(masks_true, masks_detection)
+        array([[0.44444445]])
+
+        ```
     """
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
@@ -877,13 +912,25 @@ def mask_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed
-            range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     rows, columns = predictions.shape
 
     if columns == 5:
@@ -970,13 +1017,23 @@ def box_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the
-            closed range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_suppression(predictions, iou_threshold=0.5)
+        array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
     ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
@@ -1045,8 +1102,9 @@ def mask_non_max_merge(
     predictions: npt.NDArray[np.floating],
     masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
-    mask_dimension: int = 640,
+    *args: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    mask_dimension: int = 640,
 ) -> list[list[int]]:
     """
     Perform Non-Maximum Merging (NMM) on segmentation predictions.
@@ -1060,11 +1118,12 @@ def mask_non_max_merge(
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
         iou_threshold: The intersection-over-union threshold
-            to use for non-maximum suppression.
-        mask_dimension: The dimension to which the masks should be
-            resized before computing IOU values. Defaults to 640.
+            to use for non-maximum merging.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
+        mask_dimension: Deprecated in `0.30.0`, removed in `0.33.0`. No longer
+            used; the parameter is silently ignored. Passing `mask_dimension`
+            positionally emits a deprecation warning.
 
     Returns:
         A list of groups of prediction indices. Each inner list contains
@@ -1073,63 +1132,103 @@ def mask_non_max_merge(
             kept together as a single detection by non-maximum merging.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed
-            range from `0` to `1`.
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+        TypeError: If more than five positional arguments are passed.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> masks = np.zeros((2, 4, 4), dtype=bool)
+        >>> masks[:, :2, :2] = True
+        >>> sv.mask_non_max_merge(predictions, masks, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
 
-    if isinstance(masks, CompactMask):
-        # _group_overlapping_masks needs dense arrays for logical_or union merging.
-        # Note: np.asarray(masks) first materialises a full-resolution (N, H, W)
-        # dense array before downscaling with resize_masks. This reduces the size
-        # of the array used for overlap computation but does not avoid the initial
-        # full-frame materialisation, which may still be memory-intensive for very
-        # large images or object counts.
-        masks = resize_masks(np.asarray(masks), mask_dimension)
-    else:
-        masks = resize_masks(masks, mask_dimension)
-    masks_resized = masks
-
-    if predictions.shape[1] == 5:
-        return _group_overlapping_masks(
-            predictions, masks_resized, iou_threshold, overlap_metric
+    _validate_iou_threshold(iou_threshold)
+    if len(args) > 2:
+        raise TypeError(
+            "mask_non_max_merge accepts at most five positional arguments. "
+            "Pass overlap_metric and mask_dimension by keyword."
         )
+    if args:
+        warn_deprecated(
+            "Passing `overlap_metric` or `mask_dimension` positionally to "
+            "`mask_non_max_merge` is deprecated in `0.30.0` and will be removed "
+            "in `0.33.0`. Pass them by keyword instead."
+        )
+        first = args[0]
+        if isinstance(first, OverlapMetric):
+            overlap_metric = first
+        else:
+            mask_dimension = cast(int, first)
+        if len(args) == 2:
+            second = args[1]
+            if isinstance(first, OverlapMetric):
+                mask_dimension = cast(int, second)
+            else:
+                overlap_metric = cast(OverlapMetric, second)
 
-    category_ids = predictions[:, 5]
-    merge_groups = []
-    for category_id in np.unique(category_ids):
-        curr_indices = np.where(category_ids == category_id)[0]
-        merge_class_groups = _group_overlapping_masks(
-            predictions[curr_indices],
-            masks_resized[curr_indices],
+    del mask_dimension
+
+    def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
+        if isinstance(masks, CompactMask):
+            return _group_overlapping_masks_pairwise(
+                predictions[global_indices],
+                masks[global_indices],
+                iou_threshold,
+                overlap_metric,
+            )
+        return _group_overlapping_masks(
+            predictions[global_indices],
+            masks[global_indices],
             iou_threshold,
             overlap_metric,
         )
 
-        for merge_class_group in merge_class_groups:
-            merge_groups.append(curr_indices[merge_class_group].tolist())
-
-    for merge_group in merge_groups:
-        if len(merge_group) == 0:
-            raise ValueError(
-                f"Empty group detected when non-max-merging detections: {merge_groups}"
-            )
-    return merge_groups
+    return _non_max_merge_per_category(predictions, group_within)
 
 
-def _greedy_nmm_via_iou_callback(
+def _update_mask_candidate(
+    masks: npt.NDArray[Any] | CompactMask,
+    candidate: npt.NDArray[Any] | CompactMask,
+    above_idx: npt.NDArray[np.int_],
+) -> npt.NDArray[Any] | CompactMask:
+    if isinstance(masks, CompactMask):
+        compact_candidate = cast(CompactMask, candidate)
+        union_mask = np.logical_or.reduce(
+            np.concatenate([masks[above_idx].to_dense(), compact_candidate.to_dense()]),
+            axis=0,
+            keepdims=True,
+        )
+        return CompactMask.from_dense(
+            masks=union_mask,
+            xyxy=mask_to_xyxy(union_mask),
+            image_shape=masks.image_shape,
+        )
+    dense_candidate = cast(npt.NDArray[Any], candidate)
+    dense_union: npt.NDArray[Any] = np.logical_or.reduce(
+        np.concatenate([masks[above_idx], dense_candidate]),
+        axis=0,
+        keepdims=True,
+    )
+    return dense_union
+
+
+def _greedy_nmm_via_mask_candidate(
     predictions: npt.NDArray[np.floating],
-    iou_against_candidate: Callable[
-        [npt.NDArray[np.int_], int], npt.NDArray[np.floating]
-    ],
-    iou_threshold: float,
+    masks: npt.NDArray[Any] | CompactMask,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """Greedy non-maximum merging loop, independent of how overlap is computed.
-
-    ``iou_against_candidate(order_indices, candidate_idx)`` must return the IoU
-    vector between every prediction in ``order_indices`` and the candidate at
-    ``candidate_idx``. Predictions whose IoU meets ``iou_threshold`` are
-    grouped with the candidate.
-    """
+    """Group masks by exact overlap while updating the merged candidate union."""
     merge_groups: list[list[int]] = []
     scores = predictions[:, 4]
     order = scores.argsort()
@@ -1139,12 +1238,30 @@ def _greedy_nmm_via_iou_callback(
         if len(order) == 0:
             merge_groups.append([idx])
             break
-        ious = iou_against_candidate(order, idx)
-        above_threshold = ious >= iou_threshold
-        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        candidate = masks[[idx]]
+        merge_group = [idx]
+        while len(order) > 0:
+            ious = mask_iou_batch(masks[order], candidate, overlap_metric).flatten()
+            above_threshold = ious >= iou_threshold
+            if not above_threshold.any():
+                break
+            above_idx = order[above_threshold]
+            candidate = _update_mask_candidate(masks, candidate, above_idx)
+            merge_group.extend(np.flip(above_idx).tolist())
+            order = order[~above_threshold]
         merge_groups.append(merge_group)
-        order = order[~above_threshold]
     return merge_groups
+
+
+def _group_overlapping_masks_pairwise(
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any] | CompactMask,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> list[list[int]]:
+    return _greedy_nmm_via_mask_candidate(
+        predictions, masks, iou_threshold, overlap_metric
+    )
 
 
 def _non_max_merge_per_category(
@@ -1202,19 +1319,25 @@ def _group_overlapping_boxes(
         Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
-
-    def iou_against_candidate(
-        order: npt.NDArray[np.int_], idx: int
-    ) -> npt.NDArray[np.floating]:
-        return box_iou_batch(
+    merge_groups: list[list[int]] = []
+    scores = predictions[:, 4]
+    order = scores.argsort()
+    while len(order) > 0:
+        idx = int(order[-1])
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+        ious = box_iou_batch(
             predictions[order][:, :4],
             predictions[idx : idx + 1, :4],
             overlap_metric,
         ).flatten()
-
-    return _greedy_nmm_via_iou_callback(
-        predictions, iou_against_candidate, iou_threshold
-    )
+        above_threshold = ious >= iou_threshold
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        merge_groups.append(merge_group)
+        order = order[~above_threshold]
+    return merge_groups
 
 
 def box_non_max_merge(
@@ -1239,7 +1362,25 @@ def box_non_max_merge(
     Returns:
         list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
+
+    Raises:
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0, 0, 4, 4, 0.9, 0],
+        ...     [0, 0, 4, 4, 0.8, 0],
+        ... ])
+        >>> sv.box_non_max_merge(predictions, iou_threshold=0.5)
+        [[0, 1]]
+
+        ```
     """
+    _validate_iou_threshold(iou_threshold)
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_boxes(
@@ -1282,12 +1423,13 @@ def oriented_box_non_max_suppression(
             to keep after non-maximum suppression.
 
     Raises:
-        AssertionError: If ``iou_threshold`` is not within the closed
-            range from 0 to 1.
+        ValueError: If ``iou_threshold`` is not within the closed range
+            from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1305,11 +1447,10 @@ def oriented_box_non_max_suppression(
         ... )
         >>> keep
         array([ True, False])
+
+        ```
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
             if arr.ndim != 2 or arr.shape[1] not in (5, 6):
@@ -1355,19 +1496,25 @@ def _group_overlapping_oriented_boxes(
     Greedy non-maximum merging on oriented boxes. Mirrors
     :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.
     """
-
-    def iou_against_candidate(
-        order: npt.NDArray[np.int_], idx: int
-    ) -> npt.NDArray[np.floating]:
-        return oriented_box_iou_batch(
+    merge_groups: list[list[int]] = []
+    scores = predictions[:, 4]
+    order = scores.argsort()
+    while len(order) > 0:
+        idx = int(order[-1])
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+        ious = oriented_box_iou_batch(
             oriented_boxes[order],
             oriented_boxes[idx][None, ...],
             overlap_metric,
         ).flatten()
-
-    return _greedy_nmm_via_iou_callback(
-        predictions, iou_against_candidate, iou_threshold
-    )
+        above_threshold = ious >= iou_threshold
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        merge_groups.append(merge_group)
+        order = order[~above_threshold]
+    return merge_groups
 
 
 def oriented_box_non_max_merge(
@@ -1402,12 +1549,13 @@ def oriented_box_non_max_merge(
             or more elements.
 
     Raises:
-        AssertionError: If ``iou_threshold`` is not within the closed
-            range from 0 to 1.
+        ValueError: If ``iou_threshold`` is not within the closed range
+            from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
             mismatched lengths or invalid shapes.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> oriented_boxes = np.array([
@@ -1425,6 +1573,8 @@ def oriented_box_non_max_merge(
         ... )
         >>> len(groups)
         1
+
+        ```
     """
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
@@ -1452,10 +1602,7 @@ def oriented_box_non_max_merge(
             f"`predictions` and `oriented_boxes` must have the same length, "
             f"got {len(predictions)} and {len(oriented_boxes)}."
         )
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    _validate_iou_threshold(iou_threshold)
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_oriented_boxes(

@@ -2,10 +2,10 @@ import logging
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
@@ -38,6 +38,20 @@ def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
+    """Extract boolean masks from Ultralytics results, cropping letterbox padding.
+
+    Handles the case where the inference resolution differs from the original image
+    shape by computing the letterbox padding offsets, cropping them out, and resizing
+    each proto mask back to `orig_shape`. Thresholds at 0.5 to match Ultralytics'
+    semantics and avoid dilating masks through float interpolation.
+
+    Args:
+        yolov8_results: Ultralytics results object with `.masks` and `.orig_shape`.
+
+    Returns:
+        Boolean array of shape `(N, H, W)` aligned with the detections, or `None`
+        when no masks are present.
+    """
     if not yolov8_results.masks:
         return None
 
@@ -66,7 +80,12 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
+            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
+            # (matching Ultralytics' own semantics) instead of casting every
+            # nonzero interpolated value to True, which would dilate the mask.
+            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
+        # else: slice-crop (no interpolation) preserves the binary 0/1 float values
+        # produced by Ultralytics; the final np.asarray(..., dtype=bool) is equivalent.
 
         mask_maps.append(mask)
 
@@ -177,8 +196,11 @@ def _decode_compact_masks(
         mixed-modality guard triggers.
 
     Examples:
+        ```pycon
         >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
         True
+
+        ```
     """
     coco_compact_map: dict[int, CompactMask] = {}
     if coco_rle_pending:
@@ -294,18 +316,25 @@ def process_roboflow_result(
         where each array is aligned with the others. ``masks`` is ``None``
         when no predictions include mask data, or when only a subset do
         (mixed-modality batch) — in that case all masks are dropped to preserve
-        alignment with ``xyxy``. When ``compact_masks=True`` and masks are
+        alignment with ``xyxy``. Note: a single malformed polygon prediction
+        (fewer than 3 points) in an otherwise fully-segmented batch causes all
+        masks to be dropped from the result; the detection itself is kept as a
+        box-only entry with a ``logger.warning``. When ``compact_masks=True``
+        and masks are
         present, ``masks`` is a :class:`CompactMask`; otherwise it is a dense
         boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
         tracker ID, or when only a subset do (mixed batch) — in that case all
         tracker IDs are dropped to preserve alignment with ``xyxy``.
 
     Examples:
+        ```pycon
         >>> from supervision.detection.utils.internal import process_roboflow_result
         >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
         >>> _, _, _, _, _, data = process_roboflow_result(result)
         >>> data["class_name"].dtype.kind
         'U'
+
+        ```
     """
     if not roboflow_result["predictions"]:
         return (
@@ -414,6 +443,17 @@ def process_roboflow_result(
                 )
             else:
                 masks.append(mask)
+            tracker_ids.append(prediction.get("tracker_id"))
+        else:
+            logger.warning(
+                "Invalid polygon prediction with fewer than 3 points; falling back "
+                "to box-only detection."
+            )
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
@@ -595,13 +635,13 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 if not np.array_equal(merged_metadata[key], value):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
-                        "{type(value)}, {type(other_value)}."
+                        f"{type(value)}, {type(other_value)}."
                     )
             elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                 # Since [] == np.array([]).
                 raise ValueError(
                     f"Conflicting metadata for key: '{key}': "
-                    "{type(value)}, {type(other_value)}."
+                    f"{type(value)}, {type(other_value)}."
                 )
             else:
                 if merged_metadata[key] != value:
@@ -653,14 +693,31 @@ def get_data_item(
 def cross_product(
     anchors: npt.NDArray[np.number], vector: Vector
 ) -> npt.NDArray[np.number]:
-    """
-    Get array of cross products of each anchor with a vector.
+    """Get signed z-component of cross product (2-D determinant) per anchor.
+
+    Replaces the deprecated `np.cross` 2-D path (NumPy 2.0) with an explicit
+    determinant: ``a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]``.
+
     Args:
-        anchors: Array of anchors of shape (number of anchors, detections, 2)
-        vector: Vector to calculate cross product with
+        anchors: Array of anchors of shape (number of anchors, detections, 2).
+        vector: Vector to calculate cross product with.
 
     Returns:
-        Array of cross products of shape (number of anchors, detections)
+        Array of signed cross-product values, shape (number of anchors,
+        detections). Positive = anchor is to the left of the vector direction;
+        negative = to the right; zero = on the line.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.geometry.core import Point, Vector
+        >>> anchors = np.array([[[10.0, 5.0]], [[20.0, 5.0]]])
+        >>> vector = Vector(start=Point(0, 0), end=Point(1, 0))
+        >>> cross_product(anchors, vector)
+        array([[5.],
+               [5.]])
+
+        ```
     """
     vector_at_zero = np.array(
         [
@@ -669,6 +726,8 @@ def cross_product(
         ]
     )
     vector_start = np.array([vector.start.x, vector.start.y])
+    diff = anchors - vector_start
     return cast(
-        npt.NDArray[np.number], np.cross(vector_at_zero, anchors - vector_start)
+        npt.NDArray[np.number],
+        vector_at_zero[0] * diff[..., 1] - vector_at_zero[1] * diff[..., 0],
     )

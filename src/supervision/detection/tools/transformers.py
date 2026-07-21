@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 from typing import Any, cast
 
@@ -88,7 +90,7 @@ def process_transformers_v5_segmentation_result(
     Args:
         segmentation_result: Either a dictionary containing segmentation results
             (`segments_info` and `segmentation`) or a tensor object
-            representing a panoptic segmentation map.
+            representing a semantic segmentation map.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -126,12 +128,15 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
             scores, class IDs, and data.
     """
     segments_info = segmentation_result["segments_info"]
-    scores = np.array([segment["score"] for segment in segments_info])
-    class_ids = np.array([segment["label_id"] for segment in segments_info])
     segmentation_array = segmentation_result["segmentation"].cpu().detach().numpy()
-    masks = np.array(
-        [segmentation_array == segment["id"] for segment in segments_info]
-    ).astype(bool)
+    scores = np.array([segment["score"] for segment in segments_info], dtype=float)
+    class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
+    if len(segments_info) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.array(
+            [segmentation_array == segment["id"] for segment in segments_info]
+        ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
@@ -181,11 +186,10 @@ def process_transformers_v5_panoptic_segmentation_result(
     segmentation_array: npt.NDArray[Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
     """
-    Process the result of the Transformers function
-    `post_process_panoptic_segmentation` (v5).
+    Process a v5 Transformers semantic segmentation tensor.
 
     Args:
-        segmentation_array: Segmentation array.
+        segmentation_array: Segmentation array where unique values are class IDs.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -194,29 +198,42 @@ def process_transformers_v5_panoptic_segmentation_result(
         Processed segmentation result including bounding boxes, masks,
             class IDs, and data.
     """
-    class_ids = np.unique(segmentation_array)
-    masks = np.stack(
-        [segmentation_array == class_id for class_id in class_ids], axis=0
-    ).astype(bool)
+    class_ids = np.unique(segmentation_array).astype(int)
+    if len(class_ids) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.stack(
+            [segmentation_array == class_id for class_id in class_ids], axis=0
+        ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
     return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
 
 
 def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
     """
-    Convert a PNG byte string to a label mask array.
+    Convert a PNG byte string to a panoptic segmentation array.
 
     Args:
         png_string: A byte string representing the PNG image.
 
     Returns:
-        A label mask array with shape (H, W), where H and W
-            are the height and width of the image. Each unique value in the array
-            represents a different object or category.
+        A segmentation ID array with shape (H, W), where each unique value
+            represents a different object or category. RGB-encoded panoptic
+            PNGs are decoded as little-endian 24-bit integers; alpha is ignored.
     """
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
-    return cast(npt.NDArray[Any], mask[:, :, 0])
+    if mask.ndim == 2:
+        return mask.astype(np.uint32)
+    if mask.shape[2] < 3:
+        raise ValueError("Panoptic PNG masks must have at least 3 channels.")
+
+    segmentation = (
+        mask[:, :, 0].astype(np.uint32)
+        + (mask[:, :, 1].astype(np.uint32) << 8)
+        + (mask[:, :, 2].astype(np.uint32) << 16)
+    )
+    return cast(npt.NDArray[Any], segmentation)
 
 
 def append_class_names_to_data(

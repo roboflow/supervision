@@ -149,6 +149,23 @@ class TestRecall:
         assert result.recall_at_50 == 0.0
         assert result.recall_at_75 == 0.0
 
+    def test_medium_bucket_scores_target_matched_small_prediction(self) -> None:
+        """Medium-object recall keeps valid matches even if the prediction is small."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        result = Recall().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.recall_at_50 == 1.0
+
     def test_single_class_missed_detections(
         self, detections_50_50, targets_two_objects_class_0
     ):

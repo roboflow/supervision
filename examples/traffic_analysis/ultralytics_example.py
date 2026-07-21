@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 
-import cv2
 import numpy as np
 from tqdm import tqdm
 from ultralytics import YOLO
@@ -109,12 +108,14 @@ class VideoProcessor:
                     annotated_frame = self.process_frame(frame)
                     sink.write_frame(annotated_frame)
         else:
+            window = sv.ImageWindow("Processed Video")
             for frame in tqdm(frame_generator, total=self.video_info.total_frames):
                 annotated_frame = self.process_frame(frame)
-                cv2.imshow("Processed Video", annotated_frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
+                window.show(annotated_frame)
+                key = window.wait_key(1)
+                if not window.is_open or key == "q":
                     break
-            cv2.destroyAllWindows()
+            window.close()
 
     def annotate_frame(
         self, frame: np.ndarray, detections: sv.Detections

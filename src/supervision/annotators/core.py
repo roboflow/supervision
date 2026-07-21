@@ -3,13 +3,13 @@ from functools import lru_cache
 from math import sqrt
 from typing import Any, ClassVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
+from supervision import _cv2 as cv2
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
@@ -44,14 +44,29 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _overlay_image,
     crop_image,
     letterbox_image,
-    overlay_image,
     scale_image,
 )
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+
+@lru_cache
+def _load_icon_from_path(
+    icon_path: str, icon_resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Load and resize an icon image through a cache shared by annotators."""
+    icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
+    if icon is None:
+        raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
+    icon_array = cast(npt.NDArray[np.uint8], icon)
+    result: npt.NDArray[np.uint8] = letterbox_image(
+        image=icon_array, resolution_wh=icon_resolution_wh
+    )
+    return result
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
@@ -315,7 +330,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
         Example:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -887,7 +902,13 @@ class HaloAnnotator(BaseAnnotator):
             return scene
         alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
+        # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
+        blended_scene = np.clip(
+            scene.astype(np.float32) * (1 - alpha_mask)
+            + colored_mask.astype(np.float32) * alpha_mask,
+            0,
+            255,
+        ).astype(np.uint8)
         np.copyto(scene, blended_scene)
         return scene
 
@@ -1346,11 +1367,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
 
@@ -1405,10 +1426,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
             label_properties = self._adjust_labels_in_frame(
                 (scene.shape[1], scene.shape[0]),
                 labels,
@@ -1702,11 +1719,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_class_method
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided
         detections, with support for Unicode characters.
@@ -1759,12 +1776,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         if self.smart_position:
-            xyxy = label_properties[:, :4]
-            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
-            label_properties[:, :4] = xyxy
-
+            scene_pil = cast(Image.Image, scene)
             label_properties = self._adjust_labels_in_frame(
-                (scene.width, scene.height),
+                (scene_pil.width, scene_pil.height),
                 labels,
                 label_properties,
             )
@@ -2010,21 +2024,14 @@ class IconAnnotator(BaseAnnotator):
             x = int(xy[detection_idx, 0] - icon_w / 2 + self.offset_xy[0])
             y = int(xy[detection_idx, 1] - icon_h / 2 + self.offset_xy[1])
 
-            scene[:] = overlay_image(scene, icon, (x, y))
+            scene[:] = _overlay_image(scene, icon, (x, y))
         return scene
 
-    @lru_cache
     def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
-        icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
-        if icon is None:
-            raise FileNotFoundError(
-                f"Error: Couldn't load the icon image from {icon_path}"
-            )
-        icon_array = cast(npt.NDArray[np.uint8], icon)
-        result: npt.NDArray[np.uint8] = letterbox_image(
-            image=icon_array, resolution_wh=self.icon_resolution_wh
+        """Load an icon through the module-level cache shared by annotators."""
+        return _load_icon_from_path(
+            icon_path=icon_path, icon_resolution_wh=self.icon_resolution_wh
         )
-        return result
 
 
 class BlurAnnotator(BaseAnnotator):
@@ -2146,6 +2153,36 @@ class TraceAnnotator(BaseAnnotator):
         self.thickness = thickness
         self.smooth = smooth
         self.color_lookup: ColorLookup = color_lookup
+
+    def reset(self) -> None:
+        """
+        Clears the accumulated trace history so the annotator can be reused
+        across independent streams without carrying over points from a
+        previous stream.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((20, 20, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[1, 1, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1])
+            ... )
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> _ = trace_annotator.annotate(scene=image.copy(), detections=detections)
+            >>> trace_annotator.trace.xy.shape
+            (1, 2)
+            >>> trace_annotator.reset()
+            >>> trace_annotator.trace.current_frame_id
+            0
+            >>> trace_annotator.trace.xy.shape
+            (0, 2)
+
+            ```
+        """
+        self.trace.reset()
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2297,6 +2334,34 @@ class HeatMapAnnotator(BaseAnnotator):
         self.low_hue = low_hue
         self.heat_mask: npt.NDArray[np.float32] | None = None
 
+    def reset(self) -> None:
+        """
+        Clears the accumulated heat so the annotator can be reused across
+        independent streams. `annotate` already reinitializes the heat mask
+        when the scene resolution changes; call this to discard heat from a
+        previous stream that shares the same resolution.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((40, 40, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(xyxy=np.array([[10, 10, 20, 20]]))
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            >>> _ = heat_map_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(heat_map_annotator.heat_mask.sum() > 0)
+            True
+            >>> heat_map_annotator.reset()
+            >>> heat_map_annotator.heat_mask is None
+            True
+
+            ```
+        """
+        self.heat_mask = None
+
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
@@ -2343,7 +2408,7 @@ class HeatMapAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        if self.heat_mask is None:
+        if self.heat_mask is None or self.heat_mask.shape != scene.shape[:2]:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
         mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
@@ -2373,10 +2438,9 @@ class HeatMapAnnotator(BaseAnnotator):
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
         heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask_bool = cv2.cvtColor(heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask_bool] = cv2.addWeighted(
-            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
-        )[mask_bool]
+        mask2d = heat_mask > 0
+        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        scene[mask2d] = blended[mask2d]
         return scene
 
 
@@ -2875,6 +2939,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     def calculate_border_coordinates(
         anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the border corner coordinates for a given anchor position."""
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2899,6 +2964,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx - width // 2, cy), (cx + width // 2, cy + height)
         elif position == Position.BOTTOM_RIGHT:
             return (cx, cy), (cx + width, cy + height)
+        raise ValueError(f"Unsupported position: {position}")
 
     @staticmethod
     def _validate_custom_values(
@@ -2997,6 +3063,12 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
+        Note:
+            Detections whose bounding boxes extend partially outside `scene` are
+            clipped to scene bounds before cropping. Detections fully outside the
+            scene collapse to zero area after clipping and are skipped without
+            raising an error.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -3019,22 +3091,29 @@ class CropAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        crops = [
-            crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
-        ]
-        resized_crops = [
-            scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
-        ]
+        image_height, image_width = scene.shape[:2]
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+            xyxy=detections.xyxy,
+            resolution_wh=(image_width, image_height),
+        ).astype(np.int32)
         anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.position
-        ).astype(int)
+        ).astype(np.int32)
+        # Snapshot before the loop so later crops are taken from the original image,
+        # not a scene already annotated by earlier iterations (overlapping-box case).
+        source_scene = scene.copy()
 
-        for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
+        for idx, (xyxy, anchor) in enumerate(zip(clipped_xyxy, anchors)):
+            crop_x1, crop_y1, crop_x2, crop_y2 = xyxy
+            if crop_x2 <= crop_x1 or crop_y2 <= crop_y1:
+                continue
+            crop = crop_image(image=source_scene, xyxy=xyxy)
+            resized_crop = scale_image(image=crop, scale_factor=self.scale_factor)
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
             (x1, y1), (x2, y2) = self.calculate_crop_coordinates(
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
-            scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
+            scene = _overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
             color = resolve_color(
                 color=self.border_color,
                 detections=detections,
@@ -3057,6 +3136,7 @@ class CropAnnotator(BaseAnnotator):
     def calculate_crop_coordinates(
         anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
     ) -> tuple[tuple[int, int], tuple[int, int]]:
+        """Compute the crop coordinates for a given anchor position."""
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
@@ -3093,6 +3173,7 @@ class CropAnnotator(BaseAnnotator):
             )
         elif position == Position.BOTTOM_RIGHT:
             return (anchor_x, anchor_y), (anchor_x + width, anchor_y + height)
+        raise ValueError(f"Unsupported position: {position}")
 
 
 class BackgroundOverlayAnnotator(BaseAnnotator):
@@ -3171,7 +3252,12 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         )
 
         if detections.mask is None or self.force_box:
-            for x1, y1, x2, y2 in detections.xyxy.astype(int):
+            image_height, image_width = scene.shape[:2]
+            clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
+                xyxy=detections.xyxy,
+                resolution_wh=(image_width, image_height),
+            ).astype(np.int32)
+            for x1, y1, x2, y2 in clipped_xyxy:
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:

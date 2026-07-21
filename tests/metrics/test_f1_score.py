@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -159,6 +161,23 @@ class TestF1Score:
         # F1 = 0.0
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
+
+    def test_medium_bucket_scores_target_matched_small_prediction(self) -> None:
+        """Medium-object F1 keeps valid matches even if the prediction is small."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        result = F1Score().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.f1_50 == 1.0
 
     def test_false_positives_on_background_image_counted(self):
         """Predictions on an image with no targets must count as false positives."""
@@ -442,3 +461,80 @@ class TestF1Score:
         result = F1Score().update(preds, targets).compute()
 
         assert result.f1_50 == 1.0
+
+    def test_compute_no_runtime_warning_for_zero_denominator_bucket(self) -> None:
+        """compute() must not emit RuntimeWarning when a size bucket has a
+        zero true-positive/false-positive/false-negative denominator.
+
+        Regression test for #2434: a single medium-sized match leaves the
+        small-object bucket with an all-zero confusion-matrix row, which used
+        to trigger a spurious `invalid value encountered in divide` warning.
+        """
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            result = F1Score().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.f1_50 == 1.0
+
+
+class TestComputeF1:
+    """Direct coverage of `F1Score._compute_f1`, the broadcastable helper that
+    turns a confusion matrix into per-element F1 scores."""
+
+    @pytest.mark.parametrize(
+        ("confusion_matrix", "expected_f1"),
+        [
+            pytest.param(
+                np.array([[0.0, 0.0, 0.0]]),
+                np.array([0.0]),
+                id="all-zero-row-returns-zero-by-convention",
+            ),
+            pytest.param(
+                np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+                np.array([0.0, 1.0]),
+                id="mixed-zero-and-nonzero-rows",
+            ),
+            pytest.param(
+                np.array([[3.0, 1.0, 2.0]]),
+                np.array([2.0 / 3.0]),
+                id="all-nonzero-row",
+            ),
+            pytest.param(
+                np.array([[2.0, 0.0, 0.0]]),
+                np.array([1.0]),
+                id="single-element-array",
+            ),
+        ],
+    )
+    def test_compute_f1_matches_expected_score_without_warning(
+        self, confusion_matrix, expected_f1
+    ) -> None:
+        """_compute_f1 returns the expected score and never emits
+        RuntimeWarning, including for confusion matrix rows whose
+        true-positive/false-positive/false-negative denominator is zero.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            f1_score = F1Score._compute_f1(confusion_matrix)
+
+        assert f1_score == pytest.approx(expected_f1)
+
+    def test_compute_f1_raises_value_error_for_wrong_last_dimension(self) -> None:
+        """_compute_f1 raises ValueError when the input's last axis isn't
+        length 3 (true positives, false positives, false negatives).
+        """
+        confusion_matrix = np.zeros((2, 2))
+
+        with pytest.raises(ValueError, match="Confusion matrix must have shape"):
+            F1Score._compute_f1(confusion_matrix)

@@ -2,12 +2,12 @@ import functools
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image
 
+from supervision import _cv2 as cv2
 from supervision.draw.base import ImageType
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -160,15 +160,34 @@ def images_to_cv2(
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     Converts Pillow image into OpenCV image, handling RGB -> BGR
-    conversion.
+    conversion. Palette images are first expanded to RGB so palette indices are
+    resolved to their actual colors.
 
     Args:
-        image: Pillow image (in RGB format).
+        image: Pillow image in RGB, grayscale, or palette mode.
 
     Returns:
         Input image converted to OpenCV format.
+
+    Examples:
+        ```pycon
+        >>> from PIL import Image
+        >>> from supervision.utils.conversion import pillow_to_cv2
+        >>> image = Image.new("RGB", (10, 10), color=(255, 0, 0))
+        >>> scene = pillow_to_cv2(image)
+        >>> scene.shape
+        (10, 10, 3)
+        >>> scene[0, 0].tolist()
+        [0, 0, 255]
+
+        ```
     """
+    if image.mode == "P":
+        image = image.convert("RGB")
+
     scene = np.array(image)
+    if scene.ndim == 2:
+        return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.
@@ -177,14 +196,40 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     """
-    Converts OpenCV image into Pillow image, handling BGR -> RGB
-    conversion.
+    Converts an OpenCV image into a Pillow image, reordering channels from
+    OpenCV's BGR(A) convention to Pillow's RGB(A).
 
     Args:
-        image: OpenCV image (in BGR format).
+        image: OpenCV image. Accepted shapes:
+            - `(H, W)` — grayscale, passed through unchanged.
+            - `(H, W, 3)` — BGR, converted to RGB.
+            - `(H, W, 4)` — BGRA, converted to RGBA.
 
     Returns:
         Input image converted to Pillow format.
+
+    Raises:
+        ValueError: If `image` is not 2-D or 3-D with 3 or 4 channels.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.utils.conversion import cv2_to_pillow
+        >>> scene = np.zeros((10, 10, 3), dtype=np.uint8)
+        >>> scene[:, :, 2] = 255
+        >>> image = cv2_to_pillow(scene)
+        >>> image.size
+        (10, 10)
+        >>> image.getpixel((0, 0))
+        (255, 0, 0)
+
+        ```
     """
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(rgb_image)
+    if image.ndim == 2:
+        return Image.fromarray(np.ascontiguousarray(image))
+    if image.ndim == 3 and image.shape[2] == 3:
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return Image.fromarray(rgb_image)
+    if image.ndim == 3 and image.shape[2] == 4:
+        return Image.fromarray(np.ascontiguousarray(image[..., [2, 1, 0, 3]]))
+    raise ValueError(f"Expected shape (H,W), (H,W,3), or (H,W,4), got {image.shape}.")
