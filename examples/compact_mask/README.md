@@ -2,7 +2,7 @@
 
 This example benchmarks `CompactMask`, a new mask representation introduced in `supervision` that replaces dense `(N, H, W)` boolean arrays with a crop-scoped Run-Length Encoding (RLE). The benchmark demonstrates full API compatibility, massive memory savings, and order-of-magnitude annotation speedups — with no change to your existing `Detections` code.
 
----
+______________________________________________________________________
 
 ## The Problem
 
@@ -16,7 +16,7 @@ For a 4K image with 1 000 detected objects:
 
 At this scale, typical pipelines crash with `MemoryError` before a single frame is annotated. Aerial imagery, satellite tiles, and high-density crowd scenes all hit this wall.
 
----
+______________________________________________________________________
 
 ## The Solution — Crop-RLE Storage
 
@@ -95,7 +95,7 @@ Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never
 
 At N=1 000 with 1 % overlap, bbox pre-filter reduces 499 500 candidate pairs to ~5 000 overlapping pairs — a ~2 000x reduction in pixel-level work.
 
----
+______________________________________________________________________
 
 ## Why Crop-RLE Was Chosen over Local Crop
 
@@ -107,7 +107,7 @@ Both formats compress extremely well; the deciding factors for Crop-RLE are:
 
 The main trade-off: crop-only decode is O(A) rather than O(1). For the common solid-fill segmentation mask this is negligible (\<0.1 ms per mask).
 
----
+______________________________________________________________________
 
 ## Operation-by-Operation Speedup Analysis
 
@@ -115,7 +115,7 @@ This section walks through every `Detections` operation that touches masks and s
 
 At 50% fill on an FHD image each mask's bounding box covers a large portion of the frame, producing many RLE runs per row.
 
----
+______________________________________________________________________
 
 ### Memory
 
@@ -146,7 +146,7 @@ Scaled to N=200: 200 x 4.7 KB = ~933 KB of RLE data, plus `_crop_shapes` (1.6 KB
 
 At 5% fill with 8-vertex polygons, the ratio reaches 10 000x–20 000x because crops are tiny and RLEs are extremely short. The benchmark's 4K-200-5%-v8 scenario measures 21 786x (theory) / ~6 000x (malloc). The SAT-200-5%-v8 scenario reaches 62 968x theoretical.
 
----
+______________________________________________________________________
 
 ### `.area`
 
@@ -179,7 +179,7 @@ At FHD-200-50%-v600, dense `.area` takes 84.66 ms; compact takes 0.48 ms — a *
 | No (H, W) allocation per mask      | latency     |
 | **Combined**                       | **~1 000x** |
 
----
+______________________________________________________________________
 
 ### `filter` / `__getitem__` (boolean index)
 
@@ -212,7 +212,7 @@ At FHD-200-50%-v600, dense `filter` takes 14.56 ms; compact takes 0.03 ms — a 
 | Allocation  | new `(K, H, W)` array   | new `CompactMask` shell (~trivial)  |
 | **Speedup** |                         | **hundreds to tens of thousands x** |
 
----
+______________________________________________________________________
 
 ### `annotate` (`MaskAnnotator`)
 
@@ -246,7 +246,7 @@ colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color.as_bgr()
 | x N masks                                          | compounds           |
 | **Combined**                                       | **~26 – 400x**      |
 
----
+______________________________________________________________________
 
 ### IoU (`mask_iou_batch` / `compact_mask_iou_batch`)
 
@@ -315,7 +315,7 @@ At FHD-200-50%-v600, dense IoU takes 23 915 ms; compact takes 51.58 ms — a **4
 
 At 20% fill the gaps close — more pairs overlap, larger crops — speedup drops toward the lower end of the range.
 
----
+______________________________________________________________________
 
 ### NMS (`mask_non_max_suppression`)
 
@@ -339,7 +339,7 @@ All three IoU optimisations apply to the compact path:
 
 At FHD-200-50%-v600, dense NMS takes 5 231 ms; compact takes 48.15 ms — a **481x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
 
----
+______________________________________________________________________
 
 ### `merge` (`Detections.merge`)
 
@@ -387,7 +387,7 @@ if len(self.xyxy) > 0:
 
 This O(1) check avoids the O(N x H x W) dense materialisation that previously dominated compact merge time.
 
----
+______________________________________________________________________
 
 ### `offset` / `with_offset` (`InferenceSlicer` tile stitching)
 
@@ -425,7 +425,7 @@ At FHD-200-50%-v600, dense offset takes 42.30 ms; compact takes 0.02 ms — a **
 
 In the `InferenceSlicer` pipeline the canvas is always expanded by the tile offset, so no crop ever overflows — the fast path is always taken. Clipping only activates for objects that genuinely straddle the image boundary.
 
----
+______________________________________________________________________
 
 ### `centroids` (`calculate_masks_centroids`)
 
@@ -460,7 +460,7 @@ At FHD-200-50%-v600, dense centroids takes 1 133.68 ms; compact takes 60.39 ms �
 | No global `np.indices((H, W))` allocation | saves large float64 |
 | **Combined (N=200)**                      | **~19 – 1 000x**    |
 
----
+______________________________________________________________________
 
 ### Summary
 
@@ -480,7 +480,7 @@ Measured speedups at the **FHD-200-50%-v600** operating point (dense fill, compl
 
 All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 1 204x and `merge` reaches 89 046x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
 
----
+______________________________________________________________________
 
 ## Drop-In Compatibility
 
@@ -517,7 +517,7 @@ Supported indexing patterns:
 | `mask[slice]`      | New `CompactMask`            |
 | `np.asarray(mask)` | Dense `(N, H, W)` bool array |
 
----
+______________________________________________________________________
 
 ## Benchmark
 
@@ -626,7 +626,7 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 
 All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `to_dense()` roundtrip.
 
----
+______________________________________________________________________
 
 ## Use-Cases
 
@@ -636,7 +636,7 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 - **Long-running tracking** — accumulated `Detections` across many frames stay in kilobytes rather than gigabytes.
 - **`InferenceSlicer`** — `with_offset()` adjusts crop origins directly when stitching tile results; no dense materialisation needed.
 
----
+______________________________________________________________________
 
 ## Limitations
 
@@ -644,7 +644,7 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 - RLE format is **column-major (F-order), crop-scoped** — pixel-scan order matches COCO / pycocotools, but crop scope differs from full-image scope. Use `.to_dense()` to materialize a full-image dense mask, then encode that mask to COCO RLE before passing it to pycocotools.
 - `from_dense()` requires the input `(N, H, W)` array to fit in memory. For truly OOM-scale data, build `CompactMask` per-detection directly from model output crops rather than from a pre-allocated dense stack.
 
----
+______________________________________________________________________
 
 ## Files
 
