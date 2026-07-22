@@ -82,6 +82,7 @@ class VLM(Enum):
         QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        GOOGLE_GEMINI_3_5: Google Gemini 3.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
     """
 
@@ -92,6 +93,7 @@ class VLM(Enum):
     DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_3_5 = "gemini_3_5"
     MOONDREAM = "moondream"
 
     @classmethod
@@ -122,6 +124,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.DEEPSEEK_VL_2: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.GOOGLE_GEMINI_3_5: str,
     VLM.MOONDREAM: dict,
 }
 
@@ -133,6 +136,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -144,6 +148,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -602,6 +607,42 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
+def _recover_gemini_json_objects(text: str) -> list[Any]:
+    """
+    Salvage individual JSON objects from a malformed Gemini JSON array.
+
+    Scans for balanced `{...}` spans and parses each independently, keeping the
+    ones that decode into a `dict` and skipping the rest. This recovers the valid
+    entries from an array that a single `json.loads` would reject wholesale, such
+    as one whose objects contain a mid-array syntax error or a missing key.
+
+    Args:
+        text: The (fence-stripped) response text that failed `json.loads`.
+
+    Returns:
+        The list of successfully parsed objects, which may be empty.
+    """
+    objects: list[Any] = []
+    depth = 0
+    start = None
+    for index, char in enumerate(text):
+        if char == "{":
+            if depth == 0:
+                start = index
+            depth += 1
+        elif char == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    parsed = json.loads(text[start : index + 1])
+                except json.JSONDecodeError:
+                    parsed = None
+                if isinstance(parsed, dict):
+                    objects.append(parsed)
+                start = None
+    return objects
+
+
 def from_google_gemini_2_0(
     result: str,
     resolution_wh: tuple[int, int],
@@ -653,7 +694,7 @@ def from_google_gemini_2_0(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
+        data = _recover_gemini_json_objects(result)
 
     if not isinstance(data, list):
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
@@ -744,13 +785,7 @@ def from_google_gemini_2_5(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return (
-            np.empty((0, 4)),
-            np.array([], dtype=int),
-            np.array([], dtype=str),
-            np.array([], dtype=float),
-            None,
-        )
+        data = _recover_gemini_json_objects(result)
 
     if not isinstance(data, list):
         return (
@@ -864,6 +899,37 @@ def from_google_gemini_2_5(
         confidence,
         masks,
     )
+
+
+def from_google_gemini_3_5(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+]:
+    """
+    Parse and scale bounding boxes and masks from Google Gemini 3.5 style JSON output.
+
+    Gemini 3.5 emits the same detection JSON as Gemini 2.5 (`box_2d` in
+    `[y_min, x_min, y_max, x_max]` normalized to 0-1000, plus `label` and optional
+    `mask`/`confidence`), so parsing delegates to `from_google_gemini_2_5`.
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
+
+    Returns:
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` matching the
+            `from_google_gemini_2_5` return contract.
+    """
+    return from_google_gemini_2_5(result, resolution_wh, classes)
 
 
 def from_moondream(

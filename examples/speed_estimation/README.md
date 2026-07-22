@@ -14,29 +14,29 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
 - clone repository and navigate to example directory
 
-    ```bash
-    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
-    cd supervision/examples/speed_estimation
-    ```
+  ```bash
+  git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
+  cd supervision/examples/speed_estimation
+  ```
 
 - setup python environment and activate it [optional]
 
-    ```bash
-    uv venv
-    source .venv/bin/activate
-    ```
+  ```bash
+  uv venv
+  source .venv/bin/activate
+  ```
 
 - install required dependencies
 
-    ```bash
-    uv pip install -r requirements.txt
-    ```
+  ```bash
+  uv pip install -r requirements.txt
+  ```
 
 - download `vehicles.mp4` file
 
-    ```bash
-    python video_downloader.py
-    ```
+  ```bash
+  python video_downloader.py
+  ```
 
 ## 🛠️ script arguments
 
@@ -58,34 +58,34 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
 - yolo-nas
 
-    ```bash
-    python yolo_nas_example.py \
-        --source_video_path data/vehicles.mp4 \
-        --target_video_path data/vehicles-result.mp4 \
-        --confidence_threshold 0.3 \
-        --iou_threshold 0.5
-    ```
+  ```bash
+  python yolo_nas_example.py \
+      --source_video_path data/vehicles.mp4 \
+      --target_video_path data/vehicles-result.mp4 \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+  ```
 
 - inference
 
-    ```bash
-    python inference_example.py \
-        --roboflow_api_key "ROBOFLOW_API_KEY" \
-        --source_video_path data/vehicles.mp4 \
-        --target_video_path data/vehicles-result.mp4 \
-        --confidence_threshold 0.3 \
-        --iou_threshold 0.5
-    ```
+  ```bash
+  python inference_example.py \
+      --roboflow_api_key "ROBOFLOW_API_KEY" \
+      --source_video_path data/vehicles.mp4 \
+      --target_video_path data/vehicles-result.mp4 \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+  ```
 
 - ultralytics
 
-    ```bash
-    python ultralytics_example.py \
-        --source_video_path data/vehicles.mp4 \
-        --target_video_path data/vehicles-result.mp4 \
-        --confidence_threshold 0.3 \
-        --iou_threshold 0.5
-    ```
+  ```bash
+  python ultralytics_example.py \
+      --source_video_path data/vehicles.mp4 \
+      --target_video_path data/vehicles-result.mp4 \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+  ```
 
 ## © license
 

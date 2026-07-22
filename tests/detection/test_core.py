@@ -11,9 +11,14 @@ from supervision.detection.core import (
     _merge_detection_group,
     _merge_obb_corners,
     merge_inner_detection_object_pair,
+    merge_inner_detections_objects,
 )
 from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
-from supervision.detection.utils.iou_and_nms import OverlapMetric
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    box_iou_batch,
+    oriented_box_iou_batch,
+)
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -1611,6 +1616,50 @@ class TestDetectionsObbDispatch:
 
         assert len(result) == 2
 
+    def test_deprecated_merge_uses_obb_iou_before_merging(self) -> None:
+        """Deprecated inner merge keeps separated OBBs despite overlapping envelopes."""
+        quad_a = _rotated_rect(50, 50, 100, 10, 45)
+        quad_b = _rotated_rect(58, 50, 100, 10, -45)
+        detections_a = _make_obb_detections([quad_a], [0.9], [0])
+        detections_b = _make_obb_detections([quad_b], [0.8], [0])
+
+        obb_iou = oriented_box_iou_batch(
+            detections_a.data[ORIENTED_BOX_COORDINATES],
+            detections_b.data[ORIENTED_BOX_COORDINATES],
+        )[0, 0]
+        aabb_iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)[0, 0]
+
+        assert obb_iou < 0.5
+        assert aabb_iou > 0.5
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = merge_inner_detections_objects(
+                [detections_a, detections_b], threshold=0.5
+            )
+
+        np.testing.assert_array_equal(result.xyxy, detections_a.xyxy)
+
+    def test_deprecated_merge_chain_across_three_with_changing_geometry(self) -> None:
+        """N>2 chain: merge OBB pair, fall back to box IoU for AABB-only detection."""
+        quad_a = _rotated_rect(50, 50, 20, 10, 10)
+        quad_b = _rotated_rect(52, 50, 20, 10, -10)
+        detections_a = _make_obb_detections([quad_a], [0.9], [0])
+        detections_b = _make_obb_detections([quad_b], [0.85], [0])
+        detections_c = Detections(
+            xyxy=np.array([[35, 40, 65, 60]], dtype=np.float32),
+            confidence=np.array([0.7], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = merge_inner_detections_objects(
+                [detections_a, detections_b, detections_c], threshold=0.3
+            )
+
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.class_id, np.array([0]))
+
     @pytest.mark.parametrize(
         "method",
         [
@@ -1667,6 +1716,130 @@ class TestDetectionsOverlapValidation:
 
         with pytest.raises(ValueError, match="Detections class_id must be given"):
             getattr(detections, method)(threshold=0.5)
+
+
+class TestDetectionsWithSoftNms:
+    """`Detections.with_soft_nms` — decay semantics, dispatch, non-mutation."""
+
+    def test_requires_confidence(self) -> None:
+        """Missing confidence raises a descriptive `ValueError`."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="Detections confidence must be given"):
+            detections.with_soft_nms()
+
+    def test_requires_class_id_when_not_class_agnostic(self) -> None:
+        """Missing class IDs raise a descriptive `ValueError`."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+        )
+
+        with pytest.raises(ValueError, match="Detections class_id must be given"):
+            detections.with_soft_nms()
+
+    def test_rejects_non_positive_sigma(self) -> None:
+        """`sigma` must be strictly greater than 0."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="sigma"):
+            detections.with_soft_nms(sigma=0)
+
+    def test_returns_self_for_empty_detections(self) -> None:
+        """Empty input short-circuits without dispatching to Soft-NMS."""
+        detections = Detections.empty()
+
+        result = detections.with_soft_nms()
+
+        assert result is detections
+
+    def test_does_not_mutate_original(self) -> None:
+        """The source `Detections` confidence is untouched after the call."""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 40, 40], [15, 15, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.8, 0.9], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+        original_confidence = detections.confidence.copy()
+
+        result = detections.with_soft_nms(sigma=0.2)
+
+        assert result is not detections
+        np.testing.assert_array_equal(detections.confidence, original_confidence)
+        np.testing.assert_almost_equal(result.confidence, [0.07176137, 0.9], decimal=5)
+
+    def test_box_path_class_agnostic(self) -> None:
+        """`class_agnostic=True` skips the class_id requirement for boxes."""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 40, 40], [15, 15, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.8, 0.9], dtype=np.float32),
+        )
+
+        result = detections.with_soft_nms(sigma=0.2, class_agnostic=True)
+
+        np.testing.assert_almost_equal(result.confidence, [0.07176137, 0.9], decimal=5)
+
+    def test_mask_path_dispatch(self) -> None:
+        """Mask data present routes through `mask_soft_non_max_suppression`."""
+        masks = np.zeros((2, 4, 4), dtype=bool)
+        masks[:, :2, :2] = True
+        detections = Detections(
+            xyxy=np.array([[0, 0, 4, 4], [0, 0, 4, 4]], dtype=np.float32),
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+            mask=masks,
+        )
+
+        result = detections.with_soft_nms(sigma=0.5)
+
+        np.testing.assert_almost_equal(result.confidence, [0.9, 0.10826823], decimal=5)
+        assert result.mask is not detections.mask
+
+    def test_single_mask_self_decay_class_agnostic(self) -> None:
+        """A single class-agnostic mask detection is left undecayed (no peer)."""
+        masks = np.zeros((1, 4, 4), dtype=bool)
+        masks[:, :2, :2] = True
+        detections = Detections(
+            xyxy=np.array([[0, 0, 4, 4]], dtype=np.float32),
+            confidence=np.array([0.8], dtype=np.float32),
+            mask=masks,
+        )
+
+        result = detections.with_soft_nms(sigma=0.5, class_agnostic=True)
+
+        np.testing.assert_almost_equal(result.confidence, [0.8], decimal=5)
+
+    def test_score_threshold_filters_to_subset(self) -> None:
+        """`score_threshold` drops decayed detections, producing a real subset."""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 40, 40], [15, 15, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.8, 0.9], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = detections.with_soft_nms(sigma=0.2, score_threshold=0.5)
+
+        assert len(result) == 1
+        np.testing.assert_almost_equal(result.confidence, [0.9], decimal=5)
+
+    def test_none_score_threshold_keeps_all_detections(self) -> None:
+        """Default `score_threshold=None` never drops a detection."""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 40, 40], [15, 15, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.8, 0.9], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = detections.with_soft_nms(sigma=0.2)
+
+        assert len(result) == 2
 
 
 class TestGetAnchorsObbDispatch:
