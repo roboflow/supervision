@@ -66,6 +66,7 @@ date_modified: 2026-07-21
 
 ### Added
 
+- `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#268](https://github.com/roboflow/supervision/issues/268)).
 - `sv.VLM.GOOGLE_GEMINI_3_5` — `sv.Detections.from_vlm` now parses Google Gemini 3.5 output (detection and segmentation), reusing the Gemini 2.5 JSON format (`box_2d` + `label`, optional `mask`/`confidence`).
 - `sv.get_video_frames_generator` now accepts `prefetch: int = 0` ([#2273](https://github.com/roboflow/supervision/pull/2273)). When `> 0`, frames are decoded on a background daemon thread and buffered in a bounded queue, overlapping I/O with consumer processing. Default `0` preserves the existing synchronous behaviour.
 - Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking, metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains the primary backend when available; `av>=14.2.0` is now required alongside OpenCV during the transition, with the later OpenCV-removal integration removing the OpenCV dependency.

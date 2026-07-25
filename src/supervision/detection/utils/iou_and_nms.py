@@ -1560,6 +1560,100 @@ def box_non_max_merge(
     return _non_max_merge_per_category(predictions, group_within)
 
 
+def _fuse_box_group(group: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+    """
+    Fuse one group of overlapping boxes into a single confidence-weighted box.
+
+    The fused coordinates are the average of the group's coordinates weighted by
+    each box's confidence, so higher-scoring boxes pull the result toward
+    themselves; the fused score is the group's mean confidence, and the class id
+    (when present) is taken from the highest-scoring member.
+    """
+    boxes = group[:, :4]
+    scores = group[:, 4]
+
+    # Fall back to a uniform average when every score is zero, so the weighted
+    # mean stays well defined instead of dividing by a zero weight sum.
+    score_sum = scores.sum()
+    if score_sum > 0:
+        weights = scores / score_sum
+    else:
+        weights = np.full(len(scores), 1.0 / len(scores))
+
+    fused_box = (boxes * weights[:, np.newaxis]).sum(axis=0)
+    fused_score = float(scores.mean())
+    fused: npt.NDArray[np.floating] = np.concatenate([fused_box, [fused_score]])
+
+    if group.shape[1] > 5:
+        best_class = group[int(scores.argmax()), 5]
+        fused = np.concatenate([fused, [best_class]])
+    return fused
+
+
+def box_weighted_box_fusion(
+    predictions: npt.NDArray[np.floating],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.floating]:
+    """
+    Fuse overlapping object detection boxes with Weighted Box Fusion (WBF).
+
+    Unlike `box_non_max_suppression`, which discards overlapping boxes, and
+    `box_non_max_merge`, which only returns groups of overlapping indices, WBF
+    replaces each group of overlapping boxes with a single box whose coordinates
+    are the confidence-weighted average of the group and whose score is the
+    group's mean confidence. This keeps information from every box in a cluster
+    instead of dropping all but one, which typically produces better localized
+    boxes when combining predictions from several models or augmentations. Based
+    on Solovyev et al., "Weighted Boxes Fusion: Ensembling boxes from different
+    object detection models" (2019).
+
+    Args:
+        predictions: An array of shape `(n, 5)` or `(n, 6)` containing the
+            bounding boxes coordinates in format `[x1, y1, x2, y2]`, the
+            confidence scores, and optionally the class ids. Omit the class_id
+            column to allow boxes of different classes to be fused together.
+        iou_threshold: The intersection-over-union threshold used to decide
+            whether two boxes belong to the same group. Defaults to 0.5.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+
+    Returns:
+        An array of fused predictions with the same number of columns as the
+            input (`(m, 5)` or `(m, 6)`, with `m <= n`), ordered by descending
+            fused confidence.
+
+    Raises:
+        ValueError: If `iou_threshold` is not within the closed range
+            from `0` to `1`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> predictions = np.array([
+        ...     [0.0, 0.0, 10.0, 10.0, 0.9, 0],
+        ...     [1.0, 1.0, 11.0, 11.0, 0.8, 0],
+        ... ])
+        >>> fused = sv.box_weighted_box_fusion(predictions, iou_threshold=0.5)
+        >>> fused[:, 4]
+        array([0.85])
+
+        ```
+    """
+    _validate_iou_threshold(iou_threshold)
+    if len(predictions) == 0:
+        empty_result: npt.NDArray[np.floating] = predictions.copy()
+        return empty_result
+
+    merge_groups = box_non_max_merge(predictions, iou_threshold, overlap_metric)
+    fused = np.stack([_fuse_box_group(predictions[group]) for group in merge_groups])
+
+    descending_score = np.flip(fused[:, 4].argsort())
+    result: npt.NDArray[np.floating] = fused[descending_score]
+    return result
+
+
 def oriented_box_non_max_suppression(
     predictions: npt.NDArray[np.floating],
     oriented_boxes: npt.NDArray[np.floating],
