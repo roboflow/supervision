@@ -81,6 +81,7 @@ class JSONSink:
             os.makedirs(parent_directory)
 
         self.file = open(self.file_name, "w")
+        self.data = []
 
     @staticmethod
     def _json_default(value: Any) -> Any:
