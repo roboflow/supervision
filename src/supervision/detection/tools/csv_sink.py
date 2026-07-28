@@ -108,6 +108,8 @@ class CSVSink:
 
         self.file = open(self.file_name, "w", newline="")
         self.writer = csv.writer(self.file)
+        self.header_written = False
+        self.field_names = []
 
     def close(self) -> None:
         """
