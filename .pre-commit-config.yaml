@@ -37,7 +37,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.5
+    rev: v3.9.6
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -45,7 +45,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.25.3
+    rev: v2.26.0
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
@@ -57,7 +57,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.0
     hooks:
       - id: ruff-check
         args: ["--fix"]

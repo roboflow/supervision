@@ -1234,8 +1234,8 @@ def test_from_google_gemini_2_5(
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
-    expected_results: None
-    | (tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]),
+    expected_results: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    | None,
 ) -> None:
     with exception:
         (
