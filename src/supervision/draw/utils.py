@@ -36,10 +36,10 @@ def draw_line(
         >>> from supervision.draw.color import Color
         >>> from supervision.geometry.core import Point
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        >>> result = draw_line(
+        >>> scene = draw_line(
         ...     scene, start=Point(x=10, y=10), end=Point(x=90, y=90), color=Color.RED
         ... )
-        >>> result.shape
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -80,8 +80,8 @@ def draw_rectangle(
         >>> from supervision.geometry.core import Rect
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=50, height=30)
-        >>> result = draw_rectangle(scene, rect, color=Color.RED)
-        >>> result.shape
+        >>> scene = draw_rectangle(scene, rect, color=Color.RED)
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -122,8 +122,8 @@ def draw_filled_rectangle(
         >>> from supervision.geometry.core import Rect
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=50, height=30)
-        >>> result = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
-        >>> result.shape
+        >>> scene = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -182,8 +182,8 @@ def draw_rounded_rectangle(
         >>> from supervision.geometry.core import Rect
         >>> scene = np.zeros((200, 300, 3), dtype=np.uint8)
         >>> rect = Rect(x=20, y=30, width=120, height=80)
-        >>> result = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
-        >>> result.shape
+        >>> scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
+        >>> scene.shape
         (200, 300, 3)
 
         ```
@@ -258,8 +258,8 @@ def draw_polygon(
         >>> from supervision.draw.color import Color
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
-        >>> result = draw_polygon(scene, polygon, color=Color.RED)
-        >>> result.shape
+        >>> scene = draw_polygon(scene, polygon, color=Color.RED)
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -294,8 +294,8 @@ def draw_filled_polygon(
         >>> from supervision.draw.color import Color
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
-        >>> result = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
-        >>> result.shape
+        >>> scene = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -353,10 +353,10 @@ def draw_text(
         >>> from supervision.draw.utils import draw_text
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> text_anchor = Point(x=50, y=50)
-        >>> result = draw_text(
+        >>> scene = draw_text(
         ...     scene=scene, text="Hello, world!", text_anchor=text_anchor
         ... )
-        >>> result.shape
+        >>> scene.shape
         (100, 100, 3)
 
         ```
@@ -426,8 +426,8 @@ def draw_image(
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> image = np.full((40, 40, 3), 255, dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=40, height=40)
-        >>> result = draw_image(scene, image, opacity=0.8, rect=rect)
-        >>> result.shape
+        >>> scene = draw_image(scene, image, opacity=0.8, rect=rect)
+        >>> scene.shape
         (100, 100, 3)
 
         ```
