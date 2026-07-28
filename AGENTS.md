@@ -2,7 +2,7 @@
 
 Behave like a senior contributor: precise, efficient, maintainable. When this file and [CONTRIBUTING.md](.github/CONTRIBUTING.md) conflict, **CONTRIBUTING.md wins**.
 
----
+______________________________________________________________________
 
 ## 1. Before You Code
 
@@ -11,7 +11,7 @@ Behave like a senior contributor: precise, efficient, maintainable. When this fi
 - Check whether the feature already exists under a different name.
 - Confirm alignment with `src/supervision/` architecture.
 
----
+______________________________________________________________________
 
 ## 2. Repository Architecture
 
@@ -44,7 +44,7 @@ src/supervision/
 - **Vectorized throughout** — NumPy arrays, no Python loops in hot paths. Never write `for det in detections`.
 - **Lazy-import heavy deps** — `torch`, `transformers`, `ultralytics` must be imported inside the function that needs them, never at module top level.
 
----
+______________________________________________________________________
 
 ## 3. Agent-Critical Rules
 
@@ -71,13 +71,13 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
----
+______________________________________________________________________
 
 ## 4. Deprecated Module Aliases
 
 `supervision.keypoint` deprecated since `0.27.0`, removed in `0.31.0`. Always import from `supervision.key_points`, not `supervision.keypoint`.
 
----
+______________________________________________________________________
 
 ## 5. Deprecating APIs
 
@@ -93,7 +93,7 @@ Always name the version introduced and the removal version:
 warn_deprecated("'foo' deprecated in `0.29.0`, removed in `0.32.0`. Use 'bar'.")
 ```
 
----
+______________________________________________________________________
 
 ## 6. Implementing Features
 
@@ -122,7 +122,7 @@ def from_myframework(cls, result) -> "Detections":
 
 VLM connectors go in `detection/vlm.py`, not `core.py`.
 
----
+______________________________________________________________________
 
 ## 7. Bugs & Refactoring
 
@@ -130,7 +130,7 @@ VLM connectors go in `detection/vlm.py`, not `core.py`.
 
 **Refactoring**: preserve behavior and API; reduce duplication; avoid sweeping changes unless requested; apply §5 deprecation when removing public API.
 
----
+______________________________________________________________________
 
 ## 8. Before You Commit
 

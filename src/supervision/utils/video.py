@@ -197,6 +197,7 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
+    prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -212,10 +213,29 @@ def get_video_frames_generator(
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
+        prefetch: If > 0, decode frames in a background thread and buffer up to
+            this many frames in a bounded queue. Useful when the consumer (e.g.
+            CPU inference) is the bottleneck and can overlap with decode I/O.
+            This works best when the consumer releases the GIL during frame
+            processing (common for numpy/PyTorch/ONNX C-extension calls). Pure
+            Python per-frame consumers that hold the GIL (for example, heavy
+            Python loops, PIL usage, or pandas `apply`) usually see little
+            speedup.
+            Default 0 keeps the original synchronous behaviour unchanged. Note:
+            each buffered frame occupies width x height x 3 bytes of uncompressed
+            memory; use `sv.VideoInfo.from_video_path()` to size appropriately.
 
     Returns:
-        A generator that yields the
-            frames of the video.
+        A generator that yields the frames of the video.
+
+    Raises:
+        ValueError: If `prefetch` is negative.
+        RuntimeError: If `prefetch` is greater than 0 and the background reader
+            thread encounters a decode/open error, raised as
+            `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
+            drained after buffered frames, so when `prefetch` > 0 the consumer may
+            yield up to `prefetch` additional good frames before the exception is
+            raised.
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
@@ -246,8 +266,27 @@ def get_video_frames_generator(
 
         for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
             ...
+
+        # Prefetch frames in a background thread to overlap I/O with CPU inference:
+        for frame in sv.get_video_frames_generator(
+            source_path="<SOURCE_VIDEO_PATH>", prefetch=8
+        ):
+            ...
         ```
     """
+    if prefetch < 0:
+        raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
+    if prefetch > 0:
+        yield from _prefetched_frames_generator(
+            source_path=source_path,
+            stride=stride,
+            start=start,
+            end=end,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+        return
+
     video, start, end = _validate_and_setup_video(
         source_path, start, end, iterative_seek
     )
@@ -266,6 +305,73 @@ def get_video_frames_generator(
             frame_position += stride
     finally:
         video.release()
+
+
+def _prefetched_frames_generator(
+    source_path: str,
+    stride: int,
+    start: int,
+    end: int | None,
+    iterative_seek: bool,
+    prefetch: int,
+) -> Generator[npt.NDArray[np.uint8], None, None]:
+    """Read frames into a bounded queue on a daemon thread.
+
+    Sentinel protocol: None = normal EOF, Exception instance = reader error.
+    """
+    frame_queue: Queue[npt.NDArray[np.uint8] | BaseException | None] = Queue(
+        maxsize=prefetch
+    )
+    stop_event = threading.Event()
+
+    def reader() -> None:
+        sentinel: BaseException | None = None
+        try:
+            for frame in get_video_frames_generator(
+                source_path=source_path,
+                stride=stride,
+                start=start,
+                end=end,
+                iterative_seek=iterative_seek,
+                prefetch=0,
+            ):
+                if stop_event.is_set():
+                    return
+                while True:
+                    try:
+                        frame_queue.put(frame, timeout=0.1)
+                        break
+                    except Full:
+                        if stop_event.is_set():
+                            return
+        except Exception as exc:
+            sentinel = exc
+        finally:
+            while not stop_event.is_set():
+                try:
+                    frame_queue.put(sentinel, timeout=0.1)
+                    return
+                except Full:
+                    pass
+
+    thread = threading.Thread(target=reader, daemon=True)
+    thread.start()
+    try:
+        while True:
+            try:
+                item = frame_queue.get(timeout=0.5)
+            except Empty:
+                if not thread.is_alive():
+                    break
+                continue
+            if isinstance(item, BaseException):
+                raise RuntimeError(f"Reader thread raised: {item!r}") from item
+            if item is None:
+                break
+            yield item
+    finally:
+        stop_event.set()
+        thread.join(timeout=2.0)
 
 
 def process_video(
