@@ -20,6 +20,7 @@ date_modified: 2026-07-27
 
 ### Fixed
 
+- `DetectionDataset.from_pascal_voc` no longer raises `ValueError` on background images. An annotation file with no `object` elements produced an empty `class_id` array of dtype `float64`, which failed `DetectionDataset` validation, so any Pascal VOC dataset containing an unannotated image could not be loaded.
 - Reopening an existing `sv.CSVSink` or `sv.JSONSink` now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.GOOGLE_GEMINI_3_5` now salvages the valid entries from a partially malformed JSON array (e.g. a single object with a syntax error) instead of discarding the whole response.
 - Geometry-aware IoU dispatch now powers the deprecated `merge_inner_detections_objects`, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold ([#2374](https://github.com/roboflow/supervision/pull/2374)).

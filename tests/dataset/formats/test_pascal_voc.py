@@ -304,6 +304,45 @@ class TestLoadPascalVocDeterministicClasses:
         }
 
 
+class TestLoadPascalVocBackgroundImages:
+    """Regression tests for VOC images that contain no annotated objects."""
+
+    def test_background_image_gets_integer_class_id(self, tmp_path: Path) -> None:
+        """An XML file with no object elements loads with an integer class_id."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "background", [])
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        class_id = next(iter(annotations.values())).class_id
+        assert class_id is not None
+        assert np.issubdtype(class_id.dtype, np.integer)
+
+    def test_background_image_round_trips_through_dataset(self, tmp_path: Path) -> None:
+        """A dataset mixing annotated and background images loads from VOC."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "annotated", ["cat"])
+        _write_voc_sample(images_dir, annotations_dir, "background", [])
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert len(dataset) == 2
+        counts = {Path(path).stem: len(d) for path, d in dataset.annotations.items()}
+        assert counts == {"annotated": 1, "background": 0}
+
+
 class TestSavePascalVocAnnotations:
     """save_pascal_voc_annotations: filesystem output contract."""
 
