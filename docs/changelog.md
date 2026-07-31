@@ -76,6 +76,8 @@ date_modified: 2026-07-27
 
 - **Breaking**: `supervision` now requires `av>=14.2` as a mandatory install-time dependency for the PyAV cv2-free video fallback introduced during the OpenCV-optional transition, and caps `opencv-python` to `<6` ([#2438](https://github.com/roboflow/supervision/pull/2438), [#2444](https://github.com/roboflow/supervision/pull/2444)). Environments that pin `opencv-python>=6` or restrict new dependencies must adjust before upgrading.
 
+- **Breaking**: Supervision no longer installs an OpenCV distribution or provides an OpenCV extra. The default install uses the included fallback media backend; an existing compatible `cv2` remains the preferred backend automatically. If your application needs OpenCV-specific behavior, install exactly one wheel family selected for that application (for example `opencv-python-headless` or `opencv-python`), then restart the process. See the [OpenCV migration guide](how_to/opencv_migration.md).
+
 - **Breaking**: Performance [#2383](https://github.com/roboflow/supervision/pull/2383): `sv.Detections.merge()` on mixed dense `ndarray` + `CompactMask` inputs now returns a `CompactMask` instead of a dense `ndarray`. Previously (0.29.0/0.29.1) the mixed path fell back to `np.vstack`, allocating a full `(N, H, W)` array; the new path converts dense inputs to `CompactMask` without materialising the full stack (~2 500× less peak memory, ~13× faster on 1080p / 40 detections). Code that checks `isinstance(merged.mask, np.ndarray)` or calls bare ndarray methods (`.astype`, `.reshape`, `.ravel`) on a mixed-merge result will need to be updated. The all-dense path is unchanged and still returns `ndarray`.
 
 - `DetectionDataset` and `ClassificationDataset` equality now compare the ordered `classes` lists directly instead of treating class labels as an unordered set. This keeps equality aligned with `class_id` indexing semantics, where class position is part of the dataset contract.
@@ -87,6 +89,8 @@ date_modified: 2026-07-27
 ### Fixed
 
 - Reopening an existing `sv.CSVSink` or `sv.JSONSink` now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.
+
+- Supervision now emits a `UserWarning` at import time when OpenCV is not installed and the cv2-free fallback backend is used, so users relying on OpenCV-specific behavior are alerted instead of silently falling back.
 
 - Fixed [#2353](https://github.com/roboflow/supervision/pull/2353): `sv.Detections.from_inference` no longer raises `TypeError` when the Inference package returns a mixed batch where only some predictions carry a `tracker_id`. `detections.tracker_id` is `None` for the full result in that case; fully-tracked and fully-untracked batches are unchanged.
 
