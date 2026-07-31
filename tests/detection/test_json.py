@@ -489,6 +489,45 @@ def test_json_default_raises_for_unserializable_type() -> None:
         sv.JSONSink._json_default(object())
 
 
+class TestJSONSinkLifecycle:
+    """Tests for opening and reopening a JSON sink."""
+
+    def test_reopening_starts_fresh_output_session(self, tmp_path: Any) -> None:
+        """Reopening a sink excludes rows from the prior output session."""
+        first_path = tmp_path / "first.json"
+        second_path = tmp_path / "second.json"
+        first_detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([1]),
+        )
+        second_detections = sv.Detections(
+            xyxy=np.array([[20, 20, 30, 30]]),
+            class_id=np.array([2]),
+        )
+        sink = sv.JSONSink(str(first_path))
+
+        with sink:
+            sink.append(first_detections)
+        sink.file_name = str(second_path)
+        with sink:
+            sink.append(second_detections)
+
+        with open(second_path) as file:
+            rows = json.load(file)
+
+        assert rows == [
+            {
+                "x_min": 20.0,
+                "y_min": 20.0,
+                "x_max": 30.0,
+                "y_max": 30.0,
+                "class_id": 2,
+                "confidence": "",
+                "tracker_id": "",
+            }
+        ]
+
+
 def assert_json_equal(file_name, expected_rows):
     with open(file_name) as file:
         data = json.load(file)

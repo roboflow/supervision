@@ -207,12 +207,12 @@ def _resize(
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
-def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
-    """Read an image with Pillow while returning BGR or BGRA arrays."""
+def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
+    """Decode any source Pillow can open into BGR or BGRA arrays."""
     from PIL import Image
 
     try:
-        with Image.open(filename) as image:
+        with Image.open(source) as image:
             if flags == _IMREAD_UNCHANGED:
                 if image.mode == "P":
                     converted = image.convert(
@@ -229,9 +229,34 @@ def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | Non
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
                 values = np.asarray(image.convert("RGB"))
-    except (FileNotFoundError, OSError):
+    except (FileNotFoundError, OSError, ValueError):
         return None
 
+    if values.ndim == 3 and values.shape[2] == 3:
+        values = values[..., ::-1]
+    elif values.ndim == 3 and values.shape[2] == 4:
+        values = values[..., [2, 1, 0, 3]]
+    return np.ascontiguousarray(values)
+
+
+def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
+    """Read an image with Pillow while returning BGR or BGRA arrays."""
+    return _read_pil_source(filename, flags)
+
+
+def _imdecode(
+    buf: npt.NDArray[Any], flags: int = _IMREAD_COLOR
+) -> npt.NDArray[Any] | None:
+    """Decode in-memory encoded image bytes, returning BGR or BGRA arrays."""
+    import io
+
+    data = np.asarray(buf, dtype=np.uint8).tobytes()
+    return _read_pil_source(io.BytesIO(data), flags)
+
+
+def _bgr_to_pil_values(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
+    """Reorder BGR or BGRA channels into the RGB order Pillow expects."""
+    values = np.asarray(image)
     if values.ndim == 3 and values.shape[2] == 3:
         values = values[..., ::-1]
     elif values.ndim == 3 and values.shape[2] == 4:
@@ -246,13 +271,29 @@ def _imwrite(
     from PIL import Image
 
     del params
-    values = np.asarray(image)
-    if values.ndim == 3 and values.shape[2] == 3:
-        values = values[..., ::-1]
-    elif values.ndim == 3 and values.shape[2] == 4:
-        values = values[..., [2, 1, 0, 3]]
     try:
-        Image.fromarray(np.ascontiguousarray(values)).save(filename)
+        Image.fromarray(_bgr_to_pil_values(image)).save(filename)
     except (OSError, ValueError):
         return False
     return True
+
+
+def _imencode(
+    ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
+) -> tuple[bool, npt.NDArray[np.uint8] | None]:
+    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return."""
+    import io
+
+    from PIL import Image
+
+    del params
+    # Pillow registers the JPEG codec as "JPEG", not the "jpg" file extension.
+    image_format = ext.lstrip(".").upper()
+    if image_format == "JPG":
+        image_format = "JPEG"
+    buffer = io.BytesIO()
+    try:
+        Image.fromarray(_bgr_to_pil_values(image)).save(buffer, format=image_format)
+    except (KeyError, OSError, ValueError):
+        return False, None
+    return True, np.frombuffer(buffer.getvalue(), dtype=np.uint8)

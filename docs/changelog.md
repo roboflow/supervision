@@ -1,6 +1,6 @@
 ---
-description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-07-21
+description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
+date_modified: 2026-07-27
 ---
 
 # Changelog
@@ -20,6 +20,7 @@ date_modified: 2026-07-21
 
 ### Fixed
 
+- Reopening an existing `sv.CSVSink` or `sv.JSONSink` now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.GOOGLE_GEMINI_3_5` now salvages the valid entries from a partially malformed JSON array (e.g. a single object with a syntax error) instead of discarding the whole response.
 - Geometry-aware IoU dispatch now powers the deprecated `merge_inner_detections_objects`, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold ([#2374](https://github.com/roboflow/supervision/pull/2374)).
 - `save_coco_annotations` (and therefore `DetectionDataset.as_coco`) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data ([#2442](https://github.com/roboflow/supervision/pull/2442)).
@@ -67,6 +68,7 @@ date_modified: 2026-07-21
 ### Added
 
 - `sv.box_weighted_box_fusion` — Weighted Box Fusion (WBF), a confidence-weighted alternative to `sv.box_non_max_suppression`. Instead of discarding overlapping boxes, it fuses each group of overlapping same-class boxes into a single box whose coordinates are the confidence-weighted average of the group and whose score is the group's mean confidence, keeping information from every box in a cluster. Based on Solovyev et al. (2019) ([#268](https://github.com/roboflow/supervision/issues/268)).
+- `sv.load_image_from_url` — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (`{tmpdir}/supervision/image-url/` by default, configurable via `cache_dir`) ([#2372](https://github.com/roboflow/supervision/pull/2372))
 - `sv.VLM.GOOGLE_GEMINI_3_5` — `sv.Detections.from_vlm` now parses Google Gemini 3.5 output (detection and segmentation), reusing the Gemini 2.5 JSON format (`box_2d` + `label`, optional `mask`/`confidence`).
 - `sv.get_video_frames_generator` now accepts `prefetch: int = 0` ([#2273](https://github.com/roboflow/supervision/pull/2273)). When `> 0`, frames are decoded on a background daemon thread and buffered in a bounded queue, overlapping I/O with consumer processing. Default `0` preserves the existing synchronous behaviour.
 - Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking, metadata, and `process_video(preserve_audio=True)` audio remuxing. OpenCV remains the primary backend when available; `av>=14.2.0` is now required alongside OpenCV during the transition, with the later OpenCV-removal integration removing the OpenCV dependency.

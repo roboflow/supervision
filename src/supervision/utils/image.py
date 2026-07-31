@@ -4,8 +4,12 @@ import itertools
 import math
 import os
 import shutil
+import tempfile
+import urllib.parse
 from collections.abc import Callable
 from functools import partial
+from hashlib import md5
+from pathlib import Path
 from types import TracebackType
 from typing import Literal, cast
 
@@ -27,11 +31,125 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
     images_to_cv2,
 )
+from supervision.utils.file import (
+    SUPERVISION_CACHE_DIR,
+    _download_to_file,
+    _normalize_http_url,
+)
 from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
 
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
+
+DEFAULT_IMAGE_URL_CACHE_DIR = SUPERVISION_CACHE_DIR / "image-url"
+
+
+def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
+    """
+    Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`.
+    """
+    cache_root = (
+        DEFAULT_IMAGE_URL_CACHE_DIR
+        if cache_dir is None
+        else Path(cache_dir).expanduser().resolve()
+    )
+    url_path = urllib.parse.urlparse(value).path
+    suffix = Path(url_path).suffix or ".image"
+    url_hash = md5(value.encode("utf-8"), usedforsecurity=False).hexdigest()
+    return cache_root / f"{url_hash}{suffix}"
+
+
+def _decode_image_from_bytes(
+    value: bytes,
+    cv_imread_flags: int,
+) -> npt.NDArray[np.uint8]:
+    """
+    Decode raw image bytes into an OpenCV image, raising on undecodable data.
+    """
+    image = cv2.imdecode(
+        np.frombuffer(value, dtype=np.uint8),
+        cv_imread_flags,
+    )
+    if image is None:
+        raise ValueError("Data pointed by URL could not be decoded into image.")
+
+    return cast(npt.NDArray[np.uint8], image)
+
+
+def load_image_from_url(
+    value: str,
+    cv_imread_flags: int = cv2.IMREAD_COLOR,
+    timeout: float = 30.0,
+    use_cache: bool = True,
+    cache_dir: str | Path | None = None,
+    force_reload: bool = False,
+) -> npt.NDArray[np.uint8]:
+    """
+    Load an image from a URL as an OpenCV image.
+
+    Args:
+        value: HTTP(S) URL of the image.
+        cv_imread_flags: OpenCV image read flag passed to `cv2.imdecode`.
+            Defaults to `cv2.IMREAD_COLOR`.
+        timeout: Request timeout in seconds. Defaults to `30.0`.
+        use_cache: If `True`, cache downloaded image bytes locally and reuse them
+            on repeated calls. Defaults to `True`.
+        cache_dir: Directory where downloaded image bytes are cached. If `None`,
+            uses the system temporary directory. Defaults to `None`.
+        force_reload: If `True`, re-download the image and refresh the cache.
+            Defaults to `False`.
+
+    Returns:
+        Image as a NumPy array in the format selected by `cv_imread_flags`.
+
+    Raises:
+        ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
+        requests.RequestException: If the request fails or returns an error status.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        image = sv.load_image_from_url(
+            "https://media.roboflow.com/quickstart/dog.jpeg"
+        )
+        image.shape
+
+        ```
+    """
+    prepared_url = _normalize_http_url(url=value)
+    if not use_cache:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_target = Path(temp_dir) / "image"
+            _download_to_file(prepared_url, temp_target, timeout=timeout)
+            return _decode_image_from_bytes(
+                value=temp_target.read_bytes(),
+                cv_imread_flags=cv_imread_flags,
+            )
+
+    cache_path = _get_image_url_cache_path(
+        value=prepared_url,
+        cache_dir=cache_dir,
+    )
+    if cache_path.exists() and not force_reload:
+        try:
+            return _decode_image_from_bytes(
+                value=cache_path.read_bytes(),
+                cv_imread_flags=cv_imread_flags,
+            )
+        except ValueError:
+            cache_path.unlink(missing_ok=True)
+
+    _download_to_file(prepared_url, cache_path, timeout=timeout)
+    try:
+        return _decode_image_from_bytes(
+            value=cache_path.read_bytes(),
+            cv_imread_flags=cv_imread_flags,
+        )
+    except ValueError:
+        cache_path.unlink(missing_ok=True)
+        raise
 
 
 @ensure_cv2_image_for_standalone_function

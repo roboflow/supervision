@@ -1,12 +1,9 @@
 import os
 from hashlib import md5
 from pathlib import Path
-from shutil import copyfileobj
-
-from requests import get
-from tqdm.auto import tqdm
 
 from supervision.assets.list import MEDIA_ASSETS, Assets
+from supervision.utils.file import _download_to_file
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -40,29 +37,7 @@ def _download_asset(filename: str, destination: Path) -> None:
     """
     Download asset bytes to the target destination via a temporary file.
     """
-    response = get(
-        MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
-    )
-    response.raise_for_status()
-
-    file_size = int(response.headers.get("Content-Length", 0))
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = destination.with_name(f"{destination.name}.part")
-
-    try:
-        with tqdm.wrapattr(
-            response.raw, "read", total=file_size, desc="", colour="#a351fb"
-        ) as raw_resp:
-            with temp_path.open("wb") as file:
-                copyfileobj(raw_resp, file)
-    except Exception:
-        temp_path.unlink(missing_ok=True)
-        raise
-
-    try:
-        os.replace(temp_path, destination)
-    finally:
-        temp_path.unlink(missing_ok=True)
+    _download_to_file(MEDIA_ASSETS[filename][0], destination, timeout=30.0, stream=True)
 
 
 def _download_verified_asset(

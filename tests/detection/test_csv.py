@@ -562,3 +562,55 @@ def test_csv_sink_broadcasts_ndarray_when_length_mismatches_detection_count(
     assert len(rows) == 2
     np.testing.assert_array_equal(rows[0]["embedding"], expected_value)
     np.testing.assert_array_equal(rows[1]["embedding"], expected_value)
+
+
+class TestCSVSinkLifecycle:
+    """Tests for opening and reopening a CSV sink."""
+
+    def test_reopening_starts_fresh_output_session(self, tmp_path: Any) -> None:
+        """Reopening a sink writes a new header and field schema."""
+        first_path = tmp_path / "first.csv"
+        second_path = tmp_path / "second.csv"
+        first_detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"first_label": ["first"]},
+        )
+        second_detections = sv.Detections(
+            xyxy=np.array([[20, 20, 30, 30]]),
+            data={"second_label": ["second"]},
+        )
+        sink = sv.CSVSink(str(first_path))
+
+        with sink:
+            sink.append(first_detections)
+        sink.file_name = str(second_path)
+        with sink:
+            sink.append(second_detections)
+
+        with open(second_path, newline="") as file:
+            reader = csv.DictReader(file)
+            field_names = reader.fieldnames
+            rows = list(reader)
+
+        assert field_names == [
+            "x_min",
+            "y_min",
+            "x_max",
+            "y_max",
+            "class_id",
+            "confidence",
+            "tracker_id",
+            "second_label",
+        ]
+        assert rows == [
+            {
+                "x_min": "20",
+                "y_min": "20",
+                "x_max": "30",
+                "y_max": "30",
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "second_label": "second",
+            }
+        ]

@@ -39,6 +39,8 @@ def draw_line(
         >>> scene = draw_line(
         ...     scene, start=Point(x=10, y=10), end=Point(x=90, y=90), color=Color.RED
         ... )
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
@@ -79,6 +81,8 @@ def draw_rectangle(
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=50, height=30)
         >>> scene = draw_rectangle(scene, rect, color=Color.RED)
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
@@ -119,6 +123,8 @@ def draw_filled_rectangle(
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=50, height=30)
         >>> scene = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
@@ -177,6 +183,8 @@ def draw_rounded_rectangle(
         >>> scene = np.zeros((200, 300, 3), dtype=np.uint8)
         >>> rect = Rect(x=20, y=30, width=120, height=80)
         >>> scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
+        >>> scene.shape
+        (200, 300, 3)
 
         ```
     """
@@ -251,6 +259,8 @@ def draw_polygon(
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
         >>> scene = draw_polygon(scene, polygon, color=Color.RED)
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
@@ -285,6 +295,8 @@ def draw_filled_polygon(
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
         >>> scene = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
@@ -415,6 +427,8 @@ def draw_image(
         >>> image = np.full((40, 40, 3), 255, dtype=np.uint8)
         >>> rect = Rect(x=10, y=10, width=40, height=40)
         >>> scene = draw_image(scene, image, opacity=0.8, rect=rect)
+        >>> scene.shape
+        (100, 100, 3)
 
         ```
     """
