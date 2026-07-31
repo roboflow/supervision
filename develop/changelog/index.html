@@ -1147,6 +1147,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/opencv_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenCV Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -3933,6 +3961,7 @@
 </div>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">&para;</a></h3>
 <ul>
+<li>Supervision no longer installs an OpenCV distribution or provides an OpenCV extra. The default install uses the included fallback media backend; an existing compatible <code>cv2</code> remains the preferred backend automatically. If your application needs OpenCV-specific behavior, install exactly one wheel family selected for that application (for example <code>opencv-python-headless</code> or <code>opencv-python</code>), then restart the process. See the <a href="../how_to/opencv_migration/">OpenCV migration guide</a>.</li>
 <li><code>sv.JSONSink</code> now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as <code>"True"</code>/<code>"False"</code>, <code>"1"</code>/<code>"0.85"</code>, or <code>"400.0"</code> are now <code>true</code>/<code>false</code>, <code>1</code>/<code>0.85</code>, <code>400.0</code>. Downstream consumers that compare field values as strings (e.g. <code>row["score"] == "1"</code>) or use strict string-typed schema validators must be updated. <code>sv.CSVSink</code> remains textual, but its custom-data slicing now matches <code>sv.JSONSink</code>: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged (<a href="https://github.com/roboflow/supervision/pull/2400">#2400</a>).</li>
 <li><code>sv.mask_non_max_merge</code> now computes exact mask overlap at the original mask resolution and ignores the deprecated <code>mask_dimension</code> parameter. Code that relied on downscaled mask overlap should recalibrate thresholds; passing <code>mask_dimension</code> positionally now emits a deprecation warning, and the parameter is scheduled for removal in <code>0.33.0</code> (<a href="https://github.com/roboflow/supervision/pull/2400">#2400</a>).</li>
 </ul>
@@ -3943,6 +3972,7 @@
 <li>Geometry-aware IoU dispatch now powers the deprecated <code>merge_inner_detections_objects</code>, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold (<a href="https://github.com/roboflow/supervision/pull/2374">#2374</a>).</li>
 <li><code>save_coco_annotations</code> (and therefore <code>DetectionDataset.as_coco</code>) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data (<a href="https://github.com/roboflow/supervision/pull/2442">#2442</a>).</li>
 <li>Fixed <a href="https://github.com/roboflow/supervision/pull/2437">#2437</a>: <code>sv.F1Score</code> no longer emits a spurious <code>RuntimeWarning</code> when true positives, false positives, and false negatives are all zero (denominator 0); the score remains <code>0.0</code>.</li>
+<li>Supervision now emits a <code>UserWarning</code> at import time when OpenCV is not installed and the cv2-free fallback backend is used, so users relying on OpenCV-specific behavior are alerted instead of silently falling back.</li>
 <li>The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.</li>
 <li>The cv2-free fallback's <code>copyMakeBorder</code> now fills only channel 0 for a scalar border <code>value</code> on multichannel images, matching OpenCV's <code>Scalar(v)</code> semantics instead of broadcasting the value to every channel.</li>
 <li>The cv2-free fallback's <code>addWeighted</code> now raises <code>ValueError</code> for a non-default <code>dtype</code> instead of silently ignoring it.</li>
@@ -3988,7 +4018,7 @@
 <li><code>sv.load_image_from_url</code> — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (<code>{tmpdir}/supervision/image-url/</code> by default, configurable via <code>cache_dir</code>) (<a href="https://github.com/roboflow/supervision/pull/2372">#2372</a>)</li>
 <li><code>sv.VLM.GOOGLE_GEMINI_3_5</code> — <code>sv.Detections.from_vlm</code> now parses Google Gemini 3.5 output (detection and segmentation), reusing the Gemini 2.5 JSON format (<code>box_2d</code> + <code>label</code>, optional <code>mask</code>/<code>confidence</code>).</li>
 <li><code>sv.get_video_frames_generator</code> now accepts <code>prefetch: int = 0</code> (<a href="https://github.com/roboflow/supervision/pull/2273">#2273</a>). When <code>&gt; 0</code>, frames are decoded on a background daemon thread and buffered in a bounded queue, overlapping I/O with consumer processing. Default <code>0</code> preserves the existing synchronous behaviour.</li>
-<li>Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking, metadata, and <code>process_video(preserve_audio=True)</code> audio remuxing. OpenCV remains the primary backend when available; <code>av&gt;=14.2.0</code> is now required alongside OpenCV during the transition, with the later OpenCV-removal integration removing the OpenCV dependency.</li>
+<li>Added a cv2-free PyAV fallback for file-video capture, writing, frame seeking, metadata, and <code>process_video(preserve_audio=True)</code> audio remuxing. OpenCV remains the primary backend when available, but Supervision no longer installs an OpenCV distribution; <code>av&gt;=14.2</code> is required for the fallback media backend.</li>
 <li>Added: <a href="../utils/image_window/#supervision.utils.image_window.ImageWindow"><code>sv.ImageWindow</code></a> — tkinter + Pillow desktop window that replaces <code>cv2.imshow</code> / <code>cv2.waitKey</code>, usable regardless of which OpenCV wheel (or none) is installed. Key differences from cv2:<ul>
 <li><code>wait_key()</code> returns a tkinter keysym <code>str</code> (e.g. <code>"q"</code>, <code>"Escape"</code>) or <code>None</code>, not an <code>int</code> — update <code>key == ord("q")</code> to <code>key == "q"</code>.</li>
 <li>Mouse callback signature is <code>(x: int, y: int, event_type: str)</code> where <code>event_type</code> is <code>"down"</code>, <code>"up"</code>, or <code>"move"</code> — incompatible with cv2's <code>(event, x, y, flags, param)</code>.</li>
@@ -5973,7 +6003,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2026 19:24:55 UTC">July 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 31, 2026 20:19:33 UTC">July 31, 2026</span>
   </span>
 
     
@@ -6001,9 +6031,9 @@
     
     <nav>
       
-        <a href="https://github.com/Erol444" class="md-author" title="@Erol444">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/18037362?v=4&size=72" alt="Erol444">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6011,14 +6041,14 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Erol444" class="md-author" title="@Erol444">
+          
+          <img src="https://avatars.githubusercontent.com/u/18037362?v=4&size=72" alt="Erol444">
+        </a>
+      
         <a href="https://github.com/Bortlesboat" class="md-author" title="@Bortlesboat">
           
           <img src="https://avatars.githubusercontent.com/u/169967362?v=4&size=72" alt="Bortlesboat">
-        </a>
-      
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
         </a>
       
       

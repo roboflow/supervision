@@ -1404,6 +1404,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/opencv_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenCV Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -3337,6 +3365,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;supervision[metrics]&quot;</span>
 </span></code></pre></div>
 <p>Sample asset utilities are part of the base package under <code>supervision.assets</code>.</p>
+<p>Supervision does not install OpenCV. Its image, drawing, and file-video APIs use the included fallback when <code>cv2</code> is unavailable, and automatically use a compatible <code>cv2</code> already present in your environment. See the <a href="../how_to/opencv_migration/">OpenCV migration guide</a> when upgrading an existing environment or choosing an OpenCV wheel yourself.</p>
 <h2 id="which-object-detection-models-work-with-supervision">Which object detection models work with Supervision?<a class="headerlink" href="#which-object-detection-models-work-with-supervision" title="Permanent link">&para;</a></h2>
 <p>Supervision is model agnostic. <code>sv.Detections</code> includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate <code>sv.KeyPoints</code> converters, including MediaPipe.</p>
 <h2 id="what-can-i-do-with-supervision">What can I do with Supervision?<a class="headerlink" href="#what-can-i-do-with-supervision" title="Permanent link">&para;</a></h2>
@@ -3392,7 +3421,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2026 13:06:55 UTC">July 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 31, 2026 20:19:33 UTC">July 31, 2026</span>
   </span>
 
     
@@ -3435,9 +3464,9 @@
           <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
         </a>
       
-        <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
+        <a href="https://github.com/codex" class="md-author" title="@codex">
           
-          <img src="https://avatars.githubusercontent.com/in/1236702?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
       
