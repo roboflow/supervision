@@ -21,7 +21,6 @@ def plot_image(
 
     Examples:
         ```pycon
-        >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
         >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
@@ -77,7 +76,6 @@ def plot_images_grid(
 
     Examples:
         ```pycon
-        >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
         >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
