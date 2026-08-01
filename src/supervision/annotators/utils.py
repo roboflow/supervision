@@ -262,15 +262,12 @@ def get_labels_text(
     if custom_labels is not None:
         return custom_labels
 
-    labels = []
-    for idx in range(len(detections)):
-        if CLASS_NAME_DATA_FIELD in detections.data:
-            labels.append(str(detections.data[CLASS_NAME_DATA_FIELD][idx]))
-        elif detections.class_id is not None:
-            labels.append(str(detections.class_id[idx]))
-        else:
-            labels.append(str(idx))
-    return labels
+    if CLASS_NAME_DATA_FIELD in detections.data:
+        return [str(v) for v in detections.data[CLASS_NAME_DATA_FIELD]]
+    elif detections.class_id is not None:
+        return [str(v) for v in detections.class_id]
+    else:
+        return [str(i) for i in range(len(detections))]
 
 
 def snap_boxes(
