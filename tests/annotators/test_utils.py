@@ -7,6 +7,7 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    get_labels_text,
     hex_to_rgba,
     is_valid_hex,
     resolve_color,
@@ -320,3 +321,41 @@ def test_rgba_to_hex_invalid(rgba: tuple[int, ...]) -> None:
 )
 def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:
     assert is_valid_hex(hex_color) is expected_result
+
+
+class TestGetLabelsText:
+    """Tests for the get_labels_text helper."""
+
+    def test_returns_custom_labels_when_provided(self) -> None:
+        """Custom labels are returned as-is without inspecting detections."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+        custom = ["cat"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field(self) -> None:
+        """Labels come from CLASS_NAME_DATA_FIELD when present in data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        assert get_labels_text(detections, None) == ["cat", "dog"]
+
+    def test_falls_back_to_class_id(self) -> None:
+        """Labels fall back to class_id strings when no class_name data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[5, 3],
+        )
+        assert get_labels_text(detections, None) == ["5", "3"]
+
+    def test_falls_back_to_index(self) -> None:
+        """Labels fall back to detection indices when no class_id."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]],
+        )
+        assert get_labels_text(detections, None) == ["0", "1", "2"]
+
+    def test_empty_detections(self) -> None:
+        """Empty detections produce an empty label list."""
+        assert get_labels_text(Detections.empty(), None) == []
