@@ -3967,53 +3967,150 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>DetectionDataset.from_pascal_voc</code> no longer raises <code>ValueError</code> on background images. An annotation file with no <code>object</code> elements produced an empty <code>class_id</code> array of dtype <code>float64</code>, which failed <code>DetectionDataset</code> validation, so any Pascal VOC dataset containing an unannotated image could not be loaded.</li>
-<li><code>DetectionDataset.from_pascal_voc</code> with <code>force_masks=True</code> no longer raises <code>ValueError</code> on background images. An annotation file with no <code>object</code> elements produced an empty mask of shape <code>(0,)</code> instead of the required <code>(0, H, W)</code>, which failed <code>Detections</code> validation.</li>
-<li>Reopening an existing <code>sv.CSVSink</code> or <code>sv.JSONSink</code> now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.</li>
-<li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_0</code>, <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, and <code>sv.VLM.GOOGLE_GEMINI_3_5</code> now salvages the valid entries from a partially malformed JSON array (e.g. a single object with a syntax error) instead of discarding the whole response.</li>
-<li>Geometry-aware IoU dispatch now powers the deprecated <code>merge_inner_detections_objects</code>, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold (<a href="https://github.com/roboflow/supervision/pull/2374">#2374</a>).</li>
-<li><code>save_coco_annotations</code> (and therefore <code>DetectionDataset.as_coco</code>) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data (<a href="https://github.com/roboflow/supervision/pull/2442">#2442</a>).</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2437">#2437</a>: <code>sv.F1Score</code> no longer emits a spurious <code>RuntimeWarning</code> when true positives, false positives, and false negatives are all zero (denominator 0); the score remains <code>0.0</code>.</li>
-<li>Supervision now emits a <code>UserWarning</code> at import time when OpenCV is not installed and the cv2-free fallback backend is used, so users relying on OpenCV-specific behavior are alerted instead of silently falling back.</li>
-<li>The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.</li>
-<li>The cv2-free fallback's <code>copyMakeBorder</code> now fills only channel 0 for a scalar border <code>value</code> on multichannel images, matching OpenCV's <code>Scalar(v)</code> semantics instead of broadcasting the value to every channel.</li>
-<li>The cv2-free fallback's <code>addWeighted</code> now raises <code>ValueError</code> for a non-default <code>dtype</code> instead of silently ignoring it.</li>
-<li>The cv2-free fallback's <code>approxPolyDP</code> now follows OpenCV's stack traversal, closed-contour anchor selection, and final cleanup. The implementation avoids the former O(N²) distance matrix and exactly matches OpenCV on the deterministic 100-polygon regression corpus.</li>
-<li>The cv2-free fallback now preserves OpenCV's half-pixel bilinear interpolation when downsampling uint8 images and its anchor selection for contours whose first point is explicitly repeated at the end.</li>
-<li>The cv2-free fallback now uses OpenCV's fixed-point uint8 BGR-to-gray arithmetic, matching all 16,777,216 input colors exactly. Edge-distance filtering applies an O(H×W) two-pass transform with fixed-point 3×3 chamfer weights, preserving threshold decisions without retaining a generic cv2 distance-transform API.</li>
-<li>Reduced cv2-free media overhead by vectorizing connected-component statistics, narrowing contour extraction to the geometry production uses, and rasterizing Pillow text into a clipped glyph-sized mask.</li>
-<li>Removed unused raw <code>distanceTransform</code>, <code>getRotationMatrix2D</code>, and <code>warpAffine</code> compatibility symbols. Their only production consumers now use smaller domain operations: a bounded two-pass chamfer transform for mask filtering and Pillow rotation for line-zone labels.</li>
-<li>PyAV audio/video remuxing now uses its stream-template API directly instead of maintaining a local codec-parameter copy helper.</li>
-<li>The cv2-free fallback now renders text with Pillow and the bundled DejaVu Sans face instead of reproducing OpenCV's Hershey stroke fonts. This drops the packaged 143 KB glyph table and its loader in favor of an existing dependency. Text drawn without cv2 now uses a proportional TrueType face, so glyph shapes and <code>getTextSize</code> metrics differ from OpenCV within the documented visual-divergence tier; the OpenCV path is unchanged. All Hershey font faces remain accepted for API compatibility but map to the same face (the italic modifier selects the oblique variant).</li>
-<li>The cv2-free fallback's <code>getTextSize</code> now derives its height and baseline padding directly from the same <code>stroke_width</code> <code>putText</code> renders with, instead of a separate approximation. For <code>thickness &gt; 2</code> the old formula under-padded the box, so a heavy stroke's descender pixels could fall outside the reported rectangle.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/issues/2427">#2427</a>: size-bucketed <code>sv.Precision</code> and <code>sv.F1Score</code> no longer count out-of-bucket detections as false positives. <code>sv.Recall</code> now matches only targets in the requested bucket, and all three metrics prioritize in-bucket targets during matching, matching COCO evaluation and <code>sv.MeanAveragePrecision</code>. A pixel-perfect detector now scores 1.0 in every bucket.</li>
-<li><code>sv.hex_to_rgba</code> now rejects multiple leading <code>#</code> characters instead of silently normalizing them, matching <code>sv.is_valid_hex</code> and the documented single optional prefix.</li>
-<li><code>sv.box_iou_batch</code> now upcasts box corners to <code>float64</code> before computing areas and intersections, returning <code>float32</code>. This fixes integer-dtype overflow (e.g. <code>int32</code> coordinates around <code>50_000</code> could previously wrap to a negative area and produce an incorrect <code>0.0</code> IoU) and gives full <code>float64</code> precision to callers that pass <code>float64</code>/<code>int64</code> coordinates directly. It does not recover precision already lost when coordinates are stored as <code>float32</code> before this function is called (e.g. <code>Detections.xyxy</code>, which is <code>float32</code> throughout the library) — such callers must upcast their own arrays to <code>float64</code>/<code>int64</code> before calling <code>box_iou_batch</code> to benefit from this fix. Results for small-coordinate inputs are unchanged.</li>
-<li>Legacy COCO prediction loading in <code>sv.EvaluationDataset.load_predictions</code> now raises <code>ValueError</code> for image ids absent from the ground-truth COCO set instead of relying on a bare <code>assert</code>, so the check is no longer silently skipped under <code>python -O</code>.</li>
-<li><code>sv.HeatMapAnnotator</code> now exposes a <code>reset()</code> method to clear accumulated heat, so a single annotator instance can be reused across independent streams without carrying over heat from a previous stream.</li>
-<li><code>sv.TraceAnnotator</code> and <code>sv.DetectionsSmoother</code> now expose a <code>reset()</code> method for interface consistency with <code>sv.HeatMapAnnotator.reset()</code>, clearing their accumulated per-track history so a single instance can be reused across independent streams.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>sv.process_video</code> no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>DetectionDataset.as_pascal_voc()</code> now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.</li>
-<li><code>import supervision</code> no longer surfaces the deprecated <code>ByteTrack</code> warning; the top-level tracker alias now resolves lazily when accessed explicitly.</li>
-<li>Fixed dataset export edge cases: <code>DetectionDataset.split()</code> and <code>DetectionDataset.merge()</code> now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.</li>
-<li>Fixed: <code>sv.Color(...)</code> now validates direct RGBA channel values and raises <code>ValueError</code> when any channel falls outside the 0-255 byte range.</li>
-<li>Fixed: <code>approximate_mask_with_polygons</code> now defaults to no polygon simplification, matching the public dataset export methods.</li>
-<li>Fixed: <code>ImageSink.save_image()</code> now raises <code>OSError</code> when <code>cv2.imwrite()</code> fails, and deprecation-warning control accepts the correct <code>SUPERVISION_DEPRECATION_WARNING</code> environment variable while still honoring the legacy misspelled alias.</li>
-<li><code>sv.Classifications.from_timm</code> now softmaxes model logits before exposing confidence scores, matching <code>sv.Classifications.from_clip</code> and keeping timm confidences on a normalized probability scale. Thresholds calibrated against raw logits may need retuning.</li>
-<li><code>sv.download_assets</code> now verifies MD5 hashes after fresh downloads and retries once when the downloaded payload is corrupted instead of accepting a bad file.</li>
-<li>Fixed metrics scoring edge cases: legacy <code>sv.MeanAveragePrecision</code> now uses COCO 101-point AP averaging, <code>sv.ConfusionMatrix</code> rejects invalid class ids instead of wrapping them through <code>int16</code>/negative indexing, <code>sv.MeanAveragePrecision</code> preserves user-provided target <code>ignore</code> flags, and <code>sv.MeanAverageRecallResult.recall_per_class</code> now exposes per-class recall for each max-detection cutoff.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2408">#2408</a>: <code>sv.Precision</code>, <code>sv.Recall</code>, <code>sv.F1Score</code>, and <code>sv.MeanAverageRecall</code> now score size buckets by filtering targets only while leaving predictions eligible to match bucket targets. This preserves bucket matches that would otherwise be stolen by out-of-bucket filtering and keeps mAR top-K ranking intact.</li>
-<li><code>sv.ByteTrack</code> no longer mutates input <code>Detections</code> while assigning tracker IDs. It now keeps detections at the activation-threshold boundary eligible for matching, avoids impossible new-track thresholds above score <code>1.0</code>, ignores invalid zero-area/non-finite tensor boxes before Kalman updates, and does not emit unconfirmed <code>-1</code> IDs from first-frame tensor updates.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2402">#2402</a>: <code>sv.KeyPoints.as_detections</code> now accepts NumPy arrays, tuples, and generators in <code>selected_keypoint_indices</code> without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.</li>
-<li>Changed: delayed <code>sv.ByteTrack</code>, <code>supervision.keypoint</code>, <code>normalized_xyxy</code> for <code>sv.denormalize_boxes</code>, and <code>supervision.dataset.utils</code> RLE compatibility removals from <code>supervision-0.30.0</code> to <code>supervision-0.31.0</code> so the deprecated APIs keep a full transition window.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2407">#2407</a>: <code>sv.ColorPalette.by_idx()</code> now raises a clear <code>ValueError</code> when called on an empty palette instead of leaking a <code>ZeroDivisionError</code>. Non-empty palettes keep the existing index-wrapping behavior.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.CropAnnotator.annotate</code> no longer raises <code>cv2.error</code> when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.HeatMapAnnotator.annotate</code> no longer blanks the hottest region when the per-pixel hit count exceeds 255; the heat mask is now derived from the float32 accumulator directly, avoiding uint8 wrap-around.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.get_video_frames_generator</code> now releases the underlying <code>cv2.VideoCapture</code> via <code>try/finally</code>, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2382">#2382</a>: <code>sv.Detections.get_anchors_coordinates</code> now uses oriented bounding box corners (<code>data["xyxyxyxy"]</code>) when OBB data is present, instead of falling back to the axis-aligned envelope. Anchors on rotated detections now lie on the oriented body rather than drifting to the envelope. Non-OBB detections and <code>Position.CENTER_OF_MASS</code> (which requires a mask) are unaffected.</li>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2396">#2396</a>: <code>sv.BackgroundOverlayAnnotator.annotate</code> no longer leaves detection regions tinted when bounding boxes have negative coordinates (extend outside the left or top scene boundary); boxes are now clipped to scene bounds before the detection region is restored.</li>
-<li>Fixed: dataset IO/export edge cases now avoid mutating caller-owned <code>Detections</code> during <code>DetectionDataset</code> construction, reject non-integer and out-of-range class ids with a clear <code>ValueError</code>, load COCO annotations that omit optional <code>iscrowd</code>/<code>area</code> fields, expose <code>DetectionDataset.from_coco(use_iscrowd=...)</code> without changing the existing positional <code>show_progress</code> argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/issues/2467">#2467</a>: <code>sv.Recall</code> now tracks classes that appear only in predictions, matching <code>sv.Precision</code> and <code>sv.F1Score</code> after <a href="https://github.com/roboflow/supervision/pull/2331">#2331</a> and matching sklearn, which infers labels from the union of <code>y_true</code> and <code>y_pred</code>. <code>matched_classes</code> and <code>recall_per_class</code> are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. <code>matched_classes</code> and <code>recall_per_class</code> gain a row for each prediction-only class under every averaging method; only the scalar <code>MACRO</code> recall changes value, since such a class now contributes <code>0.0</code>, while the scalar <code>MICRO</code> and <code>WEIGHTED</code> aggregates are unaffected. Users relying on previous scores should re-evaluate after upgrading; no API change is required.</p>
+</li>
+<li>
+<p><code>DetectionDataset.from_pascal_voc</code> no longer raises <code>ValueError</code> on background images. An annotation file with no <code>object</code> elements produced an empty <code>class_id</code> array of dtype <code>float64</code>, which failed <code>DetectionDataset</code> validation, so any Pascal VOC dataset containing an unannotated image could not be loaded.</p>
+</li>
+<li>
+<p><code>DetectionDataset.from_pascal_voc</code> with <code>force_masks=True</code> no longer raises <code>ValueError</code> on background images. An annotation file with no <code>object</code> elements produced an empty mask of shape <code>(0,)</code> instead of the required <code>(0, H, W)</code>, which failed <code>Detections</code> validation.</p>
+</li>
+<li>
+<p>Reopening an existing <code>sv.CSVSink</code> or <code>sv.JSONSink</code> now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.</p>
+</li>
+<li>
+<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_0</code>, <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, and <code>sv.VLM.GOOGLE_GEMINI_3_5</code> now salvages the valid entries from a partially malformed JSON array (e.g. a single object with a syntax error) instead of discarding the whole response.</p>
+</li>
+<li>
+<p>Geometry-aware IoU dispatch now powers the deprecated <code>merge_inner_detections_objects</code>, so overlapping axis-aligned envelopes no longer merge oriented boxes whose true OBB IoU is below the threshold (<a href="https://github.com/roboflow/supervision/pull/2374">#2374</a>).</p>
+</li>
+<li>
+<p><code>save_coco_annotations</code> (and therefore <code>DetectionDataset.as_coco</code>) now reads image sizes from file headers via lazy PIL instead of cv2-decoding every image, so labels-only COCO exports no longer decode any pixel data (<a href="https://github.com/roboflow/supervision/pull/2442">#2442</a>).</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2437">#2437</a>: <code>sv.F1Score</code> no longer emits a spurious <code>RuntimeWarning</code> when true positives, false positives, and false negatives are all zero (denominator 0); the score remains <code>0.0</code>.</p>
+</li>
+<li>
+<p>Supervision now emits a <code>UserWarning</code> at import time when OpenCV is not installed and the cv2-free fallback backend is used, so users relying on OpenCV-specific behavior are alerted instead of silently falling back.</p>
+</li>
+<li>
+<p>The cv2-free fallback now preserves OpenCV-compatible edge and keyword semantics for image borders, resizing, drawing, and small polygon masks, keeping ordinary production consumers usable without cv2.</p>
+</li>
+<li>
+<p>The cv2-free fallback's <code>copyMakeBorder</code> now fills only channel 0 for a scalar border <code>value</code> on multichannel images, matching OpenCV's <code>Scalar(v)</code> semantics instead of broadcasting the value to every channel.</p>
+</li>
+<li>
+<p>The cv2-free fallback's <code>addWeighted</code> now raises <code>ValueError</code> for a non-default <code>dtype</code> instead of silently ignoring it.</p>
+</li>
+<li>
+<p>The cv2-free fallback's <code>approxPolyDP</code> now follows OpenCV's stack traversal, closed-contour anchor selection, and final cleanup. The implementation avoids the former O(N²) distance matrix and exactly matches OpenCV on the deterministic 100-polygon regression corpus.</p>
+</li>
+<li>
+<p>The cv2-free fallback now preserves OpenCV's half-pixel bilinear interpolation when downsampling uint8 images and its anchor selection for contours whose first point is explicitly repeated at the end.</p>
+</li>
+<li>
+<p>The cv2-free fallback now uses OpenCV's fixed-point uint8 BGR-to-gray arithmetic, matching all 16,777,216 input colors exactly. Edge-distance filtering applies an O(H×W) two-pass transform with fixed-point 3×3 chamfer weights, preserving threshold decisions without retaining a generic cv2 distance-transform API.</p>
+</li>
+<li>
+<p>Reduced cv2-free media overhead by vectorizing connected-component statistics, narrowing contour extraction to the geometry production uses, and rasterizing Pillow text into a clipped glyph-sized mask.</p>
+</li>
+<li>
+<p>Removed unused raw <code>distanceTransform</code>, <code>getRotationMatrix2D</code>, and <code>warpAffine</code> compatibility symbols. Their only production consumers now use smaller domain operations: a bounded two-pass chamfer transform for mask filtering and Pillow rotation for line-zone labels.</p>
+</li>
+<li>
+<p>PyAV audio/video remuxing now uses its stream-template API directly instead of maintaining a local codec-parameter copy helper.</p>
+</li>
+<li>
+<p>The cv2-free fallback now renders text with Pillow and the bundled DejaVu Sans face instead of reproducing OpenCV's Hershey stroke fonts. This drops the packaged 143 KB glyph table and its loader in favor of an existing dependency. Text drawn without cv2 now uses a proportional TrueType face, so glyph shapes and <code>getTextSize</code> metrics differ from OpenCV within the documented visual-divergence tier; the OpenCV path is unchanged. All Hershey font faces remain accepted for API compatibility but map to the same face (the italic modifier selects the oblique variant).</p>
+</li>
+<li>
+<p>The cv2-free fallback's <code>getTextSize</code> now derives its height and baseline padding directly from the same <code>stroke_width</code> <code>putText</code> renders with, instead of a separate approximation. For <code>thickness &gt; 2</code> the old formula under-padded the box, so a heavy stroke's descender pixels could fall outside the reported rectangle.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/issues/2427">#2427</a>: size-bucketed <code>sv.Precision</code> and <code>sv.F1Score</code> no longer count out-of-bucket detections as false positives. <code>sv.Recall</code> now matches only targets in the requested bucket, and all three metrics prioritize in-bucket targets during matching, matching COCO evaluation and <code>sv.MeanAveragePrecision</code>. A pixel-perfect detector now scores 1.0 in every bucket.</p>
+</li>
+<li>
+<p><code>sv.hex_to_rgba</code> now rejects multiple leading <code>#</code> characters instead of silently normalizing them, matching <code>sv.is_valid_hex</code> and the documented single optional prefix.</p>
+</li>
+<li>
+<p><code>sv.box_iou_batch</code> now upcasts box corners to <code>float64</code> before computing areas and intersections, returning <code>float32</code>. This fixes integer-dtype overflow (e.g. <code>int32</code> coordinates around <code>50_000</code> could previously wrap to a negative area and produce an incorrect <code>0.0</code> IoU) and gives full <code>float64</code> precision to callers that pass <code>float64</code>/<code>int64</code> coordinates directly. It does not recover precision already lost when coordinates are stored as <code>float32</code> before this function is called (e.g. <code>Detections.xyxy</code>, which is <code>float32</code> throughout the library) — such callers must upcast their own arrays to <code>float64</code>/<code>int64</code> before calling <code>box_iou_batch</code> to benefit from this fix. Results for small-coordinate inputs are unchanged.</p>
+</li>
+<li>
+<p>Legacy COCO prediction loading in <code>sv.EvaluationDataset.load_predictions</code> now raises <code>ValueError</code> for image ids absent from the ground-truth COCO set instead of relying on a bare <code>assert</code>, so the check is no longer silently skipped under <code>python -O</code>.</p>
+</li>
+<li>
+<p><code>sv.HeatMapAnnotator</code> now exposes a <code>reset()</code> method to clear accumulated heat, so a single annotator instance can be reused across independent streams without carrying over heat from a previous stream.</p>
+</li>
+<li>
+<p><code>sv.TraceAnnotator</code> and <code>sv.DetectionsSmoother</code> now expose a <code>reset()</code> method for interface consistency with <code>sv.HeatMapAnnotator.reset()</code>, clearing their accumulated per-track history so a single instance can be reused across independent streams.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>sv.process_video</code> no longer risks hanging during shutdown; the sentinel enqueue is best-effort and worker joins are bounded.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: COCO and CreateML dataset loaders now canonicalize resolved image paths and reject duplicate aliases for the same file.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2416">#2416</a>: <code>DetectionDataset.as_pascal_voc()</code> now preflights image and annotation basename collisions before writing, so exports fail fast instead of producing partial output.</p>
+</li>
+<li>
+<p><code>import supervision</code> no longer surfaces the deprecated <code>ByteTrack</code> warning; the top-level tracker alias now resolves lazily when accessed explicitly.</p>
+</li>
+<li>
+<p>Fixed dataset export edge cases: <code>DetectionDataset.split()</code> and <code>DetectionDataset.merge()</code> now preserve in-memory image payloads without re-emitting the deprecation warning, and COCO/CreateML exports now reject duplicate image basenames instead of silently collapsing distinct paths into the same output key.</p>
+</li>
+<li>
+<p>Fixed: <code>sv.Color(...)</code> now validates direct RGBA channel values and raises <code>ValueError</code> when any channel falls outside the 0-255 byte range.</p>
+</li>
+<li>
+<p>Fixed: <code>approximate_mask_with_polygons</code> now defaults to no polygon simplification, matching the public dataset export methods.</p>
+</li>
+<li>
+<p>Fixed: <code>ImageSink.save_image()</code> now raises <code>OSError</code> when <code>cv2.imwrite()</code> fails, and deprecation-warning control accepts the correct <code>SUPERVISION_DEPRECATION_WARNING</code> environment variable while still honoring the legacy misspelled alias.</p>
+</li>
+<li>
+<p><code>sv.Classifications.from_timm</code> now softmaxes model logits before exposing confidence scores, matching <code>sv.Classifications.from_clip</code> and keeping timm confidences on a normalized probability scale. Thresholds calibrated against raw logits may need retuning.</p>
+</li>
+<li>
+<p><code>sv.download_assets</code> now verifies MD5 hashes after fresh downloads and retries once when the downloaded payload is corrupted instead of accepting a bad file.</p>
+</li>
+<li>
+<p>Fixed metrics scoring edge cases: legacy <code>sv.MeanAveragePrecision</code> now uses COCO 101-point AP averaging, <code>sv.ConfusionMatrix</code> rejects invalid class ids instead of wrapping them through <code>int16</code>/negative indexing, <code>sv.MeanAveragePrecision</code> preserves user-provided target <code>ignore</code> flags, and <code>sv.MeanAverageRecallResult.recall_per_class</code> now exposes per-class recall for each max-detection cutoff.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2408">#2408</a>: <code>sv.Precision</code>, <code>sv.Recall</code>, <code>sv.F1Score</code>, and <code>sv.MeanAverageRecall</code> now score size buckets by filtering targets only while leaving predictions eligible to match bucket targets. This preserves bucket matches that would otherwise be stolen by out-of-bucket filtering and keeps mAR top-K ranking intact.</p>
+</li>
+<li>
+<p><code>sv.ByteTrack</code> no longer mutates input <code>Detections</code> while assigning tracker IDs. It now keeps detections at the activation-threshold boundary eligible for matching, avoids impossible new-track thresholds above score <code>1.0</code>, ignores invalid zero-area/non-finite tensor boxes before Kalman updates, and does not emit unconfirmed <code>-1</code> IDs from first-frame tensor updates.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2402">#2402</a>: <code>sv.KeyPoints.as_detections</code> now accepts NumPy arrays, tuples, and generators in <code>selected_keypoint_indices</code> without ambiguous truth-value errors; empty index iterables select all keypoints. Valid zero-area skeletons are preserved, while all-zero and non-finite-only skeletons are filtered out.</p>
+</li>
+<li>
+<p>Changed: delayed <code>sv.ByteTrack</code>, <code>supervision.keypoint</code>, <code>normalized_xyxy</code> for <code>sv.denormalize_boxes</code>, and <code>supervision.dataset.utils</code> RLE compatibility removals from <code>supervision-0.30.0</code> to <code>supervision-0.31.0</code> so the deprecated APIs keep a full transition window.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2407">#2407</a>: <code>sv.ColorPalette.by_idx()</code> now raises a clear <code>ValueError</code> when called on an empty palette instead of leaking a <code>ZeroDivisionError</code>. Non-empty palettes keep the existing index-wrapping behavior.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.CropAnnotator.annotate</code> no longer raises <code>cv2.error</code> when detections extend outside the scene; out-of-bounds boxes are clipped to scene bounds and zero-area results are skipped silently.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.HeatMapAnnotator.annotate</code> no longer blanks the hottest region when the per-pixel hit count exceeds 255; the heat mask is now derived from the float32 accumulator directly, avoiding uint8 wrap-around.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2393">#2393</a>: <code>sv.get_video_frames_generator</code> now releases the underlying <code>cv2.VideoCapture</code> via <code>try/finally</code>, so the decoder is freed when a consumer breaks out of iteration early rather than waiting for garbage collection.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2382">#2382</a>: <code>sv.Detections.get_anchors_coordinates</code> now uses oriented bounding box corners (<code>data["xyxyxyxy"]</code>) when OBB data is present, instead of falling back to the axis-aligned envelope. Anchors on rotated detections now lie on the oriented body rather than drifting to the envelope. Non-OBB detections and <code>Position.CENTER_OF_MASS</code> (which requires a mask) are unaffected.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2396">#2396</a>: <code>sv.BackgroundOverlayAnnotator.annotate</code> no longer leaves detection regions tinted when bounding boxes have negative coordinates (extend outside the left or top scene boundary); boxes are now clipped to scene bounds before the detection region is restored.</p>
+</li>
+<li>
+<p>Fixed: dataset IO/export edge cases now avoid mutating caller-owned <code>Detections</code> during <code>DetectionDataset</code> construction, reject non-integer and out-of-range class ids with a clear <code>ValueError</code>, load COCO annotations that omit optional <code>iscrowd</code>/<code>area</code> fields, expose <code>DetectionDataset.from_coco(use_iscrowd=...)</code> without changing the existing positional <code>show_progress</code> argument, export mask pixel area to COCO when no stored area is present, ignore folder-structure root clutter and non-image files inside class folders, and accept PIL-readable YOLO images such as RGBA or palette PNGs.</p>
+</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6005,7 +6102,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 3, 2026 16:30:24 UTC">August 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 3, 2026 18:57:05 UTC">August 3, 2026</span>
   </span>
 
     
@@ -6033,9 +6130,9 @@
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/arthi-arumugam-git" class="md-author" title="@arthi-arumugam-git">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/62213284?v=4&size=72" alt="arthi-arumugam-git">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6043,21 +6140,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/LuShadowX" class="md-author" title="@LuShadowX">
           
           <img src="https://avatars.githubusercontent.com/u/226906661?v=4&size=72" alt="LuShadowX">
-        </a>
-      
-        <a href="https://github.com/Erol444" class="md-author" title="@Erol444">
-          
-          <img src="https://avatars.githubusercontent.com/u/18037362?v=4&size=72" alt="Erol444">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +26
+            +27
           </a>
         
       
