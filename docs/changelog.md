@@ -88,6 +88,12 @@ date_modified: 2026-07-27
 
 ### Fixed
 
+- Fixed [#2467](https://github.com/roboflow/supervision/issues/2467): `sv.Recall` now tracks classes that appear only in predictions, matching `sv.Precision` and `sv.F1Score` after [#2331](https://github.com/roboflow/supervision/pull/2331) and matching sklearn, which infers labels from the union of `y_true` and `y_pred`. `matched_classes` and `recall_per_class` are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. `matched_classes` and `recall_per_class` gain a row for each prediction-only class under every averaging method; only the scalar `MACRO` recall changes value, since such a class now contributes `0.0`, while the scalar `MICRO` and `WEIGHTED` aggregates are unaffected. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
+
+- `DetectionDataset.from_pascal_voc` no longer raises `ValueError` on background images. An annotation file with no `object` elements produced an empty `class_id` array of dtype `float64`, which failed `DetectionDataset` validation, so any Pascal VOC dataset containing an unannotated image could not be loaded.
+
+- `DetectionDataset.from_pascal_voc` with `force_masks=True` no longer raises `ValueError` on background images. An annotation file with no `object` elements produced an empty mask of shape `(0,)` instead of the required `(0, H, W)`, which failed `Detections` validation.
+
 - Reopening an existing `sv.CSVSink` or `sv.JSONSink` now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.
 
 - Supervision now emits a `UserWarning` at import time when OpenCV is not installed and the cv2-free fallback backend is used, so users relying on OpenCV-specific behavior are alerted instead of silently falling back.
