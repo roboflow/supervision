@@ -349,6 +349,11 @@ class TestGetLabelsText:
         )
         assert get_labels_text(detections, None) == ["5", "3"]
 
+    def test_falls_back_to_class_id_single_detection(self) -> None:
+        """class_id fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[7])
+        assert get_labels_text(detections, None) == ["7"]
+
     def test_falls_back_to_index(self) -> None:
         """Labels fall back to detection indices when no class_id."""
         detections = _create_detections(
@@ -356,6 +361,55 @@ class TestGetLabelsText:
         )
         assert get_labels_text(detections, None) == ["0", "1", "2"]
 
+    def test_falls_back_to_index_single_detection(self) -> None:
+        """Index fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]])
+        assert get_labels_text(detections, None) == ["0"]
+
+    def test_custom_labels_take_precedence_over_class_name(self) -> None:
+        """Custom labels win over the class_name branch specifically."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        custom = ["a", "b"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field_with_non_str_dtype(self) -> None:
+        """str() coercion is load-bearing when class_name holds a non-str dtype."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array([1, 2])},
+        )
+        assert get_labels_text(detections, None) == ["1", "2"]
+
     def test_empty_detections(self) -> None:
-        """Empty detections produce an empty label list."""
-        assert get_labels_text(Detections.empty(), None) == []
+        """Empty detections produce an empty label list, via the class_id branch."""
+        detections = Detections.empty()
+        assert detections.class_id is not None
+        assert get_labels_text(detections, None) == []
+
+    def test_raises_on_class_name_length_mismatch(self) -> None:
+        """A class_name array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        detections.data["class_name"] = np.array(["cat"])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_name"):
+            get_labels_text(detections, None)
+
+    def test_raises_on_class_id_length_mismatch(self) -> None:
+        """A class_id array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+        )
+        detections.class_id = np.array([0])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_id"):
+            get_labels_text(detections, None)
