@@ -4,6 +4,8 @@ import pytest
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
+from supervision.metrics.f1_score import F1Score
+from supervision.metrics.precision import Precision
 from supervision.metrics.recall import Recall
 from tests.helpers import assert_almost_equal
 
@@ -126,6 +128,252 @@ class TestRecall:
         # TP = 0, FN = 1 -> recall = TP / (TP + FN) = 0 / 1 = 0.0
         assert result.recall_at_50 == 0.0
         assert result.recall_at_75 == 0.0
+
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            pytest.param(
+                AveragingMethod.MICRO, 1.0, id="micro-absent-class-adds-no-fn"
+            ),
+            pytest.param(
+                AveragingMethod.MACRO, 0.5, id="macro-includes-absent-class-at-zero"
+            ),
+            pytest.param(
+                AveragingMethod.WEIGHTED,
+                1.0,
+                id="weighted-absent-class-has-no-support-by-design",
+            ),
+        ],
+    )
+    def test_absent_class_predictions_are_tracked(self, method, expected):
+        """A class predicted but never present in the targets is still tracked.
+
+        Recall for such a class is 0.0 rather than undefined, which is what sklearn
+        reports and what Precision and F1Score already do here. MICRO is unchanged
+        because an absent class contributes no false negatives, and WEIGHTED is
+        unchanged because its ground-truth support is zero.
+        """
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = Recall(averaging_method=method)
+        result = metric.update(predictions, targets).compute()
+
+        assert result.recall_at_50 == expected
+        assert list(result.matched_classes) == [0, 1]
+
+    def test_tracked_classes_match_precision_and_f1(self):
+        """The three metrics must agree on which classes exist for the same data.
+
+        They return `matched_classes` and a `*_per_class` array that read as parallel
+        outputs. When the class sets diverge, zipping them silently truncates instead
+        of raising.
+        """
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [100, 0, 110, 10]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+            confidence=np.array([0.9, 0.8]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        recall = Recall().update(predictions, targets).compute()
+        precision = Precision().update(predictions, targets).compute()
+        f1 = F1Score().update(predictions, targets).compute()
+
+        assert list(recall.matched_classes) == list(precision.matched_classes)
+        assert list(recall.matched_classes) == list(f1.matched_classes)
+        assert (
+            recall.recall_per_class.shape[0] == precision.precision_per_class.shape[0]
+        )
+
+    @pytest.mark.parametrize(
+        ("averaging_method", "expected_recall_at_50"),
+        [
+            pytest.param(
+                AveragingMethod.WEIGHTED,
+                1.0,
+                id="weighted-background-class-has-no-support",
+            ),
+            pytest.param(
+                AveragingMethod.MICRO,
+                1.0,
+                id="micro-background-class-adds-no-fn",
+            ),
+            pytest.param(
+                AveragingMethod.MACRO,
+                0.5,
+                id="macro-background-class-drags-average-down",
+            ),
+        ],
+    )
+    def test_tracked_classes_match_precision_and_f1_with_background_images(
+        self, averaging_method: AveragingMethod, expected_recall_at_50: float
+    ) -> None:
+        """The class sets must still agree when a sample has predictions and no targets.
+
+        A background image produces no false negatives, so no recall value changes
+        under WEIGHTED or MICRO, but its predicted classes still have to be tracked.
+        Building the class union only inside the targets-present path leaves them
+        out, and the three metrics disagree again for list inputs that contain one.
+        MACRO is where the background class's 0.0 recall placeholder visibly shifts
+        the aggregate, since it is averaged unweighted across classes.
+        """
+        with_targets_pred = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        with_targets_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_pred = Detections(
+            xyxy=np.array([[50, 50, 60, 60]], dtype=np.float32),
+            class_id=np.array([2]),  # class 2 exists only on a target-less sample
+            confidence=np.array([0.8]),
+        )
+
+        preds = [with_targets_pred, background_pred]
+        gts = [with_targets_gt, Detections.empty()]
+
+        recall = Recall(averaging_method=averaging_method).update(preds, gts).compute()
+        precision = Precision().update(preds, gts).compute()
+        f1 = F1Score().update(preds, gts).compute()
+
+        assert list(recall.matched_classes) == [0, 2]
+        assert list(recall.matched_classes) == list(precision.matched_classes)
+        assert list(recall.matched_classes) == list(f1.matched_classes)
+        assert (
+            recall.recall_per_class.shape[0] == precision.precision_per_class.shape[0]
+        )
+        assert recall.recall_at_50 == pytest.approx(expected_recall_at_50)
+
+    def test_background_image_size_bucket_filters_predictions_by_size(self) -> None:
+        """Size buckets restrict background-image prediction-only classes by size.
+
+        A background image (empty targets) with predictions of different sizes must
+        only surface in the size bucket matching that size; a bucket left with zero
+        predictions after size filtering must stay empty rather than error.
+        """
+        predictions = Detections(
+            xyxy=np.array(
+                [
+                    [0, 0, 10, 10],  # area 100 (Small)
+                    [0, 0, 200, 200],  # area 40000 (Large)
+                ],
+                dtype=np.float32,
+            ),
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([1, 2]),
+        )
+        targets = Detections.empty()
+
+        result = Recall().update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert list(result.small_objects.matched_classes) == [1]
+        assert result.small_objects.recall_per_class.shape == (1, 10)
+
+        assert result.large_objects is not None
+        assert list(result.large_objects.matched_classes) == [2]
+        assert result.large_objects.recall_per_class.shape == (1, 10)
+
+        # Neither prediction is Medium: size filtering leaves zero predictions, so
+        # the `continue` path is hit and the sample contributes nothing to this bucket.
+        assert result.medium_objects is not None
+        assert list(result.medium_objects.matched_classes) == []
+        assert result.medium_objects.recall_per_class.shape == (0, 10)
+
+    def test_multiple_background_image_samples_accumulate_classes(self) -> None:
+        """Two background-image samples in one list input union their classes.
+
+        Prediction-only classes from separate background-only samples must all be
+        tracked together, not just the first sample's class.
+        """
+        background_pred_1 = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([5]),
+            confidence=np.array([0.9]),
+        )
+        background_pred_2 = Detections(
+            xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32),
+            class_id=np.array([9]),
+            confidence=np.array([0.7]),
+        )
+        preds = [background_pred_1, background_pred_2]
+        gts = [Detections.empty(), Detections.empty()]
+
+        result = Recall().update(preds, gts).compute()
+
+        assert list(result.matched_classes) == [5, 9]
+        assert result.recall_per_class.shape == (2, 10)
+        assert result.recall_at_50 == 0.0
+
+    def test_background_image_duplicate_class_ids_deduplicated(self) -> None:
+        """Repeated class ids in one background-image sample collapse to a set."""
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [20, 20, 30, 30], [40, 40, 50, 50]], dtype=np.float32
+            ),
+            confidence=np.array([0.9, 0.8, 0.7]),
+            class_id=np.array([2, 2, 3]),
+        )
+        targets = Detections.empty()
+
+        result = Recall().update(predictions, targets).compute()
+
+        assert list(result.matched_classes) == [2, 3]
+        assert result.recall_per_class.shape == (2, 10)
+        assert result.recall_at_50 == 0.0
+
+    def test_non_contiguous_class_ids_align_by_value_not_index(self) -> None:
+        """`matched_classes` rows align to class-id values, not positional order.
+
+        Large, non-contiguous class ids are sorted numerically by `np.unique` /
+        `searchsorted`; a positional-index bug would misalign the prediction-only
+        class's zero recall with the matched class's row.
+        """
+        predictions = Detections(
+            xyxy=np.array(
+                [
+                    [100, 100, 140, 140],  # class 1000, no matching target
+                    [10, 10, 50, 50],  # class 5, matches first target exactly
+                ],
+                dtype=np.float32,
+            ),
+            confidence=np.array([0.95, 0.9]),
+            class_id=np.array([1000, 5]),
+        )
+        targets = Detections(
+            xyxy=np.array(
+                [
+                    [10, 10, 50, 50],  # class 5, matched
+                    [200, 200, 240, 240],  # class 5, missed
+                ],
+                dtype=np.float32,
+            ),
+            class_id=np.array([5, 5]),
+        )
+
+        result = Recall().update(predictions, targets).compute()
+
+        assert list(result.matched_classes) == [5, 1000]
+        assert result.recall_per_class.shape == (2, 10)
+        assert np.all(result.recall_per_class[0] == 0.5)  # class 5: TP=1, FN=1
+        assert np.all(result.recall_per_class[1] == 0.0)  # class 1000: no targets
+        assert result.recall_at_50 == pytest.approx(0.5)
 
     def test_empty_predictions(self, targets_50_50):
         """Test recall with empty predictions but existing targets"""
