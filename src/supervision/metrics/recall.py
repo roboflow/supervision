@@ -328,7 +328,16 @@ class Recall(Metric["RecallResult"]):
         matches = matches[sorted_indices]
         ignored_matches = ignored_matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Classes that appear only in predictions have no ground-truth instances, so
+        # their recall is 0.0 rather than undefined. Including them keeps the tracked
+        # class set identical to Precision and F1Score and matches sklearn, which infers
+        # labels from the union of y_true and y_pred.
+        unique_classes = np.unique(
+            np.concatenate((true_class_ids, prediction_class_ids))
+        )
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
@@ -575,10 +584,12 @@ class RecallResult:
         recall_scores: the recall scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `recall_per_class`. Classes that
+            appear only in predictions (no ground-truth instances) are included;
+            their per-threshold recall values will be `0.0`.
         small_objects: the Recall metric results
             for small objects (area < 32²).
         medium_objects: the Recall metric results

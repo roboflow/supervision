@@ -4,6 +4,8 @@ import pytest
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
+from supervision.metrics.f1_score import F1Score
+from supervision.metrics.precision import Precision
 from supervision.metrics.recall import Recall
 from tests.helpers import assert_almost_equal
 
@@ -126,6 +128,75 @@ class TestRecall:
         # TP = 0, FN = 1 -> recall = TP / (TP + FN) = 0 / 1 = 0.0
         assert result.recall_at_50 == 0.0
         assert result.recall_at_75 == 0.0
+
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            pytest.param(
+                AveragingMethod.MICRO, 1.0, id="micro-absent-class-adds-no-fn"
+            ),
+            pytest.param(
+                AveragingMethod.MACRO, 0.5, id="macro-includes-absent-class-at-zero"
+            ),
+            pytest.param(
+                AveragingMethod.WEIGHTED,
+                1.0,
+                id="weighted-absent-class-has-no-support-by-design",
+            ),
+        ],
+    )
+    def test_absent_class_predictions_are_tracked(self, method, expected):
+        """A class predicted but never present in the targets is still tracked.
+
+        Recall for such a class is 0.0 rather than undefined, which is what sklearn
+        reports and what Precision and F1Score already do here. MICRO is unchanged
+        because an absent class contributes no false negatives, and WEIGHTED is
+        unchanged because its ground-truth support is zero.
+        """
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = Recall(averaging_method=method)
+        result = metric.update(predictions, targets).compute()
+
+        assert result.recall_at_50 == expected
+        assert list(result.matched_classes) == [0, 1]
+
+    def test_tracked_classes_match_precision_and_f1(self):
+        """The three metrics must agree on which classes exist for the same data.
+
+        They return `matched_classes` and a `*_per_class` array that read as parallel
+        outputs. When the class sets diverge, zipping them silently truncates instead
+        of raising.
+        """
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [100, 0, 110, 10]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+            confidence=np.array([0.9, 0.8]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        recall = Recall().update(predictions, targets).compute()
+        precision = Precision().update(predictions, targets).compute()
+        f1 = F1Score().update(predictions, targets).compute()
+
+        assert list(recall.matched_classes) == list(precision.matched_classes)
+        assert list(recall.matched_classes) == list(f1.matched_classes)
+        assert (
+            recall.recall_per_class.shape[0] == precision.precision_per_class.shape[0]
+        )
 
     def test_empty_predictions(self, targets_50_50):
         """Test recall with empty predictions but existing targets"""
