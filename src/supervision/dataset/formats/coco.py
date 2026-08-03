@@ -65,15 +65,13 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
     Returns:
         A list of COCO category dictionaries with 1-indexed ``id`` values.
 
-    Examples:
-        ```python
-        from supervision.dataset.formats.coco import classes_to_coco_categories
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import classes_to_coco_categories
+        >>> classes_to_coco_categories(classes=["cat", "dog"])
+        [{'id': 1, 'name': 'cat', 'supercategory': 'common-objects'},
+         {'id': 2, 'name': 'dog', 'supercategory': 'common-objects'}]
 
-        classes_to_coco_categories(classes=["cat", "dog"])
-        # [
-        #     {"id": 1, "name": "cat", "supercategory": "common-objects"},
-        #     {"id": 2, "name": "dog", "supercategory": "common-objects"},
-        # ]
         ```
     """
     return [
@@ -280,23 +278,25 @@ def detections_to_coco_annotations(
         (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
         force polygon output regardless of mask topology.
 
-    Examples:
-        ```python
-        import numpy as np
-        from supervision import Detections
-        from supervision.dataset.formats.coco import (
-            detections_to_coco_annotations,
-        )
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision import Detections
+        >>> from supervision.dataset.formats.coco import (
+        ...     detections_to_coco_annotations,
+        ... )
+        >>> detections = Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0], dtype=int),
+        ... )
+        >>> annotations, next_id = detections_to_coco_annotations(
+        ...     detections=detections, image_id=1, annotation_id=1
+        ... )
+        >>> annotations[0]["category_id"]
+        1
+        >>> next_id
+        2
 
-        detections = Detections(
-            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-        annotations, next_id = detections_to_coco_annotations(
-            detections=detections, image_id=1, annotation_id=1
-        )
-        annotations[0]["category_id"]
-        # 1
         ```
     """
     coco_annotations: list[CocoDict] = []
