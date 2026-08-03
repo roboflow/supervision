@@ -173,7 +173,40 @@ class Recall(Metric["RecallResult"]):
                         == size_category.value
                     )
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image). They produce
+                # no false negatives, so no recall value changes, but the classes still
+                # have to be tracked or `matched_classes` silently disagrees with
+                # Precision and F1Score for the same input.
+                if predictions.class_id is None or predictions.confidence is None:
+                    raise ValueError(
+                        "Recall metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)[
+                    prediction_size_mask
+                ]
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )[prediction_size_mask]
+                if len(prediction_class_ids) == 0:
+                    continue
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        prediction_confidence,
+                        prediction_class_ids,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
                     raise ValueError(
                         "Recall metric requires `class_id` on both predictions "

@@ -21,7 +21,7 @@ date_modified: 2026-07-27
 
 ### Fixed
 
-- Fixed [#2467](https://github.com/roboflow/supervision/issues/2467): `sv.Recall` now tracks classes that appear only in predictions, matching `sv.Precision` and `sv.F1Score` after [#2331](https://github.com/roboflow/supervision/pull/2331) and matching sklearn, which infers labels from the union of `y_true` and `y_pred`. `matched_classes` and `recall_per_class` are now aligned across the three metrics, so per-class results can be compared row for row. Note that `MACRO` recall changes for evaluations containing predictions of a class with no ground-truth instances, since such a class now contributes `0.0`; `MICRO` and `WEIGHTED` are unaffected.
+- Fixed [#2467](https://github.com/roboflow/supervision/issues/2467): `sv.Recall` now tracks classes that appear only in predictions, matching `sv.Precision` and `sv.F1Score` after [#2331](https://github.com/roboflow/supervision/pull/2331) and matching sklearn, which infers labels from the union of `y_true` and `y_pred`. `matched_classes` and `recall_per_class` are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. Note that `MACRO` recall changes for evaluations containing predictions of a class with no ground-truth instances, since such a class now contributes `0.0`; `MICRO` and `WEIGHTED` are unaffected.
 
 - Reopening an existing `sv.CSVSink` or `sv.JSONSink` now starts a fresh output session: CSV files receive a new header and field schema, while JSON files no longer retain rows from the previous session.
 

@@ -198,6 +198,43 @@ class TestRecall:
             recall.recall_per_class.shape[0] == precision.precision_per_class.shape[0]
         )
 
+    def test_tracked_classes_match_precision_and_f1_with_background_images(self):
+        """The class sets must still agree when a sample has predictions and no targets.
+
+        A background image produces no false negatives, so no recall value changes, but
+        its predicted classes still have to be tracked. Building the class union only
+        inside the targets-present path leaves them out, and the three metrics disagree
+        again for list inputs that contain one.
+        """
+        with_targets_pred = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        with_targets_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_pred = Detections(
+            xyxy=np.array([[50, 50, 60, 60]], dtype=np.float32),
+            class_id=np.array([2]),  # class 2 exists only on a target-less sample
+            confidence=np.array([0.8]),
+        )
+
+        preds = [with_targets_pred, background_pred]
+        gts = [with_targets_gt, Detections.empty()]
+
+        recall = Recall().update(preds, gts).compute()
+        precision = Precision().update(preds, gts).compute()
+        f1 = F1Score().update(preds, gts).compute()
+
+        assert list(recall.matched_classes) == [0, 2]
+        assert list(recall.matched_classes) == list(precision.matched_classes)
+        assert list(recall.matched_classes) == list(f1.matched_classes)
+        assert (
+            recall.recall_per_class.shape[0] == precision.precision_per_class.shape[0]
+        )
+
     def test_empty_predictions(self, targets_50_50):
         """Test recall with empty predictions but existing targets"""
         predictions = Detections.empty()
