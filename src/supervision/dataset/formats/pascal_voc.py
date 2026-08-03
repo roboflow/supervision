@@ -347,7 +347,8 @@ def detections_from_xml_obj(
         if k not in extended_classes:
             extended_classes.append(k)
     class_id = np.array(
-        [extended_classes.index(class_name) for class_name in class_names]
+        [extended_classes.index(class_name) for class_name in class_names],
+        dtype=int,
     )
 
     annotation = Detections(
