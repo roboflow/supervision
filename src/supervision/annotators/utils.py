@@ -264,10 +264,9 @@ def get_labels_text(
 
     if CLASS_NAME_DATA_FIELD in detections.data:
         return [str(v) for v in detections.data[CLASS_NAME_DATA_FIELD]]
-    elif detections.class_id is not None:
+    if detections.class_id is not None:
         return [str(v) for v in detections.class_id]
-    else:
-        return [str(i) for i in range(len(detections))]
+    return [str(i) for i in range(len(detections))]
 
 
 def snap_boxes(
