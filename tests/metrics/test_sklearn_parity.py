@@ -1,53 +1,17 @@
-"""Golden parity tests for classification-style detection outcomes.
+"""Compare detection-style metric outcomes with live scikit-learn results.
 
-The constants in this module were generated with scikit-learn 1.7.1. Unmatched
-targets and predictions are represented by ``BACKGROUND_CLASS_ID`` in the sklearn
-event stream, while ``labels`` contains only foreground classes. This produces the
-same per-class TP, FP, and FN counts as Supervision's detection metrics.
-
-To regenerate the constants locally without adding sklearn to the test environment::
-
-    from sklearn.metrics import f1_score, precision_score, recall_score
-
-    functions = {
-        "precision": precision_score,
-        "recall": recall_score,
-        "f1": f1_score,
-    }
-    for case in PARITY_CASES:
-        for metric_name, function in functions.items():
-            print(case.name, metric_name)
-            print(
-                function(
-                    case.sklearn_y_true,
-                    case.sklearn_y_pred,
-                    labels=case.sklearn_labels,
-                    average=None,
-                    zero_division=0,
-                )
-            )
-            for average in ("micro", "macro", "weighted"):
-                print(
-                    average,
-                    function(
-                        case.sklearn_y_true,
-                        case.sklearn_y_pred,
-                        labels=case.sklearn_labels,
-                        average=average,
-                        zero_division=0,
-                    ),
-                )
-
-For the fully empty case, sklearn needs an explicit generation-only label to apply
-its zero-division convention to macro and weighted averages. Supervision correctly
-tracks no class for that case, so its per-class result remains empty.
+Unmatched targets and predictions are represented by ``BACKGROUND_CLASS_ID`` in
+the sklearn event stream, while evaluated labels contain only foreground classes.
+This produces the same per-class TP, FP, and FN counts as Supervision's metrics.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
 import pytest
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod
@@ -56,24 +20,6 @@ from supervision.metrics.precision import Precision
 from supervision.metrics.recall import Recall
 
 BACKGROUND_CLASS_ID = -1
-
-
-@dataclass(frozen=True)
-class MetricGoldens:
-    """Store sklearn outputs for one metric and one detection scenario."""
-
-    per_class: tuple[float, ...]
-    micro: float
-    macro: float
-    weighted: float
-
-    def average(self, name: Literal["micro", "macro", "weighted"]) -> float:
-        """Return the golden aggregate for an averaging method."""
-        if name == "micro":
-            return self.micro
-        if name == "macro":
-            return self.macro
-        return self.weighted
 
 
 @dataclass(frozen=True)
@@ -87,15 +33,15 @@ class ParityCase:
     sklearn_y_pred: tuple[int, ...]
     sklearn_labels: tuple[int, ...]
     matched_classes: tuple[int, ...]
-    goldens: dict[str, MetricGoldens]
 
 
 @dataclass(frozen=True)
 class MetricSpec:
-    """Connect a Supervision metric result to its sklearn golden values."""
+    """Connect a Supervision metric result to its scikit-learn function."""
 
     name: Literal["precision", "recall", "f1"]
     metric_class: type[Precision] | type[Recall] | type[F1Score]
+    sklearn_function: Callable[..., float | np.ndarray]
     scores_attribute: str
     per_class_attribute: str
 
@@ -109,26 +55,6 @@ PARITY_CASES = (
         sklearn_y_pred=(0, 2, 2, 5, 0),
         sklearn_labels=(0, 2, 5),
         matched_classes=(0, 2, 5),
-        goldens={
-            "precision": MetricGoldens(
-                per_class=(0.5, 0.5, 1.0),
-                micro=0.6,
-                macro=0.6666666666666666,
-                weighted=0.7,
-            ),
-            "recall": MetricGoldens(
-                per_class=(0.5, 1.0, 0.5),
-                micro=0.6,
-                macro=0.6666666666666666,
-                weighted=0.6,
-            ),
-            "f1": MetricGoldens(
-                per_class=(0.5, 0.6666666666666666, 0.6666666666666666),
-                micro=0.6,
-                macro=0.611111111111111,
-                weighted=0.6,
-            ),
-        },
     ),
     ParityCase(
         name="prediction-only-label",
@@ -138,26 +64,6 @@ PARITY_CASES = (
         sklearn_y_pred=(0, 0, 7),
         sklearn_labels=(0, 7),
         matched_classes=(0, 7),
-        goldens={
-            "precision": MetricGoldens(
-                per_class=(1.0, 0.0),
-                micro=0.6666666666666666,
-                macro=0.5,
-                weighted=1.0,
-            ),
-            "recall": MetricGoldens(
-                per_class=(0.6666666666666666, 0.0),
-                micro=0.6666666666666666,
-                macro=0.3333333333333333,
-                weighted=0.6666666666666666,
-            ),
-            "f1": MetricGoldens(
-                per_class=(0.8, 0.0),
-                micro=0.6666666666666666,
-                macro=0.4,
-                weighted=0.8000000000000002,
-            ),
-        },
     ),
     ParityCase(
         name="target-only-label",
@@ -167,26 +73,6 @@ PARITY_CASES = (
         sklearn_y_pred=(0, 0, 0),
         sklearn_labels=(0, 9),
         matched_classes=(0, 9),
-        goldens={
-            "precision": MetricGoldens(
-                per_class=(0.6666666666666666, 0.0),
-                micro=0.6666666666666666,
-                macro=0.3333333333333333,
-                weighted=0.4444444444444444,
-            ),
-            "recall": MetricGoldens(
-                per_class=(1.0, 0.0),
-                micro=0.6666666666666666,
-                macro=0.5,
-                weighted=0.6666666666666666,
-            ),
-            "f1": MetricGoldens(
-                per_class=(0.8, 0.0),
-                micro=0.6666666666666666,
-                macro=0.4,
-                weighted=0.5333333333333333,
-            ),
-        },
     ),
     ParityCase(
         name="non-contiguous-ids",
@@ -196,26 +82,6 @@ PARITY_CASES = (
         sklearn_y_pred=(2, 11, 11, 42, 2, 42),
         sklearn_labels=(2, 11, 42),
         matched_classes=(2, 11, 42),
-        goldens={
-            "precision": MetricGoldens(
-                per_class=(0.5, 0.5, 1.0),
-                micro=0.6666666666666666,
-                macro=0.6666666666666666,
-                weighted=0.75,
-            ),
-            "recall": MetricGoldens(
-                per_class=(0.5, 1.0, 0.6666666666666666),
-                micro=0.6666666666666666,
-                macro=0.7222222222222222,
-                weighted=0.6666666666666666,
-            ),
-            "f1": MetricGoldens(
-                per_class=(0.5, 0.6666666666666666, 0.8),
-                micro=0.6666666666666666,
-                macro=0.6555555555555556,
-                weighted=0.6777777777777777,
-            ),
-        },
     ),
     ParityCase(
         name="background-image",
@@ -231,26 +97,6 @@ PARITY_CASES = (
         sklearn_y_pred=(0, 2, 0, 11, 11),
         sklearn_labels=(0, 2, 11),
         matched_classes=(0, 2, 11),
-        goldens={
-            "precision": MetricGoldens(
-                per_class=(0.5, 1.0, 0.0),
-                micro=0.4,
-                macro=0.5,
-                weighted=0.75,
-            ),
-            "recall": MetricGoldens(
-                per_class=(1.0, 1.0, 0.0),
-                micro=1.0,
-                macro=0.6666666666666666,
-                weighted=1.0,
-            ),
-            "f1": MetricGoldens(
-                per_class=(0.6666666666666666, 1.0, 0.0),
-                micro=0.5714285714285714,
-                macro=0.5555555555555555,
-                weighted=0.8333333333333333,
-            ),
-        },
     ),
     ParityCase(
         name="targets-only",
@@ -260,12 +106,6 @@ PARITY_CASES = (
         sklearn_y_pred=(BACKGROUND_CLASS_ID, BACKGROUND_CLASS_ID),
         sklearn_labels=(3, 10),
         matched_classes=(3, 10),
-        goldens={
-            metric_name: MetricGoldens(
-                per_class=(0.0, 0.0), micro=0.0, macro=0.0, weighted=0.0
-            )
-            for metric_name in ("precision", "recall", "f1")
-        },
     ),
     ParityCase(
         name="predictions-only",
@@ -275,12 +115,6 @@ PARITY_CASES = (
         sklearn_y_pred=(3, 10),
         sklearn_labels=(3, 10),
         matched_classes=(3, 10),
-        goldens={
-            metric_name: MetricGoldens(
-                per_class=(0.0, 0.0), micro=0.0, macro=0.0, weighted=0.0
-            )
-            for metric_name in ("precision", "recall", "f1")
-        },
     ),
     ParityCase(
         name="empty",
@@ -290,10 +124,6 @@ PARITY_CASES = (
         sklearn_y_pred=(),
         sklearn_labels=(0,),
         matched_classes=(),
-        goldens={
-            metric_name: MetricGoldens(per_class=(), micro=0.0, macro=0.0, weighted=0.0)
-            for metric_name in ("precision", "recall", "f1")
-        },
     ),
 )
 
@@ -301,18 +131,21 @@ METRIC_SPECS = (
     MetricSpec(
         name="precision",
         metric_class=Precision,
+        sklearn_function=precision_score,
         scores_attribute="precision_scores",
         per_class_attribute="precision_per_class",
     ),
     MetricSpec(
         name="recall",
         metric_class=Recall,
+        sklearn_function=recall_score,
         scores_attribute="recall_scores",
         per_class_attribute="recall_per_class",
     ),
     MetricSpec(
         name="f1",
         metric_class=F1Score,
+        sklearn_function=f1_score,
         scores_attribute="f1_scores",
         per_class_attribute="f1_per_class",
     ),
@@ -368,37 +201,49 @@ def _build_detection_batches(
     [pytest.param(spec, id=spec.name) for spec in METRIC_SPECS],
 )
 class TestSklearnParity:
-    """Verify metric outputs against independently generated sklearn goldens."""
+    """Verify metric outputs against independently computed sklearn results."""
 
     @pytest.mark.parametrize(("averaging_method", "average_name"), AVERAGING_CASES)
-    def test_aggregate_scores_match_goldens(
+    def test_aggregate_scores_match_sklearn(
         self,
         case: ParityCase,
         metric_spec: MetricSpec,
         averaging_method: AveragingMethod,
         average_name: Literal["micro", "macro", "weighted"],
     ) -> None:
-        """Aggregate scores match sklearn at every exact-match IoU threshold."""
+        """Aggregate scores match live sklearn results at every IoU threshold."""
         predictions, targets = _build_detection_batches(case)
         metric = metric_spec.metric_class(averaging_method=averaging_method)
 
         result = metric.update(predictions, targets).compute()
 
-        expected_value = case.goldens[metric_spec.name].average(average_name)
+        expected_value = metric_spec.sklearn_function(
+            case.sklearn_y_true,
+            case.sklearn_y_pred,
+            labels=case.sklearn_labels,
+            average=average_name,
+            zero_division=0,
+        )
         expected = np.full(result.iou_thresholds.shape, expected_value)
         actual = getattr(result, metric_spec.scores_attribute)
         np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
 
-    def test_per_class_scores_match_goldens(
+    def test_per_class_scores_match_sklearn(
         self, case: ParityCase, metric_spec: MetricSpec
     ) -> None:
-        """Per-class scores and class ordering match sklearn golden outputs."""
+        """Per-class scores and class ordering match live sklearn results."""
         predictions, targets = _build_detection_batches(case)
         metric = metric_spec.metric_class(averaging_method=AveragingMethod.MACRO)
 
         result = metric.update(predictions, targets).compute()
 
-        expected_values = case.goldens[metric_spec.name].per_class
+        expected_values = metric_spec.sklearn_function(
+            case.sklearn_y_true,
+            case.sklearn_y_pred,
+            labels=case.matched_classes,
+            average=None,
+            zero_division=0,
+        )
         expected = np.repeat(
             np.asarray(expected_values, dtype=np.float64)[:, None],
             result.iou_thresholds.size,
