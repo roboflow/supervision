@@ -1,20 +1,16 @@
-from __future__ import annotations
-
-import argparse
 import json
 import os
-from typing import Any
 
 import cv2
 import numpy as np
+from jsonargparse import auto_cli
 
 import supervision as sv
 
-KEY_ENTER = 13
-KEY_NEWLINE = 10
-KEY_ESCAPE = 27
-KEY_QUIT = ord("q")
-KEY_SAVE = ord("s")
+KEY_ENTER = {"Return", "KP_Enter"}
+KEY_ESCAPE = "Escape"
+KEY_QUIT = "q"
+KEY_SAVE = "s"
 
 THICKNESS = 2
 COLORS = sv.ColorPalette.DEFAULT
@@ -37,15 +33,17 @@ def resolve_source(source_path: str) -> np.ndarray | None:
     return frame
 
 
-def mouse_event(event: int, x: int, y: int, flags: int, param: Any) -> None:
+def mouse_event(x: int, y: int, event_type: str) -> None:
     global current_mouse_position
-    if event == cv2.EVENT_MOUSEMOVE:
+    if event_type == "move":
         current_mouse_position = (x, y)
-    elif event == cv2.EVENT_LBUTTONDOWN:
+    elif event_type == "down":
         POLYGONS[-1].append((x, y))
 
 
-def redraw(image: np.ndarray, original_image: np.ndarray) -> None:
+def redraw(
+    image: np.ndarray, original_image: np.ndarray, window: sv.ImageWindow
+) -> None:
     global POLYGONS, current_mouse_position
     image[:] = original_image.copy()
     for idx, polygon in enumerate(POLYGONS):
@@ -80,10 +78,12 @@ def redraw(image: np.ndarray, original_image: np.ndarray) -> None:
                 color=color,
                 thickness=THICKNESS,
             )
-    cv2.imshow(WINDOW_NAME, image)
+    window.show(image)
 
 
-def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) -> None:
+def close_and_finalize_polygon(
+    image: np.ndarray, original_image: np.ndarray, window: sv.ImageWindow
+) -> None:
     if len(POLYGONS[-1]) > 2:
         cv2.line(
             img=image,
@@ -95,7 +95,7 @@ def close_and_finalize_polygon(image: np.ndarray, original_image: np.ndarray) ->
     POLYGONS.append([])
     image[:] = original_image.copy()
     redraw_polygons(image)
-    cv2.imshow(WINDOW_NAME, image)
+    window.show(image)
 
 
 def redraw_polygons(image: np.ndarray) -> None:
@@ -119,13 +119,22 @@ def redraw_polygons(image: np.ndarray) -> None:
             )
 
 
-def save_polygons_to_json(polygons, target_path):
+def save_polygons_to_json(
+    polygons: list[list[tuple[int, int]]], target_path: str | os.PathLike[str]
+) -> None:
     data_to_save = polygons if polygons[-1] else polygons[:-1]
     with open(target_path, "w") as f:
         json.dump(data_to_save, f)
 
 
 def main(source_path: str, zone_configuration_path: str) -> None:
+    """
+    Interactively draw polygons on images or video frames and save the annotations.
+
+    Args:
+        source_path: Path to the source image or video file for drawing polygons.
+        zone_configuration_path: Path where the polygon annotations saved as JSON file.
+    """
     global current_mouse_position
     original_image = resolve_source(source_path=source_path)
     if original_image is None:
@@ -133,13 +142,16 @@ def main(source_path: str, zone_configuration_path: str) -> None:
         return
 
     image = original_image.copy()
-    cv2.imshow(WINDOW_NAME, image)
-    cv2.setMouseCallback(WINDOW_NAME, mouse_event, image)
+    window = sv.ImageWindow(WINDOW_NAME)
+    window.set_mouse_callback(mouse_event)
+    window.show(image)
 
     while True:
-        key = cv2.waitKey(1) & 0xFF
-        if key == KEY_ENTER or key == KEY_NEWLINE:
-            close_and_finalize_polygon(image, original_image)
+        key = window.wait_key(1)
+        if not window.is_open:
+            break
+        if key in KEY_ENTER:
+            close_and_finalize_polygon(image, original_image, window)
         elif key == KEY_ESCAPE:
             POLYGONS[-1] = []
             current_mouse_position = None
@@ -147,32 +159,15 @@ def main(source_path: str, zone_configuration_path: str) -> None:
             save_polygons_to_json(POLYGONS, zone_configuration_path)
             print(f"Polygons saved to {zone_configuration_path}")
             break
-        redraw(image, original_image)
+        redraw(image, original_image, window)
         if key == KEY_QUIT:
             break
 
-    cv2.destroyAllWindows()
+    window.close()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Interactively draw polygons on images or video frames and save "
-        "the annotations."
-    )
-    parser.add_argument(
-        "--source_path",
-        type=str,
-        required=True,
-        help="Path to the source image or video file for drawing polygons.",
-    )
-    parser.add_argument(
-        "--zone_configuration_path",
-        type=str,
-        required=True,
-        help="Path where the polygon annotations will be saved as a JSON file.",
-    )
-    arguments = parser.parse_args()
-    main(
-        source_path=arguments.source_path,
-        zone_configuration_path=arguments.zone_configuration_path,
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

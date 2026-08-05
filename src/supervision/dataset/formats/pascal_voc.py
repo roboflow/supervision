@@ -1,0 +1,472 @@
+import os
+from pathlib import Path
+from typing import TYPE_CHECKING
+from xml.etree.ElementTree import Element, SubElement
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
+
+import numpy as np
+import numpy.typing as npt
+from defusedxml.ElementTree import parse, tostring
+from defusedxml.minidom import parseString
+from tqdm.auto import tqdm
+
+from supervision import _cv2 as cv2
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
+from supervision.detection.core import Detections
+from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.utils.file import list_files_with_extensions
+
+
+def object_to_pascal_voc(
+    xyxy: npt.NDArray[np.number],
+    name: str,
+    polygon: npt.NDArray[np.number] | None = None,
+) -> Element:
+    """Build a Pascal VOC ``<object>`` XML element for one detection.
+
+    Coordinates are converted to 1-indexed Pascal VOC convention before writing.
+    The input arrays are never mutated; new arrays are allocated for the offset.
+
+    Args:
+        xyxy: Bounding box in zero-indexed pixel coordinates ``[x1, y1, x2, y2]``.
+            Shape ``(4,)``.
+        name: Class label string written to the ``<name>`` child element.
+        polygon: Optional segmentation polygon in zero-indexed pixel coordinates.
+            Shape ``(N, 2)``.
+
+    Returns:
+        An XML ``Element`` rooted at ``<object>`` containing ``<name>``,
+        ``<bndbox>``, and optionally ``<polygon>`` children.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.dataset.formats.pascal_voc import object_to_pascal_voc
+        >>> elem = object_to_pascal_voc(np.array([0, 0, 9, 9]), name="cat")
+        >>> elem.find("bndbox/xmin").text
+        '1'
+        >>> elem.find("bndbox/xmax").text
+        '10'
+
+        ```
+    """
+    root = Element("object")
+
+    object_name = SubElement(root, "name")
+    object_name.text = name
+
+    # Pascal VOC coordinates are 1-indexed (https://github.com/roboflow/supervision/issues/144).
+    # Rebind to a new array instead of `+= 1`: `xyxy` is a view into the source
+    # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
+    # would corrupt the caller's detections by +1 on every export.
+    xyxy = xyxy + 1
+
+    bndbox = SubElement(root, "bndbox")
+    xmin = SubElement(bndbox, "xmin")
+    xmin.text = str(int(xyxy[0]))
+    ymin = SubElement(bndbox, "ymin")
+    ymin.text = str(int(xyxy[1]))
+    xmax = SubElement(bndbox, "xmax")
+    xmax.text = str(int(xyxy[2]))
+    ymax = SubElement(bndbox, "ymax")
+    ymax.text = str(int(xyxy[3]))
+
+    if polygon is not None:
+        # 1-indexed, rebound to avoid mutating the caller's array (see above).
+        polygon = polygon + 1
+        object_polygon = SubElement(root, "polygon")
+        for index, point in enumerate(polygon, start=1):
+            x_coordinate, y_coordinate = point
+            x = SubElement(object_polygon, f"x{index}")
+            x.text = str(x_coordinate)
+            y = SubElement(object_polygon, f"y{index}")
+            y.text = str(y_coordinate)
+
+    return root
+
+
+def detections_to_pascal_voc(
+    detections: Detections,
+    classes: list[str],
+    filename: str,
+    image_shape: tuple[int, int, int],
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+) -> str:
+    """
+    Converts Detections object to Pascal VOC XML format.
+
+    Args:
+        detections: A Detections object containing bounding boxes,
+            class ids, and other relevant information.
+        classes: A list of class names corresponding to the
+            class ids in the Detections object.
+        filename: The name of the image file associated with the detections.
+        image_shape: The shape of the image
+            file associated with the detections.
+        min_image_area_percentage: Minimum detection area
+            relative to area of image associated with it.
+        max_image_area_percentage: Maximum detection area
+            relative to area of image associated with it.
+        approximation_percentage: The percentage of
+            polygon points to be removed from the input polygon, in the range [0, 1).
+    Returns:
+        An XML string in Pascal VOC format representing the detections.
+
+    Note:
+        ``detections`` is never mutated by this function; the source ``xyxy``
+        array is unchanged after the call. The function is therefore safe to
+        call multiple times on the same ``Detections`` object.
+    """
+    height, width, depth = image_shape
+
+    # Create root element
+    annotation = Element("annotation")
+
+    # Add folder element
+    folder = SubElement(annotation, "folder")
+    folder.text = "VOC"
+
+    # Add filename element
+    file_name = SubElement(annotation, "filename")
+    file_name.text = filename
+
+    # Add source element
+    source = SubElement(annotation, "source")
+    database = SubElement(source, "database")
+    database.text = "roboflow.ai"
+
+    # Add size element
+    size = SubElement(annotation, "size")
+    w = SubElement(size, "width")
+    w.text = str(width)
+    h = SubElement(size, "height")
+    h.text = str(height)
+    d = SubElement(size, "depth")
+    d.text = str(depth)
+
+    # Add segmented element
+    segmented = SubElement(annotation, "segmented")
+    segmented.text = "0"
+
+    # Add object elements
+    for xyxy, mask, _, class_id, _, _ in detections:
+        if class_id is None:
+            raise ValueError("Detections must include class_id for Pascal VOC export.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for Pascal VOC export, "
+                f"got {type(class_id)!r}."
+            )
+        name = classes[class_id]
+        if mask is not None:
+            polygons = approximate_mask_with_polygons(
+                mask=mask,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+            for polygon in polygons:
+                xyxy = polygon_to_xyxy(polygon=polygon)
+                next_object = object_to_pascal_voc(
+                    xyxy=xyxy, name=name, polygon=polygon
+                )
+                annotation.append(next_object)
+        else:
+            next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
+            annotation.append(next_object)
+
+    # Generate XML string
+    xml_string = str(
+        parseString(tostring(annotation).decode("utf-8")).toprettyxml(indent="  ")
+    )
+    return xml_string
+
+
+def load_pascal_voc_annotations(
+    images_directory_path: str,
+    annotations_directory_path: str,
+    force_masks: bool = False,
+    show_progress: bool = False,
+) -> tuple[list[str], list[str], dict[str, Detections]]:
+    """
+    Load Pascal VOC XML annotations in sorted image-path order.
+
+    Args:
+        images_directory_path: The path to the directory containing the images.
+        annotations_directory_path: The path to the directory containing the
+            PASCAL VOC annotation files.
+        force_masks: If True, forces masks to be loaded for all
+            annotations, regardless of whether they are present.
+        show_progress: If True, display a progress bar during loading.
+
+    Returns:
+        A tuple with a list of class names, a sorted list of paths to images,
+            and a dictionary with image paths as keys and corresponding
+            Detections instances as values.
+    """
+
+    image_paths = sorted(
+        str(path)
+        for path in list_files_with_extensions(
+            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+        )
+    )
+
+    classes: list[str] = []
+    annotations = {}
+
+    for image_path in tqdm(
+        image_paths,
+        total=len(image_paths),
+        desc="Loading Pascal VOC annotations",
+        disable=not show_progress,
+    ):
+        image_stem = Path(image_path).stem
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.xml")
+        if not os.path.exists(annotation_path):
+            annotations[image_path] = Detections.empty()
+            continue
+
+        tree = parse(annotation_path)
+        root = tree.getroot()
+        if root is None:
+            raise ValueError(f"Failed to parse XML root from {annotation_path}")
+
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from path: {image_path}")
+        resolution_wh = (image.shape[1], image.shape[0])
+        annotation, classes = detections_from_xml_obj(
+            root, classes, resolution_wh, force_masks
+        )
+        annotations[image_path] = annotation
+
+    return classes, image_paths, annotations
+
+
+def detections_from_xml_obj(
+    root: Element,
+    classes: list[str],
+    resolution_wh: tuple[int, int],
+    force_masks: bool = False,
+) -> tuple[Detections, list[str]]:
+    """
+    Converts an XML object in Pascal VOC format to a Detections object.
+    Expected XML format:
+    <annotation>
+        ...
+        <object>
+            <name>dog</name>
+            <bndbox>
+                <xmin>48</xmin>
+                <ymin>240</ymin>
+                <xmax>195</xmax>
+                <ymax>371</ymax>
+            </bndbox>
+            <polygon>
+                <x1>48</x1>
+                <y1>240</y1>
+                <x2>195</x2>
+                <y2>240</y2>
+                <x3>195</x3>
+                <y3>371</y3>
+                <x4>48</x4>
+                <y4>371</y4>
+            </polygon>
+        </object>
+    </annotation>
+
+    Args:
+        root: Parsed Pascal VOC ``<annotation>`` XML element.
+        classes: Existing class names used to assign stable class ids.
+        resolution_wh: Image resolution as ``(width, height)`` for mask
+            rasterization.
+        force_masks: If True, returns a mask array for every object even when
+            no ``<polygon>`` element is present.
+
+    Returns:
+        A tuple containing a Detections object and an
+            updated list of class names, extended with the class names
+            from the XML object. The Detections ``class_id`` is always an
+            integer-dtype array, including the zero-``<object>`` (background)
+            case where it is empty.
+    """
+    xyxy: list[list[int]] = []
+    class_names: list[str] = []
+    masks: list[npt.NDArray[np.bool_]] = []
+    with_masks = force_masks or any(
+        _with_poly_mask(obj) for obj in root.findall("object")
+    )
+    extended_classes = classes[:]
+    for obj in root.findall("object"):
+        class_name = _get_required_text(obj, "name")
+        class_names.append(class_name)
+
+        bbox = obj.find("bndbox")
+        if bbox is None:
+            raise ValueError("Missing bndbox in Pascal VOC annotation.")
+        x1 = int(_get_required_text(bbox, "xmin"))
+        y1 = int(_get_required_text(bbox, "ymin"))
+        x2 = int(_get_required_text(bbox, "xmax"))
+        y2 = int(_get_required_text(bbox, "ymax"))
+
+        xyxy.append([x1, y1, x2, y2])
+
+        object_mask: npt.NDArray[np.bool_] = np.zeros(
+            (resolution_wh[1], resolution_wh[0]), dtype=bool
+        )
+        for polygon_element in obj.findall("polygon"):
+            polygon = parse_polygon_points(polygon_element)
+            # https://github.com/roboflow/supervision/issues/144
+            polygon -= 1
+
+            mask_from_polygon = polygon_to_mask(
+                polygon=polygon,
+                resolution_wh=resolution_wh,
+            )
+            object_mask |= mask_from_polygon.astype(bool)
+
+        if with_masks:
+            masks.append(object_mask)
+
+    xyxy_arr: npt.NDArray[np.float32]
+    if xyxy:
+        xyxy_arr = np.array(xyxy, dtype=np.float32)
+    else:
+        xyxy_arr = np.empty((0, 4), dtype=np.float32)
+
+    # https://github.com/roboflow/supervision/issues/144
+    xyxy_arr -= 1
+
+    for k in sorted(set(class_names)):
+        if k not in extended_classes:
+            extended_classes.append(k)
+    # dtype=int forced: on a background image class_names is empty, so
+    # np.array([]) would default to float64 and fail Detections' integer
+    # class_id validation. Redundant on the non-empty path (ints already).
+    class_id = np.array(
+        [extended_classes.index(class_name) for class_name in class_names],
+        dtype=int,
+    )
+
+    mask_arr: npt.NDArray[np.bool_] | None
+    if not with_masks:
+        mask_arr = None
+    elif masks:
+        mask_arr = np.array(masks, dtype=bool)
+    else:
+        # Background image with force_masks=True: masks is empty, and
+        # np.array([]) would collapse to shape (0,). Detections requires a 3D
+        # (0, H, W) mask, so build the empty stack explicitly.
+        mask_arr = np.empty((0, resolution_wh[1], resolution_wh[0]), dtype=bool)
+
+    annotation = Detections(
+        xyxy=xyxy_arr,
+        mask=mask_arr,
+        class_id=class_id,
+    )
+
+    return annotation, extended_classes
+
+
+def _with_poly_mask(obj: Element) -> bool:
+    return obj.find("polygon") is not None
+
+
+def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
+    coordinates: list[int] = []
+    for coord in polygon.findall(".//*"):
+        if coord.text is None:
+            raise ValueError("Missing polygon coordinate value in Pascal VOC.")
+        coordinates.append(int(coord.text))
+    return np.array(
+        [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)],
+        dtype=int,
+    )
+
+
+def _get_required_text(element: Element, tag: str) -> str:
+    child = element.find(tag)
+    if child is None or child.text is None:
+        raise ValueError(f"Missing '{tag}' in Pascal VOC annotation.")
+    return child.text
+
+
+def save_pascal_voc_annotations(
+    dataset: "DetectionDataset",
+    annotations_directory_path: str,
+    min_image_area_percentage: float = 0.0,
+    max_image_area_percentage: float = 1.0,
+    approximation_percentage: float = 0.75,
+    show_progress: bool = False,
+) -> None:
+    """Write Pascal VOC XML annotation files for every image in *dataset*.
+
+    Args:
+        dataset: Dataset whose annotations are saved.
+        annotations_directory_path: Destination directory for ``.xml`` files;
+            created automatically if it does not exist.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area. Detections below this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``0.0`` keeps all detections.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area. Detections above this threshold are omitted. Must be in
+            ``[0, 1]``. Default ``1.0`` keeps all detections.
+        approximation_percentage: Fraction of polygon vertices to remove when
+            approximating instance masks as polygons. Range ``[0, 1)``. Default
+            ``0.75`` applies aggressive simplification.
+        show_progress: If ``True``, display a tqdm progress bar while writing
+            annotation files. Default ``False``.
+
+    Raises:
+        ValueError: If two image paths map to the same ``.xml`` output name.
+
+    Examples:
+        ```pycon
+        >>> import tempfile
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.formats.pascal_voc import (
+        ...     save_pascal_voc_annotations,
+        ... )
+        >>> dataset = DetectionDataset(classes=[], images={}, annotations={})
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     save_pascal_voc_annotations(dataset, tmpdir)
+
+        ```
+    """
+
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: f"{Path(image_path).stem}.xml",
+        output_kind="Pascal VOC annotation",
+    )
+    Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
+    for image_path, image, annotations in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving Pascal VOC annotations",
+        disable=not show_progress,
+    ):
+        annotation_name = Path(image_path).stem
+        annotations_path = os.path.join(
+            annotations_directory_path, f"{annotation_name}.xml"
+        )
+        image_name = Path(image_path).name
+        pascal_voc_xml = detections_to_pascal_voc(
+            detections=annotations,
+            classes=dataset.classes,
+            filename=image_name,
+            image_shape=(image.shape[0], image.shape[1], image.shape[2]),
+            min_image_area_percentage=min_image_area_percentage,
+            max_image_area_percentage=max_image_area_percentage,
+            approximation_percentage=approximation_percentage,
+        )
+        with open(annotations_path, "w") as f:
+            f.write(pascal_voc_xml)

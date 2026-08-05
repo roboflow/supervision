@@ -1,0 +1,2470 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from contextlib import ExitStack as DoesNotRaise
+
+import numpy as np
+import pytest
+
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    _group_overlapping_boxes,
+    box_iou,
+    box_iou_batch,
+    box_iou_batch_with_jaccard,
+    box_non_max_merge,
+    box_non_max_suppression,
+    box_soft_non_max_suppression,
+    mask_iou_batch,
+    mask_non_max_merge,
+    mask_non_max_suppression,
+    mask_soft_non_max_suppression,
+    oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
+)
+from supervision.utils.internal import SupervisionWarnings
+from tests.helpers import _generate_random_boxes
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    """Return the 4 corners of a rotated rectangle as a (4, 2) float32 array."""
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+def _aabb_of(corners: np.ndarray) -> np.ndarray:
+    """Axis-aligned bounding box of a (4, 2) OBB corner array."""
+    return np.array(
+        [
+            corners[:, 0].min(),
+            corners[:, 1].min(),
+            corners[:, 0].max(),
+            corners[:, 1].max(),
+        ],
+        dtype=np.float32,
+    )
+
+
+@pytest.mark.parametrize(
+    ("predictions", "iou_threshold", "expected_result", "exception"),
+    [
+        (
+            np.empty(shape=(0, 5), dtype=float),
+            0.5,
+            [],
+            DoesNotRaise(),
+        ),
+        (
+            np.array([[0, 0, 10, 10, 1.0]]),
+            0.5,
+            [[0]],
+            DoesNotRaise(),
+        ),
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
+            0.5,
+            [[1, 0]],
+            DoesNotRaise(),
+        ),  # High overlap, tie-break to second det
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 0.99]]),
+            0.5,
+            [[0, 1]],
+            DoesNotRaise(),
+        ),  # High overlap, merge to high confidence
+        (
+            np.array([[0, 0, 10, 10, 0.99], [0, 0, 9, 9, 1.0]]),
+            0.5,
+            [[1, 0]],
+            DoesNotRaise(),
+        ),  # (test symmetry) High overlap, merge to high confidence
+        (
+            np.array([[0, 0, 10, 10, 0.90], [0, 0, 9, 9, 1.0]]),
+            0.5,
+            [[1, 0]],
+            DoesNotRaise(),
+        ),  # (test symmetry) High overlap, merge to high confidence
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
+            1.0,
+            [[1], [0]],
+            DoesNotRaise(),
+        ),  # High IOU required
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0]]),
+            0.0,
+            [[1, 0]],
+            DoesNotRaise(),
+        ),  # No IOU required
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
+            0.25,
+            [[0, 1]],
+            DoesNotRaise(),
+        ),  # Below IOU requirement
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 5, 5, 0.9]]),
+            0.26,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # Above IOU requirement
+        (
+            np.array([[0, 0, 10, 10, 1.0], [0, 0, 9, 9, 1.0], [0, 0, 8, 8, 1.0]]),
+            0.5,
+            [[2, 1, 0]],
+            DoesNotRaise(),
+        ),  # 3 boxes
+        (
+            np.array(
+                [
+                    [0, 0, 10, 10, 1.0],
+                    [0, 0, 9, 9, 1.0],
+                    [5, 5, 10, 10, 1.0],
+                    [6, 6, 10, 10, 1.0],
+                    [9, 9, 10, 10, 1.0],
+                ]
+            ),
+            0.5,
+            [[4], [3, 2], [1, 0]],
+            DoesNotRaise(),
+        ),  # 5 boxes, 2 merges, 1 separate
+        (
+            np.array(
+                [
+                    [0, 0, 2, 1, 1.0],
+                    [1, 0, 3, 1, 1.0],
+                    [2, 0, 4, 1, 1.0],
+                    [3, 0, 5, 1, 1.0],
+                    [4, 0, 6, 1, 1.0],
+                ]
+            ),
+            0.33,
+            [[4, 3], [2, 1], [0]],
+            DoesNotRaise(),
+        ),  # sequential merge, half overlap
+        (
+            np.array(
+                [
+                    [0, 0, 2, 1, 0.9],
+                    [1, 0, 3, 1, 0.9],
+                    [2, 0, 4, 1, 1.0],
+                    [3, 0, 5, 1, 0.9],
+                    [4, 0, 6, 1, 0.9],
+                ]
+            ),
+            0.33,
+            [[2, 3, 1], [4], [0]],
+            DoesNotRaise(),
+        ),  # confidence
+    ],
+)
+def test_group_overlapping_boxes(
+    predictions: np.ndarray,
+    iou_threshold: float,
+    expected_result: list[list[int]],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = _group_overlapping_boxes(
+            predictions=predictions, iou_threshold=iou_threshold
+        )
+
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("predictions", "iou_threshold", "expected_result", "exception"),
+    [
+        (
+            np.empty(shape=(0, 5)),
+            0.5,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # single box with no category
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single box with no category
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single box with category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8],
+                    [15.0, 15.0, 40.0, 40.0, 0.9],
+                ]
+            ),
+            0.5,
+            np.array([False, True]),
+            DoesNotRaise(),
+        ),  # two boxes with no category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 1],
+                ]
+            ),
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two boxes with different category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 0],
+                ]
+            ),
+            0.5,
+            np.array([False, True]),
+            DoesNotRaise(),
+        ),  # two boxes with same category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8],
+                    [5.0, 5.0, 35.0, 45.0, 0.9],
+                    [10.0, 10.0, 40.0, 50.0, 0.85],
+                ]
+            ),
+            0.5,
+            np.array([False, True, False]),
+            DoesNotRaise(),
+        ),  # three boxes with no category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 1],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 2],
+                ]
+            ),
+            0.5,
+            np.array([True, True, True]),
+            DoesNotRaise(),
+        ),  # three boxes with same category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 0],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 1],
+                ]
+            ),
+            0.5,
+            np.array([False, True, True]),
+            DoesNotRaise(),
+        ),  # three boxes with different category
+    ],
+)
+def test_box_non_max_suppression(
+    predictions: np.ndarray,
+    iou_threshold: float,
+    expected_result: np.ndarray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = box_non_max_suppression(
+            predictions=predictions, iou_threshold=iou_threshold
+        )
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("predictions", "sigma", "expected_result", "exception"),
+    [
+        (
+            np.empty(shape=(0, 5)),
+            0.1,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # empty predictions
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8]]),
+            0.8,
+            np.array([0.8]),
+            DoesNotRaise(),
+        ),  # single box with no category
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.8, 0]]),
+            0.9,
+            np.array([0.8]),
+            DoesNotRaise(),
+        ),  # single box with category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8],
+                    [15.0, 15.0, 40.0, 40.0, 0.9],
+                ]
+            ),
+            0.2,
+            np.array([0.07176137, 0.9]),
+            DoesNotRaise(),
+        ),  # two boxes with no category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 1],
+                ]
+            ),
+            0.3,
+            np.array([0.8, 0.9]),
+            DoesNotRaise(),
+        ),  # two boxes with different category
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.8, 0],
+                    [15.0, 15.0, 40.0, 40.0, 0.9, 0],
+                ]
+            ),
+            0.9,
+            np.array([0.46814354, 0.9]),
+            DoesNotRaise(),
+        ),  # two boxes with same category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8],
+                    [5.0, 5.0, 35.0, 45.0, 0.9],
+                    [10.0, 10.0, 40.0, 50.0, 0.85],
+                ]
+            ),
+            0.7,
+            np.array([0.42648529, 0.9, 0.53109062]),
+            DoesNotRaise(),
+        ),  # three boxes with no category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 1],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 2],
+                ]
+            ),
+            0.5,
+            np.array([0.8, 0.9, 0.85]),
+            DoesNotRaise(),
+        ),  # three boxes with different category
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 30.0, 40.0, 0.8, 0],
+                    [5.0, 5.0, 35.0, 45.0, 0.9, 0],
+                    [10.0, 10.0, 40.0, 50.0, 0.85, 1],
+                ]
+            ),
+            0.9,
+            np.array([0.55491779, 0.9, 0.85]),
+            DoesNotRaise(),
+        ),  # three boxes with different category, one class isolated
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.5]]),
+            0.0,
+            None,
+            pytest.raises(ValueError, match="sigma"),
+        ),  # sigma at the lower boundary (not > 0) must raise
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.5]]),
+            -0.1,
+            None,
+            pytest.raises(ValueError, match="sigma"),
+        ),  # negative sigma must raise
+        (
+            np.array([[10.0, 10.0, 40.0, 40.0, 0.5]]),
+            5.0,
+            np.array([0.5]),
+            DoesNotRaise(),
+        ),  # sigma > 1 is valid for Soft-NMS (no upper bound)
+        (
+            np.array(
+                [
+                    [10.0, 10.0, 40.0, 40.0, 0.7],
+                    [10.0, 10.0, 40.0, 40.0, 0.7],
+                ]
+            ),
+            0.5,
+            np.array([0.0947347, 0.7]),
+            DoesNotRaise(),
+        ),  # tied confidence: argsort's tie order picks a winner, exactly one of
+        # the two identical, fully-overlapping boxes is decayed
+    ],
+)
+def test_box_soft_non_max_suppression(
+    predictions: np.ndarray,
+    sigma: float,
+    expected_result: np.ndarray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = box_soft_non_max_suppression(predictions=predictions, sigma=sigma)
+        np.testing.assert_almost_equal(result, expected_result, decimal=5)
+
+
+@pytest.mark.parametrize(
+    ("predictions", "masks", "iou_threshold", "expected_result", "exception"),
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 5, 5)),
+            0.5,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # empty predictions and masks
+        (
+            np.array([[0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single mask with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            np.array([True]),
+            DoesNotRaise(),
+        ),  # single mask with category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two masks non-overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.4,
+            np.array([False, True]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with different category
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0.8],
+                    [0, 0, 0, 0, 0.85],
+                    [0, 0, 0, 0, 0.9],
+                ]
+            ),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([False, True, True]),
+            DoesNotRaise(),
+        ),  # three masks with no category
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0.8, 0],
+                    [0, 0, 0, 0, 0.85, 1],
+                    [0, 0, 0, 0, 0.9, 2],
+                ]
+            ),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            np.array([True, True, True]),
+            DoesNotRaise(),
+        ),  # three masks with different category
+    ],
+)
+def test_mask_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float,
+    expected_result: np.ndarray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_non_max_suppression(
+            predictions=predictions, masks=masks, iou_threshold=iou_threshold
+        )
+        assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("predictions", "masks", "sigma", "expected_result", "exception"),
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 5, 5)),
+            0.1,
+            np.array([]),
+            DoesNotRaise(),
+        ),  # empty predictions and masks
+        (
+            np.array([[0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.2,
+            np.array([0.8]),
+            DoesNotRaise(),
+        ),  # single mask with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.99,
+            np.array([0.8]),
+            DoesNotRaise(),
+        ),  # single mask with category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.8,
+            np.array([0.8, 0.9]),
+            DoesNotRaise(),
+        ),  # two masks non-overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.6,
+            np.array([0.5273925, 0.9]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category — exact
+        # full-resolution IoU (this module no longer resizes masks before
+        # computing IoU, matching mask_non_max_suppression's convention)
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.9,
+            np.array([0.8, 0.9]),
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with different category
+        (
+            np.array([[0, 0, 0, 0, 0.5]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.0,
+            None,
+            pytest.raises(ValueError, match="sigma"),
+        ),  # sigma at the lower boundary (not > 0) must raise
+    ],
+)
+def test_mask_soft_non_max_suppression(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    sigma: float,
+    expected_result: np.ndarray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_soft_non_max_suppression(
+            predictions=predictions, masks=masks, sigma=sigma
+        )
+        np.testing.assert_almost_equal(result, expected_result, decimal=5)
+
+
+@pytest.mark.parametrize(
+    ("predictions", "masks", "iou_threshold", "expected_result", "exception"),
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 5, 5)),
+            0.5,
+            [],
+            DoesNotRaise(),
+        ),  # empty predictions and masks
+        (
+            np.array([[0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            [[0]],
+            DoesNotRaise(),
+        ),  # single mask with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            [[0]],
+            DoesNotRaise(),
+        ),  # single mask with category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # two masks non-overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.4,
+            [[0, 1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category, merge
+        (
+            np.array([[0, 0, 0, 0, 0.8], [0, 0, 0, 0, 0.9]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.6,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category, no merge
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 1]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.4,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with different categories
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0], [0, 0, 0, 0, 0.9, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.4,
+            [[0, 1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with same category
+    ],
+)
+def test_mask_non_max_merge(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float,
+    expected_result: list[list[int]],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_non_max_merge(
+            predictions=predictions, masks=masks, iou_threshold=iou_threshold
+        )
+        sorted_result = sorted([sorted(group) for group in result])
+        sorted_expected_result = sorted([sorted(group) for group in expected_result])
+        assert sorted_result == sorted_expected_result
+
+
+def test_mask_non_max_merge_ignores_mask_dimension_for_exact_iou() -> None:
+    """Mask NMM ignores downscale dimension and uses exact mask overlap."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0, 0] = True
+    masks[0, 0, 1] = True
+    masks[1, 0, 0] = True
+    masks[1, 1, 0] = True
+
+    result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.9,
+        mask_dimension=1,
+    )
+
+    assert sorted([sorted(group) for group in result]) == [[0], [1]]
+
+
+def test_mask_non_max_merge_warns_for_legacy_positional_trailing_args() -> None:
+    """Mask NMM supports legacy positional trailing args with warning."""
+    predictions = np.array(
+        [[0, 0, 4, 4, 0.9, 0], [0, 0, 4, 4, 0.8, 0]], dtype=np.float32
+    )
+    masks = np.zeros((2, 4, 4), dtype=bool)
+    masks[0, 0:2, 0:2] = True
+    masks[1, 0:2, 0:2] = True
+
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        legacy_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            640,
+            OverlapMetric.IOU,
+        )
+    with pytest.warns(SupervisionWarnings, match="positionally.*deprecated"):
+        reordered_result = mask_non_max_merge(
+            predictions,
+            masks,
+            0.5,
+            OverlapMetric.IOU,
+            640,
+        )
+
+    assert legacy_result == [[0, 1]]
+    assert reordered_result == [[0, 1]]
+
+
+def test_mask_non_max_merge_compact_mask_matches_dense_chained_union() -> None:
+    """CompactMask NMM matches dense masks when merge candidates expand."""
+    from supervision.detection.compact_mask import CompactMask
+
+    predictions = np.array(
+        [
+            [0, 0, 6, 2, 0.9, 0],
+            [0, 0, 6, 2, 0.8, 0],
+            [0, 0, 6, 2, 0.7, 0],
+        ],
+        dtype=np.float32,
+    )
+    masks = np.zeros((3, 2, 6), dtype=bool)
+    masks[0, :, 0:2] = True
+    masks[1, :, 1:4] = True
+    masks[2, :, 3:5] = True
+    compact_mask = CompactMask.from_dense(
+        masks=masks,
+        xyxy=np.array([[0, 0, 5, 1], [0, 0, 5, 1], [0, 0, 5, 1]], dtype=np.float32),
+        image_shape=(2, 6),
+    )
+
+    dense_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=masks,
+        iou_threshold=0.2,
+    )
+    compact_result = mask_non_max_merge(
+        predictions=predictions,
+        masks=compact_mask,
+        iou_threshold=0.2,
+    )
+
+    assert sorted([sorted(group) for group in dense_result]) == [[0, 1, 2]]
+    assert sorted([sorted(group) for group in compact_result]) == [[0, 1, 2]]
+
+
+@pytest.mark.parametrize(
+    ("box_true", "box_detection", "overlap_metric", "expected_overlap", "exception"),
+    [
+        (
+            [100.0, 100.0, 200.0, 200.0],
+            [150.0, 150.0, 250.0, 250.0],
+            OverlapMetric.IOU,
+            0.14285714285714285,
+            DoesNotRaise(),
+        ),  # partial overlap, IOU
+        (
+            [100.0, 100.0, 200.0, 200.0],
+            [150.0, 150.0, 250.0, 250.0],
+            OverlapMetric.IOS,
+            0.25,
+            DoesNotRaise(),
+        ),  # partial overlap, IOS
+        (
+            np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
+            np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
+            OverlapMetric.IOU,
+            1.0,
+            DoesNotRaise(),
+        ),  # identical boxes, both boxes are arrays, IOU
+        (
+            np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
+            np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
+            OverlapMetric.IOS,
+            1.0,
+            DoesNotRaise(),
+        ),  # identical boxes, both boxes are arrays, IOS
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [0.0, 0.0, 10.0, 10.0],
+            "iou",
+            1.0,
+            DoesNotRaise(),
+        ),  # identical boxes, both boxes are arrays, IOU as lowercase string
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [0.0, 0.0, 10.0, 10.0],
+            "ios",
+            1.0,
+            DoesNotRaise(),
+        ),  # identical boxes, both boxes are arrays, IOS as lowercase string
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [0.0, 0.0, 10.0, 10.0],
+            "IOU",
+            1.0,
+            DoesNotRaise(),
+        ),  # identical boxes, both boxes are arrays, IOU as uppercase string
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [20.0, 20.0, 30.0, 30.0],
+            OverlapMetric.IOU,
+            0.0,
+            DoesNotRaise(),
+        ),  # no overlap, IOU
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [20.0, 20.0, 30.0, 30.0],
+            OverlapMetric.IOS,
+            0.0,
+            DoesNotRaise(),
+        ),  # no overlap, IOS
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [10.0, 0.0, 20.0, 10.0],
+            OverlapMetric.IOU,
+            0.0,
+            DoesNotRaise(),
+        ),  # boxes touch at edge, zero intersection, IOU
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [10.0, 0.0, 20.0, 10.0],
+            OverlapMetric.IOS,
+            0.0,
+            DoesNotRaise(),
+        ),  # boxes touch at edge, zero intersection, IOU
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [2.0, 2.0, 8.0, 8.0],
+            OverlapMetric.IOU,
+            0.36,
+            DoesNotRaise(),
+        ),  # one box inside another, IOU
+        (
+            [0.0, 0.0, 10.0, 10.0],
+            [2.0, 2.0, 8.0, 8.0],
+            OverlapMetric.IOS,
+            1.0,
+            DoesNotRaise(),
+        ),  # one box inside another, IOS
+        (
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 10.0, 10.0],
+            OverlapMetric.IOU,
+            0.0,
+            DoesNotRaise(),
+        ),  # degenerate true box with zero area, IOU
+        (
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 10.0, 10.0],
+            OverlapMetric.IOS,
+            0.0,
+            DoesNotRaise(),
+        ),  # degenerate true box with zero area, IOS
+        (
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            OverlapMetric.IOU,
+            0.0,
+            DoesNotRaise(),
+        ),  # both boxes fully degenerate, IOU
+        (
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            OverlapMetric.IOS,
+            0.0,
+            DoesNotRaise(),
+        ),  # both boxes fully degenerate, IOS
+        (
+            [-5.0, 0.0, 5.0, 10.0],
+            [0.0, 0.0, 10.0, 10.0],
+            OverlapMetric.IOU,
+            1.0 / 3.0,
+            DoesNotRaise(),
+        ),  # negative x_min, overlapping boxes, IOU is 1/3
+        (
+            [-5.0, 0.0, 5.0, 10.0],
+            [0.0, 0.0, 10.0, 10.0],
+            OverlapMetric.IOS,
+            0.5,
+            DoesNotRaise(),
+        ),  # negative x_min, overlapping boxes, IOS is 0.5
+        (
+            [0.0, 0.0, 1.0, 1.0],
+            [0.5, 0.5, 1.5, 1.5],
+            OverlapMetric.IOU,
+            0.14285714285714285,
+            DoesNotRaise(),
+        ),  # partial overlap with fractional coordinates, IOU
+        (
+            [0.0, 0.0, 1.0, 1.0],
+            [0.5, 0.5, 1.5, 1.5],
+            OverlapMetric.IOS,
+            0.25,
+            DoesNotRaise(),
+        ),  # partial overlap with fractional coordinates, IOS
+    ],
+)
+def test_box_iou(
+    box_true: list[float] | np.ndarray,
+    box_detection: list[float] | np.ndarray,
+    overlap_metric: str | OverlapMetric,
+    expected_overlap: float,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = box_iou(
+            box_true=box_true,
+            box_detection=box_detection,
+            overlap_metric=overlap_metric,
+        )
+        assert result == pytest.approx(expected_overlap, rel=1e-6, abs=1e-12)
+
+
+@pytest.mark.parametrize(
+    (
+        "boxes_true",
+        "boxes_detection",
+        "overlap_metric",
+        "expected_overlap",
+        "exception",
+    ),
+    [
+        # both inputs empty
+        (
+            np.empty((0, 4), dtype=np.float32),
+            np.empty((0, 4), dtype=np.float32),
+            OverlapMetric.IOU,
+            np.empty((0, 0), dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # one true box, no detections
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.empty((0, 4), dtype=np.float32),
+            OverlapMetric.IOU,
+            np.empty((1, 0), dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # no true boxes, one detection
+        (
+            np.empty((0, 4), dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.empty((0, 1), dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 partial overlap, IOU
+        (
+            np.array([[100.0, 100.0, 200.0, 200.0]], dtype=np.float32),
+            np.array([[150.0, 150.0, 250.0, 250.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.14285715]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 partial overlap, IOS
+        (
+            np.array([[100.0, 100.0, 200.0, 200.0]], dtype=np.float32),
+            np.array([[150.0, 150.0, 250.0, 250.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.25]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 identical boxes, IOU as lowercase string
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            "iou",
+            np.array([[1.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 identical boxes, IOS as lowercase string
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            "ios",
+            np.array([[1.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 identical boxes, IOU as uppercase string
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            "IOU",
+            np.array([[1.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 identical boxes, IOS as uppercase string
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            "IOS",
+            np.array([[1.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 no overlap, IOU
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[20.0, 20.0, 30.0, 30.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 no overlap, IOS
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[20.0, 20.0, 30.0, 30.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 touching at edge, zero intersection, IOU
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[10.0, 0.0, 20.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 touching at edge, zero intersection, IOS
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[10.0, 0.0, 20.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 box inside another, IOU
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[2.0, 2.0, 8.0, 8.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.36]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 box inside another, IOS
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[2.0, 2.0, 8.0, 8.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[1.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 degenerate true box, IOU
+        (
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 degenerate true box, IOS
+        (
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 both boxes degenerate, IOU
+        (
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 both boxes degenerate, IOS
+        (
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 negative coordinate, partial overlap, IOU
+        (
+            np.array([[-5.0, 0.0, 5.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[1.0 / 3.0]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 negative coordinate, partial overlap, IOS
+        (
+            np.array([[-5.0, 0.0, 5.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.5]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 fractional coordinates, partial overlap, IOU
+        (
+            np.array([[0.0, 0.0, 1.0, 1.0]], dtype=np.float32),
+            np.array([[0.5, 0.5, 1.5, 1.5]], dtype=np.float32),
+            OverlapMetric.IOU,
+            np.array([[0.14285715]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # 1x1 fractional coordinates, partial overlap, IOS
+        (
+            np.array([[0.0, 0.0, 1.0, 1.0]], dtype=np.float32),
+            np.array([[0.5, 0.5, 1.5, 1.5]], dtype=np.float32),
+            OverlapMetric.IOS,
+            np.array([[0.25]], dtype=np.float32),
+            DoesNotRaise(),
+        ),
+        # true batch case, 2x2, IOU
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0],
+                    [10.0, 10.0, 20.0, 20.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0],
+                    [5.0, 5.0, 15.0, 15.0],
+                ],
+                dtype=np.float32,
+            ),
+            OverlapMetric.IOU,
+            np.array(
+                [
+                    [1.0, 0.14285715],
+                    [0.0, 0.14285715],
+                ],
+                dtype=np.float32,
+            ),
+            DoesNotRaise(),
+        ),
+        # true batch case, 2x2, IOS
+        (
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0],
+                    [10.0, 10.0, 20.0, 20.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [0.0, 0.0, 10.0, 10.0],
+                    [5.0, 5.0, 15.0, 15.0],
+                ],
+                dtype=np.float32,
+            ),
+            OverlapMetric.IOS,
+            np.array(
+                [
+                    [1.0, 0.25],
+                    [0.0, 0.25],
+                ],
+                dtype=np.float32,
+            ),
+            DoesNotRaise(),
+        ),
+        # invalid overlap_metric
+        (
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+            "invalid",
+            None,
+            pytest.raises(ValueError, match="Invalid value: INVALID"),
+        ),
+    ],
+)
+def test_box_iou_batch(
+    boxes_true: np.ndarray,
+    boxes_detection: np.ndarray,
+    overlap_metric: str | OverlapMetric,
+    expected_overlap: np.ndarray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = box_iou_batch(
+            boxes_true=boxes_true,
+            boxes_detection=boxes_detection,
+            overlap_metric=overlap_metric,
+        )
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == expected_overlap.shape
+        assert np.allclose(
+            result,
+            expected_overlap,
+            rtol=1e-6,
+            atol=1e-12,
+        )
+
+
+@pytest.mark.parametrize(
+    ("num_true", "num_det"),
+    [
+        (5, 5),
+        (5, 10),
+        (10, 5),
+        (10, 10),
+        (20, 30),
+        (30, 20),
+        (50, 50),
+        (100, 100),
+    ],
+)
+@pytest.mark.parametrize(
+    "overlap_metric",
+    [OverlapMetric.IOU, OverlapMetric.IOS],
+)
+def test_box_iou_batch_symmetric_large(
+    num_true: int,
+    num_det: int,
+    overlap_metric: OverlapMetric,
+) -> None:
+    boxes_true = _generate_random_boxes(num_true)
+    boxes_det = _generate_random_boxes(num_det)
+
+    result_ab = box_iou_batch(
+        boxes_true=boxes_true,
+        boxes_detection=boxes_det,
+        overlap_metric=overlap_metric,
+    )
+    result_ba = box_iou_batch(
+        boxes_true=boxes_det,
+        boxes_detection=boxes_true,
+        overlap_metric=overlap_metric,
+    )
+
+    assert result_ab.shape == (num_true, num_det)
+    assert result_ba.shape == (num_det, num_true)
+    assert np.allclose(
+        result_ab,
+        result_ba.T,
+        rtol=1e-6,
+        atol=1e-12,
+    )
+
+
+def _boundary_box_pair(
+    origin: int, side: int = 50, shift: int = 25, dtype: type = np.float64
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build two overlapping boxes sharing an origin for precision tests.
+
+    Both boxes are `side`x`side`; the second is shifted by `shift` along x so
+    the intersection is `shift`x`side` and the union is `2*side**2 - shift*side`.
+    """
+    box_a = np.array([[origin, origin, origin + side, origin + side]], dtype=dtype)
+    box_b = np.array(
+        [[origin + shift, origin, origin + side + shift, origin + side]],
+        dtype=dtype,
+    )
+    return box_a, box_b
+
+
+@pytest.mark.parametrize(
+    ("origin", "overlap_metric", "expected"),
+    [
+        pytest.param(
+            2**24 + 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-above-2pow24"
+        ),
+        pytest.param(2**24 + 1, OverlapMetric.IOS, 0.5, id="ios-float64-above-2pow24"),
+        pytest.param(2**24, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-at-2pow24"),
+        pytest.param(
+            2**24 - 1, OverlapMetric.IOU, 1.0 / 3.0, id="iou-float64-just-below-2pow24"
+        ),
+    ],
+)
+def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
+    origin: int,
+    overlap_metric: OverlapMetric,
+    expected: float,
+) -> None:
+    """`float64`/`int64` inputs keep full precision at the `2**24` boundary.
+
+    `float64` accumulation is exact for these integer-valued coordinates, so the
+    result must match the analytic value. Two 50x50 boxes shifted by 25 in x give
+    intersection 25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5.
+    This does not exercise the `float32`-storage case, which cannot be recovered
+    inside this function; it guards the `float64`/`int64` accumulation path only.
+    """
+    box_a, box_b = _boundary_box_pair(origin, dtype=np.float64)
+
+    result = box_iou_batch(
+        boxes_true=box_a, boxes_detection=box_b, overlap_metric=overlap_metric
+    )
+
+    assert result[0, 0] == pytest.approx(expected, rel=1e-6)
+
+
+def test_box_iou_batch_int32_input_does_not_overflow() -> None:
+    """`int32` coordinates with large areas must not overflow to a wrong IoU.
+
+    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`.
+    Before upcasting the corners to `float64`, this made the union non-positive
+    and the function returned `0.0`; it must now return the analytic IoU of 1/3.
+    """
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
+
+    result = box_iou_batch(boxes_true=box_a, boxes_detection=box_b)
+
+    assert result[0, 0] != 0.0
+    assert result[0, 0] == pytest.approx(1.0 / 3.0, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    "scale",
+    [
+        pytest.param(np.array([[10, 1]], dtype=np.float32), id="x-dominant"),
+        pytest.param(np.array([[1, 10]], dtype=np.float32), id="y-dominant"),
+    ],
+)
+def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
+    scale: np.ndarray,
+) -> None:
+    """IoU is invariant under per-axis (anisotropic) scaling.
+
+    An affine map multiplies every area — intersection and union alike — by the
+    same determinant, so exact polygon IoU is unchanged. Equality is exact
+    because the computation is rasterization-free; the analytic IoU of these two
+    rectangles is 0.25.
+    """
+    boxes_true = np.array([[[1, 0], [0, 1], [3, 4], [4, 3]]], dtype=np.float32)
+    boxes_detection = np.array([[[1, 1], [2, 0], [4, 2], [3, 3]]], dtype=np.float32)
+
+    baseline_iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+    scaled_iou = oriented_box_iou_batch(boxes_true * scale, boxes_detection * scale)
+
+    assert baseline_iou.shape == (1, 1)
+    assert scaled_iou.shape == (1, 1)
+    assert baseline_iou[0, 0] == pytest.approx(0.25)
+    assert np.allclose(scaled_iou, baseline_iou, rtol=1e-5, atol=1e-7)
+
+
+class TestOrientedBoxIouBatch:
+    """Tests for `oriented_box_iou_batch`."""
+
+    @pytest.mark.parametrize(
+        ("scale", "offset"),
+        [
+            pytest.param(80.0, 0.0, id="large-scale"),
+            pytest.param(1.0, 3000.0, id="far-from-origin"),
+            pytest.param(80.0, 3000.0, id="large-and-far"),
+        ],
+    )
+    def test_is_invariant_to_canvas_transforms(
+        self, scale: float, offset: float
+    ) -> None:
+        """IoU is invariant under uniform scaling and translation.
+
+        Both are affine maps, so exact polygon IoU matches the small-coordinate
+        baseline exactly — free of the pixel-quantization error that the prior
+        rasterization-based implementation exhibited."""
+        boxes_true = _rotated_rect(50, 50, 40, 20, 30)[None]
+        boxes_detection = _rotated_rect(52, 48, 40, 20, 35)[None]
+        baseline = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        transformed = oriented_box_iou_batch(
+            boxes_true * scale + offset,
+            boxes_detection * scale + offset,
+        )
+
+        assert baseline.shape == (1, 1)
+        assert transformed.shape == (1, 1)
+        assert baseline[0, 0] > 0.4
+        assert np.allclose(transformed, baseline, rtol=1e-5, atol=1e-7)
+
+    def test_supports_overlap_metric(self) -> None:
+        """`overlap_metric=IOS` divides by the smaller area, so a small box fully
+        contained in a larger one scores exactly 1.0, while IoU is the area ratio."""
+        small = _rotated_rect(50, 50, 20, 20, 0)[None]
+        large = _rotated_rect(50, 50, 60, 60, 0)[None]
+
+        iou = oriented_box_iou_batch(small, large, OverlapMetric.IOU)[0, 0]
+        ios = oriented_box_iou_batch(small, large, OverlapMetric.IOS)[0, 0]
+
+        # 20x20 inside 60x60: IoU = 400 / 3600 = 1/9, IoS = 400 / 400 = 1.0.
+        assert iou == pytest.approx(1 / 9, rel=1e-3)
+        assert ios == pytest.approx(1.0)
+
+    def test_half_overlap_matches_analytic_value(self) -> None:
+        """Two unit-height 2x2 squares offset by 1 share half their area: IoU=1/3."""
+        boxes_true = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
+        boxes_detection = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        # intersection = 2, union = 4 + 4 - 2 = 6, IoU = 2/6 = 1/3.
+        assert iou[0, 0] == pytest.approx(1 / 3)
+
+    def test_disjoint_boxes_score_zero(self) -> None:
+        """Boxes whose envelopes do not overlap are pruned by the gate to 0.0."""
+        boxes_true = _rotated_rect(10, 10, 8, 4, 20)[None]
+        boxes_detection = _rotated_rect(500, 500, 8, 4, 70)[None]
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou[0, 0] == 0.0
+
+    @pytest.mark.parametrize(
+        "boxes",
+        [
+            pytest.param(
+                np.stack([_rotated_rect(10, 10, 8, 4, 20)]),
+                id="n=1",
+            ),
+            pytest.param(
+                np.stack(
+                    [_rotated_rect(10, 10, 8, 4, 20), _rotated_rect(40, 40, 8, 4, 70)]
+                ),
+                id="n=2",
+            ),
+        ],
+    )
+    def test_self_comparison_is_symmetric_with_unit_diagonal(
+        self, boxes: np.ndarray
+    ) -> None:
+        """Comparing a set with itself yields a symmetric matrix and a 1.0 diagonal."""
+        iou = oriented_box_iou_batch(boxes, boxes)
+
+        assert np.allclose(iou, iou.T)
+        for i in range(len(boxes)):
+            assert iou[i, i] == pytest.approx(1.0)
+
+    def test_envelope_overlap_without_polygon_overlap_scores_zero(self) -> None:
+        """Parallel rotated bars share an envelope but not a body, so they score 0.
+
+        Exercises the path where a pair passes the axis-aligned gate yet has no
+        exact polygon intersection.
+        """
+        boxes_true = _rotated_rect(50, 50, 100, 4, 45)[None]
+        boxes_detection = _rotated_rect(72, 28, 100, 4, 45)[None]
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou[0, 0] == 0.0
+
+    def test_rejects_unsupported_overlap_metric(self) -> None:
+        """An overlap metric other than IOU or IOS raises ValueError."""
+        boxes = _rotated_rect(50, 50, 20, 20, 0)[None]
+
+        with pytest.raises(ValueError, match="is not supported"):
+            oriented_box_iou_batch(boxes, boxes, "invalid")  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize(
+        ("boxes_a", "boxes_b", "expected"),
+        [
+            pytest.param(
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32),
+                0.0,
+                id="collapsed-box-vs-normal",
+            ),
+            pytest.param(
+                np.array([[[0, 0], [1, 0], [2, 0], [3, 0]]], dtype=np.float32),
+                np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32),
+                0.0,
+                id="collinear-box-vs-normal",
+            ),
+            pytest.param(
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                0.0,
+                id="self-comparison-zero-area",
+            ),
+        ],
+    )
+    def test_degenerate_boxes_score_zero(
+        self,
+        boxes_a: np.ndarray,
+        boxes_b: np.ndarray,
+        expected: float,
+    ) -> None:
+        """Degenerate boxes (zero-area collapsed or collinear) always score 0.
+
+        Note: self-comparison of a zero-area box returns 0.0, not 1.0 — this
+        diverges from ``box_iou_batch`` which returns 1.0 for degenerate AABB
+        self-comparison.
+        """
+        iou = oriented_box_iou_batch(boxes_a, boxes_b)
+        assert iou[0, 0] == expected
+
+    @pytest.mark.parametrize(
+        ("n", "m"),
+        [
+            pytest.param(0, 3, id="zero-true"),
+            pytest.param(3, 0, id="zero-detection"),
+            pytest.param(0, 0, id="both-zero"),
+        ],
+    )
+    def test_empty_input_returns_correct_shape(self, n: int, m: int) -> None:
+        """Empty inputs trigger the early-return path; result is zero-filled."""
+        boxes_true = np.empty((n, 4, 2), dtype=np.float32)
+        boxes_detection = np.empty((m, 4, 2), dtype=np.float32)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou.shape == (n, m)
+        assert iou.dtype == np.float64
+        assert np.all(iou == 0.0)
+
+    @pytest.mark.parametrize(
+        ("bad_shape", "match"),
+        [
+            pytest.param((2, 3, 2), r"expected \(N, 4, 2\)", id="3d-wrong-inner-dims"),
+            pytest.param((2, 5), r"expected \(N, 8\)", id="2d-wrong-columns"),
+            pytest.param((8,), r"must be 2-D", id="1d-input"),
+        ],
+    )
+    def test_invalid_shape_raises_value_error(
+        self, bad_shape: tuple, match: str
+    ) -> None:
+        """Inputs with wrong shape raise ValueError before any computation."""
+        boxes_bad = np.zeros(bad_shape, dtype=np.float32)
+        boxes_ok = np.zeros((2, 4, 2), dtype=np.float32)
+
+        with pytest.raises(ValueError, match=match):
+            oriented_box_iou_batch(boxes_bad, boxes_ok)
+
+
+class TestOrientedBoxNonMaxSuppression:
+    """Tests for `oriented_box_non_max_suppression`."""
+
+    def test_keeps_x_pattern(self) -> None:
+        """X-pattern: two thin rectangles crossing at +/-45° share an AABB but
+        barely overlap as OBBs. AABB-NMS would suppress one; OBB-NMS must keep
+        both."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        oriented_boxes = np.stack([quad_a, quad_b])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_a), 0.9, 0],
+                [*_aabb_of(quad_b), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        assert box_iou_batch(predictions[:, :4], predictions[:, :4])[0, 1] > 0.95
+        assert oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0] < 0.2
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+        assert np.array_equal(keep, np.array([True, True]))
+
+    @pytest.mark.parametrize(
+        ("class_id_b", "expected_keep"),
+        [
+            pytest.param(0, [True, False], id="same-class"),
+            pytest.param(1, [True, True], id="diff-class"),
+        ],
+    )
+    def test_suppression_is_class_aware(
+        self, class_id_b: int, expected_keep: list[bool]
+    ) -> None:
+        """Same class: lower-score OBB suppressed. Different class: both kept."""
+        quad = _rotated_rect(50, 50, 100, 10, 45)
+        shifted = _rotated_rect(51, 51, 100, 10, 45)
+        oriented_boxes = np.stack([quad, shifted])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad), 0.9, 0],
+                [*_aabb_of(shifted), 0.85, class_id_b],
+            ],
+            dtype=np.float32,
+        )
+
+        assert oriented_box_iou_batch(quad[None], shifted[None])[0, 0] > 0.9
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+        assert np.array_equal(keep, np.array(expected_keep))
+
+    def test_length_mismatch_raises(self) -> None:
+        """Mismatched predictions and oriented_boxes must fail loudly, not
+        silently misalign rows."""
+        predictions = np.zeros((3, 5), dtype=np.float32)
+        oriented_boxes = np.zeros((2, 4, 2), dtype=np.float32)
+        with pytest.raises(ValueError, match="same length"):
+            oriented_box_non_max_suppression(
+                predictions=predictions, oriented_boxes=oriented_boxes
+            )
+
+    def test_empty_predictions(self) -> None:
+        """No OBB predictions should produce an empty boolean keep mask."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        oriented_boxes = np.empty((0, 4, 2), dtype=np.float32)
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert keep.shape == (0,)
+        assert keep.dtype == bool
+
+    @pytest.mark.parametrize("iou_threshold", [0.0, 0.5, 1.0])
+    def test_keeps_single_prediction(self, iou_threshold: float) -> None:
+        """A single OBB prediction is always kept, regardless of threshold."""
+        quad = _rotated_rect(50, 50, 40, 20, 30)
+        oriented_boxes = quad[None]
+        predictions = np.array([[*_aabb_of(quad), 0.9, 0]], dtype=np.float32)
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=iou_threshold,
+        )
+
+        assert np.array_equal(keep, np.array([True]))
+
+    @pytest.mark.parametrize(
+        ("iou_threshold", "expected_keep"),
+        [
+            pytest.param(0.0, [True, False], id="threshold-0"),
+            pytest.param(1.0, [True, True], id="threshold-1"),
+        ],
+    )
+    def test_threshold_extremes(
+        self, iou_threshold: float, expected_keep: list[bool]
+    ) -> None:
+        """At threshold extremes, positive-overlap non-identical OBBs suppress at
+        0.0 and are both kept at 1.0."""
+        quad_a = _rotated_rect(50, 50, 40, 40, 0)
+        quad_b = _rotated_rect(55, 50, 40, 40, 0)
+        oriented_boxes = np.stack([quad_a, quad_b])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_a), 0.9, 0],
+                [*_aabb_of(quad_b), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        overlap = oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0]
+        assert 0.0 < overlap < 1.0
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=iou_threshold,
+        )
+
+        assert np.array_equal(keep, np.array(expected_keep))
+
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected_keep"),
+        [
+            pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+            pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+        ],
+    )
+    def test_overlap_metric_determines_suppression(
+        self, overlap_metric: OverlapMetric, expected_keep: list[bool]
+    ) -> None:
+        """Small box inside large: IOU keeps both; IOS suppresses small."""
+        large = _rotated_rect(50, 50, 60, 60, 0)
+        small = _rotated_rect(50, 50, 20, 20, 0)
+        oriented_boxes = np.stack([large, small])
+        predictions = np.array(
+            [
+                [*_aabb_of(large), 0.9, 0],
+                [*_aabb_of(small), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=0.5,
+            overlap_metric=overlap_metric,
+        )
+
+        assert np.array_equal(keep, np.array(expected_keep))
+
+
+class TestOrientedBoxNonMaxMerge:
+    """Tests for `oriented_box_non_max_merge`."""
+
+    def test_empty_predictions_returns_empty_groups(self) -> None:
+        """No OBB predictions should produce no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        oriented_boxes = np.empty((0, 4, 2), dtype=np.float32)
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert groups == []
+
+    def test_single_prediction_returns_singleton_group(self) -> None:
+        """A single OBB prediction should be returned as one singleton group."""
+        quad = _rotated_rect(50, 50, 40, 20, 30)
+        oriented_boxes = quad[None]
+        predictions = np.array([[*_aabb_of(quad), 0.9, 0]], dtype=np.float32)
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert groups == [[0]]
+
+    def test_groups_overlapping_oriented_boxes(self) -> None:
+        """Two near-identical OBBs should be merged into one group; an X-pattern
+        pair should produce two separate groups."""
+        quad_dup_a = _rotated_rect(50, 50, 100, 10, 45)
+        quad_dup_b = _rotated_rect(51, 51, 100, 10, 45)
+        quad_x = _rotated_rect(50, 50, 100, 10, -45)
+        oriented_boxes = np.stack([quad_dup_a, quad_dup_b, quad_x])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_dup_a), 0.90, 0],
+                [*_aabb_of(quad_dup_b), 0.85, 0],
+                [*_aabb_of(quad_x), 0.80, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+
+        sorted_groups = sorted(sorted(g) for g in groups)
+        assert sorted_groups == [[0, 1], [2]]
+
+
+class TestIouThresholdValidation:
+    """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
+
+    @pytest.mark.parametrize(
+        ("function", "kwargs"),
+        [
+            pytest.param(
+                box_non_max_suppression,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nms",
+            ),
+            pytest.param(
+                box_non_max_merge,
+                {"predictions": np.empty((0, 5), dtype=np.float32)},
+                id="box-nmm",
+            ),
+            pytest.param(
+                mask_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nms",
+            ),
+            pytest.param(
+                mask_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "masks": np.empty((0, 1, 1), dtype=bool),
+                },
+                id="mask-nmm",
+            ),
+            pytest.param(
+                oriented_box_non_max_suppression,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nms",
+            ),
+            pytest.param(
+                oriented_box_non_max_merge,
+                {
+                    "predictions": np.empty((0, 5), dtype=np.float32),
+                    "oriented_boxes": np.empty((0, 4, 2), dtype=np.float32),
+                },
+                id="obb-nmm",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
+    def test_rejects_thresholds_outside_closed_unit_interval(
+        self,
+        function: Callable[..., object],
+        kwargs: dict[str, object],
+        iou_threshold: float,
+    ) -> None:
+        """Each public overlap filter rejects thresholds outside [0, 1]."""
+        with pytest.raises(ValueError, match="closed range from 0 to 1"):
+            function(iou_threshold=iou_threshold, **kwargs)
+
+
+def _naive_mask_iou(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> np.ndarray:
+    """Reference IoU that materialises the (N, M, H, W) overlap explicitly."""
+    intersection = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
+    area_true = masks_true.sum(axis=(1, 2))
+    area_detection = masks_detection.sum(axis=(1, 2))
+    if overlap_metric == OverlapMetric.IOU:
+        denominator = area_true[:, None] + area_detection - intersection
+    else:
+        denominator = np.minimum(area_true[:, None], area_detection)
+    return np.divide(
+        intersection,
+        denominator,
+        out=np.zeros((len(masks_true), len(masks_detection)), dtype=float),
+        where=denominator != 0,
+    )
+
+
+class TestMaskIouBatch:
+    """`mask_iou_batch` (matmul intersection) matches the naive boolean reference."""
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("n_true", "n_detection", "height", "width"),
+        [
+            pytest.param(1, 1, 20, 24, id="single"),
+            pytest.param(7, 7, 32, 40, id="several-square"),
+            pytest.param(5, 9, 28, 36, id="rectangular"),
+        ],
+    )
+    def test_matches_naive_reference_on_random_masks(
+        self,
+        n_true: int,
+        n_detection: int,
+        height: int,
+        width: int,
+        overlap_metric: OverlapMetric,
+    ) -> None:
+        """Random masks give the same matrix as the explicit (N, M, H, W) reference."""
+        rng = np.random.default_rng(0)
+        masks_true = rng.random((n_true, height, width)) > 0.5
+        masks_detection = rng.random((n_detection, height, width)) > 0.5
+
+        result = mask_iou_batch(masks_true, masks_detection, overlap_metric)
+
+        expected = _naive_mask_iou(masks_true, masks_detection, overlap_metric)
+        np.testing.assert_allclose(result, expected)
+
+    def test_chunking_matches_single_pass(self) -> None:
+        """A tiny memory_limit forces chunking yet returns the same matrix."""
+        rng = np.random.default_rng(1)
+        masks_true = rng.random((6, 16, 16)) > 0.5
+        masks_detection = rng.random((4, 16, 16)) > 0.5
+
+        single_pass = mask_iou_batch(masks_true, masks_detection)
+        chunked = mask_iou_batch(masks_true, masks_detection, memory_limit=0)
+
+        np.testing.assert_allclose(single_pass, chunked, rtol=1e-6)
+
+        # empty masks_true under a tiny limit must not hit np.vstack([])
+        empty = mask_iou_batch(
+            np.zeros((0, 16, 16), dtype=bool), masks_detection, memory_limit=0
+        )
+        assert empty.shape == (0, 4)
+
+    def test_mismatched_spatial_shape_raises(self) -> None:
+        """Equal pixel counts but different (H, W) must raise, not silently mismatch."""
+        masks_true = np.zeros((1, 4, 9), dtype=bool)
+        masks_detection = np.zeros((1, 6, 6), dtype=bool)  # 36 px, different (H, W)
+        with pytest.raises(ValueError, match="must share the same"):
+            mask_iou_batch(masks_true, masks_detection)
+
+    def test_invalid_ndim_raises(self) -> None:
+        """2D and 4D inputs must raise ValueError before reaching shape[1:] check."""
+        mask_3d = np.zeros((1, 10, 10), dtype=bool)
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(np.zeros((10, 10), dtype=bool), mask_3d)
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(mask_3d, np.zeros((10, 10), dtype=bool))
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(np.zeros((1, 10, 10, 1), dtype=bool), mask_3d)
+
+    def test_identical_disjoint_and_empty(self) -> None:
+        """Identical/all-True → 1.0; all-False/disjoint → 0.0; empty keeps shape."""
+        mask = np.zeros((1, 10, 10), dtype=bool)
+        mask[0, 2:6, 2:6] = True
+        far = np.zeros((1, 10, 10), dtype=bool)
+        far[0, 7:9, 7:9] = True
+
+        assert mask_iou_batch(mask, mask)[0, 0] == pytest.approx(1.0)
+        assert mask_iou_batch(mask, far)[0, 0] == 0.0
+        assert mask_iou_batch(np.zeros((0, 10, 10), dtype=bool), mask).shape == (0, 1)
+
+        # all-True: denominator is non-zero, result must be exactly 1.0
+        all_true = np.ones((2, 5, 5), dtype=bool)
+        np.testing.assert_allclose(mask_iou_batch(all_true, all_true), np.ones((2, 2)))
+
+        # all-False: denominator is zero; result must be 0.0 (not NaN)
+        all_false = np.zeros((2, 5, 5), dtype=bool)
+        np.testing.assert_array_equal(
+            mask_iou_batch(all_false, all_false), np.zeros((2, 2))
+        )
+
+    def test_matmul_emits_no_runtime_warnings(
+        self, recwarn: pytest.WarningsChecker
+    ) -> None:
+        """mask_iou_batch on bool input must not emit any RuntimeWarning."""
+        rng = np.random.default_rng(2)
+        masks_true = rng.random((7, 32, 40)) > 0.5
+        masks_detection = rng.random((5, 32, 40)) > 0.5
+        mask_iou_batch(masks_true, masks_detection)
+        runtime = [w for w in recwarn.list if issubclass(w.category, RuntimeWarning)]
+        assert not runtime, (
+            f"Unexpected RuntimeWarnings: {[str(w.message) for w in runtime]}"
+        )
+
+    def test_float64_promotion_for_large_float32_masks(self) -> None:
+        """float32 masks with pixel count > 2**24 must give exact IoU via float64."""
+        # 1x(2**24+1) pixels: float32 area sum rounds, float64 area sum is exact.
+        # Without CRIT-2 fix, IoU would exceed 1.0 due to dtype mismatch.
+        mask = np.ones((1, 1, 2**24 + 1), dtype=np.float32)
+        result = mask_iou_batch(mask, mask)
+        assert result[0, 0] == pytest.approx(1.0)
+
+    def test_compact_mask_mixed_input_gives_same_result(self) -> None:
+        """CompactMask + dense mixed dispatch must match dense + dense."""
+        from supervision.detection.compact_mask import CompactMask
+        from supervision.detection.utils.converters import mask_to_xyxy
+
+        rng = np.random.default_rng(3)
+        masks = (rng.random((4, 20, 24)) > 0.3).astype(bool)
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 24))
+
+        dense_vs_dense = mask_iou_batch(masks, masks)
+        np.testing.assert_allclose(mask_iou_batch(cm, masks), dense_vs_dense, rtol=1e-5)
+        np.testing.assert_allclose(mask_iou_batch(masks, cm), dense_vs_dense, rtol=1e-5)
+
+    def test_detection_exceeds_limit_warns_and_completes(self) -> None:
+        """detection > memory_limit emits UserWarning; result shape is still correct."""
+        rng = np.random.default_rng(4)
+        masks_true = rng.random((3, 32, 32)) > 0.5
+        # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
+        masks_detection = rng.random((500, 32, 32)) > 0.5
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+        assert result.shape == (3, 500)
+
+
+def _reference_jaccard_loop(
+    boxes_true: list[list[float]],
+    boxes_detection: list[list[float]],
+    is_crowd: list[bool],
+) -> np.ndarray:
+    """Independent per-pair COCO Jaccard reference, shape (len(dt), len(gt))."""
+    eps = np.spacing(1)
+    out = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+    for gt_idx, (gx, gy, gw, gh) in enumerate(boxes_true):
+        for dt_idx, (dx, dy, dw, dh) in enumerate(boxes_detection):
+            inter_w = max(min(dx + dw, gx + gw) - max(dx, gx), 0.0)
+            inter_h = max(min(dy + dh, gy + gh) - max(dy, gy), 0.0)
+            area_inter = inter_w * inter_h
+            area_det = max(dw, 0.0) * max(dh, 0.0)
+            area_gt = max(gw, 0.0) * max(gh, 0.0)
+            if is_crowd[gt_idx]:
+                out[dt_idx, gt_idx] = area_inter / (area_det + eps)
+            else:
+                out[dt_idx, gt_idx] = area_inter / (
+                    area_det + area_gt - area_inter + eps
+                )
+    return out
+
+
+class TestBoxIouBatchWithJaccard:
+    """Verify the vectorized COCO-style Jaccard IoU batch."""
+
+    # ~1080 pairs: (1x1) + (3x5=15) + (20x50=1000) + (8x8=64) + (3x4=12)
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt", "seed"),
+        [
+            pytest.param(1, 1, 1, id="single-pair"),
+            pytest.param(3, 5, 2, id="small-batch"),
+            pytest.param(20, 50, 3, id="busy-batch"),
+            pytest.param(8, 8, 4, id="degenerate-and-crowd"),
+            pytest.param(3, 4, 5, id="all-crowd-multi-gt"),
+        ],
+    )
+    def test_matches_per_pair_reference(self, n_gt: int, n_dt: int, seed: int) -> None:
+        """Vectorized output equals an independent per-pair Jaccard loop."""
+        rng = np.random.default_rng(seed)
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(0, 40, (n, 2))
+            if seed == 4 and n:  # inject zero/negative-width degenerate boxes
+                wh[rng.integers(0, n), 0] = rng.choice([0.0, -5.0])
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true, boxes_detection = _boxes(n_gt), _boxes(n_dt)
+        is_crowd = (rng.random(n_gt) < 0.3).tolist()
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    def test_crowd_uses_detection_area_as_union(self) -> None:
+        """A crowd gt enclosing the detection scores 1.0 (union == detection area)."""
+        boxes_true = [[0.0, 0.0, 100.0, 100.0]]
+        boxes_detection = [[10.0, 10.0, 20.0, 20.0]]  # fully inside the gt
+        crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [True])
+        non_crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False])
+        assert crowd[0, 0] == pytest.approx(1.0)
+        assert non_crowd[0, 0] == pytest.approx(0.04)  # 400 / 10000
+
+    @pytest.mark.parametrize(
+        ("boxes_true", "boxes_detection", "is_crowd", "expected_iou"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[20.0, 20.0, 10.0, 10.0]],
+                [False],
+                0.0,
+                id="non-overlapping-non-crowd",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[0.0, 0.0, 10.0, 10.0]],
+                [False],
+                1.0,
+                id="identical-non-crowd",
+            ),
+        ],
+    )
+    def test_non_crowd_uses_standard_iou(
+        self,
+        boxes_true: list[list[float]],
+        boxes_detection: list[list[float]],
+        is_crowd: list[bool],
+        expected_iou: float,
+    ) -> None:
+        """Non-crowd GTs use standard IoU (intersection / union)."""
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+
+        assert result[0, 0] == pytest.approx(expected_iou)
+
+    def test_all_crowd_multi_gt_matches_reference(self) -> None:
+        """All-crowd 3-GT x 4-det batch matches per-pair reference loop."""
+        rng = np.random.default_rng(5)
+        n_gt, n_dt = 3, 4
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(1, 40, (n, 2))
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true = _boxes(n_gt)
+        boxes_detection = _boxes(n_dt)
+        is_crowd = [True] * n_gt
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt"),
+        [pytest.param(0, 3, id="empty-gt"), pytest.param(3, 0, id="empty-dt")],
+    )
+    def test_empty_input_returns_empty_array(self, n_gt: int, n_dt: int) -> None:
+        """Empty gt or detections yields an empty array, preserving the contract."""
+        boxes_true = [[0.0, 0.0, 10.0, 10.0]] * n_gt
+        boxes_detection = [[0.0, 0.0, 10.0, 10.0]] * n_dt
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False] * n_gt)
+        assert result.size == 0
+
+    def test_mismatched_is_crowd_length_raises(self) -> None:
+        """`is_crowd` must align with `boxes_true`."""
+        with pytest.raises(ValueError, match="`is_crowd` length"):
+            box_iou_batch_with_jaccard(
+                [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
+            )
+
+
+# ---------------------------------------------------------------------------
+# box_non_max_merge
+# ---------------------------------------------------------------------------
+
+
+class TestBoxNonMaxMerge:
+    """box_non_max_merge groups overlapping boxes into clusters."""
+
+    def test_empty_input_returns_empty_list(self) -> None:
+        """An empty predictions array produces no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert result == []
+
+    def test_non_overlapping_boxes_each_own_group(self) -> None:
+        """Boxes with zero overlap remain in separate singleton groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [20, 20, 30, 30, 0.8],
+                [50, 50, 60, 60, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 3
+        assert all(len(g) == 1 for g in result)
+
+    def test_identical_boxes_merged_into_one_group(self) -> None:
+        """Perfectly overlapping boxes (IoU=1) are merged into a single group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [0, 0, 10, 10, 0.8],
+                [0, 0, 10, 10, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 3
+
+    def test_two_distinct_clusters(self) -> None:
+        """Two groups of overlapping boxes produce exactly two merge groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [1, 1, 11, 11, 0.85],
+                [50, 50, 60, 60, 0.8],
+                [51, 51, 61, 61, 0.75],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.3)
+        assert len(result) == 2
+        group_sizes = sorted(len(g) for g in result)
+        assert group_sizes == [2, 2]
+
+    def test_6col_different_class_ids_not_merged(self) -> None:
+        """Identical boxes with different class_ids stay in separate groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 1],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 2
+        assert all(len(g) == 1 for g in result)
+
+    def test_6col_same_class_id_merged(self) -> None:
+        """Identical boxes with the same class_id are merged into one group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9, 0],
+                [0, 0, 10, 10, 0.8, 0],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 2

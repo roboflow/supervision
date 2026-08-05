@@ -1,0 +1,931 @@
+import os
+import threading
+import time
+from pathlib import Path
+from queue import Empty, Full
+from queue import Queue as StdQueue
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import numpy as np
+import pytest
+
+from supervision import _cv2 as cv2
+from supervision.utils.video import (
+    FPSMonitor,
+    VideoInfo,
+    get_video_frames_generator,
+    process_video,
+)
+
+
+@pytest.fixture
+def dummy_video_path(tmp_path):
+    path = str(tmp_path / "dummy_video.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(path, fourcc, 25, (640, 480))
+    for _ in range(10):
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        out.write(frame)
+    out.release()
+    return path
+
+
+def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video correctly propagates exceptions from the callback.
+
+    Scenario: Processing a video where the callback raises an exception.
+    Expected: `process_video` should propagate the exception, allowing users to
+    handle errors during video processing.
+    """
+    target_path = str(tmp_path / "target.mp4")
+
+    def callback_with_exception(frame, index):
+        if index == 5:
+            raise ValueError("Test exception at frame 5")
+        return frame
+
+    with pytest.raises(ValueError, match="Test exception at frame 5"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback_with_exception,
+        )
+
+
+def test_process_video_success(dummy_video_path, tmp_path) -> None:
+    """
+    Verify successful video processing with a pass-through callback.
+
+    Scenario: Successfully processing a video with a simple pass-through callback.
+    Expected: The video is processed without error and the target file is created,
+    verifying the core functionality of `process_video`.
+    """
+    target_path = str(tmp_path / "target_success.mp4")
+
+    def callback_success(frame, index):
+        return frame
+
+    # This should complete without exception
+    process_video(
+        source_path=dummy_video_path, target_path=target_path, callback=callback_success
+    )
+
+    assert os.path.exists(target_path)
+
+
+def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video handles exceptions correctly even with small buffers.
+
+    Scenario: Processing a video with minimal buffering where an exception occurs.
+    Expected: The exception is still correctly propagated even with low memory settings.
+    """
+    target_path = str(tmp_path / "target_exception_small_buffer.mp4")
+
+    def callback_with_exception(frame, index):
+        if index == 5:
+            raise ValueError("Test exception at frame 5")
+        return frame
+
+    with pytest.raises(ValueError, match="Test exception at frame 5"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback_with_exception,
+            prefetch=1,
+            writer_buffer=1,
+        )
+
+
+def test_process_video_enqueues_writer_sentinel_with_timeout(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video enqueues the writer sentinel and bounded worker joins."""
+    read_queue = StdQueue()
+    read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put((1, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put(None)
+
+    class RecordingWriteQueue:
+        """Record writer queue puts so the shutdown path can be asserted."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record each put call and its timeout."""
+            self.put_calls.append((item, timeout))
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    join_calls: list[object | None] = []
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Do nothing; the worker targets are intentionally never started."""
+            join_calls.append(timeout)
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    write_queue = RecordingWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=2),
+    )
+
+    target_path = str(tmp_path / "target_sentinel.mp4")
+
+    def callback(frame, index):
+        if index == 1:
+            raise ValueError("Test exception at frame 1")
+        return frame
+
+    with pytest.raises(ValueError, match="Test exception at frame 1"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert write_queue.put_calls[-1] == (None, 1)
+    assert all(timeout is None for _item, timeout in write_queue.put_calls[:-1])
+    assert join_calls == [10, 10]
+
+
+def test_process_video_best_effort_sentinel_handles_full_queue(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video should not hang if the writer queue is already full."""
+    read_queue = StdQueue()
+    read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
+    read_queue.put(None)
+
+    class FullWriteQueue:
+        """Record writer queue puts and fail the shutdown sentinel."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object | None]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record the put and raise Full for the shutdown sentinel."""
+            self.put_calls.append((item, timeout))
+            if item is None:
+                raise Full
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    join_calls: list[object | None] = []
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Record join timeouts for shutdown verification."""
+            join_calls.append(timeout)
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    write_queue = FullWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=1),
+    )
+
+    target_path = str(tmp_path / "target_full_queue.mp4")
+
+    def callback(frame, index):
+        raise ValueError("Test exception at frame 0")
+
+    with pytest.raises(ValueError, match="Test exception at frame 0"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert write_queue.put_calls[-1] == (None, 1)
+    assert join_calls == [10, 10]
+
+
+def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """process_video should keep waiting briefly when the reader queue times out."""
+
+    class TimeoutReadQueue:
+        """Record the first frame read and then time out in shutdown."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.get_calls: list[object | None] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """The reader thread is disabled, so writes are not expected."""
+            raise AssertionError("reader queue should not be written in this test")
+
+        def get(self, timeout: object | None = None) -> object:
+            """Yield one frame during processing, then time out during shutdown."""
+            self.get_calls.append(timeout)
+            if timeout is None:
+                return (0, np.zeros((2, 2, 3), dtype=np.uint8))
+            raise Empty
+
+    class RecordingWriteQueue:
+        """Record writer queue puts so the shutdown path can be asserted."""
+
+        def __init__(self) -> None:
+            """Initialize the queue call log."""
+            self.put_calls: list[tuple[object, object | None]] = []
+
+        def put(self, item: object, timeout: object | None = None) -> None:
+            """Record each put call and its timeout."""
+            self.put_calls.append((item, timeout))
+
+        def get(self, timeout: object | None = None) -> object:
+            """The writer thread is disabled, so reads are not expected."""
+            raise AssertionError("writer queue should not be read in this test")
+
+    join_calls: list[object | None] = []
+    reader_alive_states = iter([True, False])
+
+    class FakeThread:
+        """Thread stand-in that keeps the test single-threaded."""
+
+        def __init__(
+            self,
+            target: object,
+            args: tuple[object, ...] = (),
+            daemon: bool = False,
+        ) -> None:
+            """Store the thread target without starting it."""
+            self.target = target
+            self.args = args
+            self.daemon = daemon
+
+        def start(self) -> None:
+            """Do nothing; the test preloads the queues instead."""
+
+        def join(self, timeout=None) -> None:
+            """Record join timeouts for shutdown verification."""
+            join_calls.append(timeout)
+
+        def is_alive(self) -> bool:
+            """Return a short-lived alive state so the timeout branch is hit."""
+            return next(reader_alive_states, False)
+
+    class FakeVideoSink:
+        """Minimal sink context manager used to verify shutdown ordering."""
+
+        def __init__(self, target_path: str, video_info: object) -> None:
+            """Store constructor arguments for completeness."""
+            self.target_path = target_path
+            self.video_info = video_info
+
+        def __enter__(self) -> "FakeVideoSink":
+            """Return the sink context manager."""
+            return self
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            """Propagate any exception without side effects."""
+            return None
+
+        def write_frame(self, frame: object) -> None:
+            """The writer thread is disabled in this test."""
+
+    read_queue = TimeoutReadQueue()
+    write_queue = RecordingWriteQueue()
+    queue_factory_calls = iter([read_queue, write_queue])
+
+    monkeypatch.setattr(
+        "supervision.utils.video.Queue",
+        lambda *args, **kwargs: next(queue_factory_calls),
+    )
+    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
+    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: SimpleNamespace(total_frames=1),
+    )
+
+    target_path = str(tmp_path / "target_timeout.mp4")
+
+    def callback(frame, index):
+        raise ValueError("Test exception at frame 0")
+
+    with pytest.raises(ValueError, match="Test exception at frame 0"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback,
+            show_progress=False,
+        )
+
+    assert read_queue.get_calls == [None, 1, 1]
+    assert join_calls == [10, 10]
+
+
+def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video respects the max_frames parameter.
+
+    Scenario: Processing only a limited number of frames using `max_frames`.
+    Expected: Only the specified number of frames are processed, which is useful for
+    quick testing or sampling.
+    """
+    target_path = str(tmp_path / "target_max_frames.mp4")
+    processed_indices = []
+
+    def callback(frame, index):
+        processed_indices.append(index)
+        return frame
+
+    process_video(
+        source_path=dummy_video_path,
+        target_path=target_path,
+        callback=callback,
+        max_frames=5,
+    )
+
+    assert len(processed_indices) == 5
+    assert processed_indices == [0, 1, 2, 3, 4]
+
+
+def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video works correctly with custom performance parameters.
+
+    Scenario: Processing video with custom prefetch and buffer parameters.
+    Expected: Video is processed successfully, showing that these performance-tuning
+    parameters are correctly handled.
+    """
+    target_path = str(tmp_path / "target_custom_params.mp4")
+
+    def callback(frame, index):
+        return frame
+
+    # Test with very small prefetch and writer_buffer
+    process_video(
+        source_path=dummy_video_path,
+        target_path=target_path,
+        callback=callback,
+        prefetch=1,
+        writer_buffer=1,
+    )
+
+    assert os.path.exists(target_path)
+
+
+def test_video_info(dummy_video_path) -> None:
+    """
+    Verify that VideoInfo correctly retrieves metadata from a video file.
+
+    Scenario: Retrieving metadata from a video file using `VideoInfo`.
+    Expected: Correct width, height, fps, and frame count are returned, which is
+    essential for initializing annotators or calculating statistics.
+    """
+    video_info = VideoInfo.from_video_path(dummy_video_path)
+    assert video_info.width == 640
+    assert video_info.height == 480
+    assert video_info.fps == pytest.approx(25.0)
+    assert isinstance(video_info.fps, float)
+    assert video_info.total_frames == 10
+    assert video_info.resolution_wh == (640, 480)
+
+
+def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
+    """
+    Verify that VideoInfo preserves non-integer FPS values as floats.
+
+    Scenario: Retrieving metadata from a video while OpenCV reports 23.976 fps.
+    Expected: fps is returned as the original float value, not truncated to an
+    integer. This prevents frame-timing drift in long videos.
+    """
+    original_get = cv2.VideoCapture.get
+
+    def mocked_get(self, prop_id):
+        if prop_id == cv2.CAP_PROP_FPS:
+            return 23.976
+        return original_get(self, prop_id)
+
+    monkeypatch.setattr(cv2.VideoCapture, "get", mocked_get)
+
+    video_info = VideoInfo.from_video_path(dummy_video_path)
+    assert isinstance(video_info.fps, float)
+    assert video_info.fps == pytest.approx(23.976)
+    assert video_info.fps != int(video_info.fps)
+
+
+def test_get_video_frames_generator(dummy_video_path) -> None:
+    """
+    Verify that get_video_frames_generator yields frames with correct shapes.
+
+    Scenario: Iterating over video frames using a generator.
+    Expected: All frames are yielded in order as NumPy arrays with correct shapes,
+    enabling frame-by-frame processing loops.
+    """
+    generator = get_video_frames_generator(dummy_video_path)
+    frames = list(generator)
+    assert len(frames) == 10
+    assert all(isinstance(frame, np.ndarray) for frame in frames)
+    assert all(frame.shape == (480, 640, 3) for frame in frames)
+
+
+def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path) -> None:
+    """Verify that the prefetch path yields identical frames to the sync path.
+
+    Scenario: Iterating over a video with prefetch=4 and again with prefetch=0
+        (synchronous) on the same dummy video.
+    Expected: Both generators yield the same number of frames in the same order,
+        with each corresponding frame being pixel-for-pixel identical.
+    """
+    sync_frames = list(get_video_frames_generator(dummy_video_path))
+    prefetched_frames = list(get_video_frames_generator(dummy_video_path, prefetch=4))
+    assert len(prefetched_frames) == len(sync_frames) == 10
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
+def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path) -> None:
+    """Verify that reader-thread exceptions reach the consumer, not get swallowed.
+
+    Scenario: Passing a non-existent file path to the prefetch path so the reader
+        thread fails immediately on video open.
+    Expected: The exception propagates to the consumer and is raised as a
+        RuntimeError wrapping the original error; the consumer does not hang.
+    """
+    missing_path = str(tmp_path / "does_not_exist.mp4")
+    with pytest.raises(RuntimeError) as exc_info:
+        list(get_video_frames_generator(missing_path, prefetch=4))
+    assert exc_info.value.__cause__ is not None
+
+
+def test_get_video_frames_generator_prefetch_early_termination(
+    dummy_video_path,
+) -> None:
+    """Verify that breaking out of the prefetched generator does not block reuse.
+
+    Scenario: Consuming only 3 frames from a 10-frame video with prefetch=4, then
+        creating a fresh generator on the same file.
+    Expected: The break exits cleanly without hanging; a new generator on the same
+        file yields all 10 frames normally.
+    """
+    taken = []
+    for frame in get_video_frames_generator(dummy_video_path, prefetch=4):
+        taken.append(frame)
+        if len(taken) >= 3:
+            break
+    assert len(taken) == 3
+    # A fresh generator on the same file must still work normally.
+    assert len(list(get_video_frames_generator(dummy_video_path, prefetch=4))) == 10
+
+
+@pytest.mark.parametrize(
+    ("stride", "start", "end"),
+    [
+        pytest.param(2, 0, None, id="stride2"),
+        pytest.param(1, 2, 7, id="start2_end7"),
+        pytest.param(2, 2, 8, id="stride2_start2_end8"),
+    ],
+)
+def test_get_video_frames_generator_prefetch_param_forwarding(
+    dummy_video_path, stride, start, end
+) -> None:
+    """Prefetch path must forward stride/start/end identically to the sync path.
+
+    Scenario: Using the prefetch path with various stride, start, and end
+        combinations to verify parameters are correctly forwarded.
+    Expected: The prefetch output matches the sync path frame-for-frame for
+        each combination; no frames skipped or duplicated.
+    """
+    sync_frames = list(
+        get_video_frames_generator(
+            dummy_video_path, stride=stride, start=start, end=end
+        )
+    )
+    prefetched_frames = list(
+        get_video_frames_generator(
+            dummy_video_path, stride=stride, start=start, end=end, prefetch=4
+        )
+    )
+    assert len(prefetched_frames) == len(sync_frames)
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
+def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> None:
+    """prefetch=1 creates maximum backpressure; all frames must be returned in order.
+
+    Scenario: Using prefetch=1 forces the reader to block after every decoded
+        frame, maximising producer-consumer synchronisation pressure.
+    Expected: All 10 frames are yielded in the same order as the sync path.
+    """
+    sync_frames = list(get_video_frames_generator(dummy_video_path))
+    prefetched_frames = list(get_video_frames_generator(dummy_video_path, prefetch=1))
+    assert len(prefetched_frames) == len(sync_frames) == 10
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
+def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None:
+    """
+    Verify that the capture is released when a consumer breaks out early.
+
+    Scenario: A consumer iterates one frame then abandons the generator, raising
+    GeneratorExit at the yield point.
+    Expected: The `try/finally` guard still calls `release()`, avoiding a decoder
+    leak.
+    """
+
+    class FakeCapture:
+        def __init__(self) -> None:
+            self.released = False
+
+        def read(self):
+            return True, np.zeros((2, 2, 3), dtype=np.uint8)
+
+        def grab(self):
+            return True
+
+        def release(self) -> None:
+            self.released = True
+
+    fake_capture = FakeCapture()
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (fake_capture, 0, 100),
+    )
+
+    generator = get_video_frames_generator("dummy")
+    next(generator)
+    generator.close()
+
+    assert fake_capture.released
+
+
+def test_get_video_frames_generator_prefetch_negative_raises(dummy_video_path) -> None:
+    """Negative prefetch raises ValueError when the generator is first consumed.
+
+    Scenario: Creating get_video_frames_generator with prefetch=-1 and pulling the
+        first item; because the function is a generator, the guard fires on the first
+        `next()`, not at call time.
+    Expected: A ValueError naming the invalid prefetch value is raised.
+    """
+    generator = get_video_frames_generator(dummy_video_path, prefetch=-1)
+    with pytest.raises(ValueError, match="prefetch must be >= 0"):
+        next(generator)
+
+
+def test_get_video_frames_generator_prefetch_stride_early_termination(
+    dummy_video_path,
+) -> None:
+    """Breaking early with stride>1 and prefetch>0 exits cleanly without hanging.
+
+    Scenario: Consuming only 2 frames from a 10-frame video with stride=2 and
+        prefetch=4, then creating a fresh strided prefetch generator on the same file.
+    Expected: The break exits cleanly (no hang); exactly 2 valid frames are taken, and
+        a fresh strided prefetch generator still yields all 5 strided frames.
+    """
+    taken = []
+    for frame in get_video_frames_generator(dummy_video_path, stride=2, prefetch=4):
+        taken.append(frame)
+        if len(taken) >= 2:
+            break
+    assert len(taken) == 2
+    assert all(isinstance(f, np.ndarray) and f.shape == (480, 640, 3) for f in taken)
+    # A fresh strided prefetch generator on the same file must still work fully.
+    fresh = get_video_frames_generator(dummy_video_path, stride=2, prefetch=4)
+    assert len(list(fresh)) == 5
+
+
+def test_get_video_frames_generator_prefetch_consumer_exception_cleans_up_thread(
+    dummy_video_path,
+) -> None:
+    """A consumer exception propagates and the prefetch reader thread is cleaned up.
+
+    Scenario: Raising inside the for-loop body while iterating a prefetch=4 generator,
+        so the anonymous generator is closed as the exception unwinds.
+    Expected: The RuntimeError propagates to the caller, and the reader thread is
+        joined by the generator's finally (active thread count returns to baseline).
+    """
+
+    def consume_then_raise() -> None:
+        """Consume the prefetch generator and raise from inside the loop body."""
+        for _frame in get_video_frames_generator(dummy_video_path, prefetch=4):
+            raise RuntimeError("consumer boom")
+
+    baseline_threads = threading.active_count()
+    with pytest.raises(RuntimeError, match="consumer boom"):
+        consume_then_raise()
+    assert threading.active_count() == baseline_threads
+
+
+def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -> None:
+    """A reader stuck in a slow read must not make the outer generator hang on close.
+
+    Scenario: The background reader blocks in a slow `read()` that outlives the
+        generator's `finally: thread.join(timeout=2.0)`; the consumer closes the
+        generator after one frame.
+    Expected: `close()` returns without hanging or raising — the bounded join gives up
+        and the daemon reader is left to exit on its own.
+    """
+
+    class SlowCapture:
+        """Fake capture that serves one frame then blocks on the next read."""
+
+        def __init__(self) -> None:
+            self.released = False
+            self.calls = 0
+            self.block = threading.Event()
+
+        def read(self):
+            """Return one frame, then block on subsequent reads to simulate a hang."""
+            self.calls += 1
+            if self.calls == 1:
+                return True, np.zeros((2, 2, 3), dtype=np.uint8)
+            self.block.wait(timeout=10.0)
+            return False, None
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """Record that the capture was released."""
+            self.released = True
+
+    slow_capture = SlowCapture()
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (slow_capture, 0, 100),
+    )
+
+    generator = get_video_frames_generator("dummy", prefetch=4)
+    first_frame = next(generator)
+    start = time.monotonic()
+    generator.close()
+    elapsed = time.monotonic() - start
+    # Release the daemon reader so it can exit cleanly after the test.
+    slow_capture.block.set()
+
+    assert isinstance(first_frame, np.ndarray)
+    assert elapsed < 5.0
+
+
+def test_get_video_frames_generator_prefetch_yields_buffered_frames_before_error(
+    monkeypatch,
+) -> None:
+    """Frames already decoded before a mid-stream failure are yielded, then raised.
+
+    Scenario: A fake capture successfully reads 3 frames, then raises on the 4th
+        `read()` call, with `prefetch=4` so all 3 good frames fit in the queue ahead
+        of the sentinel.
+    Expected: The consumer receives exactly the 3 good frames in order, then the
+        wrapping `RuntimeError` — matching the documented "buffered frames before
+        RuntimeError" ordering guarantee.
+    """
+
+    class FailAfterNCapture:
+        """Fake capture that serves N frames then raises on the next read."""
+
+        def __init__(self, good_reads: int) -> None:
+            self.good_reads = good_reads
+            self.calls = 0
+            self.released = False
+
+        def read(self):
+            """Return a frame for the first `good_reads` calls, then raise."""
+            self.calls += 1
+            if self.calls <= self.good_reads:
+                return True, np.full((2, 2, 3), self.calls, dtype=np.uint8)
+            raise OSError("simulated mid-stream decode failure")
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """Record that the capture was released."""
+            self.released = True
+
+    fake_capture = FailAfterNCapture(good_reads=3)
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (fake_capture, 0, 100),
+    )
+
+    collected = []
+
+    def consume() -> None:
+        """Drain the generator into `collected`, letting the error propagate."""
+        for frame in get_video_frames_generator("dummy", prefetch=4):
+            collected.append(frame)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        consume()
+    assert len(collected) == 3
+    assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> None:
+    """The prefetch path yields nothing and returns cleanly for a zero-frame video.
+
+    Scenario: A fake capture reports failure on the very first `read()`, simulating
+        an empty video, with `prefetch=4`.
+    Expected: The generator yields no frames and returns without hanging on the
+        initial `frame_queue.get`/`thread.is_alive()` poll.
+    """
+
+    class EmptyCapture:
+        """Fake capture that yields zero frames."""
+
+        def read(self):
+            """Report immediate end-of-stream."""
+            return False, None
+
+        def grab(self):
+            """Report a successful grab so stride handling proceeds."""
+            return True
+
+        def release(self) -> None:
+            """No-op release for the empty-video fake."""
+
+    monkeypatch.setattr(
+        "supervision.utils.video._validate_and_setup_video",
+        lambda *args, **kwargs: (EmptyCapture(), 0, 100),
+    )
+
+    frames = list(get_video_frames_generator("dummy", prefetch=4))
+
+    assert frames == []
+
+
+def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
+    """
+    Verify that get_video_frames_generator correctly handles the stride parameter.
+
+    Scenario: Iterating over video frames with specified stride (e.g., every 2nd frame).
+    Expected: The generator correctly skips frames according to the stride, allowing
+    for faster processing of high-FPS videos.
+    """
+    generator = get_video_frames_generator(dummy_video_path, stride=2)
+    frames = list(generator)
+    assert len(frames) == 5
+
+
+def test_fps_monitor_uses_frame_intervals(monkeypatch) -> None:
+    """FPSMonitor must divide elapsed time by intervals, not sample count."""
+    timestamps = iter([0.0, 0.5, 1.0])
+    monkeypatch.setattr(
+        "supervision.utils.video.time.monotonic", lambda: next(timestamps)
+    )
+
+    fps_monitor = FPSMonitor()
+    fps_monitor.tick()
+    fps_monitor.tick()
+    fps_monitor.tick()
+
+    assert fps_monitor.fps == pytest.approx(2.0)
+
+
+def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video calls _mux_audio when preserve_audio=True.
+
+    Scenario: Processing a video with preserve_audio=True and ffmpeg available.
+    Expected: _mux_audio is called exactly once with the correct source and target
+    paths, confirming the audio muxing step is triggered after frame writing completes.
+    """
+    target_path = str(tmp_path / "target_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+            preserve_audio=True,
+        )
+        mock_mux.assert_called_once_with(
+            source_path=dummy_video_path, video_path=target_path
+        )
+
+
+def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
+    """
+    Verify that process_video does not call _mux_audio when preserve_audio=False.
+
+    Scenario: Default process_video call without setting preserve_audio.
+    Expected: _mux_audio is never called, preserving existing behavior for callers
+    that do not need audio.
+    """
+    target_path = str(tmp_path / "target_no_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+        )
+        mock_mux.assert_not_called()
+
+
+def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
+    """
+    Verify that get_video_frames_generator respects start and end frame indices.
+
+    Scenario: Iterating over a specific range of video frames using `start` and `end`.
+    Expected: Only frames within the specified range are yielded, enabling targeted
+    analysis of video segments.
+    """
+    generator = get_video_frames_generator(dummy_video_path, start=2, end=5)
+    frames = list(generator)
+    assert len(frames) == 3

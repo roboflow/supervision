@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Ask a Question
+    url: https://github.com/roboflow/supervision/discussions/new?category=q-a
+    about: Ask questions about using Supervision in GitHub Discussions
+  - name: 📚 Documentation
+    url: https://supervision.roboflow.com/
+    about: Check the official Supervision documentation for guides and API references
+  - name: 💬 GitHub Discussions
+    url: https://github.com/roboflow/supervision/discussions
+    about: Join community discussions, share ideas, and get help
+  - name: 🌟 Show and Tell
+    url: https://github.com/roboflow/supervision/discussions/categories/show-and-tell
+    about: Share your projects and creations built with Supervision
+  - name: 🗣️ Roboflow Discord
+    url: https://discord.com/invite/GbfgXGJ8Bk
+    about: Join our Discord to collaborate with other community members
