@@ -116,15 +116,6 @@ PARITY_CASES = (
         sklearn_labels=(3, 10),
         matched_classes=(3, 10),
     ),
-    ParityCase(
-        name="empty",
-        prediction_batches=((),),
-        target_batches=((),),
-        sklearn_y_true=(),
-        sklearn_y_pred=(),
-        sklearn_labels=(0,),
-        matched_classes=(),
-    ),
 )
 
 METRIC_SPECS = (
@@ -252,3 +243,44 @@ class TestSklearnParity:
         actual = getattr(result, metric_spec.per_class_attribute)
         np.testing.assert_array_equal(result.matched_classes, case.matched_classes)
         np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "metric_spec",
+    [pytest.param(spec, id=spec.name) for spec in METRIC_SPECS],
+)
+class TestEmptyInput:
+    """Verify Supervision's defined behavior when no detections exist."""
+
+    @pytest.mark.parametrize(
+        "averaging_method",
+        [
+            pytest.param(AveragingMethod.MICRO, id="micro"),
+            pytest.param(AveragingMethod.MACRO, id="macro"),
+            pytest.param(AveragingMethod.WEIGHTED, id="weighted"),
+        ],
+    )
+    def test_returns_zero_aggregate_scores(
+        self, metric_spec: MetricSpec, averaging_method: AveragingMethod
+    ) -> None:
+        """Empty batches produce zero aggregate scores at every IoU threshold."""
+        predictions = [Detections.empty()]
+        targets = [Detections.empty()]
+        metric = metric_spec.metric_class(averaging_method=averaging_method)
+
+        result = metric.update(predictions, targets).compute()
+
+        actual = getattr(result, metric_spec.scores_attribute)
+        np.testing.assert_array_equal(actual, np.zeros_like(result.iou_thresholds))
+
+    def test_returns_no_per_class_scores(self, metric_spec: MetricSpec) -> None:
+        """Empty batches produce no matched classes or per-class score rows."""
+        predictions = [Detections.empty()]
+        targets = [Detections.empty()]
+        metric = metric_spec.metric_class(averaging_method=AveragingMethod.MACRO)
+
+        result = metric.update(predictions, targets).compute()
+
+        actual = getattr(result, metric_spec.per_class_attribute)
+        np.testing.assert_array_equal(result.matched_classes, np.array([]))
+        assert actual.shape == (0, result.iou_thresholds.size)
