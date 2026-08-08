@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
