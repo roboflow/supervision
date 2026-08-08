@@ -1,14 +1,12 @@
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
-from xml.etree.ElementTree import Element, SubElement
-
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 import numpy as np
 import numpy.typing as npt
-from defusedxml.ElementTree import parse, tostring
+from defusedxml.ElementTree import Element, SubElement, parse, tostring
 from defusedxml.minidom import parseString
 from tqdm.auto import tqdm
 
