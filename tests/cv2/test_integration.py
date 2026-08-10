@@ -8,6 +8,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
+
+from supervision._cv2._image import _add_weighted
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src" / "supervision"
 TEST_ROOT = PROJECT_ROOT / "tests"
@@ -75,6 +79,17 @@ def test_ordinary_tests_use_facade_instead_of_native_cv2() -> None:
     imports = _direct_cv2_imports(TEST_ROOT, excluded=set(reference_root.rglob("*.py")))
 
     assert imports == []
+
+
+def test_fallback_add_weighted_accepts_opencv_keyword_names() -> None:
+    """Accept OpenCV's public `src1` and `src2` parameter names."""
+    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+    other = np.full_like(source, 50)
+
+    actual = _add_weighted(src1=source, alpha=0.5, src2=other, beta=0.5, gamma=10)
+    expected = _add_weighted(source, 0.5, other, 0.5, 10)
+
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:

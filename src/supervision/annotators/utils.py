@@ -258,19 +258,37 @@ def get_labels_text(
 
     Returns:
         A list of text labels for each detection.
+
+    Raises:
+        ValueError: If `class_name` or `class_id` is present but its length
+            does not match the number of detections (e.g. `detections.data`
+            was mutated directly, bypassing `Detections` alignment checks).
     """
     if custom_labels is not None:
         return custom_labels
 
-    labels = []
-    for idx in range(len(detections)):
-        if CLASS_NAME_DATA_FIELD in detections.data:
-            labels.append(str(detections.data[CLASS_NAME_DATA_FIELD][idx]))
-        elif detections.class_id is not None:
-            labels.append(str(detections.class_id[idx]))
-        else:
-            labels.append(str(idx))
-    return labels
+    if CLASS_NAME_DATA_FIELD in detections.data:
+        class_names = detections.data[CLASS_NAME_DATA_FIELD]
+        # `Detections.data` is normally kept aligned with `xyxy` by the
+        # dataclass's own validation, but a caller can bypass it by mutating
+        # `detections.data` directly. Fail loudly rather than silently
+        # dropping or duplicating labels.
+        if len(class_names) != len(detections):
+            raise ValueError(
+                f"'{CLASS_NAME_DATA_FIELD}' has {len(class_names)} entries "
+                f"but detections has {len(detections)} - the two must stay "
+                "aligned."
+            )
+        return [str(v) for v in class_names]
+    if detections.class_id is not None:
+        if len(detections.class_id) != len(detections):
+            raise ValueError(
+                f"'class_id' has {len(detections.class_id)} entries but "
+                f"detections has {len(detections)} - the two must stay "
+                "aligned."
+            )
+        return [str(v) for v in detections.class_id]
+    return [str(i) for i in range(len(detections))]
 
 
 def snap_boxes(

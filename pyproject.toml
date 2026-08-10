@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.30.0.dev"
+version = "0.31.0.dev0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -51,7 +51,6 @@ dependencies = [
   "defusedxml>=0.7.1",
   "matplotlib>=3.6",
   "numpy>=1.21.2",
-  "opencv-python>=4.5.5.64,<6",
   "pillow>=9.4",
   "pydeprecate>=0.9,<0.12",
   "pyyaml>=5.3",
@@ -79,6 +78,7 @@ dev = [
   "pre-commit>=3.8",
   "pytest>=7.2.2,<10",
   "pytest-cov>=4,<8",
+  "scikit-learn>=1.7",
   "tox>=4.11.4",
   "types-tqdm",
 ]
@@ -93,7 +93,7 @@ docs = [
 ]
 build = [
   "build>=1,<1.6",
-  "twine>=5.1.1,<7",
+  "twine>=5.1.1,<8",
   "wheel>=0.40,<0.48",
 ]
 

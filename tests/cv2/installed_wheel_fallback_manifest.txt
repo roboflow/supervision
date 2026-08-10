@@ -1,0 +1,7 @@
+# These exact checks run after installing the built wheel in an empty environment.
+import-supervision
+no-cv2-module
+fallback-backend
+bgr-to-gray
+draw-rectangle
+required-pyav
