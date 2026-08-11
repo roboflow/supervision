@@ -1606,6 +1606,29 @@ def test_box_iou_batch_int32_input_does_not_overflow() -> None:
 
 
 @pytest.mark.parametrize(
+    ("overlap_metric", "expected"),
+    [
+        pytest.param(OverlapMetric.IOU, 1.0 / 3.0, id="iou"),
+        pytest.param(OverlapMetric.IOS, 0.5, id="ios"),
+    ],
+)
+def test_box_iou_int32_input_does_not_overflow(
+    overlap_metric: OverlapMetric, expected: float
+) -> None:
+    """Large int32 boxes preserve their analytic overlap scores."""
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
+
+    result = box_iou(
+        box_true=box_a[0],
+        box_detection=box_b[0],
+        overlap_metric=overlap_metric,
+    )
+
+    assert result == pytest.approx(expected, rel=1e-6)
+
+
+@pytest.mark.parametrize(
     "scale",
     [
         pytest.param(np.array([[10, 1]], dtype=np.float32), id="x-dominant"),

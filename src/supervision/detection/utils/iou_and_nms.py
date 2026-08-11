@@ -98,8 +98,8 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
 
 
 def box_iou(
-    box_true: list[float] | npt.NDArray[np.floating],
-    box_detection: list[float] | npt.NDArray[np.floating],
+    box_true: list[float] | npt.NDArray[np.number],
+    box_detection: list[float] | npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
     """
@@ -137,8 +137,12 @@ def box_iou(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
-    x_min_det, y_min_det, x_max_det, y_max_det = np.array(box_detection)
+    x_min_true, y_min_true, x_max_true, y_max_true = np.asarray(
+        box_true, dtype=np.float64
+    )
+    x_min_det, y_min_det, x_max_det, y_max_det = np.asarray(
+        box_detection, dtype=np.float64
+    )
 
     x_min_inter = max(x_min_true, x_min_det)
     y_min_inter = max(y_min_true, y_min_det)
