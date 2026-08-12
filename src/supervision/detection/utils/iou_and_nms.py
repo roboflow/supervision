@@ -97,6 +97,11 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
         )
 
 
+def _coordinate_difference(upper: np.number, lower: np.number) -> float:
+    """Subtract box coordinates without overflowing integer NumPy scalars."""
+    return float(np.asarray(upper).item() - np.asarray(lower).item())
+
+
 def box_iou(
     box_true: list[float] | npt.NDArray[np.number],
     box_detection: list[float] | npt.NDArray[np.number],
@@ -107,7 +112,8 @@ def box_iou(
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics. Returns the overlap value in range
-    `[0, 1]`.
+    `[0, 1]`. Integer coordinates are subtracted before conversion to floating
+    point so large origins remain precise while area products avoid integer overflow.
 
     Args:
         box_true: Ground truth box in format
@@ -122,6 +128,7 @@ def box_iou(
         Overlap value between boxes in `[0, 1]`.
 
     Raises:
+        TypeError: If either box contains complex coordinates.
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
@@ -137,25 +144,30 @@ def box_iou(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = np.asarray(
-        box_true, dtype=np.float64
-    )
-    x_min_det, y_min_det, x_max_det, y_max_det = np.asarray(
-        box_detection, dtype=np.float64
-    )
+    box_true_array = np.asarray(box_true)
+    box_detection_array = np.asarray(box_detection)
+    if np.iscomplexobj(box_true_array) or np.iscomplexobj(box_detection_array):
+        raise TypeError("box coordinates must be real-valued")
+
+    x_min_true, y_min_true, x_max_true, y_max_true = box_true_array
+    x_min_det, y_min_det, x_max_det, y_max_det = box_detection_array
 
     x_min_inter = max(x_min_true, x_min_det)
     y_min_inter = max(y_min_true, y_min_det)
     x_max_inter = min(x_max_true, x_max_det)
     y_max_inter = min(y_max_true, y_max_det)
 
-    inter_w = max(0.0, x_max_inter - x_min_inter)
-    inter_h = max(0.0, y_max_inter - y_min_inter)
+    inter_w = max(0.0, _coordinate_difference(x_max_inter, x_min_inter))
+    inter_h = max(0.0, _coordinate_difference(y_max_inter, y_min_inter))
 
     area_inter = inter_w * inter_h
 
-    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
-    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
+    area_true = _coordinate_difference(x_max_true, x_min_true) * _coordinate_difference(
+        y_max_true, y_min_true
+    )
+    area_det = _coordinate_difference(x_max_det, x_min_det) * _coordinate_difference(
+        y_max_det, y_min_det
+    )
 
     if overlap_metric == OverlapMetric.IOU:
         area_norm = area_true + area_det - area_inter
