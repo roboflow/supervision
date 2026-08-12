@@ -1,9 +1,15 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-08-04
+date_modified: 2026-08-11
 ---
 
 # Changelog
+
+### Unreleased <small>upcoming</small>
+
+### Fixed
+
+- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
 
 ### 0.30.0 <small>Aug 4, 2026</small>
 
