@@ -2925,6 +2925,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased-upcoming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased upcoming
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0300-aug-4-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2958,7 +2980,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -3453,6 +3475,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#unreleased-upcoming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased upcoming
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0300-aug-4-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3486,7 +3530,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -3931,6 +3975,11 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sv.box_iou</code> now calculates overlap in <code>float64</code>, preventing <code>int32</code> area overflow for large boxes. Its scalar result now matches <code>sv.box_iou_batch</code> for the same input.</li>
+</ul>
 <h3 id="0300-aug-4-2026">0.30.0 <small>Aug 4, 2026</small><a class="headerlink" href="#0300-aug-4-2026" title="Permanent link">&para;</a></h3>
 <div class="admonition failure">
 <p class="admonition-title">Python 3.9 Support Terminated</p>
@@ -4045,7 +4094,7 @@
 <p><code>supervision</code> now requires <code>av&gt;=14.2</code> as a mandatory install-time dependency for the PyAV cv2-free video fallback introduced during the OpenCV-optional transition (<a href="https://github.com/roboflow/supervision/pull/2438">#2438</a>). This doesn't change any public API — code that used supervision correctly before still behaves the same — but environments that pin exact dependency sets or vendor dependencies need to account for the new <code>av</code> requirement.</p>
 </li>
 </ul>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/issues/2467">#2467</a> via <a href="https://github.com/roboflow/supervision/pull/2468">#2468</a>: <code>sv.Recall</code> now tracks classes that appear only in predictions, matching <code>sv.Precision</code> and <code>sv.F1Score</code> after <a href="https://github.com/roboflow/supervision/pull/2331">#2331</a> and matching sklearn, which infers labels from the union of <code>y_true</code> and <code>y_pred</code>. <code>matched_classes</code> and <code>recall_per_class</code> are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. <code>matched_classes</code> and <code>recall_per_class</code> gain a row for each prediction-only class under every averaging method; only the scalar <code>MACRO</code> recall changes value, since such a class now contributes <code>0.0</code>, while the scalar <code>MICRO</code> and <code>WEIGHTED</code> aggregates are unaffected. Users relying on previous scores should re-evaluate after upgrading; no API change is required.</p>
@@ -6121,7 +6170,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 4, 2026 14:22:04 UTC">August 4, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 12, 2026 13:06:27 UTC">August 12, 2026</span>
   </span>
 
     
@@ -6149,9 +6198,9 @@
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6159,21 +6208,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/arthi-arumugam-git" class="md-author" title="@arthi-arumugam-git">
           
           <img src="https://avatars.githubusercontent.com/u/62213284?v=4&size=72" alt="arthi-arumugam-git">
-        </a>
-      
-        <a href="https://github.com/LuShadowX" class="md-author" title="@LuShadowX">
-          
-          <img src="https://avatars.githubusercontent.com/u/226906661?v=4&size=72" alt="LuShadowX">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +27
+            +28
           </a>
         
       
