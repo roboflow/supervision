@@ -1606,6 +1606,57 @@ def test_box_iou_batch_int32_input_does_not_overflow() -> None:
 
 
 @pytest.mark.parametrize(
+    ("overlap_metric", "expected"),
+    [
+        pytest.param(OverlapMetric.IOU, 1.0 / 3.0, id="iou"),
+        pytest.param(OverlapMetric.IOS, 0.5, id="ios"),
+    ],
+)
+def test_box_iou_int32_input_does_not_overflow(
+    overlap_metric: OverlapMetric, expected: float
+) -> None:
+    """Large int32 boxes preserve their analytic overlap scores."""
+    side, shift = 60000, 30000
+    box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
+
+    result = box_iou(
+        box_true=box_a[0],
+        box_detection=box_b[0],
+        overlap_metric=overlap_metric,
+    )
+
+    assert result == pytest.approx(expected, rel=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("overlap_metric", "expected"),
+    [
+        pytest.param(OverlapMetric.IOU, 1.0 / 3.0, id="iou"),
+        pytest.param(OverlapMetric.IOS, 0.5, id="ios"),
+    ],
+)
+def test_box_iou_large_int64_origin_preserves_coordinate_differences(
+    overlap_metric: OverlapMetric, expected: float
+) -> None:
+    """Large int64 origins do not collapse distinct box endpoints."""
+    origin = 2**53
+    box_true = np.array([origin, 0, origin + 2, 2], dtype=np.int64)
+    box_detection = np.array([origin + 1, 0, origin + 3, 2], dtype=np.int64)
+
+    result = box_iou(box_true, box_detection, overlap_metric)
+
+    assert result == pytest.approx(expected, rel=1e-6)
+
+
+def test_box_iou_rejects_complex_coordinates() -> None:
+    """Complex coordinates are rejected instead of silently truncating values."""
+    box = np.array([0, 0, 2, 2], dtype=np.complex128)
+
+    with pytest.raises(TypeError, match="real-valued"):
+        box_iou(box, box)
+
+
+@pytest.mark.parametrize(
     "scale",
     [
         pytest.param(np.array([[10, 1]], dtype=np.float32), id="x-dominant"),
