@@ -198,3 +198,18 @@ def test_list_files_with_extensions_normalization(
     result = list_files_with_extensions(directory=tmp_path, extensions=[extension])
 
     assert {p.name for p in result} == expected_names
+
+
+def test_list_files_with_extensions_without_filter_ignores_directories(
+    tmp_path: Path,
+) -> None:
+    """Directory entries are ignored when no extension filter is provided."""
+    # given
+    (tmp_path / "image.jpg").touch()
+    (tmp_path / "labels").mkdir()
+
+    # when
+    result = list_files_with_extensions(directory=tmp_path)
+
+    # then
+    assert {p.name for p in result} == {"image.jpg"}

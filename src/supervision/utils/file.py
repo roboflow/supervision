@@ -176,7 +176,7 @@ def list_files_with_extensions(
                     files_with_extensions.append(path)
                     seen_paths.add(path)
     else:
-        files_with_extensions.extend(directory.glob("*"))
+        files_with_extensions.extend(p for p in directory.glob("*") if p.is_file())
 
     return files_with_extensions
 
