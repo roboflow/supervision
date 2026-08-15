@@ -1433,6 +1433,7 @@ def test_from_mediapipe_multi_hand_landmarks_empty_returns_empty():
 
     class _FakeHandOnly:
         hand_landmarks: list = []
+
     key_points = KeyPoints.from_mediapipe(_FakeHandOnly(), resolution_wh=(100, 100))
     assert key_points == KeyPoints.empty()
 
