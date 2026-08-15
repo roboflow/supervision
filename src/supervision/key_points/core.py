@@ -596,9 +596,7 @@ class KeyPoints:
                 ]
                 prediction_xy.append(keypoint_xy)
                 visibility = getattr(landmark, "visibility", None)
-                prediction_confidence.append(
-                    1.0 if visibility is None else visibility
-                )
+                prediction_confidence.append(1.0 if visibility is None else visibility)
 
             xy.append(prediction_xy)
             confidence.append(prediction_confidence)

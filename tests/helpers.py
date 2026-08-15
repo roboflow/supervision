@@ -357,14 +357,15 @@ class _FakeMediapipeLandmark:
         self.visibility = visibility
 
 
-
-
 class _FakeMediapipeLandmarkVisibilityNone:
     """Mimics MediaPipe Tasks API where visibility is always present but None."""
+
     def __init__(self, x, y) -> None:
         self.x = x
         self.y = y
         self.visibility = None
+
+
 class _FakeMediapipePose:
     def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks

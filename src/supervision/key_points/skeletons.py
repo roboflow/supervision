@@ -64,12 +64,12 @@ class Skeleton(Enum):
 
     HAND = (
         # Palm
-        (1, 2),    # wrist -> thumb_cmc
-        (1, 6),    # wrist -> index_mcp
-        (6, 10),   # index_mcp -> middle_mcp
+        (1, 2),  # wrist -> thumb_cmc
+        (1, 6),  # wrist -> index_mcp
+        (6, 10),  # index_mcp -> middle_mcp
         (10, 14),  # middle_mcp -> ring_mcp
         (14, 18),  # ring_mcp -> pinky_mcp
-        (1, 18),   # wrist -> pinky_mcp
+        (1, 18),  # wrist -> pinky_mcp
         # Thumb
         (2, 3),
         (3, 4),

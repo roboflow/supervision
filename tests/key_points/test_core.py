@@ -1369,7 +1369,6 @@ def test_from_mediapipe_unknown_result_type_raises() -> None:
         KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
 
 
-
 def test_from_mediapipe_hand_landmarks():
     """Test hand_landmarks (Tasks API) parsing."""
     results = _FakeMediapipeResults(
@@ -1431,10 +1430,13 @@ def test_from_mediapipe_visibility_none_defaults_to_one():
 
 def test_from_mediapipe_multi_hand_landmarks_empty_returns_empty():
     """Empty hand_landmarks list should return empty KeyPoints."""
+
     class _FakeHandOnly:
         hand_landmarks = []
+
     key_points = KeyPoints.from_mediapipe(_FakeHandOnly(), resolution_wh=(100, 100))
     assert key_points == KeyPoints.empty()
+
 
 class TestDeprecatedConfidenceConstructor:
     """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
