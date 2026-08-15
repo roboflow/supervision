@@ -1,4 +1,5 @@
 from contextlib import nullcontext as DoesNotRaise
+from typing import ClassVar
 
 import numpy as np
 import pytest
@@ -1432,7 +1433,7 @@ def test_from_mediapipe_multi_hand_landmarks_empty_returns_empty():
     """Empty hand_landmarks list should return empty KeyPoints."""
 
     class _FakeHandOnly:
-        hand_landmarks: list = []
+        hand_landmarks: ClassVar[list] = []
 
     key_points = KeyPoints.from_mediapipe(_FakeHandOnly(), resolution_wh=(100, 100))
     assert key_points == KeyPoints.empty()
