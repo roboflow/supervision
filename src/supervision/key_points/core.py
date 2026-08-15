@@ -542,7 +542,7 @@ class KeyPoints:
             ```
 
         """
-        if hasattr(mediapipe_results, "pose_landmarks"):
+        if getattr(mediapipe_results, "pose_landmarks", None) is not None:
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
                 if mediapipe_results.pose_landmarks is None:
@@ -554,9 +554,9 @@ class KeyPoints:
                             for landmark in mediapipe_results.pose_landmarks.landmark
                         ]
                     ]
-        elif hasattr(mediapipe_results, "face_landmarks"):
+        elif getattr(mediapipe_results, "face_landmarks", None) is not None:
             results = mediapipe_results.face_landmarks
-        elif hasattr(mediapipe_results, "multi_face_landmarks"):
+        elif getattr(mediapipe_results, "multi_face_landmarks", None) is not None:
             if mediapipe_results.multi_face_landmarks is None:
                 results = []
             else:
@@ -564,11 +564,21 @@ class KeyPoints:
                     face_landmark.landmark
                     for face_landmark in mediapipe_results.multi_face_landmarks
                 ]
+        elif getattr(mediapipe_results, "hand_landmarks", None) is not None:
+            results = mediapipe_results.hand_landmarks
+        elif getattr(mediapipe_results, "multi_hand_landmarks", None) is not None:
+            if mediapipe_results.multi_hand_landmarks is None:
+                results = []
+            else:
+                results = [
+                    hand_landmark.landmark
+                    for hand_landmark in mediapipe_results.multi_hand_landmarks
+                ]
         else:
-            # Reject unsupported MediaPipe-like payloads before landmark parsing.
             raise ValueError(
                 "Unsupported MediaPipe result type. Expected an object with "
-                "pose_landmarks, face_landmarks, or multi_face_landmarks."
+                "pose_landmarks, face_landmarks, multi_face_landmarks, "
+                "hand_landmarks, or multi_hand_landmarks."
             )
 
         if len(results) == 0:
@@ -585,7 +595,10 @@ class KeyPoints:
                     landmark.y * resolution_wh[1],
                 ]
                 prediction_xy.append(keypoint_xy)
-                prediction_confidence.append(landmark.visibility)
+                visibility = getattr(landmark, "visibility", None)
+                prediction_confidence.append(
+                    1.0 if visibility is None else visibility
+                )
 
             xy.append(prediction_xy)
             confidence.append(prediction_confidence)

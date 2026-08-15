@@ -357,6 +357,14 @@ class _FakeMediapipeLandmark:
         self.visibility = visibility
 
 
+
+
+class _FakeMediapipeLandmarkVisibilityNone:
+    """Mimics MediaPipe Tasks API where visibility is always present but None."""
+    def __init__(self, x, y) -> None:
+        self.x = x
+        self.y = y
+        self.visibility = None
 class _FakeMediapipePose:
     def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
@@ -370,10 +378,14 @@ class _FakeMediapipeResults:
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
         multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
+        hand_landmarks: list | None = None,
+        multi_hand_landmarks: list | None = None,
     ) -> None:
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
         self.multi_face_landmarks = multi_face_landmarks
+        self.hand_landmarks = hand_landmarks
+        self.multi_hand_landmarks = multi_hand_landmarks
 
 
 def create_yolo_dataset(

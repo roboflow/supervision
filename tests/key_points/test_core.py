@@ -7,6 +7,7 @@ from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
     _FakeMediapipeLandmark,
+    _FakeMediapipeLandmarkVisibilityNone,
     _FakeMediapipePose,
     _FakeMediapipeResults,
     _FakeYoloNasKeyPoint,
@@ -1367,6 +1368,73 @@ def test_from_mediapipe_unknown_result_type_raises() -> None:
     with pytest.raises(ValueError, match="Unsupported MediaPipe result"):
         KeyPoints.from_mediapipe(object(), resolution_wh=(100, 100))
 
+
+
+def test_from_mediapipe_hand_landmarks():
+    """Test hand_landmarks (Tasks API) parsing."""
+    results = _FakeMediapipeResults(
+        hand_landmarks=[
+            [
+                _FakeMediapipeLandmark(0.1, 0.2, 0.9),
+                _FakeMediapipeLandmark(0.3, 0.4, 0.85),
+            ]
+        ]
+    )
+    key_points = KeyPoints.from_mediapipe(results, resolution_wh=(100, 200))
+    expected = _create_key_points(
+        xy=[[[10.0, 40.0], [30.0, 80.0]]],
+        confidence=[[0.9, 0.85]],
+        class_id=None,
+    )
+    assert key_points == expected
+
+
+def test_from_mediapipe_multi_hand_landmarks():
+    """Test multi_hand_landmarks (Legacy API) parsing."""
+    results = _FakeMediapipeResults(
+        multi_hand_landmarks=[
+            _FakeMediapipePose(
+                landmarks=[
+                    _FakeMediapipeLandmark(0.5, 0.75, 0.9),
+                    _FakeMediapipeLandmark(0.6, 0.8, 0.85),
+                ]
+            )
+        ]
+    )
+    key_points = KeyPoints.from_mediapipe(results, resolution_wh=(200, 200))
+    expected = _create_key_points(
+        xy=[[[100.0, 150.0], [120.0, 160.0]]],
+        confidence=[[0.9, 0.85]],
+        class_id=None,
+    )
+    assert key_points == expected
+
+
+def test_from_mediapipe_visibility_none_defaults_to_one():
+    """Tasks API landmarks with visibility=None should default to 1.0."""
+    results = _FakeMediapipeResults(
+        hand_landmarks=[
+            [
+                _FakeMediapipeLandmarkVisibilityNone(0.1, 0.2),
+                _FakeMediapipeLandmarkVisibilityNone(0.3, 0.4),
+            ]
+        ]
+    )
+    key_points = KeyPoints.from_mediapipe(results, resolution_wh=(100, 200))
+    expected = _create_key_points(
+        xy=[[[10.0, 40.0], [30.0, 80.0]]],
+        confidence=[[1.0, 1.0]],
+        class_id=None,
+    )
+    assert key_points == expected
+
+
+def test_from_mediapipe_multi_hand_landmarks_empty_returns_empty():
+    """Empty hand_landmarks list should return empty KeyPoints."""
+    class _FakeHandOnly:
+        hand_landmarks = []
+    key_points = KeyPoints.from_mediapipe(_FakeHandOnly(), resolution_wh=(100, 100))
+    assert key_points == KeyPoints.empty()
 
 class TestDeprecatedConfidenceConstructor:
     """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
