@@ -89,6 +89,18 @@ def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None
             Point(x=1_000_000_025_000, y=1_000_000_025_000),
             id="large-offset-cancellation",
         ),
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000_000_000, 1_000_000_000_000],
+                    [1_000_000_000_003, 1_000_000_000_005],
+                    [1_000_000_000_012, 1_000_000_000_020],
+                ],
+                dtype=np.int64,
+            ),
+            Point(x=1_000_000_000_005, y=1_000_000_000_008),
+            id="int64-collinear-zero-area",
+        ),
     ],
 )
 def test_get_polygon_center_with_large_coordinates(
