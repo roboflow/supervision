@@ -12,6 +12,7 @@ from tests.helpers import (
     _FakeMediapipeHandednessCategory,
     _FakeMediapipeLandmark,
     _FakeMediapipeLandmarkWithNoneVisibility,
+    _FakeMediapipeLandmarkWithoutVisibility,
     _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
