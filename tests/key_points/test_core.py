@@ -11,7 +11,9 @@ from tests.helpers import (
     _FakeMediapipeHandedness,
     _FakeMediapipeHandednessCategory,
     _FakeMediapipeLandmark,
+    _FakeMediapipeLandmarkWithNoneVisibility,
     _FakeMediapipeLandmarkWithoutVisibility,
+    _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
     _FakeYoloNasKeyPoint,
@@ -1391,6 +1393,40 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
                 class_id=None,
             ),
         ),
+        (
+            _FakeMediapipeResults(
+                face_landmarks=[
+                    [
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
+                    ]
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # face_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
+        (
+            _FakeMediapipeResults(
+                multi_face_landmarks=[
+                    _FakeMediapipePose(
+                        landmarks=[
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
+                        ]
+                    )
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # multi_face_landmarks: legacy proto2; visibility always forced to 1.0
     ],
 )
 def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
