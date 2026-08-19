@@ -8,7 +8,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.config import CLASS_NAME_DATA_FIELD, HANDEDNESS_SCORE_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import (
     _DetectionDataType,
@@ -43,6 +43,64 @@ def _optional_array_equal(
     if first is None or second is None:
         return first is None and second is None
     return np.array_equal(first, second)
+
+
+#: Stable `class_id` assigned to each MediaPipe handedness label. The labels are the
+#: only two values MediaPipe emits, so the mapping is fixed rather than discovered.
+_HAND_CLASS_ID_BY_LABEL: dict[str, int] = {"Left": 0, "Right": 1}
+
+
+def _handedness_pairs(
+    top_categories: Iterable[Any], label_attr: str
+) -> list[tuple[str, float]] | None:
+    """Convert MediaPipe top-1 handedness categories into `(label, score)` pairs.
+
+    Returns `None` as soon as any category is missing a label or a score, so the
+    caller can drop handedness wholesale instead of emitting a partially filled
+    array that would silently mis-align with `xy`.
+    """
+    pairs: list[tuple[str, float]] = []
+    for top in top_categories:
+        label = getattr(top, label_attr, None)
+        score = getattr(top, "score", None)
+        if label is None or score is None:
+            return None
+        pairs.append((str(label), float(score)))
+    return pairs
+
+
+def _tasks_api_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None:
+    """Read handedness `(label, score)` pairs from a Tasks API `HandLandmarkerResult`.
+
+    The Tasks API exposes `handedness` as one descending-score category list per
+    hand; only the top-1 entry carries the `Left`/`Right` decision.
+    """
+    handedness = getattr(mediapipe_results, "handedness", None)
+    if not handedness or not all(handedness):
+        return None
+    return _handedness_pairs(
+        [categories[0] for categories in handedness], "category_name"
+    )
+
+
+def _legacy_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None:
+    """Read handedness `(label, score)` pairs from a legacy `Hands` solution result.
+
+    The legacy proto2 solution nests the same top-1 decision one level deeper, under
+    `multi_handedness[i].classification`, and names the label field `label`.
+    """
+    multi_handedness = getattr(mediapipe_results, "multi_handedness", None)
+    if not multi_handedness:
+        return None
+    classifications = [
+        getattr(handedness, "classification", None) for handedness in multi_handedness
+    ]
+    if not all(classifications):
+        return None
+    return _handedness_pairs(
+        [classification[0] for classification in classifications],  # type: ignore[index]
+        "label",
+    )
 
 
 def _normalize_row_index(
@@ -470,12 +528,13 @@ class KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [MediaPipe](https://github.com/google-ai-edge/mediapipe)
-        pose landmark detection inference result.
+        pose, face, or hand landmark detection inference result.
 
         Args:
-            mediapipe_results: The output results from Mediapipe. It supports pose
-                and face landmarks from `PoseLandmarker`, `FaceLandmarker` and the
-                legacy ones from `Pose` and `FaceMesh`.
+            mediapipe_results: The output results from Mediapipe. It supports pose,
+                face, and hand landmarks from `PoseLandmarker`, `FaceLandmarker`,
+                `HandLandmarker`, and the legacy ones from `Pose`, `FaceMesh`, and
+                `Hands`.
             resolution_wh: A tuple of the form `(width, height)` representing the
                 resolution of the frame.
 
@@ -484,8 +543,10 @@ class KeyPoints:
                 confidences of each keypoint.
 
         !!! tip
-            Before you start, download model bundles from the
-            [MediaPipe website](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models).
+            Before you start, download model bundles from the MediaPipe website:
+            [pose](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models),
+            [face](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/index#models),
+            [hand](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/index#models).
 
         Examples:
             ```python
@@ -541,34 +602,84 @@ class KeyPoints:
                 face_landmarker_result, (image_width, image_height))
             ```
 
+            ```python
+            from supervision import _cv2 as cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            image_height, image_width, _ = image.shape
+            mediapipe_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            options = mp.tasks.vision.HandLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="hand_landmarker.task"
+                ),
+                running_mode=mp.tasks.vision.RunningMode.IMAGE,
+                num_hands=2)
+
+            HandLandmarker = mp.tasks.vision.HandLandmarker
+            with HandLandmarker.create_from_options(options) as landmarker:
+                hand_landmarker_result = landmarker.detect(mediapipe_image)
+
+            key_points = sv.KeyPoints.from_mediapipe(
+                hand_landmarker_result, (image_width, image_height))
+            ```
+
         """
-        if hasattr(mediapipe_results, "pose_landmarks"):
+        landmark_fields = (
+            "pose_landmarks",
+            "face_landmarks",
+            "hand_landmarks",
+            "multi_face_landmarks",
+            "multi_hand_landmarks",
+        )
+
+        # Only pose models populate `visibility` with a real score. Hand and face
+        # landmarks always declare the field but leave it unset, so the legacy
+        # proto2 branches below opt out of reading it.
+        read_landmark_visibility = True
+
+        # Handedness lives beside the landmarks on the original result object, so it
+        # is captured per branch before `results` flattens that structure away. Hand
+        # models are the only ones that report it; it stays `None` everywhere else.
+        handedness_pairs: list[tuple[str, float]] | None = None
+
+        if getattr(mediapipe_results, "pose_landmarks", None) is not None:
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
-                if mediapipe_results.pose_landmarks is None:
-                    results = []
-                else:
-                    results = [
-                        [
-                            landmark
-                            for landmark in mediapipe_results.pose_landmarks.landmark
-                        ]
-                    ]
-        elif hasattr(mediapipe_results, "face_landmarks"):
-            results = mediapipe_results.face_landmarks
-        elif hasattr(mediapipe_results, "multi_face_landmarks"):
-            if mediapipe_results.multi_face_landmarks is None:
-                results = []
-            else:
                 results = [
-                    face_landmark.landmark
-                    for face_landmark in mediapipe_results.multi_face_landmarks
+                    [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
                 ]
+        elif getattr(mediapipe_results, "face_landmarks", None) is not None:
+            results = mediapipe_results.face_landmarks
+        elif getattr(mediapipe_results, "hand_landmarks", None) is not None:
+            results = mediapipe_results.hand_landmarks
+            handedness_pairs = _tasks_api_handedness(mediapipe_results)
+        elif getattr(mediapipe_results, "multi_face_landmarks", None) is not None:
+            results = [
+                face_landmark.landmark
+                for face_landmark in mediapipe_results.multi_face_landmarks
+            ]
+            read_landmark_visibility = False
+        elif getattr(mediapipe_results, "multi_hand_landmarks", None) is not None:
+            results = [
+                hand_landmark.landmark
+                for hand_landmark in mediapipe_results.multi_hand_landmarks
+            ]
+            read_landmark_visibility = False
+            handedness_pairs = _legacy_handedness(mediapipe_results)
+        elif any(hasattr(mediapipe_results, field) for field in landmark_fields):
+            # A recognized result object that simply detected nothing: MediaPipe
+            # reports `None` rather than an empty container, so this is not an error.
+            results = []
         else:
             # Reject unsupported MediaPipe-like payloads before landmark parsing.
             raise ValueError(
-                "Unsupported MediaPipe result type. Expected an object with "
-                "pose_landmarks, face_landmarks, or multi_face_landmarks."
+                "Unsupported MediaPipe result type. Expected an object with one "
+                f"of: {', '.join(landmark_fields)}."
             )
 
         if len(results) == 0:
@@ -585,14 +696,45 @@ class KeyPoints:
                     landmark.y * resolution_wh[1],
                 ]
                 prediction_xy.append(keypoint_xy)
-                prediction_confidence.append(landmark.visibility)
+
+                # The Tasks API leaves `visibility` as None when unset and the
+                # legacy proto2 solutions default it to 0.0. Neither is a real
+                # score for hand and face models, so those keypoints are reported
+                # as fully visible instead of as fabricated zero confidence.
+                visibility = getattr(landmark, "visibility", None)
+                if visibility is None or not read_landmark_visibility:
+                    visibility = 1.0
+                prediction_confidence.append(visibility)
 
             xy.append(prediction_xy)
             confidence.append(prediction_confidence)
 
+        # Handedness is all-or-nothing: a count mismatch or an unrecognised label
+        # would misalign `class_id` with `xy`, so both outputs are dropped together
+        # rather than filled with a guessed value for the offending hand.
+        class_id: npt.NDArray[np.int_] | None = None
+        data: _DetectionDataType = {}
+        labels_are_known = handedness_pairs is not None and all(
+            label in _HAND_CLASS_ID_BY_LABEL for label, _ in handedness_pairs
+        )
+        if (
+            handedness_pairs is not None
+            and labels_are_known
+            and len(handedness_pairs) == len(results)
+        ):
+            class_id = np.array(
+                [_HAND_CLASS_ID_BY_LABEL[label] for label, _ in handedness_pairs],
+                dtype=int,
+            )
+            data[HANDEDNESS_SCORE_DATA_FIELD] = np.array(
+                [score for _, score in handedness_pairs], dtype=np.float32
+            )
+
         return cls(
             xy=np.array(xy, dtype=np.float32),
             keypoint_confidence=np.array(confidence, dtype=np.float32),
+            class_id=class_id,
+            data=data,
         )
 
     @classmethod
