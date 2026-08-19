@@ -357,9 +357,56 @@ class _FakeMediapipeLandmark:
         self.visibility = visibility
 
 
+class _FakeMediapipeLandmarkWithoutVisibility:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+class _FakeMediapipeLandmarkWithNoneVisibility:
+    """Tasks API landmark: `visibility` is declared but left unset, so it is None."""
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+        self.visibility = None
+
+
+class _FakeMediapipeLandmarkWithZeroVisibility:
+    """Legacy proto2 landmark: unset `visibility` reads back as the 0.0 default."""
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+        self.visibility = 0.0
+
+
 class _FakeMediapipePose:
     def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
+
+
+class _FakeMediapipeHandednessCategory:
+    """Tasks API handedness category: the `Left`/`Right` label and its score."""
+
+    def __init__(self, category_name: str, score: float) -> None:
+        self.category_name = category_name
+        self.score = score
+
+
+class _FakeMediapipeClassification:
+    """Legacy proto2 handedness entry: same decision, but the field is named `label`."""
+
+    def __init__(self, label: str, score: float) -> None:
+        self.label = label
+        self.score = score
+
+
+class _FakeMediapipeHandedness:
+    """Legacy proto2 `multi_handedness` item wrapping its classification list."""
+
+    def __init__(self, classifications: list[_FakeMediapipeClassification]) -> None:
+        self.classification = classifications
 
 
 class _FakeMediapipeResults:
@@ -369,11 +416,19 @@ class _FakeMediapipeResults:
         | _FakeMediapipePose
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
-        multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
+        hand_landmarks: list[list[_FakeMediapipeLandmark]] | None = None,
+        multi_face_landmarks: list[_FakeMediapipePose] | None = None,
+        multi_hand_landmarks: list[_FakeMediapipePose] | None = None,
+        handedness: list[list[_FakeMediapipeHandednessCategory]] | None = None,
+        multi_handedness: list[_FakeMediapipeHandedness] | None = None,
     ) -> None:
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
+        self.hand_landmarks = hand_landmarks
         self.multi_face_landmarks = multi_face_landmarks
+        self.multi_hand_landmarks = multi_hand_landmarks
+        self.handedness = handedness
+        self.multi_handedness = multi_handedness
 
 
 def create_yolo_dataset(
