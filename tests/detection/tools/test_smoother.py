@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.utils.internal import SupervisionWarnings
@@ -201,3 +202,102 @@ class TestDetectionsSmoother:
         )
 
         assert smoother.tracks[9].maxlen == 2
+
+
+class TestDetectionsSmootherOrientedBoxes:
+    """Oriented corners must be smoothed alongside `xyxy` (issue #2318).
+
+    Everything on the returned detection other than `xyxy` and `confidence` is
+    copied from the oldest frame in the window, so the oriented corners used to
+    describe a different position from the smoothed axis-aligned box beside
+    them. The geometry helpers that read `xyxyxyxy` then disagree with `xyxy`.
+    """
+
+    @staticmethod
+    def _obb(cx: float, cy: float, half: float = 10.0) -> Detections:
+        """A square OBB centred at `(cx, cy)`, with a matching `xyxy`."""
+        corners = np.array(
+            [
+                [
+                    [cx - half, cy - half],
+                    [cx + half, cy - half],
+                    [cx + half, cy + half],
+                    [cx - half, cy + half],
+                ]
+            ],
+            dtype=np.float32,
+        )
+        return Detections(
+            xyxy=np.array(
+                [[cx - half, cy - half, cx + half, cy + half]], dtype=np.float32
+            ),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+            tracker_id=np.array([1]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+    def test_corners_are_smoothed_with_the_box(self):
+        smoother = DetectionsSmoother(length=3)
+        for cx in (0.0, 100.0, 200.0):
+            result = smoother.update_with_detections(self._obb(cx, 0.0))
+
+        # Mean of the three centres.
+        assert_allclose(result.xyxy[0], np.array([90.0, -10.0, 110.0, 10.0]))
+        assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES][0],
+            np.array([[90.0, -10.0], [110.0, -10.0], [110.0, 10.0], [90.0, 10.0]]),
+        )
+
+    def test_corners_agree_with_the_smoothed_box(self):
+        """The invariant that matters: the two must describe the same position."""
+        smoother = DetectionsSmoother(length=3)
+        for cx in (0.0, 100.0, 200.0):
+            result = smoother.update_with_detections(self._obb(cx, 0.0))
+
+        box_centre_x = (result.xyxy[0][0] + result.xyxy[0][2]) / 2
+        corner_centre_x = result.data[ORIENTED_BOX_COORDINATES][0][:, 0].mean()
+        assert_allclose(corner_centre_x, box_centre_x)
+
+    def test_rotation_is_averaged_not_taken_from_the_oldest_frame(self):
+        """A rotating box must not keep the first frame's orientation."""
+        smoother = DetectionsSmoother(length=2)
+
+        upright = np.array(
+            [[[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]]],
+            dtype=np.float32,
+        )
+        # The same square turned 90 degrees: corner order rolled by one.
+        turned = np.array(
+            [[[10.0, -10.0], [10.0, 10.0], [-10.0, 10.0], [-10.0, -10.0]]],
+            dtype=np.float32,
+        )
+
+        for corners in (upright, turned):
+            detections = Detections(
+                xyxy=np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
+                confidence=np.array([0.9], dtype=np.float32),
+                class_id=np.array([0]),
+                tracker_id=np.array([1]),
+                data={ORIENTED_BOX_COORDINATES: corners},
+            )
+            result = smoother.update_with_detections(detections)
+
+        assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES][0], (upright[0] + turned[0]) / 2
+        )
+
+    def test_detections_without_oriented_boxes_are_unaffected(self):
+        """The common axis-aligned case must not gain the key."""
+        smoother = DetectionsSmoother(length=2)
+        for x in (0.0, 100.0):
+            detections = Detections(
+                xyxy=np.array([[x, 0.0, x + 20.0, 20.0]], dtype=np.float32),
+                confidence=np.array([0.9], dtype=np.float32),
+                class_id=np.array([0]),
+                tracker_id=np.array([1]),
+            )
+            result = smoother.update_with_detections(detections)
+
+        assert ORIENTED_BOX_COORDINATES not in result.data
+        assert_allclose(result.xyxy[0], np.array([50.0, 0.0, 70.0, 20.0]))

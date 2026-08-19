@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.utils.internal import SupervisionWarnings
 
@@ -185,6 +186,24 @@ class DetectionsSmoother:
         # no frame in the window carries confidence.
         confidences = [d.confidence for d in valid if d.confidence is not None]
         ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
+
+        # Smooth the oriented corners alongside `xyxy`. Everything else on `ret`
+        # is copied from the oldest frame in the window, so without this the
+        # returned detection carries a smoothed axis-aligned box next to corners
+        # from a different frame — the two describe different positions, and the
+        # geometry helpers that read `xyxyxyxy` (`detection_area`,
+        # `detection_iou`, `get_anchors_coordinates`) then disagree with `xyxy`.
+        # Averaged over the frames that carry the key, matching how `confidence`
+        # is handled above.
+        corner_sets = [
+            d.data[ORIENTED_BOX_COORDINATES]
+            for d in valid
+            if ORIENTED_BOX_COORDINATES in d.data
+        ]
+        if corner_sets and len({c.shape for c in corner_sets}) == 1:
+            ret.data[ORIENTED_BOX_COORDINATES] = np.mean(
+                np.stack(corner_sets, axis=0), axis=0
+            )
 
         return ret
 
