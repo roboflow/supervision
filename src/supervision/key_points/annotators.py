@@ -1,13 +1,11 @@
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color
@@ -19,6 +17,18 @@ from supervision.utils.conversion import ensure_cv2_image_for_class_method
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+
+def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[int, int]:
+    """Validate 1-based skeleton edges and return zero-based vertex indexes."""
+    vertex_a, vertex_b = edge
+    if not (1 <= vertex_a <= vertex_count and 1 <= vertex_b <= vertex_count):
+        raise ValueError(
+            "Edge indices must use the 1-based convention and be within the "
+            f"available keypoint range [1, {vertex_count}], got {edge}."
+        )
+    # Public skeleton definitions are 1-based; keypoint arrays are zero-based.
+    return vertex_a - 1, vertex_b - 1
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -64,6 +74,9 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -84,7 +97,6 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -154,6 +166,9 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
         Example:
             Single-skeleton example:
 
@@ -205,7 +220,6 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -233,9 +247,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     continue
                 edges = _looked_up
 
-            for class_a, class_b in edges:
-                idx_a = class_a - 1
-                idx_b = class_b - 1
+            for edge in edges:
+                idx_a, idx_b = _validate_edge_indices(edge=edge, vertex_count=len(xy))
                 xy_a = xy[idx_a]
                 xy_b = xy[idx_b]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
@@ -416,6 +429,9 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
         Returns:
             The annotated image, matching the type of ``scene``.
 
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -445,7 +461,6 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -514,6 +529,9 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
         Returns:
             The annotated image, matching the type of ``scene``.
 
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -544,7 +562,6 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -616,6 +633,9 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
         Returns:
             The annotated image, matching the type of ``scene``.
 
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -645,7 +665,6 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -737,6 +756,7 @@ class VertexLabelAnnotator:
         self.text_padding: int = text_padding
         self.smart_position = smart_position
 
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
@@ -761,6 +781,9 @@ class VertexLabelAnnotator:
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Example:
             Single-skeleton example:
@@ -824,7 +847,6 @@ class VertexLabelAnnotator:
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape

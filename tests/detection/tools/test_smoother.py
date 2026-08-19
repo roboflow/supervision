@@ -1,7 +1,5 @@
 """Tests for DetectionsSmoother bounding-box and confidence smoothing."""
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -65,25 +63,33 @@ class TestDetectionsSmoother:
             assert smoothed.confidence is not None
             assert_allclose(smoothed.confidence, expected_confidence, atol=1e-5)
 
-    def test_smoother_multi_track_mixed_confidence_does_not_crash(self) -> None:
-        """Two tracks with different confidence presence must not raise on merge."""
+    def test_smoother_reappearing_track_keeps_history(self) -> None:
+        """Missing tracks stay silent but still contribute when they return."""
         smoother = DetectionsSmoother(length=3)
-        smoother.update_with_detections(
-            Detections(
-                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-                confidence=np.array([0.5]),
-                tracker_id=np.array([1]),
-            )
+        first = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.5]),
+            tracker_id=np.array([1]),
         )
-        smoothed = smoother.update_with_detections(
-            Detections(
-                xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32),
-                tracker_id=np.array([2]),
-            )
+        missing = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            tracker_id=np.array([], dtype=int),
+        )
+        returned = Detections(
+            xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+            confidence=np.array([0.7]),
+            tracker_id=np.array([1]),
         )
 
-        assert len(smoothed) == 2
-        assert smoothed.confidence is None
+        smoother.update_with_detections(first)
+        smoothed_missing = smoother.update_with_detections(missing)
+        smoothed_returned = smoother.update_with_detections(returned)
+
+        assert len(smoothed_missing) == 0
+        assert len(smoothed_returned) == 1
+        assert smoothed_returned.confidence is not None
+        assert_allclose(smoothed_returned.xyxy, np.array([[1, 1, 11, 11]]), atol=1e-5)
+        assert_allclose(smoothed_returned.confidence, np.array([0.6]), atol=1e-5)
 
     def test_smoother_tracker_id_none_warns_and_returns_unchanged(self) -> None:
         """update_with_detections warns and returns input when tracker_id is None."""
@@ -126,3 +132,72 @@ class TestDetectionsSmoother:
         assert_allclose(smoothed.xyxy, np.array([[3, 3, 13, 13]]), atol=1e-5)
         assert smoothed.confidence is not None
         assert_allclose(smoothed.confidence, np.array([0.6]), atol=1e-5)
+
+    def test_smoother_does_not_emit_missing_tracks(self) -> None:
+        """A missing track should keep history but stop emitting ghost boxes."""
+        smoother = DetectionsSmoother(length=3)
+        first = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.3]),
+            tracker_id=np.array([1]),
+        )
+        missing = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            tracker_id=np.array([], dtype=int),
+        )
+        second = Detections(
+            xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+            confidence=np.array([0.9]),
+            tracker_id=np.array([1]),
+        )
+
+        smoother.update_with_detections(first)
+        smoothed_missing = smoother.update_with_detections(missing)
+        smoothed_returned = smoother.update_with_detections(second)
+
+        assert len(smoothed_missing) == 0
+        assert smoothed_returned.confidence is not None
+        assert_allclose(smoothed_returned.xyxy, np.array([[1, 1, 11, 11]]), atol=1e-5)
+
+    def test_reset_clears_track_history(self) -> None:
+        """reset() must drop cached frames so post-reset output ignores prior boxes."""
+        smoother = DetectionsSmoother(length=3)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                confidence=np.array([0.5]),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        smoother.reset()
+        smoothed = smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                confidence=np.array([0.7]),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        assert len(smoother.tracks) == 1
+        assert_allclose(smoothed.xyxy, np.array([[2, 2, 12, 12]]), atol=1e-5)
+
+    def test_reset_preserves_window_length(self) -> None:
+        """reset() must keep the configured window so maxlen still bounds new tracks."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                tracker_id=np.array([1]),
+            )
+        )
+
+        smoother.reset()
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                tracker_id=np.array([9]),
+            )
+        )
+
+        assert smoother.tracks[9].maxlen == 2

@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import os
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
 
@@ -30,6 +28,21 @@ def draw_line(
 
     Returns:
         The scene with the line drawn on it
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_line
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Point
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> scene = draw_line(
+        ...     scene, start=Point(x=10, y=10), end=Point(x=90, y=90), color=Color.RED
+        ... )
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
     cv2.line(
         scene,
@@ -58,6 +71,20 @@ def draw_rectangle(
 
     Returns:
         The scene with the rectangle drawn on it
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=50, height=30)
+        >>> scene = draw_rectangle(scene, rect, color=Color.RED)
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
     cv2.rectangle(
         scene,
@@ -86,6 +113,20 @@ def draw_filled_rectangle(
 
     Returns:
         The scene with the rectangle drawn on it
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_filled_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=50, height=30)
+        >>> scene = draw_filled_rectangle(scene, rect, color=Color.RED, opacity=0.5)
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
     if opacity == 1:
         cv2.rectangle(
@@ -124,14 +165,44 @@ def draw_rounded_rectangle(
         scene: The image on which the rounded rectangle will be drawn.
         rect: The rectangle to be drawn.
         color: The color of the rounded rectangle.
-        border_radius: The radius of the corner rounding.
+        border_radius: The radius of the corner rounding in pixels. Values <= 0
+            (or values clamped to 0 when the rectangle is too small) draw a
+            plain filled rectangle with square corners. Note: previously,
+            a negative value that remained negative after clamping would raise
+            ``cv2.error``; it now draws square corners silently.
 
     Returns:
         The image with the rounded rectangle drawn on it.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_rounded_rectangle
+        >>> from supervision.draw.color import Color
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((200, 300, 3), dtype=np.uint8)
+        >>> rect = Rect(x=20, y=30, width=120, height=80)
+        >>> scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
+        >>> scene.shape
+        (200, 300, 3)
+
+        ```
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
+
+    if border_radius <= 0:
+        # square corners: a single fill rectangle (the common default), rather
+        # than two rectangles plus four zero-radius corner circles
+        cv2.rectangle(
+            img=scene,
+            pt1=(x1, y1),
+            pt2=(x2, y2),
+            color=color.as_bgr(),
+            thickness=-1,
+        )
+        return scene
 
     rectangle_coordinates = [
         ((x1 + border_radius, y1), (x2 - border_radius, y2)),
@@ -179,6 +250,19 @@ def draw_polygon(
 
     Returns:
         The scene with the polygon drawn on it.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_polygon
+        >>> from supervision.draw.color import Color
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
+        >>> scene = draw_polygon(scene, polygon, color=Color.RED)
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
@@ -202,6 +286,19 @@ def draw_filled_polygon(
 
     Returns:
         The scene with the polygon drawn on it.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_filled_polygon
+        >>> from supervision.draw.color import Color
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> polygon = np.array([[10, 10], [90, 10], [90, 90], [10, 90]])
+        >>> scene = draw_filled_polygon(scene, polygon, color=Color.RED, opacity=0.5)
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
@@ -318,14 +415,37 @@ def draw_image(
 
     Raises:
         FileNotFoundError: If the image path does not exist.
+        OSError: If the image path exists but cannot be decoded.
         ValueError: For invalid opacity or rectangle dimensions.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.draw.utils import draw_image
+        >>> from supervision.geometry.core import Rect
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> image = np.full((40, 40, 3), 255, dtype=np.uint8)
+        >>> rect = Rect(x=10, y=10, width=40, height=40)
+        >>> scene = draw_image(scene, image, opacity=0.8, rect=rect)
+        >>> scene.shape
+        (100, 100, 3)
+
+        ```
     """
 
     # Validate and load image
     if isinstance(image, str):
         if not os.path.exists(image):
             raise FileNotFoundError(f"Image path ('{image}') does not exist.")
-        image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+        loaded_image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
+        if loaded_image is None:
+            raise OSError(f"Could not decode image path ('{image}').")
+        image_np = cast(npt.NDArray[np.uint8], loaded_image)
+    else:
+        image_np = image
+
+    if image_np.ndim != 3 or image_np.shape[2] not in (3, 4):
+        raise ValueError("Image must have 3 or 4 channels.")
 
     # Validate opacity
     if not 0.0 <= opacity <= 1.0:
@@ -345,12 +465,13 @@ def draw_image(
         raise ValueError("Invalid rectangle dimensions.")
 
     # Resize and isolate alpha channel
-    image = cv2.resize(image, (rect_width, rect_height))
-    image = cast(npt.NDArray[np.uint8], image)
+    image_np = cast(
+        npt.NDArray[np.uint8], cv2.resize(image_np, (rect_width, rect_height))
+    )
     alpha_channel = (
-        image[:, :, 3]
-        if image.shape[2] == 4
-        else np.ones((rect_height, rect_width), dtype=image.dtype) * 255
+        image_np[:, :, 3]
+        if image_np.shape[2] == 4
+        else np.ones((rect_height, rect_width), dtype=image_np.dtype) * 255
     )
     alpha_scaled = cv2.convertScaleAbs(alpha_channel * opacity)
 
@@ -359,7 +480,7 @@ def draw_image(
     alpha_float = alpha_scaled.astype(np.float32) / 255.0
     blended_roi = cv2.convertScaleAbs(
         (1 - alpha_float[..., np.newaxis]) * scene_roi
-        + alpha_float[..., np.newaxis] * image[:, :, :3]
+        + alpha_float[..., np.newaxis] * image_np[:, :, :3]
     )
 
     # Update the scene

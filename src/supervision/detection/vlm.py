@@ -23,7 +23,8 @@ class LMM(Enum):
     """
     Enum specifying supported Large Multimodal Models (LMMs).
 
-    .. deprecated:: 0.27.0
+    !!! deprecated "Deprecated"
+
         `LMM` is deprecated and will be removed in `supervision-0.31.0`.
         Use `VLM` instead.
 
@@ -81,6 +82,7 @@ class VLM(Enum):
         QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        GOOGLE_GEMINI_3_5: Google Gemini 3.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
     """
 
@@ -91,6 +93,7 @@ class VLM(Enum):
     DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_3_5 = "gemini_3_5"
     MOONDREAM = "moondream"
 
     @classmethod
@@ -121,6 +124,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.DEEPSEEK_VL_2: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.GOOGLE_GEMINI_3_5: str,
     VLM.MOONDREAM: dict,
 }
 
@@ -132,6 +136,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -143,6 +148,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -447,7 +453,9 @@ def from_deepseek_vl_2(
         A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
             shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
             optional array of shape `(n,)` with class indices, and `class_name`
-            is an array of shape `(n,)` with class labels.
+            is an array of shape `(n,)` with class labels. When the input
+            contains no detections (or all are filtered by `classes`), returns
+            `(np.empty((0, 4)), np.empty(0), np.empty(0))`.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -476,8 +484,14 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy_list, dtype=np.float32)
-    class_name = np.array(class_name_list)
+    xyxy = (
+        np.array(xyxy_list, dtype=np.float32)
+        if xyxy_list
+        else np.empty((0, 4), dtype=np.float32)
+    )
+    class_name = (
+        np.array(class_name_list) if class_name_list else np.array([], dtype=object)
+    )
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
@@ -515,8 +529,13 @@ def from_florence_2(
             optional array of shape `(n, h, w)` with segmentation masks, and
             `obb_boxes` is an optional array of shape `(n, 4, 2)` with oriented
             bounding boxes.
+
+    Raises:
+        ValueError: If the top-level Florence 2 payload has multiple tasks or
+            if a task payload is malformed.
     """
-    assert len(result) == 1, f"Expected result with a single element. Got: {result}"
+    if len(result) != 1:
+        raise ValueError(f"Expected result with a single element. Got: {result}")
     task = next(iter(result.keys()))
     if task not in SUPPORTED_TASKS_FLORENCE_2:
         raise ValueError(
@@ -565,18 +584,18 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(result, str), (
-            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
-        )
+        if not isinstance(result, str):
+            raise ValueError(f"Expected string as {task} result, got {type(result)}")
 
         if result == "No object detected.":
             return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
-        assert match is not None, (
-            f"Expected string to end in location tags, but got {result}"
-        )
+        if match is None:
+            raise ValueError(
+                f"Expected string to end in location tags, but got {result}"
+            )
 
         w, h = _validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
@@ -586,6 +605,42 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     raise RuntimeError(f"Unimplemented task: {task}")
+
+
+def _recover_gemini_json_objects(text: str) -> list[Any]:
+    """
+    Salvage individual JSON objects from a malformed Gemini JSON array.
+
+    Scans for balanced `{...}` spans and parses each independently, keeping the
+    ones that decode into a `dict` and skipping the rest. This recovers the valid
+    entries from an array that a single `json.loads` would reject wholesale, such
+    as one whose objects contain a mid-array syntax error or a missing key.
+
+    Args:
+        text: The (fence-stripped) response text that failed `json.loads`.
+
+    Returns:
+        The list of successfully parsed objects, which may be empty.
+    """
+    objects: list[Any] = []
+    depth = 0
+    start = None
+    for index, char in enumerate(text):
+        if char == "{":
+            if depth == 0:
+                start = index
+            depth += 1
+        elif char == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    parsed = json.loads(text[start : index + 1])
+                except json.JSONDecodeError:
+                    parsed = None
+                if isinstance(parsed, dict):
+                    objects.append(parsed)
+                start = None
+    return objects
 
 
 def from_google_gemini_2_0(
@@ -639,7 +694,7 @@ def from_google_gemini_2_0(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
+        data = _recover_gemini_json_objects(result)
 
     if not isinstance(data, list):
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
@@ -730,13 +785,7 @@ def from_google_gemini_2_5(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return (
-            np.empty((0, 4)),
-            np.array([], dtype=int),
-            np.array([], dtype=str),
-            np.array([], dtype=float),
-            None,
-        )
+        data = _recover_gemini_json_objects(result)
 
     if not isinstance(data, list):
         return (
@@ -850,6 +899,37 @@ def from_google_gemini_2_5(
         confidence,
         masks,
     )
+
+
+def from_google_gemini_3_5(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+]:
+    """
+    Parse and scale bounding boxes and masks from Google Gemini 3.5 style JSON output.
+
+    Gemini 3.5 emits the same detection JSON as Gemini 2.5 (`box_2d` in
+    `[y_min, x_min, y_max, x_max]` normalized to 0-1000, plus `label` and optional
+    `mask`/`confidence`), so parsing delegates to `from_google_gemini_2_5`.
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
+
+    Returns:
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` matching the
+            `from_google_gemini_2_5` return contract.
+    """
+    return from_google_gemini_2_5(result, resolution_wh, classes)
 
 
 def from_moondream(

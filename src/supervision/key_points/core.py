@@ -3,14 +3,22 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils.internal import get_data_item, is_data_equal
+from supervision.detection.utils._typing import (
+    _DetectionDataType,
+    _DetectionDataValueType,
+)
+from supervision.detection.utils.internal import (
+    get_data_item,
+    is_data_equal,
+    merge_data,
+)
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     box_non_max_suppression,
@@ -20,23 +28,12 @@ from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
-Index1D = Union[
-    int,
-    slice,
-    list[int],
-    list[bool],
-    npt.NDArray[np.int_],
-    npt.NDArray[np.bool_],
-]
+Index1D = (
+    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
+)
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = Union[
-    int,
-    np.integer[Any],
-    npt.NDArray[np.generic],
-    list[Any],
-    slice,
-]
-_NormalizedRowIndex = Union[npt.NDArray[np.generic], list[Any], slice]
+_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
 def _optional_array_equal(
@@ -86,7 +83,7 @@ class KeyPoints:
         conversion is needed.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from rfdetr import RFDETRKeypointPreview
 
@@ -103,7 +100,7 @@ class KeyPoints:
         [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from ultralytics import YOLO
 
@@ -120,7 +117,7 @@ class KeyPoints:
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import supervision as sv
         from inference import get_model
 
@@ -139,7 +136,7 @@ class KeyPoints:
 
 
         ```python
-        import cv2
+        from supervision import _cv2 as cv2
         import mediapipe as mp
         import supervision as sv
 
@@ -240,7 +237,7 @@ class KeyPoints:
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
     visible: npt.NDArray[np.bool_] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+    data: _DetectionDataType = field(default_factory=dict)
 
     def __init__(
         self,
@@ -249,7 +246,7 @@ class KeyPoints:
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
         visible: npt.NDArray[np.bool_] | None = None,
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] | None = None,
+        data: _DetectionDataType | None = None,
         *,
         confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
@@ -349,7 +346,7 @@ class KeyPoints:
             npt.NDArray[np.float32],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            _DetectionDataType,
         ]
     ]:
         """
@@ -401,7 +398,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference import get_model
 
@@ -413,7 +410,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from inference_sdk import InferenceHTTPClient
 
@@ -457,9 +454,7 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-            CLASS_NAME_DATA_FIELD: np.array(class_names)
-        }
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
@@ -495,7 +490,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -521,7 +516,7 @@ class KeyPoints:
             ```
 
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import mediapipe as mp
             import supervision as sv
 
@@ -548,6 +543,19 @@ class KeyPoints:
             ```
 
         """
+        landmark_fields = (
+            "pose_landmarks",
+            "face_landmarks",
+            "hand_landmarks",
+            "multi_face_landmarks",
+            "multi_hand_landmarks",
+        )
+
+        # Only pose models populate `visibility` with a real score. Hand and face
+        # landmarks always declare the field but leave it unset, so the legacy
+        # proto2 branches below opt out of reading it.
+        read_landmark_visibility = True
+
         if getattr(mediapipe_results, "pose_landmarks", None) is not None:
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
@@ -563,13 +571,23 @@ class KeyPoints:
                 face_landmark.landmark
                 for face_landmark in mediapipe_results.multi_face_landmarks
             ]
+            read_landmark_visibility = False
         elif getattr(mediapipe_results, "multi_hand_landmarks", None) is not None:
             results = [
                 hand_landmark.landmark
                 for hand_landmark in mediapipe_results.multi_hand_landmarks
             ]
-        else:
+            read_landmark_visibility = False
+        elif any(hasattr(mediapipe_results, field) for field in landmark_fields):
+            # A recognized result object that simply detected nothing: MediaPipe
+            # reports `None` rather than an empty container, so this is not an error.
             results = []
+        else:
+            # Reject unsupported MediaPipe-like payloads before landmark parsing.
+            raise ValueError(
+                "Unsupported MediaPipe result type. Expected an object with one "
+                f"of: {', '.join(landmark_fields)}."
+            )
 
         if len(results) == 0:
             return cls.empty()
@@ -585,7 +603,15 @@ class KeyPoints:
                     landmark.y * resolution_wh[1],
                 ]
                 prediction_xy.append(keypoint_xy)
-                prediction_confidence.append(getattr(landmark, "visibility", 1.0))
+
+                # The Tasks API leaves `visibility` as None when unset and the
+                # legacy proto2 solutions default it to 0.0. Neither is a real
+                # score for hand and face models, so those keypoints are reported
+                # as fully visible instead of as fabricated zero confidence.
+                visibility = getattr(landmark, "visibility", None)
+                if visibility is None or not read_landmark_visibility:
+                    visibility = 1.0
+                prediction_confidence.append(visibility)
 
             xy.append(prediction_xy)
             confidence.append(prediction_confidence)
@@ -610,7 +636,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -629,9 +655,7 @@ class KeyPoints:
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-            CLASS_NAME_DATA_FIELD: class_names
-        }
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
     @classmethod
@@ -649,7 +673,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import torch
             import supervision as sv
             import super_gradients
@@ -677,7 +701,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
+        data: _DetectionDataType = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:
@@ -708,7 +732,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from detectron2.engine import DefaultPredictor
             from detectron2.config import get_cfg
@@ -923,51 +947,55 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __getitem__(
-        self,
-        index: Index1D | Index2D | str,
-    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
-        """
-        Get a subset of the KeyPoints object or access an item from its data field.
-
-        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
-        filtering, combined tuple indexing, and data field access by string key.
+    def get_data(self, key: str) -> _DetectionDataValueType | None:
+        """Get a value from the keypoint data dictionary.
 
         Args:
-            index: The index, indices, or key to access a subset of the KeyPoints
-                or an item from the data.
+            key: Data field name.
 
         Returns:
-            A subset of the KeyPoints object or an item from the data field.
+            The stored data value, or `None` when the key is absent.
 
-        Examples:
-            ```python
-            import supervision as sv
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision import KeyPoints
+            >>> key_points = KeyPoints(
+            ...     xy=np.array([[[0, 0]]]),
+            ...     data={"class_name": np.array(["person"])},
+            ... )
+            >>> key_points.get_data("class_name").tolist()
+            ['person']
 
-            key_points = sv.KeyPoints(...)
-
-            # detection-level filtering (returns KeyPoints)
-            high_conf = key_points[key_points.detection_confidence > 0.5]
-            class_0 = key_points[key_points.class_id == 0]
-
-            # keypoint-level filtering (returns KeyPoints)
-            visible = key_points[key_points.keypoint_confidence > 0.3]
-
-            # indexing
-            first = key_points[0]
-            first_two = key_points[0:2]
-            subset = key_points[[0, 2]]
-
-            # anchor selection (uniform across all skeletons)
-            nose_and_eyes = key_points[:, [0, 1, 2]]
-
-            # data field access
-            class_names = key_points['class_name']
             ```
         """
-        if isinstance(index, str):
-            return self.data.get(index)
+        return self.data.get(key)
 
+    def select(
+        self,
+        index: Index1D | Index2D,
+    ) -> KeyPoints:
+        """Get a subset of the KeyPoints object.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, and combined tuple indexing.
+
+        Args:
+            index: Index, indices, slice, or boolean mask selecting key points.
+
+        Returns:
+            A new `KeyPoints` instance containing the selected rows or anchors.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision import KeyPoints
+            >>> key_points = KeyPoints(xy=np.array([[[0, 1]], [[2, 3]]]))
+            >>> key_points.select([1]).xy.tolist()
+            [[[2, 3]]]
+
+            ```
+        """
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
 
@@ -979,9 +1007,9 @@ class KeyPoints:
         if isinstance(i, int):
             i = [i]
 
-        if isinstance(i, list) and all(isinstance(x, bool) for x in i):
+        if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
             i = np.array(i)
-        if isinstance(j, list) and all(isinstance(x, bool) for x in j):
+        if isinstance(j, list) and j and all(isinstance(x, bool) for x in j):
             j = np.array(j)
 
         if isinstance(i, np.ndarray) and i.dtype == bool:
@@ -1060,6 +1088,52 @@ class KeyPoints:
             data=data_selected,
         )
 
+    def __getitem__(
+        self,
+        index: Index1D | Index2D | str,
+    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
+        """
+        Get a subset of the KeyPoints object or access an item from its data field.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, combined tuple indexing, and data field access by string key.
+
+        Args:
+            index: The index, indices, or key to access a subset of the KeyPoints
+                or an item from the data.
+
+        Returns:
+            A subset of the KeyPoints object or an item from the data field.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            key_points = sv.KeyPoints(...)
+
+            # detection-level filtering (returns KeyPoints)
+            high_conf = key_points[key_points.detection_confidence > 0.5]
+            class_0 = key_points[key_points.class_id == 0]
+
+            # keypoint-level filtering (returns KeyPoints)
+            visible = key_points[key_points.keypoint_confidence > 0.3]
+
+            # indexing
+            first = key_points[0]
+            first_two = key_points[0:2]
+            subset = key_points[[0, 2]]
+
+            # anchor selection (uniform across all skeletons)
+            nose_and_eyes = key_points[:, [0, 1, 2]]
+
+            # data field access
+            class_names = key_points['class_name']
+            ```
+        """
+        if isinstance(index, str):
+            return self.get_data(index)
+        return self.select(index)
+
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
@@ -1070,7 +1144,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from ultralytics import YOLO
 
@@ -1130,9 +1204,127 @@ class KeyPoints:
 
             ```
         """
-        empty_key_points = KeyPoints.empty()
-        empty_key_points.data = self.data
-        return self == empty_key_points
+        return len(self) == 0
+
+    @classmethod
+    def merge(cls, key_points_list: list[KeyPoints]) -> KeyPoints:
+        """
+        Merge a list of KeyPoints objects into a single KeyPoints object.
+
+        This method takes a list of KeyPoints objects and combines their
+        respective fields (`xy`, `class_id`, `keypoint_confidence`,
+        `detection_confidence`, and `visible`) into a single KeyPoints object.
+        The `data` dictionaries are merged key-wise, following the same rules
+        as `Detections.merge`.
+
+        For example, if merging KeyPoints with 2 and 3 skeletons, this method
+        will return a KeyPoints with 5 skeletons (5 entries in `xy`, etc).
+
+        !!! Note
+
+            When merging, empty `KeyPoints` objects are ignored.
+
+        Args:
+            key_points_list: A list of KeyPoints objects to merge.
+
+        Returns:
+            A single KeyPoints object containing the merged data from the input list.
+
+        Raises:
+            ValueError: If the non-empty inputs do not share the same number
+                of keypoints per skeleton.
+            ValueError: If the non-empty inputs do not share the same
+                coordinate depth (`xy.shape[2]`) per skeleton.
+            ValueError: If some inputs have a field set (`class_id`,
+                `keypoint_confidence`, `detection_confidence`, or `visible`)
+                and others do not.
+            ValueError: If the input `data` dictionaries do not share the
+                same keys.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points_1 = sv.KeyPoints(
+            ...     xy=np.array([[[10, 10], [20, 20]]], dtype=np.float32),
+            ...     class_id=np.array([0]),
+            ...     data={'class_name': np.array(['person'])},
+            ... )
+            >>> key_points_2 = sv.KeyPoints(
+            ...     xy=np.array([[[30, 30], [40, 40]]], dtype=np.float32),
+            ...     class_id=np.array([1]),
+            ...     data={'class_name': np.array(['dog'])},
+            ... )
+            >>> merged = sv.KeyPoints.merge([key_points_1, key_points_2])
+            >>> len(merged)
+            2
+            >>> merged.class_id
+            array([0, 1])
+            >>> merged.data['class_name']
+            array(['person', 'dog'], dtype='<U6')
+
+            ```
+        """
+        key_points_list = [
+            key_points for key_points in key_points_list if not key_points.is_empty()
+        ]
+
+        if len(key_points_list) == 0:
+            return cls.empty()
+
+        for key_points in key_points_list:
+            _validate_keypoints_fields(
+                xy=key_points.xy,
+                class_id=key_points.class_id,
+                confidence=key_points.keypoint_confidence,
+                detection_confidence=key_points.detection_confidence,
+                visible=key_points.visible,
+                data=key_points.data,
+            )
+
+        keypoint_counts = {key_points.xy.shape[1] for key_points in key_points_list}
+        if len(keypoint_counts) > 1:
+            raise ValueError(
+                "All KeyPoints must have the same number of keypoints per "
+                f"skeleton to be merged; got counts {sorted(keypoint_counts)}."
+            )
+
+        keypoint_depths = {key_points.xy.shape[2] for key_points in key_points_list}
+        if len(keypoint_depths) > 1:
+            raise ValueError(
+                "All KeyPoints must have the same coordinate depth per "
+                f"skeleton to be merged; got depths {sorted(keypoint_depths)}."
+            )
+
+        xy = np.vstack([key_points.xy for key_points in key_points_list])
+
+        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+            values = [getattr(key_points, name) for key_points in key_points_list]
+            if all(value is None for value in values):
+                return None
+            if any(value is None for value in values):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return cast(npt.NDArray[np.generic], np.concatenate(values, axis=0))
+
+        class_id = cast(npt.NDArray[np.int_] | None, stack_or_none("class_id"))
+        keypoint_confidence = cast(
+            npt.NDArray[np.float32] | None, stack_or_none("keypoint_confidence")
+        )
+        detection_confidence = cast(
+            npt.NDArray[np.float32] | None, stack_or_none("detection_confidence")
+        )
+        visible = cast(npt.NDArray[np.bool_] | None, stack_or_none("visible"))
+
+        data = merge_data([key_points.data for key_points in key_points_list])
+
+        return cls(
+            xy=xy,
+            class_id=class_id,
+            keypoint_confidence=keypoint_confidence,
+            detection_confidence=detection_confidence,
+            visible=visible,
+            data=data,
+        )
 
     def with_nms(
         self,
@@ -1166,7 +1358,7 @@ class KeyPoints:
 
         Examples:
             ```python
-            import cv2
+            from supervision import _cv2 as cv2
             import supervision as sv
             from rfdetr import RFDETRKeypointPreview
 
@@ -1220,7 +1412,7 @@ class KeyPoints:
             overlap_metric=overlap_metric,
         )
 
-        return cast(KeyPoints, self[keep])
+        return self.select(keep)
 
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
@@ -1258,13 +1450,17 @@ class KeyPoints:
             return Detections.empty()
 
         xy = self.xy
-        if selected_keypoint_indices:
-            indices = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+        indices: npt.NDArray[np.intp] | None = None
+        if selected_keypoint_indices is not None:
+            candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+            if candidate.size > 0:
+                indices = candidate
+        if indices is not None:
             xy = xy[:, indices, :]
 
-        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
-        # points are excluded from each skeleton's bounding box.
-        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
+        # coordinates cannot form a valid detection box, so both cases are excluded.
+        valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
         has_valid = valid.any(axis=1)  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]
@@ -1281,7 +1477,7 @@ class KeyPoints:
             confidence = self.detection_confidence.astype(np.float32)
         elif self.keypoint_confidence is not None:
             keypoint_confidence = self.keypoint_confidence
-            if selected_keypoint_indices:
+            if indices is not None:
                 keypoint_confidence = keypoint_confidence[:, indices]
             confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
         else:
@@ -1290,6 +1486,6 @@ class KeyPoints:
         detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = cast(Detections, detections[cast(Any, detections.area) > 0])
+        detections = detections.select(has_valid)
 
         return detections

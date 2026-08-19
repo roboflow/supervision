@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -11,8 +12,12 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
+from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
@@ -41,7 +46,8 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
 
 def _box_to_polygon(box: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
     return np.array(
-        [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]]
+        [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]],
+        dtype=np.float32,
     )
 
 
@@ -50,7 +56,7 @@ def _parse_polygon(values: list[str]) -> npt.NDArray[np.float32]:
 
 
 def _polygons_to_masks(
-    polygons: list[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
+    polygons: Sequence[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
@@ -145,41 +151,44 @@ def yolo_annotations_to_detections(
     if len(lines) == 0:
         return Detections.empty()
 
-    class_id, relative_xyxy, relative_polygon, relative_xyxyxyxy = [], [], [], []
+    class_id_list: list[int] = []
+    relative_xyxy_list: list[npt.NDArray[np.number]] = []
+    relative_polygon_list: list[npt.NDArray[np.float32]] = []
+    relative_xyxyxyxy_list: list[npt.NDArray[np.float32]] = []
     w, h = resolution_wh
     for line in lines:
         values = line.split()
-        class_id.append(int(values[0]))
+        class_id_list.append(int(values[0]))
         if len(values) == 5:
             box = _parse_box(values=values[1:])
-            relative_xyxy.append(box)
+            relative_xyxy_list.append(box)
             if with_masks:
-                relative_polygon.append(_box_to_polygon(box=box))
+                relative_polygon_list.append(_box_to_polygon(box=box))
         elif len(values) > 5:
             polygon = _parse_polygon(values=values[1:])
-            relative_xyxy.append(polygon_to_xyxy(polygon=polygon))
+            relative_xyxy_list.append(polygon_to_xyxy(polygon=polygon))
             if is_obb:
-                relative_xyxyxyxy.append(np.array(values[1:]))
+                relative_xyxyxyxy_list.append(np.array(values[1:], dtype=np.float32))
             if with_masks:
-                relative_polygon.append(polygon)
+                relative_polygon_list.append(polygon)
 
-    class_id = np.array(class_id, dtype=int)
-    relative_xyxy = np.array(relative_xyxy, dtype=np.float32)
+    class_id = np.array(class_id_list, dtype=int)
+    relative_xyxy = np.array(relative_xyxy_list, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
-    data = {}
+    data: _DetectionDataType = {}
 
     if is_obb:
-        relative_xyxyxyxy = np.array(relative_xyxyxyxy, dtype=np.float32)
+        relative_xyxyxyxy = np.array(relative_xyxyxyxy_list, dtype=np.float32)
         xyxyxyxy = relative_xyxyxyxy.reshape(-1, 4, 2)
         xyxyxyxy *= np.array([w, h], dtype=np.float32)
-        data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+        data[ORIENTED_BOX_COORDINATES] = cast(npt.NDArray[np.generic], xyxyxyxy)
 
     if not with_masks:
         return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
     polygons = [
         polygon * np.array(resolution_wh, dtype=np.float32)
-        for polygon in relative_polygon
+        for polygon in relative_polygon_list
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
@@ -257,16 +266,11 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        # PIL is much faster than cv2 for checking image shape and mode: https://github.com/roboflow/supervision/issues/1554
-        image = Image.open(image_path)
+        # PIL is much faster than cv2 for checking image shape: https://github.com/roboflow/supervision/issues/1554
+        with Image.open(image_path) as image:
+            w, h = image.size
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
-        w, h = image.size
         resolution_wh = (w, h)
-        if image.mode not in ("RGB", "L"):
-            raise ValueError(
-                f"Images must be 'RGB' or 'grayscale', \
-                but {image_path} mode is '{image.mode}'."
-            )
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
         annotation = yolo_annotations_to_detections(
@@ -342,6 +346,7 @@ def detections_to_yolo_annotations(
             ``'xyxyxyxy'`` in ``detections.data``.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.core import Detections
         >>> from supervision.dataset.formats.yolo import detections_to_yolo_annotations
@@ -351,6 +356,8 @@ def detections_to_yolo_annotations(
         ... )
         >>> detections_to_yolo_annotations(detections, image_shape=(100, 100, 3))
         ['0 0.50000 0.50000 0.80000 0.80000']
+
+        ```
     """
     if (
         is_obb
@@ -459,11 +466,19 @@ def save_yolo_annotations(
             saving annotations.
 
     Examples:
+        ```pycon
         >>> from supervision.dataset.core import DetectionDataset
         >>> from supervision.dataset.formats.yolo import save_yolo_annotations
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_yolo_annotations(dataset, "/tmp/labels")
+
+        ```
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
+        output_kind="YOLO annotation",
+    )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, annotation in tqdm(
         dataset,

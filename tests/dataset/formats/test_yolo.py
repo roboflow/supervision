@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -407,6 +405,38 @@ def test_load_yolo_annotations_mask_behaviour(
 
     detection = next(iter(annotations.values()))
     assert (detection.mask is not None) == expect_mask
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        pytest.param("RGBA", id="rgba"),
+        pytest.param("P", id="palette"),
+    ],
+)
+def test_load_yolo_annotations_accepts_pil_readable_image_modes(
+    tmp_path: Path, mode: str
+) -> None:
+    """YOLO loading accepts non-RGB images because only dimensions are needed."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new(mode, (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text("0 0.5 0.5 0.2 0.4\n")
+    (tmp_path / "data.yaml").write_text("names: ['object']\n")
+
+    _, image_paths, annotations = load_yolo_annotations(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+
+    assert image_paths == [str(images_dir / "test.png")]
+    np.testing.assert_allclose(
+        annotations[str(images_dir / "test.png")].xyxy,
+        np.array([[40.0, 24.0, 60.0, 56.0]], dtype=np.float32),
+    )
 
 
 def test_polygons_to_masks_multiple_polygons_shape() -> None:

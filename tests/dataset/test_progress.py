@@ -1,18 +1,16 @@
 """Tests for show_progress parameter on dataset load/save operations."""
 
-from __future__ import annotations
-
 import json
 import os
 from pathlib import Path
 from unittest.mock import patch
 
-import cv2
 import numpy as np
 import pytest
 from tqdm.auto import tqdm as _real_tqdm
 
 from supervision import DetectionDataset
+from supervision import _cv2 as cv2
 
 
 def _create_dummy_yolo_dataset(root: str, num_images: int = 3) -> tuple[str, str, str]:
@@ -175,7 +173,6 @@ def pascal_voc_dataset(pascal_voc_dir: tuple[str, str]) -> DetectionDataset:
 _YOLO_TQDM = "supervision.dataset.formats.yolo.tqdm"
 _COCO_TQDM = "supervision.dataset.formats.coco.tqdm"
 _PASCAL_TQDM = "supervision.dataset.formats.pascal_voc.tqdm"
-_CORE_TQDM = "supervision.dataset.core.tqdm"
 _UTILS_TQDM = "supervision.dataset.utils.tqdm"
 
 
@@ -320,7 +317,7 @@ class TestPascalVocProgress:
         """Pascal VOC save shows progress bar when show_progress=True."""
         out = tmp_path / "output"
         with (
-            patch(_CORE_TQDM, wraps=_real_tqdm) as mock_tqdm,
+            patch(_PASCAL_TQDM, wraps=_real_tqdm) as mock_tqdm,
             patch(_UTILS_TQDM, wraps=_real_tqdm),
         ):
             pascal_voc_dataset.as_pascal_voc(
@@ -330,7 +327,7 @@ class TestPascalVocProgress:
             )
             assert mock_tqdm.call_args[1]["disable"] is False
 
-    @patch(_CORE_TQDM, wraps=_real_tqdm)
+    @patch(_PASCAL_TQDM, wraps=_real_tqdm)
     def test_as_pascal_voc_no_progress_by_default(
         self, mock_tqdm: object, pascal_voc_dataset: DetectionDataset, tmp_path: Path
     ):

@@ -8,23 +8,23 @@ This script performs heatmap and tracking analysis using YOLOv8, an object-detec
 
 - clone repository and navigate to example directory
 
-    ```bash
-    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
-    cd supervision/examples/heatmap_and_track
-    ```
+  ```bash
+  git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
+  cd supervision/examples/heatmap_and_track
+  ```
 
 - setup python environment and activate it [optional]
 
-    ```bash
-    uv venv
-    source .venv/bin/activate
-    ```
+  ```bash
+  uv venv
+  source .venv/bin/activate
+  ```
 
 - install required dependencies
 
-    ```bash
-    uv pip install -r requirements.txt
-    ```
+  ```bash
+  uv pip install -r requirements.txt
+  ```
 
 ## 🛠️ script arguments
 

@@ -42,7 +42,7 @@ def main(
     target_video_path: str,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
+) -> None:
     """
     Vehicle Speed Estimation using YOLO-NAS and Supervision.
 
@@ -83,6 +83,7 @@ def main(
     coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
     with sv.VideoSink(target_video_path, video_info) as sink:
+        window = sv.ImageWindow("frame")
         for frame in frame_generator:
             result = model.predict(frame, conf=confidence_threshold, iou=iou_threshold)[
                 0
@@ -123,10 +124,11 @@ def main(
             )
 
             sink.write_frame(annotated_frame)
-            cv2.imshow("frame", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            key = window.wait_key(1)
+            if not window.is_open or key == "q":
                 break
-        cv2.destroyAllWindows()
+        window.close()
 
 
 if __name__ == "__main__":

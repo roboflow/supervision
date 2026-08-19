@@ -12,23 +12,25 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
 
 - clone repository and navigate to example directory
 
-    ```bash
-    git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
-    cd supervision/examples/time_in_zone
-    ```
+  ```bash
+  git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
+  cd supervision/examples/time_in_zone
+  ```
 
 - setup python environment and activate it [optional]
 
-    ```bash
-    uv venv
-    source .venv/bin/activate
-    ```
+  ```bash
+  uv venv
+  source .venv/bin/activate
+  ```
 
 - install required dependencies
 
-    ```bash
-    uv pip install -r requirements.txt
-    ```
+  ```bash
+  uv pip install -r requirements.txt
+  ```
+
+The three RTSP `*_stream_example.py` scripts display frames from an `InferencePipeline` callback running on a worker thread, so they use OpenCV HighGUI instead of `sv.ImageWindow`. Install `opencv-python` and keep only one OpenCV wheel installed to run those scripts. The file and naive-stream examples use `sv.ImageWindow`, which works regardless of which OpenCV wheel (or none) is installed.
 
 ## 🛠 scripts
 

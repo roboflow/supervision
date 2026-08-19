@@ -115,6 +115,23 @@ class TestPrecision:
         assert result.precision_at_50 == 0.0
         assert result.precision_at_75 == 0.0
 
+    def test_medium_bucket_scores_target_matched_small_prediction(self) -> None:
+        """Medium-object precision keeps a small matched prediction in the score."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        result = Precision().update(predictions, targets).compute()
+
+        assert result.medium_objects is not None
+        assert result.medium_objects.precision_at_50 == 1.0
+
     def test_false_positives_on_background_image_counted(self):
         """Predictions on an image with no targets must count as false positives."""
         predictions_with_gt = Detections(
@@ -265,6 +282,45 @@ class TestPrecision:
             metric.update([detections_50_50], [targets_50_50, targets_50_50])
 
     @pytest.mark.parametrize(
+        "missing_attribute",
+        ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+    )
+    def test_compute_value_error_for_missing_required_fields(
+        self, missing_attribute
+    ) -> None:
+        """Test compute raises ValueError when required fields are missing."""
+        metric = Precision()
+        boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+        class_id = np.array([0], dtype=np.int32)
+        confidence = np.array([0.9], dtype=np.float32)
+
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+            class_id=class_id,
+        )
+        targets = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+        if missing_attribute == "predictions_class_id":
+            predictions = Detections(
+                xyxy=boxes,
+                confidence=confidence,
+            )
+        elif missing_attribute == "targets_class_id":
+            targets = Detections(xyxy=boxes)
+        else:
+            predictions = Detections(
+                xyxy=boxes,
+                class_id=class_id,
+            )
+
+        with pytest.raises(ValueError, match="Precision metric requires"):
+            metric.update(predictions, targets).compute()
+
+    @pytest.mark.parametrize(
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
@@ -276,3 +332,23 @@ class TestPrecision:
         # Perfect match should give 1.0 regardless of averaging method
         assert result.precision_at_50 == 1.0
         assert result.averaging_method == averaging_method
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, precision=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = Precision().update(preds, targets).compute()
+
+        assert result.precision_at_50 == 1.0

@@ -1,21 +1,24 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
 import numpy as np
 import pytest
 from defusedxml import ElementTree
 
+from supervision import _cv2 as cv2
+from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
     detections_to_pascal_voc,
+    load_pascal_voc_annotations,
     object_to_pascal_voc,
     parse_polygon_points,
+    save_pascal_voc_annotations,
 )
 from tests.helpers import _create_detections
 
 
-def are_xml_elements_equal(elem1, elem2):
+def are_xml_elements_equal(elem1, elem2) -> bool:
     if (
         elem1.tag != elem2.tag
         or elem1.attrib != elem2.attrib
@@ -67,7 +70,7 @@ def test_object_to_pascal_voc(
     polygon: np.ndarray | None,
     expected_result,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
         assert are_xml_elements_equal(result, expected_result)
@@ -132,7 +135,7 @@ def test_parse_polygon_points(
     polygon_element,
     expected_result: list[list],
     exception,
-):
+) -> None:
     with exception:
         result = parse_polygon_points(polygon_element)
         assert np.array_equal(result, expected_result)
@@ -221,7 +224,7 @@ MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
 )
 def test_detections_from_xml_obj(
     xml_string, classes, resolution_wh, force_masks, expected_result, exception
-):
+) -> None:
     with exception:
         root = ElementTree.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
@@ -244,3 +247,232 @@ def test_detections_from_xml_obj_mixed_polygon_and_bbox_masks_aligned(
     assert detections.mask.shape == (2, 30, 30)
     assert detections.mask[0].any()
     assert not detections.mask[1].any()
+
+
+def _write_voc_sample(
+    images_dir: Path, annotations_dir: Path, stem: str, class_names: list[str]
+) -> None:
+    """Write one VOC image plus its bbox-only XML annotation to disk."""
+    cv2.imwrite(str(images_dir / f"{stem}.png"), np.zeros((20, 20, 3), dtype=np.uint8))
+    objects = "".join(
+        f"<object><name>{name}</name><bndbox><xmin>1</xmin><ymin>1</ymin>"
+        f"<xmax>10</xmax><ymax>10</ymax></bndbox></object>"
+        for name in class_names
+    )
+    (annotations_dir / f"{stem}.xml").write_text(f"<annotation>{objects}</annotation>")
+
+
+class TestLoadPascalVocDeterministicClasses:
+    """Regression tests for deterministic VOC class ordering (DAT-03)."""
+
+    def test_classes_sorted_within_file(self, tmp_path: Path) -> None:
+        """Class names from one file are assigned ids in sorted, stable order."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "img", ["zebra", "ant", "mango"])
+
+        classes, _, _ = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert classes == sorted(classes) == ["ant", "mango", "zebra"]
+
+    def test_repeated_loads_give_identical_class_ids(self, tmp_path: Path) -> None:
+        """Two loads of the same multi-file VOC set produce identical class ids."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "a_img", ["zebra"])
+        _write_voc_sample(images_dir, annotations_dir, "b_img", ["ant", "mango"])
+
+        first = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+        second = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert first[0] == second[0]
+        assert {p: d.class_id.tolist() for p, d in first[2].items()} == {
+            p: d.class_id.tolist() for p, d in second[2].items()
+        }
+
+
+class TestLoadPascalVocBackgroundImages:
+    """Regression tests for VOC images that contain no annotated objects."""
+
+    def test_background_image_gets_integer_class_id(self, tmp_path: Path) -> None:
+        """An XML file with no object elements loads with an integer class_id."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "background", [])
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        class_id = next(iter(annotations.values())).class_id
+        assert class_id is not None
+        assert np.issubdtype(class_id.dtype, np.integer)
+
+    def test_background_image_round_trips_through_dataset(self, tmp_path: Path) -> None:
+        """A dataset mixing annotated and background images loads from VOC."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "annotated", ["cat"])
+        _write_voc_sample(images_dir, annotations_dir, "background", [])
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert len(dataset) == 2
+        counts = {Path(path).stem: len(d) for path, d in dataset.annotations.items()}
+        assert counts == {"annotated": 1, "background": 0}
+
+    def test_all_background_dataset_has_no_classes_and_empty_detections(
+        self, tmp_path: Path
+    ) -> None:
+        """A dataset where every image is background loads with no classes."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "bg_a", [])
+        _write_voc_sample(images_dir, annotations_dir, "bg_b", [])
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert dataset.classes == []
+        counts = {Path(path).stem: len(d) for path, d in dataset.annotations.items()}
+        assert counts == {"bg_a": 0, "bg_b": 0}
+
+    def test_background_image_sorted_first_still_integer_class_id(
+        self, tmp_path: Path
+    ) -> None:
+        """A background image parsed before any annotated one keeps integer ids."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "aaa_background", [])
+        _write_voc_sample(images_dir, annotations_dir, "zzz_annotated", ["cat"])
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        by_stem = {Path(path).stem: d for path, d in annotations.items()}
+        assert np.issubdtype(by_stem["aaa_background"].class_id.dtype, np.integer)
+        assert by_stem["aaa_background"].class_id.size == 0
+
+    def test_force_masks_background_image_gets_empty_3d_mask(self) -> None:
+        """force_masks=True on a background XML yields an empty (0, H, W) mask."""
+        root = ElementTree.fromstring("<annotation></annotation>")
+
+        detections, _ = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(30, 20), force_masks=True
+        )
+
+        assert detections.mask is not None
+        assert detections.mask.shape == (0, 20, 30)
+
+
+class TestSavePascalVocAnnotations:
+    """save_pascal_voc_annotations: filesystem output contract."""
+
+    def test_empty_dataset_creates_directory_and_no_xml_files(
+        self, tmp_path: Path
+    ) -> None:
+        """Empty dataset produces no XML files; output directory is created."""
+        dataset = DetectionDataset(classes=[], images=[], annotations={})
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        assert out_dir.is_dir()
+        assert list(out_dir.glob("*.xml")) == []
+
+    def test_zero_detection_image_writes_xml_without_object_elements(
+        self, tmp_path: Path
+    ) -> None:
+        """Image with no detections produces one XML file with no object elements."""
+        from supervision.detection.core import Detections
+
+        img_path = tmp_path / "img.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        xml_files = list(out_dir.glob("*.xml"))
+        assert len(xml_files) == 1
+        tree = ElementTree.parse(str(xml_files[0]))
+        assert tree.findall("object") == []
+
+    def test_show_progress_true_is_accepted_without_error(self, tmp_path: Path) -> None:
+        """show_progress=True is accepted by the function without raising."""
+        from supervision.detection.core import Detections
+
+        img_path = tmp_path / "img.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+
+        save_pascal_voc_annotations(dataset, str(out_dir), show_progress=True)
+
+        assert out_dir.is_dir()
+
+    def test_background_image_survives_save_then_load_round_trip(
+        self, tmp_path: Path
+    ) -> None:
+        """A background image written to VOC reloads with integer, empty class_id."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        img_path = images_dir / "background.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(out_dir),
+        )
+
+        class_id = next(iter(annotations.values())).class_id
+        assert np.issubdtype(class_id.dtype, np.integer)
+        assert class_id.size == 0

@@ -1,13 +1,21 @@
 default_language_version:
-  python: python3
+  python: python3.10
 
 ci:
   autofix_prs: true
-  autoupdate_schedule: weekly
+  autoupdate_schedule: monthly
   autofix_commit_msg: "fix(pre_commit): 🎨 auto format pre-commit hooks"
   autoupdate_commit_msg: "chore(pre_commit): ⬆ pre_commit autoupdate"
 
 repos:
+  - repo: local
+    hooks:
+      - id: check-doctest-fences
+        name: check doctest fences
+        entry: python .github/scripts/check_doctest_fences.py
+        language: python
+        files: ^src/.*\.py$
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -28,8 +36,8 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
 
-  - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.8.3 # using tag; previously pinned SHA when tags were not persistent
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -37,9 +45,11 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.21.1
+    rev: v2.27.0
     hooks:
       - id: pyproject-fmt
+        additional_dependencies:
+          - "tomli>=2.0.1"
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
@@ -47,7 +57,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.16.2
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -58,24 +68,37 @@ repos:
     rev: 1.0.0
     hooks:
       - id: mdformat
+        name: mdformat (gfm)
+        exclude: ^docs/
         additional_dependencies:
+          - "mdformat-frontmatter"
+          - "mdformat-gfm"
+          - "mdformat-ruff"
+        args: ["--number", "--wrap=no"]
+      - id: mdformat
+        name: mdformat (mkdocs)
+        files: ^docs/
+        additional_dependencies:
+          - "mdformat-frontmatter"
           - "mdformat-mkdocs[recommended]>=2.1.0"
           - "mdformat-ruff"
         args: ["--number", "--wrap=no"]
-        exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.2
+    rev: v2.3.0
     hooks:
       - id: mypy
+        language_version: python3.11
         additional_dependencies:
           - "numpy>=2.0"
           - "types-PyYAML"
           - "types-requests"
+          - "types-tqdm"
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
+        exclude: ^src/supervision/_cv2/data/hershey_fonts\.json$
         additional_dependencies:
           - "tomli>=2.0.1"

@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated, deprecated_class, void
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+    deprecated_class,
+    void,
+)
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
@@ -17,6 +23,10 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.metrics.core import MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 
 def _assert_supported_target(metric_target: MetricTarget) -> None:
@@ -24,6 +34,30 @@ def _assert_supported_target(metric_target: MetricTarget) -> None:
         raise ValueError(
             "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
         )
+
+
+def _validated_class_ids(
+    values: npt.NDArray[np.float32],
+    num_classes: int,
+    role: str,
+) -> npt.NDArray[np.int64]:
+    """Return class ids that are safe to use as confusion-matrix indexes."""
+    if values.size == 0:
+        return np.asarray(values, dtype=np.int64)
+
+    finite = np.isfinite(values)
+    integral = values == np.floor(values)
+    if not np.all(finite & integral):
+        raise ValueError(f"{role} class ids must be finite integers.")
+
+    class_ids = values.astype(np.int64)
+    invalid = (class_ids < 0) | (class_ids >= num_classes)
+    if np.any(invalid):
+        invalid_values = np.unique(class_ids[invalid]).tolist()
+        raise ValueError(
+            f"{role} class ids must be in [0, {num_classes - 1}], got {invalid_values}."
+        )
+    return class_ids
 
 
 def detections_to_tensor(
@@ -101,6 +135,7 @@ def detections_to_tensor(
             "ConfusionMatrix can only be calculated for Detections with class_id"
         )
 
+    box_data: npt.NDArray[np.float32]
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         obb = detections.data.get(ORIENTED_BOX_COORDINATES)
         if obb is None:
@@ -125,7 +160,7 @@ def detections_to_tensor(
                 )
             box_data = obb_arr.reshape(-1, 8)
     else:
-        box_data = detections.xyxy
+        box_data = np.asarray(detections.xyxy, dtype=np.float32)
 
     arrays_to_concat = [
         box_data,
@@ -182,6 +217,416 @@ def _validate_input_tensors(
                 f"Targets must have shape (N, {expected_target_cols}). "
                 f"Got {targets[0].shape} instead."
             )
+
+
+def _split_detections_by_outcome(
+    predictions: Detections,
+    targets: Detections,
+    conf_threshold: float,
+    iou_threshold: float,
+    metric_target: MetricTarget = MetricTarget.BOXES,
+) -> tuple[Detections, Detections, Detections]:
+    """
+    Split detections into true positives, false positives, and false negatives.
+
+    Matching follows the same attribution logic as
+    ``ConfusionMatrix.evaluate_detection_batch``:
+    - matches are computed globally across classes
+    - same-class matches are prioritized
+    - higher-IoU matches are preferred
+    - each prediction and target can be matched at most once
+
+    Cross-class spatial matches are treated as:
+    - false positives for the prediction
+    - false negatives for the target
+
+    Args:
+        predictions: Predicted detections for a single image.
+        targets: Ground-truth detections for a single image.
+        conf_threshold: Confidence threshold; predictions below this are excluded.
+        iou_threshold: IoU threshold; candidate pairs below this are not matched.
+        metric_target: Coordinate representation to use for IoU computation.
+            Use ``MetricTarget.ORIENTED_BOUNDING_BOXES`` for rotated-box datasets.
+
+    Returns:
+        A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
+        each element is a ``Detections`` instance sliced from the input arrays.
+    """
+
+    if predictions.class_id is None:
+        raise ValueError("Predictions must contain class_id values.")
+
+    if targets.class_id is None:
+        raise ValueError("Targets must contain class_id values.")
+
+    target_class_ids = targets.class_id
+
+    if predictions.confidence is None:
+        filtered_predictions = predictions
+    else:
+        prediction_confidence = np.asarray(predictions.confidence, dtype=np.float32)
+        filtered_predictions = predictions.select(
+            prediction_confidence >= conf_threshold
+        )
+
+    filtered_prediction_class_ids = filtered_predictions.class_id
+    if filtered_prediction_class_ids is None:
+        raise ValueError("Predictions must contain class_id values.")
+
+    prediction_count = len(filtered_predictions)
+    target_count = len(targets)
+
+    tp_indices: list[int] = []
+    fp_indices: list[int] = []
+    fn_indices: list[int] = []
+
+    if prediction_count == 0:
+        fn_indices = list(range(target_count))
+        return (
+            filtered_predictions.select(tp_indices),
+            filtered_predictions.select(fp_indices),
+            targets.select(fn_indices),
+        )
+
+    if target_count == 0:
+        fp_indices = list(range(prediction_count))
+        return (
+            filtered_predictions.select(tp_indices),
+            filtered_predictions.select(fp_indices),
+            targets.select(fn_indices),
+        )
+
+    # IoU computation mirrors evaluate_detection_batch — keep in sync if either changes.
+    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        iou_matrix = oriented_box_iou_batch(
+            boxes_true=np.asarray(
+                targets.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+            ).reshape(len(targets), 8),
+            boxes_detection=np.asarray(
+                filtered_predictions.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+            ).reshape(len(filtered_predictions), 8),
+        )
+    else:
+        iou_matrix = box_iou_batch(
+            boxes_true=targets.xyxy,
+            boxes_detection=filtered_predictions.xyxy,
+        )
+
+    target_candidate_indices, prediction_candidate_indices = np.where(
+        iou_matrix > iou_threshold
+    )
+
+    matched_predictions: npt.NDArray[np.bool_] = np.zeros(prediction_count, dtype=bool)
+    matched_targets: npt.NDArray[np.bool_] = np.zeros(target_count, dtype=bool)
+
+    cross_class_prediction_indices: list[int] = []
+    cross_class_target_indices: list[int] = []
+
+    if len(target_candidate_indices) > 0:
+        candidate_ious = iou_matrix[
+            target_candidate_indices,
+            prediction_candidate_indices,
+        ]
+
+        same_class_candidates = (
+            target_class_ids[target_candidate_indices]
+            == filtered_prediction_class_ids[prediction_candidate_indices]
+        )
+
+        candidate_order = np.lexsort(
+            (
+                -candidate_ious,
+                ~same_class_candidates,
+            )
+        )
+
+        for candidate_index in candidate_order:
+            target_index = int(target_candidate_indices[candidate_index])
+            prediction_index = int(prediction_candidate_indices[candidate_index])
+
+            if matched_predictions[prediction_index] or matched_targets[target_index]:
+                continue
+
+            matched_predictions[prediction_index] = True
+            matched_targets[target_index] = True
+
+            prediction_class = filtered_prediction_class_ids[prediction_index]
+            target_class = target_class_ids[target_index]
+
+            if prediction_class == target_class:
+                tp_indices.append(prediction_index)
+            else:
+                cross_class_prediction_indices.append(prediction_index)
+                cross_class_target_indices.append(target_index)
+
+    fp_indices.extend(np.flatnonzero(~matched_predictions).tolist())
+    fn_indices.extend(np.flatnonzero(~matched_targets).tolist())
+
+    fp_indices.extend(cross_class_prediction_indices)
+    fn_indices.extend(cross_class_target_indices)
+
+    return (
+        filtered_predictions.select(tp_indices),
+        filtered_predictions.select(fp_indices),
+        targets.select(fn_indices),
+    )
+
+
+def _build_error_labels(
+    detections: Detections,
+    class_names: list[str] | None,
+) -> list[str]:
+    """Build per-detection label strings for annotation panels.
+
+    Produces labels like ``"cat 0.95"`` (class name + confidence when available)
+    or numeric class-id strings when ``class_names`` is ``None``.
+
+    Args:
+        detections: Detections whose labels to build.
+        class_names: Optional list mapping class integer ids to name strings.
+
+    Returns:
+        List of label strings, one per detection. Returns empty strings when
+        ``detections.class_id`` is ``None``.
+    """
+    if detections.class_id is None:
+        return [""] * len(detections)
+
+    labels: list[str] = []
+    for index, class_id in enumerate(detections.class_id):
+        if class_names is not None and 0 <= int(class_id) < len(class_names):
+            class_label = class_names[int(class_id)]
+        else:
+            class_label = str(int(class_id))
+
+        confidence = ""
+        if detections.confidence is not None:
+            confidence = f" {detections.confidence[index]:.2f}"
+
+        labels.append(f"{class_label}{confidence}")
+
+    return labels
+
+
+def _get_annotation_parameters(
+    scene: npt.NDArray[np.uint8],
+) -> tuple[int, float, int, int, int]:
+    """Compute adaptive annotation parameters scaled to the panel size.
+
+    Args:
+        scene: The image panel for which to compute parameters.
+
+    Returns:
+        A 5-tuple ``(box_thickness, text_scale, text_thickness, text_padding,
+        font_size)`` where all values are ``int`` except ``text_scale`` (``float``).
+    """
+    height, width = scene.shape[:2]
+    panel_size = max(min(height, width), 1)
+    grid_factor = 2
+
+    font_size = max(18, round(panel_size / (26 * grid_factor)))
+    box_thickness = max(2, round(font_size / 5))
+    text_scale = float(max(1.0, font_size / 20.0))
+    text_thickness = max(1, round(font_size / 15.0))
+    text_padding = max(6, round(font_size / 3))
+
+    return box_thickness, text_scale, text_thickness, text_padding, font_size
+
+
+def _annotate_detection_panel(
+    scene: npt.NDArray[np.uint8],
+    detections: Detections,
+    title: str,
+    class_names: list[str] | None,
+    annotation_parameters: tuple[int, float, int, int, int],
+) -> npt.NDArray[np.uint8]:
+    """Render detections onto a copy of ``scene`` with a title overlay.
+
+    Args:
+        scene: Source image panel (not mutated).
+        detections: Detections to annotate on the panel.
+        title: Text label rendered in the top-left corner of the panel.
+        class_names: Optional list mapping class integer ids to name strings.
+        annotation_parameters: Pre-computed parameters from
+            ``_get_annotation_parameters``.
+
+    Returns:
+        Annotated copy of ``scene`` as a ``np.uint8`` array.
+    """
+    from supervision import (
+        _cv2 as cv2,  # lazy: only needed when save_directory_path is set
+    )
+    from supervision.annotators.core import BoxAnnotator, LabelAnnotator
+    from supervision.annotators.utils import ColorLookup
+    from supervision.draw.color import ColorPalette
+
+    panel = scene.copy()
+
+    box_thickness, text_scale, text_thickness, text_padding, font_size = (
+        annotation_parameters
+    )
+
+    if len(detections) > 0:
+        box_annotator = BoxAnnotator(
+            color=ColorPalette.DEFAULT,
+            color_lookup=ColorLookup.CLASS,
+            thickness=box_thickness,
+        )
+        label_annotator = LabelAnnotator(
+            color=ColorPalette.DEFAULT,
+            color_lookup=ColorLookup.CLASS,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            text_padding=text_padding,
+        )
+        labels = _build_error_labels(detections, class_names)
+        panel = box_annotator.annotate(panel, detections)
+        panel = cast(
+            npt.NDArray[np.uint8],
+            label_annotator.annotate(cast(Any, panel), detections, labels=labels),
+        )
+
+    title_scale = float(max(1.0, font_size / 18.0))
+    title_thickness = max(2, round(font_size / 8))
+    panel_height, panel_width = panel.shape[:2]
+    (title_width, title_height), title_baseline = cv2.getTextSize(
+        title,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        title_scale,
+        title_thickness,
+    )
+    title_x = max(0, min(text_padding, panel_width - title_width - 1))
+    title_y = max(title_height + text_padding, 0)
+    title_y = min(title_y, max(panel_height - title_baseline - 1, 0))
+
+    cv2.putText(
+        panel,
+        title,
+        (title_x, title_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        title_scale,
+        (240, 240, 240),
+        title_thickness,
+        cv2.LINE_AA,
+    )
+    panel_array: npt.NDArray[np.uint8] = panel
+    return panel_array
+
+
+def _save_detection_validation_visualization(
+    scene: npt.NDArray[np.uint8],
+    predictions: Detections,
+    targets: Detections,
+    save_path: Path,
+    conf_threshold: float,
+    iou_threshold: float,
+    class_names: list[str] | None,
+    metric_target: MetricTarget = MetricTarget.BOXES,
+) -> None:
+    """Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
+
+    Splits ``predictions`` into true-positive, false-positive, and false-negative
+    groups using the same matching logic as
+    ``ConfusionMatrix.evaluate_detection_batch``, renders four annotation panels,
+    concatenates them into a 2x2 grid, and writes the result to ``save_path``.
+
+    A ``UserWarning`` is emitted if ``cv2.imwrite`` fails (e.g. unsupported
+    extension or permission error); the benchmark loop continues regardless.
+
+    Args:
+        scene: The original image for this dataset entry.
+        predictions: Raw model predictions for ``scene``.
+        targets: Ground-truth annotations for ``scene``.
+        save_path: Destination file path for the mosaic image.
+        conf_threshold: Confidence threshold forwarded to
+            ``_split_detections_by_outcome``.
+        iou_threshold: IoU threshold forwarded to ``_split_detections_by_outcome``.
+        class_names: Optional list mapping class integer ids to name strings.
+        metric_target: Coordinate representation used for IoU matching.
+    """
+    from supervision import (
+        _cv2 as cv2,  # lazy: only needed when save_directory_path is set
+    )
+
+    tp_predictions, fp_predictions, fn_targets = _split_detections_by_outcome(
+        predictions=predictions,
+        targets=targets,
+        conf_threshold=conf_threshold,
+        iou_threshold=iou_threshold,
+        metric_target=metric_target,
+    )
+
+    annotation_parameters = _get_annotation_parameters(scene)
+
+    gt_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=targets,
+        title="Ground Truth",
+        class_names=class_names,
+        annotation_parameters=annotation_parameters,
+    )
+    tp_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=tp_predictions,
+        title="True Positives",
+        class_names=class_names,
+        annotation_parameters=annotation_parameters,
+    )
+    fp_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=fp_predictions,
+        title="False Positives",
+        class_names=class_names,
+        annotation_parameters=annotation_parameters,
+    )
+    fn_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=fn_targets,
+        title="False Negatives",
+        class_names=class_names,
+        annotation_parameters=annotation_parameters,
+    )
+
+    top_row = np.concatenate((gt_panel, tp_panel), axis=1)
+    bottom_row = np.concatenate((fp_panel, fn_panel), axis=1)
+    result = np.concatenate((top_row, bottom_row), axis=0)
+
+    panel_height = result.shape[0] // 2
+    panel_width = result.shape[1] // 2
+    divider_thickness = max(1, min(8, min(panel_height, panel_width) // 32))
+
+    cv2.rectangle(
+        result,
+        (0, 0),
+        (result.shape[1] - 1, result.shape[0] - 1),
+        (255, 255, 255),
+        thickness=divider_thickness,
+    )
+
+    center_x = result.shape[1] // 2
+    center_y = result.shape[0] // 2
+    cv2.line(
+        result,
+        (center_x, 0),
+        (center_x, result.shape[0] - 1),
+        (255, 255, 255),
+        divider_thickness,
+    )
+    cv2.line(
+        result,
+        (0, center_y),
+        (result.shape[1] - 1, center_y),
+        (255, 255, 255),
+        divider_thickness,
+    )
+
+    write_success = cv2.imwrite(str(save_path), result)
+    if not write_success:
+        warnings.warn(
+            f"Failed to write validation image to '{save_path}'.",
+            UserWarning,
+            stacklevel=2,
+        )
 
 
 @deprecated(  # type: ignore[untyped-decorator]
@@ -291,8 +736,8 @@ class ConfusionMatrix:
             ...     classes=['person']
             ... )
             >>> confusion_matrix.matrix
-            array([[1., 1.],
-                   [1., 0.]])
+            array([[1, 1],
+                   [1, 0]], dtype=int32)
 
             ```
         """
@@ -382,9 +827,9 @@ class ConfusionMatrix:
             ...     classes=['person', 'dog']
             ... )
             >>> confusion_matrix.matrix
-            array([[1., 0., 1.],
-                   [0., 1., 0.],
-                   [1., 0., 0.]])
+            array([[1, 0, 1],
+                   [0, 1, 0],
+                   [1, 0, 0]], dtype=int32)
 
             ```
         """
@@ -392,7 +837,9 @@ class ConfusionMatrix:
         _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
-        matrix = np.zeros((num_classes + 1, num_classes + 1))
+        matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
         for true_batch, detection_batch in zip(targets, predictions):
             matrix += cls.evaluate_detection_batch(
                 predictions=detection_batch,
@@ -469,7 +916,9 @@ class ConfusionMatrix:
                 f"Got {targets.shape} instead."
             )
 
-        result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        result_matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
 
         # Filter predictions by confidence threshold
         coords_dim = 8 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 4
@@ -480,24 +929,26 @@ class ConfusionMatrix:
         detection_batch_filtered = predictions[confidence >= conf_threshold]
 
         if len(detection_batch_filtered) == 0:
-            # No detections pass confidence threshold - all GT are FN
-            true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
+            true_classes = _validated_class_ids(
+                targets[:, class_id_idx], num_classes, "Target"
+            )
             for gt_class in true_classes:
                 result_matrix[gt_class, num_classes] += 1
             return result_matrix
 
         if len(targets) == 0:
-            # No ground truth - all detections are FP
-            detection_classes = np.array(
-                detection_batch_filtered[:, class_id_idx], dtype=np.int16
+            detection_classes = _validated_class_ids(
+                detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
             )
             for det_class in detection_classes:
                 result_matrix[num_classes, det_class] += 1
             return result_matrix
 
-        true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(
-            detection_batch_filtered[:, class_id_idx], dtype=np.int16
+        true_classes = _validated_class_ids(
+            targets[:, class_id_idx], num_classes, "Target"
+        )
+        detection_classes = _validated_class_ids(
+            detection_batch_filtered[:, class_id_idx], num_classes, "Prediction"
         )
         true_boxes = targets[:, :coords_dim]
         detection_boxes = detection_batch_filtered[:, :coords_dim]
@@ -597,6 +1048,8 @@ class ConfusionMatrix:
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
+        *,
+        save_directory_path: str | Path | None = None,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
@@ -609,6 +1062,10 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            save_directory_path: Optional directory where per-image validation
+                result grids are saved using the original image filenames. Images
+                are written directly to this directory (no subdirectory is added).
+                When ``None`` (default), no images are saved.
             metric_target: The type of detection data to use.
                 Supports `MetricTarget.BOXES` and
                 `MetricTarget.ORIENTED_BOUNDING_BOXES`. Passed through to
@@ -643,11 +1100,45 @@ class ConfusionMatrix:
             # ])
             ```
         """
+        if save_directory_path is not None:
+            save_directory = Path(save_directory_path)
+            save_directory.mkdir(parents=True, exist_ok=True)
+
         predictions, targets = [], []
-        for _, image, annotation in dataset:
+        for index, (image_name, image, annotation) in enumerate(dataset):
             predictions_batch = callback(image)
             predictions.append(predictions_batch)
             targets.append(annotation)
+
+            if save_directory_path is not None:
+                if isinstance(image_name, Path):
+                    image_filename = image_name.name
+                elif isinstance(image_name, str):
+                    image_filename = Path(image_name).name
+                else:
+                    image_filename = f"image_{index:06d}.jpg"
+
+                if Path(image_filename).suffix == "":
+                    image_filename = f"{image_filename}.jpg"
+
+                save_path = save_directory / image_filename
+                if save_path.exists():
+                    warnings.warn(
+                        f"Validation image '{image_filename}' already exists at "
+                        f"'{save_path}' and will be overwritten.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                _save_detection_validation_visualization(
+                    scene=image,
+                    predictions=predictions_batch,
+                    targets=annotation,
+                    save_path=save_path,
+                    conf_threshold=conf_threshold,
+                    iou_threshold=iou_threshold,
+                    class_names=dataset.classes,
+                    metric_target=metric_target,
+                )
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -664,7 +1155,7 @@ class ConfusionMatrix:
         classes: list[str] | None = None,
         normalize: bool = False,
         fig_size: tuple[int, int] = (12, 10),
-    ) -> matplotlib.figure.Figure:
+    ) -> Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
@@ -680,8 +1171,11 @@ class ConfusionMatrix:
         Returns:
             Confusion matrix plot.
         """
+        from matplotlib import pyplot as plt
 
-        array = self.matrix.copy()
+        # Cast to float so that the NaN masking below never hits an integer
+        # matrix (assigning NaN into an int array raises ValueError).
+        array = self.matrix.astype(np.float64)
 
         if normalize:
             eps = 1e-8
@@ -704,7 +1198,7 @@ class ConfusionMatrix:
         im = ax.imshow(array, cmap="Blues")
 
         cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
+        cbar.mappable.set_clim(vmin=0, vmax=float(np.nanmax(array)))
 
         if x_tick_labels is None:
             tick_interval = 2
@@ -820,7 +1314,7 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.99
+            1.0
 
             ```
         """
@@ -901,9 +1395,13 @@ class MeanAveragePrecision:
             targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the
                 number of ground-truth objects. Each row is expected to be in
-                `(x_min, y_min, x_max, y_max, class)` format.
+                `(x_min, y_min, x_max, y_max, class)` format. An empty array
+                (``N = 0``) represents a background image; all predictions on
+                that image count as false positives and reduce AP accordingly.
+
         Returns:
-            New instance of MeanAveragePrecision.
+            MeanAveragePrecision: New instance computed from the provided
+                predictions and targets.
 
         Examples:
             ```pycon
@@ -928,12 +1426,21 @@ class MeanAveragePrecision:
             ...     targets=targets,
             ... )
             >>> round(float(mAP.map50), 2)
-            0.81
+            0.75
+
+            >>> bg_pred = [np.array([[0., 0., 10., 10., 0, 0.9]], dtype=np.float32)]
+            >>> bg_tgt = [np.zeros((0, 5), dtype=np.float32)]
+            >>> mAP_bg = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=bg_pred,
+            ...     targets=bg_tgt,
+            ... )
+            >>> float(mAP_bg.map50)
+            0.0
 
             ```
         """
         _validate_input_tensors(predictions, targets)
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats = []
 
         # Gather matching stats for predictions and targets
@@ -961,14 +1468,39 @@ class MeanAveragePrecision:
                         true_objs[:, 4],
                     )
                 )
+            else:
+                # Background image: no GT boxes, so all predictions are FP matches.
+                # This lowers AP for classes that appear in at least one GT image
+                # elsewhere; classes absent from all GT images are excluded from AP
+                # (they never appear in true_class_ids and are skipped by the AP loop).
+                stats.append(
+                    (
+                        np.zeros(
+                            (predicted_objs.shape[0], iou_thresholds.size), dtype=bool
+                        ),
+                        predicted_objs[:, 5],
+                        predicted_objs[:, 4],
+                        np.zeros((0,), dtype=np.float32),
+                    )
+                )
 
         # Compute average precisions if any matches exist
         if stats:
             concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-            average_precisions = cls._average_precisions_per_class(*concatenated_stats)
-            map50 = average_precisions[:, 0].mean()
-            map75 = average_precisions[:, 5].mean()
-            map50_95 = average_precisions.mean()
+            average_precisions = cls._average_precisions_per_class(
+                cast(npt.NDArray[np.bool_], concatenated_stats[0]),
+                cast(npt.NDArray[np.float32], concatenated_stats[1]),
+                cast(npt.NDArray[np.int32], concatenated_stats[2]),
+                cast(npt.NDArray[np.int32], concatenated_stats[3]),
+            )
+            if average_precisions.size == 0:
+                # All images had no ground-truth objects; FPs recorded but no class
+                # to accumulate AP over → return 0.0 rather than NaN.
+                map50, map75, map50_95 = 0.0, 0.0, 0.0
+            else:
+                map50 = float(average_precisions[:, 0].mean())
+                map75 = float(average_precisions[:, 5].mean())
+                map50_95 = float(average_precisions.mean())
         else:
             map50, map75, map50_95 = 0, 0, 0
             average_precisions = np.array([])
@@ -997,24 +1529,16 @@ class MeanAveragePrecision:
             Average precision.
         """
         extended_recall = np.concatenate(([0.0], recall, [1.0]))
-        extended_precision = np.concatenate(([1.0], precision, [0.0]))
+        extended_precision = np.concatenate(([0.0], precision, [0.0]))
         max_accumulated_precision = np.flip(
             np.maximum.accumulate(np.flip(extended_precision))
         )
         interpolated_recall_levels = np.linspace(0, 1, 101)
-        interpolated_precision = np.interp(
-            interpolated_recall_levels, extended_recall, max_accumulated_precision
+        recall_indices = np.searchsorted(
+            extended_recall, interpolated_recall_levels, side="left"
         )
-
-        # Check if we are running on NumPy 2.0+ or older
-        if hasattr(np, "trapezoid"):
-            average_precision = np.trapezoid(
-                interpolated_precision, interpolated_recall_levels
-            )
-        else:
-            average_precision = getattr(np, "trapz")(
-                interpolated_precision, interpolated_recall_levels
-            )
+        interpolated_precision = max_accumulated_precision[recall_indices]
+        average_precision = np.mean(interpolated_precision)
 
         return float(average_precision)
 
@@ -1049,17 +1573,8 @@ class MeanAveragePrecision:
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
         result: npt.NDArray[np.bool_] = correct
         return result
 

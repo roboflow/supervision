@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import re
 import textwrap
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -82,6 +80,7 @@ def resolve_text_background_xyxy(
     text_wh: tuple[int, int],
     position: Position,
 ) -> tuple[int, int, int, int]:
+    """Compute the background box for text anchored at `position`."""
     center_x, center_y = center_coordinates
     text_w, text_h = text_wh
 
@@ -128,12 +127,23 @@ def resolve_text_background_xyxy(
             center_x + text_w,
             center_y + text_h // 2,
         )
+    raise ValueError(f"Unsupported position: {position}")
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    if isinstance(color, ColorPalette):
-        return color.by_idx(idx)
-    return color
+    """Resolve a color-like object to a concrete `Color` for an index."""
+    color_like = cast(Any, color)
+    # Accept ColorPalette-like objects without depending on their exact concrete class.
+    if callable(getattr(color_like, "by_idx", None)):
+        color_like = color_like.by_idx(idx)
+    if isinstance(color_like, Color):
+        return color_like
+    return Color(
+        r=int(color_like.r),
+        g=int(color_like.g),
+        b=int(color_like.b),
+        a=int(getattr(color_like, "a", 255)),
+    )
 
 
 def resolve_color(
@@ -156,7 +166,7 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
-def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
+def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """
     Wrap `text` to the specified maximum line length, respecting existing
     newlines. Falls back to str() if `text` is not already a string.
@@ -248,25 +258,43 @@ def get_labels_text(
 
     Returns:
         A list of text labels for each detection.
+
+    Raises:
+        ValueError: If `class_name` or `class_id` is present but its length
+            does not match the number of detections (e.g. `detections.data`
+            was mutated directly, bypassing `Detections` alignment checks).
     """
     if custom_labels is not None:
         return custom_labels
 
-    labels = []
-    for idx in range(len(detections)):
-        if CLASS_NAME_DATA_FIELD in detections.data:
-            labels.append(str(detections.data[CLASS_NAME_DATA_FIELD][idx]))
-        elif detections.class_id is not None:
-            labels.append(str(detections.class_id[idx]))
-        else:
-            labels.append(str(idx))
-    return labels
+    if CLASS_NAME_DATA_FIELD in detections.data:
+        class_names = detections.data[CLASS_NAME_DATA_FIELD]
+        # `Detections.data` is normally kept aligned with `xyxy` by the
+        # dataclass's own validation, but a caller can bypass it by mutating
+        # `detections.data` directly. Fail loudly rather than silently
+        # dropping or duplicating labels.
+        if len(class_names) != len(detections):
+            raise ValueError(
+                f"'{CLASS_NAME_DATA_FIELD}' has {len(class_names)} entries "
+                f"but detections has {len(detections)} - the two must stay "
+                "aligned."
+            )
+        return [str(v) for v in class_names]
+    if detections.class_id is not None:
+        if len(detections.class_id) != len(detections):
+            raise ValueError(
+                f"'class_id' has {len(detections.class_id)} entries but "
+                f"detections has {len(detections)} - the two must stay "
+                "aligned."
+            )
+        return [str(v) for v in detections.class_id]
+    return [str(i) for i in range(len(detections))]
 
 
 def snap_boxes(
-    xyxy: np.ndarray[Any, np.dtype[np.float32]],
+    xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
-) -> np.ndarray[Any, np.dtype[np.float32]]:
+) -> npt.NDArray[np.float32]:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
@@ -307,7 +335,7 @@ def snap_boxes(
 
         ```
     """
-    result = np.copy(xyxy)
+    result: npt.NDArray[np.float32] = np.array(xyxy, dtype=np.float32, copy=True)
     width, height = resolution_wh
 
     # X-axis (prioritize left edge)
@@ -326,7 +354,7 @@ def snap_boxes(
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result.astype(np.float32)  # type: ignore
+    return cast(npt.NDArray[np.float32], result.astype(np.float32, copy=False))
 
 
 class Trace:
@@ -340,11 +368,18 @@ class Trace:
         self.max_size = max_size
         self.anchor = anchor
 
-        self.frame_id = np.array([], dtype=int)
-        self.xy = np.empty((0, 2), dtype=np.float32)
-        self.tracker_id = np.array([], dtype=int)
+        self.frame_id: npt.NDArray[np.int_] = np.array([], dtype=int)
+        self.xy: npt.NDArray[np.float32] = np.empty((0, 2), dtype=np.float32)
+        self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
+        """Append a frame of detections to the trace history."""
+        if detections.tracker_id is None:
+            raise ValueError(
+                "Could not put detections into Trace because "
+                "Detections do not have tracker_id."
+            )
+
         frame_id: npt.NDArray[np.int_] = np.full(
             len(detections), self.current_frame_id, dtype=int
         )
@@ -355,12 +390,6 @@ class Trace:
                 detections.get_anchors_coordinates(self.anchor),
             ]
         )
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not put detections into Trace because "
-                "Detections do not have tracker_id."
-            )
-
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
@@ -374,11 +403,23 @@ class Trace:
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
-        filtered: np.ndarray[Any, np.dtype[np.float32]] = (
-            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
+    def get(self, tracker_id: int) -> npt.NDArray[np.float32]:
+        xy: npt.NDArray[np.float32] = np.asarray(
+            self.xy[self.tracker_id == tracker_id], dtype=np.float32
         )
-        return filtered
+        return xy
+
+    def reset(self) -> None:
+        """Restore the trace buffers to their initial empty state.
+
+        Clears the accumulated `frame_id`, `xy`, and `tracker_id` history and
+        rewinds `current_frame_id` to `0`, so the trace can be reused across
+        independent streams without carrying over points from a previous run.
+        """
+        self.current_frame_id = 0
+        self.frame_id = np.array([], dtype=int)
+        self.xy = np.empty((0, 2), dtype=np.float32)
+        self.tracker_id = np.array([], dtype=int)
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
@@ -393,8 +434,18 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
 
     Raises:
         ValueError: If the format is invalid.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import hex_to_rgba
+        >>> hex_to_rgba("#FF00FF")
+        (255, 0, 255, 255)
+        >>> hex_to_rgba("#FF00FF80")
+        (255, 0, 255, 128)
+
+        ```
     """
-    hex_color = hex_color.strip().lstrip("#")
+    hex_color = hex_color.strip().removeprefix("#")
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:
@@ -421,6 +472,14 @@ def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
 
     Raises:
         ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import rgba_to_hex
+        >>> rgba_to_hex((255, 0, 255, 128))
+        '#FF00FF80'
+
+        ```
     """
     if len(rgba) != 4 or not all(0 <= c <= 255 for c in rgba):
         raise ValueError("RGBA must be a 4-tuple with values between 0-255.")
@@ -437,6 +496,16 @@ def is_valid_hex(hex_color: str) -> bool:
 
     Returns:
         True if the string is a valid 6- or 8-digit hex color, otherwise False.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import is_valid_hex
+        >>> is_valid_hex("#FF00FF")
+        True
+        >>> is_valid_hex("not-a-color")
+        False
+
+        ```
     """
     return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))
 

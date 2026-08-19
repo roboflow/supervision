@@ -1,7 +1,9 @@
-from __future__ import annotations
-
+import os
+import subprocess
+import sys
 import warnings
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -117,3 +119,34 @@ def test_private_validation_paths_do_not_warn() -> None:
         warning for warning in recorded_warnings if warning.category is FutureWarning
     ]
     assert future_warnings == []
+
+
+def test_import_supervision_stays_silent_about_bytetrack() -> None:
+    """Plain supervision import should not surface the ByteTrack warning."""
+    repo_root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(repo_root / "src")
+    script = """
+import warnings
+
+with warnings.catch_warnings(record=True) as recorded:
+    warnings.simplefilter("always")
+    import supervision
+
+byte_track_warnings = [
+    warning
+    for warning in recorded
+    if warning.category is FutureWarning and "ByteTrack" in str(warning.message)
+]
+
+raise SystemExit(1 if byte_track_warnings else 0)
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert completed.returncode == 0, completed.stderr

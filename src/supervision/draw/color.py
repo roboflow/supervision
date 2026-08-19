@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, cast
 
-import matplotlib.pyplot as plt
-
 from supervision.utils.internal import classproperty
 
 DEFAULT_COLOR_PALETTE = [
@@ -101,6 +99,19 @@ class Color:
     g: int
     b: int
     a: int = 255
+
+    def __post_init__(self) -> None:
+        """Validate that direct Color construction uses byte-sized channels."""
+        if not (
+            0 <= self.r <= 255
+            and 0 <= self.g <= 255
+            and 0 <= self.b <= 255
+            and 0 <= self.a <= 255
+        ):
+            raise ValueError(
+                "Color values must be in range 0-255, "
+                f"got ({self.r}, {self.g}, {self.b}, {self.a})"
+            )
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -498,12 +509,26 @@ class ColorPalette:
         ![visualized_color_palette](https://media.roboflow.com/
         supervision-annotator-examples/visualized_color_palette.png)
         """
-        mpl_palette = plt.get_cmap(palette_name, color_count)
+        if color_count < 1:
+            raise ValueError("color_count must be greater than or equal to 1")
+
+        # Keep pyplot lazy so importing color utilities does not import matplotlib.
+        import matplotlib.pyplot as plt
+
+        mpl_palette = plt.get_cmap(palette_name)
+        if hasattr(mpl_palette, "resampled"):
+            mpl_palette = mpl_palette.resampled(color_count)
 
         if hasattr(mpl_palette, "colors"):
             colors = mpl_palette.colors
         else:
-            colors = [mpl_palette(i / (color_count - 1)) for i in range(color_count)]
+            # A single color samples the palette start and avoids division by zero.
+            positions = (
+                [0.0]
+                if color_count == 1
+                else [i / (color_count - 1) for i in range(color_count)]
+            )
+            colors = [mpl_palette(position) for position in positions]
 
         return cls(
             [Color(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
@@ -529,8 +554,9 @@ class ColorPalette:
 
             ```
         """
-        if idx < 0:
-            raise ValueError("idx argument should not be negative")
+        if not self.colors:
+            raise ValueError("ColorPalette must contain at least one color")
+        # Modulo preserves Python-like wrapping for negative and oversized indexes.
         idx = idx % len(self.colors)
         return self.colors[idx]
 
@@ -550,7 +576,7 @@ def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
 
     Args:
         color: The color input to be converted,
-            which can be either a tuple of RGB values or an instance of a Color class.
+            which can be either a tuple of BGR values or an instance of a Color class.
 
     Returns:
         The color in BGR format as a tuple of three integers.

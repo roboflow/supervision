@@ -1,13 +1,11 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import Any, cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
+from supervision import _cv2 as cv2
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -32,6 +30,14 @@ class PolygonZone:
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
+        require_all_anchors: If `True` (default), a detection is considered inside
+            the zone only when *every* anchor in `triggering_anchors` is inside.
+            If `False`, the detection triggers as soon as *any* anchor is inside.
+            Has no effect when `triggering_anchors` has a single entry.
+            This is anchor-based, not a true geometric box/polygon intersection
+            test: it fires only when a listed anchor point lands inside the mask.
+            Use mask/IoU-based approaches instead when full-overlap semantics are
+            required.
         current_count: The current count of detected objects within the zone
         mask: The 2D bool mask for the polygon zone
 
@@ -51,17 +57,33 @@ class PolygonZone:
         1
 
         ```
+
+        ```pycon
+        >>> polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+        >>> polygon_zone = sv.PolygonZone(
+        ...     polygon=polygon,
+        ...     triggering_anchors=[sv.Position.TOP_LEFT, sv.Position.BOTTOM_RIGHT],
+        ...     require_all_anchors=False,
+        ... )
+        >>> detections = sv.Detections(xyxy=np.array([[80, 80, 120, 120]]))
+        >>> polygon_zone.trigger(detections)
+        array([ True])
+
+        ```
     """
 
     def __init__(
         self,
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
-    ):
+        require_all_anchors: bool = True,
+    ) -> None:
         self.polygon = polygon.astype(int)
-        self.triggering_anchors = triggering_anchors
-        if not list(self.triggering_anchors):
+        # Materialize once so we can safely accept generators without exhausting them.
+        self.triggering_anchors = list(triggering_anchors)
+        if not self.triggering_anchors:
             raise ValueError("Triggering anchors cannot be empty.")
+        self.require_all_anchors = require_all_anchors
 
         self.current_count = 0
 
@@ -89,11 +111,11 @@ class PolygonZone:
         """
         if len(detections) == 0:
             self.current_count = 0
-            return np.array([], dtype=bool)
+            return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
         all_anchors = np.array(
             [
-                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
                 for anchors in self.triggering_anchors
             ]
         )
@@ -103,9 +125,11 @@ class PolygonZone:
         in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
         x_safe = np.clip(x, 0, mask_w - 1)
         y_safe = np.clip(y, 0, mask_h - 1)
-        is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
+        anchor_hits = in_bounds & self.mask[y_safe, x_safe]
+        reduce = np.all if self.require_all_anchors else np.any
+        is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
 
 
 class PolygonZoneAnnotator:
@@ -126,6 +150,20 @@ class PolygonZoneAnnotator:
         center: The center of the polygon for text placement
         display_in_zone_count: Show the label of the zone or not. Default is True
         opacity: The opacity of zone filling when drawn on the scene. Default is 0
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> zone_annotator = sv.PolygonZoneAnnotator(zone=polygon_zone, thickness=2)
+        >>> scene = np.zeros((400, 400, 3), dtype=np.uint8)
+        >>> annotated_scene = zone_annotator.annotate(scene=scene)
+        >>> annotated_scene.shape
+        (400, 400, 3)
+
+        ```
     """
 
     def __init__(
@@ -139,7 +177,7 @@ class PolygonZoneAnnotator:
         text_padding: int = 10,
         display_in_zone_count: bool = True,
         opacity: float = 0,
-    ):
+    ) -> None:
         self.zone = zone
         self.color = color
         self.thickness = thickness

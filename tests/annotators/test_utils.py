@@ -1,19 +1,24 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
 import pytest
 
 from supervision.annotators.utils import (
     ColorLookup,
+    Trace,
+    get_labels_text,
     hex_to_rgba,
     is_valid_hex,
+    resolve_color,
     resolve_color_idx,
+    resolve_text_background_xyxy,
     rgba_to_hex,
     wrap_text,
 )
 from supervision.detection.core import Detections
+from supervision.draw.color import Color, ColorPalette
+from supervision.geometry.core import Position
 from tests.helpers import _create_detections
 
 
@@ -117,6 +122,37 @@ def test_resolve_color_idx(
         assert result == expected_result
 
 
+def test_resolve_color_accepts_negative_class_id() -> None:
+    """Negative class ids map deterministically instead of aborting annotation."""
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1])
+    palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+
+    result = resolve_color(
+        color=palette,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result == Color.from_hex("#0000ff")
+
+
+def test_resolve_color_accepts_palette_from_src_namespace() -> None:
+    """Palette instances imported through src.supervision still resolve by index."""
+    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+
+    detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+
+    result = resolve_color(
+        color=SrcColorPalette.DEFAULT,
+        detections=detections,
+        detection_idx=0,
+        color_lookup=ColorLookup.CLASS,
+    )
+
+    assert result.as_bgr() == (251, 81, 163)
+
+
 @pytest.mark.parametrize(
     ("text", "max_line_length", "expected_result", "exception"),
     [
@@ -181,6 +217,35 @@ def test_wrap_text(
         assert result == expected_result
 
 
+def test_resolve_text_background_xyxy_rejects_unknown_position() -> None:
+    """Unsupported positions must raise instead of returning an implicit None."""
+    with pytest.raises(ValueError, match="Unsupported position"):
+        resolve_text_background_xyxy(
+            center_coordinates=(10, 10),
+            text_wh=(20, 10),
+            position=cast(Position, "invalid"),
+        )
+
+
+def test_trace_put_requires_tracker_id_before_mutation() -> None:
+    """Trace.put must not mutate internal history before validating tracker ids."""
+    trace = Trace()
+    detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+
+    before_frame_id = trace.current_frame_id
+    before_history = trace.frame_id.copy()
+    before_xy = trace.xy.copy()
+    before_tracker_id = trace.tracker_id.copy()
+
+    with pytest.raises(ValueError, match="tracker_id"):
+        trace.put(detections)
+
+    assert trace.current_frame_id == before_frame_id
+    assert np.array_equal(trace.frame_id, before_history)
+    assert np.array_equal(trace.xy, before_xy)
+    assert np.array_equal(trace.tracker_id, before_tracker_id)
+
+
 @pytest.mark.parametrize(
     ("hex_color", "expected_rgba"),
     [
@@ -198,8 +263,18 @@ def test_hex_to_rgba_valid(
     assert hex_to_rgba(hex_color) == expected_rgba
 
 
-@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII", "#FFF", "1234567"])
+@pytest.mark.parametrize(
+    "hex_color",
+    [
+        pytest.param("#FF00F", id="five-digits"),
+        pytest.param("#GGHHII", id="non-hex-digits"),
+        pytest.param("#FFF", id="short-form"),
+        pytest.param("1234567", id="seven-digits"),
+        pytest.param("##000000", id="multiple-prefixes"),
+    ],
+)
 def test_hex_to_rgba_invalid(hex_color: str) -> None:
+    """Invalid formats raise instead of being normalized into valid colors."""
     with pytest.raises(ValueError, match="Invalid hex"):
         hex_to_rgba(hex_color)
 
@@ -246,3 +321,95 @@ def test_rgba_to_hex_invalid(rgba: tuple[int, ...]) -> None:
 )
 def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:
     assert is_valid_hex(hex_color) is expected_result
+
+
+class TestGetLabelsText:
+    """Tests for the get_labels_text helper."""
+
+    def test_returns_custom_labels_when_provided(self) -> None:
+        """Custom labels are returned as-is without inspecting detections."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+        custom = ["cat"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field(self) -> None:
+        """Labels come from CLASS_NAME_DATA_FIELD when present in data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        assert get_labels_text(detections, None) == ["cat", "dog"]
+
+    def test_falls_back_to_class_id(self) -> None:
+        """Labels fall back to class_id strings when no class_name data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[5, 3],
+        )
+        assert get_labels_text(detections, None) == ["5", "3"]
+
+    def test_falls_back_to_class_id_single_detection(self) -> None:
+        """class_id fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[7])
+        assert get_labels_text(detections, None) == ["7"]
+
+    def test_falls_back_to_index(self) -> None:
+        """Labels fall back to detection indices when no class_id."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]],
+        )
+        assert get_labels_text(detections, None) == ["0", "1", "2"]
+
+    def test_falls_back_to_index_single_detection(self) -> None:
+        """Index fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]])
+        assert get_labels_text(detections, None) == ["0"]
+
+    def test_custom_labels_take_precedence_over_class_name(self) -> None:
+        """Custom labels win over the class_name branch specifically."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        custom = ["a", "b"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field_with_non_str_dtype(self) -> None:
+        """str() coercion is load-bearing when class_name holds a non-str dtype."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array([1, 2])},
+        )
+        assert get_labels_text(detections, None) == ["1", "2"]
+
+    def test_empty_detections(self) -> None:
+        """Empty detections produce an empty label list, via the class_id branch."""
+        detections = Detections.empty()
+        assert detections.class_id is not None
+        assert get_labels_text(detections, None) == []
+
+    def test_raises_on_class_name_length_mismatch(self) -> None:
+        """A class_name array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        detections.data["class_name"] = np.array(["cat"])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_name"):
+            get_labels_text(detections, None)
+
+    def test_raises_on_class_id_length_mismatch(self) -> None:
+        """A class_id array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+        )
+        detections.class_id = np.array([0])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_id"):
+            get_labels_text(detections, None)

@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from inference import get_model
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
@@ -49,6 +48,7 @@ def main(
     ]
     timers = [ClockBasedTimer() for _ in zones]
 
+    window = sv.ImageWindow("Processed Video")
     for frame in frames_generator:
         fps_monitor.tick()
         fps = fps_monitor.fps
@@ -94,10 +94,11 @@ def main(
                 custom_color_lookup=custom_color_lookup,
             )
 
-        cv2.imshow("Processed Video", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        window.show(annotated_frame)
+        key = window.wait_key(1)
+        if not window.is_open or key == "q":
             break
-    cv2.destroyAllWindows()
+    window.close()
 
 
 if __name__ == "__main__":

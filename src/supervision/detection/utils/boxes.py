@@ -1,10 +1,14 @@
-from __future__ import annotations
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+)
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.geometry.core import Position
 
 
 def clip_boxes(
@@ -89,17 +93,17 @@ def pad_boxes(
     if py is None:
         py = px
 
-    result = xyxy.copy()
+    result = cast(npt.NDArray[Any], xyxy.copy())
     result[:, [0, 1]] -= [px, py]
     result[:, [2, 3]] += [px, py]
 
-    return result
+    return cast(npt.NDArray[np.number], result)
 
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=TargetMode.ARGS_REMAP,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
     args_mapping={"normalized_xyxy": "xyxy"},
 )
 def denormalize_boxes(
@@ -153,17 +157,17 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = xyxy.copy()
+    result = cast(npt.NDArray[Any], xyxy.copy())
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
 
-    return result
+    return cast(npt.NDArray[np.number], result)
 
 
 def move_boxes(
-    xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+    xyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxy: An array of shape `(n, 4)` containing the
@@ -193,8 +197,8 @@ def move_boxes(
 
 
 def move_oriented_boxes(
-    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+    xyxyxyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
@@ -241,7 +245,7 @@ def move_oriented_boxes(
     return xyxyxyxy + offset
 
 
-def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
+def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Compute the area of N oriented bounding boxes using the shoelace formula.
 
     Args:
@@ -254,19 +258,22 @@ def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
         ValueError: If `corners` does not have shape `(N, 4, 2)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.detection.utils.boxes import obb_polygon_area
         >>> corners = np.array([[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32)
         >>> obb_polygon_area(corners)
         array([50.])
+
+        ```
     """
-    corners = np.asarray(corners)
+    corners = cast(npt.NDArray[np.number], np.asarray(corners))
     if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
         raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
     x = corners[..., 0].astype(np.float64, copy=False)
     y = corners[..., 1].astype(np.float64, copy=False)
     cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
-    return 0.5 * np.abs(np.sum(cross, axis=-1))
+    return cast(npt.NDArray[np.float64], 0.5 * np.abs(np.sum(cross, axis=-1)))
 
 
 def xyxyxyxy_to_xyxy(
@@ -299,14 +306,103 @@ def xyxyxyxy_to_xyxy(
 
         ```
     """
-    xyxyxyxy = np.asarray(xyxyxyxy)
+    xyxyxyxy = cast(npt.NDArray[np.number], np.asarray(xyxyxyxy))
     if xyxyxyxy.ndim != 3 or xyxyxyxy.shape[-2:] != (4, 2):
         raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {xyxyxyxy.shape}")
     x_min = xyxyxyxy[..., 0].min(axis=-1)
     y_min = xyxyxyxy[..., 1].min(axis=-1)
     x_max = xyxyxyxy[..., 0].max(axis=-1)
     y_max = xyxyxyxy[..., 1].max(axis=-1)
-    return np.stack([x_min, y_min, x_max, y_max], axis=-1)
+    return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
+
+
+# Anchor position -> (sx, sy) offset from the box center, in units of the box
+# half-width and half-height. Image coordinates, so +y points down.
+_ANCHOR_OFFSETS: dict[Position, tuple[float, float]] = {
+    Position.CENTER: (0.0, 0.0),
+    Position.CENTER_LEFT: (-1.0, 0.0),
+    Position.CENTER_RIGHT: (1.0, 0.0),
+    Position.TOP_CENTER: (0.0, -1.0),
+    Position.BOTTOM_CENTER: (0.0, 1.0),
+    Position.TOP_LEFT: (-1.0, -1.0),
+    Position.TOP_RIGHT: (1.0, -1.0),
+    Position.BOTTOM_LEFT: (-1.0, 1.0),
+    Position.BOTTOM_RIGHT: (1.0, 1.0),
+}
+
+
+def _oriented_box_anchors(
+    xyxyxyxy: npt.NDArray[np.number], anchor: Position
+) -> npt.NDArray[np.float64]:
+    """Locate an anchor point on each oriented bounding box.
+
+    The returned point always lies on the oriented rectangle itself: corners map
+    to corners, side anchors to side midpoints, and `CENTER` to the box center.
+    For an axis-aligned box the result matches the anchor derived from the
+    envelope, so this is a drop-in replacement that stops the anchor from drifting
+    off a rotated body.
+
+    Args:
+        xyxyxyxy: OBB corner coordinates with shape `(N, 4, 2)` in winding order,
+            each box as `[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`.
+        anchor: The anchor position to locate. `Position.CENTER_OF_MASS` is not
+            supported here, as it is defined on a mask rather than a box.
+
+    Returns:
+        Anchor coordinates as an array of shape `(N, 2)`.
+
+    Raises:
+        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`, or the anchor
+            is not supported.
+
+    Note:
+        Corners must be in consecutive winding order (clockwise or
+        counter-clockwise). Non-sequential ordering (e.g. diagonal pairs)
+        silently produces incorrect results.
+
+        Width and height are determined by x-axis projection of each half-side
+        vector. When a box rotates past ``arctan(w/h)`` (approx. 68 deg for a
+        10 x 4 box) the assigned *width* side flips discontinuously, producing
+        a jump in anchor position (~``|w - h|`` pixels for ``BOTTOM_CENTER``).
+        The anchor always lies on the box; the effect is cosmetic for static
+        images but visible on rotating objects in video.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _oriented_box_anchors
+        >>> from supervision.geometry.core import Position
+        >>> corners = np.array(
+        ...     [[[0, 0], [10, 0], [10, 4], [0, 4]]], dtype=np.float32
+        ... )
+        >>> _oriented_box_anchors(corners, Position.BOTTOM_CENTER)
+        array([[5., 4.]])
+
+        ```
+    """
+    corners = np.asarray(xyxyxyxy, dtype=np.float64)
+    if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
+        raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {corners.shape}")
+    if anchor not in _ANCHOR_OFFSETS:
+        raise ValueError(f"{anchor} is not supported.")
+    sx, sy = _ANCHOR_OFFSETS[anchor]
+
+    center = corners.mean(axis=1)
+    # Two perpendicular half-side vectors per box.
+    half_side_a = (corners[:, 1] - corners[:, 0]) / 2
+    half_side_b = (corners[:, 2] - corners[:, 1]) / 2
+
+    # Map each box's own sides onto the image axes: the side more aligned with
+    # the x-axis plays the role of width, the other of height. This makes the
+    # offsets collapse to the axis-aligned frame when the box is not rotated.
+    is_width = np.abs(half_side_a[:, 0]) >= np.abs(half_side_b[:, 0])
+    width = np.where(is_width[:, None], half_side_a, half_side_b)
+    height = np.where(is_width[:, None], half_side_b, half_side_a)
+    # Point width toward +x and height toward +y so the offset signs are stable.
+    width = np.where((width[:, 0] < 0)[:, None], -width, width)
+    height = np.where((height[:, 1] < 0)[:, None], -height, height)
+
+    return cast(npt.NDArray[np.float64], center + sx * width + sy * height)
 
 
 def scale_boxes(
@@ -375,7 +471,7 @@ def spread_out_boxes(
     if len(xyxy) == 0:
         return xyxy
 
-    xyxy_padded = pad_boxes(xyxy, px=1)
+    xyxy_padded = cast(npt.NDArray[Any], pad_boxes(xyxy, px=1))
     for _ in range(max_iterations):
         # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)

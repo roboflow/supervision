@@ -156,11 +156,27 @@ Desktop.ini
 
 # local data
 data/
+examples/*/outputs/
+!src/supervision/_cv2/data/
+!src/supervision/_cv2/data/*
+*.mp4
+*.pt
+
+# some artifacts
+/*.py
+/*.jpg
+/*.png
+/*.tif
+/*.json
+
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
-.claude/logs
+.claude/logs/
 .claude/state/
+.claude/worktrees/
+.developments/
 .plans/
+.notes/
 .reports/
 .temp/
 .tmp/
@@ -169,4 +185,7 @@ _resolutions/
 _reviews/
 tasks/
 *.local.md
-scripts/test_multi_skeleton.py
+
+output/
+notebooks/
+releases/

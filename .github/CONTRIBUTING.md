@@ -11,14 +11,14 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 ## Table of Contents
 
 - [Contribution Guidelines](#contribution-guidelines)
-    - [Contributing Features](#contributing-features)
-    - [API Design Principles](#api-design-principles)
+  - [Contributing Features](#contributing-features)
+  - [API Design Principles](#api-design-principles)
 - [How to Contribute Changes](#how-to-contribute-changes)
 - [Installation for Contributors](#installation-for-contributors)
 - [Code Style and Quality](#code-style-and-quality)
-    - [Pre-commit tool](#pre-commit-tool)
-    - [Docstrings](#docstrings)
-    - [Type checking](#type-checking)
+  - [Pre-commit tool](#pre-commit-tool)
+  - [Docstrings](#docstrings)
+  - [Type checking](#type-checking)
 - [Documentation](#documentation)
 - [Cookbooks](#cookbooks)
 - [Tests](#tests)
@@ -142,63 +142,63 @@ Before starting your work on the project, set up your development environment:
 
 1. **Clone your fork of the project:**
 
-    **Option A: Recommended for most contributors (shallow clone of develop branch):**
+   **Option A: Recommended for most contributors (shallow clone of develop branch):**
 
-    ```bash
-    git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
-    cd supervision
-    ```
+   ```bash
+   git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
+   cd supervision
+   ```
 
-    Replace `YOUR_USERNAME` with your GitHub username.
+   Replace `YOUR_USERNAME` with your GitHub username.
 
-    > **Note**: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
+   > **Note**: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
 
-    **Option B: Full repository clone (if you need complete history):**
+   **Option B: Full repository clone (if you need complete history):**
 
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/supervision.git
-    cd supervision
-    git checkout develop
-    ```
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/supervision.git
+   cd supervision
+   git checkout develop
+   ```
 
 2. **Set up the upstream remote:**
 
-    ```bash
-    git remote add upstream https://github.com/roboflow/supervision.git
-    git fetch upstream
-    ```
+   ```bash
+   git remote add upstream https://github.com/roboflow/supervision.git
+   git fetch upstream
+   ```
 
 3. **Create and activate a virtual environment:**
 
-    **On Linux/macOS:**
+   **On Linux/macOS:**
 
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
-    **On Windows:**
+   **On Windows:**
 
-    ```cmd
-    python -m venv .venv
-    .venv\Scripts\activate
-    ```
+   ```cmd
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
 
 4. **Install `uv`:**
 
-    Follow the instructions on the [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
+   Follow the instructions on the [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
 
 5. **Install project dependencies:**
 
-    ```bash
-    uv pip install -r pyproject.toml --group dev --group docs --extra metrics
-    ```
+   ```bash
+   uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+   ```
 
 6. **Verify the setup:**
 
-    ```bash
-    uv run pytest
-    ```
+   ```bash
+   uv run pytest
+   ```
 
 ## 🎨 Code Style and Quality
 
@@ -212,27 +212,27 @@ To run the pre-commit tool, follow these steps:
 
 1. **Install pre-commit** (already included if you followed the installation steps above):
 
-    ```bash
-    uv sync --group dev
-    ```
+   ```bash
+   uv sync --group dev
+   ```
 
 2. **Navigate to the project's root directory** (if not already there).
 
 3. **Run pre-commit checks**:
 
-    ```bash
-    uv run pre-commit run --all-files
-    ```
+   ```bash
+   uv run pre-commit run --all-files
+   ```
 
-    This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
+   This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
 
 4. **Install pre-commit as a git hook** (optional but recommended):
 
-    ```bash
-    uv run pre-commit install
-    ```
+   ```bash
+   uv run pre-commit install
+   ```
 
-    This will automatically run pre-commit checks every time you make a `git commit`.
+   This will automatically run pre-commit checks every time you make a `git commit`.
 
 ### Docstrings
 
@@ -245,6 +245,10 @@ Every docstring should include a usage example. When the example only uses `supe
 ### Type checking
 
 Type hints are required on all new code. mypy is enforced by the pre-commit hook configured in `.pre-commit-config.yaml` — your PR will fail CI if mypy reports errors.
+
+### Readability
+
+Avoid multi-branch conditional expressions inside function or constructor arguments. If an argument needs more than a simple `a if condition else b`, assign it to a named local variable before the call.
 
 ### Performance
 
@@ -280,15 +284,15 @@ To run the documentation locally:
 
 1. **Install documentation dependencies** (if not already installed):
 
-    ```bash
-    uv sync --group docs
-    ```
+   ```bash
+   uv sync --group docs
+   ```
 
 2. **Start the documentation server**:
 
-    ```bash
-    uv run mkdocs serve
-    ```
+   ```bash
+   uv run mkdocs serve
+   ```
 
 3. **Access the documentation** at `http://127.0.0.1:8000` in your browser.
 

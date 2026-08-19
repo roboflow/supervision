@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-
 def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> int:
     """
     Calculates the minimum number of single-character edits required
