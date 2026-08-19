@@ -21,9 +21,11 @@ from supervision._cv2.constants import (
 def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
     """Convert the BGR, RGB, grayscale, and 8-bit HSV formats used by Supervision."""
     if code in (_COLOR_BGR2RGB, _COLOR_RGB2BGR):
-        if image.ndim != 3 or image.shape[2] != 3:
-            raise ValueError("BGR/RGB conversion requires a three-channel image")
-        return np.ascontiguousarray(image[..., ::-1])
+        if image.ndim != 3 or image.shape[2] not in (3, 4):
+            raise ValueError(
+                "BGR/RGB conversion requires a three- or four-channel image"
+            )
+        return np.ascontiguousarray(image[..., 2::-1])
 
     if code == _COLOR_GRAY2BGR:
         if image.ndim != 2:

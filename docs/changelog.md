@@ -11,6 +11,7 @@ date_modified: 2026-08-11
 
 - `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
 - `sv.list_files_with_extensions` no longer includes directories when listing all files without an extension filter.
+- `sv.pillow_to_cv2` now accepts RGBA images when the cv2-free fallback backend is active, matching OpenCV by dropping alpha and returning BGR channels.
 
 ### 0.30.0 <small>Aug 4, 2026</small>
 
