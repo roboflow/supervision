@@ -528,7 +528,7 @@ class KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [MediaPipe](https://github.com/google-ai-edge/mediapipe)
-        pose landmark detection inference result.
+        pose, face, or hand landmark detection inference result.
 
         Args:
             mediapipe_results: The output results from Mediapipe. It supports pose,
@@ -543,8 +543,10 @@ class KeyPoints:
                 confidences of each keypoint.
 
         !!! tip
-            Before you start, download model bundles from the
-            [MediaPipe website](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models).
+            Before you start, download model bundles from the MediaPipe website:
+            [pose](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/index#models),
+            [face](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker/index#models),
+            [hand](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/index#models).
 
         Examples:
             ```python
@@ -598,6 +600,32 @@ class KeyPoints:
 
             key_points = sv.KeyPoints.from_mediapipe(
                 face_landmarker_result, (image_width, image_height))
+            ```
+
+            ```python
+            from supervision import _cv2 as cv2
+            import mediapipe as mp
+            import supervision as sv
+
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            image_height, image_width, _ = image.shape
+            mediapipe_image = mp.Image(
+                image_format=mp.ImageFormat.SRGB,
+                data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+            options = mp.tasks.vision.HandLandmarkerOptions(
+                base_options=mp.tasks.BaseOptions(
+                    model_asset_path="hand_landmarker.task"
+                ),
+                running_mode=mp.tasks.vision.RunningMode.IMAGE,
+                num_hands=2)
+
+            HandLandmarker = mp.tasks.vision.HandLandmarker
+            with HandLandmarker.create_from_options(options) as landmarker:
+                hand_landmarker_result = landmarker.detect(mediapipe_image)
+
+            key_points = sv.KeyPoints.from_mediapipe(
+                hand_landmarker_result, (image_width, image_height))
             ```
 
         """
