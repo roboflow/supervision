@@ -4,6 +4,36 @@ from supervision.key_points.skeletons import (
     Skeleton,
 )
 
+# Independently-verified-correct MediaPipe hand topology: 21 keypoints (wrist +
+# 4 joints per finger), 21 edges (wrist-to-knuckle spokes replaced by a palm
+# ring connecting the 4 knuckles, plus the wrist-to-index-knuckle and
+# wrist-to-pinky-knuckle spokes). Kept independent of skeletons.py so this test
+# fails loudly if Skeleton.HAND regresses, rather than comparing the value to
+# itself.
+HAND = (
+    (1, 2),
+    (1, 6),
+    (1, 18),
+    (6, 10),
+    (10, 14),
+    (14, 18),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (6, 7),
+    (7, 8),
+    (8, 9),
+    (10, 11),
+    (11, 12),
+    (12, 13),
+    (14, 15),
+    (15, 16),
+    (16, 17),
+    (18, 19),
+    (19, 20),
+    (20, 21),
+)
+
 
 class TestSkeletons:
     def test_skeleton_enum_values(self) -> None:
@@ -60,7 +90,7 @@ class TestSkeletons:
             assert SKELETONS_BY_VERTEX_COUNT[vertex_count] == skeleton_value
 
     def test_hand_skeleton_definition(self):
-        """Test MediaPipe hand skeleton definition."""
+        """Test MediaPipe hand skeleton definition matches the verified topology."""
         hand_skeleton = Skeleton.HAND.value
 
         assert len(hand_skeleton) == 21
@@ -74,27 +104,7 @@ class TestSkeletons:
         The palm is the closing knuckle arch defined by MediaPipe's
         `HAND_PALM_CONNECTIONS`, not a spoke-fan from the wrist: the wrist links
         only to the thumb, index and pinky bases, and the knuckles chain across.
+        Asserted against the independently-transcribed `HAND` tuple above, not
+        imported from `skeletons.py`, so this fails loudly on a regression there.
         """
-        assert Skeleton.HAND.value == (
-            (1, 2),
-            (1, 6),
-            (1, 18),
-            (6, 10),
-            (10, 14),
-            (14, 18),
-            (2, 3),
-            (3, 4),
-            (4, 5),
-            (6, 7),
-            (7, 8),
-            (8, 9),
-            (10, 11),
-            (11, 12),
-            (12, 13),
-            (14, 15),
-            (15, 16),
-            (16, 17),
-            (18, 19),
-            (19, 20),
-            (20, 21),
-        )
+        assert Skeleton.HAND.value == HAND
