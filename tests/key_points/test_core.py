@@ -12,7 +12,6 @@ from tests.helpers import (
     _FakeMediapipeHandednessCategory,
     _FakeMediapipeLandmark,
     _FakeMediapipeLandmarkWithNoneVisibility,
-    _FakeMediapipeLandmarkWithoutVisibility,
     _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
@@ -1363,8 +1362,8 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
             _FakeMediapipeResults(
                 hand_landmarks=[
                     [
-                        _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
-                        _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
                     ]
                 ]
             ),
@@ -1374,14 +1373,14 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
                 confidence=[[1.0, 1.0]],
                 class_id=None,
             ),
-        ),
+        ),  # hand_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
         (
             _FakeMediapipeResults(
                 multi_hand_landmarks=[
                     _FakeMediapipePose(
                         landmarks=[
-                            _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
-                            _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
                         ]
                     )
                 ]
@@ -1392,7 +1391,7 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
                 confidence=[[1.0, 1.0]],
                 class_id=None,
             ),
-        ),
+        ),  # multi_hand_landmarks: legacy proto2; visibility always forced to 1.0
         (
             _FakeMediapipeResults(
                 face_landmarks=[
