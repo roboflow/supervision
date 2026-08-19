@@ -237,7 +237,38 @@ class TestDetectionsSmootherOrientedBoxes:
             data={ORIENTED_BOX_COORDINATES: corners},
         )
 
-    def test_corners_are_smoothed_with_the_box(self):
+    @staticmethod
+    def _rectangle(angle: float) -> Detections:
+        """Create a rotated non-square OBB centered at the origin."""
+        base = np.array(
+            [[[-20.0, -5.0], [20.0, -5.0], [20.0, 5.0], [-20.0, 5.0]]],
+            dtype=np.float32,
+        )
+        rotation = np.array(
+            [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]],
+            dtype=np.float32,
+        )
+        corners = base @ rotation.T
+        return Detections(
+            xyxy=np.array(
+                [
+                    [
+                        corners[..., 0].min(),
+                        corners[..., 1].min(),
+                        corners[..., 0].max(),
+                        corners[..., 1].max(),
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+            tracker_id=np.array([1]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+    def test_corners_are_smoothed_with_the_box(self) -> None:
+        """Translation smoothing moves OBB corners with the axis-aligned box."""
         smoother = DetectionsSmoother(length=3)
         for cx in (0.0, 100.0, 200.0):
             result = smoother.update_with_detections(self._obb(cx, 0.0))
@@ -259,21 +290,17 @@ class TestDetectionsSmootherOrientedBoxes:
         corner_centre_x = result.data[ORIENTED_BOX_COORDINATES][0][:, 0].mean()
         assert_allclose(corner_centre_x, box_centre_x)
 
-    def test_rotation_is_averaged_not_taken_from_the_oldest_frame(self):
-        """A rotating box must not keep the first frame's orientation."""
+    def test_corner_order_is_aligned_before_averaging(self) -> None:
+        """Cyclically shifted equivalent corners preserve the square geometry."""
         smoother = DetectionsSmoother(length=2)
 
         upright = np.array(
             [[[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]]],
             dtype=np.float32,
         )
-        # The same square turned 90 degrees: corner order rolled by one.
-        turned = np.array(
-            [[[10.0, -10.0], [10.0, 10.0], [-10.0, 10.0], [-10.0, -10.0]]],
-            dtype=np.float32,
-        )
+        shifted = np.roll(upright, -1, axis=1)
 
-        for corners in (upright, turned):
+        for corners in (upright, shifted):
             detections = Detections(
                 xyxy=np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
                 confidence=np.array([0.9], dtype=np.float32),
@@ -283,11 +310,51 @@ class TestDetectionsSmootherOrientedBoxes:
             )
             result = smoother.update_with_detections(detections)
 
+        assert_allclose(result.data[ORIENTED_BOX_COORDINATES], upright)
         assert_allclose(
-            result.data[ORIENTED_BOX_COORDINATES][0], (upright[0] + turned[0]) / 2
+            result.xyxy,
+            np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
         )
 
-    def test_detections_without_oriented_boxes_are_unaffected(self):
+    def test_rotated_rectangle_keeps_xyxy_and_obb_envelopes_consistent(self) -> None:
+        """Averaged rotated corners derive the matching axis-aligned envelope."""
+        smoother = DetectionsSmoother(length=2)
+        for angle in (np.pi / 4, -np.pi / 4):
+            result = smoother.update_with_detections(self._rectangle(angle))
+
+        corners = result.data[ORIENTED_BOX_COORDINATES]
+        assert_allclose(
+            result.xyxy,
+            np.array(
+                [
+                    [
+                        corners[..., 0].min(),
+                        corners[..., 1].min(),
+                        corners[..., 0].max(),
+                        corners[..., 1].max(),
+                    ]
+                ]
+            ),
+        )
+        x = corners[0, :, 0]
+        y = corners[0, :, 1]
+        assert 0.0 < 0.5 * abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+
+    def test_mixed_oriented_box_metadata_is_dropped(self) -> None:
+        """Mixed OBB and axis-aligned history must not retain stale OBB data."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
+                tracker_id=np.array([1]),
+            )
+        )
+        result = smoother.update_with_detections(self._obb(100.0, 0.0))
+
+        assert ORIENTED_BOX_COORDINATES not in result.data
+        assert_allclose(result.xyxy, np.array([[40.0, -10.0, 60.0, 10.0]]))
+
+    def test_detections_without_oriented_boxes_are_unaffected(self) -> None:
         """The common axis-aligned case must not gain the key."""
         smoother = DetectionsSmoother(length=2)
         for x in (0.0, 100.0):

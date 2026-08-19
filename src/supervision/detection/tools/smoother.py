@@ -6,7 +6,23 @@ import numpy as np
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.utils.internal import SupervisionWarnings
+
+
+def _align_oriented_corners(corners: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """Align OBB corner starts and winding with a reference representation."""
+    variants = [corners, corners[:, ::-1]]
+    candidates = np.stack(
+        [
+            np.roll(candidate, shift, axis=1)
+            for candidate in variants
+            for shift in range(4)
+        ]
+    )
+    distances = np.sum((candidates - reference[None, ...]) ** 2, axis=(-2, -1))
+    best = np.argmin(distances, axis=0)
+    return np.asarray(candidates[best, np.arange(corners.shape[0])])
 
 
 class DetectionsSmoother:
@@ -161,8 +177,11 @@ class DetectionsSmoother:
 
         Averages `xyxy` over all valid (non-`None`) frames in the track window.
         `confidence` is averaged only over frames that carry it; frames with
-        `confidence=None` are excluded. Returns `None` when the track is unknown
-        or its entire window is empty.
+        `confidence=None` are excluded. When every valid frame carries compatible
+        oriented-box corners, those corners are aligned and averaged too, and
+        `xyxy` is derived from their resulting envelope. Mixed or incompatible
+        oriented-box metadata is dropped to keep the returned geometry consistent.
+        Returns `None` when the track is unknown or its entire window is empty.
 
         Args:
             track_id: The tracker ID whose smoothed detection to retrieve.
@@ -187,25 +206,21 @@ class DetectionsSmoother:
         confidences = [d.confidence for d in valid if d.confidence is not None]
         ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
 
-        # Smooth the oriented corners alongside `xyxy`. Everything else on `ret`
-        # is copied from the oldest frame in the window, so without this the
-        # returned detection carries a smoothed axis-aligned box next to corners
-        # from a different frame — the two describe different positions, and the
-        # geometry helpers that read `xyxyxyxy` (`detection_area`,
-        # `detection_iou`, `get_anchors_coordinates`) then disagree with `xyxy`.
-        # Averaged over the frames that carry the key, matching how `confidence`
-        # is handled above.
-        # `Detections.data` values may be a list rather than an array, so
-        # normalise before reading `.shape`.
         corner_sets = [
             np.asarray(d.data[ORIENTED_BOX_COORDINATES])
             for d in valid
             if ORIENTED_BOX_COORDINATES in d.data
         ]
-        if corner_sets and len({c.shape for c in corner_sets}) == 1:
-            ret.data[ORIENTED_BOX_COORDINATES] = np.mean(
-                np.stack(corner_sets, axis=0), axis=0
-            )
+        if len(corner_sets) == len(valid) and len({c.shape for c in corner_sets}) == 1:
+            reference = corner_sets[0]
+            aligned = [
+                _align_oriented_corners(corners, reference) for corners in corner_sets
+            ]
+            smoothed_corners = np.mean(np.stack(aligned, axis=0), axis=0)
+            ret.data[ORIENTED_BOX_COORDINATES] = smoothed_corners
+            ret.xyxy = xyxyxyxy_to_xyxy(smoothed_corners)
+        else:
+            ret.data.pop(ORIENTED_BOX_COORDINATES, None)
 
         return ret
 
