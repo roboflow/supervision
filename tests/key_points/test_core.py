@@ -3,10 +3,17 @@ from contextlib import nullcontext as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.config import HANDEDNESS_SCORE_DATA_FIELD
 from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
+    _FakeMediapipeClassification,
+    _FakeMediapipeHandedness,
+    _FakeMediapipeHandednessCategory,
     _FakeMediapipeLandmark,
+    _FakeMediapipeLandmarkWithNoneVisibility,
+    _FakeMediapipeLandmarkWithoutVisibility,
+    _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
     _FakeYoloNasKeyPoint,
@@ -1352,6 +1359,74 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
                 class_id=None,
             ),
         ),
+        (
+            _FakeMediapipeResults(
+                hand_landmarks=[
+                    [
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
+                    ]
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # hand_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
+        (
+            _FakeMediapipeResults(
+                multi_hand_landmarks=[
+                    _FakeMediapipePose(
+                        landmarks=[
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
+                        ]
+                    )
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # multi_hand_landmarks: legacy proto2; visibility always forced to 1.0
+        (
+            _FakeMediapipeResults(
+                face_landmarks=[
+                    [
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.1, 0.2),
+                        _FakeMediapipeLandmarkWithNoneVisibility(0.3, 0.4),
+                    ]
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # face_landmarks: Tasks API list-of-list; unset visibility -> forced to 1.0
+        (
+            _FakeMediapipeResults(
+                multi_face_landmarks=[
+                    _FakeMediapipePose(
+                        landmarks=[
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.1, 0.2),
+                            _FakeMediapipeLandmarkWithZeroVisibility(0.3, 0.4),
+                        ]
+                    )
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),  # multi_face_landmarks: legacy proto2; visibility always forced to 1.0
     ],
 )
 def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
@@ -1810,3 +1885,134 @@ def test_with_nms_raises(key_points, threshold, class_agnostic, match):
     """NMS raises when required fields are missing."""
     with pytest.raises(ValueError, match=match):
         key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
+
+
+def _hand_landmarks(count: int) -> list[list[_FakeMediapipeLandmarkWithoutVisibility]]:
+    """Build `count` two-landmark hands for the Tasks API `hand_landmarks` shape."""
+    return [
+        [
+            _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
+            _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
+        ]
+        for _ in range(count)
+    ]
+
+
+def _legacy_hand_landmarks(count: int) -> list[_FakeMediapipePose]:
+    """Build `count` two-landmark hands for the legacy `multi_hand_landmarks` shape."""
+    return [_FakeMediapipePose(landmarks=hand) for hand in _hand_landmarks(count)]
+
+
+class TestFromMediapipeHandedness:
+    """Tests for handedness-derived `class_id` and `data` on MediaPipe hand results."""
+
+    @pytest.mark.parametrize(
+        "mediapipe_results",
+        [
+            pytest.param(
+                _FakeMediapipeResults(
+                    hand_landmarks=_hand_landmarks(2),
+                    handedness=[
+                        [_FakeMediapipeHandednessCategory("Left", 0.98)],
+                        [_FakeMediapipeHandednessCategory("Right", 0.75)],
+                    ],
+                ),
+                id="tasks-api",
+            ),
+            pytest.param(
+                _FakeMediapipeResults(
+                    multi_hand_landmarks=_legacy_hand_landmarks(2),
+                    multi_handedness=[
+                        _FakeMediapipeHandedness(
+                            [_FakeMediapipeClassification("Left", 0.98)]
+                        ),
+                        _FakeMediapipeHandedness(
+                            [_FakeMediapipeClassification("Right", 0.75)]
+                        ),
+                    ],
+                ),
+                id="legacy-solution",
+            ),
+        ],
+    )
+    def test_maps_labels_to_class_id_and_keeps_score_in_data(self, mediapipe_results):
+        """Left/Right map to stable class ids and the score lands in `data`.
+
+        Both MediaPipe generations report the same decision under different attribute
+        names, so each must yield an identical `KeyPoints` regardless of which API
+        produced the result.
+        """
+        key_points = KeyPoints.from_mediapipe(
+            mediapipe_results, resolution_wh=(100, 200)
+        )
+
+        np.testing.assert_array_equal(key_points.class_id, np.array([0, 1]))
+        np.testing.assert_allclose(
+            key_points.data[HANDEDNESS_SCORE_DATA_FIELD], np.array([0.98, 0.75])
+        )
+
+    def test_omits_handedness_when_absent(self):
+        """Hand results without handedness keep `class_id` and `data` unset.
+
+        Older callers and partial mocks supply landmarks alone; reading handedness
+        must stay optional rather than raising on the missing attribute.
+        """
+        mediapipe_results = _FakeMediapipeResults(hand_landmarks=_hand_landmarks(1))
+
+        key_points = KeyPoints.from_mediapipe(
+            mediapipe_results, resolution_wh=(100, 200)
+        )
+
+        assert key_points.class_id is None
+        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
+
+    @pytest.mark.parametrize(
+        "mediapipe_results",
+        [
+            pytest.param(
+                _FakeMediapipeResults(
+                    hand_landmarks=_hand_landmarks(2),
+                    handedness=[[_FakeMediapipeHandednessCategory("Left", 0.98)]],
+                ),
+                id="fewer-handedness-entries-than-hands",
+            ),
+            pytest.param(
+                _FakeMediapipeResults(
+                    hand_landmarks=_hand_landmarks(1),
+                    handedness=[[_FakeMediapipeHandednessCategory("Middle", 0.98)]],
+                ),
+                id="unrecognised-label",
+            ),
+        ],
+    )
+    def test_drops_handedness_when_it_cannot_align_with_hands(self, mediapipe_results):
+        """Misaligned or unrecognised handedness is dropped whole, never guessed.
+
+        A per-hand fallback would silently shift every later `class_id` by one, so the
+        contract is all-or-nothing: emit both arrays or neither.
+        """
+        key_points = KeyPoints.from_mediapipe(
+            mediapipe_results, resolution_wh=(100, 200)
+        )
+
+        assert key_points.class_id is None
+        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
+
+    def test_leaves_pose_results_untouched(self):
+        """Pose results keep their existing `class_id`/`data` behaviour.
+
+        Handedness handling is additive for hand branches only; this pins that the
+        pose path did not inherit an empty-but-present data field or a class id.
+        """
+        mediapipe_results = _FakeMediapipeResults(
+            pose_landmarks=_FakeMediapipePose(
+                landmarks=[_FakeMediapipeLandmark(0.5, 0.75, 0.9)]
+            )
+        )
+
+        key_points = KeyPoints.from_mediapipe(
+            mediapipe_results, resolution_wh=(200, 200)
+        )
+
+        assert key_points.class_id is None
+        assert HANDEDNESS_SCORE_DATA_FIELD not in key_points.data
