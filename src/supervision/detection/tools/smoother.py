@@ -195,8 +195,10 @@ class DetectionsSmoother:
         # `detection_iou`, `get_anchors_coordinates`) then disagree with `xyxy`.
         # Averaged over the frames that carry the key, matching how `confidence`
         # is handled above.
+        # `Detections.data` values may be a list rather than an array, so
+        # normalise before reading `.shape`.
         corner_sets = [
-            d.data[ORIENTED_BOX_COORDINATES]
+            np.asarray(d.data[ORIENTED_BOX_COORDINATES])
             for d in valid
             if ORIENTED_BOX_COORDINATES in d.data
         ]
