@@ -60,6 +60,58 @@ def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None
     assert result == expected_result
 
 
+@pytest.mark.parametrize(
+    ("polygon", "expected_result"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000, 1_000_000],
+                    [1_050_000, 1_000_000],
+                    [1_050_000, 1_050_000],
+                    [1_000_000, 1_050_000],
+                ],
+                dtype=np.int32,
+            ),
+            Point(x=1_025_000, y=1_025_000),
+            id="int32-overflow",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000_000_000, 1_000_000_000_000],
+                    [1_000_000_050_000, 1_000_000_000_000],
+                    [1_000_000_050_000, 1_000_000_050_000],
+                    [1_000_000_000_000, 1_000_000_050_000],
+                ],
+                dtype=np.int64,
+            ),
+            Point(x=1_000_000_025_000, y=1_000_000_025_000),
+            id="large-offset-cancellation",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [1_000_000_000_000, 1_000_000_000_000],
+                    [1_000_000_000_003, 1_000_000_000_005],
+                    [1_000_000_000_012, 1_000_000_000_020],
+                ],
+                dtype=np.int64,
+            ),
+            Point(x=1_000_000_000_005, y=1_000_000_000_008),
+            id="int64-collinear-zero-area",
+        ),
+    ],
+)
+def test_get_polygon_center_with_large_coordinates(
+    polygon: np.ndarray, expected_result: Point
+) -> None:
+    """Calculate centroids without integer overflow or precision loss."""
+    result = get_polygon_center(polygon)
+
+    assert result == expected_result
+
+
 def test_get_polygon_center_no_deprecation_warning() -> None:
     """Regression for #2384: get_polygon_center must not fire DeprecationWarning."""
     import warnings
