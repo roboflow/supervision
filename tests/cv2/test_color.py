@@ -13,6 +13,7 @@ from supervision._cv2.constants import (
     _COLOR_BGR2RGB,
     _COLOR_GRAY2BGR,
     _COLOR_HSV2BGR,
+    _COLOR_RGB2BGR,
 )
 
 try:
@@ -36,6 +37,13 @@ except (ImportError, OSError):
             cv2.COLOR_BGR2RGB,
             0,
             id="bgr-to-rgb",
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30, 40]]], dtype=np.uint8),
+            _COLOR_RGB2BGR,
+            cv2.COLOR_RGB2BGR,
+            0,
+            id="rgba-to-bgr",
         ),
         pytest.param(
             np.array(
