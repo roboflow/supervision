@@ -10,6 +10,7 @@ from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
+    obb_polygon_area,
     pad_boxes,
     scale_boxes,
     xyxyxyxy_to_xyxy,
@@ -434,3 +435,32 @@ def test_pad_boxes(
     """pad_boxes expands each box by px horizontally and py (or px) vertically."""
     result = pad_boxes(xyxy=xyxy, px=px, py=py)
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        pytest.param(0, id="origin-0"),
+        pytest.param(10**8, id="origin-1e8"),
+        pytest.param(10**9, id="origin-1e9"),
+        pytest.param(10**10, id="origin-1e10"),
+    ],
+)
+def test_obb_polygon_area_is_invariant_to_large_origins(origin: int) -> None:
+    """Area is exact for boxes at large coordinate origins.
+
+    Regression: the shoelace formula was evaluated on absolute coordinates, so
+    its cross products overflowed float64's exact-integer range (2**53) once the
+    origin grew. A 100x50 box at origin 1e10 was reported as ~16384 px^2 instead
+    of 5000.
+    """
+    corners = np.array(
+        [
+            [origin, origin],
+            [origin + 100, origin],
+            [origin + 100, origin + 50],
+            [origin, origin + 50],
+        ],
+        dtype=np.int64,
+    )
+    assert obb_polygon_area(corners[None])[0] == 5000.0

@@ -1718,6 +1718,43 @@ class TestOrientedBoxIouBatch:
         assert baseline[0, 0] > 0.4
         assert np.allclose(transformed, baseline, rtol=1e-5, atol=1e-7)
 
+    @pytest.mark.parametrize(
+        "origin",
+        [
+            pytest.param(0, id="origin-0"),
+            pytest.param(10**8, id="origin-1e8"),
+            pytest.param(10**9, id="origin-1e9"),
+            pytest.param(10**10, id="origin-1e10"),
+        ],
+    )
+    def test_is_invariant_to_large_origins(self, origin: float) -> None:
+        """IoU stays exact for boxes at large coordinate origins.
+
+        Regression: polygon areas were computed from absolute coordinates, so
+        their shoelace products overflowed float64's exact-integer range
+        (2**53) once the origin grew. Identical boxes scored self-IoU ~0.85 at
+        origin 1e8 and exactly 0.0 at origin 1e10.
+        """
+        baseline = oriented_box_iou_batch(
+            _rotated_rect(50, 50, 40, 20, 30)[None],
+            _rotated_rect(52, 48, 40, 20, 35)[None],
+        )
+        boxes_true = (_rotated_rect(50, 50, 40, 20, 30).astype(np.float64) + origin)[
+            None
+        ]
+        boxes_detection = (
+            _rotated_rect(52, 48, 40, 20, 35).astype(np.float64) + origin
+        )[None]
+
+        transformed = oriented_box_iou_batch(boxes_true, boxes_detection)
+        self_iou = oriented_box_iou_batch(boxes_true, boxes_true)[0, 0]
+
+        assert baseline.shape == (1, 1)
+        assert transformed.shape == (1, 1)
+        assert np.allclose(transformed, baseline, rtol=1e-5, atol=1e-7)
+        # Identical boxes must score exactly 1.0 at every origin.
+        assert self_iou == pytest.approx(1.0, abs=1e-7)
+
     def test_supports_overlap_metric(self) -> None:
         """`overlap_metric=IOS` divides by the smaller area, so a small box fully
         contained in a larger one scores exactly 1.0, while IoU is the area ratio."""

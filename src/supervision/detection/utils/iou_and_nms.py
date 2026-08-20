@@ -402,14 +402,21 @@ def box_iou_batch_with_jaccard(
 def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
     """Compute the area of each oriented-box polygon using the shoelace formula.
 
+    Each polygon is translated to its own first corner before the shoelace
+    products, keeping coordinates with large origins (e.g. geospatial frames)
+    within float64's exact-integer range. The shoelace area is
+    translation-invariant, so the result is unchanged for small coordinates.
+
     Args:
         polygons: ``(N, 4, 2)`` array of polygon corners.
 
     Returns:
         ``(N,)`` array of polygon areas.
     """
-    x = polygons[:, :, 0]
-    y = polygons[:, :, 1]
+    origin = polygons[:, 0:1, :]
+    translated = polygons - origin
+    x = translated[:, :, 0]
+    y = translated[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
     return cast(npt.NDArray[np.floating], 0.5 * np.abs(cross.sum(axis=1)))
 
@@ -584,14 +591,15 @@ def oriented_box_iou_batch(
         upper = rows <= cols
         rows, cols = rows[upper], cols[upper]
 
-    polygons_true = [box.astype(np.float32) for box in boxes_true]
-    polygons_detection = [box.astype(np.float32) for box in boxes_detection]
-
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
     for i, j in zip(rows, cols):
-        intersection, _ = cv2.intersectConvexConvex(
-            polygons_true[i], polygons_detection[j]
-        )
+        # Translate the pair to its own origin before the float32 cast: with
+        # large coordinate origins the float32 conversion alone would quantize
+        # the corners away, and the intersection area is translation-invariant.
+        origin = np.minimum(boxes_true[i].min(axis=0), boxes_detection[j].min(axis=0))
+        polygon_i = (boxes_true[i] - origin).astype(np.float32)
+        polygon_j = (boxes_detection[j] - origin).astype(np.float32)
+        intersection, _ = cv2.intersectConvexConvex(polygon_i, polygon_j)
         if intersection <= 0:
             continue
         denominator = (
