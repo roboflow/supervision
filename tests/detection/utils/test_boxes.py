@@ -450,9 +450,8 @@ def test_obb_polygon_area_is_invariant_to_large_origins(origin: int) -> None:
     """Area is exact for boxes at large coordinate origins.
 
     Regression: the shoelace formula was evaluated on absolute coordinates, so
-    its cross products overflowed float64's exact-integer range (2**53) once the
-    origin grew. A 100x50 box at origin 1e10 was reported as ~16384 px^2 instead
-    of 5000.
+    large cross-products rounded once the origin grew. A 100x50 box at origin
+    1e10 was reported as ~16384 px^2 instead of 5000.
     """
     corners = np.array(
         [
@@ -464,3 +463,47 @@ def test_obb_polygon_area_is_invariant_to_large_origins(origin: int) -> None:
         dtype=np.int64,
     )
     assert obb_polygon_area(corners[None])[0] == 5000.0
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        pytest.param(-(2**53), id="negative-2pow53"),
+        pytest.param(2**53, id="positive-2pow53"),
+    ],
+)
+def test_obb_polygon_area_signed_int64_origin_preserves_unit_differences(
+    origin: int,
+) -> None:
+    """Translation-before-cast preserves a 2-by-2 signed int64 OBB area at 2**53."""
+    corners = np.array(
+        [
+            [origin, origin + 1],
+            [origin + 2, origin + 1],
+            [origin + 2, origin + 3],
+            [origin, origin + 3],
+        ],
+        dtype=np.int64,
+    )
+
+    result = obb_polygon_area(corners[None])
+
+    np.testing.assert_array_equal(result, np.array([4.0]))
+
+
+def test_obb_polygon_area_uint64_origin_avoids_underflow() -> None:
+    """Unsigned coordinates translate without wrapping before float conversion."""
+    origin = np.iinfo(np.uint64).max - 10
+    corners = np.array(
+        [
+            [origin, 0],
+            [origin + 2, 0],
+            [origin + 2, 2],
+            [origin, 2],
+        ],
+        dtype=np.uint64,
+    )
+
+    result = obb_polygon_area(corners[None])
+
+    np.testing.assert_array_equal(result, np.array([4.0]))

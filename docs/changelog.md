@@ -10,7 +10,7 @@ date_modified: 2026-08-11
 ### Fixed
 
 - `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for polygons with large coordinates.
-- `sv.Detections.area` and `sv.oriented_box_iou_batch` now compute oriented-box areas and intersections in origin-translated coordinates, preventing precision loss and self-IoU collapse for boxes with large coordinate origins (e.g. geospatial or stitched frames).
+- `sv.Detections.area` and `sv.oriented_box_iou_batch` now translate oriented-box coordinates to local origins before floating-point area/intersection math, preserving differences representable by the input dtype and preventing self-IoU collapse for large-coordinate inputs (e.g. geospatial or stitched frames).
 - `DetectionsSmoother` now keeps oriented-box corners aligned with smoothed `xyxy` geometry, including rotated tracks and mixed metadata windows.
 - `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
 - `sv.list_files_with_extensions` no longer includes directories when listing all files without an extension filter.

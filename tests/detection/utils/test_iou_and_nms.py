@@ -6,6 +6,9 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.core import Detections
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     _group_overlapping_boxes,
@@ -1648,6 +1651,41 @@ def test_box_iou_large_int64_origin_preserves_coordinate_differences(
     assert result == pytest.approx(expected, rel=1e-6)
 
 
+@pytest.mark.parametrize(
+    ("origin", "overlap_metric", "expected"),
+    [
+        pytest.param(-(2**53), OverlapMetric.IOU, 1.0 / 3.0, id="negative-2pow53-iou"),
+        pytest.param(-(2**53), OverlapMetric.IOS, 0.5, id="negative-2pow53-ios"),
+        pytest.param(2**53, OverlapMetric.IOU, 1.0 / 3.0, id="positive-2pow53-iou"),
+        pytest.param(2**53, OverlapMetric.IOS, 0.5, id="positive-2pow53-ios"),
+    ],
+)
+def test_oriented_box_iou_batch_signed_int64_origin_preserves_unit_overlap(
+    origin: int,
+    overlap_metric: OverlapMetric,
+    expected: float,
+) -> None:
+    """Translation-before-cast preserves signed int64 OBB IoU and IoS at 2**53."""
+    box_true = np.array(
+        [[origin, 0], [origin + 2, 0], [origin + 2, 2], [origin, 2]],
+        dtype=np.int64,
+    )
+    box_detection = np.array(
+        [
+            [origin + 1, 0],
+            [origin + 3, 0],
+            [origin + 3, 2],
+            [origin + 1, 2],
+        ],
+        dtype=np.int64,
+    )
+
+    result = oriented_box_iou_batch(box_true[None], box_detection[None], overlap_metric)
+
+    assert result.shape == (1, 1)
+    assert result[0, 0] == pytest.approx(expected, rel=1e-12)
+
+
 def test_box_iou_rejects_complex_coordinates() -> None:
     """Complex coordinates are rejected instead of silently truncating values."""
     box = np.array([0, 0, 2, 2], dtype=np.complex128)
@@ -1731,9 +1769,8 @@ class TestOrientedBoxIouBatch:
         """IoU stays exact for boxes at large coordinate origins.
 
         Regression: polygon areas were computed from absolute coordinates, so
-        their shoelace products overflowed float64's exact-integer range
-        (2**53) once the origin grew. Identical boxes scored self-IoU ~0.85 at
-        origin 1e8 and exactly 0.0 at origin 1e10.
+        their large shoelace products rounded once the origin grew. Identical
+        boxes scored self-IoU ~0.85 at origin 1e8 and exactly 0.0 at origin 1e10.
         """
         baseline = oriented_box_iou_batch(
             _rotated_rect(50, 50, 40, 20, 30)[None],
@@ -2114,6 +2151,40 @@ class TestOrientedBoxNonMaxMerge:
 
         sorted_groups = sorted(sorted(g) for g in groups)
         assert sorted_groups == [[0, 1], [2]]
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        pytest.param("with_nms", id="with-nms"),
+        pytest.param("with_nmm", id="with-nmm"),
+    ],
+)
+def test_detections_obb_overlap_filter_large_origin_duplicates_deduplicate(
+    method: str,
+) -> None:
+    """Public NMS/NMM preserve 1e10 OBB precision to deduplicate duplicates."""
+    origin = 10**10
+    oriented_box = np.array(
+        [
+            [origin, origin],
+            [origin + 100, origin],
+            [origin + 100, origin + 50],
+            [origin, origin + 50],
+        ],
+        dtype=np.float64,
+    )
+    oriented_boxes = np.stack([oriented_box, oriented_box])
+    detections = Detections(
+        xyxy=xyxyxyxy_to_xyxy(oriented_boxes),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0]),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+    result = getattr(detections, method)(threshold=0.5)
+
+    assert len(result) == 1
 
 
 class TestIouThresholdValidation:

@@ -270,13 +270,19 @@ def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]
     corners = cast(npt.NDArray[np.number], np.asarray(corners))
     if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
         raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
-    # Translate each box to its own first corner before the shoelace products so
-    # coordinates with large origins (e.g. geospatial or stitched frames) stay
-    # within float64's exact-integer range (2**53). The shoelace area is
-    # translation-invariant, so the result is unchanged for small coordinates
-    # while large-origin boxes no longer lose precision to overflow.
+    # Translate each box before the shoelace products so representable integer
+    # coordinates with large origins (e.g. geospatial or stitched frames) are
+    # reduced to local extents before conversion to float64. Float inputs that
+    # were already quantized retain their input precision.
     origin = corners[:, 0:1, :]
-    translated = corners.astype(np.float64, copy=False) - origin
+    if np.issubdtype(corners.dtype, np.integer):
+        # Object arithmetic avoids unsigned underflow and signed overflow before
+        # the exact integer differences are converted to float64.
+        translated = np.asarray(
+            corners.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        translated = corners.astype(np.float64, copy=False) - origin
     x = translated[..., 0]
     y = translated[..., 1]
     cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
