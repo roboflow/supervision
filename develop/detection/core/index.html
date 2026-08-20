@@ -8465,11 +8465,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <span class="normal"><a href="#__codelineno-0-3216">3216</a></span>
 <span class="normal"><a href="#__codelineno-0-3217">3217</a></span>
 <span class="normal"><a href="#__codelineno-0-3218">3218</a></span>
-<span class="normal"><a href="#__codelineno-0-3219">3219</a></span>
-<span class="normal"><a href="#__codelineno-0-3220">3220</a></span>
-<span class="normal"><a href="#__codelineno-0-3221">3221</a></span>
-<span class="normal"><a href="#__codelineno-0-3222">3222</a></span>
-<span class="normal"><a href="#__codelineno-0-3223">3223</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-3219">3219</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="nd">@dataclass</span>
 </span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">class</span><span class="w"> </span><span class="nc">Detections</span><span class="p">:</span>
 </span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">    The `sv.Detections` class in the Supervision library standardizes results from</span>
@@ -11435,175 +11431,171 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-3052"><a id="__codelineno-0-3052" name="__codelineno-0-3052"></a>        <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
 </span><span id="__span-0-3053"><a id="__codelineno-0-3053" name="__codelineno-0-3053"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">oriented_box_non_max_suppression</span><span class="p">(</span>
 </span><span id="__span-0-3054"><a id="__codelineno-0-3054" name="__codelineno-0-3054"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>                <span class="p">),</span>
-</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>            <span class="p">)</span>
-</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3063"><a id="__codelineno-0-3063" name="__codelineno-0-3063"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3065"><a id="__codelineno-0-3065" name="__codelineno-0-3065"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a>            <span class="p">)</span>
+</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">]),</span>
+</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>            <span class="p">)</span>
+</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>            <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3063"><a id="__codelineno-0-3063" name="__codelineno-0-3063"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a>            <span class="p">)</span>
+</span><span id="__span-0-3065"><a id="__codelineno-0-3065" name="__codelineno-0-3065"></a>
+</span><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
 </span><span id="__span-0-3067"><a id="__codelineno-0-3067" name="__codelineno-0-3067"></a>
-</span><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
-</span><span id="__span-0-3069"><a id="__codelineno-0-3069" name="__codelineno-0-3069"></a>
-</span><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_soft_nms</span><span class="p">(</span>
-</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a>        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a>        <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a>        <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-3077"><a id="__codelineno-0-3077" name="__codelineno-0-3077"></a><span class="sd">        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch</span>
-</span><span id="__span-0-3078"><a id="__codelineno-0-3078" name="__codelineno-0-3078"></a><span class="sd">        order: (1) if mask data present, IoU mask is used; (2) otherwise,</span>
-</span><span id="__span-0-3079"><a id="__codelineno-0-3079" name="__codelineno-0-3079"></a><span class="sd">        axis-aligned box IoU is used. Oriented-box detections are not given</span>
-</span><span id="__span-0-3080"><a id="__codelineno-0-3080" name="__codelineno-0-3080"></a><span class="sd">        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.</span>
-</span><span id="__span-0-3081"><a id="__codelineno-0-3081" name="__codelineno-0-3081"></a>
-</span><span id="__span-0-3082"><a id="__codelineno-0-3082" name="__codelineno-0-3082"></a><span class="sd">        Unlike `with_nms`, which discards overlapping detections outright,</span>
-</span><span id="__span-0-3083"><a id="__codelineno-0-3083" name="__codelineno-0-3083"></a><span class="sd">        Soft-NMS keeps every detection and instead rescales its confidence by</span>
-</span><span id="__span-0-3084"><a id="__codelineno-0-3084" name="__codelineno-0-3084"></a><span class="sd">        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category</span>
-</span><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a><span class="sd">        overlap. By default (`score_threshold=None`) nothing is dropped — the</span>
-</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a><span class="sd">        method only rescales confidence, despite the &quot;suppression&quot; name; pass</span>
-</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a><span class="sd">        `score_threshold` to additionally filter the decayed scores into a real</span>
-</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a><span class="sd">        subset, matching `with_nms`&#39;s return contract.</span>
-</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a>
-</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a><span class="sd">            sigma: Controls the strength of the confidence decay; must be</span>
-</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">                greater than `0`. The lower the value the stronger the decay.</span>
-</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">                No value of `sigma` reproduces `with_nms`&#39;s hard cutoff —</span>
-</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">                Soft-NMS never drops detections on its own.</span>
-</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">            class_agnostic: Whether to perform class-agnostic Soft-NMS. If</span>
-</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a><span class="sd">                True, the class_id of each detection will be ignored.</span>
-</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">                Defaults to False.</span>
-</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">            score_threshold: If given, detections whose decayed confidence is</span>
-</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">                at or below this value are dropped, producing a real subset</span>
-</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">                (like `with_nms`). If `None` (default), all detections are</span>
-</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a><span class="sd">                kept, with their confidence rescaled in place on the returned</span>
-</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">                copy.</span>
-</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a>
-</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a><span class="sd">        Returns:</span>
-</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">            A new Detections object with decayed confidence scores and,</span>
-</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a><span class="sd">                if `score_threshold` is given, filtered to a real subset.</span>
-</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">                The original `Detections` instance is never modified.</span>
-</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a>
-</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">        Raises:</span>
-</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a><span class="sd">            ValueError: If `confidence` is None.</span>
-</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">                If `class_id` is None and class_agnostic is False.</span>
-</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a><span class="sd">                If `sigma` is not greater than `0`.</span>
-</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a>            <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a>
-</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a>                <span class="s2">&quot;Detections confidence must be given for Soft-NMS to be executed.&quot;</span>
-</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a>            <span class="p">)</span>
+</span><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_soft_nms</span><span class="p">(</span>
+</span><span id="__span-0-3069"><a id="__codelineno-0-3069" name="__codelineno-0-3069"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a>        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a>        <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a>        <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a><span class="sd">        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch</span>
+</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a><span class="sd">        order: (1) if mask data present, IoU mask is used; (2) otherwise,</span>
+</span><span id="__span-0-3077"><a id="__codelineno-0-3077" name="__codelineno-0-3077"></a><span class="sd">        axis-aligned box IoU is used. Oriented-box detections are not given</span>
+</span><span id="__span-0-3078"><a id="__codelineno-0-3078" name="__codelineno-0-3078"></a><span class="sd">        dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.</span>
+</span><span id="__span-0-3079"><a id="__codelineno-0-3079" name="__codelineno-0-3079"></a>
+</span><span id="__span-0-3080"><a id="__codelineno-0-3080" name="__codelineno-0-3080"></a><span class="sd">        Unlike `with_nms`, which discards overlapping detections outright,</span>
+</span><span id="__span-0-3081"><a id="__codelineno-0-3081" name="__codelineno-0-3081"></a><span class="sd">        Soft-NMS keeps every detection and instead rescales its confidence by</span>
+</span><span id="__span-0-3082"><a id="__codelineno-0-3082" name="__codelineno-0-3082"></a><span class="sd">        `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category</span>
+</span><span id="__span-0-3083"><a id="__codelineno-0-3083" name="__codelineno-0-3083"></a><span class="sd">        overlap. By default (`score_threshold=None`) nothing is dropped — the</span>
+</span><span id="__span-0-3084"><a id="__codelineno-0-3084" name="__codelineno-0-3084"></a><span class="sd">        method only rescales confidence, despite the &quot;suppression&quot; name; pass</span>
+</span><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a><span class="sd">        `score_threshold` to additionally filter the decayed scores into a real</span>
+</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a><span class="sd">        subset, matching `with_nms`&#39;s return contract.</span>
+</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a>
+</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a><span class="sd">            sigma: Controls the strength of the confidence decay; must be</span>
+</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="sd">                greater than `0`. The lower the value the stronger the decay.</span>
+</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a><span class="sd">                No value of `sigma` reproduces `with_nms`&#39;s hard cutoff —</span>
+</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">                Soft-NMS never drops detections on its own.</span>
+</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">            class_agnostic: Whether to perform class-agnostic Soft-NMS. If</span>
+</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">                True, the class_id of each detection will be ignored.</span>
+</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">                Defaults to False.</span>
+</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a><span class="sd">            score_threshold: If given, detections whose decayed confidence is</span>
+</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">                at or below this value are dropped, producing a real subset</span>
+</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">                (like `with_nms`). If `None` (default), all detections are</span>
+</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">                kept, with their confidence rescaled in place on the returned</span>
+</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">                copy.</span>
+</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a>
+</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">        Returns:</span>
+</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a><span class="sd">            A new Detections object with decayed confidence scores and,</span>
+</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a><span class="sd">                if `score_threshold` is given, filtered to a real subset.</span>
+</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">                The original `Detections` instance is never modified.</span>
+</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a>
+</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">        Raises:</span>
+</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a><span class="sd">            ValueError: If `confidence` is None.</span>
+</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">                If `class_id` is None and class_agnostic is False.</span>
+</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a><span class="sd">                If `sigma` is not greater than `0`.</span>
+</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a>            <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a>
+</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a>                <span class="s2">&quot;Detections confidence must be given for Soft-NMS to be executed.&quot;</span>
+</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>            <span class="p">)</span>
+</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a>
+</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;Soft-NMS&quot;</span><span class="p">)</span>
 </span><span id="__span-0-3121"><a id="__codelineno-0-3121" name="__codelineno-0-3121"></a>
-</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;Soft-NMS&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a>
-</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a>            <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">mask_soft_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a>                <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
-</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a>            <span class="p">)</span>
-</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a>            <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">box_soft_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a>                <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
-</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>            <span class="p">)</span>
-</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a>
-</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a>        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
-</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>        <span class="n">result</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">decayed_confidence</span>
-</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>
-</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>        <span class="k">if</span> <span class="n">score_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3140"><a id="__codelineno-0-3140" name="__codelineno-0-3140"></a>            <span class="k">return</span> <span class="n">result</span>
-</span><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a>        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">decayed_confidence</span> <span class="o">&gt;</span> <span class="n">score_threshold</span><span class="p">)</span>
-</span><span id="__span-0-3142"><a id="__codelineno-0-3142" name="__codelineno-0-3142"></a>
-</span><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
-</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a>        <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a>        <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a><span class="sd">        Perform non-maximum merging on the current set of object detections.</span>
-</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a><span class="sd">        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if</span>
-</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a><span class="sd">        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,</span>
-</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a><span class="sd">        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.</span>
-</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a>
-</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a><span class="sd">            threshold: The intersection-over-union threshold</span>
-</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a><span class="sd">                to use for non-maximum merging. Defaults to 0.5.</span>
-</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a><span class="sd">            class_agnostic: Whether to perform class-agnostic</span>
-</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
-</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a><span class="sd">                will be ignored. Defaults to False.</span>
-</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a><span class="sd">            overlap_metric: Metric used to compute the degree of</span>
-</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a><span class="sd">                overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
-</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a>
-</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a><span class="sd">        Returns:</span>
-</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a><span class="sd">            A new Detections object containing the subset of detections</span>
-</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a><span class="sd">                after non-maximum merging.</span>
-</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a>
-</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a><span class="sd">        Note:</span>
-</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a><span class="sd">            For detections carrying oriented bounding box data</span>
-</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a><span class="sd">            (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
-</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a><span class="sd">            is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
-</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a><span class="sd">            corners contributed by every detection in the group. The winner is</span>
-</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a><span class="sd">            the highest-confidence detection in the group. The axis-aligned</span>
-</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a><span class="sd">            ``xyxy`` field is updated to the tight bounding box of that rect.</span>
-</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a><span class="sd">            For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
-</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a><span class="sd">            for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
-</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a><span class="sd">            Groups of size 1 keep the original OBB unchanged.</span>
-</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a>
-</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a><span class="sd">        Raises:</span>
-</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a><span class="sd">            ValueError: If `confidence` is None or `class_id` is None and</span>
-</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a><span class="sd">                class_agnostic is False.</span>
-</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a>
-</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>            <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>
-</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>                <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>            <span class="p">)</span>
+</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a>            <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">mask_soft_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a>                <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a>            <span class="p">)</span>
+</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a>            <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">box_soft_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a>                <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a>            <span class="p">)</span>
+</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a>
+</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a>        <span class="n">result</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">decayed_confidence</span>
+</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a>
+</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>        <span class="k">if</span> <span class="n">score_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>            <span class="k">return</span> <span class="n">result</span>
+</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">decayed_confidence</span> <span class="o">&gt;</span> <span class="n">score_threshold</span><span class="p">)</span>
+</span><span id="__span-0-3140"><a id="__codelineno-0-3140" name="__codelineno-0-3140"></a>
+</span><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
+</span><span id="__span-0-3142"><a id="__codelineno-0-3142" name="__codelineno-0-3142"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a>        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>        <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>        <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a><span class="sd">        Perform non-maximum merging on the current set of object detections.</span>
+</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a><span class="sd">        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if</span>
+</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a><span class="sd">        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,</span>
+</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a><span class="sd">        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.</span>
+</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a>
+</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a><span class="sd">            threshold: The intersection-over-union threshold</span>
+</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a><span class="sd">                to use for non-maximum merging. Defaults to 0.5.</span>
+</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a><span class="sd">            class_agnostic: Whether to perform class-agnostic</span>
+</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
+</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a><span class="sd">                will be ignored. Defaults to False.</span>
+</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a><span class="sd">            overlap_metric: Metric used to compute the degree of</span>
+</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a><span class="sd">                overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
+</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a>
+</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a><span class="sd">        Returns:</span>
+</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a><span class="sd">            A new Detections object containing the subset of detections</span>
+</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a><span class="sd">                after non-maximum merging.</span>
+</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a>
+</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a><span class="sd">        Note:</span>
+</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a><span class="sd">            For detections carrying oriented bounding box data</span>
+</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a><span class="sd">            (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
+</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a><span class="sd">            is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
+</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a><span class="sd">            corners contributed by every detection in the group. The winner is</span>
+</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a><span class="sd">            the highest-confidence detection in the group. The axis-aligned</span>
+</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a><span class="sd">            ``xyxy`` field is updated to the tight bounding box of that rect.</span>
+</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a><span class="sd">            For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
+</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a><span class="sd">            for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
+</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a><span class="sd">            Groups of size 1 keep the original OBB unchanged.</span>
+</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a>
+</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a><span class="sd">        Raises:</span>
+</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a><span class="sd">            ValueError: If `confidence` is None or `class_id` is None and</span>
+</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a><span class="sd">                class_agnostic is False.</span>
+</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a>
+</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a>            <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>
+</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>                <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>            <span class="p">)</span>
+</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>
+</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;NMM&quot;</span><span class="p">)</span>
 </span><span id="__span-0-3192"><a id="__codelineno-0-3192" name="__codelineno-0-3192"></a>
-</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;NMM&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>
-</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3198"><a id="__codelineno-0-3198" name="__codelineno-0-3198"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-3199"><a id="__codelineno-0-3199" name="__codelineno-0-3199"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3200"><a id="__codelineno-0-3200" name="__codelineno-0-3200"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3201"><a id="__codelineno-0-3201" name="__codelineno-0-3201"></a>            <span class="p">)</span>
-</span><span id="__span-0-3202"><a id="__codelineno-0-3202" name="__codelineno-0-3202"></a>        <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-</span><span id="__span-0-3203"><a id="__codelineno-0-3203" name="__codelineno-0-3203"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3204"><a id="__codelineno-0-3204" name="__codelineno-0-3204"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3205"><a id="__codelineno-0-3205" name="__codelineno-0-3205"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-3206"><a id="__codelineno-0-3206" name="__codelineno-0-3206"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-3207"><a id="__codelineno-0-3207" name="__codelineno-0-3207"></a>                <span class="p">),</span>
-</span><span id="__span-0-3208"><a id="__codelineno-0-3208" name="__codelineno-0-3208"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3209"><a id="__codelineno-0-3209" name="__codelineno-0-3209"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3210"><a id="__codelineno-0-3210" name="__codelineno-0-3210"></a>            <span class="p">)</span>
-</span><span id="__span-0-3211"><a id="__codelineno-0-3211" name="__codelineno-0-3211"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3212"><a id="__codelineno-0-3212" name="__codelineno-0-3212"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3213"><a id="__codelineno-0-3213" name="__codelineno-0-3213"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3214"><a id="__codelineno-0-3214" name="__codelineno-0-3214"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3215"><a id="__codelineno-0-3215" name="__codelineno-0-3215"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3216"><a id="__codelineno-0-3216" name="__codelineno-0-3216"></a>            <span class="p">)</span>
-</span><span id="__span-0-3217"><a id="__codelineno-0-3217" name="__codelineno-0-3217"></a>
-</span><span id="__span-0-3218"><a id="__codelineno-0-3218" name="__codelineno-0-3218"></a>        <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-3219"><a id="__codelineno-0-3219" name="__codelineno-0-3219"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-</span><span id="__span-0-3220"><a id="__codelineno-0-3220" name="__codelineno-0-3220"></a>            <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-</span><span id="__span-0-3221"><a id="__codelineno-0-3221" name="__codelineno-0-3221"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
-</span><span id="__span-0-3222"><a id="__codelineno-0-3222" name="__codelineno-0-3222"></a>
-</span><span id="__span-0-3223"><a id="__codelineno-0-3223" name="__codelineno-0-3223"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3198"><a id="__codelineno-0-3198" name="__codelineno-0-3198"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3199"><a id="__codelineno-0-3199" name="__codelineno-0-3199"></a>            <span class="p">)</span>
+</span><span id="__span-0-3200"><a id="__codelineno-0-3200" name="__codelineno-0-3200"></a>        <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+</span><span id="__span-0-3201"><a id="__codelineno-0-3201" name="__codelineno-0-3201"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3202"><a id="__codelineno-0-3202" name="__codelineno-0-3202"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3203"><a id="__codelineno-0-3203" name="__codelineno-0-3203"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">]),</span>
+</span><span id="__span-0-3204"><a id="__codelineno-0-3204" name="__codelineno-0-3204"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3205"><a id="__codelineno-0-3205" name="__codelineno-0-3205"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3206"><a id="__codelineno-0-3206" name="__codelineno-0-3206"></a>            <span class="p">)</span>
+</span><span id="__span-0-3207"><a id="__codelineno-0-3207" name="__codelineno-0-3207"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3208"><a id="__codelineno-0-3208" name="__codelineno-0-3208"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3209"><a id="__codelineno-0-3209" name="__codelineno-0-3209"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3210"><a id="__codelineno-0-3210" name="__codelineno-0-3210"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3211"><a id="__codelineno-0-3211" name="__codelineno-0-3211"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3212"><a id="__codelineno-0-3212" name="__codelineno-0-3212"></a>            <span class="p">)</span>
+</span><span id="__span-0-3213"><a id="__codelineno-0-3213" name="__codelineno-0-3213"></a>
+</span><span id="__span-0-3214"><a id="__codelineno-0-3214" name="__codelineno-0-3214"></a>        <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-3215"><a id="__codelineno-0-3215" name="__codelineno-0-3215"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+</span><span id="__span-0-3216"><a id="__codelineno-0-3216" name="__codelineno-0-3216"></a>            <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+</span><span id="__span-0-3217"><a id="__codelineno-0-3217" name="__codelineno-0-3217"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+</span><span id="__span-0-3218"><a id="__codelineno-0-3218" name="__codelineno-0-3218"></a>
+</span><span id="__span-0-3219"><a id="__codelineno-0-3219" name="__codelineno-0-3219"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -21140,7 +21132,9 @@ class_agnostic is False.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/core.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3143">3143</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3141">3141</a></span>
+<span class="normal"><a href="#__codelineno-0-3142">3142</a></span>
+<span class="normal"><a href="#__codelineno-0-3143">3143</a></span>
 <span class="normal"><a href="#__codelineno-0-3144">3144</a></span>
 <span class="normal"><a href="#__codelineno-0-3145">3145</a></span>
 <span class="normal"><a href="#__codelineno-0-3146">3146</a></span>
@@ -21216,91 +21210,85 @@ class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-3216">3216</a></span>
 <span class="normal"><a href="#__codelineno-0-3217">3217</a></span>
 <span class="normal"><a href="#__codelineno-0-3218">3218</a></span>
-<span class="normal"><a href="#__codelineno-0-3219">3219</a></span>
-<span class="normal"><a href="#__codelineno-0-3220">3220</a></span>
-<span class="normal"><a href="#__codelineno-0-3221">3221</a></span>
-<span class="normal"><a href="#__codelineno-0-3222">3222</a></span>
-<span class="normal"><a href="#__codelineno-0-3223">3223</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
-</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
-</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a><span class="sd">    Perform non-maximum merging on the current set of object detections.</span>
-</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a><span class="sd">    Dispatch order: (1) if mask data present, IoU mask is used; (2) else if</span>
-</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a><span class="sd">    oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,</span>
-</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a><span class="sd">    oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.</span>
-</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a>
-</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a><span class="sd">        threshold: The intersection-over-union threshold</span>
-</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a><span class="sd">            to use for non-maximum merging. Defaults to 0.5.</span>
-</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a><span class="sd">        class_agnostic: Whether to perform class-agnostic</span>
-</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
-</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a><span class="sd">            will be ignored. Defaults to False.</span>
-</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a><span class="sd">        overlap_metric: Metric used to compute the degree of</span>
-</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a><span class="sd">            overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
-</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a>
-</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a><span class="sd">        A new Detections object containing the subset of detections</span>
-</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a><span class="sd">            after non-maximum merging.</span>
-</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a>
-</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a><span class="sd">    Note:</span>
-</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a><span class="sd">        For detections carrying oriented bounding box data</span>
-</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a><span class="sd">        (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
-</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a><span class="sd">        is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
-</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a><span class="sd">        corners contributed by every detection in the group. The winner is</span>
-</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a><span class="sd">        the highest-confidence detection in the group. The axis-aligned</span>
-</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a><span class="sd">        ``xyxy`` field is updated to the tight bounding box of that rect.</span>
-</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a><span class="sd">        For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
-</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a><span class="sd">        for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
-</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a><span class="sd">        Groups of size 1 keep the original OBB unchanged.</span>
-</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a>
-</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a><span class="sd">        ValueError: If `confidence` is None or `class_id` is None and</span>
-</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a><span class="sd">            class_agnostic is False.</span>
-</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a>
-</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>        <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>
-</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>            <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>        <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-3219">3219</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
+</span><span id="__span-0-3142"><a id="__codelineno-0-3142" name="__codelineno-0-3142"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3143"><a id="__codelineno-0-3143" name="__codelineno-0-3143"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-3144"><a id="__codelineno-0-3144" name="__codelineno-0-3144"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3145"><a id="__codelineno-0-3145" name="__codelineno-0-3145"></a>    <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
+</span><span id="__span-0-3146"><a id="__codelineno-0-3146" name="__codelineno-0-3146"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3147"><a id="__codelineno-0-3147" name="__codelineno-0-3147"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-3148"><a id="__codelineno-0-3148" name="__codelineno-0-3148"></a><span class="sd">    Perform non-maximum merging on the current set of object detections.</span>
+</span><span id="__span-0-3149"><a id="__codelineno-0-3149" name="__codelineno-0-3149"></a><span class="sd">    Dispatch order: (1) if mask data present, IoU mask is used; (2) else if</span>
+</span><span id="__span-0-3150"><a id="__codelineno-0-3150" name="__codelineno-0-3150"></a><span class="sd">    oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,</span>
+</span><span id="__span-0-3151"><a id="__codelineno-0-3151" name="__codelineno-0-3151"></a><span class="sd">    oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.</span>
+</span><span id="__span-0-3152"><a id="__codelineno-0-3152" name="__codelineno-0-3152"></a>
+</span><span id="__span-0-3153"><a id="__codelineno-0-3153" name="__codelineno-0-3153"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-3154"><a id="__codelineno-0-3154" name="__codelineno-0-3154"></a><span class="sd">        threshold: The intersection-over-union threshold</span>
+</span><span id="__span-0-3155"><a id="__codelineno-0-3155" name="__codelineno-0-3155"></a><span class="sd">            to use for non-maximum merging. Defaults to 0.5.</span>
+</span><span id="__span-0-3156"><a id="__codelineno-0-3156" name="__codelineno-0-3156"></a><span class="sd">        class_agnostic: Whether to perform class-agnostic</span>
+</span><span id="__span-0-3157"><a id="__codelineno-0-3157" name="__codelineno-0-3157"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
+</span><span id="__span-0-3158"><a id="__codelineno-0-3158" name="__codelineno-0-3158"></a><span class="sd">            will be ignored. Defaults to False.</span>
+</span><span id="__span-0-3159"><a id="__codelineno-0-3159" name="__codelineno-0-3159"></a><span class="sd">        overlap_metric: Metric used to compute the degree of</span>
+</span><span id="__span-0-3160"><a id="__codelineno-0-3160" name="__codelineno-0-3160"></a><span class="sd">            overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
+</span><span id="__span-0-3161"><a id="__codelineno-0-3161" name="__codelineno-0-3161"></a>
+</span><span id="__span-0-3162"><a id="__codelineno-0-3162" name="__codelineno-0-3162"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-3163"><a id="__codelineno-0-3163" name="__codelineno-0-3163"></a><span class="sd">        A new Detections object containing the subset of detections</span>
+</span><span id="__span-0-3164"><a id="__codelineno-0-3164" name="__codelineno-0-3164"></a><span class="sd">            after non-maximum merging.</span>
+</span><span id="__span-0-3165"><a id="__codelineno-0-3165" name="__codelineno-0-3165"></a>
+</span><span id="__span-0-3166"><a id="__codelineno-0-3166" name="__codelineno-0-3166"></a><span class="sd">    Note:</span>
+</span><span id="__span-0-3167"><a id="__codelineno-0-3167" name="__codelineno-0-3167"></a><span class="sd">        For detections carrying oriented bounding box data</span>
+</span><span id="__span-0-3168"><a id="__codelineno-0-3168" name="__codelineno-0-3168"></a><span class="sd">        (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
+</span><span id="__span-0-3169"><a id="__codelineno-0-3169" name="__codelineno-0-3169"></a><span class="sd">        is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
+</span><span id="__span-0-3170"><a id="__codelineno-0-3170" name="__codelineno-0-3170"></a><span class="sd">        corners contributed by every detection in the group. The winner is</span>
+</span><span id="__span-0-3171"><a id="__codelineno-0-3171" name="__codelineno-0-3171"></a><span class="sd">        the highest-confidence detection in the group. The axis-aligned</span>
+</span><span id="__span-0-3172"><a id="__codelineno-0-3172" name="__codelineno-0-3172"></a><span class="sd">        ``xyxy`` field is updated to the tight bounding box of that rect.</span>
+</span><span id="__span-0-3173"><a id="__codelineno-0-3173" name="__codelineno-0-3173"></a><span class="sd">        For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
+</span><span id="__span-0-3174"><a id="__codelineno-0-3174" name="__codelineno-0-3174"></a><span class="sd">        for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
+</span><span id="__span-0-3175"><a id="__codelineno-0-3175" name="__codelineno-0-3175"></a><span class="sd">        Groups of size 1 keep the original OBB unchanged.</span>
+</span><span id="__span-0-3176"><a id="__codelineno-0-3176" name="__codelineno-0-3176"></a>
+</span><span id="__span-0-3177"><a id="__codelineno-0-3177" name="__codelineno-0-3177"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-3178"><a id="__codelineno-0-3178" name="__codelineno-0-3178"></a><span class="sd">        ValueError: If `confidence` is None or `class_id` is None and</span>
+</span><span id="__span-0-3179"><a id="__codelineno-0-3179" name="__codelineno-0-3179"></a><span class="sd">            class_agnostic is False.</span>
+</span><span id="__span-0-3180"><a id="__codelineno-0-3180" name="__codelineno-0-3180"></a>
+</span><span id="__span-0-3181"><a id="__codelineno-0-3181" name="__codelineno-0-3181"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+</span><span id="__span-0-3182"><a id="__codelineno-0-3182" name="__codelineno-0-3182"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-3183"><a id="__codelineno-0-3183" name="__codelineno-0-3183"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-3184"><a id="__codelineno-0-3184" name="__codelineno-0-3184"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-3185"><a id="__codelineno-0-3185" name="__codelineno-0-3185"></a>
+</span><span id="__span-0-3186"><a id="__codelineno-0-3186" name="__codelineno-0-3186"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3187"><a id="__codelineno-0-3187" name="__codelineno-0-3187"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3188"><a id="__codelineno-0-3188" name="__codelineno-0-3188"></a>            <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+</span><span id="__span-0-3189"><a id="__codelineno-0-3189" name="__codelineno-0-3189"></a>        <span class="p">)</span>
+</span><span id="__span-0-3190"><a id="__codelineno-0-3190" name="__codelineno-0-3190"></a>
+</span><span id="__span-0-3191"><a id="__codelineno-0-3191" name="__codelineno-0-3191"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;NMM&quot;</span><span class="p">)</span>
 </span><span id="__span-0-3192"><a id="__codelineno-0-3192" name="__codelineno-0-3192"></a>
-</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;NMM&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>
-</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3198"><a id="__codelineno-0-3198" name="__codelineno-0-3198"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-3199"><a id="__codelineno-0-3199" name="__codelineno-0-3199"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3200"><a id="__codelineno-0-3200" name="__codelineno-0-3200"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3201"><a id="__codelineno-0-3201" name="__codelineno-0-3201"></a>        <span class="p">)</span>
-</span><span id="__span-0-3202"><a id="__codelineno-0-3202" name="__codelineno-0-3202"></a>    <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-</span><span id="__span-0-3203"><a id="__codelineno-0-3203" name="__codelineno-0-3203"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3204"><a id="__codelineno-0-3204" name="__codelineno-0-3204"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3205"><a id="__codelineno-0-3205" name="__codelineno-0-3205"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-3206"><a id="__codelineno-0-3206" name="__codelineno-0-3206"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-3207"><a id="__codelineno-0-3207" name="__codelineno-0-3207"></a>            <span class="p">),</span>
-</span><span id="__span-0-3208"><a id="__codelineno-0-3208" name="__codelineno-0-3208"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3209"><a id="__codelineno-0-3209" name="__codelineno-0-3209"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3210"><a id="__codelineno-0-3210" name="__codelineno-0-3210"></a>        <span class="p">)</span>
-</span><span id="__span-0-3211"><a id="__codelineno-0-3211" name="__codelineno-0-3211"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3212"><a id="__codelineno-0-3212" name="__codelineno-0-3212"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-3213"><a id="__codelineno-0-3213" name="__codelineno-0-3213"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3214"><a id="__codelineno-0-3214" name="__codelineno-0-3214"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3215"><a id="__codelineno-0-3215" name="__codelineno-0-3215"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3216"><a id="__codelineno-0-3216" name="__codelineno-0-3216"></a>        <span class="p">)</span>
-</span><span id="__span-0-3217"><a id="__codelineno-0-3217" name="__codelineno-0-3217"></a>
-</span><span id="__span-0-3218"><a id="__codelineno-0-3218" name="__codelineno-0-3218"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-3219"><a id="__codelineno-0-3219" name="__codelineno-0-3219"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-</span><span id="__span-0-3220"><a id="__codelineno-0-3220" name="__codelineno-0-3220"></a>        <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-</span><span id="__span-0-3221"><a id="__codelineno-0-3221" name="__codelineno-0-3221"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
-</span><span id="__span-0-3222"><a id="__codelineno-0-3222" name="__codelineno-0-3222"></a>
-</span><span id="__span-0-3223"><a id="__codelineno-0-3223" name="__codelineno-0-3223"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-3193"><a id="__codelineno-0-3193" name="__codelineno-0-3193"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3194"><a id="__codelineno-0-3194" name="__codelineno-0-3194"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3195"><a id="__codelineno-0-3195" name="__codelineno-0-3195"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3196"><a id="__codelineno-0-3196" name="__codelineno-0-3196"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-3197"><a id="__codelineno-0-3197" name="__codelineno-0-3197"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3198"><a id="__codelineno-0-3198" name="__codelineno-0-3198"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3199"><a id="__codelineno-0-3199" name="__codelineno-0-3199"></a>        <span class="p">)</span>
+</span><span id="__span-0-3200"><a id="__codelineno-0-3200" name="__codelineno-0-3200"></a>    <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+</span><span id="__span-0-3201"><a id="__codelineno-0-3201" name="__codelineno-0-3201"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3202"><a id="__codelineno-0-3202" name="__codelineno-0-3202"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3203"><a id="__codelineno-0-3203" name="__codelineno-0-3203"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">]),</span>
+</span><span id="__span-0-3204"><a id="__codelineno-0-3204" name="__codelineno-0-3204"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3205"><a id="__codelineno-0-3205" name="__codelineno-0-3205"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3206"><a id="__codelineno-0-3206" name="__codelineno-0-3206"></a>        <span class="p">)</span>
+</span><span id="__span-0-3207"><a id="__codelineno-0-3207" name="__codelineno-0-3207"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3208"><a id="__codelineno-0-3208" name="__codelineno-0-3208"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-3209"><a id="__codelineno-0-3209" name="__codelineno-0-3209"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3210"><a id="__codelineno-0-3210" name="__codelineno-0-3210"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3211"><a id="__codelineno-0-3211" name="__codelineno-0-3211"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3212"><a id="__codelineno-0-3212" name="__codelineno-0-3212"></a>        <span class="p">)</span>
+</span><span id="__span-0-3213"><a id="__codelineno-0-3213" name="__codelineno-0-3213"></a>
+</span><span id="__span-0-3214"><a id="__codelineno-0-3214" name="__codelineno-0-3214"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-3215"><a id="__codelineno-0-3215" name="__codelineno-0-3215"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+</span><span id="__span-0-3216"><a id="__codelineno-0-3216" name="__codelineno-0-3216"></a>        <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+</span><span id="__span-0-3217"><a id="__codelineno-0-3217" name="__codelineno-0-3217"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+</span><span id="__span-0-3218"><a id="__codelineno-0-3218" name="__codelineno-0-3218"></a>
+</span><span id="__span-0-3219"><a id="__codelineno-0-3219" name="__codelineno-0-3219"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -21508,9 +21496,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-3063">3063</a></span>
 <span class="normal"><a href="#__codelineno-0-3064">3064</a></span>
 <span class="normal"><a href="#__codelineno-0-3065">3065</a></span>
-<span class="normal"><a href="#__codelineno-0-3066">3066</a></span>
-<span class="normal"><a href="#__codelineno-0-3067">3067</a></span>
-<span class="normal"><a href="#__codelineno-0-3068">3068</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3005"><a id="__codelineno-0-3005" name="__codelineno-0-3005"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nms</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-3066">3066</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3005"><a id="__codelineno-0-3005" name="__codelineno-0-3005"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nms</span><span class="p">(</span>
 </span><span id="__span-0-3006"><a id="__codelineno-0-3006" name="__codelineno-0-3006"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-3007"><a id="__codelineno-0-3007" name="__codelineno-0-3007"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 </span><span id="__span-0-3008"><a id="__codelineno-0-3008" name="__codelineno-0-3008"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -21560,20 +21546,18 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 </span><span id="__span-0-3052"><a id="__codelineno-0-3052" name="__codelineno-0-3052"></a>    <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
 </span><span id="__span-0-3053"><a id="__codelineno-0-3053" name="__codelineno-0-3053"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">oriented_box_non_max_suppression</span><span class="p">(</span>
 </span><span id="__span-0-3054"><a id="__codelineno-0-3054" name="__codelineno-0-3054"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>            <span class="p">),</span>
-</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>        <span class="p">)</span>
-</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3063"><a id="__codelineno-0-3063" name="__codelineno-0-3063"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-3065"><a id="__codelineno-0-3065" name="__codelineno-0-3065"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a>        <span class="p">)</span>
-</span><span id="__span-0-3067"><a id="__codelineno-0-3067" name="__codelineno-0-3067"></a>
-</span><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">]),</span>
+</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>        <span class="p">)</span>
+</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>        <span class="n">indices</span> <span class="o">=</span> <span class="n">box_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-3063"><a id="__codelineno-0-3063" name="__codelineno-0-3063"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a>        <span class="p">)</span>
+</span><span id="__span-0-3065"><a id="__codelineno-0-3065" name="__codelineno-0-3065"></a>
+</span><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -21733,7 +21717,9 @@ If <code>sigma</code> is not greater than <code>0</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/detection/core.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3070">3070</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3068">3068</a></span>
+<span class="normal"><a href="#__codelineno-0-3069">3069</a></span>
+<span class="normal"><a href="#__codelineno-0-3070">3070</a></span>
 <span class="normal"><a href="#__codelineno-0-3071">3071</a></span>
 <span class="normal"><a href="#__codelineno-0-3072">3072</a></span>
 <span class="normal"><a href="#__codelineno-0-3073">3073</a></span>
@@ -21802,80 +21788,78 @@ If <code>sigma</code> is not greater than <code>0</code>.</p>
 <span class="normal"><a href="#__codelineno-0-3136">3136</a></span>
 <span class="normal"><a href="#__codelineno-0-3137">3137</a></span>
 <span class="normal"><a href="#__codelineno-0-3138">3138</a></span>
-<span class="normal"><a href="#__codelineno-0-3139">3139</a></span>
-<span class="normal"><a href="#__codelineno-0-3140">3140</a></span>
-<span class="normal"><a href="#__codelineno-0-3141">3141</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_soft_nms</span><span class="p">(</span>
-</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a>    <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-3077"><a id="__codelineno-0-3077" name="__codelineno-0-3077"></a><span class="sd">    Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch</span>
-</span><span id="__span-0-3078"><a id="__codelineno-0-3078" name="__codelineno-0-3078"></a><span class="sd">    order: (1) if mask data present, IoU mask is used; (2) otherwise,</span>
-</span><span id="__span-0-3079"><a id="__codelineno-0-3079" name="__codelineno-0-3079"></a><span class="sd">    axis-aligned box IoU is used. Oriented-box detections are not given</span>
-</span><span id="__span-0-3080"><a id="__codelineno-0-3080" name="__codelineno-0-3080"></a><span class="sd">    dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.</span>
-</span><span id="__span-0-3081"><a id="__codelineno-0-3081" name="__codelineno-0-3081"></a>
-</span><span id="__span-0-3082"><a id="__codelineno-0-3082" name="__codelineno-0-3082"></a><span class="sd">    Unlike `with_nms`, which discards overlapping detections outright,</span>
-</span><span id="__span-0-3083"><a id="__codelineno-0-3083" name="__codelineno-0-3083"></a><span class="sd">    Soft-NMS keeps every detection and instead rescales its confidence by</span>
-</span><span id="__span-0-3084"><a id="__codelineno-0-3084" name="__codelineno-0-3084"></a><span class="sd">    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category</span>
-</span><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a><span class="sd">    overlap. By default (`score_threshold=None`) nothing is dropped — the</span>
-</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a><span class="sd">    method only rescales confidence, despite the &quot;suppression&quot; name; pass</span>
-</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a><span class="sd">    `score_threshold` to additionally filter the decayed scores into a real</span>
-</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a><span class="sd">    subset, matching `with_nms`&#39;s return contract.</span>
-</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a>
-</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a><span class="sd">        sigma: Controls the strength of the confidence decay; must be</span>
-</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">            greater than `0`. The lower the value the stronger the decay.</span>
-</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">            No value of `sigma` reproduces `with_nms`&#39;s hard cutoff —</span>
-</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">            Soft-NMS never drops detections on its own.</span>
-</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">        class_agnostic: Whether to perform class-agnostic Soft-NMS. If</span>
-</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a><span class="sd">            True, the class_id of each detection will be ignored.</span>
-</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">            Defaults to False.</span>
-</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">        score_threshold: If given, detections whose decayed confidence is</span>
-</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">            at or below this value are dropped, producing a real subset</span>
-</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">            (like `with_nms`). If `None` (default), all detections are</span>
-</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a><span class="sd">            kept, with their confidence rescaled in place on the returned</span>
-</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">            copy.</span>
-</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a>
-</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">        A new Detections object with decayed confidence scores and,</span>
-</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a><span class="sd">            if `score_threshold` is given, filtered to a real subset.</span>
-</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">            The original `Detections` instance is never modified.</span>
-</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a>
-</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a><span class="sd">        ValueError: If `confidence` is None.</span>
-</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">            If `class_id` is None and class_agnostic is False.</span>
-</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a><span class="sd">            If `sigma` is not greater than `0`.</span>
-</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a>        <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a>
-</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a>            <span class="s2">&quot;Detections confidence must be given for Soft-NMS to be executed.&quot;</span>
-</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a>        <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-3139">3139</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_soft_nms</span><span class="p">(</span>
+</span><span id="__span-0-3069"><a id="__codelineno-0-3069" name="__codelineno-0-3069"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a>    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a>    <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a><span class="sd">    Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch</span>
+</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a><span class="sd">    order: (1) if mask data present, IoU mask is used; (2) otherwise,</span>
+</span><span id="__span-0-3077"><a id="__codelineno-0-3077" name="__codelineno-0-3077"></a><span class="sd">    axis-aligned box IoU is used. Oriented-box detections are not given</span>
+</span><span id="__span-0-3078"><a id="__codelineno-0-3078" name="__codelineno-0-3078"></a><span class="sd">    dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.</span>
+</span><span id="__span-0-3079"><a id="__codelineno-0-3079" name="__codelineno-0-3079"></a>
+</span><span id="__span-0-3080"><a id="__codelineno-0-3080" name="__codelineno-0-3080"></a><span class="sd">    Unlike `with_nms`, which discards overlapping detections outright,</span>
+</span><span id="__span-0-3081"><a id="__codelineno-0-3081" name="__codelineno-0-3081"></a><span class="sd">    Soft-NMS keeps every detection and instead rescales its confidence by</span>
+</span><span id="__span-0-3082"><a id="__codelineno-0-3082" name="__codelineno-0-3082"></a><span class="sd">    `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category</span>
+</span><span id="__span-0-3083"><a id="__codelineno-0-3083" name="__codelineno-0-3083"></a><span class="sd">    overlap. By default (`score_threshold=None`) nothing is dropped — the</span>
+</span><span id="__span-0-3084"><a id="__codelineno-0-3084" name="__codelineno-0-3084"></a><span class="sd">    method only rescales confidence, despite the &quot;suppression&quot; name; pass</span>
+</span><span id="__span-0-3085"><a id="__codelineno-0-3085" name="__codelineno-0-3085"></a><span class="sd">    `score_threshold` to additionally filter the decayed scores into a real</span>
+</span><span id="__span-0-3086"><a id="__codelineno-0-3086" name="__codelineno-0-3086"></a><span class="sd">    subset, matching `with_nms`&#39;s return contract.</span>
+</span><span id="__span-0-3087"><a id="__codelineno-0-3087" name="__codelineno-0-3087"></a>
+</span><span id="__span-0-3088"><a id="__codelineno-0-3088" name="__codelineno-0-3088"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-3089"><a id="__codelineno-0-3089" name="__codelineno-0-3089"></a><span class="sd">        sigma: Controls the strength of the confidence decay; must be</span>
+</span><span id="__span-0-3090"><a id="__codelineno-0-3090" name="__codelineno-0-3090"></a><span class="sd">            greater than `0`. The lower the value the stronger the decay.</span>
+</span><span id="__span-0-3091"><a id="__codelineno-0-3091" name="__codelineno-0-3091"></a><span class="sd">            No value of `sigma` reproduces `with_nms`&#39;s hard cutoff —</span>
+</span><span id="__span-0-3092"><a id="__codelineno-0-3092" name="__codelineno-0-3092"></a><span class="sd">            Soft-NMS never drops detections on its own.</span>
+</span><span id="__span-0-3093"><a id="__codelineno-0-3093" name="__codelineno-0-3093"></a><span class="sd">        class_agnostic: Whether to perform class-agnostic Soft-NMS. If</span>
+</span><span id="__span-0-3094"><a id="__codelineno-0-3094" name="__codelineno-0-3094"></a><span class="sd">            True, the class_id of each detection will be ignored.</span>
+</span><span id="__span-0-3095"><a id="__codelineno-0-3095" name="__codelineno-0-3095"></a><span class="sd">            Defaults to False.</span>
+</span><span id="__span-0-3096"><a id="__codelineno-0-3096" name="__codelineno-0-3096"></a><span class="sd">        score_threshold: If given, detections whose decayed confidence is</span>
+</span><span id="__span-0-3097"><a id="__codelineno-0-3097" name="__codelineno-0-3097"></a><span class="sd">            at or below this value are dropped, producing a real subset</span>
+</span><span id="__span-0-3098"><a id="__codelineno-0-3098" name="__codelineno-0-3098"></a><span class="sd">            (like `with_nms`). If `None` (default), all detections are</span>
+</span><span id="__span-0-3099"><a id="__codelineno-0-3099" name="__codelineno-0-3099"></a><span class="sd">            kept, with their confidence rescaled in place on the returned</span>
+</span><span id="__span-0-3100"><a id="__codelineno-0-3100" name="__codelineno-0-3100"></a><span class="sd">            copy.</span>
+</span><span id="__span-0-3101"><a id="__codelineno-0-3101" name="__codelineno-0-3101"></a>
+</span><span id="__span-0-3102"><a id="__codelineno-0-3102" name="__codelineno-0-3102"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-3103"><a id="__codelineno-0-3103" name="__codelineno-0-3103"></a><span class="sd">        A new Detections object with decayed confidence scores and,</span>
+</span><span id="__span-0-3104"><a id="__codelineno-0-3104" name="__codelineno-0-3104"></a><span class="sd">            if `score_threshold` is given, filtered to a real subset.</span>
+</span><span id="__span-0-3105"><a id="__codelineno-0-3105" name="__codelineno-0-3105"></a><span class="sd">            The original `Detections` instance is never modified.</span>
+</span><span id="__span-0-3106"><a id="__codelineno-0-3106" name="__codelineno-0-3106"></a>
+</span><span id="__span-0-3107"><a id="__codelineno-0-3107" name="__codelineno-0-3107"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-3108"><a id="__codelineno-0-3108" name="__codelineno-0-3108"></a><span class="sd">        ValueError: If `confidence` is None.</span>
+</span><span id="__span-0-3109"><a id="__codelineno-0-3109" name="__codelineno-0-3109"></a><span class="sd">            If `class_id` is None and class_agnostic is False.</span>
+</span><span id="__span-0-3110"><a id="__codelineno-0-3110" name="__codelineno-0-3110"></a><span class="sd">            If `sigma` is not greater than `0`.</span>
+</span><span id="__span-0-3111"><a id="__codelineno-0-3111" name="__codelineno-0-3111"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-3112"><a id="__codelineno-0-3112" name="__codelineno-0-3112"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-3113"><a id="__codelineno-0-3113" name="__codelineno-0-3113"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-3114"><a id="__codelineno-0-3114" name="__codelineno-0-3114"></a>
+</span><span id="__span-0-3115"><a id="__codelineno-0-3115" name="__codelineno-0-3115"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3116"><a id="__codelineno-0-3116" name="__codelineno-0-3116"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-3117"><a id="__codelineno-0-3117" name="__codelineno-0-3117"></a>            <span class="s2">&quot;Detections confidence must be given for Soft-NMS to be executed.&quot;</span>
+</span><span id="__span-0-3118"><a id="__codelineno-0-3118" name="__codelineno-0-3118"></a>        <span class="p">)</span>
+</span><span id="__span-0-3119"><a id="__codelineno-0-3119" name="__codelineno-0-3119"></a>
+</span><span id="__span-0-3120"><a id="__codelineno-0-3120" name="__codelineno-0-3120"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;Soft-NMS&quot;</span><span class="p">)</span>
 </span><span id="__span-0-3121"><a id="__codelineno-0-3121" name="__codelineno-0-3121"></a>
-</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a>    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_nms_predictions</span><span class="p">(</span><span class="n">class_agnostic</span><span class="p">,</span> <span class="s2">&quot;Soft-NMS&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a>
-</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a>        <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">mask_soft_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a>            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
-</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a>        <span class="p">)</span>
-</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a>        <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">box_soft_non_max_suppression</span><span class="p">(</span>
-</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a>            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
-</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>        <span class="p">)</span>
-</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a>
-</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
-</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>    <span class="n">result</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">decayed_confidence</span>
-</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>
-</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>    <span class="k">if</span> <span class="n">score_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-3140"><a id="__codelineno-0-3140" name="__codelineno-0-3140"></a>        <span class="k">return</span> <span class="n">result</span>
-</span><span id="__span-0-3141"><a id="__codelineno-0-3141" name="__codelineno-0-3141"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">decayed_confidence</span> <span class="o">&gt;</span> <span class="n">score_threshold</span><span class="p">)</span>
+</span><span id="__span-0-3122"><a id="__codelineno-0-3122" name="__codelineno-0-3122"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3123"><a id="__codelineno-0-3123" name="__codelineno-0-3123"></a>        <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">mask_soft_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3124"><a id="__codelineno-0-3124" name="__codelineno-0-3124"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3125"><a id="__codelineno-0-3125" name="__codelineno-0-3125"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-3126"><a id="__codelineno-0-3126" name="__codelineno-0-3126"></a>            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+</span><span id="__span-0-3127"><a id="__codelineno-0-3127" name="__codelineno-0-3127"></a>        <span class="p">)</span>
+</span><span id="__span-0-3128"><a id="__codelineno-0-3128" name="__codelineno-0-3128"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-3129"><a id="__codelineno-0-3129" name="__codelineno-0-3129"></a>        <span class="n">decayed_confidence</span> <span class="o">=</span> <span class="n">box_soft_non_max_suppression</span><span class="p">(</span>
+</span><span id="__span-0-3130"><a id="__codelineno-0-3130" name="__codelineno-0-3130"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-3131"><a id="__codelineno-0-3131" name="__codelineno-0-3131"></a>            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+</span><span id="__span-0-3132"><a id="__codelineno-0-3132" name="__codelineno-0-3132"></a>        <span class="p">)</span>
+</span><span id="__span-0-3133"><a id="__codelineno-0-3133" name="__codelineno-0-3133"></a>
+</span><span id="__span-0-3134"><a id="__codelineno-0-3134" name="__codelineno-0-3134"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
+</span><span id="__span-0-3135"><a id="__codelineno-0-3135" name="__codelineno-0-3135"></a>    <span class="n">result</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">decayed_confidence</span>
+</span><span id="__span-0-3136"><a id="__codelineno-0-3136" name="__codelineno-0-3136"></a>
+</span><span id="__span-0-3137"><a id="__codelineno-0-3137" name="__codelineno-0-3137"></a>    <span class="k">if</span> <span class="n">score_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-3138"><a id="__codelineno-0-3138" name="__codelineno-0-3138"></a>        <span class="k">return</span> <span class="n">result</span>
+</span><span id="__span-0-3139"><a id="__codelineno-0-3139" name="__codelineno-0-3139"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">decayed_confidence</span> <span class="o">&gt;</span> <span class="n">score_threshold</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
