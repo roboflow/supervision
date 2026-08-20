@@ -3978,6 +3978,7 @@
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>sv.get_polygon_center</code> now calculates polygon centroids in translated <code>float64</code> coordinates, preventing integer overflow and precision loss for polygons with large coordinates.</li>
 <li><code>DetectionsSmoother</code> now keeps oriented-box corners aligned with smoothed <code>xyxy</code> geometry, including rotated tracks and mixed metadata windows.</li>
 <li><code>sv.box_iou</code> now calculates overlap in <code>float64</code>, preventing <code>int32</code> area overflow for large boxes. Its scalar result now matches <code>sv.box_iou_batch</code> for the same input.</li>
 <li><code>sv.list_files_with_extensions</code> no longer includes directories when listing all files without an extension filter.</li>
@@ -6173,7 +6174,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 19, 2026 20:46:52 UTC">August 19, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 20, 2026 07:08:06 UTC">August 20, 2026</span>
   </span>
 
     
@@ -6201,9 +6202,9 @@
     
     <nav>
       
-        <a href="https://github.com/adhavan18" class="md-author" title="@adhavan18">
+        <a href="https://github.com/tandede" class="md-author" title="@tandede">
           
-          <img src="https://avatars.githubusercontent.com/u/99407456?v=4&size=72" alt="adhavan18">
+          <img src="https://avatars.githubusercontent.com/u/127607634?v=4&size=72" alt="tandede">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6211,21 +6212,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/adhavan18" class="md-author" title="@adhavan18">
+          
+          <img src="https://avatars.githubusercontent.com/u/99407456?v=4&size=72" alt="adhavan18">
+        </a>
+      
         <a href="https://github.com/uczltw6" class="md-author" title="@uczltw6">
           
           <img src="https://avatars.githubusercontent.com/u/62146150?v=4&size=72" alt="uczltw6">
-        </a>
-      
-        <a href="https://github.com/BruceWae" class="md-author" title="@BruceWae">
-          
-          <img src="https://avatars.githubusercontent.com/u/119557478?v=4&size=72" alt="BruceWae">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +32
           </a>
         
       
