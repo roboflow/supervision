@@ -282,7 +282,9 @@ def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]
             corners.astype(object) - origin.astype(object), dtype=np.float64
         )
     else:
-        translated = corners.astype(np.float64, copy=False) - origin
+        translated = corners.astype(np.float64, copy=False) - origin.astype(
+            np.float64, copy=False
+        )
     x = translated[..., 0]
     y = translated[..., 1]
     cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)

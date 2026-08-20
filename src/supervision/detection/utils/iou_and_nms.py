@@ -420,7 +420,7 @@ def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
         )
     else:
         polygons_float = polygons.astype(np.float64, copy=False)
-        translated = polygons_float - origin
+        translated = polygons_float - origin.astype(np.float64, copy=False)
     x = translated[:, :, 0]
     y = translated[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
