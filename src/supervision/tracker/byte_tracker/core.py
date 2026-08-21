@@ -103,17 +103,16 @@ class ByteTrack:
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO("<MODEL_PATH>")
+            model = RFDETRMedium()
             tracker = sv.ByteTrack()
 
             box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
-                results = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(results)
+                detections = model.predict(frame)
                 detections = tracker.update_with_detections(detections)
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]

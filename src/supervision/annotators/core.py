@@ -2210,9 +2210,9 @@ class TraceAnnotator(BaseAnnotator):
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
             trace_annotator = sv.TraceAnnotator()
 
             video_info = sv.VideoInfo.from_video_path(video_path='...')
@@ -2221,8 +2221,7 @@ class TraceAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
+                   detections = model.predict(frame)
                    detections = tracker.update_with_detections(detections)
                    annotated_frame = trace_annotator.annotate(
                        scene=frame.copy(),
@@ -2384,9 +2383,9 @@ class HeatMapAnnotator(BaseAnnotator):
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
 
             heat_map_annotator = sv.HeatMapAnnotator()
 
@@ -2395,8 +2394,7 @@ class HeatMapAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
+                   detections = model.predict(frame)
                    annotated_frame = heat_map_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)
