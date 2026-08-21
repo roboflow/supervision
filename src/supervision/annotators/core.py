@@ -3460,7 +3460,8 @@ class ComparisonAnnotator:
             return np.zeros(scene.shape[:2], dtype=np.bool_)
         assert detections.mask is not None
 
-        return np.any(detections.mask, axis=0)
+        result: npt.NDArray[np.bool_] = np.any(detections.mask, axis=0)
+        return result
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
         """
