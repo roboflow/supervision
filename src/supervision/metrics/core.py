@@ -1,10 +1,55 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 R = TypeVar("R")
+
+
+@dataclass
+class PlotDetails:
+    """Container for bar-chart data returned by ``MetricResult._get_plot_details``.
+
+    Attributes:
+        labels: Bar labels (x-axis tick labels).
+        values: Bar heights (metric values).
+        colors: One hex color string per bar (e.g. ``"#A351FB"``).
+        title: Chart title.
+    """
+
+    labels: list[str] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    colors: list[str] = field(default_factory=list)
+    title: str = ""
+
+
+class MetricResult(ABC):
+    """Abstract base class shared by all metric result dataclasses."""
+
+    @abstractmethod
+    def to_pandas(self) -> pd.DataFrame:
+        """Convert the result to a :class:`~pandas.DataFrame`."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot(self) -> None:
+        """Render a bar-chart of the result."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return labels, values, colors, and title for a bar chart.
+
+        Args:
+            include_object_sizes: When ``True`` (default), include bars for
+                small / medium / large object-size categories.
+        """
+        raise NotImplementedError
 
 
 class Metric(ABC, Generic[R]):
