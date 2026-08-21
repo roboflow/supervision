@@ -94,6 +94,21 @@ class Detections:
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
+    === "RF-DETR"
+
+        [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
+        `sv.Detections` object directly, so no conversion step is needed.
+
+        ```python
+        from supervision import _cv2 as cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        model = RFDETRMedium()
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        detections = model.predict(image[:, :, ::-1])
+        ```
+
     === "Inference"
 
         Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
@@ -104,7 +119,7 @@ class Detections:
         import supervision as sv
         from inference import get_model
 
-        model = get_model(model_id="yolov8n-640")
+        model = get_model(model_id="rfdetr-small")
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
         results = model.infer(image)[0]
         detections = sv.Detections.from_inference(results)
