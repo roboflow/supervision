@@ -1,10 +1,10 @@
 from collections import defaultdict, deque
 
-import cv2
 import numpy as np
 from rfdetr import RFDETRMedium
 
 import supervision as sv
+from supervision import _cv2 as cv2
 
 SOURCE = np.array([[1252, 787], [2298, 803], [5039, 2159], [-550, 2159]])
 
@@ -20,14 +20,18 @@ TARGET = np.array(
     ]
 )
 
+VEHICLE_CLASS_IDS = [3, 4, 6, 8]
+
 
 class ViewTransformer:
     def __init__(self, source: np.ndarray, target: np.ndarray) -> None:
+        """Build a perspective transform from image to ground-plane points."""
         source = source.astype(np.float32)
         target = target.astype(np.float32)
         self.m = cv2.getPerspectiveTransform(source, target)
 
     def transform_points(self, points: np.ndarray) -> np.ndarray:
+        """Project image points onto the configured ground plane."""
         if points.size == 0:
             return points
 
@@ -36,9 +40,17 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
+def calculate_speed(distance: float, elapsed_frames: int, fps: float) -> float:
+    """Convert displacement over source-frame intervals to kilometres per hour."""
+    if elapsed_frames < 1:
+        raise ValueError("At least one elapsed frame is required to calculate speed.")
+    elapsed_time = elapsed_frames / fps
+    return distance / elapsed_time * 3.6
+
+
 def main(
     source_video_path: str,
-    target_video_path: str,
+    target_video_path: str | None = None,
     device: str = "cpu",
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
@@ -83,51 +95,55 @@ def main(
 
     coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
-    with sv.VideoSink(target_video_path, video_info) as sink:
-        window = sv.ImageWindow("frame")
-        for frame in frame_generator:
-            detections = model.predict(frame, threshold=confidence_threshold)
-            detections = detections.with_nms(threshold=iou_threshold)
-            detections = detections[polygon_zone.trigger(detections)]
-            detections = byte_track.update_with_detections(detections=detections)
+    def process_frame(frame: np.ndarray, frame_index: int) -> np.ndarray:
+        """Detect vehicles, estimate their speeds, and annotate one BGR frame."""
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        detections = model.predict(frame_rgb, threshold=confidence_threshold)
+        detections = detections[np.isin(detections.class_id, VEHICLE_CLASS_IDS)]
+        detections = detections.with_nms(threshold=iou_threshold)
+        detections = detections[polygon_zone.trigger(detections)]
+        detections = byte_track.update_with_detections(detections=detections)
 
-            points = detections.get_anchors_coordinates(
-                anchor=sv.Position.BOTTOM_CENTER
-            )
-            points = view_transformer.transform_points(points=points).astype(int)
+        points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+        points = view_transformer.transform_points(points=points).astype(int)
+        for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
+            coordinates[tracker_id].append((frame_index, y))
 
-            for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
-                coordinates[tracker_id].append(y)
+        labels = []
+        for tracker_id in detections.tracker_id:
+            history = coordinates[tracker_id]
+            elapsed_frames = history[-1][0] - history[0][0]
+            if len(history) < 2 or elapsed_frames < video_info.fps / 2:
+                labels.append(f"#{tracker_id}")
+                continue
+            distance = abs(history[-1][1] - history[0][1])
+            speed = calculate_speed(distance, elapsed_frames, video_info.fps)
+            labels.append(f"#{tracker_id} {int(speed)} km/h")
 
-            labels = []
-            for tracker_id in detections.tracker_id:
-                if len(coordinates[tracker_id]) < video_info.fps / 2:
-                    labels.append(f"#{tracker_id}")
-                else:
-                    coordinate_start = coordinates[tracker_id][-1]
-                    coordinate_end = coordinates[tracker_id][0]
-                    distance = abs(coordinate_start - coordinate_end)
-                    time = len(coordinates[tracker_id]) / video_info.fps
-                    speed = distance / time * 3.6
-                    labels.append(f"#{tracker_id} {int(speed)} km/h")
+        annotated_frame = trace_annotator.annotate(
+            scene=frame.copy(), detections=detections
+        )
+        annotated_frame = box_annotator.annotate(
+            scene=annotated_frame, detections=detections
+        )
+        return label_annotator.annotate(
+            scene=annotated_frame, detections=detections, labels=labels
+        )
 
-            annotated_frame = frame.copy()
-            annotated_frame = trace_annotator.annotate(
-                scene=annotated_frame, detections=detections
-            )
-            annotated_frame = box_annotator.annotate(
-                scene=annotated_frame, detections=detections
-            )
-            annotated_frame = label_annotator.annotate(
-                scene=annotated_frame, detections=detections, labels=labels
-            )
+    if target_video_path is not None:
+        with sv.VideoSink(target_video_path, video_info) as sink:
+            for frame_index, frame in enumerate(frame_generator):
+                sink.write_frame(process_frame(frame, frame_index))
+        return
 
-            sink.write_frame(annotated_frame)
-            window.show(annotated_frame)
-            key = window.wait_key(1)
-            if not window.is_open or key == "q":
-                break
-        window.close()
+    window = sv.ImageWindow("frame")
+    for frame_index, frame in enumerate(frame_generator):
+        annotated_frame = process_frame(frame, frame_index)
+        window.show(annotated_frame)
+        key = window.wait_key(1)
+        if not window.is_open or key == "q":
+            break
+    window.close()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-import cv2
 from rfdetr import RFDETRMedium
 
 import supervision as sv
+from supervision import _cv2 as cv2
 from supervision.assets import VideoAssets, download_assets
 
 # RF-DETR's COCO class ids are 1-indexed; `person` is 1 (not 0, as in
@@ -10,6 +10,7 @@ PERSON_CLASS_ID = 1
 
 
 def download_video() -> str:
+    """Download and return the bundled people-walking video path."""
     download_assets(VideoAssets.PEOPLE_WALKING)
     return VideoAssets.PEOPLE_WALKING.value
 
@@ -80,7 +81,8 @@ def main(
     ### Detect, track, annotate, save
     with sv.VideoSink(target_path=target_video_path, video_info=video_info) as sink:
         for frame in frames_generator:
-            detections = model.predict(frame, threshold=confidence_threshold)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            detections = model.predict(frame_rgb, threshold=confidence_threshold)
             detections = detections[detections.class_id == PERSON_CLASS_ID]
             detections = detections.with_nms(threshold=iou_threshold)
 

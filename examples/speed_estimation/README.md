@@ -4,7 +4,7 @@
 
 ## 👋 hello
 
-This example performs speed estimation analysis using various object-detection models and ByteTrack - a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended model — its `predict` method returns a `Detections` object directly, no conversion step needed. YOLOv8 (via Ultralytics) and Roboflow Inference are also supported; `yolo_nas_example.py` is kept for reference but YOLO-NAS is a deprecated model family and not recommended for new projects.
+This example performs speed estimation analysis using various object-detection models and ByteTrack - a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended model — its `predict` method returns a `Detections` object directly, no conversion step needed. YOLOv8 (via Ultralytics) and Roboflow Inference are also supported; `yolo_nas_example.py` is kept as a legacy reference and is not recommended for new projects.
 
 https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-5d860fd36f71
 
@@ -31,6 +31,8 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
   ```bash
   uv pip install -r requirements.txt
   ```
+
+  The requirements file includes dependencies for the RF-DETR, Ultralytics, Inference, and legacy YOLO-NAS variants. The `super-gradients` dependency is used only by the retained YOLO-NAS reference script.
 
 - download `vehicles.mp4` file
 
@@ -89,7 +91,7 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
       --iou_threshold 0.5
   ```
 
-- yolo-nas (deprecated model family, kept for reference)
+- yolo-nas (legacy model, kept for reference)
 
   ```bash
   python yolo_nas_example.py \
@@ -103,7 +105,7 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
 This demo integrates multiple components, each with its own licensing:
 
-- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://github.com/roboflow/rf-detr/blob/main/LICENSE).
+- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://raw.githubusercontent.com/roboflow/rf-detr/develop/LICENSE).
 
 - ultralytics: The object detection model used by the `ultralytics` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 

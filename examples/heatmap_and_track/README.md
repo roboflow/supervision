@@ -81,7 +81,7 @@ This script performs heatmap and tracking analysis using an object-detection mod
 
 This demo integrates multiple components, each with its own licensing:
 
-- rfdetr: The object detection model used by the recommended `rfdetr_example.py` variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://github.com/roboflow/rf-detr/blob/main/LICENSE).
+- rfdetr: The object detection model used by the recommended `rfdetr_example.py` variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://raw.githubusercontent.com/roboflow/rf-detr/develop/LICENSE).
 
 - ultralytics: The object detection model used by the `script.py` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 

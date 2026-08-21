@@ -28,7 +28,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
   uv pip install -r requirements.txt
   ```
 
-- download `traffic_analysis.pt` and `traffic_analysis.mov` files (needed for the `ultralytics` variant only)
+- download `traffic_analysis.mov` for the video-based variants and `traffic_analysis.pt` for the `ultralytics` variant
 
   ```bash
   ./setup.sh
@@ -67,6 +67,8 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
   - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) to acquire your `API KEY`.
 
   - `--model_id` (optional): Designates the Roboflow model ID to be used. The default value is `"vehicle-count-in-drone-video/6"`.
+
+    The inference variant intentionally retains this traffic-specific model; the other inference examples use the general-purpose `rfdetr-small` model.
 
   - `--source_video_path`: Required. The path to the source video file that will be analyzed. This is the input video on which traffic flow analysis will be performed.
 
@@ -114,7 +116,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
 This demo integrates multiple components, each with its own licensing:
 
-- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://github.com/roboflow/rf-detr/blob/main/LICENSE) — unlike YOLOv8 below, it places no copyleft restrictions on how you use or distribute your project.
+- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://raw.githubusercontent.com/roboflow/rf-detr/develop/LICENSE) — unlike YOLOv8 below, it places no copyleft restrictions on how you use or distribute your project.
 
 - ultralytics: The object detection model used by the `ultralytics` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 

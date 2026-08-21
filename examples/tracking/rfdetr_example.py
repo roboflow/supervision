@@ -2,6 +2,7 @@ from rfdetr import RFDETRMedium
 from tqdm import tqdm
 
 import supervision as sv
+from supervision import _cv2 as cv2
 
 
 def main(
@@ -31,7 +32,8 @@ def main(
 
     with sv.VideoSink(target_path=target_video_path, video_info=video_info) as sink:
         for frame in tqdm(frame_generator, total=video_info.total_frames):
-            detections = model.predict(frame, threshold=confidence_threshold)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            detections = model.predict(frame_rgb, threshold=confidence_threshold)
             detections = detections.with_nms(threshold=iou_threshold)
             detections = tracker.update_with_detections(detections)
 

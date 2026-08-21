@@ -5,6 +5,7 @@ from rfdetr import RFDETRMedium
 from tqdm import tqdm
 
 import supervision as sv
+from supervision import _cv2 as cv2
 
 COLORS = sv.ColorPalette.DEFAULT
 
@@ -22,10 +23,10 @@ def load_zones_config(file_path: str) -> list[np.ndarray]:
     a NumPy array of coordinates.
 
     Args:
-    file_path (str): The path to the JSON configuration file.
+        file_path: The path to the JSON configuration file.
 
     Returns:
-    List[np.ndarray]: A list of polygons, each represented as a NumPy array.
+        A list of polygons, each represented as a NumPy array.
     """
     with open(file_path) as file:
         data = json.load(file)
@@ -35,6 +36,7 @@ def load_zones_config(file_path: str) -> list[np.ndarray]:
 def initiate_annotators(
     polygons: list[np.ndarray], resolution_wh: tuple[int, int]
 ) -> tuple[list[sv.PolygonZone], list[sv.PolygonZoneAnnotator], list[sv.BoxAnnotator]]:
+    """Create matching zone, polygon, and box annotators for each polygon."""
     line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
@@ -86,7 +88,8 @@ def detect(
         This function is specifically tailored for an RF-DETR model and assumes class
             ID 1 (`person`) for filtering.
     """
-    detections = model.predict(frame, threshold=confidence_threshold)
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    detections = model.predict(frame_rgb, threshold=confidence_threshold)
     detections = detections.with_nms(threshold=iou_threshold)
     filter_by_class = detections.class_id == PERSON_CLASS_ID
     filter_by_confidence = detections.confidence > confidence_threshold

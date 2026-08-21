@@ -5,6 +5,7 @@ from rfdetr import RFDETRMedium
 from tqdm import tqdm
 
 import supervision as sv
+from supervision import _cv2 as cv2
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 
@@ -28,6 +29,7 @@ ZONE_OUT_POLYGONS = [
 
 class DetectionsManager:
     def __init__(self) -> None:
+        """Initialize state used to count tracked zone transitions."""
         self.tracker_id_to_zone_id: dict[int, int] = {}
         self.counts: dict[int, dict[int, set[int]]] = {}
 
@@ -37,6 +39,7 @@ class DetectionsManager:
         detections_in_zones: list[sv.Detections],
         detections_out_zones: list[sv.Detections],
     ) -> sv.Detections:
+        """Record zone transitions and rewrite class IDs for annotation."""
         for zone_in_id, detections_in_zone in enumerate(detections_in_zones):
             for tracker_id in detections_in_zone.tracker_id:
                 self.tracker_id_to_zone_id.setdefault(tracker_id, zone_in_id)
@@ -61,6 +64,7 @@ def initiate_polygon_zones(
     polygons: list[np.ndarray],
     triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
 ) -> list[sv.PolygonZone]:
+    """Create polygon zones sharing the requested triggering anchors."""
     return [
         sv.PolygonZone(
             polygon=polygon,
@@ -79,6 +83,7 @@ class VideoProcessor:
         confidence_threshold: float = 0.3,
         iou_threshold: float = 0.7,
     ) -> None:
+        """Initialize the RF-DETR traffic processor and its annotators."""
         self.conf_threshold = confidence_threshold
         self.iou_threshold = iou_threshold
         self.source_video_path = source_video_path
@@ -101,6 +106,7 @@ class VideoProcessor:
         self.detections_manager = DetectionsManager()
 
     def process_video(self) -> None:
+        """Process the source video to a sink or live display."""
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path
         )
@@ -123,6 +129,7 @@ class VideoProcessor:
     def annotate_frame(
         self, frame: np.ndarray, detections: sv.Detections
     ) -> np.ndarray:
+        """Draw zones, tracks, labels, and transition counts on one BGR frame."""
         annotated_frame = frame.copy()
         for i, (zone_in, zone_out) in enumerate(zip(self.zones_in, self.zones_out)):
             annotated_frame = sv.draw_polygon(
@@ -156,7 +163,9 @@ class VideoProcessor:
         return annotated_frame
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
-        detections = self.model.predict(frame, threshold=self.conf_threshold)
+        """Detect, filter, track, and annotate one BGR traffic frame."""
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        detections = self.model.predict(frame_rgb, threshold=self.conf_threshold)
         detections = detections[np.isin(detections.class_id, VEHICLE_CLASS_IDS)]
         detections = detections.with_nms(threshold=self.iou_threshold)
         detections.class_id = np.zeros(len(detections))
@@ -179,7 +188,7 @@ class VideoProcessor:
 
 def main(
     source_video_path: str,
-    target_video_path: str,
+    target_video_path: str | None = None,
     device: str = "cpu",
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
