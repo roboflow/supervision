@@ -232,6 +232,7 @@ We need to remap them to match the dataset classes. Here's how to do it:
 ```python
 import numpy as np
 
+
 def remap_classes(
     detections: sv.Detections,
     class_ids_from_to: dict[int, int],
@@ -252,8 +253,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
 === "RF-DETR"
 
-    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below.
-    Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
+    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below. Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
 
     ```python
     import numpy as np
