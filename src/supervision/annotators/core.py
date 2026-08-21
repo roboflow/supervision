@@ -3475,7 +3475,7 @@ class ComparisonAnnotator:
                     mask[y1_int:y2, x1_int:x2] |= crop[: y2 - y1_int, : x2 - x1_int]
             return mask
 
-        return np.any(detections.mask, axis=0)
+        return cast(npt.NDArray[np.bool_], np.any(detections.mask, axis=0))
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
         """
