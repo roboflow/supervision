@@ -160,15 +160,17 @@ class DetectionsSmoother:
 
             self.tracks[tracker_id].append(detections.select(detection_idx))
 
+        active_ids = set(detections.tracker_id.tolist())
+
         for track_id in self.tracks.keys():
-            if track_id not in detections.tracker_id:
+            if track_id not in active_ids:
                 self.tracks[track_id].append(None)
 
         for track_id in list(self.tracks.keys()):
-            if all([d is None for d in self.tracks[track_id]]):
+            if all(d is None for d in self.tracks[track_id]):
                 del self.tracks[track_id]
 
-        current_track_ids = {int(track_id) for track_id in detections.tracker_id}
+        current_track_ids = active_ids
         return self.get_smoothed_detections(track_ids=current_track_ids)
 
     def get_track(self, track_id: int) -> Detections | None:
