@@ -13,13 +13,13 @@ date_modified: 2026-04-22
 
 # Track Objects
 
-Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using [RF-DETR](https://github.com/roboflow/rf-detr) via the [Inference](https://github.com/roboflow/inference) package, or the YOLOv8 model via either Inference or [Ultralytics](https://github.com/ultralytics/ultralytics). Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
+Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using native [RF-DETR](https://github.com/roboflow/rf-detr), with [Inference](https://github.com/roboflow/inference) and [Ultralytics](https://github.com/ultralytics/ultralytics) alternatives. Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
 
 ## Object Detection & Segmentation
 
 To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
-This section demonstrates how to detect and segment objects in video frames using RF-DETR via Inference, or YOLOv8 with either the Inference or Ultralytics package. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
+This section demonstrates how to detect and segment objects in video frames using native RF-DETR first, with Inference and YOLOv8 alternatives. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -39,7 +39,7 @@ We will define a `callback` function, which will process each frame of the video
 
 !!! tip
 
-    Both object detection and segmentation models are supported. Try it with `RFDETRMedium` or `rfdetr-seg-medium` via Inference!
+    Both object detection and segmentation models are supported. Try it with native `RFDETRMedium` or `rfdetr-seg-medium`, or use their Inference aliases.
 
 === "RF-DETR"
 
@@ -52,7 +52,7 @@ We will define a `callback` function, which will process each frame of the video
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        detections = model.predict(frame)
+        detections = model.predict(frame[:, :, ::-1])
         return box_annotator.annotate(frame.copy(), detections=detections)
 
     sv.process_video(
@@ -130,7 +130,7 @@ After running inference and obtaining predictions, the next step is to track the
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        detections = model.predict(frame)
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
         return box_annotator.annotate(frame.copy(), detections=detections)
 
@@ -206,7 +206,7 @@ Annotating the video with tracking IDs helps in distinguishing and following eac
     label_annotator = sv.LabelAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        detections = model.predict(frame)
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
 
         labels = [
@@ -319,7 +319,7 @@ Adding traces to the video involves overlaying the historical paths of the detec
     trace_annotator = sv.TraceAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        detections = model.predict(frame)
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
 
         labels = [

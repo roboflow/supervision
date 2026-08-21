@@ -167,7 +167,7 @@ With these ready, we can now run the model and obtain predictions. We'll use `su
     targets_list = []
 
     for image_path, image, label in test_set:
-        predictions = model.predict(image)
+        predictions = model.predict(image[:, :, ::-1])
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -177,6 +177,7 @@ With these ready, we can now run the model and obtain predictions. We'll use `su
 === "Inference"
 
     ```python
+    import numpy as np
     import supervision as sv
 
     test_set = sv.DetectionDataset.from_yolo(
@@ -229,6 +230,8 @@ Did you notice an issue in the above logic? Since we're using an unrelated datas
 We need to remap them to match the dataset classes. Here's how to do it:
 
 ```python
+import numpy as np
+
 def remap_classes(
     detections: sv.Detections,
     class_ids_from_to: dict[int, int],
@@ -242,7 +245,7 @@ def remap_classes(
     new_class_names = [
         class_names_from_to.get(name, name) for name in detections["class_name"]
     ]
-    predictions["class_name"] = np.array(new_class_names)
+    detections["class_name"] = np.array(new_class_names)
 ```
 
 Let's also remove the predictions that are not in the dataset classes.
@@ -250,8 +253,10 @@ Let's also remove the predictions that are not in the dataset classes.
 === "RF-DETR"
 
     Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below.
+    Filter the remapped class IDs rather than model-generated class names so the benchmark remains compatible with RF-DETR versions whose sparse COCO name lookup differs.
 
     ```python
+    import numpy as np
     import supervision as sv
 
     test_set = sv.DetectionDataset.from_yolo(
@@ -265,14 +270,16 @@ Let's also remove the predictions that are not in the dataset classes.
     targets_list = []
 
     for image_path, image, label in test_set:
-        predictions = model.predict(image)
+        predictions = model.predict(image[:, :, ::-1])
 
         remap_classes(
             detections=predictions,
-            class_ids_from_to={16: 0},
+            class_ids_from_to={18: 0},
             class_names_from_to={"dog": "Corgi"},
         )
-        predictions = predictions[np.isin(predictions["class_name"], test_set.classes),]
+        predictions = predictions[
+            np.isin(predictions.class_id, np.arange(len(test_set.classes)))
+        ]
 
         image_paths.append(image_path)
         predictions_list.append(predictions)

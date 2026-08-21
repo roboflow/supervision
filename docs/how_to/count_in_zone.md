@@ -108,7 +108,7 @@ Below, we can call our RF-DETR model, annotate predictions and zones, then save 
 
 ```python
 def process_frame(frame: np.ndarray, i) -> np.ndarray:
-    detections = model.predict(frame)
+    detections = model.predict(frame[:, :, ::-1])
 
     for zone, zone_annotator, box_annotator in zip(
         zones, zone_annotators, box_annotators

@@ -43,7 +43,7 @@ To run inference, initialize your chosen model and pass the source image to its 
 
     model = RFDETRMedium()
     image = cv2.imread("dog.jpeg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
     ```
 
 === "Inference"
@@ -107,7 +107,7 @@ Each supported framework has a dedicated class method on `sv.Detections` that co
 
     model = RFDETRMedium()
     image = cv2.imread("dog.jpeg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
     ```
 
 === "Inference"
@@ -191,7 +191,7 @@ To draw bounding boxes and class labels on your image, create a `BoxAnnotator` a
 
     model = RFDETRMedium()
     image = cv2.imread("dog.jpeg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -293,7 +293,7 @@ By default, [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detect
 
     model = RFDETRMedium()
     image = cv2.imread("dog.jpeg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -419,7 +419,7 @@ If you are running the segmentation model [`sv.MaskAnnotator`](https://supervisi
 
     model = RFDETRSegSmall()
     image = cv2.imread("dog.jpeg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     mask_annotator = sv.MaskAnnotator()
     label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)

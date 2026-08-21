@@ -39,7 +39,7 @@ With Supervision you can annotate images and video with bounding boxes, masks, a
 
     model = RFDETRMedium()
     image = cv2.imread("image.jpg")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()

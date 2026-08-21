@@ -31,7 +31,7 @@ Running a standard detection model on the full image establishes a baseline for 
 
     model = RFDETRMedium()
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -146,7 +146,7 @@ Modifying the input resolution of images before detection can enhance small obje
 
     model = RFDETRMedium(resolution=1280)
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
-    detections = model.predict(image)
+    detections = model.predict(image[:, :, ::-1])
 
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -221,7 +221,7 @@ Modifying the input resolution of images before detection can enhance small obje
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
-        return model.predict(image_slice)
+        return model.predict(image_slice[:, :, ::-1])
 
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)
@@ -354,7 +354,7 @@ Modifying the input resolution of images before detection can enhance small obje
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
-        return model.predict(image_slice)
+        return model.predict(image_slice[:, :, ::-1])
 
     slicer = sv.InferenceSlicer(callback = callback)
     detections = slicer(image)

@@ -28,7 +28,7 @@ To generate predictions for saving, initialize your model and iterate over video
     frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
     for frame in frames_generator:
-        detections = model.predict(frame)
+        detections = model.predict(frame[:, :, ::-1])
     ```
 
 === "Inference"
@@ -101,7 +101,7 @@ To save detections to a `.CSV` file, open our [`sv.CSVSink`](https://supervision
     with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame in frames_generator:
 
-            detections = model.predict(frame)
+            detections = model.predict(frame[:, :, ::-1])
             sink.append(detections, {})
     ```
 
@@ -189,7 +189,7 @@ Besides regular fields in [`sv.Detections`](https://supervision.roboflow.com/lat
     with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
-            detections = model.predict(frame)
+            detections = model.predict(frame[:, :, ::-1])
             sink.append(detections, {"frame_index": frame_index})
     ```
 
@@ -277,7 +277,7 @@ If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all
     with sv.JSONSink("<TARGET_JSON_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
-            detections = model.predict(frame)
+            detections = model.predict(frame[:, :, ::-1])
             sink.append(detections, {"frame_index": frame_index})
     ```
 
