@@ -1,7 +1,6 @@
 from collections import defaultdict, deque
 
 import numpy as np
-from rfdetr import RFDETRMedium
 
 import supervision as sv
 from supervision import _cv2 as cv2
@@ -65,6 +64,8 @@ def main(
         confidence_threshold: Confidence threshold for the model
         iou_threshold: IOU threshold for the model
     """
+    from rfdetr import RFDETRMedium
+
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = RFDETRMedium(device=device)
 
