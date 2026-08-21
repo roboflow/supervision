@@ -1,9 +1,8 @@
-import os
 from collections import defaultdict, deque
 
 import cv2
 import numpy as np
-from inference.models.utils import get_roboflow_model
+from rfdetr import RFDETRMedium
 
 import supervision as sv
 
@@ -40,33 +39,22 @@ class ViewTransformer:
 def main(
     source_video_path: str,
     target_video_path: str,
-    model_id: str = "rfdetr-small",
-    roboflow_api_key: str | None = None,
+    device: str = "cpu",
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
     """
-    Vehicle Speed Estimation using Inference and Supervision.
+    Vehicle Speed Estimation using RF-DETR and Supervision.
 
     Args:
         source_video_path: Path to the source video file
         target_video_path: Path to the target video file (output)
-        model_id: Roboflow model ID
-        roboflow_api_key: Roboflow API KEY
+        device: Computation device ('cpu', 'mps' or 'cuda')
         confidence_threshold: Confidence threshold for the model
         iou_threshold: IOU threshold for the model
     """
-    api_key = roboflow_api_key
-    api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
-    if api_key is None:
-        raise ValueError(
-            "Roboflow API key is missing. Please provide it as an argument or set the "
-            "ROBOFLOW_API_KEY environment variable."
-        )
-    roboflow_api_key = api_key
-
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
-    model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
+    model = RFDETRMedium(device=device)
 
     byte_track = sv.ByteTrack(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
@@ -98,10 +86,8 @@ def main(
     with sv.VideoSink(target_video_path, video_info) as sink:
         window = sv.ImageWindow("frame")
         for frame in frame_generator:
-            results = model.infer(
-                frame, confidence=confidence_threshold, iou=iou_threshold
-            )[0]
-            detections = sv.Detections.from_inference(results)
+            detections = model.predict(frame, threshold=confidence_threshold)
+            detections = detections.with_nms(threshold=iou_threshold)
             detections = detections[polygon_zone.trigger(detections)]
             detections = byte_track.update_with_detections(detections=detections)
 

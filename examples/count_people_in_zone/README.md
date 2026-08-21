@@ -4,7 +4,7 @@
 
 ## 👋 hello
 
-This demo is a video analysis tool that counts and highlights objects in specific zones of a video. Each zone and the objects within it are marked in different colors, making it easy to see and count the objects in each area. The tool can save this enhanced video or display it live on the screen.
+This demo is a video analysis tool that counts and highlights objects in specific zones of a video. Each zone and the objects within it are marked in different colors, making it easy to see and count the objects in each area. The tool can save this enhanced video or display it live on the screen. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended detection model — its `predict` method returns a `Detections` object directly, no conversion step needed. YOLOv8 (via Ultralytics) and Roboflow Inference are also supported as alternatives.
 
 https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-64daa43ce667
 
@@ -38,6 +38,20 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
 ## 🛠️ script arguments
 
+- rfdetr
+
+  - `--device` (optional): Computation device (`cpu`, `mps` or `cuda`). Default is `cpu`.
+
+  - `--zone_configuration_path`: Specifies the path to the JSON file containing zone configurations. This file defines the polygonal areas in the video where objects will be counted.
+
+  - `--source_video_path`: The path to the source video file that will be analyzed.
+
+  - `--target_video_path` (optional): The path to save the output video with annotations. If not provided, the processed video will be displayed in real-time.
+
+  - `--confidence_threshold` (optional): Sets the confidence threshold for the RF-DETR model to filter detections. Default is `0.3`.
+
+  - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold used for non-max suppression. Default is `0.7`.
+
 - ultralytics
 
   - `--source_weights_path` (optional): The path to the YOLO model's weights file. Defaults to `"yolov8x.pt"` if not specified.
@@ -56,7 +70,7 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
   - `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) to acquire your `API KEY`.
 
-  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default value is `"yolov8x-1280"`.
+  - `--model_id` (optional): Designates the Roboflow model ID to be used. The default value is `"rfdetr-small"`.
 
   - `--zone_configuration_path`: Specifies the path to the JSON file containing zone configurations. This file defines the polygonal areas in the video where objects will be counted.
 
@@ -76,6 +90,16 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 - `vertical-zone-config.json`: Divides the frame into vertical zones of equal width.
 
 ## ⚙️ run example
+
+- rfdetr
+
+  ```bash
+  python rfdetr_example.py \
+      --zone_configuration_path data/multi-zone-config.json \
+      --source_video_path data/market-square.mp4 \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+  ```
 
 - ultralytics
 
@@ -100,8 +124,10 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
 ## © license
 
-This demo integrates two main components, each with its own licensing:
+This demo integrates multiple components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
+- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://github.com/roboflow/rf-detr/blob/main/LICENSE).
+
+- ultralytics: The object detection model used by the `ultralytics` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 
 - supervision: The analytics code that powers the zone-based analysis in this demo is based on the Supervision library, which is licensed under the [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This makes the Supervision part of the code fully open source and freely usable in your projects.

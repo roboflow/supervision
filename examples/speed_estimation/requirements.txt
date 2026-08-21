@@ -1,7 +1,8 @@
 supervision
 tqdm
 requests
+rfdetr
 ultralytics
-super-gradients==3.5.0
+super-gradients==3.5.0  # yolo_nas_example.py only, deprecated model family
 inference
 jsonargparse[signatures]

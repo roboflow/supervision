@@ -1,14 +1,16 @@
 import json
-import os
 
 import numpy as np
-from inference.core.models.roboflow import RoboflowInferenceModel
-from inference.models.utils import get_roboflow_model
+from rfdetr import RFDETRMedium
 from tqdm import tqdm
 
 import supervision as sv
 
 COLORS = sv.ColorPalette.DEFAULT
+
+# RF-DETR's COCO class ids are 1-indexed; `person` is 1 (not 0, as in
+# Ultralytics/Inference's 0-indexed COCO mapping).
+PERSON_CLASS_ID = 1
 
 
 def load_zones_config(file_path: str) -> list[np.ndarray]:
@@ -61,33 +63,32 @@ def initiate_annotators(
 
 def detect(
     frame: np.ndarray,
-    model: RoboflowInferenceModel,
+    model: RFDETRMedium,
     confidence_threshold: float = 0.5,
     iou_threshold: float = 0.7,
 ) -> sv.Detections:
     """
-    Detect objects in a frame using Inference model, filtering detections by class ID
+    Detect objects in a frame using an RF-DETR model, filtering detections by class ID
         and confidence threshold.
 
     Args:
         frame (np.ndarray): The frame to process, expected to be a NumPy array.
-        model (RoboflowInferenceModel): The Inference model used for processing the
-            frame.
+        model (RFDETRMedium): The RF-DETR model used for processing the frame.
         confidence_threshold (float): The confidence threshold for filtering
-            detections.
+            detections. Default is 0.5.
         iou_threshold (float): The IoU threshold for non-maximum suppression.
 
     Returns:
-        sv.Detections: Filtered detections after processing the frame with the Inference
+        sv.Detections: Filtered detections after processing the frame with the RF-DETR
             model.
 
     Note:
-        This function is specifically tailored for an Inference model and assumes class
-        ID 0 for filtering.
+        This function is specifically tailored for an RF-DETR model and assumes class
+            ID 1 (`person`) for filtering.
     """
-    results = model.infer(frame, confidence=confidence_threshold, iou=iou_threshold)[0]
-    detections = sv.Detections.from_inference(results)
-    filter_by_class = detections.class_id == 0
+    detections = model.predict(frame, threshold=confidence_threshold)
+    detections = detections.with_nms(threshold=iou_threshold)
+    filter_by_class = detections.class_id == PERSON_CLASS_ID
     filter_by_confidence = detections.confidence > confidence_threshold
     return detections[filter_by_class & filter_by_confidence]
 
@@ -129,40 +130,29 @@ def annotate(
 def main(
     zone_configuration_path: str,
     source_video_path: str,
-    model_id: str = "rfdetr-small",
-    roboflow_api_key: str | None = None,
+    device: str = "cpu",
     target_video_path: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
     """
-    Counting people in zones with Inference and Supervision.
+    Counting people in zones with RF-DETR and Supervision.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file
         source_video_path: Path to the source video file
-        model_id: Roboflow model ID
-        roboflow_api_key: Roboflow API KEY
+        device: Computation device ('cpu', 'mps' or 'cuda')
         target_video_path: Path to the target video file (output)
         confidence_threshold: Confidence threshold for the model
         iou_threshold: IOU threshold for the model
     """
-    api_key = roboflow_api_key
-    api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
-    if api_key is None:
-        raise ValueError(
-            "Roboflow API key is missing. Please provide it as an argument or set the "
-            "ROBOFLOW_API_KEY environment variable."
-        )
-    roboflow_api_key = api_key
-
     video_info = sv.VideoInfo.from_video_path(source_video_path)
     polygons = load_zones_config(zone_configuration_path)
     zones, zone_annotators, box_annotators = initiate_annotators(
         polygons=polygons, resolution_wh=video_info.resolution_wh
     )
 
-    model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
+    model = RFDETRMedium(device=device)
 
     frames_generator = sv.get_video_frames_generator(source_video_path)
     if target_video_path is not None:
