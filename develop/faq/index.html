@@ -3367,7 +3367,7 @@
 <p>Sample asset utilities are part of the base package under <code>supervision.assets</code>.</p>
 <p>Supervision does not install OpenCV. Its image, drawing, and file-video APIs use the included fallback when <code>cv2</code> is unavailable, and automatically use a compatible <code>cv2</code> already present in your environment. See the <a href="../how_to/opencv_migration/">OpenCV migration guide</a> when upgrading an existing environment or choosing an OpenCV wheel yourself.</p>
 <h2 id="which-object-detection-models-work-with-supervision">Which object detection models work with Supervision?<a class="headerlink" href="#which-object-detection-models-work-with-supervision" title="Permanent link">&para;</a></h2>
-<p>Supervision is model agnostic. <code>sv.Detections</code> includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate <code>sv.KeyPoints</code> converters, including MediaPipe.</p>
+<p>Supervision is model agnostic. <a href="https://github.com/roboflow/rf-detr">RF-DETR</a> works natively — its <code>predict</code> method returns an <code>sv.Detections</code> object directly, no conversion needed. <code>sv.Detections</code> also includes converters for Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, Ultralytics YOLO, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate <code>sv.KeyPoints</code> converters, including MediaPipe.</p>
 <h2 id="what-can-i-do-with-supervision">What can I do with Supervision?<a class="headerlink" href="#what-can-i-do-with-supervision" title="Permanent link">&para;</a></h2>
 <p>You can annotate images and video, filter detections, track objects, count objects in zones or across lines, load and convert datasets, evaluate models with detection metrics, and export predictions for downstream analysis.</p>
 <h2 id="how-do-i-track-objects-across-video-frames">How do I track objects across video frames?<a class="headerlink" href="#how-do-i-track-objects-across-video-frames" title="Permanent link">&para;</a></h2>
@@ -3421,7 +3421,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 31, 2026 20:19:33 UTC">July 31, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
   </span>
 
     
@@ -3464,9 +3464,9 @@
           <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
         </a>
       
-        <a href="https://github.com/codex" class="md-author" title="@codex">
+        <a href="https://github.com/claude" class="md-author" title="@claude">
           
-          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
+          <img src="https://avatars.githubusercontent.com/u/81847?u=577eaff0520b33aadc0f9fb6d11f5cdb2dd9486e&v=4&size=72" alt="Claude">
         </a>
       
       

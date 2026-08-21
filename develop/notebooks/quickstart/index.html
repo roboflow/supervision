@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers.">
+        <meta name="description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers.">
       
       
         <meta name="author" content="Roboflow">
@@ -198,7 +198,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
 <meta property="og:title" content="Supervision Quickstart" />
-<meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
+<meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
 <meta property="og:url" content="https://supervision.roboflow.com/develop/notebooks/quickstart/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -208,7 +208,7 @@
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
 <meta name="twitter:title" content="Supervision Quickstart" />
-<meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
+<meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta name="twitter:image:width" content="1200" />
@@ -3022,6 +3022,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#rf-detr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RF-DETR 📚
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ultralytics" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4068,9 +4079,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <li>Install</li>
 <li>Detection API<ul>
 <li>Plug in your model<ul>
+<li>RF-DETR (<code>pip install rfdetr</code>)</li>
 <li>YOLOv8 (<code>pip install ultralytics</code>)</li>
 <li>Inference (<code>pip install inference</code>)</li>
-<li>YOLO-NAS (<code>pip install super-gradients</code>)</li>
+<li>YOLO-NAS (<code>pip install super-gradients</code>, deprecated)</li>
 </ul>
 </li>
 <li>Annotate<ul>
@@ -4425,7 +4437,7 @@ print(sv.__version__)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="plug-in-your-model">🔌 Plug in your model<a class="anchor-link" href="#plug-in-your-model">¶</a></h2><p><strong>NOTE:</strong> In our example, we will focus only on integration with YOLO-NAS and YOLOv8. However, keep in mind that supervision allows seamless integration with many other models like SAM, Transformers, and YOLOv5. You can learn more from our <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections">documentation</a>.</p>
+<h2 id="plug-in-your-model">🔌 Plug in your model<a class="anchor-link" href="#plug-in-your-model">¶</a></h2><p><strong>NOTE:</strong> In our example, we will focus on integration with RF-DETR, YOLOv8, Inference, and YOLO-NAS. RF-DETR's <code>predict</code> method returns a <code>Detections</code> object directly, no conversion step needed. Keep in mind that supervision allows seamless integration with many other models like SAM, Transformers, and YOLOv5. You can learn more from our <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections">documentation</a>.</p>
 </div>
 </div>
 </div>
@@ -4471,7 +4483,7 @@ image = cv2.imread(IMAGE_PATH)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="ultralytics">Ultralytics <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics">📚</a><a class="anchor-link" href="#ultralytics">¶</a></h3>
+<h3 id="rf-detr">RF-DETR <a href="https://github.com/roboflow/rf-detr">📚</a><a class="anchor-link" href="#rf-detr">¶</a></h3>
 </div>
 </div>
 </div>
@@ -4494,9 +4506,9 @@ image = cv2.imread(IMAGE_PATH)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">ultralytics</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">rfdetr</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-7">!pip install -q ultralytics</div>
+<div class="clipboard-copy-txt" id="cell-7">!pip install -q rfdetr</div>
 </div>
 </div>
 </div>
@@ -4521,13 +4533,111 @@ image = cv2.imread(IMAGE_PATH)</div>
 </div>
 </clipboard-copy>
 </div>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rfdetr</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFDETRSmall</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">RFDETRSmall</span><span class="p">()</span>
+<span class="n">detections</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+<div class="clipboard-copy-txt" id="cell-8">from rfdetr import RFDETRSmall
+
+model = RFDETRSmall()
+detections = model.predict(image[:, :, ::-1])</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="CodeMirror cm-s-jupyter">
+<div class="zeroclipboard-container">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
+<div>
+<span class="notice" hidden="">Copied!</span>
+<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
+<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+</clipboard-copy>
+</div>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="s2">"detections"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+</pre></div>
+<div class="clipboard-copy-txt" id="cell-9">"detections", len(detections)</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="ultralytics">Ultralytics <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics">📚</a><a class="anchor-link" href="#ultralytics">¶</a></h3>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="CodeMirror cm-s-jupyter">
+<div class="zeroclipboard-container">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
+<div>
+<span class="notice" hidden="">Copied!</span>
+<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
+<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+</clipboard-copy>
+</div>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">ultralytics</span>
+</pre></div>
+<div class="clipboard-copy-txt" id="cell-10">!pip install -q ultralytics</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="CodeMirror cm-s-jupyter">
+<div class="zeroclipboard-container">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
+<div>
+<span class="notice" hidden="">Copied!</span>
+<svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
+<path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+<path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+</clipboard-copy>
+</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 
 <span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">"yolov8s.pt"</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-8">from ultralytics import YOLO
+<div class="clipboard-copy-txt" id="cell-11">from ultralytics import YOLO
 
 model = YOLO("yolov8s.pt")
 result = model(image, verbose=False)[0]
@@ -4546,7 +4656,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4558,7 +4668,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="s2">"detections"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-9">"detections", len(detections)</div>
+<div class="clipboard-copy-txt" id="cell-12">"detections", len(detections)</div>
 </div>
 </div>
 </div>
@@ -4596,7 +4706,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-13">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4608,7 +4718,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-10">!pip install -q inference</div>
+<div class="clipboard-copy-txt" id="cell-13">!pip install -q inference</div>
 </div>
 </div>
 </div>
@@ -4623,7 +4733,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-14">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4639,7 +4749,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-11">from inference import get_model
+<div class="clipboard-copy-txt" id="cell-14">from inference import get_model
 
 model = get_model(model_id="yolov8s-640")
 result = model.infer(image)[0]
@@ -4658,7 +4768,7 @@ detections = sv.Detections.from_inference(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-15">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4670,7 +4780,7 @@ detections = sv.Detections.from_inference(result)</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="s2">"detections"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-12">"detections", len(detections)</div>
+<div class="clipboard-copy-txt" id="cell-15">"detections", len(detections)</div>
 </div>
 </div>
 </div>
@@ -4708,7 +4818,7 @@ detections = sv.Detections.from_inference(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-13">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-16">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4721,7 +4831,7 @@ detections = sv.Detections.from_inference(result)</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="nb">super</span><span class="o">-</span><span class="n">gradients</span>
 <span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">urllib3</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-13">!pip install -q super-gradients
+<div class="clipboard-copy-txt" id="cell-16">!pip install -q super-gradients
 !pip install --upgrade urllib3</div>
 </div>
 </div>
@@ -4737,7 +4847,7 @@ detections = sv.Detections.from_inference(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-14">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-17">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4753,7 +4863,7 @@ detections = sv.Detections.from_inference(result)</div>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-14">from super_gradients.training import models
+<div class="clipboard-copy-txt" id="cell-17">from super_gradients.training import models
 
 model = models.get("yolo_nas_s", pretrained_weights="coco")
 result = model.predict(image)
@@ -4772,7 +4882,7 @@ detections = sv.Detections.from_yolo_nas(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-15">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-18">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4784,7 +4894,7 @@ detections = sv.Detections.from_yolo_nas(result)</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="s2">"detections"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-15">"detections", len(detections)</div>
+<div class="clipboard-copy-txt" id="cell-18">"detections", len(detections)</div>
 </div>
 </div>
 </div>
@@ -4833,7 +4943,7 @@ detections = sv.Detections.from_yolo_nas(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-16">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-19">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4849,7 +4959,7 @@ detections = sv.Detections.from_yolo_nas(result)</div>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-16">from ultralytics import YOLO
+<div class="clipboard-copy-txt" id="cell-19">from ultralytics import YOLO
 
 model = YOLO("yolo11x.pt")
 result = model(image, verbose=False)[0]
@@ -4868,7 +4978,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [31]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-17">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-20">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4887,7 +4997,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-17">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-20">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 annotated_image = image.copy()
@@ -4932,7 +5042,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [32]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-18">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-21">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -4957,7 +5067,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-18">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-21">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 labels = [
@@ -5008,7 +5118,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-19">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-22">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5024,7 +5134,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-19">from ultralytics import YOLO
+<div class="clipboard-copy-txt" id="cell-22">from ultralytics import YOLO
 
 model = YOLO("yolo11x-seg.pt")
 result = model(image, verbose=False)[0]
@@ -5043,7 +5153,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [34]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-20">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-23">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5060,7 +5170,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-20">mask_annotator = sv.MaskAnnotator()
+<div class="clipboard-copy-txt" id="cell-23">mask_annotator = sv.MaskAnnotator()
 
 annotated_image = image.copy()
 annotated_image = mask_annotator.annotate(annotated_image, detections=detections)
@@ -5114,7 +5224,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [35]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-21">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-24">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5128,7 +5238,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <span class="n">detections_index_list</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
 <span class="n">detections_index_slice</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-21">detections_index = detections[0]
+<div class="clipboard-copy-txt" id="cell-24">detections_index = detections[0]
 detections_index_list = detections[[0, 1, 3]]
 detections_index_slice = detections[:2]</div>
 </div>
@@ -5145,7 +5255,7 @@ detections_index_slice = detections[:2]</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [36]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-22">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-25">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5171,7 +5281,7 @@ detections_index_slice = detections[:2]</div>
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_images_grid</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="n">titles</span><span class="p">,</span> <span class="n">grid_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-22">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-25">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 images = []
@@ -5223,7 +5333,7 @@ sv.plot_images_grid(images=images, titles=titles, grid_size=(1, 3))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [37]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-23">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-26">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5235,7 +5345,7 @@ sv.plot_images_grid(images=images, titles=titles, grid_size=(1, 3))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">detections_filtered</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-23">detections_filtered = detections[detections.class_id == 0]</div>
+<div class="clipboard-copy-txt" id="cell-26">detections_filtered = detections[detections.class_id == 0]</div>
 </div>
 </div>
 </div>
@@ -5250,7 +5360,7 @@ sv.plot_images_grid(images=images, titles=titles, grid_size=(1, 3))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [38]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-24">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-27">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5268,7 +5378,7 @@ sv.plot_images_grid(images=images, titles=titles, grid_size=(1, 3))</div>
 <span class="p">)</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-24">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-27">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 annotated_image = box_annotator.annotate(image.copy(), detections=detections_filtered)
 annotated_image = label_annotator.annotate(
@@ -5312,7 +5422,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [39]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-25">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-28">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5324,7 +5434,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">detections_filtered</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span> <span class="o">&gt;</span> <span class="mf">0.7</span><span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-25">detections_filtered = detections[detections.confidence &gt; 0.7]</div>
+<div class="clipboard-copy-txt" id="cell-28">detections_filtered = detections[detections.confidence &gt; 0.7]</div>
 </div>
 </div>
 </div>
@@ -5339,7 +5449,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [40]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-26">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-29">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5365,7 +5475,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <span class="p">)</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-26">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-29">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 labels = []
 for class_id, confidence in zip(
@@ -5417,7 +5527,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [41]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-27">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-30">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5431,7 +5541,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     <span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span> <span class="o">&gt;</span> <span class="mf">0.7</span><span class="p">)</span>
 <span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-27">detections_filtered = detections[
+<div class="clipboard-copy-txt" id="cell-30">detections_filtered = detections[
     (detections.class_id != 0) &amp; (detections.confidence &gt; 0.7)
 ]</div>
 </div>
@@ -5448,7 +5558,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [42]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-28">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-31">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5476,7 +5586,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-28">box_annotator = sv.BoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-31">box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 labels = [
     f"{class_id} {confidence:.2f}"
@@ -5541,7 +5651,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-29">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-32">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5553,7 +5663,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">supervision</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-29">!pip install -q supervision</div>
+<div class="clipboard-copy-txt" id="cell-32">!pip install -q supervision</div>
 </div>
 </div>
 </div>
@@ -5568,7 +5678,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-30">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-33">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5580,7 +5690,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">mkdir</span> <span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">videos</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-30">!mkdir {HOME}/videos</div>
+<div class="clipboard-copy-txt" id="cell-33">!mkdir {HOME}/videos</div>
 </div>
 </div>
 </div>
@@ -5606,7 +5716,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-31">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-34">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5618,7 +5728,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="o">%</span><span class="n">cd</span> <span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">videos</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-31">%cd {HOME}/videos</div>
+<div class="clipboard-copy-txt" id="cell-34">%cd {HOME}/videos</div>
 </div>
 </div>
 </div>
@@ -5633,7 +5743,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-32">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-35">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5648,7 +5758,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <span class="n">download_assets</span><span class="p">(</span><span class="n">VideoAssets</span><span class="o">.</span><span class="n">VEHICLES</span><span class="p">)</span>
 <span class="n">VIDEO_PATH</span> <span class="o">=</span> <span class="n">VideoAssets</span><span class="o">.</span><span class="n">VEHICLES</span><span class="o">.</span><span class="n">value</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-32">from supervision.assets import download_assets, VideoAssets
+<div class="clipboard-copy-txt" id="cell-35">from supervision.assets import download_assets, VideoAssets
 
 download_assets(VideoAssets.VEHICLES)
 VIDEO_PATH = VideoAssets.VEHICLES.value</div>
@@ -5677,7 +5787,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-33">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-36">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5689,7 +5799,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=</span><span class="n">VIDEO_PATH</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-33">sv.VideoInfo.from_video_path(video_path=VIDEO_PATH)</div>
+<div class="clipboard-copy-txt" id="cell-36">sv.VideoInfo.from_video_path(video_path=VIDEO_PATH)</div>
 </div>
 </div>
 </div>
@@ -5727,7 +5837,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-34">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-37">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5739,7 +5849,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">frame_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=</span><span class="n">VIDEO_PATH</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-34">frame_generator = sv.get_video_frames_generator(source_path=VIDEO_PATH)</div>
+<div class="clipboard-copy-txt" id="cell-37">frame_generator = sv.get_video_frames_generator(source_path=VIDEO_PATH)</div>
 </div>
 </div>
 </div>
@@ -5754,7 +5864,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-35">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-38">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5767,7 +5877,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">frame</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">frame_generator</span><span class="p">))</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-35">frame = next(iter(frame_generator))
+<div class="clipboard-copy-txt" id="cell-38">frame = next(iter(frame_generator))
 sv.plot_image(image=frame, size=(8, 8))</div>
 </div>
 </div>
@@ -5806,7 +5916,7 @@ sv.plot_image(image=frame, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-36">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-39">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5818,7 +5928,7 @@ sv.plot_image(image=frame, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">RESULT_VIDEO_PATH</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">HOME</span><span class="si">}</span><span class="s2">/videos/vehicle-counting-result.mp4"</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-36">RESULT_VIDEO_PATH = f"{HOME}/videos/vehicle-counting-result.mp4"</div>
+<div class="clipboard-copy-txt" id="cell-39">RESULT_VIDEO_PATH = f"{HOME}/videos/vehicle-counting-result.mp4"</div>
 </div>
 </div>
 </div>
@@ -5844,7 +5954,7 @@ sv.plot_image(image=frame, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-37">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-40">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5860,7 +5970,7 @@ sv.plot_image(image=frame, size=(8, 8))</div>
     <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=</span><span class="n">VIDEO_PATH</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
         <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-37">video_info = sv.VideoInfo.from_video_path(video_path=VIDEO_PATH)
+<div class="clipboard-copy-txt" id="cell-40">video_info = sv.VideoInfo.from_video_path(video_path=VIDEO_PATH)
 
 with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
     for frame in sv.get_video_frames_generator(source_path=VIDEO_PATH, stride=2):
@@ -5890,7 +6000,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-38">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-41">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5902,7 +6012,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=</span><span class="n">RESULT_VIDEO_PATH</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-38">sv.VideoInfo.from_video_path(video_path=RESULT_VIDEO_PATH)</div>
+<div class="clipboard-copy-txt" id="cell-41">sv.VideoInfo.from_video_path(video_path=RESULT_VIDEO_PATH)</div>
 </div>
 </div>
 </div>
@@ -5940,7 +6050,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-39">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-42">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5952,7 +6062,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">roboflow</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-39">!pip install -q roboflow</div>
+<div class="clipboard-copy-txt" id="cell-42">!pip install -q roboflow</div>
 </div>
 </div>
 </div>
@@ -5967,7 +6077,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-40">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-43">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -5990,7 +6100,7 @@ with sv.VideoSink(target_path=RESULT_VIDEO_PATH, video_info=video_info) as sink:
 <span class="n">project</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">"roboflow-jvuqo"</span><span class="p">)</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">"fashion-assistant-segmentation"</span><span class="p">)</span>
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="s2">"yolov8"</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-40">!mkdir {HOME}/datasets
+<div class="clipboard-copy-txt" id="cell-43">!mkdir {HOME}/datasets
 %cd {HOME}/datasets
 
 import roboflow
@@ -6065,7 +6175,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-41">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-44">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6081,7 +6191,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
     <span class="n">data_yaml_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/data.yaml"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-41">ds = sv.DetectionDataset.from_yolo(
+<div class="clipboard-copy-txt" id="cell-44">ds = sv.DetectionDataset.from_yolo(
     images_directory_path=f"{dataset.location}/train/images",
     annotations_directory_path=f"{dataset.location}/train/labels",
     data_yaml_path=f"{dataset.location}/data.yaml",
@@ -6113,7 +6223,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-42">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-45">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6125,7 +6235,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-42">len(ds)</div>
+<div class="clipboard-copy-txt" id="cell-45">len(ds)</div>
 </div>
 </div>
 </div>
@@ -6152,7 +6262,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-43">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-46">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6164,7 +6274,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ds</span><span class="o">.</span><span class="n">classes</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-43">ds.classes</div>
+<div class="clipboard-copy-txt" id="cell-46">ds.classes</div>
 </div>
 </div>
 </div>
@@ -6211,7 +6321,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-44">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-47">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6240,7 +6350,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-44">IMAGE_NAME = list(ds.images.keys())[0]
+<div class="clipboard-copy-txt" id="cell-47">IMAGE_NAME = list(ds.images.keys())[0]
 
 image = ds.images[IMAGE_NAME]
 annotations = ds.annotations[IMAGE_NAME]
@@ -6295,7 +6405,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-45">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-48">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6307,7 +6417,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ds_train</span><span class="p">,</span> <span class="n">ds_test</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-45">ds_train, ds_test = ds.split(split_ratio=0.8)</div>
+<div class="clipboard-copy-txt" id="cell-48">ds_train, ds_test = ds.split(split_ratio=0.8)</div>
 </div>
 </div>
 </div>
@@ -6322,7 +6432,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-46">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-49">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6334,7 +6444,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="s2">"ds_train"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_train</span><span class="p">),</span> <span class="s2">"ds_test"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_test</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-46">"ds_train", len(ds_train), "ds_test", len(ds_test)</div>
+<div class="clipboard-copy-txt" id="cell-49">"ds_train", len(ds_train), "ds_test", len(ds_test)</div>
 </div>
 </div>
 </div>
@@ -6372,7 +6482,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
-<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-47">
+<clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-50">
 <div>
 <span class="notice" hidden="">Copied!</span>
 <svg aria-hidden="true" class="clipboard-copy-icon" data-view-component="true" height="20" version="1.1" viewbox="0 0 16 16" width="20">
@@ -6387,7 +6497,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     <span class="n">annotations_directory_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">HOME</span><span class="si">}</span><span class="s2">/datasets/result/labels"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-47">ds_train.as_pascal_voc(
+<div class="clipboard-copy-txt" id="cell-50">ds_train.as_pascal_voc(
     images_directory_path=f"{HOME}/datasets/result/images",
     annotations_directory_path=f"{HOME}/datasets/result/labels",
 )</div>
@@ -6441,7 +6551,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 11, 2025 00:07:31 UTC">July 11, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
   </span>
 
     
@@ -6469,6 +6579,16 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
+        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
+          
+          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
@@ -6479,17 +6599,13 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
           <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
         </a>
       
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
-      
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
-        </a>
       
       
+        
+          <a href="https://github.com/roboflow/supervision/tree/main/docs/notebooks/quickstart.ipynb" class="md-author md-author--more">
+            +4
+          </a>
+        
       
     </nav>
   </span>

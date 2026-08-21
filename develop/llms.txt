@@ -2,7 +2,7 @@
 
 > Open-source Python library for computer vision — annotate, track, count, filter, and convert.
 
-Supervision is a Python library by Roboflow that provides a model-agnostic `Detections` class and composable tools for object detection and segmentation workflows. It includes converters for supported outputs from Ultralytics, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
+Supervision is a Python library by Roboflow that provides a model-agnostic `Detections` class and composable tools for object detection and segmentation workflows. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended model to pair it with — its `predict()` method returns a `Detections` object natively, no conversion step needed. Supervision also includes converters for supported outputs from Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, Ultralytics, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
 
 Supervision is MIT licensed, published on PyPI, and developed in public on GitHub.
 
@@ -132,7 +132,7 @@ Yes. Supervision is free and open-source under the MIT license. Source code is a
 
 ### Which object detection models work with supervision?
 
-Supervision is model-agnostic and works with supported outputs from Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers such as Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate converters, including MediaPipe.
+Supervision is model-agnostic. RF-DETR works natively with no conversion step; supported converter outputs include Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, Ultralytics YOLO, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers such as Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate converters, including MediaPipe.
 
 ### How do I benchmark a model with supervision?
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers.">
+        <meta name="description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers.">
       
       
         <meta name="author" content="Roboflow">
@@ -198,7 +198,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
 <meta property="og:title" content="Count Objects Crossing the Line" />
-<meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
+<meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
 <meta property="og:url" content="https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -208,7 +208,7 @@
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
 <meta name="twitter:title" content="Count Objects Crossing the Line" />
-<meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers." />
+<meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta name="twitter:image:width" content="1200" />
@@ -3953,7 +3953,7 @@ print(HOME)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="install-required-packages">Install required packages<a class="anchor-link" href="#install-required-packages">¶</a></h2><p>In this cookbook, we'll leverage two Python packages - <code>ultralytics</code> for running object detection, and <code>supervision</code> for tracking, visualizing detections, and crucially, counting objects that cross a line.</p>
+<h2 id="install-required-packages">Install required packages<a class="anchor-link" href="#install-required-packages">¶</a></h2><p>In this cookbook, we'll leverage two Python packages - <a href="https://github.com/roboflow/rf-detr"><code>rfdetr</code></a> for running object detection, and <code>supervision</code> for tracking, visualizing detections, and crucially, counting objects that cross a line.</p>
 </div>
 </div>
 </div>
@@ -3976,9 +3976,9 @@ print(HOME)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">ultralytics</span> <span class="n">supervision</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">rfdetr</span> <span class="n">supervision</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">!pip install -q ultralytics supervision</div>
+<div class="clipboard-copy-txt" id="cell-3">!pip install -q rfdetr supervision</div>
 </div>
 </div>
 </div>
@@ -4017,13 +4017,13 @@ print(HOME)</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rfdetr</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFDETRMedium</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">supervision.assets</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_assets</span><span class="p">,</span> <span class="n">VideoAssets</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-4">import numpy as np
 import supervision as sv
 
-from ultralytics import YOLO
+from rfdetr import RFDETRMedium
 from supervision.assets import download_assets, VideoAssets</div>
 </div>
 </div>
@@ -4255,7 +4255,7 @@ sv.plot_image(frame, (12, 12))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="run-object-detection">Run Object Detection<a class="anchor-link" href="#run-object-detection">¶</a></h2><p>Let's start by running the detection model on the first frame and annotating the results. In this cookbook, we use <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> YOLOv8, but it can be successfully replaced with <a href="https://supervision.roboflow.com/latest/detection/core">other models</a>.</p>
+<h2 id="run-object-detection">Run Object Detection<a class="anchor-link" href="#run-object-detection">¶</a></h2><p>Let's start by running the detection model on the first frame and annotating the results. In this cookbook, we use <a href="https://github.com/roboflow/rf-detr">RF-DETR</a>, whose <code>predict</code> method returns a <code>Detections</code> object directly -- no conversion step needed. It can be successfully replaced with <a href="https://supervision.roboflow.com/latest/detection/core">other models</a>.</p>
 </div>
 </div>
 </div>
@@ -4266,17 +4266,17 @@ sv.plot_image(frame, (12, 12))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>We initiate the model and perform detection on the first frame of the video. Then, we convert the result into a <a href="https://supervision.roboflow.com/latest/detection/core/"><code>sv.Detections</code></a> object, which will be useful in the later parts of the cookbook.</p>
+<p>We initiate the model and perform detection on the first frame of the video. RF-DETR's <code>predict</code> method returns a <a href="https://supervision.roboflow.com/latest/detection/core/"><code>sv.Detections</code></a> object directly, which will be useful in the later parts of the cookbook.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
@@ -4289,35 +4289,13 @@ sv.plot_image(frame, (12, 12))</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">"yolo11x.pt"</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">RFDETRMedium</span><span class="p">()</span>
 
-<span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<span class="n">detections</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">frame</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-9">model = YOLO("yolo11x.pt")
+<div class="clipboard-copy-txt" id="cell-9">model = RFDETRMedium()
 
-results = model(frame, verbose=False)[0]
-detections = sv.Detections.from_ultralytics(results)</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Downloading https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11x.pt to 'yolo11x.pt'...
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>100%|██████████| 109M/109M [00:10&lt;00:00, 11.5MB/s] 
-</pre>
+detections = model.predict(frame[:, :, ::-1])</div>
 </div>
 </div>
 </div>
@@ -4419,9 +4397,9 @@ sv.plot_image(annotated_frame, (12, 12))</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2">"</span>
-    <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">confidence</span>
-    <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">)</span>
+    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">confidence</span>
+    <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="s2">"class_name"</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">)</span>
 <span class="p">]</span>
 
 <span class="n">box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
@@ -4433,9 +4411,9 @@ sv.plot_image(annotated_frame, (12, 12))</div>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-11">labels = [
-    f"{results.names[class_id]} {confidence:0.2f}"
-    for class_id, confidence
-    in zip(detections.class_id, detections.confidence)
+    f"{class_name} {confidence:0.2f}"
+    for class_name, confidence
+    in zip(detections["class_name"], detections.confidence)
 ]
 
 box_annotator = sv.BoxAnnotator(thickness=6)
@@ -4709,14 +4687,13 @@ trace_annotator = sv.TraceAnnotator(thickness=4)</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">callback</span><span class="p">(</span><span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span><span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">frame</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">detections</span> <span class="o">=</span> <span class="n">byte_tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 
     <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2">"</span>
-        <span class="k">for</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">tracker_id</span>
-        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
+        <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">confidence</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">confidence</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">tracker_id</span>
+        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">confidence</span><span class="p">,</span> <span class="n">detections</span><span class="p">[</span><span class="s2">"class_name"</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
     <span class="p">]</span>
 
     <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -4736,14 +4713,13 @@ trace_annotator = sv.TraceAnnotator(thickness=4)</div>
     <span class="k">return</span>  <span class="n">line_zone_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="n">line_counter</span><span class="o">=</span><span class="n">line_zone</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-16">def callback(frame: np.ndarray, index:int) -&gt; np.ndarray:
-    results = model(frame, verbose=False)[0]
-    detections = sv.Detections.from_ultralytics(results)
+    detections = model.predict(frame[:, :, ::-1])
     detections = byte_tracker.update_with_detections(detections)
 
     labels = [
-        f"#{tracker_id} {model.model.names[class_id]} {confidence:0.2f}"
-        for confidence, class_id, tracker_id
-        in zip(detections.confidence, detections.class_id, detections.tracker_id)
+        f"#{tracker_id} {class_name} {confidence:0.2f}"
+        for confidence, class_name, tracker_id
+        in zip(detections.confidence, detections["class_name"], detections.tracker_id)
     ]
 
     annotated_frame = frame.copy()
@@ -4883,7 +4859,7 @@ trace_annotator = sv.TraceAnnotator(thickness=4)</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 10, 2025 23:11:46 UTC">July 10, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
   </span>
 
     
@@ -4911,6 +4887,16 @@ trace_annotator = sv.TraceAnnotator(thickness=4)</div>
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
+        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
+          
+          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
@@ -4921,21 +4907,11 @@ trace_annotator = sv.TraceAnnotator(thickness=4)</div>
           <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
         </a>
       
-        <a href="https://github.com/Kadermiyanyedi" class="md-author" title="@Kadermiyanyedi">
-          
-          <img src="https://avatars.githubusercontent.com/u/48386782?v=4&size=72" alt="Kadermiyanyedi">
-        </a>
-      
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
-      
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/notebooks/count-objects-crossing-the-line.ipynb" class="md-author md-author--more">
-            +1
+            +5
           </a>
         
       
