@@ -97,7 +97,7 @@ class Detections:
     === "RF-DETR"
 
         [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
-        `sv.Detections` object directly, no conversion step needed.
+        `sv.Detections` object directly, so no conversion step is needed.
 
         ```python
         from supervision import _cv2 as cv2
