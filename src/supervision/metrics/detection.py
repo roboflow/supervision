@@ -1083,7 +1083,7 @@ class ConfusionMatrix:
 
             model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                return model.predict(image)
+                return model.predict(image[:, :, ::-1])
 
             confusion_matrix = sv.ConfusionMatrix.benchmark(
                 dataset = dataset,
@@ -1354,7 +1354,7 @@ class MeanAveragePrecision:
 
             model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                return model.predict(image)
+                return model.predict(image[:, :, ::-1])
 
             mean_average_precision = sv.MeanAveragePrecision.benchmark(
                 dataset = dataset,

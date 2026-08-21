@@ -43,7 +43,7 @@ class JSONSink:
 
         with json_sink as sink:
             for frame in frames_generator:
-                detections = model.predict(frame)
+                detections = model.predict(frame[:, :, ::-1])
                 sink.append(detections, custom_data={"<CUSTOM_LABEL>":"<CUSTOM_DATA>"})
         ```
     """

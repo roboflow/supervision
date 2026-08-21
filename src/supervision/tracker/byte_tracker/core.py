@@ -112,7 +112,7 @@ class ByteTrack:
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
-                detections = model.predict(frame)
+                detections = model.predict(frame[:, :, ::-1])
                 detections = tracker.update_with_detections(detections)
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]

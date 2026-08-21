@@ -2221,7 +2221,7 @@ class TraceAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   detections = model.predict(frame)
+                   detections = model.predict(frame[:, :, ::-1])
                    detections = tracker.update_with_detections(detections)
                    annotated_frame = trace_annotator.annotate(
                        scene=frame.copy(),
@@ -2394,7 +2394,7 @@ class HeatMapAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   detections = model.predict(frame)
+                   detections = model.predict(frame[:, :, ::-1])
                    annotated_frame = heat_map_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)

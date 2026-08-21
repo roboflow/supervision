@@ -106,7 +106,7 @@ class Detections:
 
         model = RFDETRMedium()
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        detections = model.predict(image)
+        detections = model.predict(image[:, :, ::-1])
         ```
 
     === "Inference"

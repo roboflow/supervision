@@ -91,7 +91,7 @@ class DetectionsSmoother:
 
         with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
             for frame in frame_generator:
-                detections = model.predict(frame)
+                detections = model.predict(frame[:, :, ::-1])
                 detections = tracker.update_with_detections(detections)
                 detections = smoother.update_with_detections(detections)
 
