@@ -2,7 +2,7 @@
 
 ## 👋 hello
 
-This script performs traffic flow analysis using YOLOv8, an object-detection method and ByteTrack, a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc.
+This script performs traffic flow analysis using an object-detection model and ByteTrack, a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended detection model — its `predict` method returns a `Detections` object directly, no conversion step needed, and it's distributed under the permissive Apache-2.0 license. YOLOv8 (via Ultralytics) and Roboflow Inference are also supported as alternatives.
 
 https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
 
@@ -28,13 +28,27 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
   uv pip install -r requirements.txt
   ```
 
-- download `traffic_analysis.pt` and `traffic_analysis.mov` files
+- download `traffic_analysis.mov` for the video-based variants and `traffic_analysis.pt` for the `ultralytics` variant
 
   ```bash
   ./setup.sh
   ```
 
 ## 🛠️ script arguments
+
+- rfdetr
+
+  - `--source_video_path`: Required. The path to the source video file that will be analyzed. This is the input video on which traffic flow analysis will be performed.
+
+  - `--target_video_path` (optional): The path to save the output video with annotations. If not specified, the processed video will be displayed in real-time without being saved.
+
+  - `--device` (optional): Computation device (`cpu`, `mps` or `cuda`). Default is `cpu`.
+
+  - `--confidence_threshold` (optional): Sets the confidence threshold for the RF-DETR model to filter detections. Default is `0.3`. This determines how confident the model should be to recognize an object in the video.
+
+  - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold used for non-max suppression. Default is 0.7. This value is used to manage object detection accuracy, particularly in distinguishing between different objects.
+
+  RF-DETR uses a general-purpose COCO checkpoint, so detections are filtered down to vehicle classes (car, motorcycle, bus, truck) rather than relying on a custom fine-tuned weights file.
 
 - ultralytics
 
@@ -54,6 +68,8 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
   - `--model_id` (optional): Designates the Roboflow model ID to be used. The default value is `"vehicle-count-in-drone-video/6"`.
 
+    The inference variant intentionally retains this traffic-specific model; the other inference examples use the general-purpose `rfdetr-small` model.
+
   - `--source_video_path`: Required. The path to the source video file that will be analyzed. This is the input video on which traffic flow analysis will be performed.
 
   - `--target_video_path` (optional): The path to save the output video with annotations. If not specified, the processed video will be displayed in real-time without being saved.
@@ -63,6 +79,16 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
   - `--iou_threshold` (optional): Specifies the IOU (Intersection Over Union) threshold for the model. Default is 0.7. This value is used to manage object detection accuracy, particularly in distinguishing between different objects.
 
 ## ⚙️ run
+
+- rfdetr
+
+  ```bash
+  python rfdetr_example.py \
+      --source_video_path data/traffic_analysis.mov \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5 \
+      --target_video_path data/traffic_analysis_result.mov
+  ```
 
 - ultralytics
 
@@ -88,8 +114,10 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
 ## © license
 
-This demo integrates two main components, each with its own licensing:
+This demo integrates multiple components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
+- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://raw.githubusercontent.com/roboflow/rf-detr/develop/LICENSE) — unlike YOLOv8 below, it places no copyleft restrictions on how you use or distribute your project.
+
+- ultralytics: The object detection model used by the `ultralytics` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 
 - supervision: The analytics code that powers the zone-based analysis in this demo is based on the Supervision library, which is licensed under the [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This makes the Supervision part of the code fully open source and freely usable in your projects.
