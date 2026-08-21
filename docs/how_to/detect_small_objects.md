@@ -10,7 +10,7 @@ date_modified: 2026-04-22
 
 # Detect Small Objects
 
-This guide shows how to detect small objects with the [Inference](https://github.com/roboflow/inference), [Ultralytics](https://github.com/ultralytics/ultralytics) or [Transformers](https://github.com/huggingface/transformers) packages using [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
+This guide shows how to detect small objects with [RF-DETR](https://github.com/roboflow/rf-detr), [Inference](https://github.com/roboflow/inference), [Ultralytics](https://github.com/ultralytics/ultralytics) or [Transformers](https://github.com/huggingface/transformers) using [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
 
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example.mp4" type="video/mp4">
@@ -22,6 +22,30 @@ Small object detection in high-resolution images presents challenges due to the 
 
 Running a standard detection model on the full image establishes a baseline for comparison. Load your chosen model, pass the image through it, and convert the results into a `Detections` object. This baseline reveals how many small objects the model misses at native resolution, motivating the sliced inference approach shown later.
 
+=== "RF-DETR"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+
+    model = RFDETRMedium()
+    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+    detections = model.predict(image)
+
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = box_annotator.annotate(
+        scene=image,
+        detections=detections,
+    )
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image,
+        detections=detections,
+    )
+    ```
+
 === "Inference"
 
     ```python
@@ -29,7 +53,7 @@ Running a standard detection model on the full image establishes a baseline for 
     import supervision as sv
     from inference import get_model
 
-    model = get_model(model_id="yolov8x-640")
+    model = get_model(model_id="rfdetr-medium")
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)
@@ -113,6 +137,26 @@ Running a standard detection model on the full image establishes a baseline for 
 
 Modifying the input resolution of images before detection can enhance small object identification at the cost of processing speed and increased memory usage. This method is less effective for ultra-high-resolution images (4K and above).
 
+=== "RF-DETR"
+
+    ```{ .py hl_lines="5" }
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+
+    model = RFDETRMedium(resolution=1280)
+    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+    detections = model.predict(image)
+
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
 === "Inference"
 
     ```{ .py hl_lines="5" }
@@ -165,6 +209,32 @@ Modifying the input resolution of images before detection can enhance small obje
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example_2.mp4" type="video/mp4">
 </video>
 
+=== "RF-DETR"
+
+    ```{ .py hl_lines="8-9" }
+    import cv2
+    import numpy as np
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+
+    model = RFDETRMedium()
+    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+
+    def callback(image_slice: np.ndarray) -> sv.Detections:
+        return model.predict(image_slice)
+
+    slicer = sv.InferenceSlicer(callback = callback)
+    detections = slicer(image)
+
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
 === "Inference"
 
     ```{ .py hl_lines="9-14" }
@@ -173,7 +243,7 @@ Modifying the input resolution of images before detection can enhance small obje
     import supervision as sv
     from inference import get_model
 
-    model = get_model(model_id="yolov8x-640")
+    model = get_model(model_id="rfdetr-medium")
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
     def callback(image_slice: np.ndarray) -> sv.Detections:
@@ -272,6 +342,32 @@ Modifying the input resolution of images before detection can enhance small obje
 
 [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) can perform segmentation tasks too.
 
+=== "RF-DETR"
+
+    ```{ .py hl_lines="6 12" }
+    import cv2
+    import numpy as np
+    import supervision as sv
+    from rfdetr.detr import RFDETRSegMedium
+
+    model = RFDETRSegMedium()
+    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+
+    def callback(image_slice: np.ndarray) -> sv.Detections:
+        return model.predict(image_slice)
+
+    slicer = sv.InferenceSlicer(callback = callback)
+    detections = slicer(image)
+
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = mask_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
 === "Inference"
 
     ```{ .py hl_lines="6 16 19-20" }
@@ -280,7 +376,7 @@ Modifying the input resolution of images before detection can enhance small obje
     import supervision as sv
     from inference import get_model
 
-    model = get_model(model_id="yolov8x-seg-640")
+    model = get_model(model_id="rfdetr-seg-medium")
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
     def callback(image_slice: np.ndarray) -> sv.Detections:

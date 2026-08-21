@@ -26,9 +26,27 @@ description: Open-source Python library providing computer vision tools for anno
 
 ## What is Supervision?
 
-Supervision is an open-source Python library by Roboflow for building computer vision applications. It provides a unified `Detections` object with converters for supported outputs from Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
+Supervision is an open-source Python library by Roboflow for building computer vision applications. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended detection and segmentation model to pair it with — `model.predict()` returns a `Detections` object natively, with no conversion step. Supervision also provides a unified `Detections` object with converters for supported outputs from Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
 
 With Supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count and filter detections inside polygon zones; load and convert datasets between YOLO, COCO, and Pascal VOC formats; and benchmark model performance with mAP and confusion matrices.
+
+!!! example "Quick Example"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+
+    model = RFDETRMedium()
+    image = cv2.imread("image.jpg")
+    detections = model.predict(image)
+
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = box_annotator.annotate(scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections)
+    ```
 
 Supervision is MIT licensed, has 38,000+ GitHub stars, and over 1 million monthly PyPI downloads. It is developed in public on GitHub for production computer vision workflows.
 

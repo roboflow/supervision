@@ -75,7 +75,17 @@ This will create a folder called `Corgi-v2-4` with the dataset in the current wo
 
 Let's load a model.
 
-Select and instantiate the detection or segmentation model you want to benchmark. Supervision works with Roboflow Inference for both local and cloud-deployed models, as well as Ultralytics YOLO checkpoints. Choose the tab below that matches your preferred framework, then pass images to the loaded model during the evaluation loop.
+Select and instantiate the detection or segmentation model you want to benchmark. Supervision works with [RF-DETR](https://github.com/roboflow/rf-detr) directly, with Roboflow Inference for both local and cloud-deployed models, and with Ultralytics YOLO checkpoints. Choose the tab below that matches your preferred framework, then pass images to the loaded model during the evaluation loop.
+
+=== "RF-DETR"
+
+    RF-DETR ships pre-trained detection and segmentation checkpoints in the [`rfdetr`](https://github.com/roboflow/rf-detr) package. Its `predict` method returns a `Detections` object directly -- no conversion step needed in the evaluation loop below.
+
+    ```python
+    from rfdetr.detr import RFDETRSegSmall
+
+    model = RFDETRSegSmall()
+    ```
 
 === "Inference, Local"
 
@@ -140,6 +150,29 @@ At this stage, you should have:
 - A model prepared for benchmarking.
 
 With these ready, we can now run the model and obtain predictions. We'll use `supervision` to create a dataset iterator, and then run the model on each image.
+
+=== "RF-DETR"
+
+    ```python
+    import supervision as sv
+
+    test_set = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+    )
+
+    image_paths = []
+    predictions_list = []
+    targets_list = []
+
+    for image_path, image, label in test_set:
+        predictions = model.predict(image)
+
+        image_paths.append(image_path)
+        predictions_list.append(predictions)
+        targets_list.append(label)
+    ```
 
 === "Inference"
 
@@ -213,6 +246,38 @@ def remap_classes(
 ```
 
 Let's also remove the predictions that are not in the dataset classes.
+
+=== "RF-DETR"
+
+    Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`. RF-DETR ships with COCO class configuration, matching the mapping used below.
+
+    ```python
+    import supervision as sv
+
+    test_set = sv.DetectionDataset.from_yolo(
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
+    )
+
+    image_paths = []
+    predictions_list = []
+    targets_list = []
+
+    for image_path, image, label in test_set:
+        predictions = model.predict(image)
+
+        remap_classes(
+            detections=predictions,
+            class_ids_from_to={16: 0},
+            class_names_from_to={"dog": "Corgi"},
+        )
+        predictions = predictions[np.isin(predictions["class_name"], test_set.classes),]
+
+        image_paths.append(image_path)
+        predictions_list.append(predictions)
+        targets_list.append(label)
+    ```
 
 === "Inference"
 
