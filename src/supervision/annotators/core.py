@@ -3456,14 +3456,11 @@ class ComparisonAnnotator:
     def _mask_from_mask(
         scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
-        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
-            return mask
+            return np.zeros(scene.shape[:2], dtype=np.bool_)
         assert detections.mask is not None
 
-        for detections_mask in detections.mask:
-            mask |= detections_mask.astype(np.bool_)
-        return mask
+        return np.any(detections.mask, axis=0)
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
         """
