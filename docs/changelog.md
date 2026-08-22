@@ -7,6 +7,10 @@ date_modified: 2026-08-11
 
 ### Unreleased <small>upcoming</small>
 
+### Added
+
+- `sv.Detections` now validates `xyxy` boxes for finiteness (no NaN/inf) and ordering (`x1 <= x2`, `y1 <= y2`), raising a clear `ValueError` for malformed input instead of failing silently downstream.
+
 ### Fixed
 
 - `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for polygons with large coordinates.

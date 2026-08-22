@@ -2807,3 +2807,15 @@ class TestDetectionsArea:
 
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
+
+
+class TestDetectionsXyxyValidation:
+    def test_non_finite_xyxy_raises(self) -> None:
+        """Detections rejects non-finite xyxy coordinates."""
+        with pytest.raises(ValueError, match="finite"):
+            Detections(xyxy=np.array([[0.0, 0.0, 1.0, np.nan]]))
+
+    def test_swapped_xyxy_raises(self) -> None:
+        """Detections rejects boxes where x1 > x2 or y1 > y2."""
+        with pytest.raises(ValueError, match="ordered"):
+            Detections(xyxy=np.array([[10.0, 0.0, 1.0, 5.0]]))

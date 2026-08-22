@@ -24,6 +24,12 @@ def _validate_xyxy(xyxy: Any) -> None:
             f"{actual_shape}"
         )
 
+    if not np.isfinite(xyxy).all():
+        raise ValueError("xyxy must contain only finite values (no NaN or inf).")
+
+    if (xyxy[:, 2] < xyxy[:, 0]).any() or (xyxy[:, 3] < xyxy[:, 1]).any():
+        raise ValueError("xyxy boxes must be ordered such that x1 <= x2 and y1 <= y2.")
+
 
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_xyxy,
