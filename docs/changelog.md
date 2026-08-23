@@ -7,6 +7,10 @@ date_modified: 2026-08-11
 
 ### Unreleased <small>upcoming</small>
 
+### Added
+
+- `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks.
+
 ### Fixed
 
 - RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.
