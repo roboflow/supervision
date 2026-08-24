@@ -1439,6 +1439,8 @@ def test_from_vlm_unsupported_future_enum_raises(
         GOOGLE_GEMINI_2_0 = object()
         GOOGLE_GEMINI_2_5 = object()
         GOOGLE_GEMINI_3_5 = object()
+        GOOGLE_GEMINI_3_6 = object()
+        GOOGLE_GEMINI_3_7 = object()
         MOONDREAM = object()
         FUTURE = object()
 
@@ -1560,3 +1562,71 @@ def test_from_google_gemini_3_5_recovers_malformed_array():
 
     assert xyxy.shape == (2, 4)
     assert list(class_name) == ["cat", "dog"]
+
+
+def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation():
+    """Gemini 3.6 JSON produces scaled boxes and full-image polygon masks."""
+    result = (
+        '{"boxes": [{"box_2d": [250, 200, 750, 800], '
+        '"mask": [[200, 250], [800, 250], [800, 750], [200, 750]], '
+        '"label": "wooden bowl"}]}'
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_6,
+        result=result,
+        resolution_wh=(100, 80),
+    )
+
+    np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
+    np.testing.assert_array_equal(detections.class_id, [0])
+    np.testing.assert_array_equal(
+        detections.data[CLASS_NAME_DATA_FIELD], ["wooden bowl"]
+    )
+    assert detections.mask is not None
+    assert detections.mask.shape == (1, 80, 100)
+    assert detections.mask.dtype == np.bool_
+    assert detections.mask[0, 40, 50]
+    assert not detections.mask[0, 19, 50]
+    assert not detections.mask[0, 40, 19]
+
+
+def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items():
+    """Filtering every Gemini 3.6 item returns valid empty detections."""
+    result = (
+        '{"boxes": [{"box_2d": [100, 100, 900, 900], '
+        '"mask": [[100, 100], [900, 100], [900, 900], [100, 900]], '
+        '"label": "cat"}]}'
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_6,
+        result=result,
+        resolution_wh=(100, 80),
+        classes=["dog"],
+    )
+
+    assert len(detections) == 0
+    assert detections.xyxy.shape == (0, 4)
+    assert detections.mask is not None
+    assert detections.mask.shape == (0, 80, 100)
+
+
+def test_from_vlm_google_gemini_3_7_parses_structured_output():
+    """Gemini 3.7 uses the same structured box and polygon contract as 3.6."""
+    result = (
+        '{"boxes": [{"box_2d": [250, 200, 750, 800], '
+        '"mask": [[200, 250], [800, 250], [800, 750], [200, 750]], '
+        '"label": "glass"}]}'
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_7,
+        result=result,
+        resolution_wh=(100, 80),
+    )
+
+    np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
+    np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["glass"])
+    assert detections.mask is not None
+    assert detections.mask.shape == (1, 80, 100)

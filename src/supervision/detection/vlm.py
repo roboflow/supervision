@@ -83,6 +83,8 @@ class VLM(Enum):
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
         GOOGLE_GEMINI_3_5: Google Gemini 3.5 vision-language model.
+        GOOGLE_GEMINI_3_6: Google Gemini 3.6 vision-language model.
+        GOOGLE_GEMINI_3_7: Google Gemini 3.7 vision-language model.
         MOONDREAM: The Moondream vision-language model.
     """
 
@@ -94,6 +96,8 @@ class VLM(Enum):
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     GOOGLE_GEMINI_3_5 = "gemini_3_5"
+    GOOGLE_GEMINI_3_6 = "gemini_3_6"
+    GOOGLE_GEMINI_3_7 = "gemini_3_7"
     MOONDREAM = "moondream"
 
     @classmethod
@@ -125,6 +129,8 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
     VLM.GOOGLE_GEMINI_3_5: str,
+    VLM.GOOGLE_GEMINI_3_6: str,
+    VLM.GOOGLE_GEMINI_3_7: str,
     VLM.MOONDREAM: dict,
 }
 
@@ -137,6 +143,8 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_3_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_3_6: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_3_7: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -149,6 +157,8 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_3_5: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_3_6: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_3_7: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -930,6 +940,121 @@ def from_google_gemini_3_5(
             `from_google_gemini_2_5` return contract.
     """
     return from_google_gemini_2_5(result, resolution_wh, classes)
+
+
+def from_google_gemini_3_6(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+]:
+    """Parse Google Gemini 3.6 detection and polygon segmentation output.
+
+    Gemini 3.6 structured output wraps detections in a top-level ``boxes`` key.
+    Each optional ``mask`` is a polygon of ``[x, y]`` coordinates normalized to
+    0-1000 across the full image.
+
+    Args:
+        result: String containing the structured JSON response.
+        resolution_wh: Width and height used to scale boxes and mask polygons.
+        classes: Optional list of valid class names.
+
+    Returns:
+        A tuple of ``(xyxy, class_id, class_name, confidence, masks)`` matching
+            the other Gemini parser contracts.
+    """
+    w, h = _validate_resolution(resolution_wh)
+
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+
+    try:
+        payload = json.loads(result)
+    except json.JSONDecodeError:
+        payload = None
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("boxes"), list):
+        return (
+            np.empty((0, 4)),
+            np.array([], dtype=int),
+            np.array([], dtype=str),
+            np.array([], dtype=float),
+            None,
+        )
+
+    items = [
+        item
+        for item in payload["boxes"]
+        if isinstance(item, dict) and "box_2d" in item and "label" in item
+    ]
+    detection_items = [{k: v for k, v in item.items() if k != "mask"} for item in items]
+    xyxy, class_id, class_name, confidence, _ = from_google_gemini_2_5(
+        json.dumps(detection_items), resolution_wh, classes
+    )
+
+    if not items or any("mask" not in item for item in items):
+        return xyxy, class_id, class_name, confidence, None
+
+    masks_list: list[npt.NDArray[np.bool_]] = []
+    for item in items:
+        if classes is not None and item["label"] not in classes:
+            continue
+        try:
+            polygon = np.asarray(item["mask"], dtype=np.float64)
+        except (TypeError, ValueError):
+            polygon = np.empty((0, 2), dtype=np.float64)
+
+        if (
+            polygon.ndim != 2
+            or polygon.shape[0] < 3
+            or polygon.shape[1] != 2
+            or not np.isfinite(polygon).all()
+        ):
+            masks_list.append(np.zeros((h, w), dtype=bool))
+            continue
+
+        polygon = polygon * np.array([w, h], dtype=np.float64) / 1000
+        masks_list.append(polygon_to_mask(polygon, (w, h)).astype(bool))
+
+    masks = np.stack(masks_list) if masks_list else np.empty((0, h, w), dtype=bool)
+    return xyxy, class_id, class_name, confidence, masks
+
+
+def from_google_gemini_3_7(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+]:
+    """Parse Google Gemini 3.7 structured detection and segmentation output.
+
+    Gemini 3.7 uses the same top-level ``boxes`` object and polygon mask format
+    as Gemini 3.6.
+
+    Args:
+        result: String containing the structured JSON response.
+        resolution_wh: Width and height used to scale boxes and mask polygons.
+        classes: Optional list of valid class names.
+
+    Returns:
+        A tuple of ``(xyxy, class_id, class_name, confidence, masks)`` matching
+            the other Gemini parser contracts.
+    """
+    return from_google_gemini_3_6(result, resolution_wh, classes)
 
 
 def from_moondream(
