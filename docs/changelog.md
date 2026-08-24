@@ -7,14 +7,25 @@ date_modified: 2026-08-11
 
 ### Unreleased <small>upcoming</small>
 
+### 0.30.1 <small>Aug 24, 2026</small>
+
+### Added
+
+- RF-DETR example scripts (`rfdetr_example.py`) added to the `count_people_in_zone`, `heatmap_and_track`, `speed_estimation`, `tracking`, and `traffic_analysis` bundled examples ([#2497](https://github.com/roboflow/supervision/pull/2497)).
+
+### Changed
+
+- `sv.box_iou` now raises `TypeError` for complex-valued box coordinates instead of silently discarding the imaginary part ([#2485](https://github.com/roboflow/supervision/pull/2485)).
+- Performance: `DetectionsSmoother.update_with_detections` now checks active tracker IDs via set membership instead of scanning per tracked object ([#2496](https://github.com/roboflow/supervision/pull/2496)). No output changes.
+
 ### Fixed
 
 - RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.
-- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for polygons with large coordinates.
+- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for realistic-magnitude large-coordinate polygons.
 - `sv.Detections.area` and `sv.oriented_box_iou_batch` now translate oriented-box coordinates to local origins before floating-point area/intersection math, preserving differences representable by the input dtype and preventing self-IoU collapse for large-coordinate inputs (e.g. geospatial or stitched frames).
 - `sv.Detections.with_nmm` now translates oriented-box corners to a local origin with exact integer arithmetic before merging, preventing unsigned-integer wrap-around (e.g. `uint16`/`uint64` coordinates) from corrupting both the merged extent and the winner's orientation angle.
 - `DetectionsSmoother` now keeps oriented-box corners aligned with smoothed `xyxy` geometry, including rotated tracks and mixed metadata windows.
-- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
+- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. For realistic coordinate magnitudes (below 2^53), its scalar result now matches `sv.box_iou_batch`; `box_iou_batch` still casts to `float64` before subtracting, so the two can diverge above that threshold.
 - `sv.list_files_with_extensions` no longer includes directories when listing all files without an extension filter.
 - `sv.pillow_to_cv2` now accepts RGBA images when the cv2-free fallback backend is active, matching OpenCV by dropping alpha and returning BGR channels.
 - `import supervision` no longer loads PyAV's native libraries when the OpenCV backend is selected. PyAV is now imported lazily on first use by the PyAV-backed video/audio fallback, preventing a duplicate `libavdevice` warning (and possible crash) on macOS when both `av` and `opencv-python` are installed.
