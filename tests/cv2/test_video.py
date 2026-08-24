@@ -88,12 +88,30 @@ def _run_without_opencv(source: str) -> None:
     assert result.returncode == 0, result.stderr
 
 
-def test_video_module_uses_required_pyav_dependency() -> None:
-    """The video fallback imports required PyAV directly without a loader."""
-    from supervision._cv2 import _video
+def test_opencv_backend_does_not_eagerly_import_pyav() -> None:
+    """Selecting the OpenCV backend must not load PyAV's native libraries.
 
-    assert _video.av.__name__ == "av"
-    assert not hasattr(_video, "_load_av")
+    Regression test for GH-2505: `_cv2/_video.py` used to `import av` at
+    module scope, so `_cv2/__init__.py` loaded PyAV's native `libavdevice`
+    alongside OpenCV's own bundled copy even when OpenCV was the selected
+    backend. On macOS this triggers a duplicate Objective-C class warning
+    (and, per PyAV-Org/PyAV#2215, risks a real crash).
+    """
+    source = (
+        "import sys\n"
+        "import supervision\n"
+        "assert supervision._cv2.BACKEND_NAME == 'opencv', "
+        "supervision._cv2.BACKEND_NAME\n"
+        "assert 'av' not in sys.modules, sorted(sys.modules)\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", source],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_fallback_capture_reports_metadata_and_supports_exact_seek(

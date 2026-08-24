@@ -10,7 +10,6 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-import av
 import numpy as np
 import numpy.typing as npt
 
@@ -24,6 +23,21 @@ from supervision._cv2.constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _load_av() -> Any:
+    """Import PyAV on first use so its native libs load only when needed.
+
+    `av` bundles its own `libavdevice`, which macOS's Objective-C runtime
+    treats as a duplicate of the one OpenCV's wheel already bundles when
+    both are loaded into the same process (GH-2505). Deferring the import
+    until a PyAV-backed capture/writer/remux call actually happens keeps an
+    OpenCV-only import from ever touching PyAV's native libraries.
+    """
+    import av
+
+    return av
+
 
 _CODECS = {
     "mp4v": ("mpeg4", "yuv420p"),
@@ -75,7 +89,7 @@ class _VideoCapture:
                 raise BackendUnavailableError(
                     "PyAV fallback supports file paths, not webcam device indexes."
                 )
-            self._container = av.open(str(source), mode="r")
+            self._container = _load_av().open(str(source), mode="r")
             if not self._container.streams.video:
                 raise ValueError(f"Video source has no video stream: {source}")
             self._stream = self._container.streams.video[0]
@@ -97,7 +111,7 @@ class _VideoCapture:
 
         count = int(getattr(self._stream, "frames", 0) or 0)
         if count <= 0 and not isinstance(self._source, int):
-            container = av.open(str(self._source), mode="r")
+            container = _load_av().open(str(self._source), mode="r")
             try:
                 count = sum(1 for _ in container.decode(video=self._stream.index))
             finally:
@@ -211,7 +225,7 @@ class _VideoWriter:
 
         try:
             codec, pixel_format = _codec_details(fourcc)
-            self._container = av.open(str(filename), mode="w")
+            self._container = _load_av().open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
             self._stream = self._container.add_stream(codec, rate=rate)
             self._stream.width = self._width
@@ -238,7 +252,7 @@ class _VideoWriter:
         if frame.dtype != np.uint8:
             raise ValueError("Video frames must use uint8 dtype")
 
-        video_frame = av.VideoFrame.from_ndarray(
+        video_frame = _load_av().VideoFrame.from_ndarray(
             np.ascontiguousarray(frame), format="bgr24"
         )
         for packet in self._stream.encode(video_frame):
@@ -286,6 +300,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
     output_container: Any = None
     temporary_path: str | None = None
     try:
+        av = _load_av()
         source_container = av.open(source_path, mode="r")
         video_container = av.open(video_path, mode="r")
         if not source_container.streams.audio or not video_container.streams.video:
