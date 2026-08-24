@@ -62,7 +62,7 @@ class DetectionsManager:
 
 def initiate_polygon_zones(
     polygons: list[np.ndarray],
-    triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
+    triggering_anchors: Iterable[sv.Position] = (sv.Position.CENTER,),
 ) -> list[sv.PolygonZone]:
     """Create polygon zones sharing the requested triggering anchors."""
     return [
