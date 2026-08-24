@@ -9,7 +9,7 @@ date_modified: 2026-08-11
 
 ### Added
 
-- `sv.Detections` now validates `xyxy` boxes for finiteness (no NaN/inf), raising a clear `ValueError` for malformed input instead of failing silently downstream.
+- `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
 
 ### Fixed
 
