@@ -91,35 +91,39 @@ def _envelope_only(cx: float = 0.0, cy: float = 0.0) -> Detections:
 
 #: Each entry runs an op against oriented input and against its envelope. The
 #: contract is that the two disagree; a fallback to `xyxy` makes them equal.
-_GEOMETRY_AWARE_OPS: list[
-    tuple[str, Callable[[Callable[..., Detections]], np.ndarray]]
-] = [
-    ("detection_area", lambda build: detection_area(build())),
-    (
+_GEOMETRY_AWARE_OPS = [
+    pytest.param(
+        "detection_area",
+        lambda build: detection_area(build()),
+        id="detection-area",
+    ),
+    pytest.param(
         "detection_iou",
         lambda build: detection_iou(build(), build(HALF_DIAGONAL, HALF_DIAGONAL)),
+        id="detection-iou",
     ),
 ]
 
 
-@pytest.mark.parametrize(
-    ("name", "run"), _GEOMETRY_AWARE_OPS, ids=[n for n, _ in _GEOMETRY_AWARE_OPS]
-)
-def test_op_respects_geometry(
-    name: str, run: Callable[[Callable[..., Detections]], np.ndarray]
-) -> None:
-    """A geometry-aware op must not answer the same for a box and its envelope."""
-    with_corners = np.asarray(run(_oriented), dtype=float)
-    without_corners = np.asarray(run(_envelope_only), dtype=float)
+class TestGeometryAwareOperations:
+    """Contract tests shared by geometry-aware detection operations."""
 
-    assert with_corners.shape == without_corners.shape, (
-        f"{name} changed result shape depending on whether corners were present"
-    )
-    assert not np.allclose(with_corners, without_corners), (
-        f"{name} gave the same answer for an oriented box and its envelope "
-        f"({with_corners.tolist()}), so it is reading xyxy rather than the "
-        "geometry the detection actually carries"
-    )
+    @pytest.mark.parametrize(("name", "run"), _GEOMETRY_AWARE_OPS)
+    def test_op_respects_geometry(
+        self, name: str, run: Callable[[Callable[..., Detections]], np.ndarray]
+    ) -> None:
+        """A geometry-aware op must not answer the same for a box and its envelope."""
+        with_corners = np.asarray(run(_oriented), dtype=float)
+        without_corners = np.asarray(run(_envelope_only), dtype=float)
+
+        assert with_corners.shape == without_corners.shape, (
+            f"{name} changed result shape depending on whether corners were present"
+        )
+        assert not np.allclose(with_corners, without_corners), (
+            f"{name} gave the same answer for an oriented box and its envelope "
+            f"({with_corners.tolist()}), so it is reading xyxy rather than the "
+            "geometry the detection actually carries"
+        )
 
 
 class TestGeometryContractValues:
