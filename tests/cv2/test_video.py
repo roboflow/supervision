@@ -88,20 +88,20 @@ def _run_without_opencv(source: str) -> None:
     assert result.returncode == 0, result.stderr
 
 
-def test_opencv_backend_does_not_eagerly_import_pyav() -> None:
-    """Selecting the OpenCV backend must not load PyAV's native libraries.
+def test_importing_supervision_does_not_eagerly_import_pyav() -> None:
+    """A plain `import supervision` must not load PyAV's native libraries.
 
     Regression test for GH-2505: `_cv2/_video.py` used to `import av` at
     module scope, so `_cv2/__init__.py` loaded PyAV's native `libavdevice`
-    alongside OpenCV's own bundled copy even when OpenCV was the selected
-    backend. On macOS this triggers a duplicate Objective-C class warning
-    (and, per PyAV-Org/PyAV#2215, risks a real crash).
+    on every import, regardless of which backend (`opencv` or the NumPy
+    `fallback`) ended up selected. On macOS this triggers a duplicate
+    Objective-C class warning (and, per PyAV-Org/PyAV#2215, risks a real
+    crash) whenever OpenCV's own bundled `libavdevice` is also present.
+    `av` should only load once a PyAV-backed capture/writer is actually used.
     """
     source = (
         "import sys\n"
         "import supervision\n"
-        "assert supervision._cv2.BACKEND_NAME == 'opencv', "
-        "supervision._cv2.BACKEND_NAME\n"
         "assert 'av' not in sys.modules, sorted(sys.modules)\n"
     )
     result = subprocess.run(
