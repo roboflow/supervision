@@ -1962,6 +1962,31 @@ class TestMergeObbCorners:
         else:
             assert result.dtype == np.float32
 
+    @pytest.mark.parametrize(
+        ("dtype", "offset"),
+        [
+            pytest.param(np.uint16, 60_000, id="uint16-near-dtype-max"),
+            pytest.param(np.uint64, 2**40, id="uint64-large-origin"),
+        ],
+    )
+    def test_unsigned_corners_match_float_result(
+        self, dtype: type[np.unsignedinteger], offset: int
+    ) -> None:
+        """Unsigned-integer corners below the origin merge without wrapping."""
+        # Rotated 10x5 rectangles whose second and third corners sit left of
+        # the first, so translating by the origin yields negative deltas.
+        winner = np.array([[0, 0], [-6, 8], [-2, 11], [4, 3]]) + offset
+        other = np.array([[3, 2], [-3, 10], [1, 13], [7, 5]]) + offset
+        corners_unsigned = [winner.astype(dtype), other.astype(dtype)]
+        expected = _merge_obb_corners(
+            [winner.astype(np.float64), other.astype(np.float64)]
+        )
+
+        result = _merge_obb_corners(corners_unsigned)
+
+        assert result.dtype == np.float64
+        assert np.allclose(result - offset, expected - offset, atol=1e-6)
+
 
 class TestMergeDetectionGroup:
     """_merge_detection_group"""
