@@ -3235,7 +3235,7 @@ class Detections:
 
 
 def _merge_obb_corners(
-    corners_list: list[npt.NDArray[np.floating]],
+    corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
     """Merge multiple OBB corner arrays using winner-angle projection.
 
@@ -3256,16 +3256,29 @@ def _merge_obb_corners(
         input_dtype if np.issubdtype(input_dtype, np.floating) else np.float64
     )
     origin = corners_list[0][0]
-    all_corners = np.concatenate(corners_list, axis=0) - origin
+    stacked = np.concatenate(corners_list, axis=0)
+    # Translate to the winner's first corner before any float math so large
+    # integer coordinates (e.g. geospatial or stitched frames) are reduced to
+    # local extents. Object arithmetic keeps those integer differences exact
+    # and avoids unsigned wrap-around for corners lying below the origin.
+    if np.issubdtype(input_dtype, np.integer):
+        all_corners = np.asarray(
+            stacked.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        all_corners = stacked.astype(np.float64, copy=False) - origin.astype(
+            np.float64, copy=False
+        )
     # Use winner's first edge to derive orientation angle -- avoids
-    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
-    winner_edge = corners_list[0][1] - corners_list[0][0]
+    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects). Read it
+    # off the translated corners so it inherits the same wrap-safety.
+    winner_edge = all_corners[1] - all_corners[0]
     angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
     cos, sin = float(np.cos(angle)), float(np.sin(angle))
 
     # De-rotate all corners into the winner's local frame
     to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
-    local_corners = all_corners.astype(np.float64, copy=False) @ to_local
+    local_corners = all_corners @ to_local
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
     y_min = float(local_corners[:, 1].min())
