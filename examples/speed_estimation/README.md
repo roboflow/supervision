@@ -4,7 +4,7 @@
 
 ## 👋 hello
 
-This example performs speed estimation analysis using various object-detection models and ByteTrack - a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc.
+This example performs speed estimation analysis using various object-detection models and ByteTrack - a simple yet effective online multi-object tracking method. It uses the supervision package for multiple tasks such as tracking, annotations, etc. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended model — its `predict` method returns a `Detections` object directly, no conversion step needed. YOLOv8 (via Ultralytics) and Roboflow Inference are also supported; `yolo_nas_example.py` is kept as a legacy reference and is not recommended for new projects.
 
 https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-5d860fd36f71
 
@@ -32,6 +32,8 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
   uv pip install -r requirements.txt
   ```
 
+  The requirements file includes dependencies for the RF-DETR, Ultralytics, Inference, and legacy YOLO-NAS variants. The `super-gradients` dependency is used only by the retained YOLO-NAS reference script.
+
 - download `vehicles.mp4` file
 
   ```bash
@@ -40,9 +42,11 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
 ## 🛠️ script arguments
 
-- `--roboflow_api_key` (optional): The API key for Roboflow services. If not provided directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) to acquire your `API KEY`.
+- `--device` (optional, rfdetr/ultralytics only): Computation device (`cpu`, `mps` or `cuda`). Default is `cpu`.
 
-- `--model_id` (optional): Designates the Roboflow model ID to be used. The default value is `"yolov8x-1280"`.
+- `--roboflow_api_key` (optional, inference only): The API key for Roboflow services. If not provided directly, the script tries to fetch it from the `ROBOFLOW_API_KEY` environment variable. Follow [this guide](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key) to acquire your `API KEY`.
+
+- `--model_id` (optional, inference only): Designates the Roboflow model ID to be used. The default value is `"rfdetr-small"`.
 
 - `--source_weights_path`: Required. Specifies the path to the YOLO model's weights file, which is essential for the object detection process. This file contains the data that the model uses to identify objects in the video.
 
@@ -56,10 +60,10 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
 ## ⚙️ run
 
-- yolo-nas
+- rfdetr
 
   ```bash
-  python yolo_nas_example.py \
+  python rfdetr_example.py \
       --source_video_path data/vehicles.mp4 \
       --target_video_path data/vehicles-result.mp4 \
       --confidence_threshold 0.3 \
@@ -87,10 +91,22 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
       --iou_threshold 0.5
   ```
 
+- yolo-nas (legacy model, kept for reference)
+
+  ```bash
+  python yolo_nas_example.py \
+      --source_video_path data/vehicles.mp4 \
+      --target_video_path data/vehicles-result.mp4 \
+      --confidence_threshold 0.3 \
+      --iou_threshold 0.5
+  ```
+
 ## © license
 
-This demo integrates two main components, each with its own licensing:
+This demo integrates multiple components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
+- rfdetr: The object detection model used by the recommended variant of this demo, [RF-DETR](https://github.com/roboflow/rf-detr), is distributed under the permissive [Apache-2.0 license](https://raw.githubusercontent.com/roboflow/rf-detr/develop/LICENSE).
+
+- ultralytics: The object detection model used by the `ultralytics` variant of this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 
 - supervision: The analytics code that powers the zone-based analysis in this demo is based on the Supervision library, which is licensed under the [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This makes the Supervision part of the code fully open source and freely usable in your projects.

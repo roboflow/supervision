@@ -2807,3 +2807,33 @@ class TestDetectionsArea:
 
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
+
+
+class TestDetectionsXyxyValidation:
+    @pytest.mark.parametrize(
+        "invalid_coordinate",
+        [
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="positive-infinity"),
+            pytest.param(-np.inf, id="negative-infinity"),
+        ],
+    )
+    def test_non_finite_xyxy_raises(self, invalid_coordinate: float) -> None:
+        """Detections rejects every non-finite xyxy coordinate."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=np.array([[0.0, 0.0, 1.0, invalid_coordinate]]))
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param(np.array([["0", "0", "1", "1"]]), id="string-coordinates"),
+            pytest.param(
+                np.array([[0, 0, 1, "1"]], dtype=object),
+                id="object-coordinates",
+            ),
+        ],
+    )
+    def test_unsupported_xyxy_dtype_raises_value_error(self, xyxy: np.ndarray) -> None:
+        """Detections reports unsupported coordinate dtypes as validation errors."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=xyxy)

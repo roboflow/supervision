@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: 🐍 Install uv and set Python
-        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.10"
           activate-environment: true
@@ -103,12 +103,10 @@ jobs:
           (github.event_name == 'push' && github.ref == 'refs/heads/release/latest') ||
           (github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true')
         run: |
-          cp docs/robots.txt /tmp/robots.txt
-          cp docs/llms.txt /tmp/llms.txt
-          cp docs/llms.full.txt /tmp/llms.full.txt
-          cp docs/llms-100k.txt /tmp/llms-100k.txt
-          cp docs/_headers /tmp/headers.txt
-          cp docs/0d5d9799b1cc4a39825146388c6781eb.txt /tmp/indexnow.txt
+          root_files=(robots.txt llms.txt llms.full.txt llms-100k.txt _headers 0d5d9799b1cc4a39825146388c6781eb.txt)
+          for f in "${root_files[@]}"; do
+            cp "docs/$f" "/tmp/$f"
+          done
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
           else
@@ -116,29 +114,14 @@ jobs:
           fi
           git fetch origin gh-pages
           git checkout gh-pages
-          cp /tmp/robots.txt robots.txt
-          cp /tmp/llms.txt llms.txt
-          cp /tmp/llms.full.txt llms.full.txt
-          cp /tmp/llms-100k.txt llms-100k.txt
-          cp /tmp/headers.txt _headers
-          cp /tmp/indexnow.txt 0d5d9799b1cc4a39825146388c6781eb.txt
+          for f in "${root_files[@]}"; do
+            cp "/tmp/$f" "$f"
+          done
+          files_to_add=("${root_files[@]}")
           if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
             cp "$version_dir/sitemap.xml" sitemap.xml
             gzip -9 -c sitemap.xml > sitemap.xml.gz
-          fi
-          files_to_add=(
-            robots.txt
-            llms.txt
-            llms.full.txt
-            llms-100k.txt
-            _headers
-            0d5d9799b1cc4a39825146388c6781eb.txt
-          )
-          if [[ -f "sitemap.xml" ]]; then
-            files_to_add+=(sitemap.xml)
-          fi
-          if [[ -f "sitemap.xml.gz" ]]; then
-            files_to_add+=(sitemap.xml.gz)
+            files_to_add+=(sitemap.xml sitemap.xml.gz)
           fi
           git add "${files_to_add[@]}"
           git diff --cached --quiet || git commit -m "chore: update GEO root files"

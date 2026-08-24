@@ -1077,14 +1077,13 @@ class ConfusionMatrix:
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
             dataset = sv.DetectionDataset.from_yolo(...)
 
-            model = YOLO(...)
+            model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                result = model(image)[0]
-                return sv.Detections.from_ultralytics(result)
+                return model.predict(image[:, :, ::-1])
 
             confusion_matrix = sv.ConfusionMatrix.benchmark(
                 dataset = dataset,
@@ -1349,14 +1348,13 @@ class MeanAveragePrecision:
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
             dataset = sv.DetectionDataset.from_yolo(...)
 
-            model = YOLO(...)
+            model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                result = model(image)[0]
-                return sv.Detections.from_ultralytics(result)
+                return model.predict(image[:, :, ::-1])
 
             mean_average_precision = sv.MeanAveragePrecision.benchmark(
                 dataset = dataset,

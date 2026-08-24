@@ -97,9 +97,14 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
         )
 
 
+def _coordinate_difference(upper: np.number, lower: np.number) -> float:
+    """Subtract box coordinates without overflowing integer NumPy scalars."""
+    return float(np.asarray(upper).item() - np.asarray(lower).item())
+
+
 def box_iou(
-    box_true: list[float] | npt.NDArray[np.floating],
-    box_detection: list[float] | npt.NDArray[np.floating],
+    box_true: list[float] | npt.NDArray[np.number],
+    box_detection: list[float] | npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
     """
@@ -107,7 +112,8 @@ def box_iou(
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics. Returns the overlap value in range
-    `[0, 1]`.
+    `[0, 1]`. Integer coordinates are subtracted before conversion to floating
+    point so large origins remain precise while area products avoid integer overflow.
 
     Args:
         box_true: Ground truth box in format
@@ -122,6 +128,7 @@ def box_iou(
         Overlap value between boxes in `[0, 1]`.
 
     Raises:
+        TypeError: If either box contains complex coordinates.
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
@@ -137,21 +144,30 @@ def box_iou(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
-    x_min_det, y_min_det, x_max_det, y_max_det = np.array(box_detection)
+    box_true_array = np.asarray(box_true)
+    box_detection_array = np.asarray(box_detection)
+    if np.iscomplexobj(box_true_array) or np.iscomplexobj(box_detection_array):
+        raise TypeError("box coordinates must be real-valued")
+
+    x_min_true, y_min_true, x_max_true, y_max_true = box_true_array
+    x_min_det, y_min_det, x_max_det, y_max_det = box_detection_array
 
     x_min_inter = max(x_min_true, x_min_det)
     y_min_inter = max(y_min_true, y_min_det)
     x_max_inter = min(x_max_true, x_max_det)
     y_max_inter = min(y_max_true, y_max_det)
 
-    inter_w = max(0.0, x_max_inter - x_min_inter)
-    inter_h = max(0.0, y_max_inter - y_min_inter)
+    inter_w = max(0.0, _coordinate_difference(x_max_inter, x_min_inter))
+    inter_h = max(0.0, _coordinate_difference(y_max_inter, y_min_inter))
 
     area_inter = inter_w * inter_h
 
-    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
-    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
+    area_true = _coordinate_difference(x_max_true, x_min_true) * _coordinate_difference(
+        y_max_true, y_min_true
+    )
+    area_det = _coordinate_difference(x_max_det, x_min_det) * _coordinate_difference(
+        y_max_det, y_min_det
+    )
 
     if overlap_metric == OverlapMetric.IOU:
         area_norm = area_true + area_det - area_inter
@@ -383,8 +399,13 @@ def box_iou_batch_with_jaccard(
     return iou
 
 
-def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Compute the area of each oriented-box polygon using the shoelace formula.
+
+    Each polygon is translated to its own first corner before the shoelace
+    products, keeping representable integer coordinates with large origins (e.g.
+    geospatial frames) local before conversion to float64. Float inputs that
+    were already quantized retain their input precision.
 
     Args:
         polygons: ``(N, 4, 2)`` array of polygon corners.
@@ -392,13 +413,21 @@ def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floatin
     Returns:
         ``(N,)`` array of polygon areas.
     """
-    x = polygons[:, :, 0]
-    y = polygons[:, :, 1]
+    origin = polygons[:, 0:1, :]
+    if np.issubdtype(polygons.dtype, np.integer):
+        translated = np.asarray(
+            polygons.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        polygons_float = polygons.astype(np.float64, copy=False)
+        translated = polygons_float - origin.astype(np.float64, copy=False)
+    x = translated[:, :, 0]
+    y = translated[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
-    return cast(npt.NDArray[np.floating], 0.5 * np.abs(cross.sum(axis=1)))
+    return cast(npt.NDArray[np.float64], 0.5 * np.abs(cross.sum(axis=1)))
 
 
-def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _aabb_envelopes(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     """Compute the axis-aligned bounding envelope of each oriented box.
 
     Args:
@@ -415,8 +444,8 @@ def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floati
 
 
 def _overlapping_envelope_pairs(
-    envelopes_true: npt.NDArray[np.floating],
-    envelopes_detection: npt.NDArray[np.floating],
+    envelopes_true: npt.NDArray[np.number],
+    envelopes_detection: npt.NDArray[np.number],
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
 
@@ -544,13 +573,8 @@ def oriented_box_iou_batch(
     # Capture identity before reshape: NMS / NMM pass the same array twice, so
     # the matrix is symmetric and we can compute only its upper triangle.
     is_self_comparison = boxes_true is boxes_detection
-    boxes_true = cast(
-        npt.NDArray[np.floating], boxes_true.reshape(-1, 4, 2).astype(np.float64)
-    )
-    boxes_detection = cast(
-        npt.NDArray[np.floating],
-        boxes_detection.reshape(-1, 4, 2).astype(np.float64),
-    )
+    boxes_true = boxes_true.reshape(-1, 4, 2)
+    boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
     n, m = len(boxes_true), len(boxes_detection)
     if n == 0 or m == 0:
@@ -568,14 +592,56 @@ def oriented_box_iou_batch(
         upper = rows <= cols
         rows, cols = rows[upper], cols[upper]
 
-    polygons_true = [box.astype(np.float32) for box in boxes_true]
-    polygons_detection = [box.astype(np.float32) for box in boxes_detection]
-
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
-    for i, j in zip(rows, cols):
-        intersection, _ = cv2.intersectConvexConvex(
-            polygons_true[i], polygons_detection[j]
+    local_origins_true = envelopes_true[:, :2]
+    local_origins_detection = envelopes_detection[:, :2]
+    if np.issubdtype(boxes_true.dtype, np.integer):
+        local_polygons_true = np.asarray(
+            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
+            dtype=np.float32,
         )
+    else:
+        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
+            np.float32
+        )
+    if np.issubdtype(boxes_detection.dtype, np.integer):
+        local_polygons_detection = np.asarray(
+            boxes_detection.astype(object)
+            - local_origins_detection[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_detection = (
+            boxes_detection - local_origins_detection[:, None, :]
+        ).astype(np.float32)
+    # Float32 inputs already have quantized origins, so their envelope minima
+    # can be reused without loss. Float64 inputs may retain unit differences at
+    # large origins; keep their pair offsets in float64 until each pair's local
+    # cast instead of rounding absolute minima to float32 up front.
+    origins_true_float32 = (
+        local_origins_true if boxes_true.dtype == np.float32 else None
+    )
+    origins_detection_float32 = (
+        local_origins_detection if boxes_detection.dtype == np.float32 else None
+    )
+    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
+    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
+    for i, j in zip(rows, cols):
+        # Rebase precomputed local polygons to the shared overlap origin. This
+        # preserves translation-invariant float32 geometry without repeating
+        # corner reductions and casts for every candidate pair.
+        if origins_true_float32 is not None and origins_detection_float32 is not None:
+            origin_i = origins_true_float32[i]
+            origin_j = origins_detection_float32[j]
+        else:
+            origin_i = local_origins_true[i]
+            origin_j = local_origins_detection[j]
+        pair_origin = np.minimum(origin_i, origin_j)
+        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
+        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
+        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
+        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
+        intersection, _ = cv2.intersectConvexConvex(polygon_i_buffer, polygon_j_buffer)
         if intersection <= 0:
             continue
         denominator = (

@@ -94,6 +94,21 @@ class Detections:
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
 
+    === "RF-DETR"
+
+        [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
+        `sv.Detections` object directly, so no conversion step is needed.
+
+        ```python
+        from supervision import _cv2 as cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        model = RFDETRMedium()
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        detections = model.predict(image[:, :, ::-1])
+        ```
+
     === "Inference"
 
         Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
@@ -104,7 +119,7 @@ class Detections:
         import supervision as sv
         from inference import get_model
 
-        model = get_model(model_id="yolov8n-640")
+        model = get_model(model_id="rfdetr-small")
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
         results = model.infer(image)[0]
         detections = sv.Detections.from_inference(results)
@@ -1642,25 +1657,23 @@ class Detections:
             ValueError: If the specified VLM is not supported.
 
         !!! example "PaliGemma"
-            ```python
+            ```pycon
+            >>> import supervision as sv
 
-            import supervision as sv
+            >>> paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.PALIGEMMA,
+            ...     paligemma_result,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog']
+            ... )
+            >>> detections.xyxy
+            array([[250., 250., 750., 750.]])
+            >>> detections.class_id
+            array([0])
+            >>> detections.data
+            {'class_name': array(['cat'], dtype='<U4')}
 
-            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.PALIGEMMA,
-                paligemma_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog']
-            )
-            detections.xyxy
-            # array([[250., 250., 750., 750.]])
-
-            detections.class_id
-            # array([0])
-
-            detections.data
-            # {'class_name': array(['cat'], dtype='<U10')}
             ```
 
         !!! example "Qwen2.5-VL"
@@ -1711,63 +1724,57 @@ class Detections:
                 - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
 
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            qwen_2_5_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.QWEN_2_5_VL,
-                qwen_2_5_vl_result,
-                input_wh=(1000, 1000),
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+            >>> qwen_2_5_vl_result = \"\"\"```json
+            ... [
+            ...     {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+            ...     {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ... ]
+            ... ```\"\"\"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.QWEN_2_5_VL,
+            ...     qwen_2_5_vl_result,
+            ...     input_wh=(1000, 1000),
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[139., 768., 315., 954.],
+                   [366., 679., 536., 849.]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
 
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Qwen3-VL"
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            qwen_3_vl_result = \"\"\"```json
-            [
-                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
-                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
-            ]
-            ```\"\"\"
-            detections = sv.Detections.from_vlm(
-                sv.VLM.QWEN_3_VL,
-                qwen_3_vl_result,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
-            detections.xyxy
-            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+            >>> qwen_3_vl_result = \"\"\"```json
+            ... [
+            ...     {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+            ...     {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ... ]
+            ... ```\"\"\"
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.QWEN_3_VL,
+            ...     qwen_3_vl_result,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[139., 768., 315., 954.],
+                   [366., 679., 536., 849.]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
 
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Gemini 2.0"
@@ -1793,31 +1800,30 @@ class Detections:
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
+            >>> gemini_response_text = \"\"\"```json
+            ...     [
+            ...         {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            ...         {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+            ...     ]
+            ... ```\"\"\"
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.GOOGLE_GEMINI_2_0,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_2_0,
+            ...     gemini_response_text,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[ 40., 543., 200., 728.],
+                   [352., 653., 522., 820.]])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
+            >>> detections.class_id
+            array([0, 1])
 
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Gemini 2.5"
@@ -1912,31 +1918,30 @@ class Detections:
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            gemini_response_text = \"\"\"```json
-                [
-                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
-                ]
-            ```\"\"\"
+            >>> gemini_response_text = \"\"\"```json
+            ...     [
+            ...         {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            ...         {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+            ...     ]
+            ... ```\"\"\"
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.GOOGLE_GEMINI_2_5,
-                gemini_response_text,
-                resolution_wh=(1000, 1000),
-                classes=['cat', 'dog'],
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_2_5,
+            ...     gemini_response_text,
+            ...     resolution_wh=(1000, 1000),
+            ...     classes=['cat', 'dog'],
+            ... )
+            >>> detections.xyxy
+            array([[ 40., 543., 200., 728.],
+                   [352., 653., 522., 820.]])
+            >>> detections.data
+            {'class_name': array(['cat', 'dog'], dtype='<U3')}
+            >>> detections.class_id
+            array([0, 1])
 
-            detections.xyxy
-            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-
-            detections.data
-            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-
-            detections.class_id
-            # array([0, 1])
             ```
 
         !!! example "Moondream"
@@ -1957,35 +1962,35 @@ class Detections:
                 and return them in the proper JSON format with normalized coordinates.
 
 
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            moondream_result = {
-                'objects': [
-                    {
-                        'x_min': 0.5704046934843063,
-                        'y_min': 0.20069346576929092,
-                        'x_max': 0.7049859315156937,
-                        'y_max': 0.3012596592307091
-                    },
-                    {
-                        'x_min': 0.6210969910025597,
-                        'y_min': 0.3300672620534897,
-                        'x_max': 0.8417936339974403,
-                        'y_max': 0.4961046129465103
-                    }
-                ]
-            }
+            >>> moondream_result = {
+            ...     'objects': [
+            ...         {
+            ...             'x_min': 0.5704046934843063,
+            ...             'y_min': 0.20069346576929092,
+            ...             'x_max': 0.7049859315156937,
+            ...             'y_max': 0.3012596592307091
+            ...         },
+            ...         {
+            ...             'x_min': 0.6210969910025597,
+            ...             'y_min': 0.3300672620534897,
+            ...             'x_max': 0.8417936339974403,
+            ...             'y_max': 0.4961046129465103
+            ...         }
+            ...     ]
+            ... }
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.MOONDREAM,
-                moondream_result,
-                resolution_wh=(1000, 1000),
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.MOONDREAM,
+            ...     moondream_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy  # doctest: +ELLIPSIS
+            array([[570.404..., 200.693..., 704.985..., 301.259...],
+                   [621.096..., 330.067..., 841.793..., 496.104...]])
 
-            detections.xyxy
-            # array([[1752.28,  818.82, 2165.72, 1229.14],
-            #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
 
         !!! example "DeepSeek-VL2"
@@ -2008,25 +2013,26 @@ class Detections:
                 <image>\\n<|grounding|>Detect the giraffes
                 ```
 
-            ```python
-            from PIL import Image
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
 
-            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+            >>> deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
 
-            detections = sv.Detections.from_vlm(
-                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
-            )
+            >>> detections = sv.Detections.from_vlm(
+            ...     vlm=sv.VLM.DEEPSEEK_VL_2,
+            ...     result=deepseek_vl2_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy
+            array([[ 580.58057 ,  270.27026 , 1000.      ,  904.9049  ],
+                   [  26.026026,   31.03103 ,  632.6326  ,  998.999   ]],
+                  dtype=float32)
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['The giraffe at the back', 'The giraffe at the front'],
+                  dtype='<U24')}
 
-            detections.xyxy
-            # array([[ 420,  293,  724,  982],
-            #        [  18,   33,  458, 1084]])
-
-            detections.class_id
-            # array([0, 1])
-
-            detections.data
-            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
             ```
 
         """  # noqa: E501
@@ -3061,9 +3067,7 @@ class Detections:
         elif ORIENTED_BOX_COORDINATES in self.data:
             indices = oriented_box_non_max_suppression(
                 predictions=predictions,
-                oriented_boxes=np.asarray(
-                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
-                ),
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3211,9 +3215,7 @@ class Detections:
         elif ORIENTED_BOX_COORDINATES in self.data:
             merge_groups = oriented_box_non_max_merge(
                 predictions=predictions,
-                oriented_boxes=np.asarray(
-                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
-                ),
+                oriented_boxes=np.asarray(self.data[ORIENTED_BOX_COORDINATES]),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
@@ -3246,33 +3248,39 @@ def _merge_obb_corners(
         corners_list: List of (4, 2) corner arrays. First is the winner.
 
     Returns:
-        Merged OBB corners as a (4, 2) float32 array.
+        Merged OBB corners as a (4, 2) floating-point array. Its dtype matches
+        floating inputs and is float64 for integer inputs.
     """
-    all_corners = np.concatenate(corners_list, axis=0).astype(np.float32)
+    input_dtype = np.result_type(*[corners.dtype for corners in corners_list])
+    output_dtype = (
+        input_dtype if np.issubdtype(input_dtype, np.floating) else np.float64
+    )
+    origin = corners_list[0][0]
+    all_corners = np.concatenate(corners_list, axis=0) - origin
     # Use winner's first edge to derive orientation angle -- avoids
     # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
     winner_edge = corners_list[0][1] - corners_list[0][0]
-    angle = float(np.arctan2(winner_edge[1], winner_edge[0]))
+    angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
     cos, sin = float(np.cos(angle)), float(np.sin(angle))
 
     # De-rotate all corners into the winner's local frame
-    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float32)
-    local_corners = all_corners @ to_local
+    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
+    local_corners = all_corners.astype(np.float64, copy=False) @ to_local
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
     y_min = float(local_corners[:, 1].min())
     y_max = float(local_corners[:, 1].max())
 
     # Rotate the enclosing AABB back to world frame
-    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float32)
+    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float64)
     merged: npt.NDArray[np.floating] = (
         np.array(
             [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]],
-            dtype=np.float32,
+            dtype=np.float64,
         )
         @ to_world
     )
-    return merged
+    return cast(npt.NDArray[np.floating], (merged + origin).astype(output_dtype))
 
 
 def _merge_detection_group(detections: list[Detections]) -> Detections:
@@ -3300,8 +3308,12 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 
     # Area-weighted confidence: each box contributes proportionally to its
     # footprint so large overlapping boxes dominate over small slivers.
-    all_xyxy = np.array([d.xyxy[0] for d in detections], dtype=np.float32)
-    areas = (all_xyxy[:, 2] - all_xyxy[:, 0]) * (all_xyxy[:, 3] - all_xyxy[:, 1])
+    all_xyxy = np.array([d.xyxy[0] for d in detections])
+    widths = all_xyxy[:, 2] - all_xyxy[:, 0]
+    heights = all_xyxy[:, 3] - all_xyxy[:, 1]
+    areas = widths.astype(np.float64, copy=False) * heights.astype(
+        np.float64, copy=False
+    )
 
     confidence: npt.NDArray[np.floating] | None
     if winner.confidence is not None:

@@ -328,7 +328,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
+        Examples:
             ```python
             from supervision import _cv2 as cv2
             import supervision as sv
@@ -345,6 +345,25 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 scene=image.copy(),
                 detections=detections
             )
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.config import ORIENTED_BOX_COORDINATES
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> obb = np.array([[[20, 20], [80, 20], [80, 80], [20, 80]]])
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ...     data={ORIENTED_BOX_COORDINATES: obb},
+            ... )
+            >>> oriented_box_annotator = sv.OrientedBoxAnnotator()
+            >>> annotated_frame = oriented_box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+
             ```
         """
         if not isinstance(scene, np.ndarray):
@@ -1599,17 +1618,19 @@ class LabelAnnotator(_BaseLabelAnnotator):
             The annotated ``scene`` array.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> scene = np.zeros((200, 200, 3), dtype=np.uint8)
+            >>> scene = sv.LabelAnnotator.draw_rounded_rectangle(
+            ...     scene=scene,
+            ...     xyxy=(10, 10, 100, 50),
+            ...     color=(0, 255, 0),
+            ...     border_radius=0,
+            ... )
+            >>> bool(scene[30, 50].tolist() == [0, 255, 0])
+            True
 
-            scene = np.zeros((200, 200, 3), dtype=np.uint8)
-            scene = sv.LabelAnnotator.draw_rounded_rectangle(
-                scene=scene,
-                xyxy=(10, 10, 100, 50),
-                color=(0, 255, 0),
-                border_radius=0,
-            )
             ```
         """
         x1, y1, x2, y2 = xyxy
@@ -2207,12 +2228,12 @@ class TraceAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
             trace_annotator = sv.TraceAnnotator()
 
             video_info = sv.VideoInfo.from_video_path(video_path='...')
@@ -2221,13 +2242,37 @@ class TraceAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
+                   detections = model.predict(frame[:, :, ::-1])
                    detections = tracker.update_with_detections(detections)
                    annotated_frame = trace_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)
                    sink.write_frame(frame=annotated_frame)
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> trace_annotator = sv.TraceAnnotator()
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 30, 30]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> _ = trace_annotator.annotate(scene=image.copy(), detections=detections)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[70, 70, 90, 90]]),
+            ...     class_id=np.array([0]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(annotated_frame.any())
+            True
+
             ```
 
         ![trace-annotator-example](https://media.roboflow.com/
@@ -2381,12 +2426,12 @@ class HeatMapAnnotator(BaseAnnotator):
             When `detections` is empty or no heat has accumulated yet, the
             scene is returned unchanged without raising a ``RuntimeWarning``.
 
-        Example:
+        Examples:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO('yolov8x.pt')
+            model = RFDETRMedium()
 
             heat_map_annotator = sv.HeatMapAnnotator()
 
@@ -2395,12 +2440,29 @@ class HeatMapAnnotator(BaseAnnotator):
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
-                   result = model(frame)[0]
-                   detections = sv.Detections.from_ultralytics(result)
+                   detections = model.predict(frame[:, :, ::-1])
                    annotated_frame = heat_map_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)
                    sink.write_frame(frame=annotated_frame)
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> heat_map_annotator = sv.HeatMapAnnotator()
+            >>> annotated_frame = heat_map_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
+            >>> bool(heat_map_annotator.heat_mask.sum() > 0)
+            True
+
             ```
 
         ![heatmap-annotator-example](https://media.roboflow.com/
@@ -2483,17 +2545,20 @@ class PixelateAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> pixelate_annotator = sv.PixelateAnnotator()
+            >>> annotated_frame = pixelate_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
-            image = ...
-            detections = sv.Detections(...)
-
-            pixelate_annotator = sv.PixelateAnnotator()
-            annotated_frame = pixelate_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
             ```
 
         ![pixelate-annotator-example](https://media.roboflow.com/
@@ -3338,19 +3403,25 @@ class ComparisonAnnotator:
             The annotated image.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 50, 50]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[40, 40, 90, 90]]),
+            ...     class_id=np.array([0]),
+            ... )
+            >>> comparison_annotator = sv.ComparisonAnnotator()
+            >>> annotated_frame = comparison_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections_1=detections_1,
+            ...     detections_2=detections_2
+            ... )
 
-            image = ...
-            detections_1 = sv.Detections(...)
-            detections_2 = sv.Detections(...)
-
-            comparison_annotator = sv.ComparisonAnnotator()
-            annotated_frame = comparison_annotator.annotate(
-                scene=image.copy(),
-                detections_1=detections_1,
-                detections_2=detections_2
-            )
             ```
 
         ![comparison-annotator-example](https://media.roboflow.com/

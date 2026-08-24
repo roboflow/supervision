@@ -70,6 +70,31 @@ class Recall(Metric["RecallResult"]):
 
         ```
 
+        A class that only ever appears in the predictions (for example a detection
+        on a background image with no ground truth) has no instances to recall, so
+        it is tracked with a recall of `0.0` rather than dropped. This keeps the
+        tracked class set aligned with Precision and F1Score for the same input:
+
+        ```pycon
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [100, 0, 110, 10]]),
+        ...     class_id=np.array([0, 1]),  # class 1 has no ground-truth instance
+        ...     confidence=np.array([0.9, 0.8])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> recall_result = Recall().update(predictions, targets).compute()
+        >>> recall_result.matched_classes.tolist()
+        [0, 1]
+        >>> round(float(recall_result.recall_per_class[0][0]), 2)  # matched class 0
+        1.0
+        >>> round(float(recall_result.recall_per_class[1][0]), 2)  # prediction-only
+        0.0
+
+        ```
+
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
     ){ align=center width="800" }
@@ -179,7 +204,40 @@ class Recall(Metric["RecallResult"]):
                         == size_category.value
                     )
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image). They produce
+                # no false negatives, so no recall value changes, but the classes still
+                # have to be tracked or `matched_classes` silently disagrees with
+                # Precision and F1Score for the same input.
+                if predictions.class_id is None or predictions.confidence is None:
+                    raise ValueError(
+                        "Recall metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)[
+                    prediction_size_mask
+                ]
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )[prediction_size_mask]
+                if len(prediction_class_ids) == 0:
+                    continue
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        prediction_confidence,
+                        prediction_class_ids,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
                     raise ValueError(
                         "Recall metric requires `class_id` on both predictions "
@@ -334,7 +392,19 @@ class Recall(Metric["RecallResult"]):
         matches = matches[sorted_indices]
         ignored_matches = ignored_matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Classes that appear only in predictions have no ground-truth instances, so
+        # their recall is 0.0 rather than undefined. Including them keeps the tracked
+        # class set identical to Precision and F1Score and matches sklearn, which infers
+        # labels from the union of y_true and y_pred.
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        pred_classes = np.unique(prediction_class_ids)
+        # Dedupe each side first, then union1d the already-unique arrays: this skips
+        # union1d's internal re-sort/re-unique of the full concatenation and measured
+        # ~1.4x faster than np.unique(np.concatenate(...)). Deduping after the union
+        # (or union1d on the raw arrays) yields no speedup.
+        unique_classes = np.union1d(true_classes, pred_classes)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
@@ -581,10 +651,12 @@ class RecallResult(MetricResult):
         recall_scores: the recall scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `recall_per_class`. Classes that
+            appear only in predictions (no ground-truth instances) are included;
+            their per-threshold recall values will be `0.0`.
         small_objects: the Recall metric results
             for small objects (area < 32²).
         medium_objects: the Recall metric results
