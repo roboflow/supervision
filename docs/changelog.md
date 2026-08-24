@@ -7,6 +7,10 @@ date_modified: 2026-08-11
 
 ### Unreleased <small>upcoming</small>
 
+### Added
+
+- `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
+
 ### Fixed
 
 - RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.
