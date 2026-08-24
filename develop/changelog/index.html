@@ -2936,6 +2936,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2958,7 +2969,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3486,6 +3497,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3508,7 +3530,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3976,6 +3998,10 @@
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sv.Detections</code> now validates <code>xyxy</code> boxes for finite numeric coordinates (no NaN/inf), raising a clear <code>ValueError</code> for non-finite or unsupported-dtype values instead of failing silently downstream.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
 <li>RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.</li>
@@ -3992,7 +4018,7 @@
 <p>With the upcoming <code>supervision-0.30.0</code> release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now <strong>3.10</strong>.</p>
 <p>Users on Python 3.9 should upgrade their environment before updating supervision.</p>
 </div>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><code>sv.load_image_from_url</code> — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (<code>{tmpdir}/supervision/image-url/</code> by default, configurable via <code>cache_dir</code>) (<a href="https://github.com/roboflow/supervision/pull/2372">#2372</a>)</p>
@@ -6176,7 +6202,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 22:32:16 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 10:13:55 UTC">August 24, 2026</span>
   </span>
 
     
@@ -6204,9 +6230,9 @@
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/AdvaitS" class="md-author" title="@AdvaitS">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/36281471?v=4&size=72" alt="AdvaitS">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6214,21 +6240,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/lawliet206" class="md-author" title="@lawliet206">
           
           <img src="https://avatars.githubusercontent.com/u/283920616?v=4&size=72" alt="lawliet206">
-        </a>
-      
-        <a href="https://github.com/tandede" class="md-author" title="@tandede">
-          
-          <img src="https://avatars.githubusercontent.com/u/127607634?v=4&size=72" alt="tandede">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +32
           </a>
         
       
