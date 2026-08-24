@@ -64,7 +64,7 @@ Then, run `git clone` to download the project code to your computer.
 You should also set up `roboflow/supervision` as an "upstream" remote (that is, tell git that the reference Supervision repository was the source of your fork of it):
 
 ```bash
-git remote add upstream https://github.com/roboflow/supervision.git
+git remote add -t develop upstream https://github.com/roboflow/supervision.git
 git fetch upstream
 ```
 
@@ -164,7 +164,7 @@ Before starting your work on the project, set up your development environment:
 2. **Set up the upstream remote:**
 
    ```bash
-   git remote add upstream https://github.com/roboflow/supervision.git
+   git remote add -t develop upstream https://github.com/roboflow/supervision.git
    git fetch upstream
    ```
 
