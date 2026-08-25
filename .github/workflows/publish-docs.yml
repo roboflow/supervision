@@ -62,7 +62,10 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if mike list | grep -Eq '^latest(\s|$)'; then mike delete latest; fi
+          # `latest` may exist as a real version or as an alias (e.g. `0.28.0 [latest]`),
+          # which the `mike list` grep cannot detect. Always delete it first, tolerating
+          # the "does not exist" error, so the deploy below can recreate it.
+          mike delete latest || true
           mike deploy --push latest
 
       - name: 🏷️ Determine release deployment metadata
