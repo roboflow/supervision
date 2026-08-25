@@ -2885,7 +2885,16 @@ class Detections:
                 box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
         """
-        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Integer width*height overflows for large boxes (e.g. int32
+            # 50000 x 50000 wraps negative); compute in float64 first so the
+            # area stays correct. Floating inputs already avoid this and keep
+            # their own dtype.
+            xyxy = xyxy.astype(np.float64)
+        widths = xyxy[:, 2] - xyxy[:, 0]
+        heights = xyxy[:, 3] - xyxy[:, 1]
+        return widths * heights
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:

@@ -2833,6 +2833,24 @@ class TestDetectionsArea:
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
 
+    @pytest.mark.parametrize(
+        ("dtype", "x_max", "y_max", "expected_area"),
+        [
+            pytest.param(np.int32, 50000, 50000, 2.5e9, id="int32"),
+            pytest.param(np.int16, 300, 300, 90000.0, id="int16"),
+            pytest.param(np.uint16, 300, 300, 90000.0, id="uint16"),
+            pytest.param(np.uint32, 70000, 70000, 4.9e9, id="uint32"),
+        ],
+    )
+    def test_box_area_does_not_overflow_integer_dtypes(
+        self, dtype: type, x_max: int, y_max: int, expected_area: float
+    ) -> None:
+        """Integer box area is computed in float64 so it cannot wrap negative."""
+        detections = Detections(xyxy=np.array([[0, 0, x_max, y_max]], dtype=dtype))
+
+        assert detections.box_area.dtype == np.float64
+        assert detections.box_area[0] == pytest.approx(expected_area)
+
 
 class TestDetectionsXyxyValidation:
     @pytest.mark.parametrize(
