@@ -2947,6 +2947,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#0301-aug-24-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.1 Aug 24, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2969,7 +3002,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -2980,7 +3013,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -3508,6 +3541,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#0301-aug-24-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.1 Aug 24, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3530,7 +3596,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Added
@@ -3541,7 +3607,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -4002,13 +4068,24 @@
 <ul>
 <li><code>sv.Detections</code> now validates <code>xyxy</code> boxes for finite numeric coordinates (no NaN/inf), raising a clear <code>ValueError</code> for non-finite or unsupported-dtype values instead of failing silently downstream.</li>
 </ul>
+<h3 id="0301-aug-24-2026">0.30.1 <small>Aug 24, 2026</small><a class="headerlink" href="#0301-aug-24-2026" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>RF-DETR example scripts (<code>rfdetr_example.py</code>) added to the <code>count_people_in_zone</code>, <code>heatmap_and_track</code>, <code>speed_estimation</code>, <code>tracking</code>, and <code>traffic_analysis</code> bundled examples (<a href="https://github.com/roboflow/supervision/pull/2497">#2497</a>).</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sv.box_iou</code> now raises <code>TypeError</code> for complex-valued box coordinates instead of silently discarding the imaginary part (<a href="https://github.com/roboflow/supervision/pull/2485">#2485</a>).</li>
+<li>Performance: <code>DetectionsSmoother.update_with_detections</code> now checks active tracker IDs via set membership instead of scanning per tracked object (<a href="https://github.com/roboflow/supervision/pull/2496">#2496</a>). No output changes.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
 <li>RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.</li>
-<li><code>sv.get_polygon_center</code> now calculates polygon centroids in translated <code>float64</code> coordinates, preventing integer overflow and precision loss for polygons with large coordinates.</li>
+<li><code>sv.get_polygon_center</code> now calculates polygon centroids in translated <code>float64</code> coordinates, preventing integer overflow and precision loss for realistic-magnitude large-coordinate polygons.</li>
 <li><code>sv.Detections.area</code> and <code>sv.oriented_box_iou_batch</code> now translate oriented-box coordinates to local origins before floating-point area/intersection math, preserving differences representable by the input dtype and preventing self-IoU collapse for large-coordinate inputs (e.g. geospatial or stitched frames).</li>
+<li><code>sv.Detections.with_nmm</code> now translates oriented-box corners to a local origin with exact integer arithmetic before merging, preventing unsigned-integer wrap-around (e.g. <code>uint16</code>/<code>uint64</code> coordinates) from corrupting both the merged extent and the winner's orientation angle.</li>
 <li><code>DetectionsSmoother</code> now keeps oriented-box corners aligned with smoothed <code>xyxy</code> geometry, including rotated tracks and mixed metadata windows.</li>
-<li><code>sv.box_iou</code> now calculates overlap in <code>float64</code>, preventing <code>int32</code> area overflow for large boxes. Its scalar result now matches <code>sv.box_iou_batch</code> for the same input.</li>
+<li><code>sv.box_iou</code> now calculates overlap in <code>float64</code>, preventing <code>int32</code> area overflow for large boxes. For realistic coordinate magnitudes (below 2^53), its scalar result now matches <code>sv.box_iou_batch</code>; <code>box_iou_batch</code> still casts to <code>float64</code> before subtracting, so the two can diverge above that threshold.</li>
 <li><code>sv.list_files_with_extensions</code> no longer includes directories when listing all files without an extension filter.</li>
 <li><code>sv.pillow_to_cv2</code> now accepts RGBA images when the cv2-free fallback backend is active, matching OpenCV by dropping alpha and returning BGR channels.</li>
 <li><code>import supervision</code> no longer loads PyAV's native libraries when the OpenCV backend is selected. PyAV is now imported lazily on first use by the PyAV-backed video/audio fallback, preventing a duplicate <code>libavdevice</code> warning (and possible crash) on macOS when both <code>av</code> and <code>opencv-python</code> are installed.</li>
@@ -4019,7 +4096,7 @@
 <p>With the upcoming <code>supervision-0.30.0</code> release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now <strong>3.10</strong>.</p>
 <p>Users on Python 3.9 should upgrade their environment before updating supervision.</p>
 </div>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><code>sv.load_image_from_url</code> — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (<code>{tmpdir}/supervision/image-url/</code> by default, configurable via <code>cache_dir</code>) (<a href="https://github.com/roboflow/supervision/pull/2372">#2372</a>)</p>
@@ -4100,7 +4177,7 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2284">#2284</a>: <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_createml"><code>DetectionDataset.from_createml</code></a> and <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_createml"><code>DetectionDataset.as_createml</code></a> add load and export support for the CreateML object-detection JSON format, alongside the existing COCO, YOLO, and Pascal VOC formats.</p>
 </li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p><strong>Breaking</strong>: <code>sv.JSONSink</code> now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as <code>"True"</code>/<code>"False"</code>, <code>"1"</code>/<code>"0.85"</code>, or <code>"400.0"</code> are now <code>true</code>/<code>false</code>, <code>1</code>/<code>0.85</code>, <code>400.0</code>. Downstream consumers that compare field values as strings (e.g. <code>row["score"] == "1"</code>) or use strict string-typed schema validators must be updated. <code>sv.CSVSink</code> remains textual, but its custom-data slicing now matches <code>sv.JSONSink</code>: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged (<a href="https://github.com/roboflow/supervision/pull/2400">#2400</a>).</p>
@@ -6203,7 +6280,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 11:18:08 UTC">August 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 24, 2026 20:01:18 UTC">August 24, 2026</span>
   </span>
 
     
@@ -6255,7 +6332,7 @@
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +32
+            +31
           </a>
         
       
