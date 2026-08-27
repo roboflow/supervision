@@ -239,6 +239,13 @@ def test_scale_boxes(
             np.array([[320.0, 240.0, 320.0, 240.0]]),
             DoesNotRaise(),
         ),  # zero-area box (point)
+        (
+            np.array([[101, 201, 301, 401]]),
+            (1280, 720),
+            1000.0,
+            np.array([[129.28, 144.72, 385.28, 288.72]]),
+            DoesNotRaise(),
+        ),  # integer input must not truncate fractional pixel coordinates
     ],
 )
 def test_denormalize_boxes(

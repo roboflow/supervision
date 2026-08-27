@@ -157,12 +157,16 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = cast(npt.NDArray[Any], xyxy.copy())
 
-    result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
-    result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
+    # Scale each column by width/height over the normalization factor. Multiplying
+    # by a float scale vector lets the result dtype follow the division, so an
+    # integer input array (e.g. VLM coordinates quantized to 0..1000) is not
+    # silently truncated the way writing the float result back into a copy of that
+    # integer array would be.
+    scale = np.array([width, height, width, height], dtype=np.float64)
+    scale /= normalization_factor
 
-    return cast(npt.NDArray[np.number], result)
+    return xyxy * scale
 
 
 def move_boxes(
