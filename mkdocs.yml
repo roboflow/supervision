@@ -64,6 +64,7 @@ nav:
           - Line Zone: detection/tools/line_zone.md
           - Polygon Zone: detection/tools/polygon_zone.md
           - Inference Slicer: detection/tools/inference_slicer.md
+          - Training Slicer: detection/tools/training_slicer.md
           - Detection Smoother: detection/tools/smoother.md
           - Save Detections: detection/tools/save_detections.md
       - Trackers: trackers.md
