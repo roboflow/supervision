@@ -139,6 +139,10 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
         ),  # negative coordinates
         (np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]])),  # zero width
         (np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]])),  # zero height
+        (
+            np.array([[50, 50, 21, 31]]),
+            np.array([[39.5, 34.5, 60.5, 65.5]]),
+        ),  # integer input, odd width/height -> fractional half must not truncate
         (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
     ],
 )

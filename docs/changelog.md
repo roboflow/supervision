@@ -13,6 +13,7 @@ date_modified: 2026-08-11
 
 ### Fixed
 
+- `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
 - Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
 
 ### 0.30.1 <small>Aug 24, 2026</small>
