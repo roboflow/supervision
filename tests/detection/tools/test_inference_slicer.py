@@ -716,3 +716,95 @@ class TestInferenceSlicerBatch:
 
         np.testing.assert_array_equal(detections.xyxy, original_xyxy)
         np.testing.assert_array_equal(moved.xyxy, np.array([[11.0, 22.0, 13.0, 24.0]]))
+
+
+class TestInferenceSlicerOrdering:
+    """Merged detections must follow source slice order, not thread completion order."""
+
+    GATE_TIMEOUT_SECONDS = 10.0
+
+    @staticmethod
+    def _striped_image(slice_count: int, slice_size: int = 64) -> np.ndarray:
+        """Build a single row of tiles, each stamped with its own slice index."""
+        image = np.zeros((slice_size, slice_size * slice_count, 3), dtype=np.uint8)
+        for index in range(slice_count):
+            image[:, index * slice_size : (index + 1) * slice_size, 0] = index
+        return image
+
+    @staticmethod
+    def _detections_for(index: int) -> Detections:
+        """Return one detection tagged with the index of the slice it came from."""
+        return Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            confidence=np.array([0.9]),
+            class_id=np.array([index]),
+        )
+
+    @pytest.mark.parametrize(
+        ("slice_count", "thread_workers"),
+        [
+            pytest.param(3, 4, id="3-slices-4-workers"),
+            pytest.param(5, 8, id="5-slices-8-workers"),
+        ],
+    )
+    def test_threaded_slices_merge_in_source_order(
+        self, slice_count: int, thread_workers: int
+    ) -> None:
+        """Slices completing out of order still merge in source order."""
+        release = threading.Event()
+
+        def callback(image_slice: np.ndarray) -> Detections:
+            """Hold every threaded slice until the final slice has finished."""
+            index = int(image_slice[0, 0, 0])
+            # Slice 0 runs synchronously before the pool starts, so it must never
+            # wait. The last slice releases the gate, forcing it to complete first.
+            if index == slice_count - 1:
+                release.set()
+            elif index > 0:
+                release.wait(timeout=self.GATE_TIMEOUT_SECONDS)
+            return self._detections_for(index)
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            thread_workers=thread_workers,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))
+
+    def test_threaded_batches_merge_in_source_order(self) -> None:
+        """Batches completing out of order still merge in source order."""
+        slice_count, batch_size = 6, 2
+        release = threading.Event()
+
+        def callback(tiles: list) -> list:
+            """Hold every threaded batch until the final batch has finished."""
+            first_index = int(tiles[0][0, 0, 0])
+            # The first batch runs synchronously, so batches starting below
+            # batch_size must never wait. The last batch releases the gate.
+            if first_index == slice_count - batch_size:
+                release.set()
+            elif first_index >= batch_size:
+                release.wait(timeout=self.GATE_TIMEOUT_SECONDS)
+            return [self._detections_for(int(tile[0, 0, 0])) for tile in tiles]
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))

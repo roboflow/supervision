@@ -14,6 +14,7 @@ date_modified: 2026-08-11
 ### Fixed
 
 - Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
+- `sv.InferenceSlicer` now merges slice results in source order when `thread_workers > 1`, restoring the ordering guarantee its docstring documents. Results were previously collected in thread-completion order, so the row order of the returned `Detections` — and, for tied confidences, which overlapping box survived `with_nms`/`with_nmm` — varied between runs on identical input. Both the per-slice and `batch_size > 1` paths are affected ([#2517](https://github.com/roboflow/supervision/pull/2517)).
 
 ### 0.30.1 <small>Aug 24, 2026</small>
 
