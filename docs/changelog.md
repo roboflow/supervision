@@ -9,6 +9,7 @@ date_modified: 2026-08-11
 
 ### Added
 
+- `sv.match_detections` primitive added to expose greedy highest-IoU-first one-to-one instance matching between two `sv.Detections` objects ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
 
 ### Fixed
