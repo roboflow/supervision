@@ -6,7 +6,8 @@ import numpy.typing as npt
 
 from supervision import Detections
 from supervision import _cv2 as cv2
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils.converters import polygon_to_mask, xyxy_to_polygons
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -130,6 +131,120 @@ class PolygonZone:
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
+
+    def get_occupancy(self, detections: Detections) -> float:
+        """
+        Calculate the fraction of the polygon zone occupied by detections.
+
+        Occupancy is measured as the union of detection pixels that overlap the
+        polygon zone divided by the polygon zone area. Segmentation masks are used
+        when detections include them; otherwise, axis-aligned detection boxes are
+        rasterized. Overlapping detections are counted once.
+
+        Args:
+            detections: The detections to measure against the polygon zone.
+
+        Returns:
+            A float in the range `[0.0, 1.0]` representing the occupied fraction
+                of the polygon zone.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> polygon = np.array([[0, 0], [9, 0], [9, 9], [0, 9]])
+            >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 4, 9]], dtype=np.float32)
+            ... )
+            >>> polygon_zone.get_occupancy(detections)
+            0.5
+
+            ```
+        """
+        zone_area = np.count_nonzero(self.mask)
+        if len(detections) == 0 or zone_area == 0:
+            return 0.0
+
+        occupied_mask = np.zeros_like(self.mask, dtype=bool)
+        if detections.mask is not None:
+            self._add_detection_masks_to_occupancy(occupied_mask, detections.mask)
+        else:
+            self._add_detection_boxes_to_occupancy(occupied_mask, detections.xyxy)
+
+        occupied_area = np.count_nonzero(occupied_mask & self.mask.astype(bool))
+        return float(occupied_area / zone_area)
+
+    def _add_detection_masks_to_occupancy(
+        self,
+        occupied_mask: npt.NDArray[np.bool_],
+        detection_masks: npt.NDArray[np.bool_] | CompactMask,
+    ) -> None:
+        if isinstance(detection_masks, CompactMask):
+            for mask_idx, (x_offset, y_offset) in enumerate(detection_masks.offsets):
+                self._paste_mask_crop(
+                    occupied_mask=occupied_mask,
+                    mask_crop=detection_masks.crop(mask_idx),
+                    offset=(int(x_offset), int(y_offset)),
+                )
+            return
+
+        masks = detection_masks
+        if masks.size == 0:
+            return
+
+        mask_h = min(occupied_mask.shape[0], masks.shape[1])
+        mask_w = min(occupied_mask.shape[1], masks.shape[2])
+        if mask_h <= 0 or mask_w <= 0:
+            return
+
+        occupied_mask[:mask_h, :mask_w] |= np.any(
+            masks[:, :mask_h, :mask_w].astype(bool, copy=False), axis=0
+        )
+
+    def _add_detection_boxes_to_occupancy(
+        self,
+        occupied_mask: npt.NDArray[np.bool_],
+        xyxy: npt.NDArray[np.number],
+    ) -> None:
+        polygons = xyxy_to_polygons(xyxy)
+        resolution_wh = (occupied_mask.shape[1], occupied_mask.shape[0])
+        for polygon in polygons:
+            occupied_mask |= polygon_to_mask(
+                polygon=polygon,
+                resolution_wh=resolution_wh,
+            ).astype(bool)
+
+    def _paste_mask_crop(
+        self,
+        occupied_mask: npt.NDArray[np.bool_],
+        mask_crop: npt.NDArray[np.bool_],
+        offset: tuple[int, int],
+    ) -> None:
+        x_offset, y_offset = offset
+        source_x_min = max(-x_offset, 0)
+        source_y_min = max(-y_offset, 0)
+        destination_x_min = max(x_offset, 0)
+        destination_y_min = max(y_offset, 0)
+
+        width = min(
+            mask_crop.shape[1] - source_x_min,
+            occupied_mask.shape[1] - destination_x_min,
+        )
+        height = min(
+            mask_crop.shape[0] - source_y_min,
+            occupied_mask.shape[0] - destination_y_min,
+        )
+        if width <= 0 or height <= 0:
+            return
+
+        occupied_mask[
+            destination_y_min : destination_y_min + height,
+            destination_x_min : destination_x_min + width,
+        ] |= mask_crop[
+            source_y_min : source_y_min + height,
+            source_x_min : source_x_min + width,
+        ]
 
 
 class PolygonZoneAnnotator:

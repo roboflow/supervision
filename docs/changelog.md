@@ -10,6 +10,7 @@ date_modified: 2026-08-11
 ### Added
 
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
+- `sv.PolygonZone.get_occupancy` estimates the fraction of a polygon zone covered by detections, using masks when available and rasterized boxes otherwise ([#1449](https://github.com/roboflow/supervision/issues/1449)).
 
 ### Fixed
 
