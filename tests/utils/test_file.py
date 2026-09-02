@@ -167,22 +167,25 @@ def test_read_txt_file(
 @pytest.mark.parametrize(
     ("filenames_to_create", "extension", "expected_names"),
     [
-        (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
-        (["image.JPG"], "jpg", {"image.JPG"}),
-        (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
-        (
+        pytest.param(
+            ["image.jpg", "image.png"], ".jpg", {"image.jpg"}, id="leading-dot"
+        ),
+        pytest.param(["image.JPG"], "jpg", {"image.JPG"}, id="case-insensitive"),
+        pytest.param(
+            ["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}, id="multi-part-full"
+        ),
+        pytest.param(
             ["archive.backup.tar.gz", "archive.backup.gz"],
             "tar.gz",
             {"archive.backup.tar.gz"},
+            id="multi-part-filename-tail",
         ),
-        (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
-    ],
-    ids=[
-        "leading_dot",
-        "case_insensitive",
-        "multi_part_full",
-        "multi_part_filename_tail",
-        "multi_part_suffix",
+        pytest.param(
+            ["archive.tar.gz", "data.gz"],
+            "gz",
+            {"archive.tar.gz", "data.gz"},
+            id="multi-part-suffix",
+        ),
     ],
 )
 def test_list_files_with_extensions_normalization(
