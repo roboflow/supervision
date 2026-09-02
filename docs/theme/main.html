@@ -11,6 +11,25 @@
 {{ super() }}
 {% endblock content %}
 
+{# Banner warning readers that they are on an archived version tree. Material renders
+   the aside server-side and unhides it client-side, so the text stays in the HTML for
+   crawlers and AI answer engines that never run JavaScript. Emitting it only when
+   mike is deploying something other than latest keeps that warning off /latest/ —
+   an empty block makes Material skip the aside entirely. #}
+{% block outdated %}
+{% set doc_version = config.extra.doc_version | d("", true) %}
+{% set latest_url = config.site_url | d('https://supervision.roboflow.com/latest/', true) %}
+{% if doc_version == "develop" %}
+You are reading documentation built from the development branch. It may describe APIs
+that are unreleased or still changing.
+<a href="{{ latest_url }}"><strong>Go to the latest release documentation.</strong></a>
+{% elif doc_version and doc_version != "latest" %}
+You are reading documentation for an older version of Supervision, kept online for
+reference. APIs described here may have changed or been removed.
+<a href="{{ latest_url }}"><strong>Go to the latest release documentation.</strong></a>
+{% endif %}
+{% endblock %}
+
 {% block extrahead %}
 {{ super() }}
 {% if page.meta is defined and page.meta is not none and page.meta is not undefined %}
@@ -58,7 +77,12 @@
   "codeRepository": "https://github.com/roboflow/supervision",
   "license": "https://github.com/roboflow/supervision/blob/develop/LICENSE.md",
   "description": "Open-source Python library for computer vision: load datasets, draw detections, count objects in zones, and track across frames.",
-  "offers": {
+  {% if config.extra.github_stars %}"interactionStatistic": {
+    "@type": "InteractionCounter",
+    "interactionType": "https://schema.org/LikeAction",
+    "userInteractionCount": {{ config.extra.github_stars | tojson }}
+  },
+  {% endif %}"offers": {
     "@type": "Offer",
     "price": "0",
     "priceCurrency": "USD"
