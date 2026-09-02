@@ -2851,6 +2851,57 @@ class TestDetectionsArea:
         assert detections.box_area.dtype == np.float64
         assert detections.box_area[0] == pytest.approx(expected_area)
 
+    @pytest.mark.parametrize(
+        ("dtype", "area_property"),
+        [
+            pytest.param(np.int64, "box_area", id="int64-box-area"),
+            pytest.param(np.int64, "area", id="int64-area"),
+            pytest.param(np.uint64, "box_area", id="uint64-box-area"),
+            pytest.param(np.uint64, "area", id="uint64-area"),
+        ],
+    )
+    def test_integer_area_preserves_large_coordinate_differences(
+        self, dtype: type, area_property: str
+    ) -> None:
+        """Integer AABB areas retain one-unit widths above float64 precision."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, 0, origin + 1, 1]], dtype=dtype)
+        )
+
+        area = getattr(detections, area_property)
+
+        assert area.dtype == np.float64
+        np.testing.assert_array_equal(area, [1.0])
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_min", "x_max"),
+        [
+            pytest.param(
+                np.int64,
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                id="int64-full-range",
+            ),
+            pytest.param(
+                np.uint64,
+                0,
+                np.iinfo(np.uint64).max,
+                id="uint64-full-range",
+            ),
+        ],
+    )
+    def test_integer_box_area_handles_full_coordinate_range(
+        self, dtype: type, x_min: int, x_max: int
+    ) -> None:
+        """Integer area handles coordinate differences spanning a dtype range."""
+        detections = Detections(xyxy=np.array([[x_min, 0, x_max, 1]], dtype=dtype))
+
+        expected = float(int(x_max) - int(x_min))
+
+        np.testing.assert_array_equal(detections.box_area, [expected])
+        np.testing.assert_array_equal(detections.area, [expected])
+
 
 class TestDetectionsXyxyValidation:
     @pytest.mark.parametrize(
