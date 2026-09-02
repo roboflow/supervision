@@ -1,0 +1,49 @@
+# Test the standalone helper scripts under .github/scripts.
+#
+# These scripts run inside other workflows and inside pre-commit, so a regression in one
+# of them surfaces as a confusing failure somewhere else. This job exercises them
+# directly: their unit tests plus the doctests embedded in their own docstrings.
+
+name: Test CI Scripts
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - ".github/scripts/**"
+      - "tests/github_scripts/**"
+      - ".github/workflows/ci-scripts.yml"
+  pull_request:
+    paths:
+      - ".github/scripts/**"
+      - "tests/github_scripts/**"
+      - ".github/workflows/ci-scripts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test CI scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🐍 Install uv and set Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.10"
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: uv sync --group dev
+
+      - name: 🧪 Run script tests and doctests
+        run: uv run pytest tests/github_scripts .github/scripts --doctest-modules -q
