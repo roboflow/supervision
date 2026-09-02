@@ -264,6 +264,32 @@ def test_denormalize_boxes(
         assert np.allclose(result, expected_result)
 
 
+def test_denormalize_boxes_preserves_float32_dtype() -> None:
+    """Retains float32 output for float32 normalized coordinates."""
+    xyxy = np.array([[0.1, 0.2, 0.5, 0.6]], dtype=np.float32)
+    expected_result = np.array([[128.0, 144.0, 640.0, 432.0]], dtype=np.float32)
+
+    result = denormalize_boxes(xyxy=xyxy, resolution_wh=(1280, 720))
+
+    assert result.dtype == np.float32
+    assert np.allclose(result, expected_result)
+
+
+def test_denormalize_boxes_promotes_integer_dtype() -> None:
+    """Promotes integer normalized coordinates to float64 output."""
+    xyxy = np.array([[101, 201, 301, 401]])
+    expected_result = np.array([[129.28, 144.72, 385.28, 288.72]])
+
+    result = denormalize_boxes(
+        xyxy=xyxy,
+        resolution_wh=(1280, 720),
+        normalization_factor=1000.0,
+    )
+
+    assert result.dtype == np.float64
+    assert np.allclose(result, expected_result)
+
+
 @pytest.mark.parametrize(
     ("corners", "expected"),
     [

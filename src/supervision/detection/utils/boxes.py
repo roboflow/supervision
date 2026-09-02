@@ -158,12 +158,12 @@ def denormalize_boxes(
     """
     width, height = resolution_wh
 
-    # Scale each column by width/height over the normalization factor. Multiplying
-    # by a float scale vector lets the result dtype follow the division, so an
-    # integer input array (e.g. VLM coordinates quantized to 0..1000) is not
-    # silently truncated the way writing the float result back into a copy of that
-    # integer array would be.
-    scale = np.array([width, height, width, height], dtype=np.float64)
+    # Preserve floating caller dtypes; integer inputs need float64 to retain
+    # fractional pixel coordinates rather than silently truncating them.
+    scale_dtype = (
+        xyxy.dtype if np.issubdtype(xyxy.dtype, np.inexact) else np.dtype(np.float64)
+    )
+    scale = np.array([width, height, width, height], dtype=scale_dtype)
     scale /= normalization_factor
 
     return xyxy * scale
