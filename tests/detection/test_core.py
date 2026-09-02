@@ -2833,6 +2833,75 @@ class TestDetectionsArea:
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
 
+    @pytest.mark.parametrize(
+        ("dtype", "x_max", "y_max", "expected_area"),
+        [
+            pytest.param(np.int32, 50000, 50000, 2.5e9, id="int32"),
+            pytest.param(np.int16, 300, 300, 90000.0, id="int16"),
+            pytest.param(np.uint16, 300, 300, 90000.0, id="uint16"),
+            pytest.param(np.uint32, 70000, 70000, 4.9e9, id="uint32"),
+        ],
+    )
+    def test_box_area_does_not_overflow_integer_dtypes(
+        self, dtype: type, x_max: int, y_max: int, expected_area: float
+    ) -> None:
+        """Integer box area is computed in float64 so it cannot wrap negative."""
+        detections = Detections(xyxy=np.array([[0, 0, x_max, y_max]], dtype=dtype))
+
+        assert detections.box_area.dtype == np.float64
+        assert detections.box_area[0] == pytest.approx(expected_area)
+
+    @pytest.mark.parametrize(
+        ("dtype", "area_property"),
+        [
+            pytest.param(np.int64, "box_area", id="int64-box-area"),
+            pytest.param(np.int64, "area", id="int64-area"),
+            pytest.param(np.uint64, "box_area", id="uint64-box-area"),
+            pytest.param(np.uint64, "area", id="uint64-area"),
+        ],
+    )
+    def test_integer_area_preserves_large_coordinate_differences(
+        self, dtype: type, area_property: str
+    ) -> None:
+        """Integer AABB areas retain one-unit widths above float64 precision."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, 0, origin + 1, 1]], dtype=dtype)
+        )
+
+        area = getattr(detections, area_property)
+
+        assert area.dtype == np.float64
+        np.testing.assert_array_equal(area, [1.0])
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_min", "x_max"),
+        [
+            pytest.param(
+                np.int64,
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                id="int64-full-range",
+            ),
+            pytest.param(
+                np.uint64,
+                0,
+                np.iinfo(np.uint64).max,
+                id="uint64-full-range",
+            ),
+        ],
+    )
+    def test_integer_box_area_handles_full_coordinate_range(
+        self, dtype: type, x_min: int, x_max: int
+    ) -> None:
+        """Integer area handles coordinate differences spanning a dtype range."""
+        detections = Detections(xyxy=np.array([[x_min, 0, x_max, 1]], dtype=dtype))
+
+        expected = float(int(x_max) - int(x_min))
+
+        np.testing.assert_array_equal(detections.box_area, [expected])
+        np.testing.assert_array_equal(detections.area, [expected])
+
 
 class TestDetectionsXyxyValidation:
     @pytest.mark.parametrize(
