@@ -1,0 +1,68 @@
+# One-shot backfill: point the canonical tag of already-published doc versions at /latest/.
+#
+# `canonical_version: latest` in mkdocs.yml only takes effect on builds made after it
+# landed. The version trees already on gh-pages were built with a self-referential
+# canonical and are never rebuilt — archived tags will not resolve against current
+# dependencies — so they keep competing with /latest/ in search and AI answer engines
+# until their published HTML is rewritten in place. This job does that rewrite.
+#
+# Manual trigger only. Safe to re-run: rewriting an already-correct file is a no-op.
+
+name: Backfill Docs Canonicals
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type BACKFILL to rewrite canonical tags on the gh-pages branch"
+        required: true
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: Backfill canonicals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 🔒 Check confirmation
+        run: |
+          if [[ "${{ inputs.confirm }}" != "BACKFILL" ]]; then
+            echo "::error::Confirmation input must be exactly 'BACKFILL'"
+            exit 1
+          fi
+
+      - name: 📥 Checkout gh-pages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+
+      - name: 🔗 Rewrite canonical tags
+        run: |
+          shopt -s nullglob
+          # Only the canonical link is rewritten. A blanket host+version substitution
+          # would also rewrite in-page links that are deliberately version-pinned.
+          for dir in develop [0-9]*; do
+            [[ -d "$dir" ]] || continue
+            find "$dir" -name '*.html' -print0 | xargs -0 --no-run-if-empty sed -i \
+              "s|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g"
+          done
+          git diff --stat | tail -5
+
+      - name: 📤 Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u
+          if git diff --cached --quiet; then
+            echo "canonicals already point at /latest/ — nothing to do"
+            exit 0
+          fi
+          git commit -m "chore(docs): canonicalise archived versions to /latest/"
+          git push origin gh-pages

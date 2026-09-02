@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Supervision documentation</title>
+    <!--
+      Site root. Replaces mike's generated redirect stub, which returns 200 with no
+      canonical and a 1-second meta refresh inside <noscript> — a dead end for crawlers
+      that never run JavaScript. GitHub Pages cannot serve a 301, so this page carries
+      the strongest static substitutes: a canonical pointing at /latest/ and a
+      zero-second refresh outside <noscript>. Deployed by publish-docs.yml.
+    -->
+    <link rel="canonical" href="https://supervision.roboflow.com/latest/" />
+    <meta http-equiv="refresh" content="0; url=latest/" />
+    <script>
+      window.location.replace(
+        "latest/" + window.location.search + window.location.hash
+      );
+    </script>
+  </head>
+  <body>
+    Redirecting to the
+    <a href="latest/">latest Supervision documentation</a>.
+  </body>
+</html>
