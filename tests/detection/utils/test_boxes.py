@@ -364,7 +364,10 @@ def test_oriented_box_anchors_axis_aligned_matches_envelope(
     assert np.allclose(result, [expected])
 
 
-@pytest.mark.parametrize("anchor", _ALL_ANCHORS, ids=lambda a: a.value.lower())
+@pytest.mark.parametrize(
+    "anchor",
+    [pytest.param(anchor, id=anchor.value.lower()) for anchor in _ALL_ANCHORS],
+)
 def test_oriented_box_anchors_are_rotation_covariant(anchor: Position) -> None:
     """Rotating the box rotates each anchor by the same angle about the center."""
     base = np.array([[[0, 0], [10, 0], [10, 4], [0, 4]]], dtype=np.float64)
@@ -419,7 +422,10 @@ def test_oriented_box_anchors_center_of_mass_unsupported() -> None:
         oriented_box_anchors(np.zeros((1, 4, 2)), Position.CENTER_OF_MASS)
 
 
-@pytest.mark.parametrize("anchor", _ALL_ANCHORS, ids=lambda a: a.value.lower())
+@pytest.mark.parametrize(
+    "anchor",
+    [pytest.param(anchor, id=anchor.value.lower()) for anchor in _ALL_ANCHORS],
+)
 def test_oriented_box_anchors_at_90_degrees_on_box(anchor: Position) -> None:
     """All anchors of a 90-deg-rotated box lie on the box (exercises is_width=False)."""
     base = np.array([[0, 0], [10, 0], [10, 4], [0, 4]], dtype=np.float64)

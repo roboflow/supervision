@@ -1194,19 +1194,21 @@ def test_merge_inner_detection_object_pair(
 @pytest.mark.parametrize(
     ("detections", "expected"),
     [
-        (
+        pytest.param(
             Detections.empty(),
             True,
-        ),  # canonical empty
-        (
+            id="canonical-empty",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]]),
                 class_id=np.array([1]),
                 confidence=np.array([0.9]),
             ),
             False,
-        ),  # non-empty, no tracker_id
-        (
+            id="non-empty-no-tracker",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1214,8 +1216,9 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with tracker_id — the regression case from #2195
-        (
+            id="filtered-empty-with-tracker-regression-2195",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1223,22 +1226,17 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([True, False])],
             False,
-        ),  # one detection remaining after filter
-        (
+            id="one-detection-after-filter",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 mask=np.zeros((2, 4, 4), dtype=bool),
                 class_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with mask — same bug could affect mask field
-    ],
-    ids=[
-        "canonical_empty",
-        "non_empty_no_tracker",
-        "filtered_empty_with_tracker",
-        "one_remaining_after_filter",
-        "filtered_empty_with_mask",
+            id="filtered-empty-with-mask",
+        ),
     ],
 )
 def test_is_empty(detections: Detections, expected: bool) -> None:

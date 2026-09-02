@@ -339,7 +339,7 @@ class TestDetectionsWithNms:
     def test_raises_when_confidence_missing(self): ...
 ```
 
-**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case — not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and survives reordering.
+**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use bare strings, numbers, booleans, and `None` values. Use `pytest.param(..., id="semantic-slug")` when a case passes a function, object, or compound setup; needs a per-case mark; or would otherwise produce an unclear or empty ID. Never use a parallel `ids=[...]` list: co-locate an explicit ID with its arguments so it survives reordering. Move a trailing comment that only names a case into that ID; retain comments only when they explain a non-obvious invariant.
 
 ```python
 @pytest.mark.parametrize(
