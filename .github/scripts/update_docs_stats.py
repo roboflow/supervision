@@ -1,10 +1,24 @@
-"""Keep the GitHub star figures quoted in the docs in sync with the live repository.
+"""Refresh the documented GitHub star-count phrase.
 
-The star count appears in prose on the docs landing page, in the three ``llms*.txt``
-files that AI crawlers read wholesale, and as a machine-readable ``InteractionCounter``
-in ``mkdocs.yml``. Those numbers are what AI answer engines quote, so a stale figure
-understates adoption for months. Run with ``--check`` in CI to detect drift, or without
-it to rewrite the files in place.
+Purpose:
+    Keep the single prose claim in ``docs/index.md`` aligned with the repository's
+    live GitHub stargazer count.
+Scope:
+    This module intentionally updates only files that contain its documented star
+    phrase. It does not edit LLM summaries or MkDocs configuration, which do not
+    currently carry that claim.
+Usage:
+    Run ``python .github/scripts/update_docs_stats.py`` to rewrite stale prose, or
+    add ``--check`` to detect drift without writing.
+Outputs:
+    The command prints changed targets and exits nonzero for stale content in check
+    mode. A missing required phrase raises ``ValueError`` instead of silently
+    reporting that the docs are current.
+Failure:
+    GitHub API failures propagate. A target missing its expected marker fails before
+    the module writes any file.
+Used by:
+    ``.github/workflows/ci-docs-stats.yml`` runs this utility monthly and manually.
 """
 
 from __future__ import annotations
@@ -20,17 +34,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STARS_API_URL = "https://api.github.com/repos/roboflow/supervision"
 
-# Prose files quote a rounded figure; mkdocs.yml carries the exact count for JSON-LD.
+# Each target must contain the prose marker below; absence is a contract failure.
 PROSE_FILES = (
     "docs/index.md",
-    "docs/llms.txt",
-    "docs/llms.full.txt",
-    "docs/llms-100k.txt",
 )
-MKDOCS_FILE = "mkdocs.yml"
 
 PROSE_PATTERN = re.compile(r"(?:nearly [\d,]+|[\d,]+\+) GitHub stars")
-MKDOCS_PATTERN = re.compile(r"^(\s*github_stars:\s*)(\d+)$", re.MULTILINE)
 
 # Below this distance from the next thousand, "nearly N" reads better than "N-1,000+"
 # and stays true for longer.
@@ -67,33 +76,25 @@ def rewrite_prose(text: str, phrase: str) -> str:
     return PROSE_PATTERN.sub(phrase, text)
 
 
-def rewrite_mkdocs(text: str, stars: int) -> str:
-    """Replace the exact ``github_stars`` value feeding the JSON-LD counter."""
-    return MKDOCS_PATTERN.sub(rf"\g<1>{stars}", text)
-
-
 def apply_updates(stars: int, *, check_only: bool) -> list[str]:
-    """Update every file quoting the star count; return the names that changed."""
+    """Update every contract target and return the names that changed.
+
+    Raises:
+        ValueError: If a configured target has no GitHub star-count phrase.
+    """
     phrase = format_star_phrase(stars)
     changed: list[str] = []
-    targets = [(name, rewrite_prose) for name in PROSE_FILES]
-    for name, rewrite in targets:
+    for name in PROSE_FILES:
         path = REPO_ROOT / name
         original = path.read_text(encoding="utf-8")
-        updated = rewrite(original, phrase)
+        if not PROSE_PATTERN.search(original):
+            raise ValueError(f"{name} is missing the required GitHub stars phrase")
+        updated = rewrite_prose(original, phrase)
         if updated == original:
             continue
         changed.append(name)
         if not check_only:
             path.write_text(updated, encoding="utf-8")
-
-    mkdocs_path = REPO_ROOT / MKDOCS_FILE
-    original = mkdocs_path.read_text(encoding="utf-8")
-    updated = rewrite_mkdocs(original, stars)
-    if updated != original:
-        changed.append(MKDOCS_FILE)
-        if not check_only:
-            mkdocs_path.write_text(updated, encoding="utf-8")
     return changed
 
 

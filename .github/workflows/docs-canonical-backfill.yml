@@ -51,7 +51,8 @@ jobs:
           for dir in develop [0-9]*; do
             [[ -d "$dir" ]] || continue
             find "$dir" -name '*.html' -print0 | xargs -0 --no-run-if-empty sed -i \
-              "s|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g"
+              -e "s|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g" \
+              -e "s|<link rel=\"canonical\" href=\"https://roboflow.github.io/supervision/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g"
           done
           git diff --stat | tail -5
 
