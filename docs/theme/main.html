@@ -38,6 +38,7 @@ reference. APIs described here may have changed or been removed.
 {% set _meta = {} %}
 {% endif %}
 {% set page_description = _meta.description | d(config.site_description) %}
+{% set docs_base_url = config.site_url | trim("/") %}
 {# ── GEO: JSON-LD + OG tags (page context required — skip for theme templates like 404) #}
 
 {# ── GEO: JSON-LD structured data ──────────────────────────── #}
@@ -103,7 +104,7 @@ reference. APIs described here may have changed or been removed.
   },
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "{{ config.site_url }}search/?q={search_term_string}",
+    "target": "{{ docs_base_url }}/search/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
 }

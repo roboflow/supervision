@@ -24,9 +24,9 @@ extra:
   version:
     provider: mike
     default: latest
-  # Machine-readable adoption signal rendered into the SoftwareApplication JSON-LD.
-  # Update this value when refreshing documentation adoption statistics.
-  github_stars: 49846
+  # Snapshot from the GitHub API's stargazers_count field on 2026-09-02.
+  # Refresh this value together with the rounded adoption claims in the docs.
+  github_stars: 49848
   # Version label mike is deploying, used to gate the outdated-version banner at build
   # time. Material renders that banner into every page and hides it with JavaScript, so
   # without this gate the "older version" warning would sit in the HTML of /latest/ too,
