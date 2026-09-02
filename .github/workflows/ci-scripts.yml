@@ -8,7 +8,7 @@ name: Test CI Scripts
 
 on:
   push:
-    branches: [develop]
+    branches: [main, develop]
     paths:
       - ".github/scripts/**"
       - "tests/github_scripts/**"
@@ -43,7 +43,7 @@ jobs:
           activate-environment: true
 
       - name: 🏗️ Install dependencies
-        run: uv sync --group dev
+        run: uv sync --frozen --group dev
 
       - name: 🧪 Run script tests and doctests
         run: uv run pytest tests/github_scripts .github/scripts --doctest-modules -q

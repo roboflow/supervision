@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import augment_links
 import pytest
-from augment_links import augment_links_in_file
 from check_doctest_fences import _check_content
 from verify_clean_wheel import _validate_manifest
 
@@ -40,16 +40,25 @@ class TestCheckContent:
 class TestAugmentLinksInFile:
     """Rewriting of relative markdown links to absolute GitHub URLs."""
 
-    def test_rewrites_a_link_to_an_existing_file(self, tmp_path: Path) -> None:
+    def test_rewrites_a_link_to_an_existing_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """A link resolving to a real path becomes a blob URL on the given branch."""
-        target = tmp_path / "LICENSE.md"
+        repo_root = tmp_path / "repo"
+        docs_dir = repo_root / "docs"
+        docs_dir.mkdir(parents=True)
+        target = repo_root / "LICENSE.md"
         target.write_text("MIT", encoding="utf-8")
-        page = tmp_path / "page.md"
-        page.write_text("see [license](LICENSE.md)", encoding="utf-8")
+        page = docs_dir / "page.md"
+        page.write_text("see [license](../LICENSE.md)", encoding="utf-8")
+        monkeypatch.setattr(augment_links, "get_repo_root", lambda: str(repo_root))
 
-        augment_links_in_file(str(page), branch="develop")
+        augment_links.augment_links_in_file(str(page), branch="develop")
 
-        assert "/blob/develop/" in page.read_text(encoding="utf-8")
+        assert (
+            page.read_text(encoding="utf-8")
+            == "see [license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md)"
+        )
 
     def test_leaves_absolute_urls_untouched(self, tmp_path: Path) -> None:
         """Links that already point at a host are passed through unchanged."""
@@ -57,7 +66,7 @@ class TestAugmentLinksInFile:
         original = "see [docs](https://supervision.roboflow.com/latest/)"
         page.write_text(original, encoding="utf-8")
 
-        augment_links_in_file(str(page), branch="develop")
+        augment_links.augment_links_in_file(str(page), branch="develop")
 
         assert page.read_text(encoding="utf-8") == original
 
@@ -67,13 +76,26 @@ class TestAugmentLinksInFile:
         original = "see [license](LICENSE.md)"
         script.write_text(original, encoding="utf-8")
 
-        augment_links_in_file(str(script), branch="develop")
+        augment_links.augment_links_in_file(str(script), branch="develop")
 
         assert script.read_text(encoding="utf-8") == original
 
 
 class TestValidateManifest:
     """Guard on the wheel smoke-test manifest."""
+
+    def test_accepts_the_checked_in_manifest(self) -> None:
+        """The production fallback contract contains every required check exactly once.
+
+        This pins the happy path alongside the invalid-manifest guard.
+        """
+        manifest = (
+            Path(__file__).resolve().parents[1]
+            / "cv2"
+            / "installed_wheel_fallback_manifest.txt"
+        )
+
+        assert _validate_manifest(manifest) is None
 
     def test_rejects_an_incomplete_manifest(self, tmp_path: Path) -> None:
         """A manifest missing expected checks is a hard error, not a silent pass."""
