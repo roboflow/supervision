@@ -1,5 +1,8 @@
 import threading
 import warnings
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any
 
 import numpy as np
 import pytest
@@ -716,3 +719,151 @@ class TestInferenceSlicerBatch:
 
         np.testing.assert_array_equal(detections.xyxy, original_xyxy)
         np.testing.assert_array_equal(moved.xyxy, np.array([[11.0, 22.0, 13.0, 24.0]]))
+
+
+class TestInferenceSlicerOrdering:
+    """Merged detections must follow source slice order, not thread completion order."""
+
+    GATE_TIMEOUT_SECONDS = 10.0
+
+    @staticmethod
+    def _striped_image(slice_count: int, slice_size: int = 64) -> np.ndarray:
+        """Build a single row of tiles, each stamped with its own slice index."""
+        image = np.zeros((slice_size, slice_size * slice_count, 3), dtype=np.uint8)
+        for index in range(slice_count):
+            image[:, index * slice_size : (index + 1) * slice_size, 0] = index
+        return image
+
+    @staticmethod
+    def _detections_for(index: int) -> Detections:
+        """Return one detection tagged with the index of the slice it came from."""
+        return Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            confidence=np.array([0.9]),
+            class_id=np.array([index]),
+        )
+
+    @staticmethod
+    def _install_reverse_completion_gate(
+        monkeypatch: pytest.MonkeyPatch, submitted_source_indices: list[int]
+    ) -> tuple[list[int], dict[int, threading.Event]]:
+        """Gate callbacks so each source predecessor follows a completed Future."""
+        completion_order: list[int] = []
+        release_events = {
+            source_index: threading.Event() for source_index in submitted_source_indices
+        }
+        predecessor_by_index = dict(
+            zip(submitted_source_indices[1:], submitted_source_indices)
+        )
+
+        class CompletionAcknowledgingExecutor(ThreadPoolExecutor):
+            """Release a preceding callback only after this Future is complete."""
+
+            def submit(
+                self,
+                fn: Callable[..., Any],
+                /,
+                *args: Any,
+                **kwargs: Any,
+            ) -> Future[Any]:
+                """Attach a post-completion release callback to each submitted task."""
+                future = super().submit(fn, *args, **kwargs)
+                offsets = np.asarray(args[-1])
+                source_index = int(offsets.flat[0] // 64)
+
+                def release_predecessor(_: Future[Any]) -> None:
+                    """Release the preceding source task after this Future completes."""
+                    predecessor = predecessor_by_index.get(source_index)
+                    if predecessor is not None:
+                        release_events[predecessor].set()
+
+                future.add_done_callback(release_predecessor)
+                return future
+
+        monkeypatch.setattr(
+            "supervision.detection.tools.inference_slicer.ThreadPoolExecutor",
+            CompletionAcknowledgingExecutor,
+        )
+        return completion_order, release_events
+
+    @pytest.mark.parametrize(
+        ("slice_count", "thread_workers"),
+        [
+            pytest.param(3, 4, id="3-slices-4-workers"),
+            pytest.param(5, 8, id="5-slices-8-workers"),
+        ],
+    )
+    def test_threaded_slices_merge_in_source_order(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        slice_count: int,
+        thread_workers: int,
+    ) -> None:
+        """Slices completing out of order still merge in source order."""
+        completion_order, release_events = self._install_reverse_completion_gate(
+            monkeypatch=monkeypatch,
+            submitted_source_indices=list(range(1, slice_count)),
+        )
+
+        def callback(image_slice: np.ndarray) -> Detections:
+            """Wait until the succeeding slice Future has completed."""
+            index = int(image_slice[0, 0, 0])
+            if index == slice_count - 1:
+                completion_order.append(index)
+            elif index > 0:
+                assert release_events[index].wait(timeout=self.GATE_TIMEOUT_SECONDS)
+                completion_order.append(index)
+            return self._detections_for(index)
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            thread_workers=thread_workers,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert completion_order == list(range(slice_count - 1, 0, -1))
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))
+
+    def test_threaded_batches_merge_in_source_order(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Batches completing out of order still merge in source order."""
+        slice_count, batch_size = 6, 2
+        completion_order, release_events = self._install_reverse_completion_gate(
+            monkeypatch=monkeypatch,
+            submitted_source_indices=list(range(batch_size, slice_count, batch_size)),
+        )
+
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Wait until the succeeding batch Future has completed."""
+            first_index = int(tiles[0][0, 0, 0])
+            if first_index == slice_count - batch_size:
+                completion_order.append(first_index)
+            elif first_index >= batch_size:
+                assert release_events[first_index].wait(
+                    timeout=self.GATE_TIMEOUT_SECONDS
+                )
+                completion_order.append(first_index)
+            return [self._detections_for(int(tile[0, 0, 0])) for tile in tiles]
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert completion_order == list(range(slice_count - batch_size, 0, -batch_size))
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))
