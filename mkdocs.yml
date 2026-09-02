@@ -23,6 +23,15 @@ extra:
     property: G-SEKT4K1EWR
   version:
     provider: mike
+    default: latest
+  # Snapshot from the GitHub API's stargazers_count field on 2026-09-02.
+  # Refresh this value together with the rounded adoption claims in the docs.
+  github_stars: 49848
+  # Version label mike is deploying, used to gate the outdated-version banner at build
+  # time. Material renders that banner into every page and hides it with JavaScript, so
+  # without this gate the "older version" warning would sit in the HTML of /latest/ too,
+  # where crawlers and AI answer engines read it as page text.
+  doc_version: !ENV [MIKE_DOCS_VERSION, ""]
 
 extra_css:
   - stylesheets/extra.css
@@ -129,6 +138,12 @@ theme:
     code: IBM Plex Mono
 
 plugins:
+  # mike is auto-injected when deploying, but must be declared explicitly to set
+  # canonical_version: it rewrites site_url to the /latest/ tree for every version
+  # build, so archived versions point their canonical, og:url, and JSON-LD urls at
+  # /latest/ instead of competing with it in search and AI answer engines.
+  - mike:
+      canonical_version: latest
   - search
   - mkdocs-jupyter:
       kernel_name: python3
