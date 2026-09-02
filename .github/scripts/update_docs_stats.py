@@ -35,9 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 STARS_API_URL = "https://api.github.com/repos/roboflow/supervision"
 
 # Each target must contain the prose marker below; absence is a contract failure.
-PROSE_FILES = (
-    "docs/index.md",
-)
+PROSE_FILES = ("docs/index.md",)
 
 PROSE_PATTERN = re.compile(r"(?:nearly [\d,]+|[\d,]+\+) GitHub stars")
 

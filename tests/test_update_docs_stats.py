@@ -8,7 +8,6 @@ from types import ModuleType
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / ".github/scripts/update_docs_stats.py"
 WORKFLOW_PATH = REPO_ROOT / ".github/workflows/ci-docs-stats.yml"
@@ -56,7 +55,10 @@ def test_apply_updates_rewrites_only_the_documented_target(tmp_path: Path) -> No
     changed = updater.apply_updates(39_750, check_only=False)
 
     assert changed == ["docs/index.md"]
-    assert index.read_text(encoding="utf-8") == "Supervision has nearly 40,000 GitHub stars.\n"
+    assert (
+        index.read_text(encoding="utf-8")
+        == "Supervision has nearly 40,000 GitHub stars.\n"
+    )
     assert llms.read_text(encoding="utf-8") == "No star count is advertised here.\n"
 
 
@@ -76,7 +78,9 @@ def test_apply_updates_check_mode_reports_drift_without_writing(tmp_path: Path) 
     assert index.read_text(encoding="utf-8") == original
 
 
-def test_apply_updates_rejects_a_target_without_its_required_marker(tmp_path: Path) -> None:
+def test_apply_updates_rejects_a_target_without_its_required_marker(
+    tmp_path: Path,
+) -> None:
     """Fail instead of silently treating a broken updater target as current."""
     updater = load_updater()
     docs = tmp_path / "docs"

@@ -5,8 +5,8 @@ import tempfile
 import textwrap
 from pathlib import Path
 
-import yaml
 import pytest
+import yaml
 from mike.mkdocs_utils import load_config
 
 REPO_ROOT = Path(__file__).parents[1]
@@ -67,9 +67,7 @@ def test_backfill_rewrites_both_hosts_but_not_version_links() -> None:
         portable_step = portable_step.replace(" --no-run-if-empty", "")
         subprocess.run(["/bin/bash", "-c", portable_step], cwd=root, check=True)
 
-        assert (
-            'href="https://supervision.roboflow.com/latest/"' in page.read_text()
-        )
+        assert 'href="https://supervision.roboflow.com/latest/"' in page.read_text()
         assert (
             'href="https://roboflow.github.io/supervision/0.10.0/reference/"'
             in page.read_text()
