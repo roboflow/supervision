@@ -239,6 +239,13 @@ def test_scale_boxes(
             np.array([[320.0, 240.0, 320.0, 240.0]]),
             DoesNotRaise(),
         ),  # zero-area box (point)
+        (
+            np.array([[101, 201, 301, 401]]),
+            (1280, 720),
+            1000.0,
+            np.array([[129.28, 144.72, 385.28, 288.72]]),
+            DoesNotRaise(),
+        ),  # integer input must not truncate fractional pixel coordinates
     ],
 )
 def test_denormalize_boxes(
@@ -255,6 +262,46 @@ def test_denormalize_boxes(
             normalization_factor=normalization_factor,
         )
         assert np.allclose(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    (
+        "xyxy",
+        "normalization_factor",
+        "expected_result",
+    ),
+    [
+        pytest.param(
+            np.array([[0.1, 0.2, 0.5, 0.6]], dtype=np.float32),
+            1.0,
+            np.array([[128.0, 144.0, 640.0, 432.0]], dtype=np.float32),
+            id="preserves-float32",
+        ),
+        pytest.param(
+            np.array([[101, 201, 301, 401]]),
+            1000.0,
+            np.array([[129.28, 144.72, 385.28, 288.72]]),
+            id="promotes-integer-to-float64",
+        ),
+    ],
+)
+def test_denormalize_boxes_returns_expected_dtype(
+    xyxy: np.ndarray,
+    normalization_factor: float,
+    expected_result: np.ndarray,
+) -> None:
+    """Returns the specified coordinates and dtype for each input contract."""
+    resolution_wh = (1280, 720)
+    expected_dtype = xyxy.dtype if np.issubdtype(xyxy.dtype, np.inexact) else np.float64
+
+    result = denormalize_boxes(
+        xyxy=xyxy,
+        resolution_wh=resolution_wh,
+        normalization_factor=normalization_factor,
+    )
+
+    assert result.dtype == expected_dtype
+    assert np.allclose(result, expected_result)
 
 
 @pytest.mark.parametrize(
