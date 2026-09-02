@@ -54,7 +54,7 @@ class TestGetTextSize:
     """Text-metric contract of the Pillow fallback getTextSize."""
 
     @pytest.mark.parametrize("font_face", FONT_FACES)
-    @pytest.mark.parametrize("italic", [False, True], ids=["regular", "italic"])
+    @pytest.mark.parametrize("italic", [False, True])
     def test_returns_positive_metrics_for_every_face(
         self, font_face: int, italic: bool
     ) -> None:
@@ -100,7 +100,7 @@ class TestPutText:
     """Rendering behavior of the Pillow fallback putText."""
 
     @pytest.mark.parametrize("font_face", FONT_FACES)
-    @pytest.mark.parametrize("italic", [False, True], ids=["regular", "italic"])
+    @pytest.mark.parametrize("italic", [False, True])
     def test_renders_every_font_face_in_place(
         self, font_face: int, italic: bool
     ) -> None:
