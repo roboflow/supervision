@@ -7,6 +7,13 @@ date_modified: 2026-08-11
 
 ### Unreleased <small>upcoming</small>
 
+### Added
+
+### Fixed
+
+- `sv.Detections.box_area` (and therefore `sv.Detections.area` for axis-aligned boxes) now computes integer-coordinate box areas in `float64`, preventing integer overflow for large boxes (e.g. an `int32` `50000 x 50000` box previously wrapped to a negative area).
+- Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
+
 ### 0.30.1 <small>Aug 24, 2026</small>
 
 ### Added
