@@ -48,7 +48,7 @@ With Supervision you can annotate images and video with bounding boxes, masks, a
     annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections)
     ```
 
-Supervision is MIT licensed, has nearly 50,000 [GitHub stars](https://github.com/roboflow/supervision/stargazers), and over 1 million [monthly PyPI downloads](https://pypistats.org/packages/supervision). It is developed in public on GitHub for production computer vision workflows.
+Supervision is MIT licensed, has nearly 50,000 GitHub stars, and over 1 million [monthly PyPI downloads](https://pypistats.org/packages/supervision). It is developed in public on GitHub for production computer vision workflows.
 
 ## 👋 Hello
 
