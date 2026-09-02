@@ -25,7 +25,7 @@ extra:
     provider: mike
     default: latest
   # Machine-readable adoption signal rendered into the SoftwareApplication JSON-LD.
-  # Refreshed by the scheduled docs-stats workflow — do not hand-edit.
+  # Update this value when refreshing documentation adoption statistics.
   github_stars: 49846
   # Version label mike is deploying, used to gate the outdated-version banner at build
   # time. Material renders that banner into every page and hides it with JavaScript, so
