@@ -1,15 +1,10 @@
 # Polygon Zone Occupancy Image Example
 
-This example loads an image, detects objects with YOLO, and uses
-`PolygonZone.get_occupancy` to calculate how much of a zone is covered by those
-detections.
+This example loads an image, detects objects with YOLO, and uses `PolygonZone.get_occupancy` to calculate how much of a zone is covered by those detections.
 
-By default, the zone is the full image. You can also pass a rectangle or polygon
-zone from PowerShell.
+By default, the zone is the full image. You can also pass a rectangle or polygon zone from PowerShell.
 
-For random images, the most reliable option is `--interactive`: you choose the
-image, draw the zone, draw object boxes, and the script calculates occupancy
-without hard-coded coordinates.
+For random images, the most reliable option is `--interactive`: you choose the image, draw the zone, draw object boxes, and the script calculates occupancy without hard-coded coordinates.
 
 ## One-Time Detector Setup
 
@@ -45,8 +40,7 @@ You can also pass the image path without `--image-path`:
 .\.venv\Scripts\python.exe examples\polygon_zone_occupancy\image_example.py "C:\path\to\your\image.jpg"
 ```
 
-If YOLO does not detect anything, the script opens the drawing tool so you can
-select the zone and object boxes yourself.
+If YOLO does not detect anything, the script opens the drawing tool so you can select the zone and object boxes yourself.
 
 ## Option 3: Ask for the File Path
 
@@ -127,9 +121,7 @@ If you do not want to run YOLO, you can pass boxes manually:
 
 ## Automatic Detection Limits
 
-YOLO can detect common objects in many normal images, but it may miss unusual
-camera angles, such as overhead parking-lot cars. If automatic detection returns
-zero objects, this script falls back to `--interactive` automatically.
+YOLO can detect common objects in many normal images, but it may miss unusual camera angles, such as overhead parking-lot cars. If automatic detection returns zero objects, this script falls back to `--interactive` automatically.
 
 To keep the script from opening the drawing tool after zero detections:
 
