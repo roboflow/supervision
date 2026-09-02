@@ -41,40 +41,62 @@ def test_format_star_phrase_uses_documented_rounding(stars: int, expected: str) 
     assert actual == expected
 
 
-def test_apply_updates_rewrites_only_the_documented_target(tmp_path: Path) -> None:
-    """Update the marker-bearing landing page without touching unrelated files."""
-    updater = load_updater()
+def _seed_targets(tmp_path: Path, phrase: str = "38,000+ GitHub stars") -> Path:
+    """Write every contract target under a temporary root and return that root."""
     docs = tmp_path / "docs"
     docs.mkdir()
-    index = docs / "index.md"
-    index.write_text("Supervision has 38,000+ GitHub stars.\n", encoding="utf-8")
-    llms = docs / "llms.txt"
-    llms.write_text("No star count is advertised here.\n", encoding="utf-8")
-    updater.REPO_ROOT = tmp_path
+    for name in ("index.md", "llms.txt", "llms.full.txt", "llms-100k.txt"):
+        (docs / name).write_text(f"Supervision has {phrase}.\n", encoding="utf-8")
+    (tmp_path / "mkdocs.yml").write_text(
+        "extra:\n  github_stars: 38000\n", encoding="utf-8"
+    )
+    return tmp_path
+
+
+def test_apply_updates_rewrites_every_documented_target(tmp_path: Path) -> None:
+    """Refresh the landing page, all three LLM summaries, and the JSON-LD counter."""
+    updater = load_updater()
+    updater.REPO_ROOT = _seed_targets(tmp_path)
 
     changed = updater.apply_updates(39_750, check_only=False)
 
-    assert changed == ["docs/index.md"]
-    assert (
-        index.read_text(encoding="utf-8")
-        == "Supervision has nearly 40,000 GitHub stars.\n"
+    assert changed == [
+        "docs/index.md",
+        "docs/llms.txt",
+        "docs/llms.full.txt",
+        "docs/llms-100k.txt",
+        "mkdocs.yml",
+    ]
+    assert (tmp_path / "docs/llms.txt").read_text(
+        encoding="utf-8"
+    ) == "Supervision has nearly 40,000 GitHub stars.\n"
+    assert (tmp_path / "mkdocs.yml").read_text(encoding="utf-8") == (
+        "extra:\n  github_stars: 39750\n"
     )
-    assert llms.read_text(encoding="utf-8") == "No star count is advertised here.\n"
+
+
+def test_apply_updates_rejects_mkdocs_without_its_counter_value(
+    tmp_path: Path,
+) -> None:
+    """A config that dropped github_stars fails rather than leaving JSON-LD stale."""
+    updater = load_updater()
+    updater.REPO_ROOT = _seed_targets(tmp_path)
+    (tmp_path / "mkdocs.yml").write_text("extra:\n  version: {}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"mkdocs\.yml is missing"):
+        updater.apply_updates(39_750, check_only=False)
 
 
 def test_apply_updates_check_mode_reports_drift_without_writing(tmp_path: Path) -> None:
     """Report an outdated marker while preserving the source in check-only mode."""
     updater = load_updater()
-    docs = tmp_path / "docs"
-    docs.mkdir()
-    index = docs / "index.md"
-    original = "Supervision has 38,000+ GitHub stars.\n"
-    index.write_text(original, encoding="utf-8")
-    updater.REPO_ROOT = tmp_path
+    updater.REPO_ROOT = _seed_targets(tmp_path)
+    index = tmp_path / "docs/index.md"
+    original = index.read_text(encoding="utf-8")
 
     changed = updater.apply_updates(39_750, check_only=True)
 
-    assert changed == ["docs/index.md"]
+    assert "docs/index.md" in changed
     assert index.read_text(encoding="utf-8") == original
 
 
@@ -83,13 +105,12 @@ def test_apply_updates_rejects_a_target_without_its_required_marker(
 ) -> None:
     """Fail instead of silently treating a broken updater target as current."""
     updater = load_updater()
-    docs = tmp_path / "docs"
-    docs.mkdir()
-    index = docs / "index.md"
-    index.write_text("Supervision documentation.\n", encoding="utf-8")
-    updater.REPO_ROOT = tmp_path
+    updater.REPO_ROOT = _seed_targets(tmp_path)
+    (tmp_path / "docs/index.md").write_text(
+        "Supervision documentation.\n", encoding="utf-8"
+    )
 
-    with pytest.raises(ValueError, match="docs/index.md is missing"):
+    with pytest.raises(ValueError, match=r"docs/index\.md is missing"):
         updater.apply_updates(39_750, check_only=False)
 
 
@@ -101,9 +122,22 @@ def test_workflow_tracks_existing_monthly_branch_before_using_its_lease() -> Non
     fetch = 'git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"'
     switch = 'git switch --create "$BRANCH" --track "origin/$BRANCH"'
     apply = "python .github/scripts/update_docs_stats.py"
-    lease = '--force-with-lease="refs/heads/$BRANCH:$(git rev-parse "refs/remotes/origin/$BRANCH")"'
+    lease = (
+        '--force-with-lease="refs/heads/$BRANCH:'
+        '$(git rev-parse "refs/remotes/origin/$BRANCH")"'
+    )
 
     assert workflow.index(probe) < workflow.index(fetch) < workflow.index(switch)
     assert workflow.index(switch) < workflow.index(apply)
     assert workflow.index(fetch) < workflow.index(lease)
     assert 'git switch --create "$BRANCH"' in workflow
+
+
+def test_rewrite_prose_preserves_a_linked_star_label(tmp_path: Path) -> None:
+    """The LLM summaries link the label, so only the count may be rewritten."""
+    updater = load_updater()
+    original = "It has nearly 50,000 [GitHub stars](https://example.com) today."
+
+    actual = updater.rewrite_prose(original, "51,000+ GitHub stars")
+
+    assert actual == "It has 51,000+ [GitHub stars](https://example.com) today."

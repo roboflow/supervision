@@ -74,7 +74,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="${{ steps.branch.outputs.name }}"
-          git add docs/index.md
+          git add docs/index.md docs/llms.txt docs/llms.full.txt docs/llms-100k.txt mkdocs.yml
           git commit -m "docs: refresh quoted GitHub star count"
           if git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH"; then
             git push --force-with-lease="refs/heads/$BRANCH:$(git rev-parse "refs/remotes/origin/$BRANCH")" \
