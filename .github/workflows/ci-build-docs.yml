@@ -33,5 +33,11 @@ jobs:
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group docs
 
+      # TODO
+      #- name: 🧪 Test versioned docs theme
+      #  env:
+      #    JUPYTER_PLATFORM_DIRS: "1"
+      #  run: uv run pytest -q tests/test_docs_theme.py
+
       - name: 🧪 Test Docs Build
         run: mkdocs build --verbose
