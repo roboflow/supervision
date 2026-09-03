@@ -2,22 +2,27 @@
 
 Purpose:
     Populate the empty ``data-md-component="outdated"`` banner div that archived
-    version trees already carry, so readers of old docs see the same warning
-    ``docs/theme/main.html`` renders for trees built after 403f35a1.
+    version trees already carry, and give it the same purple/centered/sticky styling
+    ``docs/stylesheets/extra.css`` gives it, so readers of old docs see the same
+    warning ``docs/theme/main.html`` renders for trees built after 403f35a1 — not
+    Material's default yellow, left-aligned, non-sticky banner.
 Scope:
     ``mike`` never rebuilds an archived version tree, and the pinned dependencies a
     given tag was built with may not resolve today, so regenerating those trees is
     not an option (see ``.github/workflows/docs-canonical-backfill.yml``). This patches
-    the static HTML directly instead, the same way that workflow's canonical-tag
-    rewrite does. Only ``develop`` and numeric version directories are touched,
-    matching the set the canonical rewrite processes; ``latest`` already carries the
-    banner markup from its own build and is left alone.
+    the static HTML and CSS directly instead, the same way that workflow's
+    canonical-tag rewrite patches HTML. The banner div is patched under ``develop``
+    too (harmless no-op once that tree carries a real build); the styling is only
+    patched under numeric version directories, since each ships its own frozen
+    ``stylesheets/extra.css`` while ``develop`` rebuilds on every push and already
+    carries the current rules natively. ``latest`` is never touched.
 Usage:
     Run ``python .github/scripts/inject_outdated_banner.py <gh-pages checkout root>``.
-    Safe to re-run: a previously injected banner is replaced (so wording/style edits
-    reach already-patched pages too), a page not carrying our marker is left alone.
+    Safe to re-run: previously injected content is replaced in place (so wording or
+    style edits reach already-patched pages too), and anything not carrying our
+    marker — including a genuine future rebuild — is left alone.
 Outputs:
-    Prints the number of pages patched and exits 0. Exits nonzero only on an
+    Prints how many files were patched and exits 0. Exits nonzero only on an
     unexpected filesystem error; finding nothing to patch is not a failure.
 Used by:
     ``.github/workflows/docs-canonical-backfill.yml``.
@@ -83,13 +88,62 @@ def _aside(text: str) -> str:
     )
 
 
+# Same replace-on-rerun marker scheme as the HTML banner, so a later styling edit
+# reaches an already-patched stylesheet too, without stacking a second copy.
+_CSS_MARKER_START = "/* sv:outdated-banner:start */"
+_CSS_MARKER_END = "/* sv:outdated-banner:end */"
+CSS_BLOCK_RE = re.compile(
+    re.escape(_CSS_MARKER_START) + r".*?" + re.escape(_CSS_MARKER_END), re.DOTALL
+)
+
+# Verbatim copy of the "Version banner" section of docs/stylesheets/extra.css: the
+# purple tint, centered text, and sticky positioning archived pages never got built
+# with. Hardcoded rather than read from that file at run time, the same tradeoff as
+# DEVELOP_TEXT/ARCHIVED_TEXT above — keep in sync if that section changes.
+BANNER_CSS = """.md-banner,
+.md-banner--warning {
+  background-color: rgb(243, 238, 255);
+  color: rgb(29, 29, 31);
+  border-bottom: 1px solid rgb(229, 231, 235);
+}
+
+.md-banner__inner {
+  max-width: 1600px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+[data-md-component="outdated"] {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.md-banner code {
+  background: white;
+  color: var(--md-primary-fg-color);
+}
+
+.md-banner a,
+.md-banner a:focus,
+.md-banner a:hover {
+  color: var(--md-primary-fg-color);
+  text-decoration: underline;
+}"""
+
+
+def _archived_version_dirs(root: Path) -> list[Path]:
+    """Return numeric version directories under `root`, sorted."""
+    return sorted(d for d in root.iterdir() if d.is_dir() and d.name[:1].isdigit())
+
+
 def _version_dirs(root: Path) -> list[Path]:
-    """Return the `develop` and numeric version directories under `root`, sorted."""
-    return sorted(
-        d
-        for d in root.iterdir()
-        if d.is_dir() and (d.name == "develop" or d.name[:1].isdigit())
-    )
+    """Return `develop` plus numeric version directories under `root`, sorted."""
+    dirs = _archived_version_dirs(root)
+    develop = root / "develop"
+    if develop.is_dir():
+        dirs = sorted([*dirs, develop])
+    return dirs
 
 
 def patch_tree(root: Path) -> list[Path]:
@@ -112,11 +166,37 @@ def patch_tree(root: Path) -> list[Path]:
     return changed
 
 
+def patch_stylesheets(root: Path) -> list[Path]:
+    """Give the banner its purple/centered/sticky styling in each archived extra.css.
+
+    Returns the stylesheets that were changed, for the caller to report against.
+    """
+    changed: list[Path] = []
+    block = f"{_CSS_MARKER_START}\n{BANNER_CSS}\n{_CSS_MARKER_END}"
+    for version_dir in _archived_version_dirs(root):
+        css_file = version_dir / "stylesheets" / "extra.css"
+        if not css_file.is_file():
+            continue
+        original = css_file.read_text(encoding="utf-8")
+        if _CSS_MARKER_START in original:
+            patched = CSS_BLOCK_RE.sub(lambda _m: block, original)
+        else:
+            patched = f"{original.rstrip()}\n\n{block}\n"
+        if patched != original:
+            css_file.write_text(patched, encoding="utf-8")
+            changed.append(css_file)
+    return changed
+
+
 def main() -> int:
-    """Entry point: patch the tree at `root` and report how many pages changed."""
+    """Entry point: patch the tree at `root` and report how many files changed."""
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path()
-    changed = patch_tree(root)
-    print(f"patched {len(changed)} page(s) with banner markup")
+    changed_html = patch_tree(root)
+    changed_css = patch_stylesheets(root)
+    print(
+        f"patched {len(changed_html)} page(s) with banner markup, "
+        f"{len(changed_css)} stylesheet(s) with banner styling"
+    )
     return 0
 
 

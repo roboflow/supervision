@@ -16,7 +16,7 @@ StepLookup = Callable[[str, str, str], dict[str, Any]]
 
 BACKFILL_WORKFLOW = "docs-canonical-backfill.yml"
 REWRITE_STEP = "\N{LINK SYMBOL} Rewrite canonical tags"
-BANNER_STEP = "\U0001f3f7️ Inject outdated-version banner markup"
+BANNER_STEP = "\U0001f3f7️ Inject outdated-version banner markup and styling"
 REPORT_STEP = (
     "\N{RIGHT-POINTING MAGNIFYING GLASS} Report canonicals with no page under latest/"
 )
@@ -260,6 +260,69 @@ def test_inject_banner_leaves_a_genuine_material_build_untouched(
 
     assert changed == []
     assert page.read_text() == f"<html><body>{real_markup}</body></html>"
+
+
+def test_patch_stylesheets_appends_banner_css_to_an_archived_version(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Append the purple/centered/sticky rules to a frozen archived extra.css.
+
+    The archived stylesheet predates the rules that give the banner its project
+    colors — Material's stock yellow, left-aligned, non-sticky banner is what a
+    reader sees without them.
+    """
+    module = load_script("inject_outdated_banner")
+    css_file = tmp_path / "0.10.0" / "stylesheets" / "extra.css"
+    css_file.parent.mkdir(parents=True)
+    css_file.write_text(".md-typeset { color: black; }\n")
+
+    changed = module.patch_stylesheets(tmp_path)
+
+    assert changed == [css_file]
+    patched = css_file.read_text()
+    assert ".md-typeset { color: black; }" in patched
+    assert "background-color: rgb(243, 238, 255)" in patched
+    assert "position: sticky" in patched
+    assert "text-align: center" in patched
+
+
+def test_patch_stylesheets_skips_develop_and_versions_without_the_file(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave develop's own current CSS alone, and skip a version with no stylesheet.
+
+    develop rebuilds on every push and already carries the current rules
+    natively; only a frozen archived tree needs the backfill.
+    """
+    module = load_script("inject_outdated_banner")
+    develop_css = tmp_path / "develop" / "stylesheets" / "extra.css"
+    develop_css.parent.mkdir(parents=True)
+    develop_css.write_text(".md-typeset { color: black; }\n")
+    (tmp_path / "0.9.0").mkdir()
+
+    changed = module.patch_stylesheets(tmp_path)
+
+    assert changed == []
+    assert develop_css.read_text() == ".md-typeset { color: black; }\n"
+
+
+def test_patch_stylesheets_replaces_stale_css_on_rerun(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A later styling edit reaches an already-patched stylesheet without stacking."""
+    module = load_script("inject_outdated_banner")
+    css_file = tmp_path / "0.10.0" / "stylesheets" / "extra.css"
+    css_file.parent.mkdir(parents=True)
+    css_file.write_text(".md-typeset { color: black; }\n")
+    module.patch_stylesheets(tmp_path)
+
+    module.__dict__["BANNER_CSS"] = ".md-banner { background: purple; }"
+    changed = module.patch_stylesheets(tmp_path)
+
+    assert changed == [css_file]
+    patched = css_file.read_text()
+    assert "background: purple" in patched
+    assert patched.count("sv:outdated-banner:start") == 1
 
 
 def test_backfill_triggers_on_pull_request_touching_its_own_files(
