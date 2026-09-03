@@ -91,6 +91,7 @@ repos:
         language_version: python3.11
         additional_dependencies:
           - "numpy>=2.0"
+          - "pytest>=7.2.2,<10"
           - "types-PyYAML"
           - "types-requests"
           - "types-tqdm"

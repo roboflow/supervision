@@ -110,6 +110,13 @@ jobs:
           for f in "${root_files[@]}"; do
             cp "docs/$f" "/tmp/$f"
           done
+          # Site root: replaces mike's redirect stub, which carries no canonical.
+          # Release deploys check out the tag, and tags cut before this file existed do
+          # not carry it — treat it as optional rather than failing the whole deploy.
+          rm -f /tmp/root-index.html
+          if [[ -f .github/root-index.html ]]; then
+            cp .github/root-index.html /tmp/root-index.html
+          fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
           else
@@ -121,6 +128,10 @@ jobs:
             cp "/tmp/$f" "$f"
           done
           files_to_add=("${root_files[@]}")
+          if [[ -f /tmp/root-index.html ]]; then
+            cp /tmp/root-index.html index.html
+            files_to_add+=(index.html)
+          fi
           if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
             cp "$version_dir/sitemap.xml" sitemap.xml
             gzip -9 -c sitemap.xml > sitemap.xml.gz
