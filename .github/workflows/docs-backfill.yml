@@ -89,8 +89,17 @@ jobs:
           # header below this banner since 403f35a1, but that only reaches trees mike
           # rebuilds — an archived version's tag may not build against today's
           # dependencies, so a rebuild is not an option (see header). Patch the empty
-          # banner div, its frozen per-version stylesheet, and its script list.
-          python3 "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
+          # banner div, its frozen per-version stylesheet, and its script list. The
+          # highest-numbered version tree is skipped, and un-patched if an earlier run
+          # reached it: it holds the current release that /latest/ serves, which is
+          # not an older version.
+          # The script orders version directories with `packaging`. Install it into a
+          # throwaway venv rather than the runner's system Python, which is marked
+          # externally managed and refuses a plain `pip install`.
+          python3 -m venv "$RUNNER_TEMP/backfill-venv"
+          "$RUNNER_TEMP/backfill-venv/bin/pip" install --quiet packaging
+          "$RUNNER_TEMP/backfill-venv/bin/python" \
+            "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
           git diff --stat | tail -5
 
       - name: 🔎 Report canonicals with no page under latest/
