@@ -14,8 +14,8 @@ Scope:
     banner markup from its own build and is left alone.
 Usage:
     Run ``python .github/scripts/inject_outdated_banner.py <gh-pages checkout root>``.
-    Safe to re-run: a page whose banner div is already populated has no whitespace-only
-    interior left to match, so it is skipped.
+    Safe to re-run: a previously injected banner is replaced (so wording/style edits
+    reach already-patched pages too), a page not carrying our marker is left alone.
 Outputs:
     Prints the number of pages patched and exits 0. Exits nonzero only on an
     unexpected filesystem error; finding nothing to patch is not a failure.
@@ -31,9 +31,20 @@ from pathlib import Path
 
 LATEST_URL = "https://supervision.roboflow.com/latest"
 
-# Whitespace-only interior marks a page built before the banner block existed; an
-# already-patched or never-empty div holds the <aside> instead and will not match.
-BANNER_DIV_RE = re.compile(r'(<div[^>]*data-md-component="outdated"[^>]*)>\s*</div>')
+# Wraps injected content so a re-run can find and replace its own prior output — a
+# real Material build never emits this comment, so a rebuilt version tree (whose
+# banner is genuine, not ours) is never matched and never touched.
+_MARKER_START = "<!-- sv:outdated-banner:start -->"
+_MARKER_END = "<!-- sv:outdated-banner:end -->"
+
+# Two interiors match: whitespace-only (a page built before the banner block existed)
+# or a previously injected banner (bounded by our marker, so a re-run can update it).
+BANNER_DIV_RE = re.compile(
+    r'(<div[^>]*data-md-component="outdated"[^>]*)>'
+    rf"(?:\s*|\s*{re.escape(_MARKER_START)}.*?{re.escape(_MARKER_END)}\s*)"
+    r"</div>",
+    re.DOTALL,
+)
 
 DEVELOP_TEXT = (
     "You are reading the unreleased development version of the documentation, "
@@ -61,12 +72,14 @@ _UNHIDE_SCRIPT = (
 def _aside(text: str) -> str:
     """Build the banner markup Material renders for `text`, unhide script included."""
     return (
-        '\n        <aside class="md-banner md-banner--warning">\n'
+        f"\n        {_MARKER_START}\n"
+        '        <aside class="md-banner md-banner--warning">\n'
         '          <div class="md-banner__inner md-grid md-typeset">\n'
         f"{text}\n"
         "          </div>\n"
         f"          {_UNHIDE_SCRIPT}\n"
-        "        </aside>\n      "
+        "        </aside>\n"
+        f"        {_MARKER_END}\n      "
     )
 
 

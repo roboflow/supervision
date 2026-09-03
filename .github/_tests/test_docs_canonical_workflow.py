@@ -212,6 +212,56 @@ def test_inject_banner_skips_latest_and_already_patched_pages(
     assert latest_page.read_text() == f"<html><body>{EMPTY_BANNER_DIV}</body></html>"
 
 
+def test_inject_banner_replaces_stale_wording_on_rerun(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A later wording/style edit reaches a page an earlier run already patched.
+
+    Iterating on the banner text after the first backfill dispatch is expected;
+    a second dispatch must overwrite the stale copy, not leave it stuck forever
+    behind the marker that made the page look "already handled".
+    """
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    module.patch_tree(tmp_path)
+
+    module.__dict__["ARCHIVED_TEXT"] = (
+        "Rewritten warning copy.<br>\nSee the latest release."
+    )
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == [page]
+    patched = page.read_text()
+    assert "Rewritten warning copy." in patched
+    assert patched.count(module._MARKER_START) == 1
+
+
+def test_inject_banner_leaves_a_genuine_material_build_untouched(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Never rewrite a div holding real Material output instead of our injection.
+
+    A future rebuild of an archived version would render this div for real
+    (config.extra.version now set), with no ``sv:outdated-banner`` marker; that
+    content is unrelated to our injection and must survive untouched.
+    """
+    module = load_script("inject_outdated_banner")
+    real_markup = (
+        '<div data-md-color-scheme="default" data-md-component="outdated" hidden>'
+        '<aside class="md-banner md-banner--warning">a genuine build</aside></div>'
+    )
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{real_markup}</body></html>")
+
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == []
+    assert page.read_text() == f"<html><body>{real_markup}</body></html>"
+
+
 def test_backfill_triggers_on_pull_request_touching_its_own_files(
     repo_root: Path, workflows_dir: Path
 ) -> None:
