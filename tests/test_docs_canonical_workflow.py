@@ -1,7 +1,6 @@
 """Regression tests for the versioned documentation canonical contract."""
 
 import subprocess
-import tempfile
 import textwrap
 from pathlib import Path
 
@@ -26,58 +25,52 @@ def test_mike_resolves_a_versioned_build_to_latest(
     assert config["site_url"] == "https://supervision.roboflow.com/latest"
 
 
-def test_backfill_rewrites_both_hosts_but_not_version_links() -> None:
+def test_backfill_rewrites_both_hosts_but_not_version_links(tmp_path: Path) -> None:
     """Ensure historical and current canonical hosts are rewritten narrowly."""
     workflow = yaml.safe_load(WORKFLOW_PATH.read_text())
     rewrite_step = workflow["jobs"]["backfill"]["steps"][2]["run"]
 
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
-        version_dir = root / "0.10.0"
-        version_dir.mkdir()
-        page = version_dir / "index.html"
-        page.write_text(
-            "\n".join(
-                [
-                    (
-                        '<link rel="canonical" '
-                        'href="https://roboflow.github.io/supervision/0.10.0/" />'
-                    ),
-                    (
-                        '<a href="https://roboflow.github.io/supervision/0.10.0/reference/">'
-                        "old link</a>"
-                    ),
-                    (
-                        '<link rel="alternate" '
-                        'href="https://roboflow.github.io/supervision/0.10.0/" />'
-                    ),
-                ]
-            )
+    version_dir = tmp_path / "0.10.0"
+    version_dir.mkdir()
+    page = version_dir / "index.html"
+    page.write_text(
+        "\n".join(
+            [
+                (
+                    '<link rel="canonical" '
+                    'href="https://roboflow.github.io/supervision/0.10.0/" />'
+                ),
+                (
+                    '<a href="https://roboflow.github.io/supervision/0.10.0/reference/">'
+                    "old link</a>"
+                ),
+                (
+                    '<link rel="alternate" '
+                    'href="https://roboflow.github.io/supervision/0.10.0/" />'
+                ),
+            ]
         )
+    )
 
-        current_dir = root / "develop"
-        current_dir.mkdir()
-        current_page = current_dir / "index.html"
-        current_page.write_text(
-            '<link rel="canonical" href="https://supervision.roboflow.com/develop/" />'
-        )
+    current_dir = tmp_path / "develop"
+    current_dir.mkdir()
+    current_page = current_dir / "index.html"
+    current_page.write_text(
+        '<link rel="canonical" href="https://supervision.roboflow.com/develop/" />'
+    )
 
-        portable_step = textwrap.dedent(rewrite_step)
-        portable_step = portable_step.replace("sed -i \\\n", "sed -i.bak \\\n")
-        portable_step = portable_step.replace(" --no-run-if-empty", "")
-        subprocess.run(["/bin/bash", "-c", portable_step], cwd=root, check=True)
+    portable_step = textwrap.dedent(rewrite_step)
+    portable_step = portable_step.replace("sed -i \\\n", "sed -i.bak \\\n")
+    portable_step = portable_step.replace(" --no-run-if-empty", "")
+    subprocess.run(["/bin/bash", "-c", portable_step], cwd=tmp_path, check=True)
 
-        assert 'href="https://supervision.roboflow.com/latest/"' in page.read_text()
-        assert (
-            'href="https://roboflow.github.io/supervision/0.10.0/reference/"'
-            in page.read_text()
-        )
-        assert (
-            '<link rel="alternate" '
-            'href="https://roboflow.github.io/supervision/0.10.0/" />'
-            in page.read_text()
-        )
-        assert (
-            'href="https://supervision.roboflow.com/latest/"'
-            in current_page.read_text()
-        )
+    assert 'href="https://supervision.roboflow.com/latest/"' in page.read_text()
+    assert (
+        'href="https://roboflow.github.io/supervision/0.10.0/reference/"'
+        in page.read_text()
+    )
+    assert (
+        '<link rel="alternate" '
+        'href="https://roboflow.github.io/supervision/0.10.0/" />' in page.read_text()
+    )
+    assert 'href="https://supervision.roboflow.com/latest/"' in current_page.read_text()
