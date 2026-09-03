@@ -50,10 +50,15 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
+      # MIKE_DOCS_VERSION feeds `extra.doc_version` in mkdocs.yml, which gates the
+      # outdated-version banner the theme renders server-side. It must name the version
+      # being deployed: mike itself never exports it, so an unset value silently builds
+      # every tree without the banner. Keep it in sync with the `mike deploy` argument.
       - name: 🚀 Deploy Development Docs
         if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: develop
         run: |
           mike deploy --push develop
 
@@ -61,6 +66,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/release/latest'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: latest
         run: |
           # `latest` may exist as a real version or as an alias (e.g. `0.28.0 [latest]`),
           # which the `mike list` grep cannot detect. Always delete it first, tolerating
@@ -89,6 +95,7 @@ jobs:
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
         run: |
           mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
 
