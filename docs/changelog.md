@@ -7,6 +7,8 @@ date_modified: 2026-09-03
 
 ### Unreleased <small>upcoming</small>
 
+### 0.30.2 <small>Sep 3, 2026</small>
+
 ### Added
 
 ### Fixed
