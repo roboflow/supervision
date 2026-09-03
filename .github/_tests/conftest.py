@@ -12,8 +12,10 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
+import yaml
 
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR: Path = REPO_ROOT / ".github" / "scripts"
@@ -71,3 +73,25 @@ def load_script() -> Callable[[str], ModuleType]:
 def updater(load_script: Callable[[str], ModuleType]) -> ModuleType:
     """Load the docs-stat refresh utility exercised by the star-count tests."""
     return load_script("update_docs_stats")
+
+
+@pytest.fixture
+def workflow_step(
+    workflows_dir: Path,
+) -> Callable[[str, str, str], dict[str, Any]]:
+    """Return a lookup for one workflow step, addressed by job id and step name.
+
+    Steps are looked up by name rather than list position so that inserting a step
+    into a workflow cannot silently repoint an existing test at a different step.
+    """
+
+    def lookup(workflow_file: str, job: str, step_name: str) -> dict[str, Any]:
+        workflow = yaml.safe_load(
+            (workflows_dir / workflow_file).read_text(encoding="utf-8")
+        )
+        steps: list[dict[str, Any]] = workflow["jobs"][job]["steps"]
+        matches = [step for step in steps if step.get("name") == step_name]
+        assert len(matches) == 1, f"expected exactly one step named {step_name!r}"
+        return matches[0]
+
+    return lookup

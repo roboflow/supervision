@@ -7,6 +7,9 @@
 # until their published HTML is rewritten in place. This job does that rewrite.
 #
 # Manual trigger only. Safe to re-run: rewriting an already-correct file is a no-op.
+# Every run that changes something first pushes the pre-rewrite gh-pages tip to a
+# `gh-pages-backup-<timestamp>` branch, named in the job summary; delete that branch
+# once the published site is verified.
 
 name: Backfill Docs Canonicals
 
@@ -56,6 +59,50 @@ jobs:
           done
           git diff --stat | tail -5
 
+      - name: 🔎 Report canonicals with no page under latest/
+        run: |
+          # A rewritten canonical can now point at a page /latest/ does not have: an API
+          # an archived version documents may since have been removed. Google ignores a
+          # canonical whose target 404s, so those pages keep competing with /latest/ in
+          # search. Report-only — the rewrite still fixes every page that does resolve.
+          shopt -s nullglob
+          version_dirs=()
+          for dir in develop [0-9]*; do
+            [[ -d "$dir" ]] || continue
+            version_dirs+=("$dir")
+          done
+          if [[ ! -d latest || ${#version_dirs[@]} -eq 0 ]]; then
+            echo "no latest/ tree or no version trees — skipping the resolution check"
+            exit 0
+          fi
+          canonicals="$(grep -rho \
+            'rel="canonical" href="https://supervision.roboflow.com/latest/[^"]*"' \
+            "${version_dirs[@]}" | sed -e 's|.*/latest/||' -e 's|"$||' | sort -u || true)"
+          missing=""
+          missing_count=0
+          if [[ -n "$canonicals" ]]; then
+            while IFS= read -r target; do
+              # Canonicals are directory URLs, so the page behind one is its index.html.
+              if [[ -f "latest/${target}index.html" ]]; then
+                continue
+              fi
+              missing="${missing}/latest/${target}"$'\n'
+              missing_count=$((missing_count + 1))
+            done <<< "$canonicals"
+          fi
+          {
+            echo "### Canonical targets missing from \`latest/\`"
+            if [[ "$missing_count" -eq 0 ]]; then
+              echo "None — every rewritten canonical resolves to a published page."
+            else
+              echo "$missing_count path(s) do not exist under \`latest/\`:"
+              printf '%s' "$missing" | sed 's|^|- `|; s|$|`|' | sed -n '1,20p'
+              if [[ "$missing_count" -gt 20 ]]; then
+                echo "- … and $((missing_count - 20)) more"
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: 📤 Commit and push
         run: |
           git config user.name "github-actions[bot]"
@@ -65,5 +112,13 @@ jobs:
             echo "canonicals already point at /latest/ — nothing to do"
             exit 0
           fi
+          # Snapshot the pre-rewrite tree before replacing it. gh-pages holds the only
+          # copy of the archived version trees — the tags that produced them no longer
+          # build against current dependencies — so a bad rewrite has no rebuild path.
+          # HEAD is still the untouched tip here: the rewrite only touched the worktree.
+          backup="gh-pages-backup-$(date -u +%Y%m%dT%H%M%SZ)"
+          git push origin "HEAD:refs/heads/$backup"
+          echo "Pre-rewrite snapshot pushed to \`$backup\`; delete it once /latest/ is verified." \
+            >> "$GITHUB_STEP_SUMMARY"
           git commit -m "chore(docs): canonicalise archived versions to /latest/"
           git push origin gh-pages
