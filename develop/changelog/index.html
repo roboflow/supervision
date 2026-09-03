@@ -12,7 +12,7 @@
         <meta name="author" content="Roboflow">
       
       
-        <link rel="canonical" href="https://supervision.roboflow.com/develop/changelog/">
+        <link rel="canonical" href="https://supervision.roboflow.com/latest/changelog/">
       
       
         <link rel="prev" href="../license/">
@@ -85,6 +85,7 @@
 
 
 
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -121,6 +122,11 @@
   "codeRepository": "https://github.com/roboflow/supervision",
   "license": "https://github.com/roboflow/supervision/blob/develop/LICENSE.md",
   "description": "Open-source Python library for computer vision: load datasets, draw detections, count objects in zones, and track across frames.",
+  "interactionStatistic": {
+    "@type": "InteractionCounter",
+    "interactionType": "https://schema.org/LikeAction",
+    "userInteractionCount": 49848
+  },
   "offers": {
     "@type": "Offer",
     "price": "0",
@@ -142,7 +148,7 @@
   },
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "https://supervision.roboflow.com/developsearch/?q={search_term_string}",
+    "target": "https://supervision.roboflow.com/latest/search/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
 }
@@ -185,13 +191,13 @@
       "@type": "ListItem",
       "position": 1,
       "name": "Supervision",
-      "item": "https://supervision.roboflow.com/develop"
+      "item": "https://supervision.roboflow.com/latest"
     },
     {
       "@type": "ListItem",
       "position": 2,
       "name": "Changelog",
-      "item": "https://supervision.roboflow.com/develop/changelog/"
+      "item": "https://supervision.roboflow.com/latest/changelog/"
     }
   ]
 }
@@ -203,7 +209,7 @@
 <meta property="og:site_name" content="Supervision" />
 <meta property="og:title" content="Changelog" />
 <meta property="og:description" content="Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version." />
-<meta property="og:url" content="https://supervision.roboflow.com/develop/changelog/" />
+<meta property="og:url" content="https://supervision.roboflow.com/latest/changelog/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta property="og:image:width" content="1200" />
@@ -258,6 +264,21 @@
     </div>
     
       <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+
+
+
+You are reading documentation built from the development branch. It may describe APIs
+that are unreleased or still changing.
+<a href="https://supervision.roboflow.com/latest"><strong>Go to the latest release documentation.</strong></a>
+
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL(".."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
         
       </div>
     
@@ -4092,6 +4113,7 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>Versioned documentation builds now emit a valid <code>/latest/search/</code> SearchAction URL when Mike removes the trailing slash from <code>site_url</code>; docs CI renders the custom theme under Mike version contexts to protect the URL, version banners, and star JSON-LD. This source change applies to future builds; existing published archive trees require a separately approved backfill.</li>
 <li><code>sv.xcycwh_to_xyxy</code> no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.</li>
 <li><code>sv.denormalize_boxes</code> no longer truncates coordinates for integer input arrays. Scaling now multiplies by a floating-point factor so integer normalized coordinates (for example VLM boxes quantized to <code>0..1000</code>) map to exact absolute pixel values instead of being silently rounded down.</li>
 <li><code>sv.Detections.box_area</code> (and therefore <code>sv.Detections.area</code> for axis-aligned boxes) now computes integer-coordinate box areas in <code>float64</code>, preventing integer overflow for large boxes (e.g. an <code>int32</code> <code>50000 x 50000</code> box previously wrapped to a negative area).</li>
@@ -6310,7 +6332,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 2, 2026 16:12:34 UTC">September 2, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 2, 2026 20:38:43 UTC">September 2, 2026</span>
   </span>
 
     
@@ -6338,9 +6360,9 @@
     
     <nav>
       
-        <a href="https://github.com/guillaume-flambard" class="md-author" title="@guillaume-flambard">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/56681566?v=4&size=72" alt="guillaume-flambard">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6348,21 +6370,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/guillaume-flambard" class="md-author" title="@guillaume-flambard">
+          
+          <img src="https://avatars.githubusercontent.com/u/56681566?v=4&size=72" alt="guillaume-flambard">
+        </a>
+      
         <a href="https://github.com/roshaninfordham" class="md-author" title="@roshaninfordham">
           
           <img src="https://avatars.githubusercontent.com/u/214024362?v=4&size=72" alt="roshaninfordham">
-        </a>
-      
-        <a href="https://github.com/AdvaitS" class="md-author" title="@AdvaitS">
-          
-          <img src="https://avatars.githubusercontent.com/u/36281471?v=4&size=72" alt="AdvaitS">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +33
+            +32
           </a>
         
       
@@ -6480,7 +6502,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "content.code.copy", "content.action.edit", "content.tooltips", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
