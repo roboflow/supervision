@@ -24,11 +24,24 @@ REPORT_STEP = (
 )
 COMMIT_STEP = "\N{OUTBOX TRAY} Commit and push"
 
+# The tree /latest/ mirrors. Tests exercising an archived version create this
+# alongside it, so the version under test is not itself the current release — which
+# the script deliberately leaves alone.
+CURRENT_RELEASE = "0.30.1"
+
 EMPTY_BANNER_DIV = (
     '<div data-md-color-scheme="default" data-md-component="outdated" hidden>\n'
     "        \n"
     "      </div>"
 )
+
+
+@pytest.fixture
+def current_release(tmp_path: Path) -> Path:
+    """Create the current release's tree, demoting lower versions to archived."""
+    release_dir = tmp_path / CURRENT_RELEASE
+    release_dir.mkdir()
+    return release_dir
 
 
 def test_mike_resolves_a_versioned_build_to_latest(
@@ -173,6 +186,7 @@ def test_backfill_wires_the_banner_injection_script(workflow_step: StepLookup) -
         pytest.param("0.10.0", "older version of Supervision", id="archived"),
     ],
 )
+@pytest.mark.usefixtures("current_release")
 def test_inject_banner_populates_the_empty_div(
     tmp_path: Path,
     load_script: Callable[[str], ModuleType],
@@ -194,6 +208,7 @@ def test_inject_banner_populates_the_empty_div(
     assert patched.count("</div>") == EMPTY_BANNER_DIV.count("</div>") + 1
 
 
+@pytest.mark.usefixtures("current_release")
 def test_inject_banner_emits_a_valid_direct_unhide_script(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -210,6 +225,7 @@ def test_inject_banner_emits_a_valid_direct_unhide_script(
     assert "el&&(el.hidden=!1)" in patched
 
 
+@pytest.mark.usefixtures("current_release")
 def test_inject_banner_skips_latest_and_already_patched_pages(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -230,6 +246,7 @@ def test_inject_banner_skips_latest_and_already_patched_pages(
     assert latest_page.read_text() == f"<html><body>{EMPTY_BANNER_DIV}</body></html>"
 
 
+@pytest.mark.usefixtures("current_release")
 def test_inject_banner_replaces_stale_wording_on_rerun(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -256,6 +273,7 @@ def test_inject_banner_replaces_stale_wording_on_rerun(
     assert patched.count(module._MARKER_START) == 1
 
 
+@pytest.mark.usefixtures("current_release")
 def test_inject_banner_leaves_a_genuine_material_build_untouched(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -280,6 +298,7 @@ def test_inject_banner_leaves_a_genuine_material_build_untouched(
     assert page.read_text() == f"<html><body>{real_markup}</body></html>"
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_stylesheets_appends_banner_css_to_an_archived_version(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -304,6 +323,7 @@ def test_patch_stylesheets_appends_banner_css_to_an_archived_version(
     assert "text-align: center" in patched
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_stylesheets_skips_develop_and_versions_without_the_file(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -324,6 +344,7 @@ def test_patch_stylesheets_skips_develop_and_versions_without_the_file(
     assert develop_css.read_text() == ".md-typeset { color: black; }\n"
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_stylesheets_replaces_stale_css_on_rerun(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -343,6 +364,7 @@ def test_patch_stylesheets_replaces_stale_css_on_rerun(
     assert patched.count("sv:outdated-banner:start") == 1
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_scripts_copies_and_references_the_offset_script_at_page_root(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -364,6 +386,7 @@ def test_patch_scripts_copies_and_references_the_offset_script_at_page_root(
     assert '<script src="javascripts/version-banner.js"></script>' in page.read_text()
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_scripts_uses_a_relative_path_for_a_nested_page(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -381,6 +404,7 @@ def test_patch_scripts_uses_a_relative_path_for_a_nested_page(
     )
 
 
+@pytest.mark.usefixtures("current_release")
 def test_patch_scripts_skips_a_page_that_already_references_the_script(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
@@ -413,6 +437,115 @@ def test_patch_scripts_skips_develop(
 
     assert changed == []
     assert not (tmp_path / "develop" / "javascripts" / "version-banner.js").exists()
+
+
+@pytest.mark.parametrize(
+    ("dir_names", "expected"),
+    [
+        pytest.param(["0.9.0", "0.10.0"], "0.10.0", id="numeric-not-lexicographic"),
+        pytest.param(["0.30.1", "0.31.0rc1"], "0.31.0rc1", id="pre-release-suffix"),
+        pytest.param(["0.31.0rc1", "0.31.0"], "0.31.0", id="release-beats-its-rc"),
+        pytest.param(["0.10.0", "0.11.0-snapshot"], "0.10.0", id="unparsable-loses"),
+    ],
+)
+def test_newest_version_dir_orders_releases_numerically(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    dir_names: list[str],
+    expected: str,
+) -> None:
+    """Pick the current release by version order, not by directory name sort."""
+    module = load_script("inject_outdated_banner")
+    for name in dir_names:
+        (tmp_path / name).mkdir()
+
+    newest = module._newest_version_dir(tmp_path)
+
+    assert newest == tmp_path / expected
+
+
+def test_inject_banner_skips_the_current_release(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Never warn a reader of the newest release that they are reading old docs.
+
+    The highest-numbered version tree holds the same documentation /latest/ serves,
+    so the banner, its styling, and its offset script all have nothing to present.
+    """
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / CURRENT_RELEASE / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    css_file = tmp_path / CURRENT_RELEASE / "stylesheets" / "extra.css"
+    css_file.parent.mkdir(parents=True)
+    css_file.write_text(".md-typeset { color: black; }\n")
+
+    changed = module.patch_tree(tmp_path)
+    changed_css = module.patch_stylesheets(tmp_path)
+    changed_js = module.patch_scripts(tmp_path)
+
+    assert (changed, changed_css, changed_js) == ([], [], [])
+    assert page.read_text() == f"<html><body>{EMPTY_BANNER_DIV}</body></html>"
+
+
+def test_unpatch_reverts_a_banner_an_earlier_run_left_on_the_current_release(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Undo the banner a dispatch made before the current release was excluded."""
+    module = load_script("inject_outdated_banner")
+    archived_page = tmp_path / "0.10.0" / "index.html"
+    archived_page.parent.mkdir(parents=True)
+    archived_page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    release_page = tmp_path / CURRENT_RELEASE / "index.html"
+    release_page.parent.mkdir(parents=True)
+    module.patch_tree(tmp_path)
+    # What the earlier dispatch left behind: the same injected banner, on the tree
+    # /latest/ serves.
+    release_page.write_text(archived_page.read_text())
+
+    reverted = module.unpatch_newest_version(tmp_path)
+
+    assert reverted == [release_page]
+    assert module._MARKER_START not in release_page.read_text()
+    assert "older version of Supervision" not in release_page.read_text()
+    assert module._MARKER_START in archived_page.read_text()
+
+
+def test_unpatch_leaves_the_next_release_free_to_patch_the_tree_again(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A reverted tree takes the banner again once a newer release supersedes it."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    module.patch_tree(tmp_path)
+    module.unpatch_newest_version(tmp_path)
+    (tmp_path / "0.11.0").mkdir()
+
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == [page]
+    assert page.read_text().count(module._MARKER_START) == 1
+
+
+def test_unpatch_leaves_a_genuine_material_build_untouched(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Only our own marked injection is reverted, never a real rendered banner."""
+    module = load_script("inject_outdated_banner")
+    real_markup = (
+        '<div data-md-color-scheme="default" data-md-component="outdated" hidden>'
+        '<aside class="md-banner md-banner--warning">a genuine build</aside></div>'
+    )
+    page = tmp_path / CURRENT_RELEASE / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{real_markup}</body></html>")
+
+    reverted = module.unpatch_newest_version(tmp_path)
+
+    assert reverted == []
+    assert page.read_text() == f"<html><body>{real_markup}</body></html>"
 
 
 def test_backfill_triggers_on_pull_request_touching_its_own_files(
