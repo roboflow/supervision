@@ -59,6 +59,15 @@ jobs:
           done
           git diff --stat | tail -5
 
+      - name: 🏷️ Inject outdated-version banner markup
+        run: |
+          # docs/theme/main.html has rendered this banner since 403f35a1, but that
+          # only reaches trees mike rebuilds — an archived version's tag may not build
+          # against today's dependencies, so a rebuild is not an option (see header).
+          # Patch the empty banner div these already-published pages carry instead.
+          python3 "$GITHUB_WORKSPACE/.github/scripts/inject_outdated_banner.py" .
+          git diff --stat | tail -5
+
       - name: 🔎 Report canonicals with no page under latest/
         run: |
           # A rewritten canonical can now point at a page /latest/ does not have: an API

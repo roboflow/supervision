@@ -5,6 +5,7 @@ import subprocess
 import textwrap
 from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
@@ -14,10 +15,17 @@ StepLookup = Callable[[str, str, str], dict[str, Any]]
 
 BACKFILL_WORKFLOW = "docs-canonical-backfill.yml"
 REWRITE_STEP = "\N{LINK SYMBOL} Rewrite canonical tags"
+BANNER_STEP = "\U0001f3f7️ Inject outdated-version banner markup"
 REPORT_STEP = (
     "\N{RIGHT-POINTING MAGNIFYING GLASS} Report canonicals with no page under latest/"
 )
 COMMIT_STEP = "\N{OUTBOX TRAY} Commit and push"
+
+EMPTY_BANNER_DIV = (
+    '<div data-md-color-scheme="default" data-md-component="outdated" hidden>\n'
+    "        \n"
+    "      </div>"
+)
 
 
 def test_mike_resolves_a_versioned_build_to_latest(
@@ -142,3 +150,61 @@ def test_backfill_reports_canonicals_missing_from_latest(
     _run_report_step(report_step, tmp_path, summary)
 
     assert expected in summary.read_text()
+
+
+def test_backfill_wires_the_banner_injection_script(workflow_step: StepLookup) -> None:
+    """Ensure the backfill job runs the banner script against the checkout root."""
+    banner_step = workflow_step(BACKFILL_WORKFLOW, "backfill", BANNER_STEP)["run"]
+
+    assert "inject_outdated_banner.py" in banner_step
+    assert '"$GITHUB_WORKSPACE/.github/scripts/inject_outdated_banner.py" .' in (
+        banner_step
+    )
+
+
+@pytest.mark.parametrize(
+    ("version_dir", "expected_snippet"),
+    [
+        pytest.param("develop", "unreleased development version", id="develop"),
+        pytest.param("0.10.0", "older version of Supervision", id="archived"),
+    ],
+)
+def test_inject_banner_populates_the_empty_div(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    version_dir: str,
+    expected_snippet: str,
+) -> None:
+    """Fill the whitespace-only banner div with version-appropriate warning text."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / version_dir / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == [page]
+    patched = page.read_text()
+    assert expected_snippet in patched
+    assert 'href="https://supervision.roboflow.com/latest"' in patched
+    assert patched.count("</div>") == EMPTY_BANNER_DIV.count("</div>") + 1
+
+
+def test_inject_banner_skips_latest_and_already_patched_pages(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave /latest/ (built with the banner already) and repeat runs untouched."""
+    module = load_script("inject_outdated_banner")
+    latest_page = tmp_path / "latest" / "index.html"
+    latest_page.parent.mkdir(parents=True)
+    latest_page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    archived_page = tmp_path / "0.10.0" / "index.html"
+    archived_page.parent.mkdir(parents=True)
+    archived_page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+
+    first_pass = module.patch_tree(tmp_path)
+    second_pass = module.patch_tree(tmp_path)
+
+    assert first_pass == [archived_page]
+    assert second_pass == []
+    assert latest_page.read_text() == f"<html><body>{EMPTY_BANNER_DIV}</body></html>"
