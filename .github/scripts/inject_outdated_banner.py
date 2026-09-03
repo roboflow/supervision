@@ -17,9 +17,13 @@ Scope:
     are only patched under numeric version directories, since each ships its own
     frozen ``stylesheets/extra.css`` and ``extra_javascript`` list while ``develop``
     rebuilds on every push and already carries both natively. ``latest`` is never
-    touched.
+    touched, and neither is the highest-numbered version directory: that tree is the
+    current release, the same docs ``latest`` serves, so warning its readers that
+    they are reading an older version is wrong. An earlier run that did inject a
+    banner there is undone (see ``unpatch_newest_version``).
 Usage:
-    Run ``python .github/scripts/inject_outdated_banner.py <gh-pages checkout root>``.
+    Run ``python .github/scripts/inject_outdated_banner.py <gh-pages checkout root>``
+    in an environment carrying ``packaging``, which orders the version directories.
     Safe to re-run: previously injected content is replaced in place (so wording or
     style edits reach already-patched pages too), and anything not carrying our
     marker — including a genuine future rebuild — is left alone.
@@ -35,6 +39,8 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+
+from packaging.version import InvalidVersion, Version
 
 LATEST_URL = "https://supervision.roboflow.com/latest"
 
@@ -133,13 +139,44 @@ BANNER_CSS = """.md-banner,
 }"""
 
 
+def _version_key(name: str) -> Version:
+    """Order a version directory name by PEP 440: `0.9.0` sorts below `0.10.0`.
+
+    A pre-release directory sorts below the release it precedes, so `0.31.0` wins
+    over `0.31.0rc1` should both trees ever sit on the branch at once. A name PEP 440
+    cannot parse sorts lowest rather than raising: an unrecognized directory is still
+    patched as an archived tree, it just never counts as the current release.
+    """
+    try:
+        return Version(name)
+    except InvalidVersion:
+        return Version("0")
+
+
+def _numeric_version_dirs(root: Path) -> list[Path]:
+    """Return every numeric version directory under `root`, oldest release first."""
+    dirs = (d for d in root.iterdir() if d.is_dir() and d.name[:1].isdigit())
+    return sorted(dirs, key=lambda d: _version_key(d.name))
+
+
+def _newest_version_dir(root: Path) -> Path | None:
+    """Return the current release's directory — the tree `latest` mirrors."""
+    dirs = _numeric_version_dirs(root)
+    return dirs[-1] if dirs else None
+
+
 def _archived_version_dirs(root: Path) -> list[Path]:
-    """Return numeric version directories under `root`, sorted."""
-    return sorted(d for d in root.iterdir() if d.is_dir() and d.name[:1].isdigit())
+    """Return the superseded numeric version directories under `root`.
+
+    The highest-numbered directory is excluded: it holds the current release, which
+    is not outdated, so it gets neither the banner nor the styling and script that
+    only exist to present one.
+    """
+    return _numeric_version_dirs(root)[:-1]
 
 
 def _version_dirs(root: Path) -> list[Path]:
-    """Return `develop` plus numeric version directories under `root`, sorted."""
+    """Return `develop` plus the superseded numeric version directories."""
     dirs = _archived_version_dirs(root)
     develop = root / "develop"
     if develop.is_dir():
@@ -341,16 +378,53 @@ def patch_scripts(root: Path) -> list[Path]:
     return changed
 
 
+# Matches only a banner this script injected, so the revert below can never strip a
+# banner a genuine Material build rendered.
+INJECTED_BANNER_RE = re.compile(
+    r'(<div[^>]*data-md-component="outdated"[^>]*>)'
+    rf"\s*{re.escape(_MARKER_START)}.*?{re.escape(_MARKER_END)}\s*"
+    r"(</div>)",
+    re.DOTALL,
+)
+
+
+def unpatch_newest_version(root: Path) -> list[Path]:
+    """Strip an injected banner from the current release tree under `root`.
+
+    A run made before the newest release was excluded left an "older version"
+    banner on the docs `latest` serves. The div is restored to the whitespace-only
+    interior a build emits, so the next release — which demotes this tree to
+    archived — patches it again through the normal path.
+    """
+    newest = _newest_version_dir(root)
+    if newest is None:
+        return []
+    changed: list[Path] = []
+    for html_file in newest.rglob("*.html"):
+        original = html_file.read_text(encoding="utf-8")
+        if _MARKER_START not in original:
+            continue
+        patched = INJECTED_BANNER_RE.sub(
+            lambda m: f"{m.group(1)}\n        \n      {m.group(2)}", original
+        )
+        if patched != original:
+            html_file.write_text(patched, encoding="utf-8")
+            changed.append(html_file)
+    return changed
+
+
 def main() -> int:
     """Entry point: patch the tree at `root` and report how many files changed."""
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path()
     changed_html = patch_tree(root)
     changed_css = patch_stylesheets(root)
     changed_js = patch_scripts(root)
+    reverted_html = unpatch_newest_version(root)
     print(
         f"patched {len(changed_html)} page(s) with banner markup, "
         f"{len(changed_css)} stylesheet(s) with banner styling, "
-        f"{len(changed_js)} file(s) with the sticky-offset script"
+        f"{len(changed_js)} file(s) with the sticky-offset script, "
+        f"reverted {len(reverted_html)} current-release page(s)"
     )
     return 0
 
