@@ -38,12 +38,14 @@ def _render_docs_theme(
         url="test/",
     )
     nav = SimpleNamespace(homepage=SimpleNamespace(url=""))
-    return template.render(
-        base_url="",
-        config=config,
-        extra=config.extra,
-        nav=nav,
-        page=page,
+    return str(
+        template.render(
+            base_url="",
+            config=config,
+            extra=config.extra,
+            nav=nav,
+            page=page,
+        )
     )
 
 
