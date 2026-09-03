@@ -10,7 +10,7 @@ Purpose:
 Scope:
     ``mike`` never rebuilds an archived version tree, and the pinned dependencies a
     given tag was built with may not resolve today, so regenerating those trees is
-    not an option (see ``.github/workflows/docs-canonical-backfill.yml``). This patches
+    not an option (see ``.github/workflows/docs-backfill.yml``). This patches
     the static HTML, CSS, and JS directly instead, the same way that workflow's
     canonical-tag rewrite patches HTML. The banner div is patched under ``develop``
     too (harmless no-op once that tree carries a real build); the styling and script
@@ -27,7 +27,7 @@ Outputs:
     Prints how many files were patched and exits 0. Exits nonzero only on an
     unexpected filesystem error; finding nothing to patch is not a failure.
 Used by:
-    ``.github/workflows/docs-canonical-backfill.yml``.
+    ``.github/workflows/docs-backfill.yml``.
 """
 
 from __future__ import annotations

@@ -28,7 +28,7 @@ on:
         default: ""
   pull_request:
     paths:
-      - .github/workflows/docs-canonical-backfill.yml
+      - .github/workflows/docs-backfill.yml
       - .github/scripts/inject_outdated_banner.py
 
 permissions:

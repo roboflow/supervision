@@ -14,7 +14,7 @@ from mike.mkdocs_utils import load_config
 
 StepLookup = Callable[[str, str, str], dict[str, Any]]
 
-BACKFILL_WORKFLOW = "docs-canonical-backfill.yml"
+BACKFILL_WORKFLOW = "docs-backfill.yml"
 REWRITE_STEP = "\N{LINK SYMBOL} Rewrite canonical tags"
 BANNER_STEP = (
     "\U0001f3f7️ Inject outdated-version banner markup, styling, and offset script"
