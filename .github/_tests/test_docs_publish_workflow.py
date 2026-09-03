@@ -31,7 +31,7 @@ PUBLISH_JOB = "docs-build-deploy"
         pytest.param(
             "\N{ROCKET} Deploy Release Docs",
             "steps.release_metadata.outputs.release_tag",
-            "steps.release_metadata.outputs.release_tag",
+            "${{ steps.release_metadata.outputs.release_tag }}",
             id="release-tag",
         ),
     ],
@@ -46,7 +46,7 @@ def test_deploy_steps_export_the_version_they_deploy(
     step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, step_name)
 
     assert deploy_target in step["run"]
-    assert expected_version in step["env"]["MIKE_DOCS_VERSION"]
+    assert step["env"]["MIKE_DOCS_VERSION"] == expected_version
 
 
 def test_every_mike_deploy_step_exports_the_banner_version(
