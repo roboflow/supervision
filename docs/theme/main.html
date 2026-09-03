@@ -20,13 +20,11 @@
 {% set doc_version = config.extra.doc_version | d("", true) %}
 {% set latest_url = config.site_url | d('https://supervision.roboflow.com/latest/', true) %}
 {% if doc_version == "develop" %}
-You are reading documentation built from the development branch. It may describe APIs
-that are unreleased or still changing.
-<a href="{{ latest_url }}"><strong>Go to the latest release documentation.</strong></a>
+You are reading the unreleased development version of the documentation, built from the <code>develop</code> branch.<br>
+APIs described here may change or may never ship in a release, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
 {% elif doc_version and doc_version != "latest" %}
-You are reading documentation for an older version of Supervision, kept online for
-reference. APIs described here may have changed or been removed.
-<a href="{{ latest_url }}"><strong>Go to the latest release documentation.</strong></a>
+You are reading the documentation for an older version of Supervision, kept online for reference.<br>
+APIs described here may have changed or been removed, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
 {% endif %}
 {% endblock %}
 

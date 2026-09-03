@@ -65,7 +65,7 @@ def _json_ld_by_type(html: str) -> dict[str, dict[str, Any]]:
     [
         pytest.param("", None, id="plain-build"),
         pytest.param("latest", None, id="latest"),
-        pytest.param("develop", "development branch", id="development"),
+        pytest.param("develop", "unreleased development version", id="development"),
         pytest.param("0.30.0", "older version", id="historic"),
     ],
 )
@@ -78,18 +78,18 @@ def test_version_banner_matches_mike_version(
     html = _render_docs_theme(monkeypatch, version)
 
     if expected_text is None:
-        assert "development branch" not in html
+        assert "unreleased development version" not in html
         assert "older version" not in html
     else:
         assert expected_text in html
         assert (
             '<a href="https://supervision.roboflow.com/latest">'
-            "<strong>Go to the latest release documentation.</strong></a>"
+            "<strong>latest stable release</strong></a>"
         ) in html
         other_text = (
             "older version"
-            if expected_text == "development branch"
-            else "development branch"
+            if expected_text == "unreleased development version"
+            else "unreleased development version"
         )
         assert other_text not in html
 
