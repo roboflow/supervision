@@ -9,6 +9,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+import yaml
 from mike.mkdocs_utils import load_config
 
 StepLookup = Callable[[str, str, str], dict[str, Any]]
@@ -157,8 +158,9 @@ def test_backfill_wires_the_banner_injection_script(workflow_step: StepLookup) -
     banner_step = workflow_step(BACKFILL_WORKFLOW, "backfill", BANNER_STEP)["run"]
 
     assert "inject_outdated_banner.py" in banner_step
-    assert '"$GITHUB_WORKSPACE/.github/scripts/inject_outdated_banner.py" .' in (
-        banner_step
+    assert (
+        '"$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .'
+        in banner_step
     )
 
 
@@ -208,3 +210,31 @@ def test_inject_banner_skips_latest_and_already_patched_pages(
     assert first_pass == [archived_page]
     assert second_pass == []
     assert latest_page.read_text() == f"<html><body>{EMPTY_BANNER_DIV}</body></html>"
+
+
+def test_backfill_triggers_on_pull_request_touching_its_own_files(
+    repo_root: Path, workflows_dir: Path
+) -> None:
+    """Run as a PR dry run whenever this workflow or the banner script changes."""
+    workflow = yaml.safe_load(
+        (workflows_dir / BACKFILL_WORKFLOW).read_text(encoding="utf-8")
+    )
+
+    paths = workflow[True]["pull_request"]["paths"]
+
+    assert (
+        str(Path(".github/workflows") / BACKFILL_WORKFLOW).replace("\\", "/") in paths
+    )
+    scripts_dir = repo_root / ".github" / "scripts"
+    assert scripts_dir.is_dir()
+    assert any(
+        script.name == "inject_outdated_banner.py" for script in scripts_dir.iterdir()
+    )
+    assert ".github/scripts/inject_outdated_banner.py" in paths
+
+
+def test_backfill_only_commits_on_a_real_dispatch(workflow_step: StepLookup) -> None:
+    """Never push gh-pages from a PR dry run — only an explicit workflow_dispatch."""
+    commit_step = workflow_step(BACKFILL_WORKFLOW, "backfill", COMMIT_STEP)
+
+    assert commit_step["if"] == "github.event_name == 'workflow_dispatch'"

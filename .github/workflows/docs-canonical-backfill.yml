@@ -6,8 +6,14 @@
 # dependencies — so they keep competing with /latest/ in search and AI answer engines
 # until their published HTML is rewritten in place. This job does that rewrite.
 #
-# Manual trigger only. Safe to re-run: rewriting an already-correct file is a no-op.
-# Every run that changes something first pushes the pre-rewrite gh-pages tip to a
+# Two trigger modes:
+#   workflow_dispatch — the real run: rewrites, commits, and pushes gh-pages.
+#   pull_request (only when this workflow or the banner script itself changes) — a dry
+#     run that does everything except the final commit/push, so the diff is visible on
+#     the PR before the logic that produces it merges.
+#
+# Safe to re-run: rewriting an already-correct file is a no-op. Every dispatch run that
+# changes something first pushes the pre-rewrite gh-pages tip to a
 # `gh-pages-backup-<timestamp>` branch, named in the job summary; delete that branch
 # once the published site is verified.
 
@@ -20,13 +26,20 @@ on:
         description: "Type BACKFILL to rewrite canonical tags on the gh-pages branch"
         required: true
         default: ""
+  pull_request:
+    paths:
+      - .github/workflows/docs-canonical-backfill.yml
+      - .github/scripts/inject_outdated_banner.py
 
 permissions:
   contents: write
 
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
+  # Real dispatch runs share one lock so two never race pushing gh-pages at once. PR
+  # dry runs get their own per-ref lock instead: they push nothing, so collisions are
+  # harmless, and sharing the dispatch lock would queue a real backfill behind CI.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || 'dispatch' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backfill:
@@ -35,6 +48,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 🔒 Check confirmation
+        if: github.event_name == 'workflow_dispatch'
         run: |
           if [[ "${{ inputs.confirm }}" != "BACKFILL" ]]; then
             echo "::error::Confirmation input must be exactly 'BACKFILL'"
@@ -45,6 +59,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: gh-pages
+
+      # A second checkout, into a subdirectory so it does not clobber the gh-pages
+      # tree above: the banner script lives in the source tree, not on gh-pages.
+      - name: 📥 Checkout banner script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+          path: _scripts
 
       - name: 🔗 Rewrite canonical tags
         run: |
@@ -65,7 +88,7 @@ jobs:
           # only reaches trees mike rebuilds — an archived version's tag may not build
           # against today's dependencies, so a rebuild is not an option (see header).
           # Patch the empty banner div these already-published pages carry instead.
-          python3 "$GITHUB_WORKSPACE/.github/scripts/inject_outdated_banner.py" .
+          python3 "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
           git diff --stat | tail -5
 
       - name: 🔎 Report canonicals with no page under latest/
@@ -113,6 +136,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 📤 Commit and push
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
