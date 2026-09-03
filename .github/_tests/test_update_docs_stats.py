@@ -25,7 +25,7 @@ def pr_step(refresh_steps: list[dict[str, Any]]) -> dict[str, Any]:
     return next(step for step in refresh_steps if action in step.get("uses", ""))
 
 
-def seed_targets(tmp_path: Path, phrase: str = "38,000+ GitHub stars") -> Path:
+def _seed_targets(tmp_path: Path, phrase: str = "38,000+ GitHub stars") -> Path:
     """Write every contract target under a temporary root and return that root."""
     docs = tmp_path / "docs"
     docs.mkdir()
@@ -40,7 +40,7 @@ def seed_targets(tmp_path: Path, phrase: str = "38,000+ GitHub stars") -> Path:
 @pytest.fixture
 def seeded_updater(updater: ModuleType, tmp_path: Path) -> ModuleType:
     """Point the updater at a temporary copy of every file it rewrites."""
-    updater.__dict__["REPO_ROOT"] = seed_targets(tmp_path)
+    updater.__dict__["REPO_ROOT"] = _seed_targets(tmp_path)
     return updater
 
 
