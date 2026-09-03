@@ -66,13 +66,12 @@ ARCHIVED_TEXT = (
     f'<a href="{LATEST_URL}"><strong>latest stable release</strong></a> instead.'
 )
 
-# Mirrors the unhide script Material emits alongside the banner: mike's version
-# selector sets the "__outdated" sessionStorage flag, and this reveals the aside for
-# any reader who did not land straight on /latest/.
+# The backfill only patches develop and archived numeric trees, both of which need the
+# warning visible. Reveal the injected wrapper directly; a relative URL has no base
+# in `new URL()` and would abort this inline script before it reaches the banner.
 _UNHIDE_SCRIPT = (
-    '<script>var el=document.querySelector("[data-md-component=outdated]"),'
-    'base=new URL("."),outdated=__md_get("__outdated",sessionStorage,base);'
-    "!0===outdated&&el&&(el.hidden=!1)</script>"
+    '<script>var el=document.querySelector("[data-md-component=outdated]");'
+    "el&&(el.hidden=!1)</script>"
 )
 
 

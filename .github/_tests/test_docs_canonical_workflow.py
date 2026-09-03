@@ -194,6 +194,22 @@ def test_inject_banner_populates_the_empty_div(
     assert patched.count("</div>") == EMPTY_BANNER_DIV.count("</div>") + 1
 
 
+def test_inject_banner_emits_a_valid_direct_unhide_script(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Avoid a relative URL constructor that aborts the injected banner script."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+
+    module.patch_tree(tmp_path)
+
+    patched = page.read_text()
+    assert 'new URL(".")' not in patched
+    assert "el&&(el.hidden=!1)" in patched
+
+
 def test_inject_banner_skips_latest_and_already_patched_pages(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
