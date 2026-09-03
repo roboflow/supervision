@@ -43,7 +43,7 @@ jobs:
           activate-environment: true
 
       - name: 🏗️ Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --group docs
 
       - name: 🧪 Run script tests and doctests
         run: uv run pytest .github/_tests .github/scripts --doctest-modules -q

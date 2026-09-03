@@ -91,7 +91,7 @@ class TestValidateManifest:
         """
         manifest = repo_root / "tests" / "cv2" / "installed_wheel_fallback_manifest.txt"
 
-        assert _validate_manifest(manifest) is None
+        _validate_manifest(manifest)
 
     def test_rejects_an_incomplete_manifest(self, tmp_path: Path) -> None:
         """A manifest missing expected checks is a hard error, not a silent pass."""
