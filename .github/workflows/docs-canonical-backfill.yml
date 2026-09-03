@@ -82,13 +82,14 @@ jobs:
           done
           git diff --stat | tail -5
 
-      - name: 🏷️ Inject outdated-version banner markup and styling
+      - name: 🏷️ Inject outdated-version banner markup, styling, and offset script
         run: |
-          # docs/theme/main.html and docs/stylesheets/extra.css have rendered and
-          # styled this banner since 403f35a1, but that only reaches trees mike
+          # docs/theme/main.html, docs/stylesheets/extra.css, and
+          # docs/javascripts/version-banner.js have rendered, styled, and offset the
+          # header below this banner since 403f35a1, but that only reaches trees mike
           # rebuilds — an archived version's tag may not build against today's
-          # dependencies, so a rebuild is not an option (see header). Patch the
-          # empty banner div, and its frozen per-version stylesheet, in place instead.
+          # dependencies, so a rebuild is not an option (see header). Patch the empty
+          # banner div, its frozen per-version stylesheet, and its script list.
           python3 "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
           git diff --stat | tail -5
 

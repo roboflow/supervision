@@ -16,7 +16,9 @@ StepLookup = Callable[[str, str, str], dict[str, Any]]
 
 BACKFILL_WORKFLOW = "docs-canonical-backfill.yml"
 REWRITE_STEP = "\N{LINK SYMBOL} Rewrite canonical tags"
-BANNER_STEP = "\U0001f3f7️ Inject outdated-version banner markup and styling"
+BANNER_STEP = (
+    "\U0001f3f7️ Inject outdated-version banner markup, styling, and offset script"
+)
 REPORT_STEP = (
     "\N{RIGHT-POINTING MAGNIFYING GLASS} Report canonicals with no page under latest/"
 )
@@ -323,6 +325,78 @@ def test_patch_stylesheets_replaces_stale_css_on_rerun(
     patched = css_file.read_text()
     assert "background: purple" in patched
     assert patched.count("sv:outdated-banner:start") == 1
+
+
+def test_patch_scripts_copies_and_references_the_offset_script_at_page_root(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A version-root page gets version-banner.js copied in and referenced directly.
+
+    Without this script the banner still sticks (pure CSS alone), but the header
+    can briefly overlap it before a reader scrolls, since nothing else offsets it.
+    """
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body><p>content</p></body></html>")
+
+    changed = module.patch_scripts(tmp_path)
+
+    js_file = tmp_path / "0.10.0" / "javascripts" / "version-banner.js"
+    assert set(changed) == {js_file, page}
+    assert js_file.read_text() == module.VERSION_BANNER_JS
+    assert '<script src="javascripts/version-banner.js"></script>' in page.read_text()
+
+
+def test_patch_scripts_uses_a_relative_path_for_a_nested_page(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A page two directories deep references the script back up to the version root."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "how_to" / "detect_and_annotate" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body><p>content</p></body></html>")
+
+    module.patch_scripts(tmp_path)
+
+    assert (
+        '<script src="../../javascripts/version-banner.js"></script>'
+        in page.read_text()
+    )
+
+
+def test_patch_scripts_skips_a_page_that_already_references_the_script(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Never insert a second script tag into a page a prior run already patched."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = (
+        '<html><body><script src="javascripts/version-banner.js"></script>'
+        "</body></html>"
+    )
+    page.write_text(original)
+
+    changed = module.patch_scripts(tmp_path)
+
+    assert page not in changed
+    assert page.read_text().count("version-banner.js") == 1
+
+
+def test_patch_scripts_skips_develop(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave develop untouched: it rebuilds every push, already carrying the script."""
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "develop" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body><p>content</p></body></html>")
+
+    changed = module.patch_scripts(tmp_path)
+
+    assert changed == []
+    assert not (tmp_path / "develop" / "javascripts" / "version-banner.js").exists()
 
 
 def test_backfill_triggers_on_pull_request_touching_its_own_files(

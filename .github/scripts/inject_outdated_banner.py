@@ -3,19 +3,21 @@
 Purpose:
     Populate the empty ``data-md-component="outdated"`` banner div that archived
     version trees already carry, and give it the same purple/centered/sticky styling
-    ``docs/stylesheets/extra.css`` gives it, so readers of old docs see the same
-    warning ``docs/theme/main.html`` renders for trees built after 403f35a1 — not
-    Material's default yellow, left-aligned, non-sticky banner.
+    and header-offset behavior ``docs/stylesheets/extra.css`` and
+    ``docs/javascripts/version-banner.js`` give it, so readers of old docs see the
+    same warning ``docs/theme/main.html`` renders for trees built after 403f35a1 —
+    not Material's default yellow, left-aligned banner with the header overlapping it.
 Scope:
     ``mike`` never rebuilds an archived version tree, and the pinned dependencies a
     given tag was built with may not resolve today, so regenerating those trees is
     not an option (see ``.github/workflows/docs-canonical-backfill.yml``). This patches
-    the static HTML and CSS directly instead, the same way that workflow's
+    the static HTML, CSS, and JS directly instead, the same way that workflow's
     canonical-tag rewrite patches HTML. The banner div is patched under ``develop``
-    too (harmless no-op once that tree carries a real build); the styling is only
-    patched under numeric version directories, since each ships its own frozen
-    ``stylesheets/extra.css`` while ``develop`` rebuilds on every push and already
-    carries the current rules natively. ``latest`` is never touched.
+    too (harmless no-op once that tree carries a real build); the styling and script
+    are only patched under numeric version directories, since each ships its own
+    frozen ``stylesheets/extra.css`` and ``extra_javascript`` list while ``develop``
+    rebuilds on every push and already carries both natively. ``latest`` is never
+    touched.
 Usage:
     Run ``python .github/scripts/inject_outdated_banner.py <gh-pages checkout root>``.
     Safe to re-run: previously injected content is replaced in place (so wording or
@@ -188,14 +190,168 @@ def patch_stylesheets(root: Path) -> list[Path]:
     return changed
 
 
+# Verbatim copy of docs/javascripts/version-banner.js: it publishes the banner's
+# height as a CSS variable and nudges the sticky header/sidebars below it, so an
+# archived page without it still gets a sticky banner (pure CSS) but the header can
+# briefly overlap it before a reader scrolls. Hardcoded for the same reason as
+# BANNER_CSS above — keep in sync if that file changes.
+VERSION_BANNER_JS = """/*
+ * Publishes the height of the version banner as a CSS variable.
+ *
+ * The banner is pinned to the top of the viewport, so the sticky header and
+ * sidebars have to start below it instead of scrolling underneath. Its height
+ * cannot be hardcoded: the banner wraps at different viewport widths and stays
+ * hidden entirely on the latest release docs.
+ */
+(() => {
+  const banner = document.querySelector("[data-md-component=outdated]");
+  if (!banner) {
+    return;
+  }
+
+  const sidebarLayouts = new WeakMap();
+  const sidebarBreakpoints = {
+    navigation: window.matchMedia("(min-width: 76.25em)"),
+    toc: window.matchMedia("(min-width: 60em)"),
+  };
+
+  const syncSidebar = (sidebar, bannerHeight) => {
+    const scrollwrap = sidebar.querySelector(".md-sidebar__scrollwrap");
+    const breakpoint = sidebarBreakpoints[sidebar.dataset.mdType];
+    if (!scrollwrap || !breakpoint) {
+      return;
+    }
+
+    const layout = sidebarLayouts.get(sidebar) ?? {
+      adjustedHeight: "",
+      adjustedTop: "",
+      baseHeight: "",
+      baseTop: "",
+    };
+    if (sidebar.style.top !== layout.adjustedTop) {
+      layout.baseTop = sidebar.style.top;
+    }
+    if (scrollwrap.style.height !== layout.adjustedHeight) {
+      layout.baseHeight = scrollwrap.style.height;
+    }
+
+    if (!breakpoint.matches) {
+      if (sidebar.style.top === layout.adjustedTop) {
+        sidebar.style.top = layout.baseTop;
+      }
+      if (scrollwrap.style.height === layout.adjustedHeight) {
+        scrollwrap.style.height = layout.baseHeight;
+      }
+      layout.adjustedTop = "";
+      layout.adjustedHeight = "";
+      sidebarLayouts.set(sidebar, layout);
+      return;
+    }
+
+    const baseTop = Number.parseFloat(layout.baseTop);
+    const baseHeight = Number.parseFloat(layout.baseHeight);
+    if (!Number.isFinite(baseTop) || !Number.isFinite(baseHeight)) {
+      sidebarLayouts.set(sidebar, layout);
+      return;
+    }
+
+    layout.adjustedTop = `${baseTop + bannerHeight}px`;
+    layout.adjustedHeight = `${baseHeight - bannerHeight}px`;
+    if (sidebar.style.top !== layout.adjustedTop) {
+      sidebar.style.top = layout.adjustedTop;
+    }
+    if (scrollwrap.style.height !== layout.adjustedHeight) {
+      scrollwrap.style.height = layout.adjustedHeight;
+    }
+    sidebarLayouts.set(sidebar, layout);
+  };
+
+  const syncSidebarLayout = () => {
+    const bannerHeight = banner.hidden ? 0 : banner.offsetHeight;
+    const sidebars = document.querySelectorAll("[data-md-component=sidebar]");
+    for (const sidebar of sidebars) {
+      syncSidebar(sidebar, bannerHeight);
+    }
+  };
+
+  const publishHeight = () => {
+    const height = banner.hidden ? 0 : banner.offsetHeight;
+    document.documentElement.style.setProperty(
+      "--sv-banner-height",
+      `${height}px`,
+    );
+    syncSidebarLayout();
+  };
+
+  publishHeight();
+  // Width changes reflow the text; Material flips `hidden` once its version
+  // check decides the build is outdated, which is after this script runs.
+  new ResizeObserver(publishHeight).observe(banner);
+  new MutationObserver(publishHeight).observe(banner, {
+    attributeFilter: ["hidden"],
+    attributes: true,
+  });
+  const sidebarObserver = new MutationObserver(syncSidebarLayout);
+  for (const sidebar of document.querySelectorAll("[data-md-component=sidebar]")) {
+    sidebarObserver.observe(sidebar, {
+      attributeFilter: ["style"],
+      attributes: true,
+      subtree: true,
+    });
+  }
+  for (const breakpoint of Object.values(sidebarBreakpoints)) {
+    breakpoint.addEventListener("change", syncSidebarLayout);
+  }
+})();
+"""
+
+
+def _relative_prefix(html_file: Path, version_dir: Path) -> str:
+    """Return the "../" chain from `html_file`'s directory back to `version_dir`."""
+    depth = len(html_file.parent.relative_to(version_dir).parts)
+    return "../" * depth
+
+
+def patch_scripts(root: Path) -> list[Path]:
+    """Copy version-banner.js into each archived version, referenced from every page.
+
+    Without it the banner still sticks (pure CSS), but the header can briefly
+    overlap it before a reader scrolls, since nothing offsets the header below it.
+    Returns the files that were changed, for the caller to report against.
+    """
+    changed: list[Path] = []
+    for version_dir in _archived_version_dirs(root):
+        js_file = version_dir / "javascripts" / "version-banner.js"
+        if not js_file.is_file() or js_file.read_text(encoding="utf-8") != (
+            VERSION_BANNER_JS
+        ):
+            js_file.parent.mkdir(parents=True, exist_ok=True)
+            js_file.write_text(VERSION_BANNER_JS, encoding="utf-8")
+            changed.append(js_file)
+
+        for html_file in version_dir.rglob("*.html"):
+            original = html_file.read_text(encoding="utf-8")
+            if "javascripts/version-banner.js" in original:
+                continue
+            prefix = _relative_prefix(html_file, version_dir)
+            tag = f'    <script src="{prefix}javascripts/version-banner.js"></script>\n'
+            patched, count = re.subn(r"</body>", tag + "</body>", original, count=1)
+            if count:
+                html_file.write_text(patched, encoding="utf-8")
+                changed.append(html_file)
+    return changed
+
+
 def main() -> int:
     """Entry point: patch the tree at `root` and report how many files changed."""
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path()
     changed_html = patch_tree(root)
     changed_css = patch_stylesheets(root)
+    changed_js = patch_scripts(root)
     print(
         f"patched {len(changed_html)} page(s) with banner markup, "
-        f"{len(changed_css)} stylesheet(s) with banner styling"
+        f"{len(changed_css)} stylesheet(s) with banner styling, "
+        f"{len(changed_js)} file(s) with the sticky-offset script"
     )
     return 0
 
