@@ -96,7 +96,7 @@ jobs:
               echo "None — every rewritten canonical resolves to a published page."
             else
               echo "$missing_count path(s) do not exist under \`latest/\`:"
-              printf '%s' "$missing" | sed 's|^|- `|; s|$|`|' | head -20
+              printf '%s' "$missing" | sed 's|^|- `|; s|$|`|' | sed -n '1,20p'
               if [[ "$missing_count" -gt 20 ]]; then
                 echo "- … and $((missing_count - 20)) more"
               fi
