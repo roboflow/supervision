@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / ".github/scripts/update_docs_stats.py"
@@ -114,23 +116,42 @@ def test_apply_updates_rejects_a_target_without_its_required_marker(
         updater.apply_updates(39_750, check_only=False)
 
 
-def test_workflow_tracks_existing_monthly_branch_before_using_its_lease() -> None:
-    """Require reruns to fetch and lease against the existing monthly branch."""
-    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+def _pr_step() -> dict:
+    """Return the create-pull-request step of the docs-stats refresh workflow."""
+    workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["refresh"]["steps"]
+    action = "peter-evans/create-pull-request"
+    return next(step for step in steps if action in step.get("uses", ""))
 
-    probe = 'git ls-remote --exit-code --heads origin "$BRANCH"'
-    fetch = 'git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"'
-    switch = 'git switch --create "$BRANCH" --track "origin/$BRANCH"'
-    apply = "python .github/scripts/update_docs_stats.py"
-    lease = (
-        '--force-with-lease="refs/heads/$BRANCH:'
-        '$(git rev-parse "refs/remotes/origin/$BRANCH")"'
+
+def test_workflow_opens_its_pull_request_after_applying_the_star_count() -> None:
+    """A PR raised before the rewrite would carry the previous month's numbers."""
+    workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["refresh"]["steps"]
+
+    apply_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "update_docs_stats.py" in step.get("run", "")
     )
+    pr_index = steps.index(_pr_step())
 
-    assert workflow.index(probe) < workflow.index(fetch) < workflow.index(switch)
-    assert workflow.index(switch) < workflow.index(apply)
-    assert workflow.index(fetch) < workflow.index(lease)
-    assert 'git switch --create "$BRANCH"' in workflow
+    assert apply_index < pr_index
+
+
+def test_workflow_stages_every_target_the_updater_rewrites() -> None:
+    """A target added to the updater but not to add-paths would never reach the PR."""
+    updater = load_updater()
+    staged = set(_pr_step()["with"]["add-paths"].split())
+
+    assert staged == {*updater.PROSE_FILES, updater.MKDOCS_FILE}
+
+
+def test_workflow_pins_the_pull_request_action_to_a_commit() -> None:
+    """A floating tag lets a third party change what runs with write permissions."""
+    _, _, ref = _pr_step()["uses"].partition("@")
+
+    assert re.fullmatch(r"[0-9a-f]{40}", ref)
 
 
 def test_rewrite_prose_preserves_a_linked_star_label(tmp_path: Path) -> None:
