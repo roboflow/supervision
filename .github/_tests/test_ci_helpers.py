@@ -84,16 +84,12 @@ class TestAugmentLinksInFile:
 class TestValidateManifest:
     """Guard on the wheel smoke-test manifest."""
 
-    def test_accepts_the_checked_in_manifest(self) -> None:
+    def test_accepts_the_checked_in_manifest(self, repo_root: Path) -> None:
         """The production fallback contract contains every required check exactly once.
 
         This pins the happy path alongside the invalid-manifest guard.
         """
-        manifest = (
-            Path(__file__).resolve().parents[1]
-            / "cv2"
-            / "installed_wheel_fallback_manifest.txt"
-        )
+        manifest = repo_root / "tests" / "cv2" / "installed_wheel_fallback_manifest.txt"
 
         assert _validate_manifest(manifest) is None
 

@@ -8,6 +8,7 @@ here keeps the loader, and the repository paths it depends on, in a single place
 from __future__ import annotations
 
 import importlib.util
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
@@ -17,6 +18,9 @@ import pytest
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR: Path = REPO_ROOT / ".github" / "scripts"
 WORKFLOWS_DIR: Path = REPO_ROOT / ".github" / "workflows"
+
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 @pytest.fixture(autouse=True)

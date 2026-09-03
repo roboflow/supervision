@@ -11,12 +11,12 @@ on:
     branches: [main, develop]
     paths:
       - ".github/scripts/**"
-      - "tests/github_scripts/**"
+      - ".github/_tests/**"
       - ".github/workflows/ci-scripts.yml"
   pull_request:
     paths:
       - ".github/scripts/**"
-      - "tests/github_scripts/**"
+      - ".github/_tests/**"
       - ".github/workflows/ci-scripts.yml"
   workflow_dispatch:
 
@@ -46,4 +46,4 @@ jobs:
         run: uv sync --frozen --group dev
 
       - name: 🧪 Run script tests and doctests
-        run: uv run pytest tests/github_scripts .github/scripts --doctest-modules -q
+        run: uv run pytest .github/_tests .github/scripts --doctest-modules -q
