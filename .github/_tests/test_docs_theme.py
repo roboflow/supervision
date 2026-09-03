@@ -2,6 +2,9 @@
 
 import json
 import re
+import shutil
+import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -92,6 +95,132 @@ def test_version_banner_matches_mike_version(
             else "unreleased development version"
         )
         assert other_text not in html
+
+
+def _run_version_banner_layout_script(source: str) -> subprocess.CompletedProcess[str]:
+    """Run the banner script against Material-style sidebar layout changes."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("version-banner layout test requires Node.js")
+
+    harness = f"""
+const source = {json.dumps(source)};
+const mutationObservers = [];
+const navigation = {{
+  matches: true,
+  listeners: [],
+  addEventListener(_event, listener) {{ this.listeners.push(listener); }},
+  dispatch() {{ this.listeners.forEach((listener) => listener()); }},
+}};
+const toc = {{
+  matches: true,
+  listeners: [],
+  addEventListener(_event, listener) {{ this.listeners.push(listener); }},
+  dispatch() {{ this.listeners.forEach((listener) => listener()); }},
+}};
+const makeSidebar = (type, top, height) => {{
+  const scrollwrap = {{ style: {{ height }} }};
+  return {{
+    dataset: {{ mdType: type }},
+    style: {{ top }},
+    querySelector(selector) {{
+      return selector === ".md-sidebar__scrollwrap" ? scrollwrap : null;
+    }},
+    scrollwrap,
+  }};
+}};
+const navigationSidebar = makeSidebar("navigation", "48px", "600px");
+const tocSidebar = makeSidebar("toc", "24px", "500px");
+const banner = {{ hidden: false, offsetHeight: 32 }};
+global.window = {{
+  matchMedia: (query) => (query.includes("76.25") ? navigation : toc),
+}};
+global.document = {{
+  documentElement: {{ style: {{ setProperty() {{}} }} }},
+  querySelector: (selector) => (
+    selector === "[data-md-component=outdated]" ? banner : null
+  ),
+  querySelectorAll: (selector) => (
+    selector === "[data-md-component=sidebar]" ? [navigationSidebar, tocSidebar] : []
+  ),
+}};
+global.ResizeObserver = class {{
+  constructor(_callback) {{}}
+  observe() {{}}
+}};
+global.MutationObserver = class {{
+  constructor(callback) {{
+    this.callback = callback;
+    mutationObservers.push(this);
+  }}
+  observe() {{}}
+}};
+
+eval(source);
+if (
+  navigationSidebar.style.top !== "80px" ||
+  navigationSidebar.scrollwrap.style.height !== "568px"
+) {{
+  throw new Error("navigation sidebar did not receive the banner adjustment");
+}}
+if (
+  tocSidebar.style.top !== "56px" ||
+  tocSidebar.scrollwrap.style.height !== "468px"
+) {{
+  throw new Error("toc sidebar did not receive the banner adjustment");
+}}
+
+navigationSidebar.style.top = "64px";
+navigationSidebar.scrollwrap.style.height = "620px";
+tocSidebar.style.top = "40px";
+tocSidebar.scrollwrap.style.height = "520px";
+mutationObservers.at(-1).callback();
+if (
+  navigationSidebar.style.top !== "96px" ||
+  navigationSidebar.scrollwrap.style.height !== "588px"
+) {{
+  throw new Error("navigation Material relayout was not rebased");
+}}
+if (
+  tocSidebar.style.top !== "72px" ||
+  tocSidebar.scrollwrap.style.height !== "488px"
+) {{
+  throw new Error("toc Material relayout was not rebased");
+}}
+
+navigation.matches = false;
+toc.matches = false;
+navigation.dispatch();
+toc.dispatch();
+if (
+  navigationSidebar.style.top !== "64px" ||
+  navigationSidebar.scrollwrap.style.height !== "620px"
+) {{
+  throw new Error("navigation sidebar was not restored for mobile");
+}}
+if (
+  tocSidebar.style.top !== "40px" ||
+  tocSidebar.scrollwrap.style.height !== "520px"
+) {{
+  throw new Error("toc sidebar was not restored for mobile");
+}}
+"""
+    return subprocess.run(
+        [node, "--input-type=commonjs", "--eval", harness],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def test_version_banner_integrates_material_sidebar_layout() -> None:
+    """Keep desktop sidebar offsets inline without shifting the mobile drawer."""
+    repository_root = Path(__file__).parents[2]
+    source = (repository_root / "docs/javascripts/version-banner.js").read_text()
+
+    completed = _run_version_banner_layout_script(source)
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_search_action_normalizes_mike_site_url(

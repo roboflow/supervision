@@ -304,14 +304,6 @@ th, td {
   top: var(--sv-banner-height, 0px);
 }
 
-.md-sidebar {
-  top: calc(2.4rem + var(--sv-banner-height, 0px));
-}
-
-.md-header--lifted ~ .md-container .md-sidebar {
-  top: calc(4.8rem + var(--sv-banner-height, 0px));
-}
-
 /* White chip so `develop` stays readable on the tinted banner. */
 .md-banner code {
   background: white;
