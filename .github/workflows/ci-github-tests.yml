@@ -28,5 +28,5 @@ jobs:
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group dev --group docs
 
-      - name: 🧪 Run GitHub configuration tests
-        run: uv run pytest .github/_tests -q
+      - name: 🧪 Run GitHub configuration tests and script doctests
+        run: uv run pytest .github/_tests .github/scripts --doctest-modules -q
