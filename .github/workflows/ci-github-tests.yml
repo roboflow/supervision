@@ -1,0 +1,32 @@
+name: Test GitHub Configuration
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test GitHub configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🐍 Install uv and set Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.10"
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: uv sync --frozen --group dev --group docs
+
+      - name: 🧪 Run GitHub configuration tests
+        run: uv run pytest .github/_tests -q
