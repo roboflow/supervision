@@ -49,6 +49,87 @@ def test_deploy_steps_export_the_version_they_deploy(
     assert step["env"]["MIKE_DOCS_VERSION"] == expected_version
 
 
+def test_release_deploy_step_forwards_is_latest_release(
+    workflow_step: StepLookup,
+) -> None:
+    """The release deploy step passes through the is-latest-release verdict.
+
+    A release tag's own docs tree must know whether it is the newest stable
+    release to suppress its own outdated-version banner (see
+    `docs/theme/main.html`'s `is_latest_release` check) — this wiring is what a
+    future refactor could silently drop.
+    """
+    step = workflow_step(
+        PUBLISH_WORKFLOW, PUBLISH_JOB, "\N{ROCKET} Deploy Release Docs"
+    )
+
+    assert (
+        step["env"]["MIKE_IS_LATEST_RELEASE"]
+        == "${{ steps.release_metadata.outputs.is_latest_release }}"
+    )
+
+
+def test_release_metadata_step_computes_is_latest_release(
+    workflow_step: StepLookup,
+) -> None:
+    """The metadata step delegates the version comparison to the shared script.
+
+    Keeps the workflow YAML and the comparison logic from drifting apart, since
+    `.github/_tests/test_compute_is_latest_release.py` covers the comparison
+    itself and this test only covers that the workflow actually calls it.
+    """
+    step = workflow_step(
+        PUBLISH_WORKFLOW,
+        PUBLISH_JOB,
+        "\N{LABEL}\N{VARIATION SELECTOR-16} Determine release deployment metadata",
+    )
+
+    assert "compute_is_latest_release.py" in step["run"]
+    assert 'echo "is_latest_release=$is_latest_release"' in step["run"]
+
+
+ARCHIVE_STEP = (
+    "\N{FILE CABINET}\N{VARIATION SELECTOR-16} "
+    "Archive the previously-latest release's docs tree"
+)
+
+
+def test_archive_step_only_runs_when_this_release_is_the_new_latest(
+    workflow_step: StepLookup,
+) -> None:
+    """A backport release for an older line must not touch the real /latest/ tree.
+
+    Only promoting a release to the newest actually demotes something — a patch
+    release for an older minor line leaves the current /latest/ untouched, so
+    nothing needs archiving.
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
+
+    assert step["if"] == (
+        "github.event_name == 'release' && github.event.action == 'published' && "
+        "steps.release_metadata.outputs.is_rc != 'true' && "
+        "steps.release_metadata.outputs.is_latest_release == 'true'"
+    )
+
+
+def test_archive_step_runs_the_banner_script_in_banner_only_mode(
+    workflow_step: StepLookup,
+) -> None:
+    """The demoted tree's own CSS/JS are already genuine — only its text is stale.
+
+    `--banner-only` skips `patch_stylesheets`/`patch_scripts`, which would
+    otherwise append a redundant second copy of banner rules the tree already
+    carries (see the script's own docstring and
+    `.github/_tests/test_docs_backfill_workflow.py`'s
+    `test_main_without_banner_only_duplicates_genuine_css`).
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
+
+    assert "inject_outdated_banner.py --banner-only ." in step["run"]
+    assert "git checkout gh-pages" in step["run"]
+    assert "git push origin gh-pages" in step["run"]
+
+
 def test_every_mike_deploy_step_exports_the_banner_version(
     workflows_dir: Path,
 ) -> None:
