@@ -20,12 +20,17 @@ def _render_docs_theme(
     monkeypatch: pytest.MonkeyPatch,
     version: str,
     github_stars: int | None = 49848,
+    is_latest_release: bool = False,
 ) -> str:
     """Render the custom theme with the same config transformation Mike deploys."""
     if version:
         monkeypatch.setenv("MIKE_DOCS_VERSION", version)
     else:
         monkeypatch.delenv("MIKE_DOCS_VERSION", raising=False)
+    if is_latest_release:
+        monkeypatch.setenv("MIKE_IS_LATEST_RELEASE", "true")
+    else:
+        monkeypatch.delenv("MIKE_IS_LATEST_RELEASE", raising=False)
 
     config = mike_mkdocs_utils.load_config()
     config.extra["github_stars"] = github_stars
@@ -64,21 +69,32 @@ def _json_ld_by_type(html: str) -> dict[str, dict[str, Any]]:
 
 
 @pytest.mark.parametrize(
-    ("version", "expected_text"),
+    ("version", "is_latest_release", "expected_text"),
     [
-        pytest.param("", None, id="plain-build"),
-        pytest.param("latest", None, id="latest"),
-        pytest.param("develop", "unreleased development version", id="development"),
-        pytest.param("0.30.0", "older version", id="historic"),
+        pytest.param("", False, None, id="plain-build"),
+        pytest.param("latest", False, None, id="latest"),
+        pytest.param(
+            "develop", False, "unreleased development version", id="development"
+        ),
+        pytest.param("0.30.0", False, "older version", id="historic"),
+        pytest.param("0.30.2", True, None, id="current-release"),
     ],
 )
 def test_version_banner_matches_mike_version(
     monkeypatch: pytest.MonkeyPatch,
     version: str,
+    is_latest_release: bool,
     expected_text: str | None,
 ) -> None:
-    """Render warnings only for development and archived documentation."""
-    html = _render_docs_theme(monkeypatch, version)
+    """Render warnings only for development and archived documentation.
+
+    The `current-release` case guards the bug where a release's own docs tree
+    warned its own readers away from itself: `mike deploy <tag>` always sets
+    `doc_version` to the literal tag, never to `"latest"`, so without the
+    `is_latest_release` override every numbered version — including the one
+    `/latest/` currently serves — showed the archived-version banner.
+    """
+    html = _render_docs_theme(monkeypatch, version, is_latest_release=is_latest_release)
 
     if expected_text is None:
         assert "unreleased development version" not in html
