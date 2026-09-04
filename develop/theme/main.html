@@ -15,14 +15,21 @@
    the aside server-side and unhides it client-side, so the text stays in the HTML for
    crawlers and AI answer engines that never run JavaScript. Emitting it only when
    mike is deploying something other than latest keeps that warning off /latest/ —
-   an empty block makes Material skip the aside entirely. #}
+   an empty block makes Material skip the aside entirely. is_latest_release further
+   exempts the numbered version tree that happens to be the newest release: mike
+   deploy sets doc_version to that release's own tag, never to "latest", so without
+   this exemption the current release would warn its own readers away from itself. #}
 {% block outdated %}
 {% set doc_version = config.extra.doc_version | d("", true) %}
+{# mkdocs's !ENV tag re-parses "true"/"false" as YAML booleans, unlike doc_version's
+   free-form string, so this is used for truthiness directly rather than compared
+   against a literal string. #}
+{% set is_latest_release = config.extra.is_latest_release %}
 {% set latest_url = config.site_url | d('https://supervision.roboflow.com/latest/', true) %}
 {% if doc_version == "develop" %}
 You are reading the unreleased development version of the documentation, built from the <code>develop</code> branch.<br>
 APIs described here may change or may never ship in a release, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
-{% elif doc_version and doc_version != "latest" %}
+{% elif doc_version and doc_version != "latest" and not is_latest_release %}
 You are reading the documentation for an older version of Supervision, kept online for reference.<br>
 APIs described here may have changed or been removed, so use the <a href="{{ latest_url }}"><strong>latest stable release</strong></a> instead.
 {% endif %}
