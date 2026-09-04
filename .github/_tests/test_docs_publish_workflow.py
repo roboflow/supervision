@@ -49,6 +49,45 @@ def test_deploy_steps_export_the_version_they_deploy(
     assert step["env"]["MIKE_DOCS_VERSION"] == expected_version
 
 
+def test_release_deploy_step_forwards_is_latest_release(
+    workflow_step: StepLookup,
+) -> None:
+    """The release deploy step passes through the is-latest-release verdict.
+
+    A release tag's own docs tree must know whether it is the newest stable
+    release to suppress its own outdated-version banner (see
+    `docs/theme/main.html`'s `is_latest_release` check) — this wiring is what a
+    future refactor could silently drop.
+    """
+    step = workflow_step(
+        PUBLISH_WORKFLOW, PUBLISH_JOB, "\N{ROCKET} Deploy Release Docs"
+    )
+
+    assert (
+        step["env"]["MIKE_IS_LATEST_RELEASE"]
+        == "${{ steps.release_metadata.outputs.is_latest_release }}"
+    )
+
+
+def test_release_metadata_step_computes_is_latest_release(
+    workflow_step: StepLookup,
+) -> None:
+    """The metadata step delegates the version comparison to the shared script.
+
+    Keeps the workflow YAML and the comparison logic from drifting apart, since
+    `.github/_tests/test_compute_is_latest_release.py` covers the comparison
+    itself and this test only covers that the workflow actually calls it.
+    """
+    step = workflow_step(
+        PUBLISH_WORKFLOW,
+        PUBLISH_JOB,
+        "\N{LABEL}\N{VARIATION SELECTOR-16} Determine release deployment metadata",
+    )
+
+    assert "compute_is_latest_release.py" in step["run"]
+    assert 'echo "is_latest_release=$is_latest_release"' in step["run"]
+
+
 def test_every_mike_deploy_step_exports_the_banner_version(
     workflows_dir: Path,
 ) -> None:

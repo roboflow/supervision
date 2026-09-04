@@ -83,6 +83,7 @@ jobs:
         run: |
           is_rc=false
           release_tag=""
+          is_latest_release=false
           if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
             release_tag="${GITHUB_REF_NAME#v}"
             release_tag="${release_tag%.post*}"
@@ -91,15 +92,23 @@ jobs:
             if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
               is_rc=true
             fi
+            # An rc never gates the outdated banner (it is never deployed below), and
+            # the comparison needs full tag history — see actions/checkout fetch-depth: 0
+            # at the top of this job.
+            if [[ "$is_rc" != "true" ]]; then
+              is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
+            fi
           fi
           echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "is_latest_release=$is_latest_release" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
           MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
+          MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
           mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
 
