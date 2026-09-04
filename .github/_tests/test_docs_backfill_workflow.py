@@ -574,3 +574,83 @@ def test_backfill_only_commits_on_a_real_dispatch(workflow_step: StepLookup) -> 
     commit_step = workflow_step(BACKFILL_WORKFLOW, "backfill", COMMIT_STEP)
 
     assert commit_step["if"] == "github.event_name == 'workflow_dispatch'"
+
+
+def _write_genuinely_built_release_tree(root: Path, version: str) -> tuple[Path, Path]:
+    """Simulate a real, post-403f35a1 release tree right after a newer one demotes it.
+
+    Unlike the pre-infra fixtures above, this tree's stylesheet and script already
+    carry the genuine, unmarked banner rules — `mkdocs.yml`'s `extra_css` and
+    `extra_javascript` are unconditional, so every build gets them regardless of
+    `doc_version`. Only the banner div is empty, because it was built while this
+    version was still `is_latest_release`. A newer sibling directory is created
+    alongside it so `version` is no longer the highest — otherwise the module would
+    treat it as the current release and skip it outright, defeating the fixture.
+    """
+    version_dir = root / version
+    page = version_dir / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{EMPTY_BANNER_DIV}</body></html>")
+    css_file = version_dir / "stylesheets" / "extra.css"
+    css_file.parent.mkdir(parents=True)
+    css_file.write_text(f".md-typeset {{ color: black; }}\n\n{BANNER_CSS_SECTION}\n")
+    (root / "0.30.3").mkdir()
+    return page, css_file
+
+
+BANNER_CSS_SECTION = """.md-banner,
+.md-banner--warning {
+  background-color: rgb(243, 238, 255);
+}
+
+[data-md-component="outdated"] {
+  position: sticky;
+}"""
+
+
+def test_main_banner_only_patches_text_without_touching_genuine_css(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`--banner-only` fills the banner text but leaves already-correct assets alone.
+
+    This is what `publish-docs.yml` runs against the just-demoted release tree: its
+    CSS and JS are already genuine, so only the div content needs backfilling.
+    """
+    module = load_script("inject_outdated_banner")
+    page, css_file = _write_genuinely_built_release_tree(tmp_path, "0.30.2")
+    original_css = css_file.read_text()
+    monkeypatch.setattr(
+        module.sys,
+        "argv",
+        ["inject_outdated_banner.py", "--banner-only", str(tmp_path)],
+    )
+
+    exit_code = module.main()
+
+    assert exit_code == 0
+    assert "older version of Supervision" in page.read_text()
+    assert css_file.read_text() == original_css
+
+
+def test_main_without_banner_only_duplicates_genuine_css(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Document the exact risk `--banner-only` exists to avoid.
+
+    `patch_stylesheets` only checks for its own marker, not for content already
+    matching it, so running the default (marker-driven) path against a tree that
+    already carries the genuine banner CSS appends a redundant second copy.
+    """
+    module = load_script("inject_outdated_banner")
+    _page, css_file = _write_genuinely_built_release_tree(tmp_path, "0.30.2")
+    monkeypatch.setattr(
+        module.sys, "argv", ["inject_outdated_banner.py", str(tmp_path)]
+    )
+
+    module.main()
+
+    assert css_file.read_text().count("background-color: rgb(243, 238, 255)") == 2

@@ -3,7 +3,9 @@ name: Docs/Build and Publish
 # Deploy matrix:
 #   push develop      -> mike deploy develop
 #   push release/latest -> mike deploy latest
-#   release published -> mike deploy <tag> only; does not move /latest/
+#   release published -> mike deploy <tag> only; does not move /latest/. When the tag
+#     is the newest stable release, its own tree is built banner-free and the
+#     previously-latest tag's already-published tree is patched back to archived.
 
 on:
   push:
@@ -111,6 +113,28 @@ jobs:
           MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
           mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+
+      # mike never rebuilds an archived tag's tree (see docs/theme/main.html), so the
+      # release /latest/ pointed to a moment ago — built with
+      # MIKE_IS_LATEST_RELEASE=true when it shipped — would stay wrongly banner-free
+      # forever without this. Reuses docs-backfill.yml's one-shot script, scoped to
+      # banner text only: this tree's CSS and JS are already genuine (unconditional
+      # extra_css/extra_javascript in mkdocs.yml), only the div content is stale —
+      # see --banner-only in the script's own docstring for why the rest is skipped.
+      - name: 🗄️ Archive the previously-latest release's docs tree
+        if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true' && steps.release_metadata.outputs.is_latest_release == 'true'
+        run: |
+          cp .github/scripts/inject_outdated_banner.py /tmp/inject_outdated_banner.py
+          git fetch origin gh-pages
+          git checkout gh-pages
+          python /tmp/inject_outdated_banner.py --banner-only .
+          git add -u
+          if git diff --cached --quiet; then
+            echo "no demoted release tree to archive"
+          else
+            git commit -m "chore(docs): archive the previously-latest release"
+            git push origin gh-pages
+          fi
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:

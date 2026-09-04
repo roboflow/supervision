@@ -88,6 +88,48 @@ def test_release_metadata_step_computes_is_latest_release(
     assert 'echo "is_latest_release=$is_latest_release"' in step["run"]
 
 
+ARCHIVE_STEP = (
+    "\N{FILE CABINET}\N{VARIATION SELECTOR-16} "
+    "Archive the previously-latest release's docs tree"
+)
+
+
+def test_archive_step_only_runs_when_this_release_is_the_new_latest(
+    workflow_step: StepLookup,
+) -> None:
+    """A backport release for an older line must not touch the real /latest/ tree.
+
+    Only promoting a release to the newest actually demotes something — a patch
+    release for an older minor line leaves the current /latest/ untouched, so
+    nothing needs archiving.
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
+
+    assert step["if"] == (
+        "github.event_name == 'release' && github.event.action == 'published' && "
+        "steps.release_metadata.outputs.is_rc != 'true' && "
+        "steps.release_metadata.outputs.is_latest_release == 'true'"
+    )
+
+
+def test_archive_step_runs_the_banner_script_in_banner_only_mode(
+    workflow_step: StepLookup,
+) -> None:
+    """The demoted tree's own CSS/JS are already genuine — only its text is stale.
+
+    `--banner-only` skips `patch_stylesheets`/`patch_scripts`, which would
+    otherwise append a redundant second copy of banner rules the tree already
+    carries (see the script's own docstring and
+    `.github/_tests/test_docs_backfill_workflow.py`'s
+    `test_main_without_banner_only_duplicates_genuine_css`).
+    """
+    step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
+
+    assert "inject_outdated_banner.py --banner-only ." in step["run"]
+    assert "git checkout gh-pages" in step["run"]
+    assert "git push origin gh-pages" in step["run"]
+
+
 def test_every_mike_deploy_step_exports_the_banner_version(
     workflows_dir: Path,
 ) -> None:
