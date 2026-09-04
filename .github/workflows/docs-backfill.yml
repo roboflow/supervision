@@ -35,10 +35,13 @@ permissions:
   contents: write
 
 concurrency:
-  # Real dispatch runs share one lock so two never race pushing gh-pages at once. PR
-  # dry runs get their own per-ref lock instead: they push nothing, so collisions are
-  # harmless, and sharing the dispatch lock would queue a real backfill behind CI.
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || 'dispatch' }}
+  # Real dispatch runs share the "gh-pages" group — the branch both this workflow and
+  # publish-docs.yml write to — with publish-docs.yml: both write gh-pages via a
+  # fetch-then-push, and running them concurrently loses the "fetch first" race (see
+  # publish-docs.yml). PR dry runs get their own per-ref lock instead: they push
+  # nothing, so collisions are harmless, and sharing the dispatch lock would queue a
+  # real backfill behind CI.
+  group: ${{ github.event_name == 'pull_request' && format('{0}-{1}', github.workflow, github.ref) || 'gh-pages' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
