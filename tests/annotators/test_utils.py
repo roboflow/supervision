@@ -413,3 +413,42 @@ class TestGetLabelsText:
 
         with pytest.raises(ValueError, match="class_id"):
             get_labels_text(detections, None)
+
+
+class TestTraceEmptyFrames:
+    """Tests for Trace.put on frames that contain no detections."""
+
+    def test_empty_detections_without_tracker_id_are_accepted(self) -> None:
+        """A frame that detected nothing has no tracker ids to require."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert len(trace.xy) == 0
+        assert len(trace.tracker_id) == 0
+
+    def test_empty_detections_advance_the_frame_counter(self) -> None:
+        """An empty frame is still an elapsed frame for the max_size window."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert trace.current_frame_id == 1
+
+    def test_track_reappearing_after_a_long_gap_drops_its_stale_trail(self) -> None:
+        """Points older than max_size elapsed frames are pruned on reappearance."""
+        trace = Trace(max_size=3)
+        for x in (10, 20, 30):
+            trace.put(
+                _create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                )
+            )
+        for _ in range(5):
+            trace.put(Detections.empty())
+
+        trace.put(
+            _create_detections(xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1])
+        )
+
+        assert np.array_equal(trace.get(tracker_id=1), np.array([[92.5, 2.5]]))

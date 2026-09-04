@@ -1956,3 +1956,55 @@ class TestTraceAnnotatorSmoothStationary:
         for _ in range(6):
             scene = annotator.annotate(scene=scene, detections=detections)
         assert scene.shape == test_image.shape
+
+
+class TestTraceAnnotatorEmptyDetections:
+    """Tests for TraceAnnotator on frames in which nothing was detected."""
+
+    def test_empty_detections_annotate_without_raising(
+        self, test_image: np.ndarray
+    ) -> None:
+        """A frame that detected nothing is not a missing-tracker error."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(
+            xyxy=[[10, 10, 30, 30]], class_id=[0], tracker_id=[1]
+        )
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert scene.shape == test_image.shape
+
+    def test_empty_detections_leave_the_scene_untouched(
+        self, test_image: np.ndarray
+    ) -> None:
+        """With nothing to trace there is nothing to draw."""
+        annotator = TraceAnnotator()
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert np.array_equal(scene, test_image)
+
+    def test_empty_detections_advance_the_trace_window(
+        self, test_image: np.ndarray
+    ) -> None:
+        """An empty frame counts toward trace_length like any other frame."""
+        annotator = TraceAnnotator()
+
+        annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+
+        assert annotator.trace.current_frame_id == 1
+
+    def test_populated_detections_without_tracker_id_still_raise(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Forgetting to plug in a tracker remains an error worth reporting."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(xyxy=[[10, 10, 30, 30]], class_id=[0])
+
+        with pytest.raises(ValueError, match="tracker_id"):
+            annotator.annotate(scene=test_image.copy(), detections=detections)
