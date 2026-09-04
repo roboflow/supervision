@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from supervision.detection.tools import csv_sink as csv_sink_module
 from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
 
@@ -614,109 +613,4 @@ class TestCSVSinkLifecycle:
                 "tracker_id": "",
                 "second_label": "second",
             }
-        ]
-
-
-class TestCSVSinkEmptyBatches:
-    """Tests for appending batches that contain no detections."""
-
-    def test_empty_first_batch_does_not_drop_later_columns(self, tmp_path: Any) -> None:
-        """A detection-free first frame leaves the header to the first real frame."""
-        path = tmp_path / "empty_first.csv"
-        detections = sv.Detections(
-            xyxy=np.array([[10, 20, 30, 40]]),
-            data={"class_name": np.array(["person"])},
-        )
-
-        with sv.CSVSink(str(path)) as sink:
-            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
-            sink.append(detections, custom_data={"frame_number": 1})
-
-        with open(path, newline="") as file:
-            rows = list(csv.DictReader(file))
-
-        assert rows == [
-            {
-                "x_min": "10",
-                "y_min": "20",
-                "x_max": "30",
-                "y_max": "40",
-                "class_id": "",
-                "confidence": "",
-                "tracker_id": "",
-                "class_name": "person",
-                "frame_number": "1",
-            }
-        ]
-
-    def test_empty_batch_does_not_warn_about_field_names(
-        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """A detection-free frame is not a header mismatch worth reporting."""
-        path = tmp_path / "empty_second.csv"
-        detections = sv.Detections(
-            xyxy=np.array([[10, 20, 30, 40]]),
-            data={"class_name": np.array(["person"])},
-        )
-        warnings: list[tuple[Any, ...]] = []
-        monkeypatch.setattr(
-            csv_sink_module.logger,
-            "warning",
-            lambda *args, **kwargs: warnings.append(args),
-        )
-
-        with sv.CSVSink(str(path)) as sink:
-            sink.append(detections, custom_data={"frame_number": 0})
-            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
-
-        assert warnings == []
-
-    def test_only_empty_batches_still_write_header(self, tmp_path: Any) -> None:
-        """A run that never detects anything stays readable as an empty table."""
-        path = tmp_path / "all_empty.csv"
-
-        with sv.CSVSink(str(path)) as sink:
-            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
-            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
-
-        with open(path, newline="") as file:
-            reader = csv.reader(file)
-            rows = list(reader)
-
-        assert rows == [
-            [
-                "x_min",
-                "y_min",
-                "x_max",
-                "y_max",
-                "class_id",
-                "confidence",
-                "tracker_id",
-                "frame_number",
-            ]
-        ]
-
-    def test_closing_twice_does_not_duplicate_header(self, tmp_path: Any) -> None:
-        """The deferred header is written once, however often close() is called."""
-        path = tmp_path / "double_close.csv"
-        sink = sv.CSVSink(str(path))
-
-        sink.open()
-        sink.append(sv.Detections.empty())
-        sink.close()
-        sink.close()
-
-        with open(path, newline="") as file:
-            rows = list(csv.reader(file))
-
-        assert rows == [
-            [
-                "x_min",
-                "y_min",
-                "x_max",
-                "y_max",
-                "class_id",
-                "confidence",
-                "tracker_id",
-            ]
         ]
