@@ -27,6 +27,14 @@ Usage:
     Safe to re-run: previously injected content is replaced in place (so wording or
     style edits reach already-patched pages too), and anything not carrying our
     marker — including a genuine future rebuild — is left alone.
+    Pass ``--banner-only`` to skip ``patch_stylesheets``/``patch_scripts``: a release
+    tag deployed after 403f35a1 already carries genuine, unmarked banner CSS and JS
+    (``extra_css``/``extra_javascript`` in ``mkdocs.yml`` are unconditional), so
+    ``patch_stylesheets`` — which only checks for the marker, not for content already
+    matching it — would append a second, redundant copy of the banner rules.
+    ``publish-docs.yml`` uses this flag to demote the previously-latest release's
+    tree right after a new one ships; ``docs-backfill.yml`` omits it, since the
+    pre-403f35a1 trees it targets are missing the styling and script outright.
 Outputs:
     Prints how many files were patched and exits 0. Exits nonzero only on an
     unexpected filesystem error; finding nothing to patch is not a failure.
@@ -414,11 +422,20 @@ def unpatch_newest_version(root: Path) -> list[Path]:
 
 
 def main() -> int:
-    """Entry point: patch the tree at `root` and report how many files changed."""
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path()
+    """Entry point: patch the tree at `root` and report how many files changed.
+
+    `--banner-only` (any position in argv) skips `patch_stylesheets`/`patch_scripts`
+    — see the module docstring's Usage section for why a genuinely-built release
+    tree needs that.
+    """
+    args = sys.argv[1:]
+    banner_only = "--banner-only" in args
+    positional = [arg for arg in args if not arg.startswith("--")]
+    root = Path(positional[0]) if positional else Path()
+
     changed_html = patch_tree(root)
-    changed_css = patch_stylesheets(root)
-    changed_js = patch_scripts(root)
+    changed_css = [] if banner_only else patch_stylesheets(root)
+    changed_js = [] if banner_only else patch_scripts(root)
     reverted_html = unpatch_newest_version(root)
     print(
         f"patched {len(changed_html)} page(s) with banner markup, "
