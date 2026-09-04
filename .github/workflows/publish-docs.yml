@@ -14,10 +14,14 @@ on:
   release:
     types: [published]
 
-# Ensure only one concurrent deployment
+# Shared with docs-backfill.yml's real (non-dry-run) runs: both write gh-pages via a
+# fetch-then-push, and a stale push from either side loses the "fetch first" race if
+# they overlap. One shared group serializes every gh-pages write across both
+# workflows. cancel-in-progress stays false — cancelling mid-push here risks
+# interrupting a git push, worse than the queueing delay it would save.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref}}
-  cancel-in-progress: true
+  group: gh-pages
+  cancel-in-progress: false
 
 # Restrict permissions by default
 permissions:
