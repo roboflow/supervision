@@ -85,6 +85,7 @@ class CSVSink:
         self.writer: WriterProtocol | None = None
         self.header_written = False
         self.field_names: list[str] = []
+        self.deferred_field_names: list[str] = []
 
     def __enter__(self) -> CSVSink:
         self.open()
@@ -110,13 +111,26 @@ class CSVSink:
         self.writer = csv.writer(self.file)
         self.header_written = False
         self.field_names = []
+        self.deferred_field_names = []
 
     def close(self) -> None:
         """
         Close the CSV file.
+
+        When every appended batch was empty no header has been written yet, so
+        the schema remembered from the last such batch is emitted here. This
+        keeps a run that never detected anything readable as an empty table
+        rather than as a zero-byte file.
         """
-        if self.file:
-            self.file.close()
+        if self.file is None or self.file.closed:
+            return
+
+        if not self.header_written and self.deferred_field_names and self.writer:
+            self.field_names = self.deferred_field_names
+            self.writer.writerow(self.field_names)
+            self.header_written = True
+
+        self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
@@ -202,6 +216,11 @@ class CSVSink:
         """
         Append detection data to the CSV file.
 
+        The CSV header is fixed by the first batch that actually contains
+        detections; batches with no detections write nothing and leave the
+        header undecided, so an empty first frame does not strip the columns
+        of the frames that follow.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -215,6 +234,16 @@ class CSVSink:
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
         field_names = CSVSink.parse_field_names(detections, custom_data)
+
+        # An empty batch produces no rows, so letting it fix the header would
+        # pin the file to a schema no detection ever contributed to and drop
+        # every extra column of the batches that follow. Remember the schema
+        # for close() instead, in case no batch ever carries detections.
+        if len(detections) == 0:
+            if not self.header_written:
+                self.deferred_field_names = field_names
+            return
+
         if not self.header_written:
             self.field_names = field_names
             self.writer.writerow(field_names)

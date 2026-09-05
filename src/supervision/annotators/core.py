@@ -2280,6 +2280,16 @@ class TraceAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
+
+        # A frame in which nothing was detected carries no `tracker_id` and is
+        # not a missing-tracker mistake, so it must not raise. It still reaches
+        # the trace: advancing the frame counter there keeps `trace_length` a
+        # window over elapsed frames, so a track that reappears after a gap
+        # longer than the window is not joined to its pre-gap trail.
+        if len(detections) == 0:
+            self.trace.put(detections)
+            return scene
+
         if detections.tracker_id is None:
             raise ValueError(
                 "The `tracker_id` field is missing in the provided detections."

@@ -373,24 +373,37 @@ class Trace:
         self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        """Append a frame of detections to the trace history."""
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not put detections into Trace because "
-                "Detections do not have tracker_id."
+        """Append a frame of detections to the trace history.
+
+        A frame that detected nothing contributes no points but still advances
+        the frame counter, keeping `max_size` a window over elapsed frames
+        rather than over populated ones. Pruning runs on the next frame that
+        does carry detections, and measures the window from the advanced
+        counter — so a track reappearing after a long gap starts a fresh trail
+        instead of being joined to its pre-gap one. An empty frame has no
+        anchors and no `tracker_id`, so only frames that carry detections
+        require one.
+        """
+        if len(detections) == 0:
+            xy: npt.NDArray[np.float32] = np.empty((0, 2), dtype=np.float32)
+            tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
+        else:
+            if detections.tracker_id is None:
+                raise ValueError(
+                    "Could not put detections into Trace because "
+                    "Detections do not have tracker_id."
+                )
+            xy = np.asarray(
+                detections.get_anchors_coordinates(self.anchor), dtype=np.float32
             )
+            tracker_id = np.asarray(detections.tracker_id, dtype=int)
 
         frame_id: npt.NDArray[np.int_] = np.full(
             len(detections), self.current_frame_id, dtype=int
         )
         self.frame_id = np.concatenate([self.frame_id, frame_id])
-        self.xy = np.concatenate(
-            [
-                self.xy,
-                detections.get_anchors_coordinates(self.anchor),
-            ]
-        )
-        self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
+        self.xy = np.concatenate([self.xy, xy])
+        self.tracker_id = np.concatenate([self.tracker_id, tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
 
