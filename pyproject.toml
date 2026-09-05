@@ -75,6 +75,7 @@ dev = [
   "jupytext>=1.16.1",
   "nbconvert>=7.14.2",
   "notebook>=6.5.3,<8",
+  "packaging",
   "pre-commit>=3.8",
   "pytest>=7.2.2,<10",
   "pytest-cov>=4,<8",
@@ -157,6 +158,10 @@ lint.select = [
   "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
 ]
 lint.ignore = []
+lint.per-file-ignores.".github/_tests/**" = [
+  "S101", # Use of `assert` detected: assert in test utilities is safe
+  "S603", # `subprocess` call: subprocess with hardcoded args in test utilities is safe
+]
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
 lint.per-file-ignores."notebooks/**" = [
   "PT018", # Assertion should be broken down into multiple parts

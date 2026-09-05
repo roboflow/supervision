@@ -3,7 +3,9 @@ name: Docs/Build and Publish
 # Deploy matrix:
 #   push develop      -> mike deploy develop
 #   push release/latest -> mike deploy latest
-#   release published -> mike deploy <tag> only; does not move /latest/
+#   release published -> mike deploy <tag> only; does not move /latest/. When the tag
+#     is the newest stable release, its own tree is built banner-free and the
+#     previously-latest tag's already-published tree is patched back to archived.
 
 on:
   push:
@@ -14,10 +16,14 @@ on:
   release:
     types: [published]
 
-# Ensure only one concurrent deployment
+# Shared with docs-backfill.yml's real (non-dry-run) runs: both write gh-pages via a
+# fetch-then-push, and a stale push from either side loses the "fetch first" race if
+# they overlap. One shared group serializes every gh-pages write across both
+# workflows. cancel-in-progress stays false — cancelling mid-push here risks
+# interrupting a git push, worse than the queueing delay it would save.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref}}
-  cancel-in-progress: true
+  group: gh-pages
+  cancel-in-progress: false
 
 # Restrict permissions by default
 permissions:
@@ -50,10 +56,15 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
+      # MIKE_DOCS_VERSION feeds `extra.doc_version` in mkdocs.yml, which gates the
+      # outdated-version banner the theme renders server-side. It must name the version
+      # being deployed: mike itself never exports it, so an unset value silently builds
+      # every tree without the banner. Keep it in sync with the `mike deploy` argument.
       - name: 🚀 Deploy Development Docs
         if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: develop
         run: |
           mike deploy --push develop
 
@@ -61,8 +72,12 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/release/latest'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: latest
         run: |
-          if mike list | grep -Eq '^latest(\s|$)'; then mike delete latest; fi
+          # `latest` may exist as a real version or as an alias (e.g. `0.28.0 [latest]`),
+          # which the `mike list` grep cannot detect. Always delete it first, tolerating
+          # the "does not exist" error, so the deploy below can recreate it.
+          mike delete latest || true
           mike deploy --push latest
 
       - name: 🏷️ Determine release deployment metadata
@@ -70,6 +85,7 @@ jobs:
         run: |
           is_rc=false
           release_tag=""
+          is_latest_release=false
           if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
             release_tag="${GITHUB_REF_NAME#v}"
             release_tag="${release_tag%.post*}"
@@ -78,16 +94,47 @@ jobs:
             if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
               is_rc=true
             fi
+            # An rc never gates the outdated banner (it is never deployed below), and
+            # the comparison needs full tag history — see actions/checkout fetch-depth: 0
+            # at the top of this job.
+            if [[ "$is_rc" != "true" ]]; then
+              is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
+            fi
           fi
           echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "is_latest_release=$is_latest_release" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+          MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
+          MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
           mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+
+      # mike never rebuilds an archived tag's tree (see docs/theme/main.html), so the
+      # release /latest/ pointed to a moment ago — built with
+      # MIKE_IS_LATEST_RELEASE=true when it shipped — would stay wrongly banner-free
+      # forever without this. Reuses docs-backfill.yml's one-shot script, scoped to
+      # banner text only: this tree's CSS and JS are already genuine (unconditional
+      # extra_css/extra_javascript in mkdocs.yml), only the div content is stale —
+      # see --banner-only in the script's own docstring for why the rest is skipped.
+      - name: 🗄️ Archive the previously-latest release's docs tree
+        if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true' && steps.release_metadata.outputs.is_latest_release == 'true'
+        run: |
+          cp .github/scripts/inject_outdated_banner.py /tmp/inject_outdated_banner.py
+          git fetch origin gh-pages
+          git checkout gh-pages
+          python /tmp/inject_outdated_banner.py --banner-only .
+          git add -u
+          if git diff --cached --quiet; then
+            echo "no demoted release tree to archive"
+          else
+            git commit -m "chore(docs): archive the previously-latest release"
+            git push origin gh-pages
+          fi
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
@@ -107,6 +154,13 @@ jobs:
           for f in "${root_files[@]}"; do
             cp "docs/$f" "/tmp/$f"
           done
+          # Site root: replaces mike's redirect stub, which carries no canonical.
+          # Release deploys check out the tag, and tags cut before this file existed do
+          # not carry it — treat it as optional rather than failing the whole deploy.
+          rm -f /tmp/root-index.html
+          if [[ -f .github/root-index.html ]]; then
+            cp .github/root-index.html /tmp/root-index.html
+          fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
           else
@@ -118,6 +172,10 @@ jobs:
             cp "/tmp/$f" "$f"
           done
           files_to_add=("${root_files[@]}")
+          if [[ -f /tmp/root-index.html ]]; then
+            cp /tmp/root-index.html index.html
+            files_to_add+=(index.html)
+          fi
           if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
             cp "$version_dir/sitemap.xml" sitemap.xml
             gzip -9 -c sitemap.xml > sitemap.xml.gz

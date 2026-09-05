@@ -3,7 +3,8 @@ from __future__ import annotations
 import threading
 import warnings
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
@@ -373,12 +374,12 @@ class InferenceSlicer:
                     )
             else:
                 with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                    batch_futures = [
-                        executor.submit(self._run_callback_batch, image, ob)
-                        for ob in remaining_batches
-                    ]
-                    for batch_future in as_completed(batch_futures):
-                        detections_list.extend(batch_future.result())
+                    # `Executor.map` yields in submission order, so batches merge in
+                    # source order no matter which thread finishes first.
+                    for batch_detections in executor.map(
+                        partial(self._run_callback_batch, image), remaining_batches
+                    ):
+                        detections_list.extend(batch_detections)
             merged = Detections.merge(detections_list=detections_list)
             return self._apply_overlap_filter(merged)
 
@@ -425,12 +426,11 @@ class InferenceSlicer:
                 detections_list.append(self._run_callback(image, offset))
         else:
             with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                futures = [
-                    executor.submit(self._run_callback, image, offset)
-                    for offset in remaining_offsets
-                ]
-                for future in as_completed(futures):
-                    detections_list.append(future.result())
+                # `Executor.map` yields in submission order, so slices merge in
+                # source order no matter which thread finishes first.
+                detections_list.extend(
+                    executor.map(partial(self._run_callback, image), remaining_offsets)
+                )
 
         merged = Detections.merge(detections_list=detections_list)
         return self._apply_overlap_filter(merged)

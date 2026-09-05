@@ -170,12 +170,23 @@ def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xyxy = xcycwh.copy()
-    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
-    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
-    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
-    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
-    return cast(npt.NDArray[np.number], np.asarray(xyxy))
+    # Build the result from the half-extent arithmetic instead of writing into a
+    # copy of the input. Half of an odd width or height is fractional, so an
+    # integer input array would silently truncate those coordinates; letting the
+    # division set the output dtype keeps them exact.
+    center_x = xcycwh[:, 0]
+    center_y = xcycwh[:, 1]
+    half_width = xcycwh[:, 2] / 2
+    half_height = xcycwh[:, 3] / 2
+    xyxy = np.column_stack(
+        (
+            center_x - half_width,
+            center_y - half_height,
+            center_x + half_width,
+            center_y + half_height,
+        )
+    )
+    return cast(npt.NDArray[np.number], xyxy)
 
 
 def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:

@@ -2834,8 +2834,8 @@ class Detections:
         ``with_nms``, ``with_nmm``, and this property — always store OBB corners
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
-        **Return dtype**: ``float64`` (OBB branch), input dtype (AABB fallback),
-        ``int64`` (mask branch).
+        **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
+        floating input dtype (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
@@ -2882,10 +2882,25 @@ class Detections:
 
         Returns:
             An array of floats containing the area of each bounding
-                box in the format of `(area_1, area_2, ..., area_n)`,
-                where n is the number of detections.
+            box in the format of `(area_1, area_2, ..., area_n)`,
+                where n is the number of detections. Integer coordinates
+                produce ``float64``; floating coordinates preserve their dtype.
         """
-        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract as Python integers first: converting corners to float64
+            # would collapse adjacent 64-bit coordinates above 2**53, while
+            # native integer subtraction can overflow across the dtype range.
+            integer_coordinates = xyxy.astype(object)
+            widths = integer_coordinates[:, 2] - integer_coordinates[:, 0]
+            heights = integer_coordinates[:, 3] - integer_coordinates[:, 1]
+            return np.asarray(widths, dtype=np.float64) * np.asarray(
+                heights, dtype=np.float64
+            )
+
+        widths = xyxy[:, 2] - xyxy[:, 0]
+        heights = xyxy[:, 3] - xyxy[:, 1]
+        return widths * heights
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
@@ -3235,7 +3250,7 @@ class Detections:
 
 
 def _merge_obb_corners(
-    corners_list: list[npt.NDArray[np.floating]],
+    corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
     """Merge multiple OBB corner arrays using winner-angle projection.
 
@@ -3256,16 +3271,29 @@ def _merge_obb_corners(
         input_dtype if np.issubdtype(input_dtype, np.floating) else np.float64
     )
     origin = corners_list[0][0]
-    all_corners = np.concatenate(corners_list, axis=0) - origin
+    stacked = np.concatenate(corners_list, axis=0)
+    # Translate to the winner's first corner before any float math so large
+    # integer coordinates (e.g. geospatial or stitched frames) are reduced to
+    # local extents. Object arithmetic keeps those integer differences exact
+    # and avoids unsigned wrap-around for corners lying below the origin.
+    if np.issubdtype(input_dtype, np.integer):
+        all_corners = np.asarray(
+            stacked.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        all_corners = stacked.astype(np.float64, copy=False) - origin.astype(
+            np.float64, copy=False
+        )
     # Use winner's first edge to derive orientation angle -- avoids
-    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
-    winner_edge = corners_list[0][1] - corners_list[0][0]
+    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects). Read it
+    # off the translated corners so it inherits the same wrap-safety.
+    winner_edge = all_corners[1] - all_corners[0]
     angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
     cos, sin = float(np.cos(angle)), float(np.sin(angle))
 
     # De-rotate all corners into the winner's local frame
     to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
-    local_corners = all_corners.astype(np.float64, copy=False) @ to_local
+    local_corners = all_corners @ to_local
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
     y_min = float(local_corners[:, 1].min())

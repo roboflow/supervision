@@ -157,12 +157,16 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = cast(npt.NDArray[Any], xyxy.copy())
 
-    result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
-    result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
+    # Preserve floating caller dtypes; integer inputs need float64 to retain
+    # fractional pixel coordinates rather than silently truncating them.
+    scale_dtype = (
+        xyxy.dtype if np.issubdtype(xyxy.dtype, np.inexact) else np.dtype(np.float64)
+    )
+    scale = np.array([width, height, width, height], dtype=scale_dtype)
+    scale /= normalization_factor
 
-    return cast(npt.NDArray[np.number], result)
+    return xyxy * scale
 
 
 def move_boxes(

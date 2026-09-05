@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-08-11
+date_modified: 2026-09-03
 ---
 
 # Changelog
@@ -13,11 +13,36 @@ date_modified: 2026-08-11
 
 ### Fixed
 
+- Versioned documentation banners now adjust MkDocs Material’s desktop sidebar inline layout and scroll height without shifting the mobile navigation drawer.
+- Versioned documentation builds now emit a valid `/latest/search/` SearchAction URL when Mike removes the trailing slash from `site_url`; docs CI renders the custom theme under Mike version contexts to protect the URL, version banners, and star JSON-LD. This source change applies to future builds; existing published archive trees require a separately approved backfill.
+- `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
+- `sv.denormalize_boxes` no longer truncates coordinates for integer input arrays. Scaling now multiplies by a floating-point factor so integer normalized coordinates (for example VLM boxes quantized to `0..1000`) map to exact absolute pixel values instead of being silently rounded down.
+- `sv.Detections.box_area` (and therefore `sv.Detections.area` for axis-aligned boxes) now computes integer-coordinate box areas in `float64`, preventing integer overflow for large boxes (e.g. an `int32` `50000 x 50000` box previously wrapped to a negative area).
+- Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
+- Versioned documentation deploys now export the version being deployed to the docs build, so the outdated-version banner reaches readers of the `develop` tree and of archived release trees. The publish workflow never set `MIKE_DOCS_VERSION`, which gates the banner, so every tree was built without it. This applies to future builds going forward.
+- The canonical backfill workflow now pushes the pre-rewrite `gh-pages` tip to a timestamped backup branch before committing over it, and reports rewritten canonicals whose target page does not exist under `latest/` — a canonical pointing at a removed page is ignored by search engines, so those pages keep competing with `/latest/`. The same workflow now also backfills the outdated-version banner itself into already-published archive trees, patching the empty banner markup those pages already carry rather than rebuilding them — archived tags may not build against current dependencies, so a rebuild is not an option. The highest-numbered version tree is left out of that backfill — it holds the current release that `/latest/` serves, so an "older version" warning there is wrong — and a banner an earlier run injected into it is removed.
+- `sv.InferenceSlicer` now merges slice results in source order when `thread_workers > 1`, restoring the ordering guarantee its docstring documents. Results were previously collected in thread-completion order, so the row order of the returned `Detections` — and, for tied confidences, which overlapping box survived `with_nms`/`with_nmm` — varied between runs on identical input. Both the per-slice and `batch_size > 1` paths are affected ([#2517](https://github.com/roboflow/supervision/pull/2517)).
+- A release's own version-pinned docs (e.g. `/0.30.2/...`) no longer show the "older version, use latest" banner on the day it ships. The publish workflow now compares the release tag against the repository's tag history and only suppresses the banner when the tag being deployed is the newest stable release, instead of relying solely on the separate `/latest/` alias build to ever be current. The workflow also now automatically archives the previously-latest release's already-published tree right after a new one ships, since Mike never rebuilds it and it would otherwise stay incorrectly banner-free forever.
+
+### 0.30.1 <small>Aug 24, 2026</small>
+
+### Added
+
+- RF-DETR example scripts (`rfdetr_example.py`) added to the `count_people_in_zone`, `heatmap_and_track`, `speed_estimation`, `tracking`, and `traffic_analysis` bundled examples ([#2497](https://github.com/roboflow/supervision/pull/2497)).
+
+### Changed
+
+- `sv.box_iou` now raises `TypeError` for complex-valued box coordinates instead of silently discarding the imaginary part ([#2485](https://github.com/roboflow/supervision/pull/2485)).
+- Performance: `DetectionsSmoother.update_with_detections` now checks active tracker IDs via set membership instead of scanning per tracked object ([#2496](https://github.com/roboflow/supervision/pull/2496)). No output changes.
+
+### Fixed
+
 - RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.
-- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for polygons with large coordinates.
+- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for realistic-magnitude large-coordinate polygons.
 - `sv.Detections.area` and `sv.oriented_box_iou_batch` now translate oriented-box coordinates to local origins before floating-point area/intersection math, preserving differences representable by the input dtype and preventing self-IoU collapse for large-coordinate inputs (e.g. geospatial or stitched frames).
+- `sv.Detections.with_nmm` now translates oriented-box corners to a local origin with exact integer arithmetic before merging, preventing unsigned-integer wrap-around (e.g. `uint16`/`uint64` coordinates) from corrupting both the merged extent and the winner's orientation angle.
 - `DetectionsSmoother` now keeps oriented-box corners aligned with smoothed `xyxy` geometry, including rotated tracks and mixed metadata windows.
-- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
+- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. For realistic coordinate magnitudes (below 2^53), its scalar result now matches `sv.box_iou_batch`; `box_iou_batch` still casts to `float64` before subtracting, so the two can diverge above that threshold.
 - `sv.list_files_with_extensions` no longer includes directories when listing all files without an extension filter.
 - `sv.pillow_to_cv2` now accepts RGBA images when the cv2-free fallback backend is active, matching OpenCV by dropping alpha and returning BGR channels.
 - `import supervision` no longer loads PyAV's native libraries when the OpenCV backend is selected. PyAV is now imported lazily on first use by the PyAV-backed video/audio fallback, preventing a duplicate `libavdevice` warning (and possible crash) on macOS when both `av` and `opencv-python` are installed.

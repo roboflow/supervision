@@ -1876,7 +1876,6 @@ class TestTraceAnnotatorSmoothStationary:
     @pytest.mark.parametrize(
         "unique_positions",
         [1, 2, 3, 4],
-        ids=["1_unique", "2_unique", "3_unique", "4_unique"],
     )
     def test_smooth_does_not_crash_for_unique_point_counts(
         self, test_image, unique_positions

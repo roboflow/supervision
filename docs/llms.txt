@@ -4,7 +4,7 @@
 
 Supervision is a Python library by Roboflow that provides a model-agnostic `Detections` class and composable tools for object detection and segmentation workflows. [RF-DETR](https://github.com/roboflow/rf-detr) is the recommended model to pair it with — its `predict()` method returns a `Detections` object natively, no conversion step needed. Supervision also includes converters for supported outputs from Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, Ultralytics, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
 
-Supervision is MIT licensed, published on PyPI, and developed in public on GitHub.
+Supervision is MIT licensed, published on PyPI, and developed in public on GitHub. It has nearly 50,000 [GitHub stars](https://github.com/roboflow/supervision/stargazers) and over 1 million [monthly PyPI downloads](https://pypistats.org/packages/supervision).
 
 ## AI Access
 
