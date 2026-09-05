@@ -173,10 +173,9 @@ def test_scale_boxes(
 
 
 @pytest.mark.parametrize(
-    ("dtype", "xyxy", "factor", "expected_result"),
+    ("xyxy", "factor", "expected_result"),
     [
         pytest.param(
-            np.int32,
             np.array(
                 [[1_500_000_000, 1_500_000_000, 1_600_000_000, 1_600_000_000]],
                 dtype=np.int32,
@@ -188,21 +187,18 @@ def test_scale_boxes(
             id="int32-large-coords",
         ),
         pytest.param(
-            np.int16,
             np.array([[20000, 20000, 25000, 25000]], dtype=np.int16),
             1.0,
             np.array([[20000.0, 20000.0, 25000.0, 25000.0]]),
             id="int16-near-dtype-max",
         ),
         pytest.param(
-            np.uint16,
             np.array([[40000, 40000, 50000, 50000]], dtype=np.uint16),
             1.0,
             np.array([[40000.0, 40000.0, 50000.0, 50000.0]]),
             id="uint16-near-dtype-max",
         ),
         pytest.param(
-            np.uint32,
             np.array(
                 [[2_500_000_000, 2_500_000_000, 2_600_000_000, 2_600_000_000]],
                 dtype=np.uint32,
@@ -214,7 +210,6 @@ def test_scale_boxes(
             id="uint32-large-coords",
         ),
         pytest.param(
-            np.int32,
             np.array(
                 [[1_000_000_000, 1_000_000_000, 1_200_000_000, 1_200_000_000]],
                 dtype=np.int32,
@@ -228,7 +223,6 @@ def test_scale_boxes(
     ],
 )
 def test_scale_boxes_does_not_overflow_integer_dtypes(
-    dtype: type,
     xyxy: np.ndarray,
     factor: float,
     expected_result: np.ndarray,
@@ -238,6 +232,29 @@ def test_scale_boxes_does_not_overflow_integer_dtypes(
 
     assert result.dtype == np.float64
     np.testing.assert_allclose(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy",
+    [
+        pytest.param(
+            np.array([[2**53, 0, 2**53 + 1, 1]], dtype=np.int64),
+            id="int64-above-float64-exact-integer-limit",
+        ),
+        pytest.param(
+            np.array([[2**53, 0, 2**53 + 1, 1]], dtype=np.uint64),
+            id="uint64-above-float64-exact-integer-limit",
+        ),
+    ],
+)
+def test_scale_boxes_rounds_final_64_bit_integer_coordinates(
+    xyxy: np.ndarray,
+) -> None:
+    """Rounds exact 64-bit scaled corners only after their final calculation."""
+    result = scale_boxes(xyxy=xyxy, factor=2.0)
+
+    expected_result = np.array([[2**53, -0.5, 2**53 + 2, 1.5]], dtype=np.float64)
+    np.testing.assert_array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(

@@ -431,14 +431,15 @@ def scale_boxes(
     Scale the dimensions of bounding boxes.
 
     Args:
-        xyxy: An array of shape `(n, 4)` containing the
-            bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        xyxy: An integer or floating-point array of shape `(n, 4)` containing
+            bounding box coordinates in format `[x1, y1, x2, y2]`.
         factor: A float value representing the factor by which the box
             dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
             factor less than 1 shrinks them.
 
     Returns:
-        Scaled bounding boxes.
+        Scaled bounding boxes. Integer input arrays produce `float64` output;
+        floating-point inputs preserve their existing dtype.
 
     Examples:
         ```pycon
@@ -454,25 +455,48 @@ def scale_boxes(
 
         ```
     """
-    centers: npt.NDArray[np.floating]
-    new_sizes: npt.NDArray[np.floating]
     if np.issubdtype(xyxy.dtype, np.integer):
-        # Convert integer coordinates to object arithmetic before addition and
-        # subtraction to prevent integer overflow and unsigned underflow across
-        # the entire range of integer dtypes before converting to float64.
-        integer_coordinates = xyxy.astype(object)
-        centers = np.asarray(
-            (integer_coordinates[:, :2] + integer_coordinates[:, 2:]) / 2,
-            dtype=np.float64,
+        exact_integer_limit = 2**52
+        is_safe_to_cast = np.all(
+            xyxy <= exact_integer_limit
+            if np.issubdtype(xyxy.dtype, np.unsignedinteger)
+            else (xyxy >= -exact_integer_limit) & (xyxy <= exact_integer_limit)
         )
-        new_sizes = np.asarray(
-            (integer_coordinates[:, 2:] - integer_coordinates[:, :2]) * factor,
-            dtype=np.float64,
-        )
-    else:
-        centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
-        new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+        if is_safe_to_cast:
+            xyxy = xyxy.astype(np.float64)
+        elif np.isfinite(factor):
+            # Preserve 64-bit integer precision through both final-corner
+            # expressions. Converting the center first can change the final
+            # float64 rounding near 2**53.
+            factor_numerator, factor_denominator = factor.as_integer_ratio()
+            integer_coordinates = xyxy.astype(object)
+            coordinate_sum = integer_coordinates[:, :2] + integer_coordinates[:, 2:]
+            coordinate_size = integer_coordinates[:, 2:] - integer_coordinates[:, :2]
+            denominator = 2 * factor_denominator
+            lower = np.asarray(
+                (
+                    coordinate_sum * factor_denominator
+                    - coordinate_size * factor_numerator
+                )
+                / denominator,
+                dtype=np.float64,
+            )
+            upper = np.asarray(
+                (
+                    coordinate_sum * factor_denominator
+                    + coordinate_size * factor_numerator
+                )
+                / denominator,
+                dtype=np.float64,
+            )
+            return cast(
+                npt.NDArray[np.floating], np.concatenate((lower, upper), axis=1)
+            )
+        else:
+            xyxy = xyxy.astype(np.float64)
 
+    centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
+    new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
     return cast(
         npt.NDArray[np.floating],
         np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1),
