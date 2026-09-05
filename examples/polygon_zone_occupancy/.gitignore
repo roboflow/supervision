@@ -1,0 +1,7 @@
+occupancy_result*.jpg
+occupancy_result*.png
+input.jpg
+input.jpeg
+input.png
+sample_inputs/
+test*_preview.png

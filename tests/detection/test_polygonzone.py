@@ -300,3 +300,158 @@ class TestPolygonZoneTrigger:
 
         assert left_result
         assert not right_result
+
+
+class TestPolygonZoneOccupancy:
+    def test_empty_detections_return_zero(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+
+        occupancy = zone.get_occupancy(sv.Detections.empty())
+
+        assert occupancy == 0.0
+
+    def test_box_covering_zone_returns_one(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[[0.0, 0.0, 9.0, 9.0]],
+            class_id=[0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 1.0
+
+    def test_box_partially_overlapping_zone_returns_fraction(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[[0.0, 0.0, 4.0, 9.0]],
+            class_id=[0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 0.5
+
+    def test_box_outside_zone_returns_zero(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[[20.0, 20.0, 29.0, 29.0]],
+            class_id=[0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 0.0
+
+    def test_overlapping_boxes_are_counted_once(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[
+                [0.0, 0.0, 5.0, 9.0],
+                [4.0, 0.0, 9.0, 9.0],
+            ],
+            class_id=[0, 0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 1.0
+
+    def test_multiple_boxes_only_count_area_inside_zone(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        detections = _create_detections(
+            xyxy=[
+                [0.0, 0.0, 2.0, 9.0],
+                [7.0, 0.0, 9.0, 9.0],
+                [20.0, 20.0, 29.0, 29.0],
+            ],
+            class_id=[0, 0, 0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 0.6
+
+    def test_large_coordinate_zone_counts_all_overlapping_boxes(self) -> None:
+        zone = sv.PolygonZone(
+            np.array(
+                [
+                    [100, 100],
+                    [199, 100],
+                    [199, 199],
+                    [100, 199],
+                ],
+                dtype=np.int32,
+            )
+        )
+        detections = _create_detections(
+            xyxy=[
+                [100.0, 100.0, 129.0, 199.0],
+                [170.0, 100.0, 199.0, 199.0],
+                [250.0, 250.0, 299.0, 299.0],
+            ],
+            class_id=[0, 0, 0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == pytest.approx(0.6, abs=1e-5)
+
+    def test_dense_masks_take_precedence_over_boxes(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        mask = np.zeros((1, 11, 11), dtype=bool)
+        mask[0, 0:10, 0:2] = True
+        detections = _create_detections(
+            xyxy=[[0.0, 0.0, 9.0, 9.0]],
+            mask=mask,
+            class_id=[0],
+        )
+
+        occupancy = zone.get_occupancy(detections)
+
+        assert occupancy == 0.2
+
+    def test_compact_masks_match_dense_masks(self) -> None:
+        zone = sv.PolygonZone(
+            np.array([[0, 0], [9, 0], [9, 9], [0, 9]], dtype=np.int32)
+        )
+        masks = np.zeros((2, 11, 11), dtype=bool)
+        masks[0, 0:10, 0:4] = True
+        masks[1, 0:10, 2:6] = True
+        xyxy = np.array(
+            [
+                [0.0, 0.0, 3.0, 9.0],
+                [2.0, 0.0, 5.0, 9.0],
+            ],
+            dtype=np.float32,
+        )
+        dense_detections = _create_detections(
+            xyxy=xyxy,
+            mask=masks,
+            class_id=[0, 0],
+        )
+        compact_detections = sv.Detections(
+            xyxy=xyxy,
+            mask=sv.CompactMask.from_dense(masks, xyxy, image_shape=(11, 11)),
+            class_id=np.array([0, 0]),
+        )
+
+        dense_occupancy = zone.get_occupancy(dense_detections)
+        compact_occupancy = zone.get_occupancy(compact_detections)
+
+        assert dense_occupancy == 0.6
+        assert compact_occupancy == dense_occupancy
