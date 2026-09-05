@@ -60,6 +60,7 @@ from supervision.detection.tools.inference_slicer import (
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
+from supervision.detection.tools.training_slicer import TrainingSlicer
 from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
@@ -222,6 +223,7 @@ __all__ = [
     "RichLabelAnnotator",
     "RoundBoxAnnotator",
     "TraceAnnotator",
+    "TrainingSlicer",
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexEllipseAnnotator",
