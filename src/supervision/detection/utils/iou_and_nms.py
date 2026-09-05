@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable, Sequence
 from enum import Enum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -12,6 +12,9 @@ from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.converters import mask_to_xyxy
 from supervision.utils.internal import warn_deprecated
+
+if TYPE_CHECKING:
+    from supervision.detection.core import Detections
 
 
 class OverlapFilter(Enum):
@@ -1531,6 +1534,99 @@ def _non_max_merge_per_category(
                 f"Empty group detected when non-max-merging detections: {merge_groups}"
             )
     return merge_groups
+
+
+def match_detections(
+    detections_a: Detections,
+    detections_b: Detections,
+    iou_threshold: float = 0.5,
+    class_agnostic: bool = False,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+    """Match instances between two `Detections` objects using greedy highest-IoU-first
+    assignment.
+
+    Matches instances in `detections_a` to instances in `detections_b` based on
+    bounding box intersection-over-union (IoU). Each detection is assigned at
+    most once in a one-to-one, greedy manner ordered by descending IoU.
+
+    Args:
+        detections_a: First set of detections.
+        detections_b: Second set of detections.
+        iou_threshold: Minimum IoU required for a valid match pair. Defaults to `0.5`.
+        class_agnostic: If `True`, matches detections purely based on IoU regardless
+            of class. If `False` (default), candidate pairs must also have equal
+            `class_id`.
+
+    Returns:
+        A tuple of three NumPy index arrays
+            `(matched_pairs, unmatched_a, unmatched_b)`:
+            - `matched_pairs`: `(M, 2)` array of integer indices, where column 0
+              indexes into `detections_a` and column 1 into `detections_b`.
+            - `unmatched_a`: 1D array of indices in `detections_a` that were not
+              matched.
+            - `unmatched_b`: 1D array of indices in `detections_b` that were not
+              matched.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> det_a = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+        ...     class_id=np.array([0, 1]),
+        ... )
+        >>> det_b = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]]),
+        ...     class_id=np.array([0, 1]),
+        ... )
+        >>> matched, unmatched_a, unmatched_b = sv.match_detections(det_a, det_b)
+        >>> matched
+        array([[0, 0]])
+        >>> unmatched_a
+        array([1])
+        >>> unmatched_b
+        array([1])
+
+        ```
+    """
+    if len(detections_a) == 0 or len(detections_b) == 0:
+        matched_pairs = np.empty((0, 2), dtype=np.intp)
+        unmatched_a = np.arange(len(detections_a), dtype=np.intp)
+        unmatched_b = np.arange(len(detections_b), dtype=np.intp)
+        return matched_pairs, unmatched_a, unmatched_b
+
+    iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
+    candidate_mask = iou >= iou_threshold
+
+    if not class_agnostic:
+        if detections_a.class_id is not None and detections_b.class_id is not None:
+            class_match = (
+                detections_a.class_id[:, None] == detections_b.class_id[None, :]
+            )
+            candidate_mask = candidate_mask & class_match
+        elif (detections_a.class_id is None) != (detections_b.class_id is None):
+            candidate_mask = np.zeros_like(candidate_mask, dtype=bool)
+
+    matched_indices = np.where(candidate_mask)
+
+    # Imported lazily to avoid a circular import with `supervision.metrics`.
+    from supervision.metrics.utils.matching import _greedy_match
+
+    matched_list = list(_greedy_match(iou, matched_indices))
+
+    if matched_list:
+        matched_pairs = np.array(matched_list, dtype=np.intp)
+    else:
+        matched_pairs = np.empty((0, 2), dtype=np.intp)
+
+    unmatched_a = np.setdiff1d(
+        np.arange(len(detections_a), dtype=np.intp), matched_pairs[:, 0]
+    )
+    unmatched_b = np.setdiff1d(
+        np.arange(len(detections_b), dtype=np.intp), matched_pairs[:, 1]
+    )
+
+    return matched_pairs, unmatched_a, unmatched_b
 
 
 def _group_overlapping_boxes(

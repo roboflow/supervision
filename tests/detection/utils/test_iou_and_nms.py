@@ -22,6 +22,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
+    match_detections,
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
@@ -2627,3 +2628,86 @@ class TestBoxNonMaxMerge:
         result = box_non_max_merge(predictions, iou_threshold=0.5)
         assert len(result) == 1
         assert len(result[0]) == 2
+
+
+class TestMatchDetections:
+    """Verify match_detections public API for pairwise instance matching."""
+
+    def test_empty_detections_returns_empty_arrays(self) -> None:
+        """Matching when one or both Detections are empty returns empty match array."""
+        det_empty = Detections.empty()
+        det_b = Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+
+        matched, unmatched_a, unmatched_b = match_detections(det_empty, det_b)
+
+        assert matched.shape == (0, 2)
+        assert len(unmatched_a) == 0
+        assert unmatched_b.tolist() == [0]
+
+    def test_identical_detections_match(self) -> None:
+        """Identical bounding boxes and classes produce full diagonal match."""
+        det_a = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+        )
+        det_b = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+        )
+
+        matched, unmatched_a, unmatched_b = match_detections(det_a, det_b)
+
+        assert matched.tolist() == [[0, 0], [1, 1]]
+        assert len(unmatched_a) == 0
+        assert len(unmatched_b) == 0
+
+    def test_class_mismatch_prevents_match_when_not_class_agnostic(self) -> None:
+        """Overlapping boxes with different class_id are not matched by default."""
+        det_a = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        det_b = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([1]),
+        )
+
+        matched, unmatched_a, unmatched_b = match_detections(
+            det_a, det_b, class_agnostic=False
+        )
+
+        assert matched.shape == (0, 2)
+        assert unmatched_a.tolist() == [0]
+        assert unmatched_b.tolist() == [0]
+
+    def test_class_agnostic_matches_across_classes(self) -> None:
+        """When class_agnostic=True, boxes match based purely on IoU."""
+        det_a = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        det_b = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([1]),
+        )
+
+        matched, unmatched_a, unmatched_b = match_detections(
+            det_a, det_b, class_agnostic=True
+        )
+
+        assert matched.tolist() == [[0, 0]]
+        assert len(unmatched_a) == 0
+        assert len(unmatched_b) == 0
+
+    def test_higher_iou_wins_greedy_assignment(self) -> None:
+        """Greedy matching assigns the pair with higher IoU first."""
+        det_a = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [1, 1, 10, 10]], dtype=np.float32)
+        )
+        det_b = Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+
+        matched, unmatched_a, unmatched_b = match_detections(det_a, det_b)
+
+        assert matched.tolist() == [[0, 0]]
+        assert unmatched_a.tolist() == [1]
+        assert len(unmatched_b) == 0

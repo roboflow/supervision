@@ -47,6 +47,12 @@ comments: true
 :::supervision.detection.utils.iou_and_nms.oriented_box_iou_batch
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.match_detections">match_detections</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.match_detections
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou_and_nms.box_non_max_suppression">box_non_max_suppression</a></h2>
 </div>
 
