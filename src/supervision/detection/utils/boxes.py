@@ -425,8 +425,8 @@ def _oriented_box_anchors(
 
 
 def scale_boxes(
-    xyxy: npt.NDArray[np.float64], factor: float
-) -> npt.NDArray[np.float64]:
+    xyxy: npt.NDArray[np.number], factor: float
+) -> npt.NDArray[np.floating]:
     """
     Scale the dimensions of bounding boxes.
 
@@ -454,9 +454,29 @@ def scale_boxes(
 
         ```
     """
-    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
-    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
-    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
+    centers: npt.NDArray[np.floating]
+    new_sizes: npt.NDArray[np.floating]
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Convert integer coordinates to object arithmetic before addition and
+        # subtraction to prevent integer overflow and unsigned underflow across
+        # the entire range of integer dtypes before converting to float64.
+        integer_coordinates = xyxy.astype(object)
+        centers = np.asarray(
+            (integer_coordinates[:, :2] + integer_coordinates[:, 2:]) / 2,
+            dtype=np.float64,
+        )
+        new_sizes = np.asarray(
+            (integer_coordinates[:, 2:] - integer_coordinates[:, :2]) * factor,
+            dtype=np.float64,
+        )
+    else:
+        centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
+        new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+
+    return cast(
+        npt.NDArray[np.floating],
+        np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1),
+    )
 
 
 def spread_out_boxes(

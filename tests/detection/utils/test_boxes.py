@@ -173,6 +173,114 @@ def test_scale_boxes(
 
 
 @pytest.mark.parametrize(
+    ("dtype", "xyxy", "factor", "expected_result"),
+    [
+        pytest.param(
+            np.int32,
+            np.array(
+                [[1_500_000_000, 1_500_000_000, 1_600_000_000, 1_600_000_000]],
+                dtype=np.int32,
+            ),
+            1.0,
+            np.array(
+                [[1_500_000_000.0, 1_500_000_000.0, 1_600_000_000.0, 1_600_000_000.0]]
+            ),
+            id="int32-large-coords",
+        ),
+        pytest.param(
+            np.int16,
+            np.array([[20000, 20000, 25000, 25000]], dtype=np.int16),
+            1.0,
+            np.array([[20000.0, 20000.0, 25000.0, 25000.0]]),
+            id="int16-near-dtype-max",
+        ),
+        pytest.param(
+            np.uint16,
+            np.array([[40000, 40000, 50000, 50000]], dtype=np.uint16),
+            1.0,
+            np.array([[40000.0, 40000.0, 50000.0, 50000.0]]),
+            id="uint16-near-dtype-max",
+        ),
+        pytest.param(
+            np.uint32,
+            np.array(
+                [[2_500_000_000, 2_500_000_000, 2_600_000_000, 2_600_000_000]],
+                dtype=np.uint32,
+            ),
+            1.0,
+            np.array(
+                [[2_500_000_000.0, 2_500_000_000.0, 2_600_000_000.0, 2_600_000_000.0]]
+            ),
+            id="uint32-large-coords",
+        ),
+        pytest.param(
+            np.int32,
+            np.array(
+                [[1_000_000_000, 1_000_000_000, 1_200_000_000, 1_200_000_000]],
+                dtype=np.int32,
+            ),
+            2.0,
+            np.array(
+                [[900_000_000.0, 900_000_000.0, 1_300_000_000.0, 1_300_000_000.0]]
+            ),
+            id="int32-scaled-factor-2",
+        ),
+    ],
+)
+def test_scale_boxes_does_not_overflow_integer_dtypes(
+    dtype: type,
+    xyxy: np.ndarray,
+    factor: float,
+    expected_result: np.ndarray,
+) -> None:
+    """Integer boxes scale without coordinate overflow or wrap-around."""
+    result = scale_boxes(xyxy=xyxy, factor=factor)
+
+    assert result.dtype == np.float64
+    np.testing.assert_allclose(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("xyxy", "factor", "expected_dtype"),
+    [
+        pytest.param(
+            np.array([[10.0, 10.0, 20.0, 20.0]], dtype=np.float32),
+            1.5,
+            np.float32,
+            id="preserves-float32",
+        ),
+        pytest.param(
+            np.array([[10.0, 10.0, 20.0, 20.0]], dtype=np.float64),
+            1.5,
+            np.float64,
+            id="preserves-float64",
+        ),
+        pytest.param(
+            np.array([[10, 10, 20, 20]], dtype=np.int32),
+            1.5,
+            np.float64,
+            id="promotes-int32-to-float64",
+        ),
+        pytest.param(
+            np.array([[10, 10, 20, 20]], dtype=np.uint16),
+            1.5,
+            np.float64,
+            id="promotes-uint16-to-float64",
+        ),
+    ],
+)
+def test_scale_boxes_returns_expected_dtype(
+    xyxy: np.ndarray,
+    factor: float,
+    expected_dtype: type,
+) -> None:
+    """Preserves floating precision and promotes integer dtypes to float64."""
+    result = scale_boxes(xyxy=xyxy, factor=factor)
+
+    assert result.dtype == expected_dtype
+
+
+@pytest.mark.parametrize(
     ("xyxy", "resolution_wh", "normalization_factor", "expected_result", "exception"),
     [
         (
