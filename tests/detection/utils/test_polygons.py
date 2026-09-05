@@ -167,3 +167,31 @@ class TestApproximatePolygon:
         polygon = _regular_polygon(20)
         with pytest.raises(ValueError, match="epsilon_step must be positive"):
             approximate_polygon(polygon, percentage=0.5, epsilon_step=epsilon_step)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.float64, np.float32, np.int64, np.int32, np.int16, np.uint8],
+    )
+    def test_approximate_polygon_preserves_dtype(self, dtype: type) -> None:
+        """Ensure approximate_polygon supports float64/int64 and preserves dtype."""
+        polygon = np.array(
+            [[0, 0], [10, 0], [10, 10], [0, 10], [5, 10], [5, 5], [3, 7], [1, 9]],
+            dtype=dtype,
+        )
+        result = approximate_polygon(polygon, percentage=0.5)
+        assert result.dtype == dtype
+        assert 3 <= len(result) <= len(polygon)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [np.float64, np.float32, np.int64, np.int32, np.int16, np.uint8],
+)
+def test_filter_polygons_by_area_dtypes(dtype: type) -> None:
+    """Ensure filter_polygons_by_area supports float64/int64 dtypes."""
+    small = np.array([[0, 0], [2, 0], [2, 2], [0, 2]], dtype=dtype)
+    big = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype)
+    result = filter_polygons_by_area([small, big], min_area=50)
+    assert len(result) == 1
+    assert result[0].dtype == dtype
+    assert np.array_equal(result[0], big)

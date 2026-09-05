@@ -45,10 +45,17 @@ def filter_polygons_by_area(
     """
     if min_area is None and max_area is None:
         return polygons
-    ares = [cv2.contourArea(polygon) for polygon in polygons]
+    areas = [
+        cv2.contourArea(
+            polygon
+            if polygon.dtype in (np.float32, np.int32)
+            else polygon.astype(np.float32)
+        )
+        for polygon in polygons
+    ]
     return [
         polygon
-        for polygon, area in zip(polygons, ares)
+        for polygon, area in zip(polygons, areas)
         if (min_area is None or area >= min_area)
         and (max_area is None or area <= max_area)
     ]
@@ -118,15 +125,28 @@ def approximate_polygon(
     if len(polygon) <= target_points:
         return polygon
 
+    original_dtype = polygon.dtype
+    cv_polygon = (
+        polygon
+        if original_dtype in (np.float32, np.int32)
+        else polygon.astype(np.float32)
+    )
+
     epsilon: float = 0
     approximated_points = polygon
     while len(approximated_points) > target_points:
         epsilon += epsilon_step
-        candidate = np.squeeze(cv2.approxPolyDP(polygon, epsilon, closed=True), axis=1)
+        candidate = np.squeeze(
+            cv2.approxPolyDP(cv_polygon, epsilon, closed=True), axis=1
+        )
         # Stop before the approximation collapses below a valid polygon; keep the
         # last result with at least three points.
         if len(candidate) < 3:
             break
-        approximated_points = candidate
+        approximated_points = (
+            candidate.astype(original_dtype)
+            if candidate.dtype != original_dtype
+            else candidate
+        )
 
     return approximated_points
