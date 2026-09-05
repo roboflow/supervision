@@ -20,7 +20,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
+from supervision.metrics.core import Metric, MetricResult, MetricTarget, PlotDetails
 from supervision.metrics.utils.utils import ensure_pandas_installed
 from supervision.utils.logger import _get_logger
 
@@ -70,7 +70,7 @@ class _TypeEvaluationImageResult(TypedDict):
 
 
 @dataclass
-class MeanAveragePrecisionResult:
+class MeanAveragePrecisionResult(MetricResult):
     """
     The result of the Mean Average Precision calculation.
 
@@ -220,6 +220,60 @@ class MeanAveragePrecisionResult:
             index=[0],
         )
 
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for mAP scores.
+
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
+        labels = ["mAP@50:95", "mAP@50", "mAP@75"]
+        values = [self.map50_95, self.map50, self.map75]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 3
+
+        if include_object_sizes:
+            if self.small_objects is not None:
+                labels += [
+                    "Small: mAP@50:95",
+                    "Small: mAP@50",
+                    "Small: mAP@75",
+                ]
+                values += [
+                    self.small_objects.map50_95,
+                    self.small_objects.map50,
+                    self.small_objects.map75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[3]] * 3
+
+            if self.medium_objects is not None:
+                labels += [
+                    "Medium: mAP@50:95",
+                    "Medium: mAP@50",
+                    "Medium: mAP@75",
+                ]
+                values += [
+                    self.medium_objects.map50_95,
+                    self.medium_objects.map50,
+                    self.medium_objects.map75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[2]] * 3
+
+            if self.large_objects is not None:
+                labels += [
+                    "Large: mAP@50:95",
+                    "Large: mAP@50",
+                    "Large: mAP@75",
+                ]
+                values += [
+                    self.large_objects.map50_95,
+                    self.large_objects.map50,
+                    self.large_objects.map75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[4]] * 3
+
+        title = "Mean Average Precision"
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
+
     def plot(self) -> None:
         """
         Plot the mAP results.
@@ -230,49 +284,20 @@ class MeanAveragePrecisionResult:
         """
         from matplotlib import pyplot as plt
 
-        labels = ["mAP@50:95", "mAP@50", "mAP@75"]
-        values = [self.map50_95, self.map50, self.map75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 3
-
-        if self.small_objects is not None:
-            labels += ["Small: mAP@50:95", "Small: mAP@50", "Small: mAP@75"]
-            values += [
-                self.small_objects.map50_95,
-                self.small_objects.map50,
-                self.small_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
-
-        if self.medium_objects is not None:
-            labels += ["Medium: mAP@50:95", "Medium: mAP@50", "Medium: mAP@75"]
-            values += [
-                self.medium_objects.map50_95,
-                self.medium_objects.map50,
-                self.medium_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
-
-        if self.large_objects is not None:
-            labels += ["Large: mAP@50:95", "Large: mAP@50", "Large: mAP@75"]
-            values += [
-                self.large_objects.map50_95,
-                self.large_objects.map50,
-                self.large_objects.map75,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        details = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title("Mean Average Precision", fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
         for bar in bars:
             y_value = bar.get_height()

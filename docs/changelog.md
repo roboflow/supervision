@@ -130,6 +130,12 @@ date_modified: 2026-09-03
 
 - `supervision` now requires `av>=14.2` as a mandatory install-time dependency for the PyAV cv2-free video fallback introduced during the OpenCV-optional transition ([#2438](https://github.com/roboflow/supervision/pull/2438)). This doesn't change any public API — code that used supervision correctly before still behaves the same — but environments that pin exact dependency sets or vendor dependencies need to account for the new `av` requirement.
 
+### Added
+
+- Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#1707](https://github.com/roboflow/supervision/issues/1707)).
+- Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#1707](https://github.com/roboflow/supervision/issues/1707)).
+- Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#1707](https://github.com/roboflow/supervision/issues/1707)).
+
 ### Fixed
 
 - Fixed [#2467](https://github.com/roboflow/supervision/issues/2467) via [#2468](https://github.com/roboflow/supervision/pull/2468): `sv.Recall` now tracks classes that appear only in predictions, matching `sv.Precision` and `sv.F1Score` after [#2331](https://github.com/roboflow/supervision/pull/2331) and matching sklearn, which infers labels from the union of `y_true` and `y_pred`. `matched_classes` and `recall_per_class` are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. `matched_classes` and `recall_per_class` gain a row for each prediction-only class under every averaging method; only the scalar `MACRO` recall changes value, since such a class now contributes `0.0`, while the scalar `MICRO` and `WEIGHTED` aggregates are unaffected. Users relying on previous scores should re-evaluate after upgrading; no API change is required.

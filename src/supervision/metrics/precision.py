@@ -15,7 +15,13 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.core import (
+    AveragingMethod,
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+)
 from supervision.metrics.utils.matching import (
     _match_detection_batch_with_target_indices,
 )
@@ -595,7 +601,7 @@ class Precision(Metric["PrecisionResult"]):
 
 
 @dataclass
-class PrecisionResult:
+class PrecisionResult(MetricResult):
     """
     The results of the precision metric calculation.
 
@@ -747,6 +753,49 @@ class PrecisionResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for precision scores.
+
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
+        labels = ["Precision@50", "Precision@75"]
+        values = [self.precision_at_50, self.precision_at_75]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 2
+
+        if include_object_sizes:
+            if self.small_objects is not None:
+                labels += ["Small: P@50", "Small: P@75"]
+                values += [
+                    self.small_objects.precision_at_50,
+                    self.small_objects.precision_at_75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[3]] * 2
+
+            if self.medium_objects is not None:
+                labels += ["Medium: P@50", "Medium: P@75"]
+                values += [
+                    self.medium_objects.precision_at_50,
+                    self.medium_objects.precision_at_75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[2]] * 2
+
+            if self.large_objects is not None:
+                labels += ["Large: P@50", "Large: P@75"]
+                values += [
+                    self.large_objects.precision_at_50,
+                    self.large_objects.precision_at_75,
+                ]
+                colors += [LEGACY_COLOR_PALETTE[4]] * 2
+
+        title = (
+            f"Precision, by Object Size"
+            f"\n(target: {self.metric_target.value},"
+            f" averaging: {self.averaging_method.value})"
+        )
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
+
     def plot(self) -> None:
         """
         Plot the precision results.
@@ -755,48 +804,22 @@ class PrecisionResult:
             https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
         ){ align=center width="800" }
         """
-
         from matplotlib import pyplot as plt
 
-        labels = ["Precision@50", "Precision@75"]
-        values = [self.precision_at_50, self.precision_at_75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 2
-
-        if self.small_objects is not None:
-            small_objects = self.small_objects
-            labels += ["Small: P@50", "Small: P@75"]
-            values += [small_objects.precision_at_50, small_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 2
-
-        if self.medium_objects is not None:
-            medium_objects = self.medium_objects
-            labels += ["Medium: P@50", "Medium: P@75"]
-            values += [medium_objects.precision_at_50, medium_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 2
-
-        if self.large_objects is not None:
-            large_objects = self.large_objects
-            labels += ["Large: P@50", "Large: P@75"]
-            values += [large_objects.precision_at_50, large_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 2
+        details = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Precision, by Object Size"
-            f"\n(target: {self.metric_target.value},"
-            f" averaging: {self.averaging_method.value})"
-        )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
         for bar in bars:
             y_value = bar.get_height()
