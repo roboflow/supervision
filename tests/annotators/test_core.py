@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from PIL import Image
 
@@ -1760,6 +1761,98 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+    def test_annotate_with_overlapping_dense_masks(self) -> None:
+        """Dense mask overlap receives the configured overlap color."""
+        scene = np.zeros((6, 6, 3), dtype=np.uint8)
+        masks_1 = np.zeros((1, 6, 6), dtype=bool)
+        masks_2 = np.zeros((1, 6, 6), dtype=bool)
+        masks_1[0, 1:4, 1:4] = True
+        masks_2[0, 2:5, 2:5] = True
+        detections_1 = Detections(
+            xyxy=np.array([[1, 1, 3, 3]], dtype=np.float32), mask=masks_1
+        )
+        detections_2 = Detections(
+            xyxy=np.array([[2, 2, 4, 4]], dtype=np.float32), mask=masks_2
+        )
+        annotator = ComparisonAnnotator(opacity=1.0)
+
+        result = annotator.annotate(
+            scene=scene.copy(), detections_1=detections_1, detections_2=detections_2
+        )
+
+        expected = scene.copy()
+        expected[1:4, 1:4] = annotator.color_1.as_bgr()
+        expected[2:5, 2:5] = annotator.color_2.as_bgr()
+        expected[2:4, 2:4] = annotator.color_overlap.as_bgr()
+        np.testing.assert_array_equal(result, expected)
+
+    def test_annotate_with_disjoint_dense_masks(self) -> None:
+        """Disjoint dense masks retain their respective colors."""
+        scene = np.zeros((6, 6, 3), dtype=np.uint8)
+        masks_1 = np.zeros((1, 6, 6), dtype=bool)
+        masks_2 = np.zeros((1, 6, 6), dtype=bool)
+        masks_1[0, 1:3, 1:3] = True
+        masks_2[0, 3:5, 3:5] = True
+        detections_1 = Detections(
+            xyxy=np.array([[1, 1, 2, 2]], dtype=np.float32), mask=masks_1
+        )
+        detections_2 = Detections(
+            xyxy=np.array([[3, 3, 4, 4]], dtype=np.float32), mask=masks_2
+        )
+        annotator = ComparisonAnnotator(opacity=1.0)
+
+        result = annotator.annotate(
+            scene=scene.copy(), detections_1=detections_1, detections_2=detections_2
+        )
+
+        expected = scene.copy()
+        expected[1:3, 1:3] = annotator.color_1.as_bgr()
+        expected[3:5, 3:5] = annotator.color_2.as_bgr()
+        np.testing.assert_array_equal(result, expected)
+
+    def test_annotate_with_compact_masks_avoids_full_stack_materialization(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """CompactMask comparison matches dense output without calling to_dense."""
+        scene = np.zeros((6, 6, 3), dtype=np.uint8)
+        masks_1 = np.zeros((2, 6, 6), dtype=bool)
+        masks_2 = np.zeros((1, 6, 6), dtype=bool)
+        masks_1[0, 0, 0:3] = True
+        masks_1[0, 2, 0] = True
+        masks_1[1, 3, 3:5] = True
+        masks_1[1, 4, 3] = True
+        masks_2[0, 2, 2:5] = True
+        masks_2[0, 4, 2] = True
+        xyxy_1 = np.array([[0, 0, 2, 2], [3, 3, 4, 4]], dtype=np.float32)
+        xyxy_2 = np.array([[2, 2, 4, 4]], dtype=np.float32)
+        dense_1 = Detections(xyxy=xyxy_1, mask=masks_1)
+        dense_2 = Detections(xyxy=xyxy_2, mask=masks_2)
+        compact_1 = Detections(
+            xyxy=xyxy_1,
+            mask=CompactMask.from_dense(masks_1, xyxy_1, scene.shape[:2]),
+        )
+        compact_2 = Detections(
+            xyxy=xyxy_2,
+            mask=CompactMask.from_dense(masks_2, xyxy_2, scene.shape[:2]),
+        )
+        annotator = ComparisonAnnotator(opacity=1.0)
+        expected = annotator.annotate(
+            scene=scene.copy(), detections_1=dense_1, detections_2=dense_2
+        )
+
+        def fail_to_dense(self: CompactMask) -> npt.NDArray[np.bool_]:
+            """Fail if comparison annotation materializes compact masks."""
+            raise AssertionError(
+                "ComparisonAnnotator must not call CompactMask.to_dense"
+            )
+
+        monkeypatch.setattr(CompactMask, "to_dense", fail_to_dense)
+        result = annotator.annotate(
+            scene=scene.copy(), detections_1=compact_1, detections_2=compact_2
+        )
+
+        np.testing.assert_array_equal(result, expected)
 
 
 class TestTraceAnnotatorReset:

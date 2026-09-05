@@ -3527,14 +3527,26 @@ class ComparisonAnnotator:
     def _mask_from_mask(
         scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
-        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+        """Return the union of detection masks without materializing CompactMask."""
         if detections.is_empty():
-            return mask
+            return np.zeros(scene.shape[:2], dtype=np.bool_)
         assert detections.mask is not None
 
-        for detections_mask in detections.mask:
-            mask |= detections_mask.astype(np.bool_)
-        return mask
+        if isinstance(detections.mask, CompactMask):
+            mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+            scene_height, scene_width = scene.shape[:2]
+            # Decode each CompactMask crop so this union never allocates (N, H, W).
+            for detection_idx, (x1, y1) in enumerate(detections.mask.offsets):
+                crop = detections.mask.crop(detection_idx)
+                crop_height, crop_width = crop.shape
+                x1_int, y1_int = int(x1), int(y1)
+                x2 = min(x1_int + crop_width, scene_width)
+                y2 = min(y1_int + crop_height, scene_height)
+                if x2 > x1_int and y2 > y1_int:
+                    mask[y1_int:y2, x1_int:x2] |= crop[: y2 - y1_int, : x2 - x1_int]
+            return mask
+
+        return cast(npt.NDArray[np.bool_], np.any(detections.mask, axis=0))
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
         """
