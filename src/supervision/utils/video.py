@@ -410,7 +410,8 @@ def process_video(
             each frame, accepting the frame as a numpy array and its zero-based index,
             returning the processed frame.
         max_frames: Optional maximum number of frames to process.
-            If None, the entire video is processed (default).
+            If None, the entire video is processed (default). A value larger
+            than the number of frames in the video processes the whole video.
         prefetch: Maximum number of frames buffered by the reader thread.
             Controls memory use; default is 32.
         writer_buffer: Maximum number of frames buffered before writing.
@@ -427,6 +428,12 @@ def process_video(
 
     Returns:
         None
+
+    Raises:
+        RuntimeError: If the reader thread fails to open or decode the source
+            video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
+            from the original exception. Exceptions raised by `callback` are
+            re-raised unchanged.
 
     Example:
         ```python
@@ -447,11 +454,17 @@ def process_video(
         ```
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
-    total_frames = (
-        min(video_info.total_frames or 0, max_frames)
-        if max_frames is not None
-        else video_info.total_frames or 0
-    )
+    video_total_frames = video_info.total_frames or 0
+    total_frames = video_total_frames
+    if max_frames is not None:
+        total_frames = min(video_total_frames, max_frames)
+
+    # `max_frames` is a cap, not an exact count: a value larger than the video
+    # must process the whole video. `get_video_frames_generator` raises when
+    # `end` exceeds the frame count, so clamp it whenever the count is known.
+    frames_end: int | None = max_frames
+    if max_frames is not None and video_total_frames > 0:
+        frames_end = total_frames
 
     frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
         maxsize=prefetch
@@ -460,14 +473,25 @@ def process_video(
         maxsize=writer_buffer
     )
 
+    reader_exception: Exception | None = None
+
     def reader_thread() -> None:
-        frame_generator = get_video_frames_generator(
-            source_path=source_path,
-            end=max_frames,
-        )
-        for frame_index, frame in enumerate(frame_generator):
-            frame_read_queue.put((frame_index, frame))
-        frame_read_queue.put(None)
+        """Feed frames into the read queue, always ending with the sentinel."""
+        nonlocal reader_exception
+        try:
+            frame_generator = get_video_frames_generator(
+                source_path=source_path,
+                end=frames_end,
+            )
+            for frame_index, frame in enumerate(frame_generator):
+                frame_read_queue.put((frame_index, frame))
+        except Exception as exc:
+            # The main loop blocks on `frame_read_queue.get()` with no timeout,
+            # so a reader failure must still enqueue the sentinel or the call
+            # never returns. Surface the error once the pipeline has shut down.
+            reader_exception = exc
+        finally:
+            frame_read_queue.put(None)
 
     def writer_thread(video_sink: VideoSink) -> None:
         while True:
@@ -538,6 +562,10 @@ def process_video(
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
+            if reader_exception is not None:
+                raise RuntimeError(
+                    f"Reader thread raised: {reader_exception!r}"
+                ) from reader_exception
 
     if preserve_audio:
         if writer_worker.is_alive():

@@ -440,6 +440,83 @@ def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     assert processed_indices == [0, 1, 2, 3, 4]
 
 
+def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> bool:
+    """Run process_video in a daemon thread and report whether it finished in time."""
+    finished = threading.Event()
+
+    def run() -> None:
+        """Call process_video and flag completion."""
+        try:
+            process_video(**kwargs)
+        finally:
+            finished.set()
+
+    threading.Thread(target=run, daemon=True).start()
+    return finished.wait(timeout=deadline_seconds)
+
+
+def test_process_video_max_frames_larger_than_video_processes_whole_video(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
+    """A max_frames above the frame count processes every frame and returns."""
+    target_path = str(tmp_path / "target_max_frames_overshoot.mp4")
+    processed_indices: list[int] = []
+
+    def callback(frame, index):
+        """Record the index of every processed frame."""
+        processed_indices.append(index)
+        return frame
+
+    finished = _run_process_video_with_deadline(
+        deadline_seconds=30,
+        source_path=dummy_video_path,
+        target_path=target_path,
+        callback=callback,
+        max_frames=10_000,
+    )
+
+    assert finished, "process_video did not return"
+    assert processed_indices == list(range(10))
+    assert os.path.exists(target_path)
+
+
+def test_process_video_propagates_reader_thread_errors(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A failing reader thread raises RuntimeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_reader_error.mp4")
+
+    def failing_generator(*args, **kwargs):
+        """Stand in for a reader that cannot open or decode the source."""
+        raise OSError("decode failed")
+
+    monkeypatch.setattr(
+        "supervision.utils.video.get_video_frames_generator", failing_generator
+    )
+    raised: list[BaseException] = []
+
+    def run() -> None:
+        """Call process_video and capture the exception it raises."""
+        try:
+            process_video(
+                source_path=dummy_video_path,
+                target_path=target_path,
+                callback=lambda frame, index: frame,
+            )
+        except BaseException as exc:
+            raised.append(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=30)
+
+    assert not worker.is_alive(), "process_video did not return"
+    assert len(raised) == 1
+    assert isinstance(raised[0], RuntimeError)
+    assert "Reader thread raised" in str(raised[0])
+    assert isinstance(raised[0].__cause__, OSError)
+
+
 def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video works correctly with custom performance parameters.
