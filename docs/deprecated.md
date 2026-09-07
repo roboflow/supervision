@@ -18,6 +18,8 @@ These features are phased out due to better alternatives or potential issues in 
 - [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) classmethod is deprecated in `supervision-0.26.0` and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
 - `KeyPoints.confidence` is deprecated in `supervision-0.29.0`. Use `KeyPoints.keypoint_confidence` instead. It will be removed in `supervision-0.32.0`.
 - Public `validate_*` helper functions are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`. Supervision internals now use private `_validate_*` helpers.
+- `merge_inner_detection_object_pair`, `merge_inner_detections_objects`, and `merge_inner_detections_objects_without_iou` in `supervision.detection.core` are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`.
+- Passing `overlap_metric` or `mask_dimension` positionally to [`sv.mask_non_max_merge`](https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge) is deprecated in `supervision-0.30.0` and will be removed in `supervision-0.33.0`. Pass both by keyword instead.
 
 # Removed
 
