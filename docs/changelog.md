@@ -1,15 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-03
+date_modified: 2026-09-07
 ---
 
 # Changelog
 
-## Unreleased <small>upcoming</small>
+### Unreleased <small>upcoming</small>
 
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
-
-- A release's own version-pinned docs (e.g. `/0.30.2/...`) no longer show the "older version, use latest" banner on the day it ships. The publish workflow now compares the release tag against the repository's tag history and only suppresses the banner when the tag being deployed is the newest stable release, instead of relying solely on the separate `/latest/` alias build to ever be current. The workflow also now automatically archives the previously-latest release's already-published tree right after a new one ships, since Mike never rebuilds it and it would otherwise stay incorrectly banner-free forever.
 
 - `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
 
@@ -17,29 +15,19 @@ date_modified: 2026-09-03
 
 - `sv.filter_polygons_by_area` and `sv.approximate_polygon` now preserve local geometry for large-origin integer and `float64` polygons instead of losing coordinate deltas during OpenCV conversion ([#2542](https://github.com/roboflow/supervision/pull/2542)).
 
-- `sv.TraceAnnotator.annotate` no longer raises `ValueError: The `tracker_id` field is missing` for a frame in which nothing was detected. An empty `sv.Detections` carries no `tracker_id`, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except `sv.ByteTrack`, which works around it by returning an empty `tracker_id` array. Such a frame now draws nothing and still advances `sv.Trace`'s frame counter, keeping `trace_length` a window over elapsed frames — pruning fires on the next frame that does carry detections, and only once the frames stored in the trace outnumber `trace_length`, so a track that had filled the window before a long gap starts a fresh trail instead of being joined to its pre-gap one. Detections that do contain boxes but no `tracker_id` still raise, as before.
+- `sv.TraceAnnotator.annotate` no longer raises `ValueError: The `tracker_id` field is missing` for a frame with no detections. An empty `sv.Detections` carries no `tracker_id`, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except `sv.ByteTrack`, which works around it by returning an empty `tracker_id` array. Such a frame now draws nothing and still advances `sv.Trace`'s frame counter, keeping `trace_length` a window over elapsed frames: pruning fires on the next detection-carrying frame, and only once stored frames outnumber `trace_length` — so a track that filled the window before a long gap starts a fresh trail instead of joining its pre-gap one. Detections with boxes but no `tracker_id` still raise, as before.
 
-- `sv.CSVSink` no longer lets a batch with no detections fix the CSV header. Appending an empty `sv.Detections` — the normal result for a frame in which nothing was detected — wrote a header without the `data` and `custom_data` columns, and every later row was then silently truncated to that schema, dropping fields such as `class_name` for the whole file. Empty batches now write nothing and leave the header to the first batch that actually carries detections; a run in which every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning those batches logged is gone.
+- `sv.CSVSink` no longer lets an empty batch fix the CSV header. Appending an empty `sv.Detections` — the normal result for a frame with nothing detected — wrote a header without the `data`/`custom_data` columns, then silently truncated every later row to that schema, dropping fields like `class_name` for the whole file. Empty batches now write nothing, leaving the header to the first batch that actually carries detections; a run where every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning is gone.
 
-- `sv.process_video` no longer hangs forever when `max_frames` is larger than the number of frames in the video. The reader thread used to fail on the out-of-range `end` before enqueuing its sentinel, leaving the main loop blocked on the read queue. `max_frames` is now capped at the video length so the whole video is processed, and any error raised inside the reader thread is surfaced as `RuntimeError("Reader thread raised: ...")` from the original exception instead of stalling the call ([#2545](https://github.com/roboflow/supervision/issues/2545)).
+- `sv.process_video` no longer hangs when `max_frames` exceeds the video's frame count. The reader thread used to fail on the out-of-range `end` before enqueuing its sentinel, blocking the main loop on the read queue. `max_frames` is now capped at the video length so the whole video processes, and any reader-thread error now surfaces as `RuntimeError("Reader thread raised: ...")` from the original exception instead of stalling the call ([#2545](https://github.com/roboflow/supervision/issues/2545)).
 
 ### 0.30.2 <small>Sep 3, 2026</small>
-
-- Versioned documentation banners now adjust MkDocs Material’s desktop sidebar inline layout and scroll height without shifting the mobile navigation drawer.
-
-- Versioned documentation builds now emit a valid `/latest/search/` SearchAction URL when Mike removes the trailing slash from `site_url`; docs CI renders the custom theme under Mike version contexts to protect the URL, version banners, and star JSON-LD. This source change applies to future builds; existing published archive trees require a separately approved backfill.
 
 - `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
 
 - `sv.denormalize_boxes` no longer truncates coordinates for integer input arrays. Scaling now multiplies by a floating-point factor so integer normalized coordinates (for example VLM boxes quantized to `0..1000`) map to exact absolute pixel values instead of being silently rounded down.
 
 - `sv.Detections.box_area` (and therefore `sv.Detections.area` for axis-aligned boxes) now computes integer-coordinate box areas in `float64`, preventing integer overflow for large boxes (e.g. an `int32` `50000 x 50000` box previously wrapped to a negative area).
-
-- Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
-
-- Versioned documentation deploys now export the version being deployed to the docs build, so the outdated-version banner reaches readers of the `develop` tree and of archived release trees. The publish workflow never set `MIKE_DOCS_VERSION`, which gates the banner, so every tree was built without it. This applies to future builds going forward.
-
-- The canonical backfill workflow now pushes the pre-rewrite `gh-pages` tip to a timestamped backup branch before committing over it, and reports rewritten canonicals whose target page does not exist under `latest/` — a canonical pointing at a removed page is ignored by search engines, so those pages keep competing with `/latest/`. The same workflow now also backfills the outdated-version banner itself into already-published archive trees, patching the empty banner markup those pages already carry rather than rebuilding them — archived tags may not build against current dependencies, so a rebuild is not an option. The highest-numbered version tree is left out of that backfill — it holds the current release that `/latest/` serves, so an "older version" warning there is wrong — and a banner an earlier run injected into it is removed.
 
 - `sv.InferenceSlicer` now merges slice results in source order when `thread_workers > 1`, restoring the ordering guarantee its docstring documents. Results were previously collected in thread-completion order, so the row order of the returned `Detections` — and, for tied confidences, which overlapping box survived `with_nms`/`with_nmm` — varied between runs on identical input. Both the per-slice and `batch_size > 1` paths are affected ([#2517](https://github.com/roboflow/supervision/pull/2517)).
 
@@ -789,8 +777,6 @@ date_modified: 2026-09-03
 
 - Fixed a bug where `class_agnostic` setting in `MeanAveragePrecision` would not work. ([#1577](https://github.com/roboflow/supervision/pull/1577)) hacktoberfest
 
-- Removed welcome workflow from our CI system. ([#1596](https://github.com/roboflow/supervision/pull/1596))
-
 - Large refactor of `ByteTrack`: STrack moved to separate class, removed superfluous `BaseTrack` class, removed unused variables ([#1603](https://github.com/roboflow/supervision/pull/1603))
 
 - Large refactor of `RichLabelAnnotator`, matching its contents with `LabelAnnotator`. ([#1625](https://github.com/roboflow/supervision/pull/1625))
@@ -919,10 +905,6 @@ date_modified: 2026-09-03
 - Supervision now depends on `opencv-python` rather than `opencv-python-headless`. [#1530](https://github.com/roboflow/supervision/pull/1530)
 
 - Fixed the COCO 101 point Average Precision algorithm to correctly interpolate precision, providing a more precise calculation of average precision without averaging out intermediate values. [#1500](https://github.com/roboflow/supervision/pull/1500)
-
-- Resolved miscellaneous issues highlighted when building documentation. This mostly includes whitespace adjustments and type inconsistencies. Updated documentation for clarity and fixed formatting issues. Added explicit version for `mkdocstrings-python`. [#1549](https://github.com/roboflow/supervision/pull/1549)
-
-- Enabled and fixed Ruff rules for code formatting, including changes like avoiding unnecessary iterable allocations and using Optional for default mutable arguments. [#1526](https://github.com/roboflow/supervision/pull/1526)
 
 ### 0.23.0 <small>Aug 28, 2024</small>
 
