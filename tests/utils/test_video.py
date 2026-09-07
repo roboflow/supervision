@@ -440,19 +440,30 @@ def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     assert processed_indices == [0, 1, 2, 3, 4]
 
 
-def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> bool:
-    """Run process_video in a daemon thread and report whether it finished in time."""
+def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> None:
+    """Run process_video in a daemon thread; fail on timeout, re-raise its error.
+
+    A hang must not block the whole test session, so the call runs in a daemon
+    thread with a deadline. Exceptions stay confined to that thread, so they are
+    captured and re-raised here to keep a crash from passing as a clean return.
+    """
+    errors: list[BaseException] = []
     finished = threading.Event()
 
     def run() -> None:
-        """Call process_video and flag completion."""
+        """Call process_video, keeping any exception for the calling thread."""
         try:
             process_video(**kwargs)
+        except BaseException as exc:
+            errors.append(exc)
         finally:
             finished.set()
 
     threading.Thread(target=run, daemon=True).start()
-    return finished.wait(timeout=deadline_seconds)
+    if not finished.wait(timeout=deadline_seconds):
+        pytest.fail(f"process_video did not return within {deadline_seconds}s")
+    if errors:
+        raise errors[0]
 
 
 def test_process_video_max_frames_larger_than_video_processes_whole_video(
@@ -467,7 +478,7 @@ def test_process_video_max_frames_larger_than_video_processes_whole_video(
         processed_indices.append(index)
         return frame
 
-    finished = _run_process_video_with_deadline(
+    _run_process_video_with_deadline(
         deadline_seconds=30,
         source_path=dummy_video_path,
         target_path=target_path,
@@ -475,7 +486,6 @@ def test_process_video_max_frames_larger_than_video_processes_whole_video(
         max_frames=10_000,
     )
 
-    assert finished, "process_video did not return"
     assert processed_indices == list(range(10))
     assert os.path.exists(target_path)
 
@@ -493,28 +503,16 @@ def test_process_video_propagates_reader_thread_errors(
     monkeypatch.setattr(
         "supervision.utils.video.get_video_frames_generator", failing_generator
     )
-    raised: list[BaseException] = []
 
-    def run() -> None:
-        """Call process_video and capture the exception it raises."""
-        try:
-            process_video(
-                source_path=dummy_video_path,
-                target_path=target_path,
-                callback=lambda frame, index: frame,
-            )
-        except BaseException as exc:
-            raised.append(exc)
+    with pytest.raises(RuntimeError, match="Reader thread raised") as exc_info:
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: frame,
+        )
 
-    worker = threading.Thread(target=run, daemon=True)
-    worker.start()
-    worker.join(timeout=30)
-
-    assert not worker.is_alive(), "process_video did not return"
-    assert len(raised) == 1
-    assert isinstance(raised[0], RuntimeError)
-    assert "Reader thread raised" in str(raised[0])
-    assert isinstance(raised[0].__cause__, OSError)
+    assert isinstance(exc_info.value.__cause__, OSError)
 
 
 def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
