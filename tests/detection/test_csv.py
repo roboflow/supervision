@@ -1,5 +1,6 @@
 import csv
 import os
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -562,6 +563,71 @@ def test_csv_sink_broadcasts_ndarray_when_length_mismatches_detection_count(
     assert len(rows) == 2
     np.testing.assert_array_equal(rows[0]["embedding"], expected_value)
     np.testing.assert_array_equal(rows[1]["embedding"], expected_value)
+
+
+class TestCSVSinkEmptyFrames:
+    """Empty frames must not determine the columns of later detection rows."""
+
+    @pytest.mark.parametrize("empty_frame_count", [0, 1, 3])
+    @pytest.mark.parametrize("metadata_source", ["detections", "custom"])
+    def test_preserves_metadata_after_empty_frames(
+        self, tmp_path: Path, empty_frame_count: int, metadata_source: str
+    ) -> None:
+        """Export every populated row's metadata after leading or intervening gaps."""
+        path = tmp_path / "detections.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            class_id=np.array([0]),
+        )
+        custom_data: dict[str, Any] = {"frame": empty_frame_count}
+        if metadata_source == "detections":
+            detections.data["class_name"] = ["person"]
+        else:
+            custom_data["class_name"] = ["person"]
+
+        with sv.CSVSink(str(path)) as sink:
+            for frame in range(empty_frame_count):
+                sink.append(sv.Detections.empty(), custom_data={"frame": frame})
+            sink.append(detections, custom_data=custom_data)
+            sink.append(sv.Detections.empty())
+            sink.append(detections, custom_data=custom_data)
+
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+        assert (
+            rows
+            == [
+                {
+                    "x_min": "10",
+                    "y_min": "20",
+                    "x_max": "30",
+                    "y_max": "40",
+                    "class_id": "0",
+                    "confidence": "",
+                    "tracker_id": "",
+                    "class_name": "person",
+                    "frame": str(empty_frame_count),
+                }
+            ]
+            * 2
+        )
+
+    def test_all_empty_frames_produce_an_empty_file(self, tmp_path: Path) -> None:
+        """An empty run must not invent a schema before any detections arrive."""
+        path = tmp_path / "detections.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame": 1})
+
+        assert path.read_bytes() == b""
+
+    def test_unopened_sink_rejects_empty_frames(self, tmp_path: Path) -> None:
+        """Empty batches still require an open output file."""
+        sink = sv.CSVSink(str(tmp_path / "detections.csv"))
+
+        with pytest.raises(Exception, match="Cannot append to CSV"):
+            sink.append(sv.Detections.empty())
 
 
 class TestCSVSinkLifecycle:

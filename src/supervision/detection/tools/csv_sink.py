@@ -202,6 +202,10 @@ class CSVSink:
         """
         Append detection data to the CSV file.
 
+        Empty batches are ignored. The first non-empty batch determines the
+        header, so leading empty frames cannot discard later metadata columns.
+        If every batch is empty, the output file remains empty.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -214,6 +218,9 @@ class CSVSink:
             raise Exception(
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
+        if len(detections) == 0:
+            return
+
         field_names = CSVSink.parse_field_names(detections, custom_data)
         if not self.header_written:
             self.field_names = field_names
