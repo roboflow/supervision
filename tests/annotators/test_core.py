@@ -2008,3 +2008,53 @@ class TestTraceAnnotatorEmptyDetections:
 
         with pytest.raises(ValueError, match="tracker_id"):
             annotator.annotate(scene=test_image.copy(), detections=detections)
+
+    def test_center_of_mass_position_annotates_empty_detections_without_raising(
+        self, test_image: np.ndarray
+    ) -> None:
+        """`CENTER_OF_MASS` must not demand a mask from an empty batch.
+
+        `Position.CENTER_OF_MASS` normally requires a detection mask, but an
+        empty frame carries no anchors to compute, so `annotate` must not
+        raise even though `TraceAnnotator` was configured for that anchor.
+        """
+        annotator = TraceAnnotator(position=Position.CENTER_OF_MASS)
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert scene.shape == test_image.shape
+
+    def test_track_reappearing_after_a_long_gap_drops_its_stale_trail(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Points older than trace_length elapsed frames are pruned on reappearance.
+
+        Mirrors `TestTraceEmptyFrames.
+        test_track_reappearing_after_a_long_gap_drops_its_stale_trail` in
+        `tests/annotators/test_utils.py`, but drives the scenario through the
+        public `annotate()` entry point instead of calling `Trace.put`
+        directly, so the annotator-level integration path is covered too.
+        """
+        annotator = TraceAnnotator(trace_length=3)
+        for x in (10, 20, 30):
+            annotator.annotate(
+                scene=test_image.copy(),
+                detections=_create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                ),
+            )
+        for _ in range(5):
+            annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+
+        annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1]
+            ),
+        )
+
+        assert np.array_equal(
+            annotator.trace.get(tracker_id=1), np.array([[92.5, 2.5]])
+        )

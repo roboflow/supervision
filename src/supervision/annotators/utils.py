@@ -377,12 +377,19 @@ class Trace:
 
         A frame that detected nothing contributes no points but still advances
         the frame counter, keeping `max_size` a window over elapsed frames
-        rather than over populated ones. Pruning runs on the next frame that
-        does carry detections, and measures the window from the advanced
-        counter — so a track reappearing after a long gap starts a fresh trail
-        instead of being joined to its pre-gap one. An empty frame has no
-        anchors and no `tracker_id`, so only frames that carry detections
-        require one.
+        rather than over populated ones. An empty frame has no anchors and no
+        `tracker_id`, so only frames that carry detections require one.
+
+        Pruning runs on the next frame that does carry detections, measures
+        the window from the advanced counter, and only fires once the distinct
+        frames held in the history — counting the frame that triggers it —
+        outnumber `max_size`. A track that had filled the window before a long
+        gap therefore starts a fresh trail, while a track whose stored history
+        stayed shorter than the window is still joined to its pre-gap points.
+
+        History is normalised on the way in: anchor points are stored as
+        `float32` and tracker ids are cast to NumPy's default integer dtype
+        (`np.int_`), so tracker ids outside that dtype's range are unsupported.
         """
         if len(detections) == 0:
             xy: npt.NDArray[np.float32] = np.empty((0, 2), dtype=np.float32)
