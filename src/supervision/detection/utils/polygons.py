@@ -4,6 +4,28 @@ import numpy.typing as npt
 from supervision import _cv2 as cv2
 
 
+def _to_local_cv2_polygon(
+    polygon: npt.NDArray[np.number],
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.number]]:
+    """Translate a polygon to a local float32 coordinate system for OpenCV.
+
+    Integer subtraction uses object arithmetic so unsigned and signed inputs do
+    not wrap before conversion. Translating first preserves representable local
+    geometry when absolute coordinates exceed float32 precision.
+    """
+    origin = polygon.min(axis=0)
+    if np.issubdtype(polygon.dtype, np.integer):
+        local_polygon = np.asarray(
+            polygon.astype(object) - origin.astype(object), dtype=np.float32
+        )
+    else:
+        local_polygon = (
+            polygon.astype(np.float64, copy=False)
+            - origin.astype(np.float64, copy=False)
+        ).astype(np.float32)
+    return local_polygon, origin
+
+
 def filter_polygons_by_area(
     polygons: list[npt.NDArray[np.number]],
     min_area: float | None = None,
@@ -45,14 +67,7 @@ def filter_polygons_by_area(
     """
     if min_area is None and max_area is None:
         return polygons
-    areas = [
-        cv2.contourArea(
-            polygon
-            if polygon.dtype in (np.float32, np.int32)
-            else polygon.astype(np.float32)
-        )
-        for polygon in polygons
-    ]
+    areas = [cv2.contourArea(_to_local_cv2_polygon(polygon)[0]) for polygon in polygons]
     return [
         polygon
         for polygon, area in zip(polygons, areas)
@@ -126,11 +141,7 @@ def approximate_polygon(
         return polygon
 
     original_dtype = polygon.dtype
-    cv_polygon = (
-        polygon
-        if original_dtype in (np.float32, np.int32)
-        else polygon.astype(np.float32)
-    )
+    cv_polygon, origin = _to_local_cv2_polygon(polygon)
 
     epsilon: float = 0
     approximated_points = polygon
@@ -143,10 +154,14 @@ def approximate_polygon(
         # last result with at least three points.
         if len(candidate) < 3:
             break
-        approximated_points = (
-            candidate.astype(original_dtype)
-            if candidate.dtype != original_dtype
-            else candidate
-        )
+        if np.issubdtype(original_dtype, np.integer):
+            approximated_points = np.asarray(
+                candidate.astype(original_dtype).astype(object) + origin.astype(object),
+                dtype=original_dtype,
+            )
+        else:
+            approximated_points = (
+                candidate.astype(np.float64) + origin.astype(np.float64)
+            ).astype(original_dtype)
 
     return approximated_points

@@ -170,7 +170,14 @@ class TestApproximatePolygon:
 
     @pytest.mark.parametrize(
         "dtype",
-        [np.float64, np.float32, np.int64, np.int32, np.int16, np.uint8],
+        [
+            pytest.param(np.float64, id="float64"),
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int16, id="int16"),
+            pytest.param(np.uint8, id="uint8"),
+        ],
     )
     def test_approximate_polygon_preserves_dtype(self, dtype: type) -> None:
         """Ensure approximate_polygon supports float64/int64 and preserves dtype."""
@@ -182,10 +189,48 @@ class TestApproximatePolygon:
         assert result.dtype == dtype
         assert 3 <= len(result) <= len(polygon)
 
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, 1_000_000_000, id="int64-large-origin"),
+            pytest.param(np.float64, 1_000_000_000.0, id="float64-large-origin"),
+        ],
+    )
+    def test_approximate_polygon_preserves_large_origin_geometry(
+        self, dtype: type, origin: float
+    ) -> None:
+        """Approximation keeps large-origin local geometry instead of collapsing it."""
+        polygon = np.array(
+            [
+                [origin, origin],
+                [origin + 10, origin],
+                [origin + 10, origin + 10],
+                [origin, origin + 10],
+                [origin + 5, origin + 10],
+                [origin + 5, origin + 5],
+                [origin + 3, origin + 7],
+                [origin + 1, origin + 9],
+            ],
+            dtype=dtype,
+        )
+
+        result = approximate_polygon(polygon, percentage=0.5)
+
+        assert result.dtype == dtype
+        assert 3 <= len(result) <= 4
+        assert np.all(result >= origin)
+
 
 @pytest.mark.parametrize(
     "dtype",
-    [np.float64, np.float32, np.int64, np.int32, np.int16, np.uint8],
+    [
+        pytest.param(np.float64, id="float64"),
+        pytest.param(np.float32, id="float32"),
+        pytest.param(np.int64, id="int64"),
+        pytest.param(np.int32, id="int32"),
+        pytest.param(np.int16, id="int16"),
+        pytest.param(np.uint8, id="uint8"),
+    ],
 )
 def test_filter_polygons_by_area_dtypes(dtype: type) -> None:
     """Ensure filter_polygons_by_area supports float64/int64 dtypes."""
@@ -195,3 +240,30 @@ def test_filter_polygons_by_area_dtypes(dtype: type) -> None:
     assert len(result) == 1
     assert result[0].dtype == dtype
     assert np.array_equal(result[0], big)
+
+
+@pytest.mark.parametrize(
+    ("dtype", "origin"),
+    [
+        pytest.param(np.int64, 1_000_000_000, id="int64-large-origin"),
+        pytest.param(np.float64, 1_000_000_000.0, id="float64-large-origin"),
+    ],
+)
+def test_filter_polygons_by_area_preserves_large_origin_geometry(
+    dtype: type, origin: float
+) -> None:
+    """Area filtering measures large-origin polygons in their local coordinates."""
+    square = np.array(
+        [
+            [origin, origin],
+            [origin + 10, origin],
+            [origin + 10, origin + 10],
+            [origin, origin + 10],
+        ],
+        dtype=dtype,
+    )
+
+    result = filter_polygons_by_area([square], min_area=50)
+
+    assert len(result) == 1
+    assert np.array_equal(result[0], square)
