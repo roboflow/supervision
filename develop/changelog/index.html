@@ -4114,6 +4114,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>sv.TraceAnnotator.annotate</code> no longer raises <code>ValueError: The</code>tracker_id<code>field is missing</code> for a frame in which nothing was detected. An empty <code>sv.Detections</code> carries no <code>tracker_id</code>, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except <code>sv.ByteTrack</code>, which works around it by returning an empty <code>tracker_id</code> array. Such a frame now draws nothing and still advances <code>sv.Trace</code>'s frame counter, keeping <code>trace_length</code> a window over elapsed frames — pruning fires on the next frame that does carry detections, and only once the frames stored in the trace outnumber <code>trace_length</code>, so a track that had filled the window before a long gap starts a fresh trail instead of being joined to its pre-gap one. Detections that do contain boxes but no <code>tracker_id</code> still raise, as before.</li>
+<li><code>sv.CSVSink</code> no longer lets a batch with no detections fix the CSV header. Appending an empty <code>sv.Detections</code> — the normal result for a frame in which nothing was detected — wrote a header without the <code>data</code> and <code>custom_data</code> columns, and every later row was then silently truncated to that schema, dropping fields such as <code>class_name</code> for the whole file. Empty batches now write nothing and leave the header to the first batch that actually carries detections; a run in which every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning those batches logged is gone.</li>
 <li>Versioned documentation banners now adjust MkDocs Material’s desktop sidebar inline layout and scroll height without shifting the mobile navigation drawer.</li>
 <li>Versioned documentation builds now emit a valid <code>/latest/search/</code> SearchAction URL when Mike removes the trailing slash from <code>site_url</code>; docs CI renders the custom theme under Mike version contexts to protect the URL, version banners, and star JSON-LD. This source change applies to future builds; existing published archive trees require a separately approved backfill.</li>
 <li><code>sv.xcycwh_to_xyxy</code> no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.</li>
@@ -6339,7 +6341,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 5, 2026 11:51:56 UTC">September 5, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 7, 2026 13:59:43 UTC">September 7, 2026</span>
   </span>
 
     
@@ -6367,9 +6369,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/pranaysb" class="md-author" title="@pranaysb">
+        <a href="https://github.com/tedo001" class="md-author" title="@tedo001">
           
-          <img src="https://avatars.githubusercontent.com/u/181699152?v=4&size=72" alt="pranaysb">
+          <img src="https://avatars.githubusercontent.com/u/213774615?v=4&size=72" alt="tedo001">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6377,21 +6379,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/pranaysb" class="md-author" title="@pranaysb">
+          
+          <img src="https://avatars.githubusercontent.com/u/181699152?v=4&size=72" alt="pranaysb">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
-        <a href="https://github.com/guillaume-flambard" class="md-author" title="@guillaume-flambard">
-          
-          <img src="https://avatars.githubusercontent.com/u/56681566?v=4&size=72" alt="guillaume-flambard">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +32
           </a>
         
       
