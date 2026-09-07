@@ -9,6 +9,8 @@ date_modified: 2026-09-03
 
 - `sv.filter_polygons_by_area` and `sv.approximate_polygon` now preserve local geometry for large-origin integer and `float64` polygons instead of losing coordinate deltas during OpenCV conversion ([#2542](https://github.com/roboflow/supervision/pull/2542)).
 
+- `sv.process_video` no longer hangs forever when `max_frames` is larger than the number of frames in the video. The reader thread used to fail on the out-of-range `end` before enqueuing its sentinel, leaving the main loop blocked on the read queue. `max_frames` is now capped at the video length so the whole video is processed, and any error raised inside the reader thread is surfaced as `RuntimeError("Reader thread raised: ...")` from the original exception instead of stalling the call ([#2545](https://github.com/roboflow/supervision/issues/2545)).
+
 ### 0.30.2 <small>Sep 3, 2026</small>
 
 ### Added
