@@ -373,24 +373,44 @@ class Trace:
         self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        """Append a frame of detections to the trace history."""
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not put detections into Trace because "
-                "Detections do not have tracker_id."
+        """Append a frame of detections to the trace history.
+
+        A frame that detected nothing contributes no points but still advances
+        the frame counter, keeping `max_size` a window over elapsed frames
+        rather than over populated ones. An empty frame has no anchors and no
+        `tracker_id`, so only frames that carry detections require one.
+
+        Pruning runs on the next frame that does carry detections, measures
+        the window from the advanced counter, and only fires once the distinct
+        frames held in the history — counting the frame that triggers it —
+        outnumber `max_size`. A track that had filled the window before a long
+        gap therefore starts a fresh trail, while a track whose stored history
+        stayed shorter than the window is still joined to its pre-gap points.
+
+        History is normalised on the way in: anchor points are stored as
+        `float32` and tracker ids are cast to NumPy's default integer dtype
+        (`np.int_`), so tracker ids outside that dtype's range are unsupported.
+        """
+        if len(detections) == 0:
+            xy: npt.NDArray[np.float32] = np.empty((0, 2), dtype=np.float32)
+            tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
+        else:
+            if detections.tracker_id is None:
+                raise ValueError(
+                    "Could not put detections into Trace because "
+                    "Detections do not have tracker_id."
+                )
+            xy = np.asarray(
+                detections.get_anchors_coordinates(self.anchor), dtype=np.float32
             )
+            tracker_id = np.asarray(detections.tracker_id, dtype=int)
 
         frame_id: npt.NDArray[np.int_] = np.full(
             len(detections), self.current_frame_id, dtype=int
         )
         self.frame_id = np.concatenate([self.frame_id, frame_id])
-        self.xy = np.concatenate(
-            [
-                self.xy,
-                detections.get_anchors_coordinates(self.anchor),
-            ]
-        )
-        self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
+        self.xy = np.concatenate([self.xy, xy])
+        self.tracker_id = np.concatenate([self.tracker_id, tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
 

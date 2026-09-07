@@ -85,6 +85,7 @@ class CSVSink:
         self.writer: WriterProtocol | None = None
         self.header_written = False
         self.field_names: list[str] = []
+        self.deferred_field_names: list[str] = []
 
     def __enter__(self) -> CSVSink:
         self.open()
@@ -110,12 +111,29 @@ class CSVSink:
         self.writer = csv.writer(self.file)
         self.header_written = False
         self.field_names = []
+        self.deferred_field_names = []
 
     def close(self) -> None:
         """
         Close the CSV file.
+
+        When every appended batch was empty no header has been written yet, so
+        the schema remembered from the first such batch is emitted here. This
+        keeps a run that never detected anything readable as an empty table
+        rather than as a zero-byte file.
         """
-        if self.file:
+        if self.file is None or self.file.closed:
+            return
+
+        # close() also runs from __exit__, so a writer raising here would both leak
+        # the file handle and replace the with-body's own exception. Closing in a
+        # finally keeps the handle released and lets the original error surface.
+        try:
+            if not self.header_written and self.deferred_field_names and self.writer:
+                self.field_names = self.deferred_field_names
+                self.writer.writerow(self.field_names)
+                self.header_written = True
+        finally:
             self.file.close()
 
     @staticmethod
@@ -202,6 +220,12 @@ class CSVSink:
         """
         Append detection data to the CSV file.
 
+        The CSV header is fixed by the first batch that actually contains
+        detections; batches with no detections write nothing and leave the
+        header undecided, so an empty first frame does not strip the columns
+        of the frames that follow. While no populated batch has appeared, the
+        schema of the first empty batch is the one ``close()`` falls back to.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -215,6 +239,18 @@ class CSVSink:
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
         field_names = CSVSink.parse_field_names(detections, custom_data)
+
+        # An empty batch produces no rows, so letting it fix the header would
+        # pin the file to a schema no detection ever contributed to and drop
+        # every extra column of the batches that follow. Remember the first
+        # such schema for close() instead, in case no batch ever carries
+        # detections; later empty batches must not redefine it, mirroring the
+        # first-populated-batch rule for the header itself.
+        if len(detections) == 0:
+            if not self.header_written and not self.deferred_field_names:
+                self.deferred_field_names = field_names
+            return
+
         if not self.header_written:
             self.field_names = field_names
             self.writer.writerow(field_names)

@@ -2220,13 +2220,18 @@ class TraceAnnotator(BaseAnnotator):
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections: The detections which include coordinates for
-                which the traces will be drawn.
+                which the traces will be drawn. An empty `Detections` batch
+                is a no-op: `scene` is returned unmodified.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Raises:
+            ValueError: If `detections` is non-empty and its `tracker_id` field is
+                missing.
 
         Examples:
             ```python
@@ -2272,6 +2277,12 @@ class TraceAnnotator(BaseAnnotator):
             ... )
             >>> bool(annotated_frame.any())
             True
+            >>> annotated_frame = trace_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=sv.Detections.empty()
+            ... )
+            >>> np.array_equal(annotated_frame, image)
+            True
 
             ```
 
@@ -2280,6 +2291,17 @@ class TraceAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
+
+        # A frame in which nothing was detected carries no `tracker_id` and is
+        # not a missing-tracker mistake, so it must not raise. It still reaches
+        # the trace: advancing the frame counter there keeps `trace_length` a
+        # window over elapsed frames, so a track whose stored history had
+        # already filled that window is not joined to its pre-gap trail when it
+        # reappears after a longer gap.
+        if len(detections) == 0:
+            self.trace.put(detections)
+            return scene
+
         if detections.tracker_id is None:
             raise ValueError(
                 "The `tracker_id` field is missing in the provided detections."
