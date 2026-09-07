@@ -7,6 +7,8 @@ date_modified: 2026-09-03
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.filter_polygons_by_area` and `sv.approximate_polygon` now preserve local geometry for large-origin integer and `float64` polygons instead of losing coordinate deltas during OpenCV conversion ([#2542](https://github.com/roboflow/supervision/pull/2542)).
+
 ### 0.30.2 <small>Sep 3, 2026</small>
 
 ### Added
