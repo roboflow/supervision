@@ -738,9 +738,13 @@ class TestClassificationDatasetExportCollisions:
         )
         output = tmp_path / "export"
 
-        with pytest.raises(ValueError, match="Cannot export dataset"):
+        with pytest.raises(
+            ValueError, match="Ensure all output paths are unique before exporting"
+        ) as error:
             dataset.as_folder_structure(str(output))
 
+        assert paths[0] in str(error.value)
+        assert paths[1] in str(error.value)
         assert not output.exists()
 
     def test_allows_same_basename_in_different_classes(self, tmp_path: Path) -> None:
