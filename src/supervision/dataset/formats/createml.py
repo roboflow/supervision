@@ -19,10 +19,10 @@ CreateMLDict = dict[str, Any]
 def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
     """Resolve and validate an image path against the images directory.
 
-    Rejects annotations whose ``image`` field escapes ``images_directory_path``
-    (via ``..`` traversal, an absolute path, or a symlink pointing outside),
-    mirroring the protection used by the COCO loader. Returns the canonical
-    resolved path so aliases collapse to a single dataset entry.
+    Rejects annotations whose ``image`` field escapes ``images_directory_path`` (via
+    ``..`` traversal, an absolute path, or a symlink pointing outside), mirroring the
+    protection used by the COCO loader. Returns the canonical resolved path so aliases
+    collapse to a single dataset entry.
     """
     images_directory_resolved = Path(images_directory_path).resolve()
     image_path = Path(images_directory_path) / Path(image_name)

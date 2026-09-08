@@ -31,8 +31,7 @@ def _build_ydl_opts(output_path: str | None, file_name: str | None) -> dict[str,
 def main(
     url: str, output_path: str = "data/source", file_name: str = "video.mp4"
 ) -> None:
-    """
-    Download a specific YouTube video by providing its URL.
+    """Download a specific YouTube video by providing its URL.
 
     Args:
         url: The full URL of the YouTube video you wish to download.

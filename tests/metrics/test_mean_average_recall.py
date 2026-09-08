@@ -8,8 +8,7 @@ from supervision.metrics import MeanAverageRecall, MetricTarget
 
 @pytest.fixture
 def complex_scenario_targets():
-    """
-    Ground truth for complex multi-image scenario.
+    """Ground truth for complex multi-image scenario.
 
     15 images with varying object counts and classes.
     Total: class_0=17, class_1=19 objects.
@@ -146,8 +145,7 @@ def complex_scenario_targets():
 
 @pytest.fixture
 def complex_scenario_predictions():
-    """
-    Predictions for complex multi-image scenario.
+    """Predictions for complex multi-image scenario.
 
     15 images with varying detection quality:
     - True positives, false positives, false negatives
@@ -285,8 +283,7 @@ def complex_scenario_predictions():
 
 @pytest.fixture
 def two_class_two_image_detections():
-    """
-    Scenario: 2 images with 2 classes with varying confidence levels.
+    """Scenario: 2 images with 2 classes with varying confidence levels.
 
     Tests that `mAR @ K` limits per image (not per class) by creating a case where
     the highest confidence detection differs between images.
@@ -598,8 +595,7 @@ def test_complex_integration_scenario(
 def test_mar_at_k_limits_per_image_not_per_class(
     two_class_two_image_detections,
 ) -> None:
-    """
-    Test that `mAR @ K` limits detections per image, not per class.
+    """Test that `mAR @ K` limits detections per image, not per class.
 
     BUG SCENARIO (what was wrong):
     The previous implementation would limit detections per CLASS per image,
@@ -700,8 +696,7 @@ def test_three_class_single_image_scenario(three_class_single_image_detections) 
 
 
 def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
-    """
-    Test mAR with a roboflow-format dataset loaded from disk.
+    """Test mAR with a roboflow-format dataset loaded from disk.
 
     Uses a synthetic YOLO-format dataset loaded via DetectionDataset.from_yolo()
     to validate that the mAR metric works correctly with dataset splits - an

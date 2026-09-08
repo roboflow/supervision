@@ -22,9 +22,8 @@ logger = _get_logger(__name__)
 
 @dataclass
 class VideoInfo:
-    """
-    A class to store video information, including width, height, fps and
-        total number of frames.
+    """A class to store video information, including width, height, fps and total number
+    of frames.
 
     Attributes:
         width: width of the video in pixels
@@ -88,8 +87,7 @@ class VideoInfo:
 
 
 class VideoSink:
-    """
-    Context manager that saves video frames to a file using OpenCV.
+    """Context manager that saves video frames to a file using OpenCV.
 
     Attributes:
         target_path: The path to the output file where the video will be saved.
@@ -143,8 +141,7 @@ class VideoSink:
         return self
 
     def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
-        """
-        Writes a single video frame to the target video file.
+        """Writes a single video frame to the target video file.
 
         Args:
             frame: The video frame to be written to the file. The frame
@@ -199,8 +196,7 @@ def get_video_frames_generator(
     iterative_seek: bool = False,
     prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
-    """
-    Get a generator that yields the frames of the video.
+    """Get a generator that yields the frames of the video.
 
     Args:
         source_path: The path of the video file.
@@ -386,8 +382,7 @@ def process_video(
     progress_message: str = "Processing video",
     preserve_audio: bool = False,
 ) -> None:
-    """
-    Process video frames asynchronously using a threaded pipeline.
+    """Process video frames asynchronously using a threaded pipeline.
 
     This function orchestrates a three-stage pipeline to optimize video processing
     throughput:
@@ -578,9 +573,7 @@ def process_video(
 
 
 class FPSMonitor:
-    """
-    A class for monitoring frames per second (FPS) to benchmark latency.
-    """
+    """A class for monitoring frames per second (FPS) to benchmark latency."""
 
     def __init__(self, sample_size: int = 30) -> None:
         """
@@ -606,8 +599,7 @@ class FPSMonitor:
 
     @property
     def fps(self) -> float:
-        """
-        Computes and returns the average FPS based on the stored time stamps.
+        """Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
             The average FPS across the recorded intervals. Returns 0.0 if fewer
@@ -620,13 +612,9 @@ class FPSMonitor:
         return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
-        """
-        Adds a new time stamp to the deque for FPS calculation.
-        """
+        """Adds a new time stamp to the deque for FPS calculation."""
         self.all_timestamps.append(time.monotonic())
 
     def reset(self) -> None:
-        """
-        Clears all the time stamps from the deque.
-        """
+        """Clears all the time stamps from the deque."""
         self.all_timestamps.clear()

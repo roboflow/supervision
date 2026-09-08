@@ -15,8 +15,7 @@ def clip_boxes(
     xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.number]:
-    """
-    Clips bounding boxes coordinates to fit within the frame resolution.
+    """Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each
@@ -58,8 +57,7 @@ def pad_boxes(
     px: int,
     py: int | None = None,
 ) -> npt.NDArray[np.number]:
-    """
-    Pads bounding boxes coordinates with a constant padding.
+    """Pads bounding boxes coordinates with a constant padding.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each
@@ -112,8 +110,7 @@ def denormalize_boxes(
     normalization_factor: float = 1.0,
     normalized_xyxy: npt.NDArray[np.number] | None = None,
 ) -> npt.NDArray[np.number]:
-    """
-    Convert normalized bounding box coordinates to absolute pixel coordinates.
+    """Convert normalized bounding box coordinates to absolute pixel coordinates.
 
     Multiplies each bounding box coordinate by image size and divides by
     `normalization_factor`, mapping values from normalized `[0, normalization_factor]`
@@ -427,8 +424,7 @@ def _oriented_box_anchors(
 def scale_boxes(
     xyxy: npt.NDArray[np.number], factor: float
 ) -> npt.NDArray[np.floating]:
-    """
-    Scale the dimensions of bounding boxes.
+    """Scale the dimensions of bounding boxes.
 
     Args:
         xyxy: An integer or floating-point array of shape `(n, 4)` containing
@@ -507,8 +503,7 @@ def spread_out_boxes(
     xyxy: npt.NDArray[np.number],
     max_iterations: int = 100,
 ) -> npt.NDArray[np.number]:
-    """
-    Spread out boxes that overlap with each other.
+    """Spread out boxes that overlap with each other.
 
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.

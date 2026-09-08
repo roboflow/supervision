@@ -67,8 +67,8 @@ def approximate_mask_with_polygons(
 ) -> list[npt.NDArray[np.number]]:
     """Filter mask polygons by area and optionally simplify them.
 
-    The default `approximation_percentage=0.0` preserves the original contour
-    unless callers explicitly ask for simplification.
+    The default `approximation_percentage=0.0` preserves the original contour unless
+    callers explicitly ask for simplification.
     """
     height, width = mask.shape
     image_area = height * width
@@ -241,8 +241,7 @@ def train_test_split(
     random_state: int | None = None,
     shuffle: bool = True,
 ) -> tuple[list[T], list[T]]:
-    """
-    Splits the data into two parts using the provided train_ratio.
+    """Splits the data into two parts using the provided train_ratio.
 
     Args:
         data: The data to split.

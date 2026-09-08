@@ -190,12 +190,11 @@ def test_dataset_merge(
     expected_result: DetectionDataset | None,
     exception: Exception,
 ) -> None:
-    """
-    Verify that multiple DetectionDataset objects can be successfully merged.
+    """Verify that multiple DetectionDataset objects can be successfully merged.
 
     Ensures that multiple `DetectionDataset` objects can be merged into single dataset.
-    This is vital for users who need to combine data from different sources or
-    augment their datasets with additional labeled examples.
+    This is vital for users who need to combine data from different sources or augment
+    their datasets with additional labeled examples.
     """
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)

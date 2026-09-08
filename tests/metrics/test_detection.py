@@ -64,8 +64,7 @@ def _call_confusion_matrix_evaluate_detection_batch_masks() -> None:
 
 
 class TestDetectionMetrics:
-    """
-    Verify that detection metrics are computed accurately.
+    """Verify that detection metrics are computed accurately.
 
     Ensures that detection metrics (mAP, Conf. Matrix, etc.) are computed accurately.
     These metrics are the primary way users evaluate the performance of their models
@@ -370,8 +369,7 @@ class TestDetectionMetrics:
         expected_result: np.ndarray | None,
         exception: Exception,
     ) -> None:
-        """
-        Verify that Detections objects are correctly converted to NumPy tensors.
+        """Verify that Detections objects are correctly converted to NumPy tensors.
 
         Scenario: Converting Detections objects to NumPy tensors.
         Expected: Tensors are correctly formatted for consumption by metric functions,
@@ -654,8 +652,7 @@ class TestDetectionMetrics:
         expected_result: float,
         exception: Exception,
     ) -> None:
-        """
-        Verify that Average Precision is correctly calculated from PR curve points.
+        """Verify that Average Precision is correctly calculated from PR curve points.
 
         Scenario: Computing Average Precision (AP) from PR curve points.
         Expected: AP is correctly calculated using the area under the curve, which is
@@ -1156,14 +1153,13 @@ class TestDetectionMetrics:
         np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
 
     def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure) -> None:
-        """
-        Test confusion matrix calculation on a YOLO-format dataset.
+        """Test confusion matrix calculation on a YOLO-format dataset.
 
-        This test verifies that the confusion matrix fix (considering both IoU AND
-        class agreement) works correctly when applied to a dataset loaded from
-        roboflow-format YOLO data. It creates a synthetic dataset with specific
-        scenarios where predictions have high IoU but wrong class, ensuring only
-        predictions with correct class are matched.
+        This test verifies that the confusion matrix fix (considering both IoU AND class
+        agreement) works correctly when applied to a dataset loaded from roboflow-format
+        YOLO data. It creates a synthetic dataset with specific scenarios where
+        predictions have high IoU but wrong class, ensuring only predictions with
+        correct class are matched.
         """
         dataset_info = yolo_dataset_structure
         classes = ["dog", "cat", "person"]
@@ -1346,8 +1342,8 @@ class TestDetectionMetrics:
             _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
     def test_confusion_matrix_obb(self):
-        """
-        Verify OBB support in ConfusionMatrix.
+        """Verify OBB support in ConfusionMatrix.
+
         Test scenarios:
         1. Perfect OBB overlap (Rotation Match)
         2. Rotation Sensitivity (Same AABB, different rotation)
@@ -1891,7 +1887,7 @@ class TestConfusionMatrixPlot:
         ],
     )
     def test_plot_returns_figure(self, normalize: bool) -> None:
-        """plot() must not crash on the integer matrix produced by from_tensors."""
+        """Plot() must not crash on the integer matrix produced by from_tensors."""
         targets = [
             np.array(
                 [

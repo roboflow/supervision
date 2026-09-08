@@ -16,8 +16,7 @@ def draw_line(
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draws a line on a given scene.
+    """Draws a line on a given scene.
 
     Args:
         scene: The scene on which the line will be drawn
@@ -60,8 +59,7 @@ def draw_rectangle(
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draws a rectangle on an image.
+    """Draws a rectangle on an image.
 
     Args:
         scene: The scene on which the rectangle will be drawn
@@ -102,8 +100,7 @@ def draw_filled_rectangle(
     color: Color = Color.ROBOFLOW,
     opacity: float = 1,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draws a filled rectangle on an image.
+    """Draws a filled rectangle on an image.
 
     Args:
         scene: The scene on which the rectangle will be drawn
@@ -158,8 +155,7 @@ def draw_rounded_rectangle(
     color: Color,
     border_radius: int,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draws a rounded rectangle on an image.
+    """Draws a rounded rectangle on an image.
 
     Args:
         scene: The image on which the rounded rectangle will be drawn.
@@ -323,8 +319,7 @@ def draw_text(
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     background_color: Color | None = None,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draw text with background on a scene.
+    """Draw text with background on a scene.
 
     Args:
         scene: A numpy ndarray representing the image, typically of shape
@@ -401,8 +396,7 @@ def draw_image(
     opacity: float,
     rect: Rect,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Draws an image onto a given scene with specified opacity and dimensions.
+    """Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
         scene: Background image where the new image will be drawn.
@@ -490,10 +484,10 @@ def draw_image(
 
 
 def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
-    """
-    Calculate optimal font scale based on image resolution. Adjusts font scale
-    proportionally to the smallest dimension of the given image resolution for
-    consistent readability.
+    """Calculate optimal font scale based on image resolution.
+
+    Adjusts font scale proportionally to the smallest dimension of the given image
+    resolution for consistent readability.
 
     Args:
         resolution_wh: A tuple of `(width, height)` of the image in pixels.
@@ -515,10 +509,10 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
 
 
 def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
-    """
-    Calculate optimal line thickness based on image resolution. Adjusts the line
-    thickness for readability depending on the smallest dimension of the provided
-    image resolution.
+    """Calculate optimal line thickness based on image resolution.
+
+    Adjusts the line thickness for readability depending on the smallest dimension of
+    the provided image resolution.
 
     Args:
         resolution_wh: A tuple of `(width, height)` of the image in pixels.

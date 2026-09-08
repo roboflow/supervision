@@ -14,8 +14,7 @@ from supervision.geometry.utils import get_polygon_center
 
 
 class PolygonZone:
-    """
-    A class for defining a polygon-shaped zone within a frame for detecting objects.
+    """A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     !!! warning
 
@@ -93,8 +92,7 @@ class PolygonZone:
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
-        """
-        Determines if the detections are within the polygon zone.
+        """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
         avoid per-zone clipping shifting anchor positions. This prevents a single
@@ -133,8 +131,7 @@ class PolygonZone:
 
 
 class PolygonZoneAnnotator:
-    """
-    A class for annotating a polygon-shaped zone within a frame with a count of
+    """A class for annotating a polygon-shaped zone within a frame with a count of
     detected objects.
 
     Attributes:
@@ -193,8 +190,7 @@ class PolygonZoneAnnotator:
     def annotate(
         self, scene: npt.NDArray[Any], label: str | None = None
     ) -> npt.NDArray[Any]:
-        """
-        Annotates the polygon zone within a frame with a count of detected objects.
+        """Annotates the polygon zone within a frame with a count of detected objects.
 
         Args:
             scene: The image on which the polygon zone will be annotated

@@ -202,9 +202,8 @@ def load_yolo_annotations(
     is_obb: bool = False,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Loads YOLO annotations and returns class names, images,
-        and their corresponding detections.
+    """Loads YOLO annotations and returns class names, images, and their corresponding
+    detections.
 
     Args:
         images_directory_path: The path to the directory containing the images.

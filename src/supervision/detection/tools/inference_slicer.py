@@ -29,9 +29,9 @@ from supervision.utils.iterables import create_batches
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally by `_is_windowed_raster` rather than by import so
-    `rasterio` stays an optional dependency — any object exposing these members
-    works. `rasterio.io.DatasetReader` satisfies this protocol.
+    Matched structurally by `_is_windowed_raster` rather than by import so `rasterio`
+    stays an optional dependency — any object exposing these members works.
+    `rasterio.io.DatasetReader` satisfies this protocol.
     """
 
     width: int
@@ -44,8 +44,8 @@ class WindowedRasterDataset(Protocol):
 def _is_windowed_raster(image: object) -> TypeGuard[WindowedRasterDataset]:
     """Duck-type check for a rasterio-style dataset that supports windowed reads.
 
-    Avoids importing rasterio so it remains an optional dependency. numpy arrays
-    and PIL images do not expose this combination of attributes.
+    Avoids importing rasterio so it remains an optional dependency. numpy arrays and PIL
+    images do not expose this combination of attributes.
     """
     return (
         callable(getattr(image, "read", None))
@@ -103,8 +103,7 @@ def move_detections(
 
 
 class InferenceSlicer:
-    """
-    Perform tiled inference on large images by slicing them into overlapping patches.
+    """Perform tiled inference on large images by slicing them into overlapping patches.
 
     This class divides an input image into overlapping slices of configurable size
     and overlap, runs inference on each slice through a user-provided callback, and
@@ -308,8 +307,7 @@ class InferenceSlicer:
         self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
-        """
-        Perform tiled inference on the full image and return merged detections.
+        """Perform tiled inference on the full image and return merged detections.
 
         The first slice always runs synchronously so the output type can be
         inspected before committing to a threading strategy. Detections are
@@ -474,8 +472,8 @@ class InferenceSlicer:
     def _run_callback(
         self, image: ImageType | WindowedRasterDataset, offset: npt.NDArray[Any]
     ) -> Detections:
-        """
-        Run detection callback on a sliced portion of the image and adjust coordinates.
+        """Run detection callback on a sliced portion of the image and adjust
+        coordinates.
 
         Args:
             image: The full image.
@@ -696,8 +694,8 @@ class InferenceSlicer:
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
     ) -> npt.NDArray[Any]:
-        """
-        Generate bounding boxes defining the coordinates of image slices with overlap.
+        """Generate bounding boxes defining the coordinates of image slices with
+        overlap.
 
         Args:
             resolution_wh: Image resolution `(width, height)`.

@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class Recall(Metric["RecallResult"]):
-    """
-    Recall is a metric used to evaluate object detection models. It is the ratio of
+    """Recall is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of ground truth instances. We calculate
     it at different IoU thresholds.
 
@@ -99,8 +98,7 @@ class Recall(Metric["RecallResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Recall metric.
+        """Initialize the Recall metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -114,9 +112,7 @@ class Recall(Metric["RecallResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -125,8 +121,7 @@ class Recall(Metric["RecallResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> Recall:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -152,8 +147,7 @@ class Recall(Metric["RecallResult"]):
         return self
 
     def compute(self) -> RecallResult:
-        """
-        Calculate the recall metric based on the stored predictions and ground-truth
+        """Calculate the recall metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
@@ -448,8 +442,7 @@ class Recall(Metric["RecallResult"]):
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -470,7 +463,6 @@ class Recall(Metric["RecallResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -506,8 +498,7 @@ class Recall(Metric["RecallResult"]):
     def _compute_recall(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the recall from the confusion matrix.
+        """Broadcastable function, computing the recall from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -613,9 +604,7 @@ class Recall(Metric["RecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -630,8 +619,7 @@ class Recall(Metric["RecallResult"]):
 
 @dataclass
 class RecallResult:
-    """
-    The results of the recall metric calculation.
+    """The results of the recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -680,8 +668,7 @@ class RecallResult:
     large_objects: RecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -750,8 +737,7 @@ class RecallResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -780,11 +766,10 @@ class RecallResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the recall results.
+        """Plot the recall results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt
