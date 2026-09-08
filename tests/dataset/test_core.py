@@ -721,15 +721,22 @@ class TestClassificationDatasetExportCollisions:
     ) -> None:
         """Resolve the winning class and reject duplicate output paths up front."""
         paths = ["first/image.png", f"second/{second_name}"]
-        annotation = Classifications(class_id=np.array([0]))
+        annotations = {
+            p: Classifications(class_id=np.array([0])) for p in paths
+        }
         if with_confidence:
-            annotation = Classifications(
-                class_id=np.array([1, 0]), confidence=np.array([0.1, 0.9])
-            )
+            annotations = {
+                paths[0]: Classifications(
+                    class_id=np.array([1, 0]), confidence=np.array([0.1, 0.9])
+                ),
+                paths[1]: Classifications(
+                    class_id=np.array([0, 1]), confidence=np.array([0.9, 0.1])
+                ),
+            }
         dataset = ClassificationDataset(
             classes=["cats", "dogs"],
             images={p: np.zeros((4, 4, 3), dtype=np.uint8) for p in paths},
-            annotations={p: annotation for p in paths},
+            annotations=annotations,
         )
         output = tmp_path / "export"
 
