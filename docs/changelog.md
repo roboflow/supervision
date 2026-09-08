@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-07
+date_modified: 2026-09-08
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
 
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
 
