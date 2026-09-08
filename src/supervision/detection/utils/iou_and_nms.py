@@ -768,7 +768,8 @@ def _mask_iou_batch_split(
 ) -> npt.NDArray[np.floating]:
     """Internal function.
 
-    Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and `masks_detection`.
+    Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Args:
         masks_true: 3D `np.ndarray` representing ground-truth masks.
