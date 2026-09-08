@@ -25,6 +25,8 @@ date_modified: 2026-09-08
 
 - `sv.PolygonZone` now rejects a polygon with fewer than three vertices, or one that is not of shape `(N, 2)`, instead of building a zone that can never trigger. One or two vertices enclose no area, so the zone mask came out as a single pixel or a bare line and every detection tested against it read as outside — indistinguishable from a correctly configured zone that simply saw nothing. Zero vertices raised `zero-size array to reduction operation maximum` from NumPy rather than naming the problem. The three-vertex minimum matches `MIN_POLYGON_POINT_COUNT`, which `sv.mask_to_polygons` already enforces when producing polygons.
 
+- `sv.Detections.from_vlm` now orders each parsed box's corners, so a model that emits a corner pair backwards no longer produces an `xyxy` row with `x_min > x_max`. Every VLM parser passed such a row straight through, and nothing downstream caught it: `sv.box_iou_batch` clamps intersection widths at zero, so the box scored an IoU of `0.0` against itself — surviving NMS as a duplicate and counting as a total miss in mAP — while `sv.Detections.box_area` reported a plausible positive value, because negating both sides leaves their product positive. Correctly ordered boxes, their dtypes included, are unchanged.
+
 ### 0.30.2 <small>Sep 3, 2026</small>
 
 - `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
