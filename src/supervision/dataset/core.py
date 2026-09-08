@@ -1212,30 +1212,48 @@ class ClassificationDataset(BaseDataset):
         """
         Saves the dataset as a multi-class folder structure.
 
+        Images assigned to the same class must have unique basenames
+        (case-insensitive). Conflicts are rejected before any files are written.
+
         Args:
             root_directory_path: The path to the directory
                 where the dataset will be saved.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two images would be saved to the same output path.
         """
-        os.makedirs(root_directory_path, exist_ok=True)
-
-        for class_name in self.classes:
-            os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
-
-        for image_save_path, image, annotation in tqdm(
-            self,
-            total=len(self),
-            desc="Saving classification images",
-            disable=not show_progress,
-        ):
-            image_name = Path(image_save_path).name
+        output_paths = {}
+        for image_path in self.image_paths:
+            annotation = self.annotations[image_path]
             class_id = (
                 annotation.class_id[0]
                 if annotation.confidence is None
                 else annotation.get_top_k(1)[0][0]
             )
-            class_name = self.classes[class_id]
-            image_save_path = os.path.join(root_directory_path, class_name, image_name)
+            output_paths[image_path] = os.path.join(
+                self.classes[class_id], Path(image_path).name
+            )
+
+        check_no_basename_collisions(
+            image_paths=self.image_paths,
+            key=lambda path: output_paths[path],
+            output_kind="classification image",
+        )
+        os.makedirs(root_directory_path, exist_ok=True)
+
+        for class_name in self.classes:
+            os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
+
+        for image_path, image, _ in tqdm(
+            self,
+            total=len(self),
+            desc="Saving classification images",
+            disable=not show_progress,
+        ):
+            image_save_path = os.path.join(
+                root_directory_path, output_paths[image_path]
+            )
             cv2.imwrite(image_save_path, image)
 
     @classmethod
