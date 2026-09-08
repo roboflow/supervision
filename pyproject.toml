@@ -193,6 +193,13 @@ skip = "*.ipynb"
 count = true
 quiet-level = 3
 
+[tool.docformatter]
+recursive = true
+wrap-summaries = 88
+wrap-descriptions = 88
+close-quotes-on-newline = true
+pre-summary-newline = true
+
 [tool.mypy]
 mypy_path = "src"
 explicit_package_bases = true
