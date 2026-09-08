@@ -197,8 +197,6 @@ quiet-level = 3
 recursive = true
 wrap-summaries = 88
 wrap-descriptions = 88
-close-quotes-on-newline = true
-pre-summary-newline = true
 
 [tool.mypy]
 mypy_path = "src"
