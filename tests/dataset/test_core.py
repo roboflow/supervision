@@ -721,9 +721,7 @@ class TestClassificationDatasetExportCollisions:
     ) -> None:
         """Resolve the winning class and reject duplicate output paths up front."""
         paths = ["first/image.png", f"second/{second_name}"]
-        annotations = {
-            p: Classifications(class_id=np.array([0])) for p in paths
-        }
+        annotations = {p: Classifications(class_id=np.array([0])) for p in paths}
         if with_confidence:
             annotations = {
                 paths[0]: Classifications(
