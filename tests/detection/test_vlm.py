@@ -1114,9 +1114,12 @@ def test_florence_2_invalid_payloads_raise_value_error(
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "mask": "data:image/png;base64,i
-            VBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA
-            AAAAElFTkSuQmCC", "label": "cat"} ] ```""",
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120], "mask": '
+                '"data:image/png;base64,'
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA"
+                'AAAAElFTkSuQmCC", "label": "cat"} ] ```'
+            ),
             (10, 10),
             ["cat"],
             (
@@ -1129,14 +1132,16 @@ def test_florence_2_invalid_payloads_raise_value_error(
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 100, 200, 200], "mask": "data:image/png;base64
-            ,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp
-            jAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8}, {"box_2d": [300,
-            300, 400, 400], "mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAA
-            AAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", "label":
-
-            "dog", "confidence": 0.9} ] ```
-            """,
+            (
+                '```json [ {"box_2d": [100, 100, 200, 200], "mask": '
+                '"data:image/png;base64,'
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp"
+                'jAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8}, '
+                '{"box_2d": [300, 300, 400, 400], "mask": '
+                '"data:image/png;base64,'
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpj"
+                'AAAAAElFTkSuQmCC", "label": "dog", "confidence": 0.9} ] ```'
+            ),
             (10, 10),
             ["cat", "dog"],
             (
