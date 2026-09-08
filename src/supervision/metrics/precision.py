@@ -789,8 +789,9 @@ class PrecisionResult(MetricResult):
                 ]
                 colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
+        size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (
-            f"Precision, by Object Size"
+            f"Precision{size_suffix}"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )

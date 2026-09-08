@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -10,7 +10,9 @@ import pytest
 from supervision.metrics.core import AveragingMethod, MetricResult, MetricTarget
 from supervision.metrics.f1_score import F1ScoreResult
 from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
+from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 from supervision.metrics.precision import PrecisionResult
+from supervision.metrics.recall import RecallResult
 from supervision.metrics.utils.aggregate import (
     aggregate_metric_results,
     plot_aggregate_metric_results,
@@ -60,6 +62,39 @@ def _make_map_result(
         mAP_scores=scores,
         ap_per_class=np.zeros((1, 10)),
         iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float64),
+        matched_classes=np.array([0], dtype=np.int32),
+        small_objects=None,
+        medium_objects=None,
+        large_objects=None,
+    )
+
+
+def _make_recall_result(r50: float = 0.85, r75: float = 0.65) -> RecallResult:
+    """Build a minimal RecallResult for testing."""
+    scores = np.array([r50, 0.0, 0.0, 0.0, 0.0, r75, 0.0, 0.0, 0.0, 0.0])
+    return RecallResult(
+        metric_target=MetricTarget.BOXES,
+        averaging_method=AveragingMethod.WEIGHTED,
+        recall_scores=scores,
+        recall_per_class=np.zeros((1, 10)),
+        iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+        matched_classes=np.array([0], dtype=np.int32),
+        small_objects=None,
+        medium_objects=None,
+        large_objects=None,
+    )
+
+
+def _make_mar_result(
+    mar1: float = 0.4, mar10: float = 0.7, mar100: float = 0.8
+) -> MeanAverageRecallResult:
+    """Build a minimal MeanAverageRecallResult for testing."""
+    return MeanAverageRecallResult(
+        metric_target=MetricTarget.BOXES,
+        recall_scores=np.array([mar1, mar10, mar100]),
+        recall_per_class=np.zeros((3, 1, 10)),
+        max_detections=np.array([1, 10, 100], dtype=np.int32),
+        iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
         matched_classes=np.array([0], dtype=np.int32),
         small_objects=None,
         medium_objects=None,
@@ -175,11 +210,32 @@ class TestPlotAggregateMetricResults:
             plot_aggregate_metric_results([f1], model_names=["a", "b"])
 
     @patch("matplotlib.pyplot.show")
-    def test_plot_is_called(self, mock_show: object) -> None:
+    def test_plot_is_called(self, mock_show: MagicMock) -> None:
         """Plotting runs without error and calls plt.show()."""
         r1 = _make_f1_result(f1_50=0.8, f1_75=0.6)
         r2 = _make_f1_result(f1_50=0.9, f1_75=0.7)
         plot_aggregate_metric_results([r1, r2], model_names=["YOLO", "DETR"])
+        mock_show.assert_called_once()
+
+    def test_label_mismatch_raises(self) -> None:
+        """Results with different object-size populations raise ValueError."""
+        small = _make_f1_result(f1_50=0.5, f1_75=0.3)
+        r_with_sizes = F1ScoreResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            f1_scores=np.array([0.8, 0, 0, 0, 0, 0.6, 0, 0, 0, 0]),
+            f1_per_class=np.zeros((1, 10)),
+            iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+            matched_classes=np.array([0], dtype=np.int32),
+            small_objects=small,
+            medium_objects=None,
+            large_objects=None,
+        )
+        r_without_sizes = _make_f1_result()
+        with pytest.raises(ValueError, match="Label mismatch"):
+            plot_aggregate_metric_results(
+                [r_with_sizes, r_without_sizes], include_object_sizes=True
+            )
 
 
 class TestGetPlotDetails:
@@ -216,6 +272,36 @@ class TestGetPlotDetails:
         r = _make_map_result()
         details = r._get_plot_details(include_object_sizes=False)
         assert details.labels == ["mAP@50:95", "mAP@50", "mAP@75"]
+
+    def test_precision_plot_details(self) -> None:
+        """PrecisionResult returns 2 labels without sizes."""
+        r = _make_precision_result()
+        details = r._get_plot_details(include_object_sizes=False)
+        assert details.labels == ["Precision@50", "Precision@75"]
+
+    def test_recall_plot_details(self) -> None:
+        """RecallResult returns 2 labels without sizes."""
+        r = _make_recall_result()
+        details = r._get_plot_details(include_object_sizes=False)
+        assert details.labels == ["Recall@50", "Recall@75"]
+
+    def test_mar_plot_details(self) -> None:
+        """MeanAverageRecallResult returns 3 labels without sizes."""
+        r = _make_mar_result()
+        details = r._get_plot_details(include_object_sizes=False)
+        assert details.labels == ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
+
+    def test_title_excludes_object_size_when_disabled(self) -> None:
+        """Title omits 'by Object Size' when include_object_sizes=False."""
+        r = _make_f1_result()
+        details = r._get_plot_details(include_object_sizes=False)
+        assert "by Object Size" not in details.title
+
+    def test_title_includes_object_size_when_enabled(self) -> None:
+        """Title includes 'by Object Size' when include_object_sizes=True."""
+        r = _make_f1_result()
+        details = r._get_plot_details(include_object_sizes=True)
+        assert "by Object Size" in details.title
 
     def test_metric_result_is_abstract(self) -> None:
         """MetricResult cannot be instantiated directly."""

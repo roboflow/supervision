@@ -789,8 +789,9 @@ class F1ScoreResult(MetricResult):
                 values += [self.large_objects.f1_50, self.large_objects.f1_75]
                 colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
+        size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (
-            f"F1 Score, by Object Size"
+            f"F1 Score{size_suffix}"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )

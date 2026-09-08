@@ -36,8 +36,9 @@ def aggregate_metric_results(
         each metric value.
 
     Raises:
-        ValueError: If the list is empty, contains mixed result types, or
-            *model_names* length does not match *metric_results*.
+        ValueError: If the list is empty or *model_names* length does not
+            match *metric_results*.
+        TypeError: If the list contains mixed result types.
     """
     if not metric_results:
         raise ValueError("metric_results must not be empty.")
@@ -94,8 +95,9 @@ def plot_aggregate_metric_results(
             small / medium / large object-size categories.
 
     Raises:
-        ValueError: If the list is empty, contains mixed result types, or
-            *model_names* length does not match *metric_results*.
+        ValueError: If the list is empty, *model_names* length does not
+            match *metric_results*, or results have mismatched labels.
+        TypeError: If the list contains mixed result types.
     """
     from matplotlib import pyplot as plt
 
@@ -126,6 +128,12 @@ def plot_aggregate_metric_results(
     ]
 
     labels = all_details[0].labels
+    for i, details in enumerate(all_details[1:], 1):
+        if details.labels != labels:
+            raise ValueError(
+                f"Label mismatch: result 0 has {labels}, "
+                f"result {i} has {details.labels}."
+            )
     title = all_details[0].title
     num_models = len(metric_results)
     num_labels = len(labels)

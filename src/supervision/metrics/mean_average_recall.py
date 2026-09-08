@@ -244,8 +244,9 @@ class MeanAverageRecallResult(MetricResult):
                 ]
                 colors += [LEGACY_COLOR_PALETTE[4]] * 3
 
+        size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (
-            f"Mean Average Recall, by Object Size\n(target: {self.metric_target.value})"
+            f"Mean Average Recall{size_suffix}\n(target: {self.metric_target.value})"
         )
         return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 

@@ -821,8 +821,9 @@ class RecallResult(MetricResult):
                 ]
                 colors += [LEGACY_COLOR_PALETTE[4]] * 2
 
+        size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (
-            f"Recall, by Object Size"
+            f"Recall{size_suffix}"
             f"\n(target: {self.metric_target.value},"
             f" averaging: {self.averaging_method.value})"
         )
