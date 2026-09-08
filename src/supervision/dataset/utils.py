@@ -185,7 +185,7 @@ def check_no_basename_collisions(
             raise ValueError(
                 f"Cannot export dataset: image paths {first_path!r} and "
                 f"{image_path!r} both map to {output_kind} file {first_name!r}. "
-                "Ensure all image basenames are unique before exporting."
+                "Ensure all output paths are unique before exporting."
             )
         seen[case_key] = (output_name, image_path)
 
