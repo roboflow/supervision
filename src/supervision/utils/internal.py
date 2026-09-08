@@ -131,8 +131,8 @@ T = TypeVar("T")
 class classproperty(Generic[T]):
     """A decorator that combines @classmethod and @property.
 
-    It allows a method to be accessed as a property of the class, rather than an instance, similar to a
-    classmethod.
+    It allows a method to be accessed as a property of the class, rather than an
+    instance, similar to a classmethod.
 
     Usage:
         @classproperty
