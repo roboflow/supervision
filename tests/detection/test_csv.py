@@ -619,8 +619,7 @@ class TestCSVSinkLifecycle:
 
 
 class TestCSVSinkEmptyBatches:
-    """
-    Tests for appending batches that contain no detections.
+    """Tests for appending batches that contain no detections.
 
     Also covers close() idempotency for the deferred-header path, since that behavior is
     only reachable through an empty-batch-only session.
@@ -658,8 +657,7 @@ class TestCSVSinkEmptyBatches:
     def test_empty_batch_does_not_warn_about_field_names(
         self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """
-        A detection-free frame is not a header mismatch worth reporting.
+        """A detection-free frame is not a header mismatch worth reporting.
 
         The trailing empty batch must also contribute zero data rows: it is
         not just silent about the field-name mismatch, it writes nothing at
@@ -739,8 +737,7 @@ class TestCSVSinkEmptyBatches:
     def test_differing_schema_empty_batches_use_first_batch_header(
         self, tmp_path: Any
     ) -> None:
-        """
-        Empty batches with differing custom_data keys resolve via first-wins.
+        """Empty batches with differing custom_data keys resolve via first-wins.
 
         No batch in this run ever carries a detection, so the deferred header is built
         entirely from empty-batch schemas. When those empty batches disagree on their
@@ -791,8 +788,7 @@ class TestCSVSinkEmptyBatches:
     def test_reopening_after_all_empty_session_resets_deferred_schema(
         self, tmp_path: Any
     ) -> None:
-        """
-        Reopening after an all-empty session drops the stale deferred schema.
+        """Reopening after an all-empty session drops the stale deferred schema.
 
         Session 1 never appends a real detection, so ``open()`` resetting
         ``deferred_field_names`` is the only thing standing between session 2 and a

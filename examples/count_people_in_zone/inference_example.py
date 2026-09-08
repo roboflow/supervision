@@ -12,8 +12,7 @@ COLORS = sv.ColorPalette.DEFAULT
 
 
 def load_zones_config(file_path: str) -> list[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
+    """Load polygon zone configurations from a JSON file.
 
     This function reads a JSON file which contains polygon coordinates, and
     converts them into a list of NumPy arrays. Each polygon is represented as
@@ -65,8 +64,7 @@ def detect(
     confidence_threshold: float = 0.5,
     iou_threshold: float = 0.7,
 ) -> sv.Detections:
-    """
-    Detect objects in a frame using Inference model, filtering detections by class ID
+    """Detect objects in a frame using Inference model, filtering detections by class ID
     and confidence threshold.
 
     Args:
@@ -99,8 +97,7 @@ def annotate(
     box_annotators: list[sv.BoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
-    """
-    Annotate a frame with zone and box annotations based on given detections.
+    """Annotate a frame with zone and box annotations based on given detections.
 
     Args:
         frame (np.ndarray): The original frame to be annotated.
@@ -135,8 +132,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Counting people in zones with Inference and Supervision.
+    """Counting people in zones with Inference and Supervision.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file

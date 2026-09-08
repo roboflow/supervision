@@ -1,6 +1,5 @@
 def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> int:
-    """
-    Calculates the minimum number of single-character edits required to transform one
+    """Calculates the minimum number of single-character edits required to transform one
     string into another. Allowed operations are insertion, deletion, and substitution.
 
     Args:
@@ -64,9 +63,8 @@ def fuzzy_match_index(
     threshold: int,
     case_sensitive: bool = True,
 ) -> int | None:
-    """
-    Searches for the first string in `candidates` whose edit distance to `query` is less
-    than or equal to `threshold`.
+    """Searches for the first string in `candidates` whose edit distance to `query` is
+    less than or equal to `threshold`.
 
     Args:
         candidates: List of strings to search.

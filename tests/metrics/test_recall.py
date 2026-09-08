@@ -146,8 +146,7 @@ class TestRecall:
         ],
     )
     def test_absent_class_predictions_are_tracked(self, method, expected):
-        """
-        A class predicted but never present in the targets is still tracked.
+        """A class predicted but never present in the targets is still tracked.
 
         Recall for such a class is 0.0 rather than undefined, which is what sklearn
         reports and what Precision and F1Score already do here. MICRO is unchanged
@@ -173,8 +172,7 @@ class TestRecall:
         assert list(result.matched_classes) == [0, 1]
 
     def test_tracked_classes_match_precision_and_f1(self):
-        """
-        The three metrics must agree on which classes exist for the same data.
+        """The three metrics must agree on which classes exist for the same data.
 
         They return `matched_classes` and a `*_per_class` array that read as parallel
         outputs. When the class sets diverge, zipping them silently truncates instead of
@@ -223,8 +221,7 @@ class TestRecall:
     def test_tracked_classes_match_precision_and_f1_with_background_images(
         self, averaging_method: AveragingMethod, expected_recall_at_50: float
     ) -> None:
-        """
-        The class sets must still agree when a sample has predictions and no targets.
+        """The class sets must still agree when a sample has predictions and no targets.
 
         A background image produces no false negatives, so no recall value changes under
         WEIGHTED or MICRO, but its predicted classes still have to be tracked. Building
@@ -264,8 +261,7 @@ class TestRecall:
         assert recall.recall_at_50 == pytest.approx(expected_recall_at_50)
 
     def test_background_image_size_bucket_filters_predictions_by_size(self) -> None:
-        """
-        Size buckets restrict background-image prediction-only classes by size.
+        """Size buckets restrict background-image prediction-only classes by size.
 
         A background image (empty targets) with predictions of different sizes must only
         surface in the size bucket matching that size; a bucket left with zero
@@ -301,8 +297,7 @@ class TestRecall:
         assert result.medium_objects.recall_per_class.shape == (0, 10)
 
     def test_multiple_background_image_samples_accumulate_classes(self) -> None:
-        """
-        Two background-image samples in one list input union their classes.
+        """Two background-image samples in one list input union their classes.
 
         Prediction-only classes from separate background-only samples must all be
         tracked together, not just the first sample's class.
@@ -344,8 +339,7 @@ class TestRecall:
         assert result.recall_at_50 == 0.0
 
     def test_non_contiguous_class_ids_align_by_value_not_index(self) -> None:
-        """
-        `matched_classes` rows align to class-id values, not positional order.
+        """`matched_classes` rows align to class-id values, not positional order.
 
         Large, non-contiguous class ids are sorted numerically by `np.unique` /
         `searchsorted`; a positional-index bug would misalign the prediction-only
@@ -591,8 +585,7 @@ class TestRecall:
         assert result.recall_at_50 == 0.75
 
     def test_greedy_matching_two_valid_pairs(self):
-        """
-        Greedy matching finds both TPs; np.unique style missed the second pair.
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
 
         IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
         assignment is T0<->P0 and T1<->P1 (2 TPs, recall=1.0).

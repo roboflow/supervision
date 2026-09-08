@@ -15,8 +15,7 @@ from supervision.utils.internal import warn_deprecated
 
 
 class OverlapFilter(Enum):
-    """
-    Enum specifying the strategy for filtering overlapping detections.
+    """Enum specifying the strategy for filtering overlapping detections.
 
     Attributes:
         NONE: Do not filter detections based on overlap.
@@ -53,8 +52,7 @@ class OverlapFilter(Enum):
 
 
 class OverlapMetric(Enum):
-    """
-    Enum specifying the metric for measuring overlap between detections.
+    """Enum specifying the metric for measuring overlap between detections.
 
     Attributes:
         IOU: Intersection over Union. A region-overlap metric that compares
@@ -400,8 +398,7 @@ def box_iou_batch_with_jaccard(
 
 
 def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
-    """
-    Compute the area of each oriented-box polygon using the shoelace formula.
+    """Compute the area of each oriented-box polygon using the shoelace formula.
 
     Each polygon is translated to its own first corner before the shoelace
     products, keeping representable integer coordinates with large origins (e.g.
@@ -429,8 +426,7 @@ def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
 
 
 def _aabb_envelopes(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Compute the axis-aligned bounding envelope of each oriented box.
+    """Compute the axis-aligned bounding envelope of each oriented box.
 
     Args:
         polygons: ``(N, 4, 2)`` array of polygon corners.
@@ -449,8 +445,7 @@ def _overlapping_envelope_pairs(
     envelopes_true: npt.NDArray[np.number],
     envelopes_detection: npt.NDArray[np.number],
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-    """
-    Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
+    """Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
 
     Uses a fused boolean evaluation to halve peak transient memory compared to
     named-intermediate form (4 separate NxM float64 arrays vs 1 boolean array).
@@ -774,9 +769,9 @@ def _mask_iou_batch_split(
     masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Internal function. Compute Intersection over Union (IoU) of two sets of masks -
-    `masks_true` and `masks_detection`.
+    """Internal function.
+
+    Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and `masks_detection`.
 
     Args:
         masks_true: 3D `np.ndarray` representing ground-truth masks.
@@ -1112,8 +1107,7 @@ def mask_soft_non_max_suppression(
 def _prepare_predictions_for_nms(
     predictions: npt.NDArray[np.floating],
 ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating], npt.NDArray[np.floating]]:
-    """
-    Add an agnostic class column when missing, sort by descending score.
+    """Add an agnostic class column when missing, sort by descending score.
 
     Returns the score-descending sort index, the reordered predictions, and the category
     vector for the loop callers to consume.
@@ -1132,8 +1126,7 @@ def _nms_loop_from_iou_matrix(
     categories: npt.NDArray[np.floating],
     iou_threshold: float,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Greedy NMS suppression loop given a precomputed pairwise IoU matrix.
+    """Greedy NMS suppression loop given a precomputed pairwise IoU matrix.
 
     Assumes `ious` is square with row/column order matching `categories`. Detections
     sharing a category whose IoU exceeds `iou_threshold` are dropped in favour of the
@@ -1287,8 +1280,7 @@ def _group_overlapping_masks(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many.
+    """Apply greedy version of non-maximum merging to avoid detecting too many.
 
     Args:
         predictions: An array of shape `(n, 5)` containing
@@ -1508,9 +1500,8 @@ def _non_max_merge_per_category(
     predictions: npt.NDArray[np.floating],
     group_within: Callable[[npt.NDArray[np.int_]], list[list[int]]],
 ) -> list[list[int]]:
-    """
-    Dispatch NMM grouping per class, then translate local indices back to the global row
-    positions of ``predictions``.
+    """Dispatch NMM grouping per class, then translate local indices back to the global
+    row positions of ``predictions``.
 
     ``group_within(global_indices)`` must return merge groups expressed in terms of
     *positions inside `global_indices`*, not absolute row positions. When
@@ -1543,9 +1534,8 @@ def _group_overlapping_boxes(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many overlapping
-    bounding boxes for a given object.
+    """Apply greedy version of non-maximum merging to avoid detecting too many
+    overlapping bounding boxes for a given object.
 
     Args:
         predictions: An array of shape `(n, 5)` containing
@@ -1733,8 +1723,7 @@ def _group_overlapping_oriented_boxes(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Greedy non-maximum merging on oriented boxes.
+    """Greedy non-maximum merging on oriented boxes.
 
     Mirrors
     :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.

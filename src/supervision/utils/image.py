@@ -468,8 +468,7 @@ def _overlay_image(
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
-    """
-    Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
+    """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Non-deprecated internal implementation backing the public `overlay_image`.
     Kept separate so library-internal callers do not emit a deprecation warning.
@@ -651,8 +650,7 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 
 
 class ImageSink:
-    """
-    Save sequential images into a directory through a context manager.
+    """Save sequential images into a directory through a context manager.
 
     `ImageSink` creates the target directory on entry and writes each image using
     `save_image`, incrementing the image name pattern after every save.
@@ -710,8 +708,7 @@ class ImageSink:
     def save_image(
         self, image: npt.NDArray[np.uint8], image_name: str | None = None
     ) -> None:
-        """
-        Save image to target directory with optional custom filename.
+        """Save image to target directory with optional custom filename.
 
         Args:
             image: Image to save with shape `(height, width, 3)`
@@ -764,8 +761,7 @@ def create_tiles(
     titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
     default_title_placement: RelativePosition = "top",
 ) -> ImageType:
-    """
-    Creates tiles mosaic from input images, automating grid placement and converting
+    """Creates tiles mosaic from input images, automating grid placement and converting
     images to common resolution maintaining aspect ratio. It is also possible to render
     text titles on tiles, using optional set of parameters specifying text drawing (see
     parameters description).

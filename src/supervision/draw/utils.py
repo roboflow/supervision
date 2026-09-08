@@ -490,8 +490,7 @@ def draw_image(
 
 
 def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
-    """
-    Calculate optimal font scale based on image resolution.
+    """Calculate optimal font scale based on image resolution.
 
     Adjusts font scale proportionally to the smallest dimension of the given image resolution for
     consistent readability.
@@ -516,8 +515,7 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
 
 
 def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
-    """
-    Calculate optimal line thickness based on image resolution.
+    """Calculate optimal line thickness based on image resolution.
 
     Adjusts the line thickness for readability depending on the smallest dimension of the provided
     image resolution.

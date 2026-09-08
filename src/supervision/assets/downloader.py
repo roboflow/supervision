@@ -10,8 +10,7 @@ logger = _get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
-    """
-    Check if the MD5 hash of a file matches the original hash.
+    """Check if the MD5 hash of a file matches the original hash.
 
     Note: MD5 is used here for file integrity checking (detecting corruption),
     not for cryptographic security purposes.
@@ -71,8 +70,7 @@ def download_assets(
     asset_name: Assets | str,
     directory: str | Path | None = None,
 ) -> str:
-    """
-    Download a specified asset if it doesn't already exist or is corrupted.
+    """Download a specified asset if it doesn't already exist or is corrupted.
 
     Args:
         asset_name: The name or type of the asset to be downloaded.

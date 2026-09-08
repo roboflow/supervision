@@ -16,9 +16,8 @@ F = TypeVar("F", bound=Callable[..., Any])
 def ensure_cv2_image_for_class_method(
     annotate_func: F,
 ) -> F:
-    """
-    Decorates `BaseAnnotator.annotate` implementations, converts scene to an image type
-    used internally by the annotators, converts back when annotation is complete.
+    """Decorates `BaseAnnotator.annotate` implementations, converts scene to an image
+    type used internally by the annotators, converts back when annotation is complete.
 
     Assumes the annotators modify the scene in-place.
 
@@ -56,9 +55,8 @@ def ensure_cv2_image_for_annotation(
 def ensure_cv2_image_for_standalone_function(
     image_processing_fun: F,
 ) -> F:
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    np.ndarray, converts back when processing is complete.
+    """Decorates image processing functions that accept np.ndarray, converting `image`
+    to np.ndarray, converts back when processing is complete.
 
     Assumes the annotators do NOT modify the scene in-place.
 
@@ -84,9 +82,8 @@ def ensure_cv2_image_for_standalone_function(
 def ensure_pil_image_for_class_method(
     annotate_func: F,
 ) -> F:
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    PIL image, converts back when processing is complete.
+    """Decorates image processing functions that accept np.ndarray, converting `image`
+    to PIL image, converts back when processing is complete.
 
     Assumes the annotators modify the scene in-place.
 
@@ -135,8 +132,7 @@ def ensure_cv2_image_for_processing(
 def images_to_cv2(
     images: list[npt.NDArray[np.uint8] | Image.Image],
 ) -> list[npt.NDArray[np.uint8]]:
-    """
-    Converts images provided either as Pillow images or OpenCV images into OpenCV
+    """Converts images provided either as Pillow images or OpenCV images into OpenCV
     format.
 
     Args:

@@ -62,8 +62,7 @@ def _validate_color_hex(color_hex: str) -> None:
 
 @dataclass
 class Color:
-    """
-    Represents a color in RGBA format.
+    """Represents a color in RGBA format.
 
     This class provides methods to work with colors, including creating colors from hex
     codes, converting colors to hex strings, RGB tuples, BGR tuples, RGBA tuples,
@@ -115,8 +114,7 @@ class Color:
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
-        """
-        Create a Color instance from a hex string.
+        """Create a Color instance from a hex string.
 
         Args:
             color_hex: The hex string representing the color. This string can
@@ -158,8 +156,7 @@ class Color:
 
     @classmethod
     def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
-        """
-        Create a Color instance from an RGB tuple.
+        """Create a Color instance from an RGB tuple.
 
         Args:
             color_tuple: A tuple representing the color in RGB format, where each
@@ -186,8 +183,7 @@ class Color:
 
     @classmethod
     def from_bgr_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
-        """
-        Create a Color instance from a BGR tuple.
+        """Create a Color instance from a BGR tuple.
 
         Args:
             color_tuple: A tuple representing the color in BGR format, where each
@@ -214,8 +210,7 @@ class Color:
 
     @classmethod
     def from_rgba_tuple(cls, color_tuple: tuple[int, int, int, int]) -> Color:
-        """
-        Create a Color instance from an RGBA tuple.
+        """Create a Color instance from an RGBA tuple.
 
         Args:
             color_tuple: A tuple representing the color in RGBA format, where each
@@ -244,8 +239,7 @@ class Color:
 
     @classmethod
     def from_bgra_tuple(cls, color_tuple: tuple[int, int, int, int]) -> Color:
-        """
-        Create a Color instance from a BGRA tuple.
+        """Create a Color instance from a BGRA tuple.
 
         Args:
             color_tuple: A tuple representing the color in BGRA format, where each
@@ -273,8 +267,7 @@ class Color:
         return cls(r=r, g=g, b=b, a=a)
 
     def as_hex(self) -> str:
-        """
-        Converts the Color instance to a hex string.
+        """Converts the Color instance to a hex string.
 
         Returns:
             The hexadecimal color string. Returns `#RRGGBBAA` if alpha is not 255,
@@ -296,8 +289,7 @@ class Color:
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
 
     def as_rgb(self) -> tuple[int, int, int]:
-        """
-        Returns the color as an RGB tuple.
+        """Returns the color as an RGB tuple.
 
         Returns:
             RGB tuple.
@@ -313,8 +305,7 @@ class Color:
         return self.r, self.g, self.b
 
     def as_bgr(self) -> tuple[int, int, int]:
-        """
-        Returns the color as a BGR tuple.
+        """Returns the color as a BGR tuple.
 
         Returns:
             BGR tuple.
@@ -330,8 +321,7 @@ class Color:
         return self.b, self.g, self.r
 
     def as_rgba(self) -> tuple[int, int, int, int]:
-        """
-        Returns the color as an RGBA tuple.
+        """Returns the color as an RGBA tuple.
 
         Returns:
             RGBA tuple.
@@ -347,8 +337,7 @@ class Color:
         return self.r, self.g, self.b, self.a
 
     def as_bgra(self) -> tuple[int, int, int, int]:
-        """
-        Returns the color as a BGRA tuple.
+        """Returns the color as a BGRA tuple.
 
         Returns:
             BGRA tuple.
@@ -419,8 +408,7 @@ class ColorPalette:
 
     @classproperty
     def DEFAULT(cls) -> ColorPalette:
-        """
-        Returns a default color palette.
+        """Returns a default color palette.
 
         Returns:
             A ColorPalette instance with default colors.
@@ -440,8 +428,7 @@ class ColorPalette:
 
     @classproperty
     def ROBOFLOW(cls) -> ColorPalette:
-        """
-        Returns a Roboflow color palette.
+        """Returns a Roboflow color palette.
 
         Returns:
             A ColorPalette instance with Roboflow colors.
@@ -488,8 +475,7 @@ class ColorPalette:
 
     @classmethod
     def from_matplotlib(cls, palette_name: str, color_count: int) -> ColorPalette:
-        """
-        Create a ColorPalette instance from a Matplotlib color palette.
+        """Create a ColorPalette instance from a Matplotlib color palette.
 
         Args:
             palette_name: Name of the Matplotlib palette.
@@ -561,8 +547,7 @@ class ColorPalette:
         return self.colors[idx]
 
     def __len__(self) -> int:
-        """
-        Returns the number of colors in the palette.
+        """Returns the number of colors in the palette.
 
         Returns:
             The number of colors.
@@ -571,8 +556,7 @@ class ColorPalette:
 
 
 def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
-    """
-    Converts a color input in multiple formats to a standardized BGR format.
+    """Converts a color input in multiple formats to a standardized BGR format.
 
     Args:
         color: The color input to be converted,

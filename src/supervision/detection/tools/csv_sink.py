@@ -74,8 +74,7 @@ class CSVSink:
     """
 
     def __init__(self, file_name: str = "output.csv") -> None:
-        """
-        Initialize the CSVSink instance.
+        """Initialize the CSVSink instance.
 
         Args:
             file_name: The name of the CSV file.
@@ -112,8 +111,7 @@ class CSVSink:
         self.deferred_field_names = []
 
     def close(self) -> None:
-        """
-        Close the CSV file.
+        """Close the CSV file.
 
         When every appended batch was empty no header has been written yet, so the
         schema remembered from the first such batch is emitted here. This keeps a run
@@ -136,8 +134,7 @@ class CSVSink:
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
-        """
-        Return the i-th element when the value stores per-detection data.
+        """Return the i-th element when the value stores per-detection data.
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
@@ -164,8 +161,7 @@ class CSVSink:
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Convert detections and optional custom data into per-detection rows.
+        """Convert detections and optional custom data into per-detection rows.
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
@@ -215,8 +211,7 @@ class CSVSink:
     def append(
         self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
-        """
-        Append detection data to the CSV file.
+        """Append detection data to the CSV file.
 
         The CSV header is fixed by the first batch that actually contains
         detections; batches with no detections write nothing and leave the

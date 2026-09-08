@@ -93,8 +93,7 @@ class PolygonZone:
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
-        """
-        Determines if the detections are within the polygon zone.
+        """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
         avoid per-zone clipping shifting anchor positions. This prevents a single
@@ -193,8 +192,7 @@ class PolygonZoneAnnotator:
     def annotate(
         self, scene: npt.NDArray[Any], label: str | None = None
     ) -> npt.NDArray[Any]:
-        """
-        Annotates the polygon zone within a frame with a count of detected objects.
+        """Annotates the polygon zone within a frame with a count of detected objects.
 
         Args:
             scene: The image on which the polygon zone will be annotated

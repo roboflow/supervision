@@ -52,8 +52,7 @@ def test_deploy_steps_export_the_version_they_deploy(
 def test_release_deploy_step_forwards_is_latest_release(
     workflow_step: StepLookup,
 ) -> None:
-    """
-    The release deploy step passes through the is-latest-release verdict.
+    """The release deploy step passes through the is-latest-release verdict.
 
     A release tag's own docs tree must know whether it is the newest stable release to
     suppress its own outdated-version banner (see `docs/theme/main.html`'s
@@ -73,8 +72,7 @@ def test_release_deploy_step_forwards_is_latest_release(
 def test_release_metadata_step_computes_is_latest_release(
     workflow_step: StepLookup,
 ) -> None:
-    """
-    The metadata step delegates the version comparison to the shared script.
+    """The metadata step delegates the version comparison to the shared script.
 
     Keeps the workflow YAML and the comparison logic from drifting apart, since
     `.github/_tests/test_compute_is_latest_release.py` covers the comparison itself and
@@ -99,8 +97,7 @@ ARCHIVE_STEP = (
 def test_archive_step_only_runs_when_this_release_is_the_new_latest(
     workflow_step: StepLookup,
 ) -> None:
-    """
-    A backport release for an older line must not touch the real /latest/ tree.
+    """A backport release for an older line must not touch the real /latest/ tree.
 
     Only promoting a release to the newest actually demotes something — a patch release
     for an older minor line leaves the current /latest/ untouched, so nothing needs
@@ -118,8 +115,7 @@ def test_archive_step_only_runs_when_this_release_is_the_new_latest(
 def test_archive_step_runs_the_banner_script_in_banner_only_mode(
     workflow_step: StepLookup,
 ) -> None:
-    """
-    The demoted tree's own CSS/JS are already genuine — only its text is stale.
+    """The demoted tree's own CSS/JS are already genuine — only its text is stale.
 
     `--banner-only` skips `patch_stylesheets`/`patch_scripts`, which would
     otherwise append a redundant second copy of banner rules the tree already

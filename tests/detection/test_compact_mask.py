@@ -33,8 +33,7 @@ def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
 
 
 class TestRleHelpers:
-    """
-    Tests for _mask_to_rle_counts, _rle_counts_to_mask, and _rle_area.
+    """Tests for _mask_to_rle_counts, _rle_counts_to_mask, and _rle_area.
 
     Verifies that the private RLE encoding round-trips correctly for a range of mask
     shapes (all-False, all-True, diagonal, L-shape, checkerboard, single-pixel, and
@@ -145,8 +144,7 @@ class TestRleHelpers:
 
 
 class TestFromDenseToDense:
-    """
-    Tests for CompactMask.from_dense and to_dense.
+    """Tests for CompactMask.from_dense and to_dense.
 
     Verifies that the from_dense → to_dense round-trip is lossless when the bounding
     boxes span the full image (no True pixels fall outside the crop). Covers N=0
@@ -502,8 +500,7 @@ class TestRleTrimColRuns:
 
 
 class TestGetItem:
-    """
-    Tests for CompactMask.__getitem__.
+    """Tests for CompactMask.__getitem__.
 
     Covers four indexing modes:
     - Integer index → dense (H, W) np.ndarray with correct shape and dtype.
@@ -582,8 +579,7 @@ class TestGetItem:
 
 
 class TestProperties:
-    """
-    Tests for len, shape, dtype, and area properties.
+    """Tests for len, shape, dtype, and area properties.
 
     Verifies that the shape tuple follows the (N, H, W) dense convention, dtype is
     always bool, and area returns per-mask True-pixel counts that match np.sum on the
@@ -639,8 +635,7 @@ class TestProperties:
 
 
 class TestCrop:
-    """
-    Tests for CompactMask.crop.
+    """Tests for CompactMask.crop.
 
     Verifies that crop(index) returns an array shaped (crop_h, crop_w) containing only
     the pixels within the bounding box, without allocating the full (H, W) image.
@@ -659,8 +654,7 @@ class TestCrop:
 
 
 class TestArrayProtocol:
-    """
-    Tests for the __array__ protocol.
+    """Tests for the __array__ protocol.
 
     Verifies that np.asarray(cm) materialises the full (N, H, W) dense array and that
     optional dtype casting (e.g. to uint8) is correctly applied.
@@ -685,8 +679,7 @@ class TestArrayProtocol:
 
 
 class TestMerge:
-    """
-    Tests for CompactMask.merge.
+    """Tests for CompactMask.merge.
 
     Verifies that multiple CompactMask instances with the same image_shape can be
     concatenated into a single CompactMask, that merging with an empty instance works,
@@ -744,8 +737,7 @@ class TestMerge:
 
 
 class TestEquality:
-    """
-    Tests for CompactMask.__eq__.
+    """Tests for CompactMask.__eq__.
 
     Verifies element-wise equality between two CompactMask instances and between a
     CompactMask and an equivalent dense (N, H, W) boolean array.
@@ -775,8 +767,7 @@ class TestEquality:
 
 
 class TestEdgeCases:
-    """
-    Tests for boundary conditions and unusual inputs.
+    """Tests for boundary conditions and unusual inputs.
 
     Covers: zero-area bounding box (x1 == x2), masks that reach the image
     edge, xyxy values beyond image dimensions (clamped silently), empty
@@ -939,8 +930,7 @@ class TestEdgeCases:
 
 
 class TestCalculateMasksCentroidsCompact:
-    """
-    Verify calculate_masks_centroids gives identical results for CompactMask.
+    """Verify calculate_masks_centroids gives identical results for CompactMask.
 
     The function has a dedicated CompactMask branch that computes centroids per-crop.
     Results must match the dense path to within integer rounding.
@@ -998,8 +988,7 @@ class TestCalculateMasksCentroidsCompact:
 
 
 class TestContainsHolesCompact:
-    """
-    Verify contains_holes result is unchanged after CompactMask roundtrip.
+    """Verify contains_holes result is unchanged after CompactMask roundtrip.
 
     contains_holes works on a 2D boolean mask.  Encoding then decoding via CompactMask
     must preserve pixel topology so that the function returns the same result as on the
@@ -1045,8 +1034,7 @@ class TestContainsHolesCompact:
 
 
 class TestContainsMultipleSegmentsCompact:
-    """
-    Verify contains_multiple_segments result survives CompactMask roundtrip.
+    """Verify contains_multiple_segments result survives CompactMask roundtrip.
 
     Encoding and decoding must preserve connected-component topology so that the multi-
     segment predicate returns the same value.
@@ -1126,8 +1114,7 @@ def _random_masks_and_xyxy(
     img_w: int,
     fill_prob: float = 0.3,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Generate *num_masks* random boolean masks with matching tight xyxy boxes.
+    """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
 
     Each mask is built by filling a random sub-rectangle with Bernoulli noise at
     ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``. This
@@ -1151,8 +1138,7 @@ def _random_masks_and_xyxy(
 
 
 class TestCompactMaskRoundtripRandom:
-    """
-    from_dense -> to_dense pixel equality across 10 random seeds.
+    """from_dense -> to_dense pixel equality across 10 random seeds.
 
     Uses tight bounding boxes so the round-trip must be lossless (all True pixels lie
     strictly within the crop).
@@ -1417,8 +1403,7 @@ class TestRleSplitCols:
 
 
 class TestCompactMaskResize:
-    """
-    Tests for CompactMask.resize method.
+    """Tests for CompactMask.resize method.
 
     Verifies scaling behaviour, coordinate arithmetic, identity resize, empty
     collections, invalid dimensions, and dense parity with cv2.
@@ -1585,8 +1570,7 @@ class TestCompactMaskResize:
 
 
 class TestRleResize:
-    """
-    Tests for _rle_resize direct F-order RLE resizing.
+    """Tests for _rle_resize direct F-order RLE resizing.
 
     Verifies that _rle_resize produces identical results to the decode ->
     cv2.resize(INTER_NEAREST) -> encode path for identity, upscale, downscale, non-
@@ -1851,8 +1835,7 @@ class TestRleResize:
         assert dense.sum() > 0
 
     def test_resize_dispatch_uses_cv2_for_dense(self) -> None:
-        """
-        _resize_crop falls back to cv2 for dense masks (above _L3_DENSITY_THRESHOLD).
+        """_resize_crop falls back to cv2 for dense masks (above _L3_DENSITY_THRESHOLD).
 
         Checkerboard yields ~1 run per pixel, far above the 0.25 threshold. Result must
         match cv2.resize(INTER_NEAREST) within 1 pixel.

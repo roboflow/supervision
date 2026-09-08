@@ -99,8 +99,7 @@ class Recall(Metric["RecallResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Recall metric.
+        """Initialize the Recall metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -123,8 +122,7 @@ class Recall(Metric["RecallResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> Recall:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -150,8 +148,7 @@ class Recall(Metric["RecallResult"]):
         return self
 
     def compute(self) -> RecallResult:
-        """
-        Calculate the recall metric based on the stored predictions and ground-truth
+        """Calculate the recall metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
@@ -446,8 +443,7 @@ class Recall(Metric["RecallResult"]):
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -503,8 +499,7 @@ class Recall(Metric["RecallResult"]):
     def _compute_recall(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the recall from the confusion matrix.
+        """Broadcastable function, computing the recall from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -535,8 +530,7 @@ class Recall(Metric["RecallResult"]):
     def _detections_content(
         self, detections: Detections
     ) -> npt.NDArray[Any] | CompactMask:
-        """
-        Return boxes, masks or oriented bounding boxes from detections.
+        """Return boxes, masks or oriented bounding boxes from detections.
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
@@ -626,8 +620,7 @@ class Recall(Metric["RecallResult"]):
 
 @dataclass
 class RecallResult:
-    """
-    The results of the recall metric calculation.
+    """The results of the recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -746,8 +739,7 @@ class RecallResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -776,8 +768,7 @@ class RecallResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the recall results.
+        """Plot the recall results.
 
         ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png

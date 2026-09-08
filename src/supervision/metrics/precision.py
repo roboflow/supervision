@@ -73,8 +73,7 @@ class Precision(Metric["PrecisionResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Precision metric.
+        """Initialize the Precision metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -97,8 +96,7 @@ class Precision(Metric["PrecisionResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> Precision:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -124,9 +122,8 @@ class Precision(Metric["PrecisionResult"]):
         return self
 
     def compute(self) -> PrecisionResult:
-        """
-        Calculate the precision metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
+        """Calculate the precision metric based on the stored predictions and ground-
+        truth data, at different IoU thresholds.
 
         Returns:
             The precision metric result.
@@ -150,8 +147,7 @@ class Precision(Metric["PrecisionResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> PrecisionResult:
-        """
-        Build per-image stats tuples and delegate to class-level computation.
+        """Build per-image stats tuples and delegate to class-level computation.
 
         Each stats tuple is
         ``(matches, ignored_matches, confidence, class_ids, true_class_ids)``:
@@ -356,8 +352,7 @@ class Precision(Metric["PrecisionResult"]):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
-        """
-        Compute precision scores from concatenated stats across all images.
+        """Compute precision scores from concatenated stats across all images.
 
         ``unique_classes`` is the union of GT and predicted classes so that predictions
         of classes absent from GT still count as false positives.
@@ -424,8 +419,7 @@ class Precision(Metric["PrecisionResult"]):
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -481,8 +475,7 @@ class Precision(Metric["PrecisionResult"]):
     def _compute_precision(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the precision from the confusion matrix.
+        """Broadcastable function, computing the precision from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -593,8 +586,7 @@ class Precision(Metric["PrecisionResult"]):
 
 @dataclass
 class PrecisionResult:
-    """
-    The results of the precision metric calculation.
+    """The results of the precision metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -715,8 +707,7 @@ class PrecisionResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -745,8 +736,7 @@ class PrecisionResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the precision results.
+        """Plot the precision results.
 
         ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png

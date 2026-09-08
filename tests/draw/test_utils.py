@@ -93,8 +93,7 @@ def test_draw_image_grayscale_array_raises_value_error() -> None:
 def test_draw_rounded_rectangle_square_matches_plain_rectangle(
     border_radius: int,
 ) -> None:
-    """
-    Non-positive border_radius fills exactly the same pixels as a plain box.
+    """Non-positive border_radius fills exactly the same pixels as a plain box.
 
     For border_radius < 0: previously raised cv2.error: radius >= 0 in function
     'circle'; fast path now silently draws square corners instead.

@@ -5,8 +5,7 @@ from supervision.detection.core import Detections
 
 
 class BaseAnnotator(ABC):
-    """
-    Base class for annotators that consume :class:`Detections`.
+    """Base class for annotators that consume :class:`Detections`.
 
     Attributes:
         requires_mask: Whether integrations must provide ``Detections.mask`` for

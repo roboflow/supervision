@@ -70,8 +70,7 @@ class BaseDataset(ABC):
 
 
 class DetectionDataset(BaseDataset):
-    """
-    Contains information about a detection dataset.
+    """Contains information about a detection dataset.
 
     Handles lazy image loading and annotation retrieval, dataset splitting, conversions into multiple
     formats.
@@ -171,8 +170,7 @@ class DetectionDataset(BaseDataset):
         return image_path, image, annotation
 
     def __iter__(self) -> Iterator[tuple[str, npt.NDArray[np.uint8], Detections]]:
-        """
-        Iterate over the images and annotations in the dataset.
+        """Iterate over the images and annotations in the dataset.
 
         Yields:
             Tuples containing the image path, image data, and its annotation.
@@ -387,8 +385,7 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         show_progress: bool = False,
     ) -> None:
-        """
-        Exports the dataset to PASCAL VOC format.
+        """Exports the dataset to PASCAL VOC format.
 
         This method saves the images and their corresponding annotations in PASCAL VOC format. Both output
         layouts are preflighted before any files are written so a collision in
@@ -586,8 +583,7 @@ class DetectionDataset(BaseDataset):
         is_obb: bool = False,
         show_progress: bool = False,
     ) -> None:
-        """
-        Exports the dataset to YOLO format.
+        """Exports the dataset to YOLO format.
 
         This method saves the images and their corresponding annotations in YOLO format.
 
@@ -1040,8 +1036,7 @@ class DetectionDataset(BaseDataset):
 
 @dataclass
 class ClassificationDataset(BaseDataset):
-    """
-    Contains information about a classification dataset, handles lazy image loading,
+    """Contains information about a classification dataset, handles lazy image loading,
     dataset splitting.
 
     Attributes:
@@ -1104,8 +1099,7 @@ class ClassificationDataset(BaseDataset):
     def __iter__(
         self,
     ) -> Iterator[tuple[str, npt.NDArray[np.uint8], Classifications]]:
-        """
-        Iterate over the images and annotations in the dataset.
+        """Iterate over the images and annotations in the dataset.
 
         Yields:
             Tuples containing the image path, image data, and its annotation.
@@ -1212,8 +1206,7 @@ class ClassificationDataset(BaseDataset):
     def as_folder_structure(
         self, root_directory_path: str, show_progress: bool = False
     ) -> None:
-        """
-        Saves the dataset as a multi-class folder structure.
+        """Saves the dataset as a multi-class folder structure.
 
         Images assigned to the same class must have unique basenames
         (case-insensitive). Conflicts are rejected before any files are written.

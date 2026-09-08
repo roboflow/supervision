@@ -23,8 +23,7 @@ class Assets(Enum):
 
 
 class VideoAssets(Assets):
-    """
-    Each member of this class represents a video asset.
+    """Each member of this class represents a video asset.
 
     The value associated with each member has a filename and hash of the video. File names and links can be seen below.
 
@@ -58,8 +57,7 @@ class VideoAssets(Assets):
 
 
 class ImageAssets(Assets):
-    """
-    Each member of this enum represents a image asset.
+    """Each member of this enum represents a image asset.
 
     The value associated with each member is the filename of the image.
 

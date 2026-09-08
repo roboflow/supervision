@@ -42,8 +42,7 @@ def _blocked_cv2_environment(tmp_path: Path) -> dict[str, str]:
     """Create a subprocess environment that rejects every cv2 import."""
     blocker = tmp_path / "sitecustomize.py"
     blocker.write_text(
-        """
-        Import sys.
+        """Import sys.
 
         class BlockCv2:
             def find_spec(self, fullname, path=None, target=None):
@@ -54,7 +53,7 @@ def _blocked_cv2_environment(tmp_path: Path) -> dict[str, str]:
 
         sys.meta_path.insert(0, BlockCv2())
         """
-   ,
+           ,
         encoding="utf-8",
     )
     environment = os.environ.copy()

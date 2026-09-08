@@ -293,9 +293,8 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},
-            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```
-            """
-                  ,
+            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```"""
+               ,
             (640, 640),
             (1280, 720),
             None,
@@ -304,7 +303,7 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                 ,
             (640, 640),
             (1280, 720),
             None,
@@ -317,9 +316,8 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [100,
-            200, 300, 400], "label": "cat"} ] ```
-            """
-                  ,
+            200, 300, 400], "label": "cat"} ] ```"""
+               ,
             (640, 640),
             (640, 640),
             None,
@@ -332,7 +330,7 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```"""
-                  ,
+                                                                                  ,
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
@@ -341,9 +339,10 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"}, {"bbox_2d":
+
             [50, 100, 150, 200], "label": "dog"} ] ```
             """
-                  ,
+               ,
             (640, 640),
             (640, 480),
             ["cat", "dog"],
@@ -356,7 +355,7 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```"""
-                  ,
+                                                                                 ,
             (640, 640),
             (1280, 720),
             None,
@@ -369,7 +368,7 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]"""
-                ,
+                                                                     ,
             (640, 640),
             (1280, 720),
             None,
@@ -382,8 +381,7 @@ def test_from_paligemma(
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [10,
-            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":
-            """
+            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":"""
                ,
             (640, 640),
             (640, 640),
@@ -409,7 +407,7 @@ def test_from_paligemma(
                 ),
             ),
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                 ,
             (0, 640),
             (1280, 720),
             None,
@@ -424,7 +422,7 @@ def test_from_paligemma(
                 ),
             ),
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```"""
-                  ,
+                                                                                 ,
             (640, 640),
             (1280, -100),
             None,
@@ -480,7 +478,7 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```"""
-                  ,
+                                                                                  ,
             (1000, 500),
             None,
             (
@@ -492,9 +490,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```
-            """
-                  ,
+            100, 150, 200], "label": "dog"} ] ```"""
+               ,
             (640, 480),
             None,
             (
@@ -506,7 +503,7 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                ,
             (640, 480),
             ["dog", "person"],
             (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
@@ -514,9 +511,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```
-            """
-                  ,
+            100, 150, 200], "label": "dog"} ] ```"""
+               ,
             (640, 480),
             ["person", "dog"],
             (
@@ -528,9 +524,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```
-            """
-                  ,
+            100, 150, 200], "label": "dog"} ] ```"""
+               ,
             (640, 480),
             ["cat", "dog"],
             (
@@ -548,7 +543,7 @@ def test_from_qwen_2_5_vl(
                 ),
             ),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                ,
             (0, 480),
             None,
             None,
@@ -562,7 +557,7 @@ def test_from_qwen_2_5_vl(
                 ),
             ),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                ,
             (640, -100),
             None,
             None,
@@ -1028,9 +1023,10 @@ def test_florence_2_invalid_payloads_raise_value_error(
         (
             does_not_raise(),
             """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence":
+
             0.8} ] ```
             """
-                  ,
+               ,
             (1000, 500),
             None,
             (
@@ -1044,10 +1040,11 @@ def test_florence_2_invalid_payloads_raise_value_error(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
+
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
             """
-                  ,
+               ,
             (640, 480),
             None,
             (
@@ -1061,9 +1058,10 @@ def test_florence_2_invalid_payloads_raise_value_error(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
+
             0.8} ] ```
             """
-                  ,
+               ,
             (640, 480),
             ["dog", "person"],
             (
@@ -1077,10 +1075,11 @@ def test_florence_2_invalid_payloads_raise_value_error(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
+
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
             """
-                  ,
+               ,
             (640, 480),
             ["person", "dog"],
             (
@@ -1094,10 +1093,11 @@ def test_florence_2_invalid_payloads_raise_value_error(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
+
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
             """
-                  ,
+               ,
             (640, 480),
             ["cat", "dog"],
             (
@@ -1117,7 +1117,7 @@ def test_florence_2_invalid_payloads_raise_value_error(
                 ),
             ),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                ,
             (0, 480),
             None,
             None,
@@ -1131,7 +1131,7 @@ def test_florence_2_invalid_payloads_raise_value_error(
                 ),
             ),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                  ,
+                                                                                ,
             (640, -100),
             None,
             None,
@@ -1140,9 +1140,8 @@ def test_florence_2_invalid_payloads_raise_value_error(
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "mask": "data:image/png;base64,i
             VBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA
-            AAAAElFTkSuQmCC", "label": "cat"} ] ```
-            """
-                  ,  # noqa E501 // docs
+            AAAAElFTkSuQmCC", "label": "cat"} ] ```"""
+               ,
             (10, 10),
             ["cat"],
             (
@@ -1160,9 +1159,10 @@ def test_florence_2_invalid_payloads_raise_value_error(
             jAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8}, {"box_2d": [300,
             300, 400, 400], "mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAA
             AAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", "label":
+
             "dog", "confidence": 0.9} ] ```
             """
-                  ,  # noqa E501 // docs
+               ,
             (10, 10),
             ["cat", "dog"],
             (

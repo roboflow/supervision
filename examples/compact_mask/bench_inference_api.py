@@ -1,5 +1,4 @@
-"""
-Benchmark dense vs compact Roboflow RLE ingestion.
+"""Benchmark dense vs compact Roboflow RLE ingestion.
 
 Run with:
     uv run python examples/compact_mask/bench_inference_api.py
@@ -127,8 +126,7 @@ def count_rle_predictions(result: dict[str, Any]) -> int:
 
 
 def synthetic_dense_small_result() -> tuple[np.ndarray, str, dict[str, Any]]:
-    """
-    Return a small dense-mask adversarial payload where compact parsing is slower.
+    """Return a small dense-mask adversarial payload where compact parsing is slower.
 
     Uses a 64x64 image with 4 fully-filled masks. At this scale the dense ``(N, H, W)``
     allocation cost is negligible; Python RLE arithmetic dominates, making compact

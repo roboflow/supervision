@@ -8,8 +8,7 @@ from supervision.metrics import MeanAverageRecall, MetricTarget
 
 @pytest.fixture
 def complex_scenario_targets():
-    """
-    Ground truth for complex multi-image scenario.
+    """Ground truth for complex multi-image scenario.
 
     15 images with varying object counts and classes.
     Total: class_0=17, class_1=19 objects.
@@ -146,8 +145,7 @@ def complex_scenario_targets():
 
 @pytest.fixture
 def complex_scenario_predictions():
-    """
-    Predictions for complex multi-image scenario.
+    """Predictions for complex multi-image scenario.
 
     15 images with varying detection quality:
     - True positives, false positives, false negatives
@@ -285,8 +283,7 @@ def complex_scenario_predictions():
 
 @pytest.fixture
 def two_class_two_image_detections():
-    """
-    Scenario: 2 images with 2 classes with varying confidence levels.
+    """Scenario: 2 images with 2 classes with varying confidence levels.
 
     Tests that `mAR @ K` limits per image (not per class) by creating a case where
     the highest confidence detection differs between images.
@@ -700,8 +697,7 @@ def test_three_class_single_image_scenario(three_class_single_image_detections) 
 
 
 def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
-    """
-    Test mAR with a roboflow-format dataset loaded from disk.
+    """Test mAR with a roboflow-format dataset loaded from disk.
 
     Uses a synthetic YOLO-format dataset loaded via DetectionDataset.from_yolo()
     to validate that the mAR metric works correctly with dataset splits - an
@@ -782,8 +778,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
 
 
 def test_greedy_matching_two_valid_pairs():
-    """
-    Greedy matching finds both TPs; np.unique style missed the second pair.
+    """Greedy matching finds both TPs; np.unique style missed the second pair.
 
     IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
     assignment is T0<->P0 and T1<->P1. mAR@100 at iou=0.5 is 1.0.

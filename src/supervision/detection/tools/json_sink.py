@@ -49,8 +49,7 @@ class JSONSink:
     """
 
     def __init__(self, file_name: str = "output.json") -> None:
-        """
-        Initialize the JSONSink instance.
+        """Initialize the JSONSink instance.
 
         Args:
             file_name: The name of the JSON file.
@@ -82,8 +81,7 @@ class JSONSink:
 
     @staticmethod
     def _json_default(value: Any) -> Any:
-        """
-        Return a JSON-serializable equivalent of a NumPy scalar or array.
+        """Return a JSON-serializable equivalent of a NumPy scalar or array.
 
         Called as the ``default`` hook by :func:`json.dump`. Converts
         :class:`numpy.generic` scalars via ``.item()`` and
@@ -118,8 +116,7 @@ class JSONSink:
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
-        """
-        Return the i-th element when the value stores per-detection data.
+        """Return the i-th element when the value stores per-detection data.
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
@@ -146,8 +143,7 @@ class JSONSink:
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Convert detections and optional custom data into per-detection rows.
+        """Convert detections and optional custom data into per-detection rows.
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
@@ -197,8 +193,7 @@ class JSONSink:
     def append(
         self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
-        """
-        Append detection data to the JSON file.
+        """Append detection data to the JSON file.
 
         Args:
             detections: The detection data.

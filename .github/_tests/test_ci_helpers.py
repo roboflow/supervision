@@ -85,8 +85,7 @@ class TestValidateManifest:
     """Guard on the wheel smoke-test manifest."""
 
     def test_accepts_the_checked_in_manifest(self, repo_root: Path) -> None:
-        """
-        The production fallback contract contains every required check exactly once.
+        """The production fallback contract contains every required check exactly once.
 
         This pins the happy path alongside the invalid-manifest guard.
         """

@@ -197,8 +197,7 @@ class _VideoWriter:
         frame_size: tuple[int, int],
         is_color: bool = True,
     ) -> None:
-        """
-        Open a PyAV writer for the requested codec and frame dimensions.
+        """Open a PyAV writer for the requested codec and frame dimensions.
 
         The PyAV fallback always encodes 3-channel BGR frames, so grayscale
         output is unsupported. ``is_color=False`` is rejected up front rather
@@ -282,8 +281,7 @@ def _timestamp_seconds(timestamp: int | None, time_base: Any) -> float | None:
 
 
 def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
-    """
-    Run a cleanup action, logging and suppressing any failure.
+    """Run a cleanup action, logging and suppressing any failure.
 
     Cleanup steps in a ``finally`` block must never raise, otherwise a failing
     ``container.close()`` (or file removal) would mask or replace the primary result or

@@ -250,8 +250,7 @@ def test_inject_banner_skips_latest_and_already_patched_pages(
 def test_inject_banner_replaces_stale_wording_on_rerun(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    A later wording/style edit reaches a page an earlier run already patched.
+    """A later wording/style edit reaches a page an earlier run already patched.
 
     Iterating on the banner text after the first backfill dispatch is expected; a second
     dispatch must overwrite the stale copy, not leave it stuck forever behind the marker
@@ -278,8 +277,7 @@ def test_inject_banner_replaces_stale_wording_on_rerun(
 def test_inject_banner_leaves_a_genuine_material_build_untouched(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    Never rewrite a div holding real Material output instead of our injection.
+    """Never rewrite a div holding real Material output instead of our injection.
 
     A future rebuild of an archived version would render this div for real
     (config.extra.version now set), with no ``sv:outdated-banner`` marker; that content
@@ -304,8 +302,7 @@ def test_inject_banner_leaves_a_genuine_material_build_untouched(
 def test_patch_stylesheets_appends_banner_css_to_an_archived_version(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    Append the purple/centered/sticky rules to a frozen archived extra.css.
+    """Append the purple/centered/sticky rules to a frozen archived extra.css.
 
     The archived stylesheet predates the rules that give the banner its project colors —
     Material's stock yellow, left-aligned, non-sticky banner is what a reader sees
@@ -330,8 +327,7 @@ def test_patch_stylesheets_appends_banner_css_to_an_archived_version(
 def test_patch_stylesheets_skips_develop_and_versions_without_the_file(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    Leave develop's own current CSS alone, and skip a version with no stylesheet.
+    """Leave develop's own current CSS alone, and skip a version with no stylesheet.
 
     develop rebuilds on every push and already carries the current rules natively; only
     a frozen archived tree needs the backfill.
@@ -372,8 +368,7 @@ def test_patch_stylesheets_replaces_stale_css_on_rerun(
 def test_patch_scripts_copies_and_references_the_offset_script_at_page_root(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    A version-root page gets version-banner.js copied in and referenced directly.
+    """A version-root page gets version-banner.js copied in and referenced directly.
 
     Without this script the banner still sticks (pure CSS alone), but the header can
     briefly overlap it before a reader scrolls, since nothing else offsets it.
@@ -472,8 +467,7 @@ def test_newest_version_dir_orders_releases_numerically(
 def test_inject_banner_skips_the_current_release(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """
-    Never warn a reader of the newest release that they are reading old docs.
+    """Never warn a reader of the newest release that they are reading old docs.
 
     The highest-numbered version tree holds the same documentation /latest/ serves, so
     the banner, its styling, and its offset script all have nothing to present.
@@ -583,8 +577,7 @@ def test_backfill_only_commits_on_a_real_dispatch(workflow_step: StepLookup) -> 
 
 
 def _write_genuinely_built_release_tree(root: Path, version: str) -> tuple[Path, Path]:
-    """
-    Simulate a real, post-403f35a1 release tree right after a newer one demotes it.
+    """Simulate a real, post-403f35a1 release tree right after a newer one demotes it.
 
     Unlike the pre-infra fixtures above, this tree's stylesheet and script already carry
     the genuine, unmarked banner rules — `mkdocs.yml`'s `extra_css` and
@@ -620,8 +613,7 @@ def test_main_banner_only_patches_text_without_touching_genuine_css(
     load_script: Callable[[str], ModuleType],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    `--banner-only` fills the banner text but leaves already-correct assets alone.
+    """`--banner-only` fills the banner text but leaves already-correct assets alone.
 
     This is what `publish-docs.yml` runs against the just-demoted release tree: its CSS
     and JS are already genuine, so only the div content needs backfilling.
@@ -647,8 +639,7 @@ def test_main_without_banner_only_duplicates_genuine_css(
     load_script: Callable[[str], ModuleType],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """
-    Document the exact risk `--banner-only` exists to avoid.
+    """Document the exact risk `--banner-only` exists to avoid.
 
     `patch_stylesheets` only checks for its own marker, not for content already matching
     it, so running the default (marker-driven) path against a tree that already carries

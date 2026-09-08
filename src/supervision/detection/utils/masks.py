@@ -294,8 +294,7 @@ def contains_multiple_segments(
 def resize_masks(
     masks: npt.NDArray[np.bool_], max_dimension: int = 640
 ) -> npt.NDArray[np.bool_]:
-    """
-    Resize all masks in the array to have a maximum dimension of max_dimension,
+    """Resize all masks in the array to have a maximum dimension of max_dimension,
     maintaining aspect ratio.
 
     Args:
@@ -555,8 +554,7 @@ def _compact_masks_to_roi(
     masks: CompactMask,
     image_shape: tuple[int, int],
 ) -> tuple[int, int, int, int] | None:
-    """
-    Return exclusive bounding-box union for compact masks.
+    """Return exclusive bounding-box union for compact masks.
 
     Uses crop metadata (offsets + shapes) — no RLE decode required.
 
@@ -588,8 +586,7 @@ def _masks_to_roi(
     image_shape: tuple[int, int],
     xyxy: npt.NDArray[np.number] | None = None,
 ) -> tuple[int, int, int, int] | None:
-    """
-    Return exclusive true-pixel bounds for dense or compact masks.
+    """Return exclusive true-pixel bounds for dense or compact masks.
 
     Args:
         masks: Dense boolean mask array of shape ``(N, H, W)`` or ``(H, W)``,

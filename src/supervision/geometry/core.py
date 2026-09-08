@@ -50,8 +50,7 @@ class Point:
     y: float
 
     def as_xy_int_tuple(self) -> tuple[int, int]:
-        """
-        Returns the point as a tuple of integers.
+        """Returns the point as a tuple of integers.
 
         Returns:
             The point as (x, y) integers.
@@ -59,8 +58,7 @@ class Point:
         return int(self.x), int(self.y)
 
     def as_xy_float_tuple(self) -> tuple[float, float]:
-        """
-        Returns the point as a tuple of floats.
+        """Returns the point as a tuple of floats.
 
         Returns:
             The point as (x, y) floats.
@@ -96,8 +94,7 @@ class Vector:
 
     @property
     def magnitude(self) -> float:
-        """
-        Calculate the magnitude (length) of the vector.
+        """Calculate the magnitude (length) of the vector.
 
         Returns:
             The magnitude of the vector.
@@ -108,8 +105,7 @@ class Vector:
 
     @property
     def center(self) -> Point:
-        """
-        Calculate the center point of the vector.
+        """Calculate the center point of the vector.
 
         Returns:
             The center point of the vector.
@@ -120,8 +116,7 @@ class Vector:
         )
 
     def cross_product(self, point: Point) -> float:
-        """
-        Calculate the 2D cross product (also known as the vector product or outer
+        """Calculate the 2D cross product (also known as the vector product or outer
         product) of the vector and a point, treated as vectors in 2D space.
 
         Args:

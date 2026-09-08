@@ -38,8 +38,7 @@ class BaseKeyPointAnnotator(ABC):
 
 
 class VertexAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton vertices on images.
+    """A class that specializes in drawing skeleton vertices on images.
 
     It uses specified key points to determine the locations where the vertices should be
     drawn.
@@ -122,8 +121,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
 
 class EdgeAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton edges on images using specified key
+    """A class that specializes in drawing skeleton edges on images using specified key
     points.
 
     It connects key points with lines to form the skeleton structure.
@@ -275,8 +273,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
 
 class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
-    """
-    Private base for ellipse-based keypoint annotators.
+    """Private base for ellipse-based keypoint annotators.
 
     Handles sigma/color validation, sorting, covariance extraction and
     eigendecomposition shared by all VertexEllipse* variants.
@@ -385,8 +382,7 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
 
 
 class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled semi-transparent covariance ellipses at multiple sigma levels around
+    """Draws filled semi-transparent covariance ellipses at multiple sigma levels around
     each keypoint, each ring in a different color.  This produces a bullseye-like
     uncertainty visualization where inner rings represent higher probability density.
 
@@ -487,8 +483,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws stroke-only concentric covariance ellipse rings at multiple sigma levels
+    """Draws stroke-only concentric covariance ellipse rings at multiple sigma levels
     around each keypoint.
 
     !!! warning
@@ -586,8 +581,7 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled covariance ellipses with a radial fade: full opacity at the center,
+    """Draws filled covariance ellipses with a radial fade: full opacity at the center,
     smoothly falling off to zero at the ellipse boundary.  The falloff follows a power
     curve controlled by ``decay``, producing a soft glow that is strongest near the
     keypoint.
@@ -723,8 +717,7 @@ VertexEllipseAnnotator = VertexEllipseAreaAnnotator
 
 
 class VertexLabelAnnotator:
-    """
-    A class that draws labels of skeleton vertices on images.
+    """A class that draws labels of skeleton vertices on images.
 
     It uses specified key points to determine the locations where the vertices should be
     drawn.

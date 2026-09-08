@@ -18,8 +18,7 @@ def _full_xyxy(n: int, h: int, w: int) -> np.ndarray:
 def _make_compact_detections(
     n: int, h: int = 40, w: int = 40
 ) -> tuple[Detections, np.ndarray]:
-    """
-    Detections with a CompactMask backed by full-image bounding boxes.
+    """Detections with a CompactMask backed by full-image bounding boxes.
 
     Using full-image xyxy means all True pixels are within the crop region, so
     from_dense -> to_dense is lossless.
@@ -38,8 +37,7 @@ def _make_compact_detections(
 
 
 class TestConstruction:
-    """
-    Tests for building Detections with a CompactMask.
+    """Tests for building Detections with a CompactMask.
 
     Verifies that a CompactMask is accepted as a valid mask argument and that the
     validator raises ValueError when the mask length does not match the number of
@@ -62,8 +60,7 @@ class TestConstruction:
 
 
 class TestFiltering:
-    """
-    Tests for Detections.__getitem__ with a CompactMask.
+    """Tests for Detections.__getitem__ with a CompactMask.
 
     Verifies that integer, slice, and boolean-array indexing all preserve the
     CompactMask type and return the correct subset of masks.
@@ -93,8 +90,7 @@ class TestFiltering:
 
 
 class TestIteration:
-    """
-    Tests for iterating over Detections with a CompactMask.
+    """Tests for iterating over Detections with a CompactMask.
 
     Verifies that each iteration step yields a 2-D boolean (H, W) array identical to the
     corresponding dense mask, so downstream code that iterates over detections needs no
@@ -113,8 +109,7 @@ class TestIteration:
 
 
 class TestEquality:
-    """
-    Tests for Detections.__eq__ mixing CompactMask and dense arrays.
+    """Tests for Detections.__eq__ mixing CompactMask and dense arrays.
 
     Verifies that a Detections object backed by a CompactMask compares equal to an
     otherwise identical Detections object backed by a dense ndarray.
@@ -134,8 +129,7 @@ class TestEquality:
 
 
 class TestArea:
-    """
-    Tests for the Detections.area property with a CompactMask.
+    """Tests for the Detections.area property with a CompactMask.
 
     Verifies that the fast CompactMask path in Detections.area returns the same per-
     detection pixel counts as summing the equivalent dense array.
@@ -148,8 +142,7 @@ class TestArea:
 
 
 class TestMerge:
-    """
-    Tests for merging Detections objects that contain CompactMask instances.
+    """Tests for merging Detections objects that contain CompactMask instances.
 
     Covers three scenarios:
     - All-compact merge: result is a CompactMask.
@@ -232,8 +225,7 @@ class TestMerge:
 
 
 class TestAnnotators:
-    """
-    Tests for annotators that consume CompactMask via Detections.
+    """Tests for annotators that consume CompactMask via Detections.
 
     Verifies that MaskAnnotator and PolygonAnnotator produce pixel-identical output when
     given Detections backed by a CompactMask versus the equivalent dense ndarray,

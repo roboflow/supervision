@@ -12,8 +12,7 @@ class Metric(ABC, Generic[R]):
 
     @abstractmethod
     def update(self, *args: Any, **kwargs: Any) -> Metric[R]:
-        """
-        Add data to the metric, without computing the result.
+        """Add data to the metric, without computing the result.
 
         Return the metric itself to allow method chaining.
         """
@@ -31,8 +30,7 @@ class Metric(ABC, Generic[R]):
 
 
 class MetricTarget(Enum):
-    """
-    Specifies what type of detection is used to compute the metric.
+    """Specifies what type of detection is used to compute the metric.
 
     Attributes:
         BOXES: xyxy bounding boxes
@@ -46,8 +44,7 @@ class MetricTarget(Enum):
 
 
 class AveragingMethod(Enum):
-    """
-    Defines different ways of averaging the metric results.
+    """Defines different ways of averaging the metric results.
 
     Suppose, before returning the final result, a metric is computed for each class.
     How do you combine those to get the final number?

@@ -7,8 +7,7 @@ from supervision import _cv2 as cv2
 def _to_local_cv2_polygon(
     polygon: npt.NDArray[np.number],
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.number]]:
-    """
-    Translate a polygon to a local float32 coordinate system for OpenCV.
+    """Translate a polygon to a local float32 coordinate system for OpenCV.
 
     Integer subtraction uses object arithmetic so unsigned and signed inputs do not wrap
     before conversion. Translating first preserves representable local geometry when

@@ -7,8 +7,7 @@ from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
-    """
-    Supervision warning category.
+    """Supervision warning category.
 
     Set the deprecation warnings visibility for Supervision library. You can set the
     environment variable SUPERVISION_DEPRECATION_WARNING to '0' to disable the
@@ -27,8 +26,7 @@ def format_warning(
     line: str | None = None,
 ) -> str:
     """Format a warning the same way as the default formatter, but also include the
-    category name in the output.
-    """
+    category name in the output."""
     return f"{category.__name__}: {message}\n"
 
 
@@ -43,8 +41,7 @@ else:
 
 
 def warn_deprecated(message: str) -> None:
-    """
-    Issue a warning that a function is deprecated.
+    """Issue a warning that a function is deprecated.
 
     Args:
         message: The message to display when the function is called.
@@ -133,9 +130,9 @@ T = TypeVar("T")
 
 
 class classproperty(Generic[T]):
-    """
-    A decorator that combines @classmethod and @property. It allows a method to be
-    accessed as a property of the class, rather than an instance, similar to a
+    """A decorator that combines @classmethod and @property.
+
+    It allows a method to be accessed as a property of the class, rather than an instance, similar to a
     classmethod.
 
     Usage:
@@ -152,8 +149,7 @@ class classproperty(Generic[T]):
         self.fget = fget
 
     def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
-        """
-        Override the __get__ method to return the result of the function call.
+        """Override the __get__ method to return the result of the function call.
 
         Args:
             owner_self: The instance through which the attribute was accessed, or None.

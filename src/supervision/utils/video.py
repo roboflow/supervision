@@ -143,8 +143,7 @@ class VideoSink:
         return self
 
     def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
-        """
-        Writes a single video frame to the target video file.
+        """Writes a single video frame to the target video file.
 
         Args:
             frame: The video frame to be written to the file. The frame
@@ -604,8 +603,7 @@ class FPSMonitor:
 
     @property
     def fps(self) -> float:
-        """
-        Computes and returns the average FPS based on the stored time stamps.
+        """Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
             The average FPS across the recorded intervals. Returns 0.0 if fewer

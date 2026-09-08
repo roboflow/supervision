@@ -99,8 +99,7 @@ def detections_to_pascal_voc(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> str:
-    """
-    Converts Detections object to Pascal VOC XML format.
+    """Converts Detections object to Pascal VOC XML format.
 
     Args:
         detections: A Detections object containing bounding boxes,
@@ -195,8 +194,7 @@ def load_pascal_voc_annotations(
     force_masks: bool = False,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load Pascal VOC XML annotations in sorted image-path order.
+    """Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.

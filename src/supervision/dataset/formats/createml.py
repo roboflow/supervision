@@ -17,8 +17,7 @@ CreateMLDict = dict[str, Any]
 
 
 def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
-    """
-    Resolve and validate an image path against the images directory.
+    """Resolve and validate an image path against the images directory.
 
     Rejects annotations whose ``image`` field escapes ``images_directory_path`` (via
     ``..`` traversal, an absolute path, or a symlink pointing outside), mirroring the
@@ -135,8 +134,7 @@ def load_createml_annotations(
     annotations_path: str,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load CreateML object-detection annotations and convert them to ``Detections``.
+    """Load CreateML object-detection annotations and convert them to ``Detections``.
 
     CreateML uses a single JSON file containing a list of per-image entries, each
     holding axis-aligned bounding boxes. Class names are inferred from the labels

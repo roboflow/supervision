@@ -2875,8 +2875,7 @@ class Detections:
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each bounding box in the set of object detections.
+        """Calculate the area of each bounding box in the set of object detections.
 
         Returns:
             An array of floats containing the area of each bounding
@@ -3002,8 +3001,7 @@ class Detections:
     def _build_nms_predictions(
         self, class_agnostic: bool, operation_name: str
     ) -> npt.NDArray[np.floating]:
-        """
-        Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
+        """Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
 
         Callers must already have verified `self.confidence is not None`.
         """
@@ -3037,8 +3035,7 @@ class Detections:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
-        """
-        Performs non-max suppression on detection set.
+        """Performs non-max suppression on detection set.
 
         Dispatch order: (1) if mask data present, IoU mask is used; (2) else if oriented-box coordinates
         (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
@@ -3101,8 +3098,7 @@ class Detections:
         class_agnostic: bool = False,
         score_threshold: float | None = None,
     ) -> Detections:
-        """
-        Performs Gaussian Soft Non-Maximum Suppression on detection set.
+        """Performs Gaussian Soft Non-Maximum Suppression on detection set.
 
         Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
         axis-aligned box IoU is used. Oriented-box detections are not given
@@ -3253,8 +3249,7 @@ class Detections:
 def _merge_obb_corners(
     corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
-    """
-    Merge multiple OBB corner arrays using winner-angle projection.
+    """Merge multiple OBB corner arrays using winner-angle projection.
 
     The first entry in *corners_list* is the winner. Its orientation angle
     (derived from its first edge) defines the local frame in which the
@@ -3314,8 +3309,7 @@ def _merge_obb_corners(
 
 
 def _merge_detection_group(detections: list[Detections]) -> Detections:
-    """
-    Merge a group of single-object Detections into one merged detection.
+    """Merge a group of single-object Detections into one merged detection.
 
     Used internally by :meth:`Detections.with_nmm` to combine each merge group
     into a single output detection. The highest-confidence detection is the
@@ -3530,10 +3524,9 @@ def merge_inner_detections_objects(
     threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3551,10 +3544,9 @@ def merge_inner_detections_objects(
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3565,8 +3557,7 @@ def merge_inner_detections_objects_without_iou(
 def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
-    """
-    Verify that for each optional field in the Detections, both instances either have
+    """Verify that for each optional field in the Detections, both instances either have
     the field set to None or both have it set to non-None values.
 
     `data` field is ignored.

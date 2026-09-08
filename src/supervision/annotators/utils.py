@@ -17,8 +17,7 @@ PENDING_TRACK_ID = -1
 
 
 class ColorLookup(Enum):
-    """
-    Enumeration class to define strategies for mapping colors to annotations.
+    """Enumeration class to define strategies for mapping colors to annotations.
 
     This enum supports three different lookup strategies:
         - `INDEX`: Colors are determined by the index of the detection within the scene.
@@ -167,8 +166,7 @@ def resolve_color(
 
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
-    """
-    Wrap `text` to the specified maximum line length, respecting existing newlines.
+    """Wrap `text` to the specified maximum line length, respecting existing newlines.
     Falls back to str() if `text` is not already a string.
 
     Args:
@@ -212,8 +210,7 @@ def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
 
 
 def _validate_labels(labels: list[str] | None, detections: Detections) -> None:
-    """
-    Validates that the number of provided labels matches the number of detections.
+    """Validates that the number of provided labels matches the number of detections.
 
     Args:
         labels: A list of labels, one for each detection. Can
@@ -244,8 +241,7 @@ def validate_labels(labels: list[str] | None, detections: Detections) -> None:
 def get_labels_text(
     detections: Detections, custom_labels: list[str] | None
 ) -> list[str]:
-    """
-    Retrieves the text labels for the detections.
+    """Retrieves the text labels for the detections.
 
     If `custom_labels` are provided, they are used. Otherwise, the labels are
     extracted from the `detections` object, prioritizing the 'class_name' field,
@@ -372,8 +368,7 @@ class Trace:
         self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        """
-        Append a frame of detections to the trace history.
+        """Append a frame of detections to the trace history.
 
         A frame that detected nothing contributes no points but still advances
         the frame counter, keeping `max_size` a window over elapsed frames
@@ -430,8 +425,7 @@ class Trace:
         return xy
 
     def reset(self) -> None:
-        """
-        Restore the trace buffers to their initial empty state.
+        """Restore the trace buffers to their initial empty state.
 
         Clears the accumulated `frame_id`, `xy`, and `tracker_id` history and rewinds
         `current_frame_id` to `0`, so the trace can be reused across independent streams
@@ -444,8 +438,7 @@ class Trace:
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
-    """
-    Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
+    """Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
 
     Args:
         hex_color: A hex color string.
@@ -482,8 +475,7 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
 
 
 def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
-    """
-    Converts an RGBA tuple (0-255 each) to a hex color string.
+    """Converts an RGBA tuple (0-255 each) to a hex color string.
 
     Args:
         rgba: RGBA values in range 0-255.
@@ -508,8 +500,7 @@ def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
 
 
 def is_valid_hex(hex_color: str) -> bool:
-    """
-    Checks if a given string is a valid hex color.
+    """Checks if a given string is a valid hex color.
 
     Args:
         hex_color: A hex color string with an optional leading "#". Supports
@@ -532,8 +523,7 @@ def is_valid_hex(hex_color: str) -> bool:
 
 
 def calculate_dynamic_kernel_size(x1: int, y1: int, x2: int, y2: int) -> int:
-    """
-    Computes a blur kernel size proportional to the shorter side of a bounding box.
+    """Computes a blur kernel size proportional to the shorter side of a bounding box.
 
     Args:
         x1: Left edge of the bounding box.
@@ -555,8 +545,7 @@ def calculate_dynamic_kernel_size(x1: int, y1: int, x2: int, y2: int) -> int:
 
 
 def calculate_dynamic_pixel_size(x1: int, y1: int, x2: int, y2: int) -> int:
-    """
-    Computes a pixelation size proportional to the shorter side of a bounding box.
+    """Computes a pixelation size proportional to the shorter side of a bounding box.
 
     Args:
         x1: Left edge of the bounding box.

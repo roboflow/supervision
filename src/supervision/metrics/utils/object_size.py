@@ -18,8 +18,7 @@ SIZE_THRESHOLDS = (32**2, 96**2)
 
 
 class ObjectSizeCategory(Enum):
-    """
-    Enum for object size categories based on area in pixels.
+    """Enum for object size categories based on area in pixels.
 
     Small: area < 32^2
     Medium: 32^2 <= area < 96^2
@@ -131,8 +130,7 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
 def get_area_size_category(
     areas: npt.NDArray[np.number],
 ) -> npt.NDArray[np.int_]:
-    """
-    Get object size categories from per-detection pixel areas.
+    """Get object size categories from per-detection pixel areas.
 
     Args:
         areas: One-dimensional pixel areas shaped (N,).

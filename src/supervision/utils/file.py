@@ -14,8 +14,7 @@ SUPERVISION_CACHE_DIR = Path(tempfile.gettempdir()) / "supervision"
 
 
 def _normalize_http_url(url: str) -> str:
-    """
-    Validate and normalize an HTTP(S) URL.
+    """Validate and normalize an HTTP(S) URL.
 
     Args:
         url: URL to validate.
@@ -54,8 +53,7 @@ def _normalize_http_url(url: str) -> str:
 def _download_to_file(
     url: str, target: Path, *, timeout: float = 30.0, stream: bool = False
 ) -> None:
-    """
-    Download `url` to `target` atomically using a temporary file and `os.replace`.
+    """Download `url` to `target` atomically using a temporary file and `os.replace`.
 
     Args:
         url: HTTP(S) URL to download.
@@ -219,8 +217,7 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
 
 
 def save_text_file(lines: list[str], file_path: str | Path) -> None:
-    """
-    Write a list of strings to a text file, each string on a new line.
+    """Write a list of strings to a text file, each string on a new line.
 
     Args:
         lines: The list of strings to be written to the file.
@@ -263,8 +260,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 def save_json_file(
     data: dict[str, Any], file_path: str | Path, indent: int = 3
 ) -> None:
-    """
-    Write a dict to a json file.
+    """Write a dict to a json file.
 
     Args:
         data: dict with unique keys and value as pair.
@@ -276,8 +272,7 @@ def save_json_file(
 
 
 def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
-    """
-    Read a yaml file and return a dict.
+    """Read a yaml file and return a dict.
 
     Args:
         file_path: The file path as a string or Path object.
@@ -291,8 +286,7 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
 
 
 def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
-    """
-    Save a dict to a yaml file.
+    """Save a dict to a yaml file.
 
     Args:
         data: dict with unique keys and value as pair.

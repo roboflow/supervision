@@ -1,5 +1,4 @@
-"""
-CompactMask demo & benchmark.
+"""CompactMask demo & benchmark.
 
 Demonstrates that ``CompactMask`` is a drop-in replacement for dense
 ``(N, H, W)`` bool arrays in ``supervision.Detections``, while using
@@ -146,8 +145,7 @@ def _make_polygon_mask(
     rng: np.random.Generator,
     num_vertices: int,
 ) -> np.ndarray:
-    """
-    Random polygon mask.
+    """Random polygon mask.
 
     *num_vertices* is a direct complexity proxy: more vertices → more independent radius
     samples → jaggier boundary → more RLE runs per row. No smoothing is applied so the
@@ -179,8 +177,7 @@ def make_detections(
     num_vertices: int = 20,
     seed: int = 0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Return ``(xyxy, masks_dense, class_ids)`` with random polygon masks.
+    """Return ``(xyxy, masks_dense, class_ids)`` with random polygon masks.
 
     *num_vertices* controls mask complexity: more vertices → jaggier boundary.
     """
@@ -241,8 +238,7 @@ def compact_memory_bytes_theoretical(compact_mask: CompactMask) -> int:
 
 
 def measure_peak_bytes(func: Callable[[], object]) -> int:
-    """
-    Wrapper that runs *func* under tracemalloc and returns peak allocation.
+    """Wrapper that runs *func* under tracemalloc and returns peak allocation.
 
     tracemalloc captures every Python-level allocation — numpy buffers, list nodes,
     object headers — giving the true heap cost of anything *func* builds. The return
@@ -281,8 +277,7 @@ def time_reps(
     repeats: int = REPETITIONS,
     parallel: int = PARALLEL,
 ) -> float:
-    """
-    Run *func* *reps* times and return mean wall-clock seconds per call.
+    """Run *func* *reps* times and return mean wall-clock seconds per call.
 
     When ``parallel > 1``, up to ``parallel`` calls run simultaneously in threads. Numpy
     and OpenCV release the GIL for their C-level work, so threads can execute in
@@ -335,8 +330,7 @@ def stage_build(
 
 
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
-    """
-    Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
+    """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
 
     Uses floor-division indexing (``arange * src // dst``) to match the strategy in
     ``_rle_resize``, ensuring pixel-exact parity for correctness comparisons in
@@ -355,8 +349,7 @@ def stage_encode(
     image_height: int,
     image_width: int,
 ) -> float:
-    """
-    Per-mask encode time: encode each mask individually and average over N.
+    """Per-mask encode time: encode each mask individually and average over N.
 
     Calling from_dense one mask at a time (rather than batching all N) isolates the per-
     shape cost — each polygon has a different RLE run count, so the average reflects
@@ -375,8 +368,7 @@ def stage_encode(
 
 
 def stage_decode(compact_mask: CompactMask) -> float:
-    """
-    Per-mask decode time: decode each mask individually and average over N.
+    """Per-mask decode time: decode each mask individually and average over N.
 
     Building a list via compact_mask[i] decodes each crop separately, giving the per-
     mask cost of materialising a single RLE back to a dense array.
@@ -441,8 +433,7 @@ def stage_iou(
     compact_mask: CompactMask,
     iou_dense_skipped: bool,
 ) -> tuple[float, float, bool | None]:
-    """
-    Time pairwise self-IoU using dense (N,H,W) AND and compact crop filter.
+    """Time pairwise self-IoU using dense (N,H,W) AND and compact crop filter.
 
     Correctness is checked on the first 10 masks only to keep it fast, regardless of
     whether full dense IoU timing is skipped.
@@ -476,8 +467,7 @@ def stage_nms(
     dense_skipped: bool,
     iou_dense_skipped: bool,
 ) -> tuple[float, float, bool | None, int]:
-    """
-    Time mask NMS.
+    """Time mask NMS.
 
     Dense resizes to 640 before IoU; compact uses exact crop IoU.
         Compact NMS is strictly more accurate than dense: it computes pixel-level IoU
@@ -518,8 +508,7 @@ def stage_merge(
     det_compact: sv.Detections,
     dense_skipped: bool,
 ) -> tuple[float, float, bool | None]:
-    """
-    Time Detections.merge on two half-splits.
+    """Time Detections.merge on two half-splits.
 
     Dense: np.vstack; compact: RLE concat.
     Splits are pre-computed so the timed lambda measures only the merge.
@@ -598,8 +587,7 @@ def stage_resize(
     image_width: int,
     dense_skipped: bool,
 ) -> tuple[float, float, bool | None]:
-    """
-    Time resize to half resolution; check pixel-level correctness.
+    """Time resize to half resolution; check pixel-level correctness.
 
     Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``. Compact path
     times ``CompactMask.resize()``, which uses direct RLE arithmetic for sparse masks
@@ -891,8 +879,7 @@ _OPS = (
 
 
 def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
-    """
-    Compute derived summary columns from scenario results.
+    """Compute derived summary columns from scenario results.
 
     Returns a DataFrame with all ScenarioResult fields plus derived columns (ratios,
     speedups, ok) as raw floats.  Consumers apply their own formatting.
@@ -936,8 +923,7 @@ def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
 
 
 def _fmt_ratio(ratio: float) -> str:
-    """
-    Format a speedup/compression ratio with colour coding.
+    """Format a speedup/compression ratio with colour coding.
 
     ≥10 → green (large win), 1-10 → yellow (modest win), <1 → red (regression). Integer
     for ≥10, two decimals otherwise.
@@ -1072,8 +1058,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
 
 
 def _append_result(result: ScenarioResult, path: Path) -> None:
-    """
-    Append one scenario result as a JSON line to *path*.
+    """Append one scenario result as a JSON line to *path*.
 
     ``math.nan`` (used for skipped dense timings) is serialised as ``null`` so the file
     is valid JSON-Lines and can be read back with any JSON parser.
@@ -1087,8 +1072,7 @@ def _append_result(result: ScenarioResult, path: Path) -> None:
 
 
 def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
-    """
-    Write the summary table to *path* as a CSV file.
+    """Write the summary table to *path* as a CSV file.
 
     Each row mirrors the Rich summary table: scenario metadata, memory ratios,
     encode/decode overhead, and per-operation speedups. Columns whose dense

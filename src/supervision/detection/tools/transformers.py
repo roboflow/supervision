@@ -151,8 +151,7 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
 def process_transformers_v4_panoptic_segmentation_result(
     segmentation_result: dict[str, Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process the result of the Transformers function `post_process_panoptic` (v4).
+    """Process the result of the Transformers function `post_process_panoptic` (v4).
 
     Args:
         segmentation_result: Dictionary containing segmentation results with keys
@@ -185,8 +184,7 @@ def process_transformers_v4_panoptic_segmentation_result(
 def process_transformers_v5_panoptic_segmentation_result(
     segmentation_array: npt.NDArray[Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process a v5 Transformers semantic segmentation tensor.
+    """Process a v5 Transformers semantic segmentation tensor.
 
     Args:
         segmentation_array: Segmentation array where unique values are class IDs.
@@ -210,8 +208,7 @@ def process_transformers_v5_panoptic_segmentation_result(
 
 
 def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
-    """
-    Convert a PNG byte string to a panoptic segmentation array.
+    """Convert a PNG byte string to a panoptic segmentation array.
 
     Args:
         png_string: A byte string representing the PNG image.
@@ -241,8 +238,7 @@ def append_class_names_to_data(
     id2label: dict[int, str] | None,
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """
-    Helper function to create or append to a data dictionary with class names if
+    """Helper function to create or append to a data dictionary with class names if
     available.
 
     Args:

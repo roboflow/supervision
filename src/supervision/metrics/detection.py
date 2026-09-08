@@ -224,8 +224,7 @@ def _split_detections_by_outcome(
     iou_threshold: float,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> tuple[Detections, Detections, Detections]:
-    """
-    Split detections into true positives, false positives, and false negatives.
+    """Split detections into true positives, false positives, and false negatives.
 
     Matching follows the same attribution logic as
     ``ConfusionMatrix.evaluate_detection_batch``:
@@ -373,8 +372,7 @@ def _build_error_labels(
     detections: Detections,
     class_names: list[str] | None,
 ) -> list[str]:
-    """
-    Build per-detection label strings for annotation panels.
+    """Build per-detection label strings for annotation panels.
 
     Produces labels like ``"cat 0.95"`` (class name + confidence when available)
     or numeric class-id strings when ``class_names`` is ``None``.
@@ -409,8 +407,7 @@ def _build_error_labels(
 def _get_annotation_parameters(
     scene: npt.NDArray[np.uint8],
 ) -> tuple[int, float, int, int, int]:
-    """
-    Compute adaptive annotation parameters scaled to the panel size.
+    """Compute adaptive annotation parameters scaled to the panel size.
 
     Args:
         scene: The image panel for which to compute parameters.
@@ -439,8 +436,7 @@ def _annotate_detection_panel(
     class_names: list[str] | None,
     annotation_parameters: tuple[int, float, int, int, int],
 ) -> npt.NDArray[np.uint8]:
-    """
-    Render detections onto a copy of ``scene`` with a title overlay.
+    """Render detections onto a copy of ``scene`` with a title overlay.
 
     Args:
         scene: Source image panel (not mutated).
@@ -523,8 +519,7 @@ def _save_detection_validation_visualization(
     class_names: list[str] | None,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
-    """
-    Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
+    """Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
 
     Splits ``predictions`` into true-positive, false-positive, and false-negative
     groups using the same matching logic as
@@ -644,8 +639,7 @@ def validate_input_tensors(
 
 @dataclass
 class ConfusionMatrix:
-    """
-    Confusion matrix for object detection tasks.
+    """Confusion matrix for object detection tasks.
 
     Attributes:
         matrix: An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)`
@@ -1029,8 +1023,7 @@ class ConfusionMatrix:
     def _drop_extra_matches(
         matches: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.float32]:
-        """
-        Deduplicate matches.
+        """Deduplicate matches.
 
         If there are multiple matches for the same true or predicted box, only the one
         with the highest IoU is kept.
@@ -1158,8 +1151,7 @@ class ConfusionMatrix:
         normalize: bool = False,
         fig_size: tuple[int, int] = (12, 10),
     ) -> Figure:
-        """
-        Create confusion matrix plot and save it at selected location.
+        """Create confusion matrix plot and save it at selected location.
 
         Args:
             save_path: Path to save the plot. If not provided,
@@ -1250,8 +1242,7 @@ class ConfusionMatrix:
 )
 @dataclass(frozen=True)
 class MeanAveragePrecision:
-    """
-    !!! deprecated "Deprecated" `MeanAveragePrecision` is **deprecated** and will be
+    """!!! deprecated "Deprecated" `MeanAveragePrecision` is **deprecated** and will be
     removed in `supervision-0.31.0`.
 
         The deprecated implementation provides results that are inconsistent with
@@ -1517,8 +1508,7 @@ class MeanAveragePrecision:
         recall: npt.NDArray[np.float64],
         precision: npt.NDArray[np.float64],
     ) -> float:
-        """
-        Compute the average precision using 101-point interpolation (COCO), given the
+        """Compute the average precision using 101-point interpolation (COCO), given the
         recall and precision curves.
 
         Args:

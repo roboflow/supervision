@@ -70,8 +70,7 @@ def _load_icon_from_path(
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
-    """
-    Normalize accepted color inputs to internal color objects.
+    """Normalize accepted color inputs to internal color objects.
 
     Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
     `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
@@ -87,8 +86,7 @@ CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
 class _BaseLabelAnnotator(BaseAnnotator):
-    """
-    Base class for annotators that add labels to detections.
+    """Base class for annotators that add labels to detections.
 
     Attributes:
         color: The color to use for the label background.
@@ -118,8 +116,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         smart_position: bool = False,
         max_line_length: int | None = None,
     ):
-        """
-        Initializes the _BaseLabelAnnotator.
+        """Initializes the _BaseLabelAnnotator.
 
         Args:
             color: The color to use for the label
@@ -156,8 +153,8 @@ class _BaseLabelAnnotator(BaseAnnotator):
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.float32]:
-        """
-        Adjusts the position of labels to ensure they stay within the frame boundaries.
+        """Adjusts the position of labels to ensure they stay within the frame
+        boundaries.
 
         Args:
             resolution_wh: The width and height of the frame.
@@ -283,8 +280,7 @@ class BoxAnnotator(BaseAnnotator):
 
 class OrientedBoxAnnotator(BaseAnnotator):
     """A class for drawing oriented bounding boxes on an image using provided
-    detections.
-    """
+    detections."""
 
     def __init__(
         self,
@@ -391,8 +387,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 def _iter_mask_crops(
     detections: Detections,
 ) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
-    """
-    Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
+    """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
 
     Encapsulates the ``CompactMask`` vs dense dispatch so individual annotators
     do not need inline ``isinstance`` checks. For ``CompactMask`` inputs yields
@@ -436,8 +431,7 @@ def _paint_masks_by_area(
     collect_union: bool = False,
     canvas_origin: tuple[int, int] = (0, 0),
 ) -> npt.NDArray[np.bool_] | None:
-    """
-    Paint each detection's mask into `canvas` in descending-area order.
+    """Paint each detection's mask into `canvas` in descending-area order.
 
     Smaller masks are drawn on top of larger ones. `CompactMask` detections
     are painted into their bounding-box crop only, avoiding a full `(H, W)`
@@ -513,8 +507,7 @@ def _paint_masks_by_area(
 
 
 class MaskAnnotator(BaseAnnotator):
-    """
-    A class for drawing masks on an image using provided detections.
+    """A class for drawing masks on an image using provided detections.
 
     !!! warning
 
@@ -622,8 +615,7 @@ class MaskAnnotator(BaseAnnotator):
 
 
 class PolygonAnnotator(BaseAnnotator):
-    """
-    A class for drawing polygons on an image using provided detections.
+    """A class for drawing polygons on an image using provided detections.
 
     !!! warning
 
@@ -819,8 +811,7 @@ class ColorAnnotator(BaseAnnotator):
 
 
 class HaloAnnotator(BaseAnnotator):
-    """
-    A class for drawing Halos on an image using provided detections.
+    """A class for drawing Halos on an image using provided detections.
 
     !!! warning
 
@@ -1212,8 +1203,7 @@ class CircleAnnotator(BaseAnnotator):
 
 class DotAnnotator(BaseAnnotator):
     """A class for drawing dots on an image at specific coordinates based on provided
-    detections.
-    """
+    detections."""
 
     def __init__(
         self,
@@ -1672,8 +1662,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
 class RichLabelAnnotator(_BaseLabelAnnotator):
     """A class for annotating labels on an image using provided detections, with support
-    for Unicode characters by using a custom font.
-    """
+    for Unicode characters by using a custom font."""
 
     def __init__(
         self,
@@ -2118,8 +2107,7 @@ class BlurAnnotator(BaseAnnotator):
 
 
 class TraceAnnotator(BaseAnnotator):
-    """
-    A class for drawing trace paths on an image based on detection coordinates.
+    """A class for drawing trace paths on an image based on detection coordinates.
 
     !!! warning
 
@@ -2350,8 +2338,7 @@ class TraceAnnotator(BaseAnnotator):
 
 
 class HeatMapAnnotator(BaseAnnotator):
-    """
-    A class for drawing heatmaps on an image based on provided detections.
+    """A class for drawing heatmaps on an image based on provided detections.
 
     Heat accumulates over time and is drawn as a semi-transparent overlay of blurred
     circles.
@@ -2610,8 +2597,7 @@ class PixelateAnnotator(BaseAnnotator):
 
 class TriangleAnnotator(BaseAnnotator):
     """A class for drawing triangle markers on an image at specific coordinates based on
-    provided detections.
-    """
+    provided detections."""
 
     def __init__(
         self,
@@ -2731,8 +2717,7 @@ class TriangleAnnotator(BaseAnnotator):
 
 class RoundBoxAnnotator(BaseAnnotator):
     """A class for drawing bounding boxes with round edges on an image using provided
-    detections.
-    """
+    detections."""
 
     def __init__(
         self,
@@ -3240,8 +3225,7 @@ class CropAnnotator(BaseAnnotator):
 
 
 class BackgroundOverlayAnnotator(BaseAnnotator):
-    """
-    A class for drawing a colored overlay on the background of an image outside the
+    """A class for drawing a colored overlay on the background of an image outside the
     region of detections.
 
     If masks are provided, the background is colored outside the masks. If masks are not
@@ -3332,10 +3316,10 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
 
 class ComparisonAnnotator:
-    """
-    Highlights the differences between two sets of detections. Useful for comparing
-    results from two different models, or the difference between a ground truth and a
-    prediction.
+    """Highlights the differences between two sets of detections.
+
+    Useful for comparing results from two different models, or the difference between a
+    ground truth and a prediction.
 
     If present, uses the oriented bounding box data. Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
@@ -3533,8 +3517,7 @@ class ComparisonAnnotator:
         return mask
 
     def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
-        """
-        Draw the labels, explaining what each color represents, with automatically
+        """Draw the labels, explaining what each color represents, with automatically
         computed positions.
 
         Args:

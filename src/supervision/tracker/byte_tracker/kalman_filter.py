@@ -4,8 +4,7 @@ import scipy.linalg
 
 
 class KalmanFilter:
-    """
-    A simple Kalman filter for tracking bounding boxes in image space.
+    """A simple Kalman filter for tracking bounding boxes in image space.
 
     The 8-dimensional state space is (x, y, a, h, vx, vy, va, vh), where (x, y) is the
     bounding box center, a is the aspect ratio (w/h), h is the height, and their
@@ -29,8 +28,7 @@ class KalmanFilter:
     def initiate(
         self, measurement: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
-        """
-        Create track from unassociated measurement.
+        """Create track from unassociated measurement.
 
         Args:
             measurement: The initial measurement vector.
@@ -58,8 +56,7 @@ class KalmanFilter:
     def predict(
         self, mean: npt.NDArray[np.float32], covariance: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
-        """
-        Run Kalman filter prediction step.
+        """Run Kalman filter prediction step.
 
         Args:
             mean: The object state mean at the previous time step.
@@ -93,8 +90,7 @@ class KalmanFilter:
     def project(
         self, mean: npt.NDArray[np.float32], covariance: npt.NDArray[np.float32]
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
-        """
-        Project state distribution to measurement space.
+        """Project state distribution to measurement space.
 
         Args:
             mean: The state's mean vector.
@@ -160,8 +156,7 @@ class KalmanFilter:
         covariance: npt.NDArray[np.float32],
         measurement: npt.NDArray[np.float32],
     ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
-        """
-        Run Kalman filter correction step.
+        """Run Kalman filter correction step.
 
         Args:
             mean: The predicted state's mean vector.

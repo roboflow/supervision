@@ -53,8 +53,7 @@ _HAND_CLASS_ID_BY_LABEL: dict[str, int] = {"Left": 0, "Right": 1}
 def _handedness_pairs(
     top_categories: Iterable[Any], label_attr: str
 ) -> list[tuple[str, float]] | None:
-    """
-    Convert MediaPipe top-1 handedness categories into `(label, score)` pairs.
+    """Convert MediaPipe top-1 handedness categories into `(label, score)` pairs.
 
     Returns `None` as soon as any category is missing a label or a score, so the caller
     can drop handedness wholesale instead of emitting a partially filled array that
@@ -71,8 +70,7 @@ def _handedness_pairs(
 
 
 def _tasks_api_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None:
-    """
-    Read handedness `(label, score)` pairs from a Tasks API `HandLandmarkerResult`.
+    """Read handedness `(label, score)` pairs from a Tasks API `HandLandmarkerResult`.
 
     The Tasks API exposes `handedness` as one descending-score category list per hand;
     only the top-1 entry carries the `Left`/`Right` decision.
@@ -86,8 +84,7 @@ def _tasks_api_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | N
 
 
 def _legacy_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None:
-    """
-    Read handedness `(label, score)` pairs from a legacy `Hands` solution result.
+    """Read handedness `(label, score)` pairs from a legacy `Hands` solution result.
 
     The legacy proto2 solution nests the same top-1 decision one level deeper, under
     `multi_handedness[i].classification`, and names the label field `label`.
@@ -109,8 +106,7 @@ def _legacy_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None
 def _normalize_row_index(
     i: _RowIndexInput,
 ) -> _NormalizedRowIndex:
-    """
-    Normalise *i* to a 1-D row index for 1-D per-object fields.
+    """Normalise *i* to a 1-D row index for 1-D per-object fields.
 
     Handles:
     - Python int or np.integer scalar  -> np.array([int(i)])
@@ -312,8 +308,7 @@ class KeyPoints:
         *,
         confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
-        """
-        Initialize KeyPoints.
+        """Initialize KeyPoints.
 
         Args:
             xy: Array of shape `(n, m, 2)` with keypoint coordinates.
@@ -367,8 +362,7 @@ class KeyPoints:
 
     @property
     def confidence(self) -> npt.NDArray[np.float32] | None:
-        """
-        Deprecated since 0.29.0.
+        """Deprecated since 0.29.0.
 
         Use ``keypoint_confidence`` instead.
         """
@@ -978,8 +972,7 @@ class KeyPoints:
             return cls.empty()
 
     def _get_by_2d_bool_mask(self, mask: npt.NDArray[np.bool_]) -> KeyPoints:
-        """
-        Filter keypoints using a 2D boolean mask of shape `(n, m)`.
+        """Filter keypoints using a 2D boolean mask of shape `(n, m)`.
 
         This method selects the **same set of keypoints from every object**, so
         every row of `mask` must contain the same number of `True` values.  The

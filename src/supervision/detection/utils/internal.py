@@ -38,8 +38,7 @@ def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
-    """
-    Extract boolean masks from Ultralytics results, cropping letterbox padding.
+    """Extract boolean masks from Ultralytics results, cropping letterbox padding.
 
     Handles the case where the inference resolution differs from the original image
     shape by computing the letterbox padding offsets, cropping them out, and resizing
@@ -99,8 +98,7 @@ def _resolve_rle_mask(
     image_width: int,
     compact_masks: bool,
 ) -> tuple[npt.NDArray[np.bool_] | None, dict[str, Any] | None]:
-    """
-    Decode one RLE prediction into (dense_mask, compact_pending).
+    """Decode one RLE prediction into (dense_mask, compact_pending).
 
     Returns ``(dense_mask, None)`` when ``compact_masks=False`` or when the
     RLE size does not match the image size (fall back to dense decode).
@@ -172,8 +170,7 @@ def _decode_compact_masks(
     image_width: int,
     n_predictions: int,
 ) -> CompactMask | None:
-    """
-    Decode deferred COCO-RLE entries and merge with polygon compact masks.
+    """Decode deferred COCO-RLE entries and merge with polygon compact masks.
 
     Attempts a single batched ``CompactMask.from_coco_rle`` call for all pending
     items to eliminate per-prediction call overhead on the happy path.  On any
@@ -503,8 +500,7 @@ def is_data_equal(
     data_a: _DetectionDataType,
     data_b: _DetectionDataType,
 ) -> bool:
-    """
-    Compares the data payloads of two Detections instances.
+    """Compares the data payloads of two Detections instances.
 
     Args:
         data_a, data_b: The data payloads of the instances.
@@ -518,8 +514,7 @@ def is_data_equal(
 
 
 def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> bool:
-    """
-    Compares the metadata payloads of two Detections instances.
+    """Compares the metadata payloads of two Detections instances.
 
     Args:
         metadata_a, metadata_b: The metadata payloads of the instances.
@@ -541,8 +536,7 @@ def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> b
 def merge_data(
     data_list: list[_DetectionDataType],
 ) -> _DetectionDataType:
-    """
-    Merges the data payloads of a list of Detections instances.
+    """Merges the data payloads of a list of Detections instances.
 
     Warning: Assumes that empty detections were filtered-out before passing data to
     this function.
@@ -600,8 +594,7 @@ def merge_data(
 
 
 def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
-    """
-    Merge metadata from a list of metadata dictionaries.
+    """Merge metadata from a list of metadata dictionaries.
 
     This function combines the metadata dictionaries. If a key appears in more than one
     dictionary, the values must be identical for the merge to succeed.
@@ -657,8 +650,7 @@ def get_data_item(
     data: _DetectionDataType,
     index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
 ) -> _DetectionDataType:
-    """
-    Retrieve a subset of the data dictionary based on the given index.
+    """Retrieve a subset of the data dictionary based on the given index.
 
     Args:
         data: The data dictionary of the Detections object.

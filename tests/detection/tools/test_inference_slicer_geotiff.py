@@ -23,8 +23,7 @@ class _FakeCRS:
 
 
 class _FakeRasterDataset:
-    """
-    Lightweight rasterio-style dataset supporting windowed reads.
+    """Lightweight rasterio-style dataset supporting windowed reads.
 
     Mimics the duck-typed interface that ``InferenceSlicer`` relies on without requiring
     ``rasterio`` to be installed.

@@ -1,5 +1,4 @@
-"""
-Refresh the documented GitHub star-count phrase.
+"""Refresh the documented GitHub star-count phrase.
 
 Purpose:
     Keep every documented GitHub star claim aligned with the repository's live
@@ -106,8 +105,7 @@ def _write_if_changed(
 
 
 def apply_updates(stars: int, *, check_only: bool) -> list[str]:
-    """
-    Update every contract target and return the names that changed.
+    """Update every contract target and return the names that changed.
 
     Raises:
         ValueError: If a configured target no longer carries its star-count marker.

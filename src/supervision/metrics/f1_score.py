@@ -71,8 +71,7 @@ class F1Score(Metric["F1ScoreResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the F1Score metric.
+        """Initialize the F1Score metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -95,8 +94,7 @@ class F1Score(Metric["F1ScoreResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> F1Score:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -122,9 +120,8 @@ class F1Score(Metric["F1ScoreResult"]):
         return self
 
     def compute(self) -> F1ScoreResult:
-        """
-        Calculate the F1 score metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
+        """Calculate the F1 score metric based on the stored predictions and ground-
+        truth data, at different IoU thresholds.
 
         Returns:
             The F1 score metric result.
@@ -148,8 +145,7 @@ class F1Score(Metric["F1ScoreResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> F1ScoreResult:
-        """
-        Build per-image stats tuples and delegate to class-level computation.
+        """Build per-image stats tuples and delegate to class-level computation.
 
         Each stats tuple is
         ``(matches, ignored_matches, confidence, class_ids, true_class_ids)``:
@@ -360,8 +356,7 @@ class F1Score(Metric["F1ScoreResult"]):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
-        """
-        Compute F1 scores from concatenated stats across all images.
+        """Compute F1 scores from concatenated stats across all images.
 
         ``unique_classes`` is the union of GT and predicted classes so that predictions
         of classes absent from GT still count as false positives.
@@ -426,8 +421,7 @@ class F1Score(Metric["F1ScoreResult"]):
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -484,8 +478,7 @@ class F1Score(Metric["F1ScoreResult"]):
     def _compute_f1(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the F1 score from the confusion matrix.
+        """Broadcastable function, computing the F1 score from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -518,8 +511,7 @@ class F1Score(Metric["F1ScoreResult"]):
     def _detections_content(
         self, detections: Detections
     ) -> npt.NDArray[Any] | CompactMask:
-        """
-        Return boxes, masks or oriented bounding boxes from detections.
+        """Return boxes, masks or oriented bounding boxes from detections.
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
@@ -604,8 +596,7 @@ class F1Score(Metric["F1ScoreResult"]):
 
 @dataclass
 class F1ScoreResult:
-    """
-    The results of the F1 score metric calculation.
+    """The results of the F1 score metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -722,8 +713,7 @@ class F1ScoreResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -752,8 +742,7 @@ class F1ScoreResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the F1 results.
+        """Plot the F1 results.
 
         ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
