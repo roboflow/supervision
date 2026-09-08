@@ -88,11 +88,12 @@ from supervision.validators import (
 
 @dataclass
 class Detections:
-    """
-    The `sv.Detections` class in the Supervision library standardizes results from
+    """The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/),
+    [annotators](/latest/detection/annotators/), and
+    [tools](/detection/tools/line_zone/).
 
     === "RF-DETR"
 
@@ -224,10 +225,8 @@ class Detections:
             _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
-        """
+        """Iterates over the Detections object and yield a tuple of `(xyxy, mask,
+        confidence, class_id, tracker_id, data)` for each detection."""
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
@@ -1140,10 +1139,8 @@ class Detections:
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-        !!! deprecated "Deprecated"
-            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
-            Please use `Detections.from_vlm` instead.
+        """!!! deprecated "Deprecated" `Detections.from_lmm` is **deprecated** and will
+        be removed in `supervision-0.31.0`. Please use `Detections.from_vlm` instead.
 
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -1624,10 +1621,8 @@ class Detections:
     def from_vlm(
         cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-
-        Creates a Detections object from the given result string based on the specified
-        Vision Language Model (VLM).
+        """Creates a Detections object from the given result string based on the
+        specified Vision Language Model (VLM).
 
         | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
@@ -2032,7 +2027,6 @@ class Detections:
                   dtype='<U24')}
 
             ```
-
         """  # noqa: E501
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
@@ -2273,9 +2267,8 @@ class Detections:
 
     @classmethod
     def empty(cls) -> Detections:
-        """
-        Create an empty Detections object with no bounding boxes,
-            confidences, or class IDs.
+        """Create an empty Detections object with no bounding boxes, confidences, or
+        class IDs.
 
         Returns:
             An empty Detections object.
@@ -2296,8 +2289,7 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """
-        Check whether the `Detections` object has zero bounding boxes.
+        """Check whether the `Detections` object has zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
@@ -2321,8 +2313,7 @@ class Detections:
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
-        """
-        Merge a list of Detections objects into a single Detections object.
+        """Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
@@ -2739,8 +2730,7 @@ class Detections:
         | npt.NDArray[np.generic]
         | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
-        """
-        Get a subset of the Detections object or access an item from its data field.
+        """Get a subset of the Detections object or access an item from its data field.
 
         When provided with an integer, slice, list of integers, or a numpy array, this
         method returns a new Detections object that represents a subset of the original
@@ -2774,8 +2764,7 @@ class Detections:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the Detections object.
+        """Set a value in the data dictionary of the Detections object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -2816,8 +2805,7 @@ class Detections:
 
     @property
     def area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each detection in the set of object detections.
+        """Calculate the area of each detection in the set of object detections.
 
         Selection order:
 
@@ -2901,8 +2889,7 @@ class Detections:
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
-        """
-        Compute the aspect ratio (width divided by height) for each bounding box.
+        """Compute the aspect ratio (width divided by height) for each bounding box.
 
         Returns:
             Array of shape `(N,)` containing aspect ratios, where `N` is the
@@ -3037,9 +3024,9 @@ class Detections:
     ) -> Detections:
         """Performs non-max suppression on detection set.
 
-        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if oriented-box coordinates
-        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
-        otherwise, axis-aligned box IoU is used.
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -3426,9 +3413,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
-    """
-    Merges two Detections objects into a single Detections object.
-    Assumes each Detections contains exactly one object.
+    """Merges two Detections objects into a single Detections object. Assumes each
+    Detections contains exactly one object.
 
     A `winning` detection is determined based on the confidence score of the two
     input detections. This winning detection is then used to specify which

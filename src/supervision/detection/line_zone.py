@@ -22,8 +22,7 @@ TEXT_MARGIN = 10
 
 
 class LineZone:
-    """
-    This class is responsible for counting the number of objects that cross a
+    """This class is responsible for counting the number of objects that cross a
     predefined line.
 
     <video controls>
@@ -664,20 +663,21 @@ class LineZoneAnnotator:
         text_box_color: Color,
         line_angle_degrees: float,
     ) -> npt.NDArray[np.uint8]:
-        """Create the small text box displaying line zone count, E.g. "out: 7".
+        """Create the small text box displaying line zone count, E.g.
 
-        Args:
-            text: The text to display.
-            text_scale: The scale of the text.
-            text_thickness: The thickness of the text.
-            text_padding: The padding around the text.
-            text_color: The color of the text.
-            text_box_show: Whether to display the text box.
-            text_box_color: The color of the text box.
-            line_angle_degrees: The angle of the line in degrees.
+        "out: 7".
+                Args:
+                    text: The text to display.
+                    text_scale: The scale of the text.
+                    text_thickness: The thickness of the text.
+                    text_padding: The padding around the text.
+                    text_color: The color of the text.
+                    text_box_show: Whether to display the text box.
+                    text_box_color: The color of the text box.
+                    line_angle_degrees: The angle of the line in degrees.
 
-        Returns:
-            The label of shape (H, W, 4), in BGRA format.
+                Returns:
+                    The label of shape (H, W, 4), in BGRA format.
         """
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness

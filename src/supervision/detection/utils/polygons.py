@@ -31,8 +31,7 @@ def filter_polygons_by_area(
     min_area: float | None = None,
     max_area: float | None = None,
 ) -> list[npt.NDArray[np.number]]:
-    """
-    Filters a list of polygons based on their area.
+    """Filters a list of polygons based on their area.
 
     Args:
         polygons: A list of polygons, where each polygon is
@@ -79,8 +78,7 @@ def filter_polygons_by_area(
 def approximate_polygon(
     polygon: npt.NDArray[np.number], percentage: float, epsilon_step: float = 0.05
 ) -> npt.NDArray[np.number]:
-    """
-    Approximates a given polygon by reducing a certain percentage of points.
+    """Approximates a given polygon by reducing a certain percentage of points.
 
     This function uses the Ramer-Douglas-Peucker algorithm to simplify the input
     polygon by reducing the number of points while preserving the general shape.

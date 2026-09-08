@@ -86,8 +86,7 @@ class MeanAverageRecallResult:
     large_objects: MeanAverageRecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -267,10 +266,9 @@ class MeanAverageRecallResult:
 
 
 class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
-    """
-    Mean Average Recall (mAR) measures how well the model detects
-    and retrieves relevant objects by averaging recall over multiple
-    IoU thresholds, classes and detection limits.
+    """Mean Average Recall (mAR) measures how well the model detects and retrieves
+    relevant objects by averaging recall over multiple IoU thresholds, classes and
+    detection limits.
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each

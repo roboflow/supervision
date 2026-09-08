@@ -152,11 +152,10 @@ def images_to_cv2(
 
 
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
-    """
-    Converts Pillow image into OpenCV image, handling RGB -> BGR
-    conversion. Palette images are first expanded to RGB so palette indices are
-    resolved to their actual colors. RGBA images are converted to BGR, matching
-    OpenCV by dropping the alpha channel.
+    """Converts Pillow image into OpenCV image, handling RGB -> BGR conversion. Palette
+    images are first expanded to RGB so palette indices are resolved to their actual
+    colors. RGBA images are converted to BGR, matching OpenCV by dropping the alpha
+    channel.
 
     Args:
         image: Pillow image in RGB, RGBA, grayscale, or palette mode.
@@ -190,9 +189,8 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
-    """
-    Converts an OpenCV image into a Pillow image, reordering channels from
-    OpenCV's BGR(A) convention to Pillow's RGB(A).
+    """Converts an OpenCV image into a Pillow image, reordering channels from OpenCV's
+    BGR(A) convention to Pillow's RGB(A).
 
     Args:
         image: OpenCV image. Accepted shapes:

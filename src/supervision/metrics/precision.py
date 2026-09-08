@@ -30,10 +30,9 @@ if TYPE_CHECKING:
 
 
 class Precision(Metric["PrecisionResult"]):
-    """
-    Precision is a metric used to evaluate object detection models. It is the ratio of
-    true positive detections to the total number of predicted detections. We calculate
-    it at different IoU thresholds.
+    """Precision is a metric used to evaluate object detection models. It is the ratio
+    of true positive detections to the total number of predicted detections. We
+    calculate it at different IoU thresholds.
 
     In simple terms, Precision is a measure of a model's accuracy, calculated as:
 
@@ -635,8 +634,7 @@ class PrecisionResult:
     large_objects: PrecisionResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon

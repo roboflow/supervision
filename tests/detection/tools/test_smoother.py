@@ -161,7 +161,7 @@ class TestDetectionsSmoother:
         assert_allclose(smoothed_returned.xyxy, np.array([[1, 1, 11, 11]]), atol=1e-5)
 
     def test_reset_clears_track_history(self) -> None:
-        """reset() must drop cached frames so post-reset output ignores prior boxes."""
+        """Reset() must drop cached frames so post-reset output ignores prior boxes."""
         smoother = DetectionsSmoother(length=3)
         smoother.update_with_detections(
             Detections(
@@ -184,7 +184,7 @@ class TestDetectionsSmoother:
         assert_allclose(smoothed.xyxy, np.array([[2, 2, 12, 12]]), atol=1e-5)
 
     def test_reset_preserves_window_length(self) -> None:
-        """reset() must keep the configured window so maxlen still bounds new tracks."""
+        """Reset() must keep the configured window so maxlen still bounds new tracks."""
         smoother = DetectionsSmoother(length=2)
         smoother.update_with_detections(
             Detections(
@@ -207,10 +207,10 @@ class TestDetectionsSmoother:
 class TestDetectionsSmootherOrientedBoxes:
     """Oriented corners must be smoothed alongside `xyxy` (issue #2318).
 
-    Everything on the returned detection other than `xyxy` and `confidence` is
-    copied from the oldest frame in the window, so the oriented corners used to
-    describe a different position from the smoothed axis-aligned box beside
-    them. The geometry helpers that read `xyxyxyxy` then disagree with `xyxy`.
+    Everything on the returned detection other than `xyxy` and `confidence` is copied
+    from the oldest frame in the window, so the oriented corners used to describe a
+    different position from the smoothed axis-aligned box beside them. The geometry
+    helpers that read `xyxyxyxy` then disagree with `xyxy`.
     """
 
     @staticmethod

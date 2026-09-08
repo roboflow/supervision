@@ -29,9 +29,8 @@ class WriterProtocol(Protocol):
 
 
 class CSVSink:
-    """
-    A utility class for saving detection data to a CSV file. This class is designed to
-    efficiently serialize detection objects into a CSV format, allowing for the
+    """A utility class for saving detection data to a CSV file. This class is designed
+    to efficiently serialize detection objects into a CSV format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
 

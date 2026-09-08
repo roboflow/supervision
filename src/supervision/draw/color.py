@@ -452,8 +452,7 @@ class ColorPalette:
 
     @classmethod
     def from_hex(cls, color_hex_list: list[str]) -> ColorPalette:
-        """
-        Create a ColorPalette instance from a list of hex strings.
+        """Create a ColorPalette instance from a list of hex strings.
 
         Args:
             color_hex_list: List of color hex strings.
@@ -521,8 +520,7 @@ class ColorPalette:
         )
 
     def by_idx(self, idx: int) -> Color:
-        """
-        Return the color at a given index in the palette.
+        """Return the color at a given index in the palette.
 
         Args:
             idx: Index of the color in the palette.

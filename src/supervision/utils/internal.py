@@ -57,8 +57,7 @@ def deprecated_parameter(
     "deprecated: use '{new_parameter}' instead.",
     **message_kwargs: Any,
 ) -> Callable[[Any], Any]:
-    """
-    A decorator to mark a function's parameter as deprecated and issue a warning when
+    """A decorator to mark a function's parameter as deprecated and issue a warning when
     used.
 
     Args:
@@ -165,8 +164,7 @@ class classproperty(Generic[T]):
 
 
 def get_instance_variables(instance: Any, include_properties: bool = False) -> set[str]:
-    """
-    Get the public variables of a class instance.
+    """Get the public variables of a class instance.
 
     Args:
         instance: The instance of a class

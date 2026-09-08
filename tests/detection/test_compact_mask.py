@@ -1383,10 +1383,10 @@ class TestRleSplitCols:
     def test_join_true_true_junction_no_zero_run(self) -> None:
         """_rle_join_cols merges True/True boundary; no zero-length False run inserted.
 
-        When column A ends True and column B starts True (leading False count = 0),
-        the junction must produce a single merged True run, not a zero-length False
-        run between two True runs.  A zero-length run would inflate len(rle) and
-        misroute density-based dispatch in _resize_crop.
+        When column A ends True and column B starts True (leading False count = 0), the
+        junction must produce a single merged True run, not a zero-length False run
+        between two True runs.  A zero-length run would inflate len(rle) and misroute
+        density-based dispatch in _resize_crop.
         """
         from supervision.detection.compact_mask import _rle_join_cols
 

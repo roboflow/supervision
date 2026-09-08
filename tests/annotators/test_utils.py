@@ -377,7 +377,7 @@ class TestGetLabelsText:
         assert get_labels_text(detections, custom) is custom
 
     def test_uses_class_name_data_field_with_non_str_dtype(self) -> None:
-        """str() coercion is load-bearing when class_name holds a non-str dtype."""
+        """Str() coercion is load-bearing when class_name holds a non-str dtype."""
         detections = _create_detections(
             xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
             class_id=[0, 1],
@@ -479,9 +479,9 @@ class TestTraceEmptyFrames:
     def test_center_of_mass_anchor_accepts_an_empty_first_frame(self) -> None:
         """An empty batch never reaches the mask-requiring anchor lookup.
 
-        `Position.CENTER_OF_MASS` normally demands a detection mask, but an
-        empty batch is short-circuited before `get_anchors_coordinates` is
-        called, so it must not raise even though it carries no mask.
+        `Position.CENTER_OF_MASS` normally demands a detection mask, but an empty batch
+        is short-circuited before `get_anchors_coordinates` is called, so it must not
+        raise even though it carries no mask.
         """
         trace = Trace(anchor=Position.CENTER_OF_MASS)
 
@@ -514,8 +514,8 @@ class TestTraceEmptyFrames:
     ) -> None:
         """A populated, maskless batch still raises for `CENTER_OF_MASS`.
 
-        The empty-batch short-circuit must not swallow the mask requirement
-        for frames that actually carry detections.
+        The empty-batch short-circuit must not swallow the mask requirement for frames
+        that actually carry detections.
         """
         trace = Trace(anchor=Position.CENTER_OF_MASS)
         trace.put(Detections.empty())

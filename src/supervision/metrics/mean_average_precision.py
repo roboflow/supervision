@@ -126,8 +126,8 @@ class MeanAveragePrecisionResult:
     large_objects: MeanAveragePrecisionResult | None = None
 
     def __str__(self) -> str:
-        """
-        Formats the evaluation output metrics to match the structure used by pycocotools
+        """Formats the evaluation output metrics to match the structure used by
+        pycocotools.
 
         Example:
            ```pycon
@@ -288,10 +288,8 @@ class MeanAveragePrecisionResult:
 
 
 class EvaluationDataset:
-    """
-    Class used representing a dataset in the right format needed by the
-    `COCOEvaluator` class.
-    """
+    """Class used representing a dataset in the right format needed by the
+    `COCOEvaluator` class."""
 
     def __init__(self, targets: _TypeCocoDataset | None = None) -> None:
         """Constructor of EvaluationDataset object used to evaluate models with Mean
@@ -1322,9 +1320,9 @@ class COCOEvaluator:
 
 
 class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
-    """
-    Mean Average Precision (mAP) is a metric used to evaluate object detection models.
-    It is the average of the precision-recall curves at different IoU thresholds.
+    """Mean Average Precision (mAP) is a metric used to evaluate object detection
+    models. It is the average of the precision-recall curves at different IoU
+    thresholds.
 
     Examples:
         ```pycon

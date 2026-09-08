@@ -221,8 +221,8 @@ class BoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with bounding boxes based on the provided detections.
+        """Annotates the given scene with bounding boxes based on the provided
+        detections.
 
         Args:
             scene: The image where bounding boxes will be drawn. `ImageType`
@@ -307,9 +307,8 @@ class OrientedBoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with oriented bounding boxes based on the
-        provided detections.
+        """Annotates the given scene with oriented bounding boxes based on the provided
+        detections.
 
         Args:
             scene: The image where bounding boxes will be drawn.
@@ -541,8 +540,7 @@ class MaskAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with masks based on the provided detections.
+        """Annotates the given scene with masks based on the provided detections.
 
         Args:
             scene: The image where masks will be drawn.
@@ -649,8 +647,7 @@ class PolygonAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with polygons based on the provided detections.
+        """Annotates the given scene with polygons based on the provided detections.
 
         Args:
             scene: The image where polygons will be drawn.
@@ -748,8 +745,7 @@ class ColorAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with box masks based on the provided detections.
+        """Annotates the given scene with box masks based on the provided detections.
 
         Args:
             scene: The image where bounding boxes will be drawn.
@@ -849,8 +845,7 @@ class HaloAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with halos based on the provided detections.
+        """Annotates the given scene with halos based on the provided detections.
 
         Args:
             scene: The image where the halo effect will be applied.
@@ -956,8 +951,7 @@ class EllipseAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with ellipses based on the provided detections.
+        """Annotates the given scene with ellipses based on the provided detections.
 
         Args:
             scene: The image where ellipses will be drawn.
@@ -1050,8 +1044,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with box corners based on the provided detections.
+        """Annotates the given scene with box corners based on the provided detections.
 
         Args:
             scene: The image where box corners will be drawn.
@@ -1140,8 +1133,7 @@ class CircleAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with circles based on the provided detections.
+        """Annotates the given scene with circles based on the provided detections.
 
         Args:
             scene: The image where box corners will be drawn.
@@ -1241,8 +1233,7 @@ class DotAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with dots based on the provided detections.
+        """Annotates the given scene with dots based on the provided detections.
 
         Args:
             scene: The image where dots will be drawn.
@@ -1370,8 +1361,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with labels based on the provided detections.
+        """Annotates the given scene with labels based on the provided detections.
 
         Args:
             scene: The image where labels will be drawn.
@@ -1722,9 +1712,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         labels: list[str] | None = None,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with labels based on the provided
-        detections, with support for Unicode characters.
+        """Annotates the given scene with labels based on the provided detections, with
+        support for Unicode characters.
 
         Args:
             scene: The image where labels will be drawn.
@@ -1958,8 +1947,7 @@ class IconAnnotator(BaseAnnotator):
         detections: Detections,
         icon_path: str | list[str] = "",
     ) -> ImageType:
-        """
-        Annotates the given scene with given icons.
+        """Annotates the given scene with given icons.
 
         Args:
             scene: The image where labels will be drawn.
@@ -2050,8 +2038,8 @@ class BlurAnnotator(BaseAnnotator):
         scene: ImageType,
         detections: Detections,
     ) -> ImageType:
-        """
-        Annotates the given scene by blurring regions based on the provided detections.
+        """Annotates the given scene by blurring regions based on the provided
+        detections.
 
         Args:
             scene: The image where blurring will be applied.
@@ -2147,10 +2135,8 @@ class TraceAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
 
     def reset(self) -> None:
-        """
-        Clears the accumulated trace history so the annotator can be reused
-        across independent streams without carrying over points from a
-        previous stream.
+        """Clears the accumulated trace history so the annotator can be reused across
+        independent streams without carrying over points from a previous stream.
 
         Examples:
             ```pycon
@@ -2183,8 +2169,7 @@ class TraceAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Draws trace paths on the frame based on the detection coordinates provided.
+        """Draws trace paths on the frame based on the detection coordinates provided.
 
         Args:
             scene: The image on which the traces will be drawn.
@@ -2373,11 +2358,10 @@ class HeatMapAnnotator(BaseAnnotator):
         self.heat_mask: npt.NDArray[np.float32] | None = None
 
     def reset(self) -> None:
-        """
-        Clears the accumulated heat so the annotator can be reused across
-        independent streams. `annotate` already reinitializes the heat mask
-        when the scene resolution changes; call this to discard heat from a
-        previous stream that shares the same resolution.
+        """Clears the accumulated heat so the annotator can be reused across independent
+        streams. `annotate` already reinitializes the heat mask when the scene
+        resolution changes; call this to discard heat from a previous stream that shares
+        the same resolution.
 
         Examples:
             ```pycon
@@ -2402,8 +2386,7 @@ class HeatMapAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
-        """
-        Annotates the scene with a heatmap based on the provided detections.
+        """Annotates the scene with a heatmap based on the provided detections.
 
         Args:
             scene: The image where the heatmap will be drawn.
@@ -2521,9 +2504,8 @@ class PixelateAnnotator(BaseAnnotator):
         scene: ImageType,
         detections: Detections,
     ) -> ImageType:
-        """
-        Annotates the given scene by pixelating regions based on the provided
-            detections.
+        """Annotates the given scene by pixelating regions based on the provided
+        detections.
 
         Args:
             scene: The image where pixelating will be applied.
@@ -2638,8 +2620,7 @@ class TriangleAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with triangles based on the provided detections.
+        """Annotates the given scene with triangles based on the provided detections.
 
         Args:
             scene: The image where triangles will be drawn.
@@ -2752,9 +2733,8 @@ class RoundBoxAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with bounding boxes with rounded edges
-        based on the provided detections.
+        """Annotates the given scene with bounding boxes with rounded edges based on the
+        provided detections.
 
         Args:
             scene: The image where rounded bounding boxes will be drawn.
@@ -2895,8 +2875,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
         custom_values: npt.NDArray[np.float64] | None = None,
     ) -> ImageType:
-        """
-        Annotates the given scene with percentage bars based on the provided
+        """Annotates the given scene with percentage bars based on the provided
         detections. The percentage bars visually represent the confidence or custom
         values associated with each detection.
 
@@ -3093,12 +3072,10 @@ class CropAnnotator(BaseAnnotator):
         detections: Detections,
         custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
-        """
-        Annotates the provided scene with scaled and cropped parts of the image based
+        """Annotates the provided scene with scaled and cropped parts of the image based
         on the provided detections. Each detection is cropped from the original scene
         and scaled according to the annotator's scale factor before being placed back
         onto the scene at the specified position.
-
 
         Args:
             scene: The image where cropped detection will be placed.
@@ -3257,8 +3234,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
-        """
-        Applies a colored overlay to the scene outside of the detected regions.
+        """Applies a colored overlay to the scene outside of the detected regions.
 
         Args:
             scene: The image where masks will be drawn.
@@ -3368,8 +3344,7 @@ class ComparisonAnnotator:
     def annotate(
         self, scene: ImageType, detections_1: Detections, detections_2: Detections
     ) -> ImageType:
-        """
-        Highlights the differences between two sets of detections.
+        """Highlights the differences between two sets of detections.
 
         Args:
             scene: The image where detections will be drawn.

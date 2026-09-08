@@ -81,8 +81,7 @@ def load_image_from_url(
     cache_dir: str | Path | None = None,
     force_reload: bool = False,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Load an image from a URL as an OpenCV image.
+    """Load an image from a URL as an OpenCV image.
 
     Args:
         value: HTTP(S) URL of the image.
@@ -153,8 +152,7 @@ def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[np.number] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
-    """
-    Crop image based on bounding box coordinates.
+    """Crop image based on bounding box coordinates.
 
     Args:
         image: The image to crop.
@@ -223,8 +221,7 @@ def crop_image(
 
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
-    """
-    Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
+    """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
         image: The image to scale.
@@ -281,8 +278,7 @@ def resize_image(
     resolution_wh: tuple[int, int],
     keep_aspect_ratio: bool = False,
 ) -> ImageType:
-    """
-    Resize image to specified resolution. Can optionally maintain aspect ratio.
+    """Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
         image: The image to resize.
@@ -350,9 +346,8 @@ def letterbox_image(
     resolution_wh: tuple[int, int],
     color: tuple[int, int, int] | Color = Color.BLACK,
 ) -> ImageType:
-    """
-    Resize image and pad with color to achieve desired resolution while
-    maintaining aspect ratio.
+    """Resize image and pad with color to achieve desired resolution while maintaining
+    aspect ratio.
 
     Args:
         image: The image to resize and pad. Accepts BGR arrays of shape
@@ -428,9 +423,8 @@ def overlay_image(
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
-    """
-    Deprecated since 0.27.0; removal in 0.31.0. Use `_overlay_image` for
-    internal callers, or avoid calling `overlay_image` directly in external code.
+    """Deprecated since 0.27.0; removal in 0.31.0. Use `_overlay_image` for internal
+    callers, or avoid calling `overlay_image` directly in external code.
 
     Overlay image onto scene at specified anchor point. Handles cases where
     overlay position is partially or completely outside scene bounds.
@@ -528,8 +522,7 @@ def tint_image(
     color: Color = Color.BLACK,
     opacity: float = 0.5,
 ) -> ImageType:
-    """
-    Tint image with solid color overlay at specified opacity.
+    """Tint image with solid color overlay at specified opacity.
 
     Args:
         image: The image to tint.
@@ -572,9 +565,8 @@ def tint_image(
 
 @ensure_cv2_image_for_standalone_function
 def grayscale_image(image: ImageType) -> ImageType:
-    """
-    Convert image to 3-channel grayscale. Luminance channel is broadcast to
-    all three channels for compatibility with color-based drawing helpers.
+    """Convert image to 3-channel grayscale. Luminance channel is broadcast to all three
+    channels for compatibility with color-based drawing helpers.
 
     Args:
         image: The image to convert to
@@ -603,8 +595,8 @@ def grayscale_image(image: ImageType) -> ImageType:
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
-    """
-    Get image width and height as a tuple `(width, height)` for various image formats.
+    """Get image width and height as a tuple `(width, height)` for various image
+    formats.
 
     Supports both `numpy.ndarray` images (with shape `(H, W, ...)`) and
     `PIL.Image.Image` inputs.
@@ -662,8 +654,7 @@ class ImageSink:
         overwrite: bool = False,
         image_name_pattern: str = "image_{:05d}.png",
     ) -> None:
-        """
-        Initialize context manager for saving images to directory.
+        """Initialize context manager for saving images to directory.
 
         Args:
             target_dir_path: Target directory path where images will be

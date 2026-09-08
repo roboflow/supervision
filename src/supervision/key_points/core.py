@@ -128,8 +128,7 @@ def _normalize_row_index(
 
 @dataclass(init=False)
 class KeyPoints:
-    """
-    The `sv.KeyPoints` class in the Supervision library standardizes results from
+    """The `sv.KeyPoints` class in the Supervision library standardizes results from
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
@@ -381,8 +380,7 @@ class KeyPoints:
         self.keypoint_confidence = value
 
     def __len__(self) -> int:
-        """
-        Returns the number of objects in the `sv.KeyPoints` object.
+        """Returns the number of objects in the `sv.KeyPoints` object.
 
         Returns:
             The number of objects.
@@ -410,10 +408,8 @@ class KeyPoints:
             _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Keypoint object and yield a tuple of
-        `(xy, keypoint_confidence, class_id, data)` for each object detection.
-        """
+        """Iterates over the Keypoint object and yield a tuple of `(xy,
+        keypoint_confidence, class_id, data)` for each object detection."""
         for i in range(len(self.xy)):
             yield (
                 self.xy[i],
@@ -1211,8 +1207,7 @@ class KeyPoints:
         self,
         index: Index1D | Index2D | str,
     ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
-        """
-        Get a subset of the KeyPoints object or access an item from its data field.
+        """Get a subset of the KeyPoints object or access an item from its data field.
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
@@ -1254,8 +1249,7 @@ class KeyPoints:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the `sv.KeyPoints` object.
+        """Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -1290,8 +1284,7 @@ class KeyPoints:
 
     @classmethod
     def empty(cls) -> KeyPoints:
-        """
-        Create an empty KeyPoints object with no key points.
+        """Create an empty KeyPoints object with no key points.
 
         Returns:
             An empty `sv.KeyPoints` object.
@@ -1308,8 +1301,7 @@ class KeyPoints:
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
-        """
-        Returns `True` if the `KeyPoints` object is considered empty.
+        """Returns `True` if the `KeyPoints` object is considered empty.
 
         Returns:
             `True` if the object is empty, `False` otherwise.
@@ -1327,8 +1319,7 @@ class KeyPoints:
 
     @classmethod
     def merge(cls, key_points_list: list[KeyPoints]) -> KeyPoints:
-        """
-        Merge a list of KeyPoints objects into a single KeyPoints object.
+        """Merge a list of KeyPoints objects into a single KeyPoints object.
 
         This method takes a list of KeyPoints objects and combines their
         respective fields (`xy`, `class_id`, `keypoint_confidence`,
@@ -1451,11 +1442,10 @@ class KeyPoints:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> KeyPoints:
-        """
-        Performs non-max suppression on the keypoint detections. Bounding boxes
-        are derived from valid keypoints of each skeleton, and standard box NMS
-        is applied. A keypoint is considered valid when its coordinates are not
-        all-zero and its `visible` flag is `True` (if `visible` is set).
+        """Performs non-max suppression on the keypoint detections. Bounding boxes are
+        derived from valid keypoints of each skeleton, and standard box NMS is applied.
+        A keypoint is considered valid when its coordinates are not all-zero and its
+        `visible` flag is `True` (if `visible` is set).
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1536,10 +1526,9 @@ class KeyPoints:
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
     ) -> Detections:
-        """
-        Convert a KeyPoints object to a Detections object. This
-        approximates the bounding box of the detected object by
-        taking the bounding box that fits all key points.
+        """Convert a KeyPoints object to a Detections object. This approximates the
+        bounding box of the detected object by taking the bounding box that fits all key
+        points.
 
         Args:
             selected_keypoint_indices: The

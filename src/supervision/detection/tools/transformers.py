@@ -14,8 +14,7 @@ from supervision.detection.utils.converters import mask_to_xyxy
 def process_transformers_detection_result(
     detection_result: dict[str, Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process the result of Transformers object detection functions such as
+    """Process the result of Transformers object detection functions such as
     `post_process` (v4) and `post_process_detection` (v5).
 
     Args:
@@ -43,8 +42,7 @@ def process_transformers_detection_result(
 def process_transformers_v4_segmentation_result(
     segmentation_result: dict[str, Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process the result of Transformers segmentation functions such as
+    """Process the result of Transformers segmentation functions such as
     `post_process_panoptic`, `post_process_segmentation`, and `post_process_instance`
     (v4).
 
@@ -82,8 +80,7 @@ def process_transformers_v4_segmentation_result(
 def process_transformers_v5_segmentation_result(
     segmentation_result: Any, id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process the result of Transformers segmentation functions such as
+    """Process the result of Transformers segmentation functions such as
     `post_process_semantic_segmentation`, `post_process_instance_segmentation`, and
     `post_process_panoptic_segmentation` (v5).
 
@@ -112,8 +109,7 @@ def process_transformers_v5_segmentation_result(
 def process_transformers_v5_semantic_or_instance_segmentation_result(
     segmentation_result: dict[str, Any], id2label: dict[int, str] | None
 ) -> dict[str, Any]:
-    """
-    Process the result of Transformers segmentation functions such as
+    """Process the result of Transformers segmentation functions such as
     `post_process_semantic_segmentation` and `post_process_instance_segmentation` (v5).
 
     Args:

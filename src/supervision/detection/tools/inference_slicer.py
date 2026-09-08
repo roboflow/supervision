@@ -103,8 +103,7 @@ def move_detections(
 
 
 class InferenceSlicer:
-    """
-    Perform tiled inference on large images by slicing them into overlapping patches.
+    """Perform tiled inference on large images by slicing them into overlapping patches.
 
     This class divides an input image into overlapping slices of configurable size
     and overlap, runs inference on each slice through a user-provided callback, and

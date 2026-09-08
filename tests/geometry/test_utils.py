@@ -6,8 +6,7 @@ from supervision.geometry.utils import get_polygon_center
 
 
 def generate_test_polygon(n: int) -> np.ndarray:
-    """
-     Generate a semicircle with a given number of points.
+    """Generate a semicircle with a given number of points.
 
      Parameters:
          n (int): amount of points in polygon

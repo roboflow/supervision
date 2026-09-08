@@ -42,8 +42,7 @@ def move_masks(
     offset: npt.NDArray[np.integer],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
-    """
-    Offset the masks in an array by the specified (x, y) amount.
+    """Offset the masks in an array by the specified (x, y) amount.
 
     Args:
         masks: A 3D array of binary masks corresponding to the
@@ -118,8 +117,7 @@ def move_masks(
 def calculate_masks_centroids(
     masks: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
-    """
-    Calculate the centroids of binary masks in a tensor.
+    """Calculate the centroids of binary masks in a tensor.
 
     Args:
         masks: A 3D NumPy array of shape (num_masks, height, width).
@@ -188,8 +186,7 @@ def calculate_masks_centroids(
 
 
 def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
-    """
-    Checks if the binary mask contains holes (background pixels fully enclosed by
+    """Checks if the binary mask contains holes (background pixels fully enclosed by
     foreground pixels).
 
     Args:
@@ -232,8 +229,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
 def contains_multiple_segments(
     mask: npt.NDArray[np.bool_], connectivity: int = 4
 ) -> bool:
-    """
-    Checks if the binary mask contains multiple unconnected foreground segments.
+    """Checks if the binary mask contains multiple unconnected foreground segments.
 
     Args:
         mask: 2D binary mask where `True` indicates foreground
@@ -373,8 +369,7 @@ def filter_segments_by_distance(
     connectivity: int = 8,
     mode: Literal["edge", "centroid"] = "edge",
 ) -> npt.NDArray[np.bool_]:
-    """
-    Keep the largest connected component and any other components within a distance
+    """Keep the largest connected component and any other components within a distance
     threshold.
 
     Distance can be absolute in pixels or relative to the image diagonal.

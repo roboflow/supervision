@@ -92,8 +92,7 @@ class ByteTrack:
         self.external_id_counter = IdCounter(start_id=1)
 
     def update_with_detections(self, detections: Detections) -> Detections:
-        """
-        Updates the tracker with the provided detections and returns the updated
+        """Updates the tracker with the provided detections and returns the updated
         detection results.
 
         Args:
@@ -293,7 +292,6 @@ class ByteTrack:
             if not track.state == TrackState.Lost:
                 track.state = TrackState.Lost
                 lost_stracks.append(track)
-        \
         """Deal with unconfirmed tracks, usually tracks with only one beginning
         frame."""
         detections = [detections[i] for i in u_detection]

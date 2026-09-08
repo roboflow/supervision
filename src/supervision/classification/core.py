@@ -172,9 +172,8 @@ class Classifications:
     def get_top_k(
         self, k: int
     ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
-        """
-        Retrieve the top k class IDs and confidences,
-            ordered in descending order by confidence.
+        """Retrieve the top k class IDs and confidences, ordered in descending order by
+        confidence.
 
         Args:
             k: The number of top class IDs and confidences to retrieve.

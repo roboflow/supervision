@@ -105,8 +105,7 @@ def box_iou(
     box_detection: list[float] | npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
-    """
-    Compute overlap metric between two bounding boxes.
+    """Compute overlap metric between two bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics. Returns the overlap value in range
@@ -188,8 +187,7 @@ def box_iou_batch(
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.float32]:
-    """
-    Compute pairwise overlap scores between batches of bounding boxes.
+    """Compute pairwise overlap scores between batches of bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics for all `boxes_true` and
@@ -478,9 +476,8 @@ def oriented_box_iou_batch(
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute pairwise overlap scores between two sets of oriented bounding boxes
-    using the configured `overlap_metric`.
+    """Compute pairwise overlap scores between two sets of oriented bounding boxes using
+    the configured `overlap_metric`.
 
     Overlap areas are computed exactly via convex-polygon intersection, gated by
     a cheap axis-aligned envelope pre-filter — no rasterization is involved, so
@@ -837,9 +834,8 @@ def mask_iou_batch(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`.
+    """Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Accepts both dense ``(N, H, W)`` boolean arrays and
     :class:`~supervision.detection.compact_mask.CompactMask` objects.
@@ -947,8 +943,7 @@ def mask_non_max_suppression(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+    """Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
@@ -1026,8 +1021,7 @@ def mask_soft_non_max_suppression(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> npt.NDArray[np.floating]:
-    """
-    Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
 
     Unlike `mask_non_max_suppression`, which discards overlapping masks outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
@@ -1178,8 +1172,7 @@ def box_non_max_suppression(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on object detection predictions.
+    """Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
     Args:
         predictions: An array of object detection predictions in
@@ -1224,8 +1217,7 @@ def box_soft_non_max_suppression(
     sigma: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
 
     Unlike `box_non_max_suppression`, which discards overlapping boxes outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
@@ -1338,8 +1330,7 @@ def mask_non_max_merge(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging (NMM) on segmentation predictions.
+    """Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
     Args:
         predictions: A 2D array of object detection predictions in
@@ -1576,9 +1567,8 @@ def box_non_max_merge(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging per category to avoid detecting
-    too many overlapping bounding boxes for a given object.
+    """Apply greedy version of non-maximum merging per category to avoid detecting too
+    many overlapping bounding boxes for a given object.
 
     Args:
         predictions: An array of shape `(n, 5)` or `(n, 6)`
@@ -1627,8 +1617,7 @@ def oriented_box_non_max_suppression(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression on oriented bounding box predictions.
+    """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
     Overlap is computed via :func:`oriented_box_iou_batch` on the four
     corners of each box, so detections whose axis-aligned bounding boxes
@@ -1755,9 +1744,8 @@ def oriented_box_non_max_merge(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging on oriented bounding box predictions,
-    grouped per category.
+    """Perform Non-Maximum Merging on oriented bounding box predictions, grouped per
+    category.
 
     Mirrors :func:`box_non_max_merge` but uses oriented-box IoU, so groups
     of rotated detections sharing the same body — rather than the same

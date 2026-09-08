@@ -14,8 +14,7 @@ from supervision.geometry.utils import get_polygon_center
 
 
 class PolygonZone:
-    """
-    A class for defining a polygon-shaped zone within a frame for detecting objects.
+    """A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     !!! warning
 
@@ -132,8 +131,7 @@ class PolygonZone:
 
 
 class PolygonZoneAnnotator:
-    """
-    A class for annotating a polygon-shaped zone within a frame with a count of
+    """A class for annotating a polygon-shaped zone within a frame with a count of
     detected objects.
 
     Attributes:

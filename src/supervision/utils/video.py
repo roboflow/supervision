@@ -22,9 +22,8 @@ logger = _get_logger(__name__)
 
 @dataclass
 class VideoInfo:
-    """
-    A class to store video information, including width, height, fps and
-        total number of frames.
+    """A class to store video information, including width, height, fps and total number
+    of frames.
 
     Attributes:
         width: width of the video in pixels
@@ -88,8 +87,7 @@ class VideoInfo:
 
 
 class VideoSink:
-    """
-    Context manager that saves video frames to a file using OpenCV.
+    """Context manager that saves video frames to a file using OpenCV.
 
     Attributes:
         target_path: The path to the output file where the video will be saved.
@@ -198,8 +196,7 @@ def get_video_frames_generator(
     iterative_seek: bool = False,
     prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
-    """
-    Get a generator that yields the frames of the video.
+    """Get a generator that yields the frames of the video.
 
     Args:
         source_path: The path of the video file.
@@ -385,8 +382,7 @@ def process_video(
     progress_message: str = "Processing video",
     preserve_audio: bool = False,
 ) -> None:
-    """
-    Process video frames asynchronously using a threaded pipeline.
+    """Process video frames asynchronously using a threaded pipeline.
 
     This function orchestrates a three-stage pipeline to optimize video processing
     throughput:

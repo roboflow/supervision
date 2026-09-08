@@ -290,11 +290,10 @@ def snap_boxes(
     xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.float32]:
-    """
-    Shifts `label` bounding boxes into the frame so that they are fully contained
-    within the given resolution, prioritizing the top/left edge.
-    Unlike `clip_boxes`, this function does not crop boxes.
-    It moves them entirely if they exceed the frame boundaries.
+    """Shifts `label` bounding boxes into the frame so that they are fully contained
+    within the given resolution, prioritizing the top/left edge. Unlike `clip_boxes`,
+    this function does not crop boxes. It moves them entirely if they exceed the frame
+    boundaries.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each

@@ -385,8 +385,7 @@ def detections_to_coco_annotations(
 
 
 def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
-    """
-    Generates a mapping from sequential class indices to original COCO class ids.
+    """Generates a mapping from sequential class indices to original COCO class ids.
 
     This function is essential when working with models that expect class ids to be
     zero-indexed and sequential (0 to 79), as opposed to the original COCO

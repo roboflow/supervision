@@ -11,9 +11,8 @@ from supervision.detection.core import Detections
 
 
 class JSONSink:
-    """
-    A utility class for saving detection data to a JSON file. This class is designed to
-    efficiently serialize detection objects into a JSON format, allowing for the
+    """A utility class for saving detection data to a JSON file. This class is designed
+    to efficiently serialize detection objects into a JSON format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
 

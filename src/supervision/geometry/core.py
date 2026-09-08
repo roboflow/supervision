@@ -27,8 +27,7 @@ class Position(Enum):
 
 @dataclass
 class Point:
-    """
-    Represents a point in 2D space.
+    """Represents a point in 2D space.
 
     Attributes:
         x: The x-coordinate of the point.
@@ -68,8 +67,7 @@ class Point:
 
 @dataclass
 class Vector:
-    """
-    Represents a vector in 2D space, defined by a start and an end point.
+    """Represents a vector in 2D space, defined by a start and an end point.
 
     Attributes:
         start: The starting point of the vector.
@@ -138,8 +136,7 @@ class Vector:
 
 @dataclass
 class Rect:
-    """
-    Represents a rectangle in 2D space.
+    """Represents a rectangle in 2D space.
 
     Attributes:
         x: The x-coordinate of the top-left corner of the rectangle.

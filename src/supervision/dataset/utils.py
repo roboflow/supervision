@@ -241,8 +241,7 @@ def train_test_split(
     random_state: int | None = None,
     shuffle: bool = True,
 ) -> tuple[list[T], list[T]]:
-    """
-    Splits the data into two parts using the provided train_ratio.
+    """Splits the data into two parts using the provided train_ratio.
 
     Args:
         data: The data to split.

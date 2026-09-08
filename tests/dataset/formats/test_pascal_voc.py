@@ -31,6 +31,8 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
         if not are_xml_elements_equal(child1, child2):
             return False
     return True
+
+
 @pytest.mark.parametrize(
     ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
@@ -111,6 +113,8 @@ def test_detections_to_pascal_voc_does_not_mutate_detections():
     )
     assert np.array_equal(detections.xyxy, expected_xyxy)
     assert first == second
+
+
 @pytest.mark.parametrize(
     ("polygon_element", "expected_result", "exception"),
     [

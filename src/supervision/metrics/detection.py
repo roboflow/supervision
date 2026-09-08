@@ -65,8 +65,7 @@ def detections_to_tensor(
     with_confidence: bool = False,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> npt.NDArray[np.float32]:
-    """
-    Convert Supervision Detections to a numpy tensor for metric computation.
+    """Convert Supervision Detections to a numpy tensor for metric computation.
 
     Args:
         detections: Detections/Targets in the format of sv.Detections.
@@ -684,8 +683,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix based on predicted and ground-truth detections.
+        """Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
             targets: Detections objects from ground-truth.
@@ -768,8 +766,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix based on predicted and ground-truth detections.
+        """Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
             predictions: Each element of the list describes a single
@@ -861,8 +858,7 @@ class ConfusionMatrix:
         iou_threshold: float,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> npt.NDArray[np.int32]:
-        """
-        Calculate confusion matrix for a batch of detections for a single image.
+        """Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
             predictions: Batch prediction. Describes a single image and
@@ -1047,8 +1043,7 @@ class ConfusionMatrix:
         *,
         save_directory_path: str | Path | None = None,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix from dataset and callback function.
+        """Calculate confusion matrix from dataset and callback function.
 
         Args:
             dataset: Object detection dataset used for evaluation.
@@ -1275,8 +1270,8 @@ class MeanAveragePrecision:
         predictions: list[Detections],
         targets: list[Detections],
     ) -> MeanAveragePrecision:
-        """
-        Calculate mean average precision based on predicted and ground-truth detections.
+        """Calculate mean average precision based on predicted and ground-truth
+        detections.
 
         Args:
             targets: Detections objects from ground-truth.
@@ -1328,8 +1323,7 @@ class MeanAveragePrecision:
         dataset: DetectionDataset,
         callback: Callable[[npt.NDArray[np.uint8]], Detections],
     ) -> MeanAveragePrecision:
-        """
-        Calculate mean average precision from dataset and callback function.
+        """Calculate mean average precision from dataset and callback function.
 
         Args:
             dataset: Object detection dataset used for evaluation.
@@ -1374,9 +1368,8 @@ class MeanAveragePrecision:
         predictions: list[npt.NDArray[np.float32]],
         targets: list[npt.NDArray[np.float32]],
     ) -> MeanAveragePrecision:
-        """
-        Calculate Mean Average Precision based on predicted and ground-truth
-            detections at different threshold.
+        """Calculate Mean Average Precision based on predicted and ground-truth
+        detections at different threshold.
 
         Args:
             predictions: Each element of the list describes
@@ -1538,8 +1531,7 @@ class MeanAveragePrecision:
         targets: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        """
-        Match predictions with target labels based on IoU levels.
+        """Match predictions with target labels based on IoU levels.
 
         Args:
             predictions: Batch prediction. Describes a single image and

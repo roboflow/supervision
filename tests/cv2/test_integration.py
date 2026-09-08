@@ -52,8 +52,7 @@ def _blocked_cv2_environment(tmp_path: Path) -> dict[str, str]:
 
 
         sys.meta_path.insert(0, BlockCv2())
-        """
-           ,
+        """,
         encoding="utf-8",
     )
     environment = os.environ.copy()

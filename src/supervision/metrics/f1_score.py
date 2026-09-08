@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class F1Score(Metric["F1ScoreResult"]):
-    """
-    F1 Score is a metric used to evaluate object detection models. It is the harmonic
+    """F1 Score is a metric used to evaluate object detection models. It is the harmonic
     mean of precision and recall, calculated at different IoU thresholds.
 
     In simple terms, F1 Score is a measure of a model's balance between precision and
@@ -645,8 +644,7 @@ class F1ScoreResult:
     large_objects: F1ScoreResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon

@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class Recall(Metric["RecallResult"]):
-    """
-    Recall is a metric used to evaluate object detection models. It is the ratio of
+    """Recall is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of ground truth instances. We calculate
     it at different IoU thresholds.
 
@@ -669,8 +668,7 @@ class RecallResult:
     large_objects: RecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon

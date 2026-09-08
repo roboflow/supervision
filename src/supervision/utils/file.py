@@ -112,9 +112,8 @@ class NumpyJsonEncoder(json.JSONEncoder):
 def list_files_with_extensions(
     directory: str | Path, extensions: list[str] | None = None
 ) -> list[Path]:
-    """
-    List files in a directory with specified extensions or
-        all files if no extensions are provided.
+    """List files in a directory with specified extensions or all files if no extensions
+    are provided.
 
     Args:
         directory: The directory path as a string or Path object.
@@ -180,8 +179,7 @@ def list_files_with_extensions(
 
 
 def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
-    """
-    Read a text file and return a list of strings without newline characters.
+    """Read a text file and return a list of strings without newline characters.
     Optionally skip empty lines.
 
     Args:
@@ -229,8 +227,7 @@ def save_text_file(lines: list[str], file_path: str | Path) -> None:
 
 
 def read_json_file(file_path: str | Path) -> dict[str, Any]:
-    """
-    Read a json file and return a dict.
+    """Read a json file and return a dict.
 
     Args:
         file_path: The file path as a string or Path object.
