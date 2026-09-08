@@ -1,11 +1,11 @@
-"""Private Pillow-based text fallback for the OpenCV compatibility facade.
+"""
+Private Pillow-based text fallback for the OpenCV compatibility facade.
 
-OpenCV renders text with built-in Hershey stroke fonts. The fallback instead
-draws a proportional TrueType face (DejaVu Sans, shipped with Matplotlib, an
-existing required dependency), so glyph shapes and text metrics differ from
-OpenCV within the documented visual-divergence tier. ``getTextSize`` derives
-its box from the same font ``putText`` renders with, so the reported rectangle
-always encloses the drawn text.
+OpenCV renders text with built-in Hershey stroke fonts. The fallback instead draws a
+proportional TrueType face (DejaVu Sans, shipped with Matplotlib, an existing required
+dependency), so glyph shapes and text metrics differ from OpenCV within the documented
+visual-divergence tier. ``getTextSize`` derives its box from the same font ``putText``
+renders with, so the reported rectangle always encloses the drawn text.
 """
 
 from __future__ import annotations
@@ -56,7 +56,8 @@ def _stroke_width(thickness: int) -> int:
 def _get_text_size(
     text: str, fontFace: int, fontScale: float, thickness: int
 ) -> tuple[tuple[int, int], int]:
-    """Return an OpenCV-shaped ``((width, height), baseline)`` for the face.
+    """
+    Return an OpenCV-shaped ``((width, height), baseline)`` for the face.
 
     Height is the font ascent and baseline the descent, both string-independent
     like OpenCV's contract, so consumers get stable row heights. Padding uses
@@ -85,11 +86,12 @@ def _put_text(
     lineType: int = _LINE_8,
     bottomLeftOrigin: bool = False,
 ) -> _ImageArray:
-    """Render text with a Pillow face, anchored at OpenCV's baseline origin.
+    """
+    Render text with a Pillow face, anchored at OpenCV's baseline origin.
 
     Thickness maps to a Pillow stroke width to emulate OpenCV's bolder strokes.
-    ``bottomLeftOrigin`` (an inverted-axis mode no Supervision caller uses) is
-    rejected rather than silently ignored.
+    ``bottomLeftOrigin`` (an inverted-axis mode no Supervision caller uses) is rejected
+    rather than silently ignored.
     """
     del lineType
     if bottomLeftOrigin:

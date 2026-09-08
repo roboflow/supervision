@@ -100,9 +100,7 @@ class CSVSink:
         self.close()
 
     def open(self) -> None:
-        """
-        Open the CSV file for writing.
-        """
+        """Open the CSV file for writing."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
@@ -117,10 +115,10 @@ class CSVSink:
         """
         Close the CSV file.
 
-        When every appended batch was empty no header has been written yet, so
-        the schema remembered from the first such batch is emitted here. This
-        keeps a run that never detected anything readable as an empty table
-        rather than as a zero-byte file.
+        When every appended batch was empty no header has been written yet, so the
+        schema remembered from the first such batch is emitted here. This keeps a run
+        that never detected anything readable as an empty table rather than as a zero-
+        byte file.
         """
         if self.file is None or self.file.closed:
             return

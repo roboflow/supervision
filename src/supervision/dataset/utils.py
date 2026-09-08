@@ -34,7 +34,8 @@ from supervision.detection.utils.polygons import (
 def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
-    """Deprecated since 0.28.0.
+    """
+    Deprecated since 0.28.0.
 
     Use `supervision.detection.utils.converters.mask_to_rle`.
     """
@@ -46,7 +47,8 @@ def rle_to_mask(
     rle: npt.NDArray[np.integer] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
-    """Deprecated since 0.28.0.
+    """
+    Deprecated since 0.28.0.
 
     Use `supervision.detection.utils.converters.rle_to_mask`.
     """
@@ -65,10 +67,11 @@ def approximate_mask_with_polygons(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.0,
 ) -> list[npt.NDArray[np.number]]:
-    """Filter mask polygons by area and optionally simplify them.
+    """
+    Filter mask polygons by area and optionally simplify them.
 
-    The default `approximation_percentage=0.0` preserves the original contour
-    unless callers explicitly ask for simplification.
+    The default `approximation_percentage=0.0` preserves the original contour unless
+    callers explicitly ask for simplification.
     """
     height, width = mask.shape
     image_area = height * width
@@ -145,7 +148,8 @@ def check_no_basename_collisions(
     key: Callable[[str], str],
     output_kind: str,
 ) -> None:
-    """Raise if two image paths would be written to the same output file.
+    """
+    Raise if two image paths would be written to the same output file.
 
     Dataset image paths may share a basename when they originate from different
     directories (a legal, common state after :meth:`DetectionDataset.merge`).

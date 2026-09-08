@@ -86,9 +86,7 @@ class F1Score(Metric["F1ScoreResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -150,7 +148,8 @@ class F1Score(Metric["F1ScoreResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> F1ScoreResult:
-        """Build per-image stats tuples and delegate to class-level computation.
+        """
+        Build per-image stats tuples and delegate to class-level computation.
 
         Each stats tuple is
         ``(matches, ignored_matches, confidence, class_ids, true_class_ids)``:
@@ -361,10 +360,11 @@ class F1Score(Metric["F1ScoreResult"]):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
-        """Compute F1 scores from concatenated stats across all images.
+        """
+        Compute F1 scores from concatenated stats across all images.
 
-        ``unique_classes`` is the union of GT and predicted classes so that
-        predictions of classes absent from GT still count as false positives.
+        ``unique_classes`` is the union of GT and predicted classes so that predictions
+        of classes absent from GT still count as false positives.
         """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
@@ -448,7 +448,6 @@ class F1Score(Metric["F1ScoreResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -519,7 +518,8 @@ class F1Score(Metric["F1ScoreResult"]):
     def _detections_content(
         self, detections: Detections
     ) -> npt.NDArray[Any] | CompactMask:
-        """Return boxes, masks or oriented bounding boxes from detections.
+        """
+        Return boxes, masks or oriented bounding boxes from detections.
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
@@ -589,9 +589,7 @@ class F1Score(Metric["F1ScoreResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -758,7 +756,7 @@ class F1ScoreResult:
         Plot the F1 results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt

@@ -1,4 +1,5 @@
-"""Shared fixtures for the tests covering ``.github`` scripts and workflows.
+"""
+Shared fixtures for the tests covering ``.github`` scripts and workflows.
 
 The scripts under ``.github/scripts`` are standalone files rather than an installed
 package, so every test that exercises one has to load it from disk. Centralizing that
@@ -27,11 +28,12 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 @pytest.fixture(autouse=True)
 def _jupyter_platform_dirs(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Opt into Jupyter's platform directories for every test in this directory.
+    """
+    Opt into Jupyter's platform directories for every test in this directory.
 
-    Loading the MkDocs config pulls in Jupyter, which warns about its legacy paths.
-    The suite promotes ``DeprecationWarning`` to an error, so without this the docs
-    tests fail on a warning that has nothing to do with what they assert.
+    Loading the MkDocs config pulls in Jupyter, which warns about its legacy paths. The
+    suite promotes ``DeprecationWarning`` to an error, so without this the docs tests
+    fail on a warning that has nothing to do with what they assert.
     """
     monkeypatch.setenv("JUPYTER_PLATFORM_DIRS", "1")
 
@@ -50,7 +52,8 @@ def workflows_dir() -> Path:
 
 @pytest.fixture
 def load_script() -> Callable[[str], ModuleType]:
-    """Return a loader for a ``.github/scripts`` module, given its stem.
+    """
+    Return a loader for a ``.github/scripts`` module, given its stem.
 
     The loaded module never runs its CLI: the scripts guard that behind
     ``if __name__ == "__main__"``, and importing under the stem name leaves the guard
@@ -79,10 +82,11 @@ def updater(load_script: Callable[[str], ModuleType]) -> ModuleType:
 def workflow_step(
     workflows_dir: Path,
 ) -> Callable[[str, str, str], dict[str, Any]]:
-    """Return a lookup for one workflow step, addressed by job id and step name.
+    """
+    Return a lookup for one workflow step, addressed by job id and step name.
 
-    Steps are looked up by name rather than list position so that inserting a step
-    into a workflow cannot silently repoint an existing test at a different step.
+    Steps are looked up by name rather than list position so that inserting a step into
+    a workflow cannot silently repoint an existing test at a different step.
     """
 
     def lookup(workflow_file: str, job: str, step_name: str) -> dict[str, Any]:

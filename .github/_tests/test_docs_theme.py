@@ -86,7 +86,8 @@ def test_version_banner_matches_mike_version(
     is_latest_release: bool,
     expected_text: str | None,
 ) -> None:
-    """Render warnings only for development and archived documentation.
+    """
+    Render warnings only for development and archived documentation.
 
     The `current-release` case guards the bug where a release's own docs tree
     warned its own readers away from itself: `mike deploy <tag>` always sets

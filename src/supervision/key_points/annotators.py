@@ -39,8 +39,9 @@ class BaseKeyPointAnnotator(ABC):
 
 class VertexAnnotator(BaseKeyPointAnnotator):
     """
-    A class that specializes in drawing skeleton vertices on images. It uses
-    specified key points to determine the locations where the vertices should be
+    A class that specializes in drawing skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
     drawn.
     """
 
@@ -123,7 +124,9 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 class EdgeAnnotator(BaseKeyPointAnnotator):
     """
     A class that specializes in drawing skeleton edges on images using specified key
-    points. It connects key points with lines to form the skeleton structure.
+    points.
+
+    It connects key points with lines to form the skeleton structure.
     """
 
     def __init__(
@@ -272,7 +275,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
 
 class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
-    """Private base for ellipse-based keypoint annotators.
+    """
+    Private base for ellipse-based keypoint annotators.
 
     Handles sigma/color validation, sorting, covariance extraction and
     eigendecomposition shared by all VertexEllipse* variants.
@@ -382,15 +386,14 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
 
 class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
     """
-    Draws filled semi-transparent covariance ellipses at multiple sigma levels
-    around each keypoint, each ring in a different color.  This produces a
-    bullseye-like uncertainty visualization where inner rings represent higher
-    probability density.
+    Draws filled semi-transparent covariance ellipses at multiple sigma levels around
+    each keypoint, each ring in a different color.  This produces a bullseye-like
+    uncertainty visualization where inner rings represent higher probability density.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -485,13 +488,13 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
     """
-    Draws stroke-only concentric covariance ellipse rings at multiple sigma
-    levels around each keypoint.
+    Draws stroke-only concentric covariance ellipse rings at multiple sigma levels
+    around each keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -584,15 +587,15 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
 class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
     """
-    Draws filled covariance ellipses with a radial fade: full opacity at the
-    center, smoothly falling off to zero at the ellipse boundary.  The falloff
-    follows a power curve controlled by ``decay``, producing a soft glow that
-    is strongest near the keypoint.
+    Draws filled covariance ellipses with a radial fade: full opacity at the center,
+    smoothly falling off to zero at the ellipse boundary.  The falloff follows a power
+    curve controlled by ``decay``, producing a soft glow that is strongest near the
+    keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     _DECAY: float = 2.0
@@ -721,8 +724,10 @@ VertexEllipseAnnotator = VertexEllipseAreaAnnotator
 
 class VertexLabelAnnotator:
     """
-    A class that draws labels of skeleton vertices on images. It uses specified key
-    points to determine the locations where the vertices should be drawn.
+    A class that draws labels of skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
+    drawn.
     """
 
     def __init__(

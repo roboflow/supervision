@@ -67,7 +67,7 @@ def detect(
 ) -> sv.Detections:
     """
     Detect objects in a frame using Inference model, filtering detections by class ID
-        and confidence threshold.
+    and confidence threshold.
 
     Args:
         frame (np.ndarray): The frame to process, expected to be a NumPy array.

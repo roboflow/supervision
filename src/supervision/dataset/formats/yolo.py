@@ -75,7 +75,8 @@ def _with_seg_mask(lines: list[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    """Return class names from a YOLO data.yaml file ordered by class index.
+    """
+    Return class names from a YOLO data.yaml file ordered by class index.
 
     Supports list and dict forms of the ``names`` field. Dict keys that are
     all int-like (plain ints or digit strings) are sorted numerically so
@@ -203,8 +204,8 @@ def load_yolo_annotations(
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
-    Loads YOLO annotations and returns class names, images,
-        and their corresponding detections.
+    Loads YOLO annotations and returns class names, images, and their corresponding
+    detections.
 
     Args:
         images_directory_path: The path to the directory containing the images.

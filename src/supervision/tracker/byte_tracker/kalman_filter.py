@@ -7,13 +7,12 @@ class KalmanFilter:
     """
     A simple Kalman filter for tracking bounding boxes in image space.
 
-    The 8-dimensional state space is (x, y, a, h, vx, vy, va, vh), where
-    (x, y) is the bounding box center, a is the aspect ratio (w/h), h is
-    the height, and their respective velocities.
+    The 8-dimensional state space is (x, y, a, h, vx, vy, va, vh), where (x, y) is the
+    bounding box center, a is the aspect ratio (w/h), h is the height, and their
+    respective velocities.
 
-    Object motion follows a constant velocity model. The bounding box location
-    (x, y, a, h) is taken as direct observation of the state space (linear
-    observation model).
+    Object motion follows a constant velocity model. The bounding box location (x, y, a,
+    h) is taken as direct observation of the state space (linear observation model).
     """
 
     def __init__(self) -> None:

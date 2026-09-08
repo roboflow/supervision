@@ -70,7 +70,8 @@ def _load_icon_from_path(
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
-    """Normalize accepted color inputs to internal color objects.
+    """
+    Normalize accepted color inputs to internal color objects.
 
     Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
     `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
@@ -196,9 +197,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
 
 class BoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing bounding boxes on an image using provided detections.
-    """
+    """A class for drawing bounding boxes on an image using provided detections."""
 
     def __init__(
         self,
@@ -283,8 +282,8 @@ class BoxAnnotator(BaseAnnotator):
 
 
 class OrientedBoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing oriented bounding boxes on an image using provided detections.
+    """A class for drawing oriented bounding boxes on an image using provided
+    detections.
     """
 
     def __init__(
@@ -392,7 +391,8 @@ class OrientedBoxAnnotator(BaseAnnotator):
 def _iter_mask_crops(
     detections: Detections,
 ) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
-    """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
+    """
+    Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
 
     Encapsulates the ``CompactMask`` vs dense dispatch so individual annotators
     do not need inline ``isinstance`` checks. For ``CompactMask`` inputs yields
@@ -436,7 +436,8 @@ def _paint_masks_by_area(
     collect_union: bool = False,
     canvas_origin: tuple[int, int] = (0, 0),
 ) -> npt.NDArray[np.bool_] | None:
-    """Paint each detection's mask into `canvas` in descending-area order.
+    """
+    Paint each detection's mask into `canvas` in descending-area order.
 
     Smaller masks are drawn on top of larger ones. `CompactMask` detections
     are painted into their bounding-box crop only, avoiding a full `(H, W)`
@@ -517,7 +518,7 @@ class MaskAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses `sv.Detections.mask`.
     """
 
     requires_mask = True
@@ -626,7 +627,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses `sv.Detections.mask`.
     """
 
     requires_mask = True
@@ -728,9 +729,7 @@ class PolygonAnnotator(BaseAnnotator):
 
 
 class ColorAnnotator(BaseAnnotator):
-    """
-    A class for drawing box masks on an image using provided detections.
-    """
+    """A class for drawing box masks on an image using provided detections."""
 
     def __init__(
         self,
@@ -825,7 +824,7 @@ class HaloAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses `sv.Detections.mask`.
     """
 
     requires_mask = True
@@ -933,9 +932,7 @@ class HaloAnnotator(BaseAnnotator):
 
 
 class EllipseAnnotator(BaseAnnotator):
-    """
-    A class for drawing ellipses on an image using provided detections.
-    """
+    """A class for drawing ellipses on an image using provided detections."""
 
     def __init__(
         self,
@@ -1032,9 +1029,7 @@ class EllipseAnnotator(BaseAnnotator):
 
 
 class BoxCornerAnnotator(BaseAnnotator):
-    """
-    A class for drawing box corners on an image using provided detections.
-    """
+    """A class for drawing box corners on an image using provided detections."""
 
     def __init__(
         self,
@@ -1127,9 +1122,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
 
 class CircleAnnotator(BaseAnnotator):
-    """
-    A class for drawing circle on an image using provided detections.
-    """
+    """A class for drawing circle on an image using provided detections."""
 
     def __init__(
         self,
@@ -1145,7 +1138,6 @@ class CircleAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-
         self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
@@ -1219,8 +1211,7 @@ class CircleAnnotator(BaseAnnotator):
 
 
 class DotAnnotator(BaseAnnotator):
-    """
-    A class for drawing dots on an image at specific coordinates based on provided
+    """A class for drawing dots on an image at specific coordinates based on provided
     detections.
     """
 
@@ -1330,9 +1321,7 @@ class DotAnnotator(BaseAnnotator):
 
 
 class LabelAnnotator(_BaseLabelAnnotator):
-    """
-    A class for annotating labels on an image using provided detections.
-    """
+    """A class for annotating labels on an image using provided detections."""
 
     def __init__(
         self,
@@ -1682,9 +1671,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
 
 class RichLabelAnnotator(_BaseLabelAnnotator):
-    """
-    A class for annotating labels on an image using provided detections,
-    with support for Unicode characters by using a custom font.
+    """A class for annotating labels on an image using provided detections, with support
+    for Unicode characters by using a custom font.
     """
 
     def __init__(
@@ -1954,9 +1942,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
 
 class IconAnnotator(BaseAnnotator):
-    """
-    A class for drawing an icon on an image, using provided detections.
-    """
+    """A class for drawing an icon on an image, using provided detections."""
 
     def __init__(
         self,
@@ -2056,9 +2042,7 @@ class IconAnnotator(BaseAnnotator):
 
 
 class BlurAnnotator(BaseAnnotator):
-    """
-    A class for blurring regions in an image using provided detections.
-    """
+    """A class for blurring regions in an image using provided detections."""
 
     def __init__(self, kernel_size: int | None = None):
         """
@@ -2139,9 +2123,8 @@ class TraceAnnotator(BaseAnnotator):
 
     !!! warning
 
-        This annotator uses the `sv.Detections.tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
-        tracking into your inference pipeline.
+    This annotator uses the `sv.Detections.tracker_id`. Read [here](/latest/trackers/)
+    to learn how to plug tracking into your inference pipeline.
     """
 
     def __init__(
@@ -2369,8 +2352,9 @@ class TraceAnnotator(BaseAnnotator):
 class HeatMapAnnotator(BaseAnnotator):
     """
     A class for drawing heatmaps on an image based on provided detections.
-    Heat accumulates over time and is drawn as a semi-transparent overlay
-    of blurred circles.
+
+    Heat accumulates over time and is drawn as a semi-transparent overlay of blurred
+    circles.
     """
 
     def __init__(
@@ -2529,9 +2513,7 @@ class HeatMapAnnotator(BaseAnnotator):
 
 
 class PixelateAnnotator(BaseAnnotator):
-    """
-    A class for pixelating regions in an image using provided detections.
-    """
+    """A class for pixelating regions in an image using provided detections."""
 
     def __init__(self, pixel_size: int | None = None):
         """
@@ -2627,8 +2609,7 @@ class PixelateAnnotator(BaseAnnotator):
 
 
 class TriangleAnnotator(BaseAnnotator):
-    """
-    A class for drawing triangle markers on an image at specific coordinates based on
+    """A class for drawing triangle markers on an image at specific coordinates based on
     provided detections.
     """
 
@@ -2749,9 +2730,8 @@ class TriangleAnnotator(BaseAnnotator):
 
 
 class RoundBoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing bounding boxes with round edges on an image
-    using provided detections.
+    """A class for drawing bounding boxes with round edges on an image using provided
+    detections.
     """
 
     def __init__(
@@ -2885,9 +2865,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
 
 class PercentageBarAnnotator(BaseAnnotator):
-    """
-    A class for drawing percentage bars on an image using provided detections.
-    """
+    """A class for drawing percentage bars on an image using provided detections."""
 
     def __init__(
         self,
@@ -3094,9 +3072,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
 
 class CropAnnotator(BaseAnnotator):
-    """
-    A class for drawing scaled up crops of detections on the scene.
-    """
+    """A class for drawing scaled up crops of detections on the scene."""
 
     def __init__(
         self,
@@ -3265,17 +3241,17 @@ class CropAnnotator(BaseAnnotator):
 
 class BackgroundOverlayAnnotator(BaseAnnotator):
     """
-    A class for drawing a colored overlay on the background of an image outside
-    the region of detections.
+    A class for drawing a colored overlay on the background of an image outside the
+    region of detections.
 
-    If masks are provided, the background is colored outside the masks.
-    If masks are not provided, the background is colored outside the bounding boxes.
+    If masks are provided, the background is colored outside the masks. If masks are not
+    provided, the background is colored outside the bounding boxes.
 
     You can use the `force_box` parameter to force the annotator to use bounding boxes.
 
     !!! warning
 
-        This annotator uses `sv.Detections.mask`.
+    This annotator uses `sv.Detections.mask`.
     """
 
     def __init__(
@@ -3357,12 +3333,11 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
 class ComparisonAnnotator:
     """
-    Highlights the differences between two sets of detections.
-    Useful for comparing results from two different models, or the difference
-    between a ground truth and a prediction.
+    Highlights the differences between two sets of detections. Useful for comparing
+    results from two different models, or the difference between a ground truth and a
+    prediction.
 
-    If present, uses the oriented bounding box data.
-    Otherwise, if present, uses a mask.
+    If present, uses the oriented bounding box data. Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
     """
 
@@ -3394,7 +3369,6 @@ class ComparisonAnnotator:
             label_overlap: Label for areas present in both sets of detections.
             label_scale: Controls how large the labels are.
         """
-
         self.color_1 = color_1
         self.color_2 = color_2
         self.color_overlap = color_overlap

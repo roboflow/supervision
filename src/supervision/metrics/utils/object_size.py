@@ -131,7 +131,8 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
 def get_area_size_category(
     areas: npt.NDArray[np.number],
 ) -> npt.NDArray[np.int_]:
-    """Get object size categories from per-detection pixel areas.
+    """
+    Get object size categories from per-detection pixel areas.
 
     Args:
         areas: One-dimensional pixel areas shaped (N,).

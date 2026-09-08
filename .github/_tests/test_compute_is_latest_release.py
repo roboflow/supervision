@@ -60,10 +60,11 @@ class TestIsLatestRelease:
     def test_includes_its_own_tag_among_the_candidates(
         self, compute: ModuleType
     ) -> None:
-        """The release's own (already-pushed) tag does not make it look superseded.
+        """
+        The release's own (already-pushed) tag does not make it look superseded.
 
         `git tag --list` in CI already includes the tag that triggered the release
-        event, so the comparison must treat `release_tag` appearing in
-        `existing_tags` as a tie, not as evidence something newer exists.
+        event, so the comparison must treat `release_tag` appearing in `existing_tags`
+        as a tie, not as evidence something newer exists.
         """
         assert compute.is_latest_release("1.2.0", ["v1.0.0", "v1.2.0"]) is True

@@ -237,7 +237,6 @@ def from_paligemma(
             optional array of shape `(n,)` with class indices, and `class_name`
             is an array of shape `(n,)` with class labels.
     """
-
     w, h = _validate_resolution(resolution_wh)
 
     pattern = re.compile(
@@ -339,7 +338,6 @@ def from_qwen_2_5_vl(
             is an optional array of shape `(N,)` with class indices, and
             `class_name` is an array of shape `(N,)` with class names.
     """
-
     in_w, in_h = _validate_resolution(input_wh)
     out_w, out_h = _validate_resolution(resolution_wh)
 
@@ -681,7 +679,6 @@ def from_google_gemini_2_0(
             is an array of shape `(n,)` with class labels.
 
     """
-
     w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
@@ -963,7 +960,6 @@ def from_moondream(
         An array of shape `(n, 4)` containing the bounding boxes coordinates
             in format `[x1, y1, x2, y2]`.
     """
-
     w, h = resolution_wh
     if w <= 0 or h <= 0:
         raise ValueError(

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to augment relative links in markdown files to GitHub URLs.
-"""
+"""Script to augment relative links in markdown files to GitHub URLs."""
 
 import argparse
 import os

@@ -8,30 +8,25 @@ R = TypeVar("R")
 
 
 class Metric(ABC, Generic[R]):
-    """
-    The base class for all supervision metrics.
-    """
+    """The base class for all supervision metrics."""
 
     @abstractmethod
     def update(self, *args: Any, **kwargs: Any) -> Metric[R]:
         """
         Add data to the metric, without computing the result.
+
         Return the metric itself to allow method chaining.
         """
         raise NotImplementedError
 
     @abstractmethod
     def reset(self) -> None:
-        """
-        Reset internal metric state.
-        """
+        """Reset internal metric state."""
         raise NotImplementedError
 
     @abstractmethod
     def compute(self, *args: Any, **kwargs: Any) -> R:
-        """
-        Compute the metric from the internal state and return the result.
-        """
+        """Compute the metric from the internal state and return the result."""
         raise NotImplementedError
 
 

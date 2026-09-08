@@ -19,7 +19,8 @@ class FPSBasedTimer:
     """
 
     def __init__(self, fps: float = 30) -> None:
-        """Initializes the FPSBasedTimer with the specified frames per second rate.
+        """
+        Initializes the FPSBasedTimer with the specified frames per second rate.
 
         Args:
             fps (float): The frame rate of the video stream. Defaults to 30.
@@ -29,7 +30,8 @@ class FPSBasedTimer:
         self.tracker_id2frame_id: dict[int, int] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
-        """Processes the current frame, updating time durations for each tracker.
+        """
+        Processes the current frame, updating time durations for each tracker.
 
         Args:
             detections: The detections for the current frame, including tracker IDs.
@@ -66,7 +68,8 @@ class ClockBasedTimer:
         self.tracker_id2start_time: dict[int, datetime] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
-        """Processes the current frame, updating time durations for each tracker.
+        """
+        Processes the current frame, updating time durations for each tracker.
 
         Args:
             detections: The detections for the current frame, including tracker IDs.

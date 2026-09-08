@@ -46,9 +46,7 @@ DEFAULT_IMAGE_URL_CACHE_DIR = SUPERVISION_CACHE_DIR / "image-url"
 
 
 def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
-    """
-    Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`.
-    """
+    """Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`."""
     cache_root = (
         DEFAULT_IMAGE_URL_CACHE_DIR
         if cache_dir is None
@@ -64,9 +62,7 @@ def _decode_image_from_bytes(
     value: bytes,
     cv_imread_flags: int,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Decode raw image bytes into an OpenCV image, raising on undecodable data.
-    """
+    """Decode raw image bytes into an OpenCV image, raising on undecodable data."""
     image = cv2.imdecode(
         np.frombuffer(value, dtype=np.uint8),
         cv_imread_flags,
@@ -472,7 +468,8 @@ def _overlay_image(
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
-    """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
+    """
+    Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Non-deprecated internal implementation backing the public `overlay_image`.
     Kept separate so library-internal callers do not emit a deprecation warning.
@@ -657,8 +654,8 @@ class ImageSink:
     """
     Save sequential images into a directory through a context manager.
 
-    `ImageSink` creates the target directory on entry and writes each image
-    using `save_image`, incrementing the image name pattern after every save.
+    `ImageSink` creates the target directory on entry and writes each image using
+    `save_image`, incrementing the image name pattern after every save.
     """
 
     def __init__(
@@ -768,10 +765,10 @@ def create_tiles(
     default_title_placement: RelativePosition = "top",
 ) -> ImageType:
     """
-    Creates tiles mosaic from input images, automating grid placement and
-    converting images to common resolution maintaining aspect ratio. It is
-    also possible to render text titles on tiles, using optional set of
-    parameters specifying text drawing (see parameters description).
+    Creates tiles mosaic from input images, automating grid placement and converting
+    images to common resolution maintaining aspect ratio. It is also possible to render
+    text titles on tiles, using optional set of parameters specifying text drawing (see
+    parameters description).
 
     Automated grid placement will try to maintain square shape of grid
     (with size being the nearest integer square root of #images), up to two exceptions:

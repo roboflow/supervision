@@ -25,7 +25,8 @@ def load_zones_config(file_path: str) -> list[np.ndarray]:
 
 
 def find_in_list(array: np.ndarray, search_list: list[int]) -> np.ndarray:
-    """Determines if elements of a numpy array are present in a list.
+    """
+    Determines if elements of a numpy array are present in a list.
 
     Args:
         array (np.ndarray): The numpy array of integers to check.

@@ -143,7 +143,8 @@ class TestPutText:
         assert rows.max() <= org[1] + baseline
 
     def test_reported_baseline_encloses_thick_stroke_descent(self) -> None:
-        """Keep the baseline padding matching the stroke_width putText renders.
+        """
+        Keep the baseline padding matching the stroke_width putText renders.
 
         A thickness of 7 (stroke_width 6) is past the point where the old
         ``thickness // 2`` baseline formula under-padded relative to the

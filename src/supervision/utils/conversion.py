@@ -17,9 +17,8 @@ def ensure_cv2_image_for_class_method(
     annotate_func: F,
 ) -> F:
     """
-    Decorates `BaseAnnotator.annotate` implementations, converts scene to
-    an image type used internally by the annotators, converts back when annotation
-    is complete.
+    Decorates `BaseAnnotator.annotate` implementations, converts scene to an image type
+    used internally by the annotators, converts back when annotation is complete.
 
     Assumes the annotators modify the scene in-place.
 
@@ -137,8 +136,8 @@ def images_to_cv2(
     images: list[npt.NDArray[np.uint8] | Image.Image],
 ) -> list[npt.NDArray[np.uint8]]:
     """
-    Converts images provided either as Pillow images or OpenCV
-    images into OpenCV format.
+    Converts images provided either as Pillow images or OpenCV images into OpenCV
+    format.
 
     Args:
         images: Images to be converted
@@ -146,7 +145,6 @@ def images_to_cv2(
     Returns:
         List of input images in OpenCV format
             (with order preserved).
-
     """
     result: list[npt.NDArray[np.uint8]] = []
     for image in images:

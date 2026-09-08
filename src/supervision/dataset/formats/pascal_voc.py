@@ -211,7 +211,6 @@ def load_pascal_voc_annotations(
             and a dictionary with image paths as keys and corresponding
             Detections instances as values.
     """
-
     image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(

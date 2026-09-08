@@ -298,6 +298,5 @@ def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
         data: dict with unique keys and value as pair.
         file_path: The file path as a string or Path object.
     """
-
     with open(str(file_path), "w") as outfile:
         yaml.dump(data, outfile, sort_keys=False, default_flow_style=None)

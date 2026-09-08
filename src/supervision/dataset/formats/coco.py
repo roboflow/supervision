@@ -51,7 +51,8 @@ def build_coco_class_index_mapping(
 
 
 def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
-    """Convert a list of class names to COCO ``categories`` entries.
+    """
+    Convert a list of class names to COCO ``categories`` entries.
 
     Category ids are emitted 1-indexed to comply with the COCO specification
     and tools such as CVAT, which require ``category_id`` values to start at
@@ -160,7 +161,8 @@ def coco_annotations_to_detections(
     with_masks: bool,
     use_iscrowd: bool = True,
 ) -> Detections:
-    """Convert COCO annotation dicts for a single image into a `Detections` object.
+    """
+    Convert COCO annotation dicts for a single image into a `Detections` object.
 
     .. warning::
         The returned ``Detections.class_id`` contains **raw COCO** ``category_id``
@@ -582,11 +584,12 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 
 
 def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[int, int]:
-    """Return ``(height, width)`` for ``image_path`` without decoding pixels.
+    """
+    Return ``(height, width)`` for ``image_path`` without decoding pixels.
 
-    Uses the in-memory array when the dataset holds one; otherwise reads the
-    size from the file header via lazy ``PIL.Image.open``, which parses only
-    image metadata — the same optimization the YOLO loader uses (#1636).
+    Uses the in-memory array when the dataset holds one; otherwise reads the size from
+    the file header via lazy ``PIL.Image.open``, which parses only image metadata — the
+    same optimization the YOLO loader uses (#1636).
     """
     if dataset._images_in_memory:
         image_height, image_width = dataset._images_in_memory[image_path].shape[:2]

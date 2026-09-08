@@ -34,9 +34,7 @@ def is_md5_hash_matching(filename: str | Path, original_md5_hash: str) -> bool:
 
 
 def _download_asset(filename: str, destination: Path) -> None:
-    """
-    Download asset bytes to the target destination via a temporary file.
-    """
+    """Download asset bytes to the target destination via a temporary file."""
     _download_to_file(MEDIA_ASSETS[filename][0], destination, timeout=30.0, stream=True)
 
 
@@ -47,9 +45,7 @@ def _download_verified_asset(
     check_target: str | Path,
     retry_on_mismatch: bool = True,
 ) -> None:
-    """
-    Download an asset and reject payloads whose MD5 does not match the catalog.
-    """
+    """Download an asset and reject payloads whose MD5 does not match the catalog."""
     _download_asset(filename, destination)
 
     if is_md5_hash_matching(check_target, original_md5_hash):
@@ -98,7 +94,6 @@ def download_assets(
 
         ```
     """
-
     filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
     if directory is None:
         destination = Path.cwd() / filename

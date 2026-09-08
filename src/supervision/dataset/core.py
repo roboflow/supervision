@@ -71,8 +71,9 @@ class BaseDataset(ABC):
 
 class DetectionDataset(BaseDataset):
     """
-    Contains information about a detection dataset. Handles lazy image loading
-    and annotation retrieval, dataset splitting, conversions into multiple
+    Contains information about a detection dataset.
+
+    Handles lazy image loading and annotation retrieval, dataset splitting, conversions into multiple
     formats.
 
     Attributes:
@@ -387,8 +388,9 @@ class DetectionDataset(BaseDataset):
         show_progress: bool = False,
     ) -> None:
         """
-        Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format. Both output
+        Exports the dataset to PASCAL VOC format.
+
+        This method saves the images and their corresponding annotations in PASCAL VOC format. Both output
         layouts are preflighted before any files are written so a collision in
         either target fails without partial output.
 
@@ -585,8 +587,9 @@ class DetectionDataset(BaseDataset):
         show_progress: bool = False,
     ) -> None:
         """
-        Exports the dataset to YOLO format. This method saves the
-        images and their corresponding annotations in YOLO format.
+        Exports the dataset to YOLO format.
+
+        This method saves the images and their corresponding annotations in YOLO format.
 
         Args:
             images_directory_path: The path to the
@@ -1038,8 +1041,8 @@ class DetectionDataset(BaseDataset):
 @dataclass
 class ClassificationDataset(BaseDataset):
     """
-    Contains information about a classification dataset, handles lazy image
-    loading, dataset splitting.
+    Contains information about a classification dataset, handles lazy image loading,
+    dataset splitting.
 
     Attributes:
         classes: List containing dataset class names.

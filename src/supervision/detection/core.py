@@ -209,9 +209,7 @@ class Detections:
         )
 
     def __len__(self) -> int:
-        """
-        Returns the number of detections in the Detections object.
-        """
+        """Returns the number of detections in the Detections object."""
         return len(self.xyxy)
 
     def __iter__(
@@ -3004,7 +3002,8 @@ class Detections:
     def _build_nms_predictions(
         self, class_agnostic: bool, operation_name: str
     ) -> npt.NDArray[np.floating]:
-        """Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
+        """
+        Stack xyxy + confidence (+ class_id) for NMS/NMM/Soft-NMS dispatch.
 
         Callers must already have verified `self.confidence is not None`.
         """
@@ -3039,8 +3038,9 @@ class Detections:
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
-        Performs non-max suppression on detection set. Dispatch order: (1) if mask
-        data present, IoU mask is used; (2) else if oriented-box coordinates
+        Performs non-max suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if oriented-box coordinates
         (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
         otherwise, axis-aligned box IoU is used.
 
@@ -3102,8 +3102,9 @@ class Detections:
         score_threshold: float | None = None,
     ) -> Detections:
         """
-        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch
-        order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        Performs Gaussian Soft Non-Maximum Suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
         axis-aligned box IoU is used. Oriented-box detections are not given
         dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
 
@@ -3252,7 +3253,8 @@ class Detections:
 def _merge_obb_corners(
     corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
-    """Merge multiple OBB corner arrays using winner-angle projection.
+    """
+    Merge multiple OBB corner arrays using winner-angle projection.
 
     The first entry in *corners_list* is the winner. Its orientation angle
     (derived from its first edge) defines the local frame in which the
@@ -3312,7 +3314,8 @@ def _merge_obb_corners(
 
 
 def _merge_detection_group(detections: list[Detections]) -> Detections:
-    """Merge a group of single-object Detections into one merged detection.
+    """
+    Merge a group of single-object Detections into one merged detection.
 
     Used internally by :meth:`Detections.with_nmm` to combine each merge group
     into a single output detection. The highest-confidence detection is the

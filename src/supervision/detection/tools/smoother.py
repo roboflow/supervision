@@ -144,7 +144,6 @@ class DetectionsSmoother:
         Args:
             detections: The detections to add to the smoother.
         """
-
         if detections.tracker_id is None:
             warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
@@ -174,7 +173,8 @@ class DetectionsSmoother:
         return self.get_smoothed_detections(track_ids=current_track_ids)
 
     def get_track(self, track_id: int) -> Detections | None:
-        """Return the smoothed `Detections` for a single track.
+        """
+        Return the smoothed `Detections` for a single track.
 
         Averages `xyxy` over all valid (non-`None`) frames in the track window.
         `confidence` is averaged only over frames that carry it; frames with
@@ -226,7 +226,8 @@ class DetectionsSmoother:
         return ret
 
     def get_smoothed_detections(self, track_ids: set[int] | None = None) -> Detections:
-        """Return the smoothed detections for the requested active tracks.
+        """
+        Return the smoothed detections for the requested active tracks.
 
         Args:
             track_ids: Optional set of track IDs to include in the output. When

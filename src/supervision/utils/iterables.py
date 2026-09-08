@@ -8,9 +8,8 @@ def create_batches(
     sequence: Iterable[V], batch_size: int
 ) -> Generator[list[V], None, None]:
     """
-    Provides a generator that yields chunks of the input sequence
-    of the size specified by the `batch_size` parameter. The last
-    chunk may be a smaller batch.
+    Provides a generator that yields chunks of the input sequence of the size specified
+    by the `batch_size` parameter. The last chunk may be a smaller batch.
 
     Args:
         sequence: The sequence to be split into batches.
@@ -44,8 +43,7 @@ def create_batches(
 
 def fill(sequence: list[V], desired_size: int, content: V) -> list[V]:
     """
-    Fill the sequence with padding elements until the sequence reaches
-    the desired size.
+    Fill the sequence with padding elements until the sequence reaches the desired size.
 
     Args:
         sequence: The input sequence.

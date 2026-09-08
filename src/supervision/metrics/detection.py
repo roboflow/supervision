@@ -183,9 +183,7 @@ def _validate_input_tensors(
     targets: list[npt.NDArray[np.float32]],
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
-    """
-    Checks for shape consistency of input tensors.
-    """
+    """Checks for shape consistency of input tensors."""
     if len(predictions) != len(targets):
         raise ValueError(
             f"Number of predictions ({len(predictions)}) and"
@@ -252,7 +250,6 @@ def _split_detections_by_outcome(
         A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
         each element is a ``Detections`` instance sliced from the input arrays.
     """
-
     if predictions.class_id is None:
         raise ValueError("Predictions must contain class_id values.")
 
@@ -376,7 +373,8 @@ def _build_error_labels(
     detections: Detections,
     class_names: list[str] | None,
 ) -> list[str]:
-    """Build per-detection label strings for annotation panels.
+    """
+    Build per-detection label strings for annotation panels.
 
     Produces labels like ``"cat 0.95"`` (class name + confidence when available)
     or numeric class-id strings when ``class_names`` is ``None``.
@@ -411,7 +409,8 @@ def _build_error_labels(
 def _get_annotation_parameters(
     scene: npt.NDArray[np.uint8],
 ) -> tuple[int, float, int, int, int]:
-    """Compute adaptive annotation parameters scaled to the panel size.
+    """
+    Compute adaptive annotation parameters scaled to the panel size.
 
     Args:
         scene: The image panel for which to compute parameters.
@@ -440,7 +439,8 @@ def _annotate_detection_panel(
     class_names: list[str] | None,
     annotation_parameters: tuple[int, float, int, int, int],
 ) -> npt.NDArray[np.uint8]:
-    """Render detections onto a copy of ``scene`` with a title overlay.
+    """
+    Render detections onto a copy of ``scene`` with a title overlay.
 
     Args:
         scene: Source image panel (not mutated).
@@ -523,7 +523,8 @@ def _save_detection_validation_visualization(
     class_names: list[str] | None,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
-    """Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
+    """
+    Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
 
     Splits ``predictions`` into true-positive, false-positive, and false-negative
     groups using the same matching logic as
@@ -1029,8 +1030,10 @@ class ConfusionMatrix:
         matches: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.float32]:
         """
-        Deduplicate matches. If there are multiple matches for the same true or
-        predicted box, only the one with the highest IoU is kept.
+        Deduplicate matches.
+
+        If there are multiple matches for the same true or predicted box, only the one
+        with the highest IoU is kept.
         """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
@@ -1248,9 +1251,8 @@ class ConfusionMatrix:
 @dataclass(frozen=True)
 class MeanAveragePrecision:
     """
-    !!! deprecated "Deprecated"
-        `MeanAveragePrecision` is **deprecated** and will be removed in
-        `supervision-0.31.0`.
+    !!! deprecated "Deprecated" `MeanAveragePrecision` is **deprecated** and will be
+    removed in `supervision-0.31.0`.
 
         The deprecated implementation provides results that are inconsistent with
         `pycocotools`. Please use
@@ -1516,8 +1518,8 @@ class MeanAveragePrecision:
         precision: npt.NDArray[np.float64],
     ) -> float:
         """
-        Compute the average precision using 101-point interpolation (COCO), given
-            the recall and precision curves.
+        Compute the average precision using 101-point interpolation (COCO), given the
+        recall and precision curves.
 
         Args:
             recall: The recall curve.

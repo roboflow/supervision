@@ -7,11 +7,13 @@ from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
-    """Supervision warning category.
-    Set the deprecation warnings visibility for Supervision library.
-    You can set the environment variable SUPERVISION_DEPRECATION_WARNING to '0'
-    to disable the deprecation warnings. The legacy misspelled
-    SUPERVISON_DEPRECATION_WARNING variable is still accepted.
+    """
+    Supervision warning category.
+
+    Set the deprecation warnings visibility for Supervision library. You can set the
+    environment variable SUPERVISION_DEPRECATION_WARNING to '0' to disable the
+    deprecation warnings. The legacy misspelled SUPERVISON_DEPRECATION_WARNING variable
+    is still accepted.
     """
 
     pass
@@ -24,8 +26,7 @@ def format_warning(
     lineno: int,
     line: str | None = None,
 ) -> str:
-    """
-    Format a warning the same way as the default formatter, but also include the
+    """Format a warning the same way as the default formatter, but also include the
     category name in the output.
     """
     return f"{category.__name__}: {message}\n"
@@ -133,9 +134,9 @@ T = TypeVar("T")
 
 class classproperty(Generic[T]):
     """
-    A decorator that combines @classmethod and @property.
-    It allows a method to be accessed as a property of the class,
-    rather than an instance, similar to a classmethod.
+    A decorator that combines @classmethod and @property. It allows a method to be
+    accessed as a property of the class, rather than an instance, similar to a
+    classmethod.
 
     Usage:
         @classproperty

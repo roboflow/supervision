@@ -38,7 +38,8 @@ def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
-    """Extract boolean masks from Ultralytics results, cropping letterbox padding.
+    """
+    Extract boolean masks from Ultralytics results, cropping letterbox padding.
 
     Handles the case where the inference resolution differs from the original image
     shape by computing the letterbox padding offsets, cropping them out, and resizing
@@ -98,7 +99,8 @@ def _resolve_rle_mask(
     image_width: int,
     compact_masks: bool,
 ) -> tuple[npt.NDArray[np.bool_] | None, dict[str, Any] | None]:
-    """Decode one RLE prediction into (dense_mask, compact_pending).
+    """
+    Decode one RLE prediction into (dense_mask, compact_pending).
 
     Returns ``(dense_mask, None)`` when ``compact_masks=False`` or when the
     RLE size does not match the image size (fall back to dense decode).
@@ -170,7 +172,8 @@ def _decode_compact_masks(
     image_width: int,
     n_predictions: int,
 ) -> CompactMask | None:
-    """Decode deferred COCO-RLE entries and merge with polygon compact masks.
+    """
+    Decode deferred COCO-RLE entries and merge with polygon compact masks.
 
     Attempts a single batched ``CompactMask.from_coco_rle`` call for all pending
     items to eliminate per-prediction call overhead on the happy path.  On any

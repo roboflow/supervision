@@ -89,7 +89,8 @@ class ImageWindow:
         self._display_offset_y: float = 0.0
 
     def show(self, image: npt.NDArray[np.uint8]) -> None:
-        """Display a BGR, grayscale, or BGRA frame in the window.
+        """
+        Display a BGR, grayscale, or BGRA frame in the window.
 
         The image is scaled to fit the current window dimensions. Aspect ratio is
         preserved unless `keep_aspect_ratio=False`. Resizing the window rescales live.
@@ -116,7 +117,8 @@ class ImageWindow:
         self._root.update()
 
     def wait_key(self, delay_ms: int = 0) -> str | None:
-        """Wait for a keypress and return its name.
+        """
+        Wait for a keypress and return its name.
 
         Args:
             delay_ms: How long to wait in milliseconds. ``0`` blocks until a
@@ -144,7 +146,8 @@ class ImageWindow:
         return self._key_queue.pop(0) if self._key_queue else None
 
     def set_mouse_callback(self, callback: MouseCallback | None) -> None:
-        """Register a callback for mouse events on the image.
+        """
+        Register a callback for mouse events on the image.
 
         Args:
             callback: Callable receiving ``(x, y, event_type)`` where
@@ -213,13 +216,14 @@ class ImageWindow:
         self._label.configure(image=self._photo)
 
     def _update_display_transform(self, fitted: Image.Image) -> None:
-        """Record the scale and letterbox offset from the last display pass.
+        """
+        Record the scale and letterbox offset from the last display pass.
 
-        The fitted image is drawn centered inside the label, so mouse events on
-        the label carry display-space coordinates. Storing the per-axis scale
-        and centering offset lets `_on_mouse` invert the transform back to
-        original image-pixel coordinates. Falls back to an identity transform
-        while the window geometry is still unknown.
+        The fitted image is drawn centered inside the label, so mouse events on the
+        label carry display-space coordinates. Storing the per-axis scale and centering
+        offset lets `_on_mouse` invert the transform back to original image-pixel
+        coordinates. Falls back to an identity transform while the window geometry is
+        still unknown.
         """
         if self._pil_image is None:
             return
@@ -243,13 +247,14 @@ class ImageWindow:
         self._mouse_callback(x, y, event_type)
 
     def _to_image_coords(self, event_x: int, event_y: int) -> tuple[int, int]:
-        """Map label-space event coordinates to original image pixels.
+        """
+        Map label-space event coordinates to original image pixels.
 
-        Inverts the scale and letterbox offset recorded by `_update_display`
-        so callbacks receive coordinates in the source image's pixel space,
-        regardless of how the window has been resized. Results are rounded to
-        the nearest pixel and clamped inside the image bounds. When no image
-        has been shown, the raw event coordinates are returned unchanged.
+        Inverts the scale and letterbox offset recorded by `_update_display` so
+        callbacks receive coordinates in the source image's pixel space, regardless of
+        how the window has been resized. Results are rounded to the nearest pixel and
+        clamped inside the image bounds. When no image has been shown, the raw event
+        coordinates are returned unchanged.
         """
         if self._pil_image is None:
             return event_x, event_y
@@ -314,10 +319,10 @@ def _fit_image(
 
 
 def _bgr_to_pil(image: npt.NDArray[np.uint8]) -> Image.Image:
-    """Convert a BGR, grayscale, or BGRA OpenCV array to a Pillow image.
+    """
+    Convert a BGR, grayscale, or BGRA OpenCV array to a Pillow image.
 
-    Thin wrapper delegating to `sv.cv2_to_pillow`, which reorders channels
-    from OpenCV's BGR(A) convention to Pillow's RGB(A) and passes grayscale
-    arrays through unchanged.
+    Thin wrapper delegating to `sv.cv2_to_pillow`, which reorders channels from OpenCV's
+    BGR(A) convention to Pillow's RGB(A) and passes grayscale arrays through unchanged.
     """
     return cv2_to_pillow(image)

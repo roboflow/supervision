@@ -30,10 +30,7 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
     for child1, child2 in zip(elem1, elem2):
         if not are_xml_elements_equal(child1, child2):
             return False
-
     return True
-
-
 @pytest.mark.parametrize(
     ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
@@ -43,7 +40,8 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
             None,
             ElementTree.fromstring(
                 """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
-                <xmax>11</xmax><ymax>11</ymax></bndbox></object>"""
+                <xmax>11</xmax><ymax>11</ymax></bndbox></object>
+                """
             ),
             DoesNotRaise(),
             id="bbox_only",
@@ -57,7 +55,8 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
                 <xmax>11</xmax><ymax>11</ymax>
                 </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>
                 <y2>1</y2><x3>11</x3><y3>11</y3><x4>1</x4><y4>11</y4>
-                </polygon></object>"""
+                </polygon></object>
+                """
             ),
             DoesNotRaise(),
             id="bbox_and_polygon",
@@ -112,18 +111,16 @@ def test_detections_to_pascal_voc_does_not_mutate_detections():
     second = detections_to_pascal_voc(
         detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
     )
-
     assert np.array_equal(detections.xyxy, expected_xyxy)
     assert first == second
-
-
 @pytest.mark.parametrize(
     ("polygon_element", "expected_result", "exception"),
     [
         pytest.param(
             ElementTree.fromstring(
                 """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
-                    <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
+                <y3>10</y3><x4>0</x4><y4>10</y4></polygon>
+                """
             ),
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             DoesNotRaise(),

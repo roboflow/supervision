@@ -72,9 +72,7 @@ class JSONSink:
         self.write_and_close()
 
     def open(self) -> None:
-        """
-        Open the JSON file for writing.
-        """
+        """Open the JSON file for writing."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
@@ -84,7 +82,8 @@ class JSONSink:
 
     @staticmethod
     def _json_default(value: Any) -> Any:
-        """Return a JSON-serializable equivalent of a NumPy scalar or array.
+        """
+        Return a JSON-serializable equivalent of a NumPy scalar or array.
 
         Called as the ``default`` hook by :func:`json.dump`. Converts
         :class:`numpy.generic` scalars via ``.item()`` and
@@ -108,9 +107,7 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
-        """
-        Write and close the JSON file.
-        """
+        """Write and close the JSON file."""
         if self.file:
             try:
                 json.dump(

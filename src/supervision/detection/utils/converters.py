@@ -412,7 +412,8 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
 
 
 def _base48_decode(s: str) -> list[int]:
-    """Decode a COCO base-48 string to raw (delta-encoded) integers.
+    """
+    Decode a COCO base-48 string to raw (delta-encoded) integers.
 
     Implements the variable-length base-48 codec from the COCO API
     (pycocotools). Each integer is encoded across one or more 6-bit
@@ -462,7 +463,8 @@ def _base48_decode(s: str) -> list[int]:
 
 
 def _base48_encode(values: list[int]) -> str:
-    """Encode raw (delta-encoded) integers to a COCO base-48 string.
+    """
+    Encode raw (delta-encoded) integers to a COCO base-48 string.
 
     The inverse of :func:`_base48_decode`. Applies the same variable-length
     base-48 codec used by pycocotools.
@@ -556,7 +558,8 @@ def _delta_encode(counts: list[int]) -> list[int]:
 
 
 def is_compressed_rle(rle: object) -> bool:
-    """Return ``True`` if ``rle`` is a COCO compressed RLE (``str`` or ``bytes``).
+    """
+    Return ``True`` if ``rle`` is a COCO compressed RLE (``str`` or ``bytes``).
 
     Use this to branch between the compressed-string pipeline
     (:func:`_base48_decode` → :func:`_delta_decode`) and the uncompressed

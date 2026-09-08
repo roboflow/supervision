@@ -114,9 +114,7 @@ class Recall(Metric["RecallResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -470,7 +468,6 @@ class Recall(Metric["RecallResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -538,7 +535,8 @@ class Recall(Metric["RecallResult"]):
     def _detections_content(
         self, detections: Detections
     ) -> npt.NDArray[Any] | CompactMask:
-        """Return boxes, masks or oriented bounding boxes from detections.
+        """
+        Return boxes, masks or oriented bounding boxes from detections.
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
@@ -613,9 +611,7 @@ class Recall(Metric["RecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -784,7 +780,7 @@ class RecallResult:
         Plot the recall results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt

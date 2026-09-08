@@ -6,9 +6,7 @@ from math import sqrt
 
 
 class Position(Enum):
-    """
-    Enum representing the position of an anchor point.
-    """
+    """Enum representing the position of an anchor point."""
 
     CENTER = "CENTER"
     CENTER_LEFT = "CENTER_LEFT"

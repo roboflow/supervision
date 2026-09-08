@@ -578,9 +578,7 @@ def process_video(
 
 
 class FPSMonitor:
-    """
-    A class for monitoring frames per second (FPS) to benchmark latency.
-    """
+    """A class for monitoring frames per second (FPS) to benchmark latency."""
 
     def __init__(self, sample_size: int = 30) -> None:
         """
@@ -620,13 +618,9 @@ class FPSMonitor:
         return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
-        """
-        Adds a new time stamp to the deque for FPS calculation.
-        """
+        """Adds a new time stamp to the deque for FPS calculation."""
         self.all_timestamps.append(time.monotonic())
 
     def reset(self) -> None:
-        """
-        Clears all the time stamps from the deque.
-        """
+        """Clears all the time stamps from the deque."""
         self.all_timestamps.clear()

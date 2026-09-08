@@ -1,4 +1,5 @@
-"""Backfill the outdated-version banner into already-published gh-pages trees.
+"""
+Backfill the outdated-version banner into already-published gh-pages trees.
 
 Purpose:
     Populate the empty ``data-md-component="outdated"`` banner div that archived
@@ -148,7 +149,8 @@ BANNER_CSS = """.md-banner,
 
 
 def _version_key(name: str) -> Version:
-    """Order a version directory name by PEP 440: `0.9.0` sorts below `0.10.0`.
+    """
+    Order a version directory name by PEP 440: `0.9.0` sorts below `0.10.0`.
 
     A pre-release directory sorts below the release it precedes, so `0.31.0` wins
     over `0.31.0rc1` should both trees ever sit on the branch at once. A name PEP 440
@@ -174,7 +176,8 @@ def _newest_version_dir(root: Path) -> Path | None:
 
 
 def _archived_version_dirs(root: Path) -> list[Path]:
-    """Return the superseded numeric version directories under `root`.
+    """
+    Return the superseded numeric version directories under `root`.
 
     The highest-numbered directory is excluded: it holds the current release, which
     is not outdated, so it gets neither the banner nor the styling and script that
@@ -193,7 +196,8 @@ def _version_dirs(root: Path) -> list[Path]:
 
 
 def patch_tree(root: Path) -> list[Path]:
-    """Inject banner markup into every unpatched page under `root`.
+    """
+    Inject banner markup into every unpatched page under `root`.
 
     Returns the HTML files that were changed, for the caller to report against.
     """
@@ -213,7 +217,8 @@ def patch_tree(root: Path) -> list[Path]:
 
 
 def patch_stylesheets(root: Path) -> list[Path]:
-    """Give the banner its purple/centered/sticky styling in each archived extra.css.
+    """
+    Give the banner its purple/centered/sticky styling in each archived extra.css.
 
     Returns the stylesheets that were changed, for the caller to report against.
     """
@@ -357,11 +362,12 @@ def _relative_prefix(html_file: Path, version_dir: Path) -> str:
 
 
 def patch_scripts(root: Path) -> list[Path]:
-    """Copy version-banner.js into each archived version, referenced from every page.
+    """
+    Copy version-banner.js into each archived version, referenced from every page.
 
-    Without it the banner still sticks (pure CSS), but the header can briefly
-    overlap it before a reader scrolls, since nothing offsets the header below it.
-    Returns the files that were changed, for the caller to report against.
+    Without it the banner still sticks (pure CSS), but the header can briefly overlap it
+    before a reader scrolls, since nothing offsets the header below it. Returns the
+    files that were changed, for the caller to report against.
     """
     changed: list[Path] = []
     for version_dir in _archived_version_dirs(root):
@@ -397,12 +403,13 @@ INJECTED_BANNER_RE = re.compile(
 
 
 def unpatch_newest_version(root: Path) -> list[Path]:
-    """Strip an injected banner from the current release tree under `root`.
+    """
+    Strip an injected banner from the current release tree under `root`.
 
-    A run made before the newest release was excluded left an "older version"
-    banner on the docs `latest` serves. The div is restored to the whitespace-only
-    interior a build emits, so the next release — which demotes this tree to
-    archived — patches it again through the normal path.
+    A run made before the newest release was excluded left an "older version" banner on
+    the docs `latest` serves. The div is restored to the whitespace-only interior a
+    build emits, so the next release — which demotes this tree to archived — patches it
+    again through the normal path.
     """
     newest = _newest_version_dir(root)
     if newest is None:
@@ -422,11 +429,12 @@ def unpatch_newest_version(root: Path) -> list[Path]:
 
 
 def main() -> int:
-    """Entry point: patch the tree at `root` and report how many files changed.
+    """
+    Entry point: patch the tree at `root` and report how many files changed.
 
-    `--banner-only` (any position in argv) skips `patch_stylesheets`/`patch_scripts`
-    — see the module docstring's Usage section for why a genuinely-built release
-    tree needs that.
+    `--banner-only` (any position in argv) skips `patch_stylesheets`/`patch_scripts` —
+    see the module docstring's Usage section for why a genuinely-built release tree
+    needs that.
     """
     args = sys.argv[1:]
     banner_only = "--banner-only" in args

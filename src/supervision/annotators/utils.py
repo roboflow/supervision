@@ -168,8 +168,8 @@ def resolve_color(
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """
-    Wrap `text` to the specified maximum line length, respecting existing
-    newlines. Falls back to str() if `text` is not already a string.
+    Wrap `text` to the specified maximum line length, respecting existing newlines.
+    Falls back to str() if `text` is not already a string.
 
     Args:
         text: The text (or object) to wrap.
@@ -178,7 +178,6 @@ def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     Returns:
         Wrapped lines.
     """
-
     if not text:
         return [""]
 
@@ -373,7 +372,8 @@ class Trace:
         self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        """Append a frame of detections to the trace history.
+        """
+        Append a frame of detections to the trace history.
 
         A frame that detected nothing contributes no points but still advances
         the frame counter, keeping `max_size` a window over elapsed frames
@@ -430,11 +430,12 @@ class Trace:
         return xy
 
     def reset(self) -> None:
-        """Restore the trace buffers to their initial empty state.
+        """
+        Restore the trace buffers to their initial empty state.
 
-        Clears the accumulated `frame_id`, `xy`, and `tracker_id` history and
-        rewinds `current_frame_id` to `0`, so the trace can be reused across
-        independent streams without carrying over points from a previous run.
+        Clears the accumulated `frame_id`, `xy`, and `tracker_id` history and rewinds
+        `current_frame_id` to `0`, so the trace can be reused across independent streams
+        without carrying over points from a previous run.
         """
         self.current_frame_id = 0
         self.frame_id = np.array([], dtype=int)

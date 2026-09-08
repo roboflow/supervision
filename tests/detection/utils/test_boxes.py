@@ -625,7 +625,8 @@ def test_pad_boxes(
     ],
 )
 def test_obb_polygon_area_is_invariant_to_large_origins(origin: int) -> None:
-    """Area is exact for boxes at large coordinate origins.
+    """
+    Area is exact for boxes at large coordinate origins.
 
     Regression: the shoelace formula was evaluated on absolute coordinates, so
     large cross-products rounded once the origin grew. A 100x50 box at origin

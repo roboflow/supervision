@@ -782,7 +782,8 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
 
 
 def test_greedy_matching_two_valid_pairs():
-    """Greedy matching finds both TPs; np.unique style missed the second pair.
+    """
+    Greedy matching finds both TPs; np.unique style missed the second pair.
 
     IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
     assignment is T0<->P0 and T1<->P1. mAR@100 at iou=0.5 is 1.0.

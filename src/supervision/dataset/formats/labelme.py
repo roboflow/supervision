@@ -64,7 +64,8 @@ def labelme_shapes_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
 ) -> Detections:
-    """Convert a single image's LabelMe shapes into ``Detections``.
+    """
+    Convert a single image's LabelMe shapes into ``Detections``.
 
     Only ``rectangle`` and ``polygon`` shapes are imported; other shape types
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
@@ -301,7 +302,8 @@ def _build_shape(label: str, points: list[list[float]], shape_type: str) -> Labe
 def detections_to_labelme_shapes(
     detections: Detections, classes: list[str]
 ) -> list[LabelMeDict]:
-    """Convert ``Detections`` into a list of LabelMe shape dicts.
+    """
+    Convert ``Detections`` into a list of LabelMe shape dicts.
 
     Masked detections are exported as ``polygon`` shapes (one per connected
     component); box-only detections — and masked detections whose mask yields no

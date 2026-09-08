@@ -65,7 +65,7 @@ def detect(
 ) -> sv.Detections:
     """
     Detect objects in a frame using a YOLO model, filtering detections by class ID and
-        confidence threshold.
+    confidence threshold.
 
     Args:
         frame (np.ndarray): The frame to process, expected to be a NumPy array.

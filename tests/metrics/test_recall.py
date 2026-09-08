@@ -40,7 +40,7 @@ class TestRecall:
         )
 
     def test_initialization_default(self):
-        """Test that Recall can be initialized with default parameters"""
+        """Test that Recall can be initialized with default parameters."""
         metric = Recall()
         assert metric._metric_target == MetricTarget.BOXES
         assert metric.averaging_method == AveragingMethod.WEIGHTED
@@ -48,7 +48,7 @@ class TestRecall:
         assert metric._targets_list == []
 
     def test_initialization_custom(self):
-        """Test that Recall can be initialized with custom parameters"""
+        """Test that Recall can be initialized with custom parameters."""
         metric = Recall(
             metric_target=MetricTarget.MASKS,
             averaging_method=AveragingMethod.MACRO,
@@ -92,7 +92,7 @@ class TestRecall:
         assert r_dense.recall_at_50 == pytest.approx(r_compact.recall_at_50)
 
     def test_reset(self, dummy_prediction):
-        """Test that reset() clears all stored data"""
+        """Test that reset() clears all stored data."""
         metric = Recall()
 
         # Add some dummy data
@@ -108,7 +108,7 @@ class TestRecall:
         assert metric._targets_list == []
 
     def test_perfect_match(self, detections_50_50, targets_50_50):
-        """Test recall with perfect matching predictions and targets"""
+        """Test recall with perfect matching predictions and targets."""
         metric = Recall()
         result = metric.update(detections_50_50, targets_50_50).compute()
 
@@ -120,7 +120,7 @@ class TestRecall:
         assert result.matched_classes[0] == 0
 
     def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
-        """Test recall with predictions that don't overlap with targets"""
+        """Test recall with predictions that don't overlap with targets."""
         metric = Recall()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
 
@@ -146,7 +146,8 @@ class TestRecall:
         ],
     )
     def test_absent_class_predictions_are_tracked(self, method, expected):
-        """A class predicted but never present in the targets is still tracked.
+        """
+        A class predicted but never present in the targets is still tracked.
 
         Recall for such a class is 0.0 rather than undefined, which is what sklearn
         reports and what Precision and F1Score already do here. MICRO is unchanged
@@ -172,11 +173,12 @@ class TestRecall:
         assert list(result.matched_classes) == [0, 1]
 
     def test_tracked_classes_match_precision_and_f1(self):
-        """The three metrics must agree on which classes exist for the same data.
+        """
+        The three metrics must agree on which classes exist for the same data.
 
         They return `matched_classes` and a `*_per_class` array that read as parallel
-        outputs. When the class sets diverge, zipping them silently truncates instead
-        of raising.
+        outputs. When the class sets diverge, zipping them silently truncates instead of
+        raising.
         """
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10], [100, 0, 110, 10]], dtype=np.float32),
@@ -221,14 +223,15 @@ class TestRecall:
     def test_tracked_classes_match_precision_and_f1_with_background_images(
         self, averaging_method: AveragingMethod, expected_recall_at_50: float
     ) -> None:
-        """The class sets must still agree when a sample has predictions and no targets.
+        """
+        The class sets must still agree when a sample has predictions and no targets.
 
-        A background image produces no false negatives, so no recall value changes
-        under WEIGHTED or MICRO, but its predicted classes still have to be tracked.
-        Building the class union only inside the targets-present path leaves them
-        out, and the three metrics disagree again for list inputs that contain one.
-        MACRO is where the background class's 0.0 recall placeholder visibly shifts
-        the aggregate, since it is averaged unweighted across classes.
+        A background image produces no false negatives, so no recall value changes under
+        WEIGHTED or MICRO, but its predicted classes still have to be tracked. Building
+        the class union only inside the targets-present path leaves them out, and the
+        three metrics disagree again for list inputs that contain one. MACRO is where
+        the background class's 0.0 recall placeholder visibly shifts the aggregate,
+        since it is averaged unweighted across classes.
         """
         with_targets_pred = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -261,10 +264,11 @@ class TestRecall:
         assert recall.recall_at_50 == pytest.approx(expected_recall_at_50)
 
     def test_background_image_size_bucket_filters_predictions_by_size(self) -> None:
-        """Size buckets restrict background-image prediction-only classes by size.
+        """
+        Size buckets restrict background-image prediction-only classes by size.
 
-        A background image (empty targets) with predictions of different sizes must
-        only surface in the size bucket matching that size; a bucket left with zero
+        A background image (empty targets) with predictions of different sizes must only
+        surface in the size bucket matching that size; a bucket left with zero
         predictions after size filtering must stay empty rather than error.
         """
         predictions = Detections(
@@ -297,7 +301,8 @@ class TestRecall:
         assert result.medium_objects.recall_per_class.shape == (0, 10)
 
     def test_multiple_background_image_samples_accumulate_classes(self) -> None:
-        """Two background-image samples in one list input union their classes.
+        """
+        Two background-image samples in one list input union their classes.
 
         Prediction-only classes from separate background-only samples must all be
         tracked together, not just the first sample's class.
@@ -339,7 +344,8 @@ class TestRecall:
         assert result.recall_at_50 == 0.0
 
     def test_non_contiguous_class_ids_align_by_value_not_index(self) -> None:
-        """`matched_classes` rows align to class-id values, not positional order.
+        """
+        `matched_classes` rows align to class-id values, not positional order.
 
         Large, non-contiguous class ids are sorted numerically by `np.unique` /
         `searchsorted`; a positional-index bug would misalign the prediction-only
@@ -376,7 +382,7 @@ class TestRecall:
         assert result.recall_at_50 == pytest.approx(0.5)
 
     def test_empty_predictions(self, targets_50_50):
-        """Test recall with empty predictions but existing targets"""
+        """Test recall with empty predictions but existing targets."""
         predictions = Detections.empty()
 
         metric = Recall()
@@ -387,7 +393,7 @@ class TestRecall:
         assert result.recall_at_75 == 0.0
 
     def test_empty_targets(self, detections_50_50):
-        """Test recall with predictions but no targets"""
+        """Test recall with predictions but no targets."""
         targets = Detections.empty()
 
         metric = Recall()
@@ -417,7 +423,7 @@ class TestRecall:
     def test_single_class_missed_detections(
         self, detections_50_50, targets_two_objects_class_0
     ):
-        """Test recall calculation with some missed detections"""
+        """Test recall calculation with some missed detections."""
         metric = Recall()
         result = metric.update(detections_50_50, targets_two_objects_class_0).compute()
 
@@ -429,7 +435,7 @@ class TestRecall:
     def test_multiple_classes(
         self, predictions_multiple_classes, targets_multiple_classes
     ):
-        """Test recall calculation for multiple classes"""
+        """Test recall calculation for multiple classes."""
         metric = Recall()
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -446,7 +452,7 @@ class TestRecall:
         assert 1 in result.matched_classes
 
     def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
-        """Test recall at different IoU thresholds"""
+        """Test recall at different IoU thresholds."""
         metric = Recall()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
 
@@ -456,7 +462,7 @@ class TestRecall:
         assert result.recall_at_75 == 0.0  # TP=0, FN=1
 
     def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
-        """Test that higher confidence predictions are preferred for matching"""
+        """Test that higher confidence predictions are preferred for matching."""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -467,7 +473,7 @@ class TestRecall:
     def test_multiple_predictions_one_target(
         self, predictions_confidence_ranking, targets_50_50
     ):
-        """Test recall when multiple predictions compete for one target"""
+        """Test recall when multiple predictions compete for one target."""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -478,7 +484,7 @@ class TestRecall:
     def test_list_inputs(
         self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
     ):
-        """Test recall with list inputs"""
+        """Test recall with list inputs."""
         metric = Recall()
         result = metric.update(
             [detections_50_50, prediction_class_1], [targets_50_50, target_class_1]
@@ -489,7 +495,7 @@ class TestRecall:
         assert result.recall_at_75 == 1.0
 
     def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
-        """Test that mismatched prediction/target list lengths raise error"""
+        """Test that mismatched prediction/target list lengths raise error."""
         metric = Recall()
 
         # Should raise ValueError for mismatched lengths
@@ -540,7 +546,7 @@ class TestRecall:
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
     def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
-        """Test different averaging methods"""
+        """Test different averaging methods."""
         metric = Recall(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
 
@@ -549,7 +555,7 @@ class TestRecall:
         assert result.averaging_method == averaging_method
 
     def test_macro_averaging(self):
-        """Test MACRO averaging with specific example"""
+        """Test MACRO averaging with specific example."""
         # Class 0: 1/2 targets matched -> recall = 0.5
         # Class 1: 1/1 targets matched -> recall = 1.0
         # Macro average: (0.5 + 1.0) / 2 = 0.75
@@ -585,7 +591,8 @@ class TestRecall:
         assert result.recall_at_50 == 0.75
 
     def test_greedy_matching_two_valid_pairs(self):
-        """Greedy matching finds both TPs; np.unique style missed the second pair.
+        """
+        Greedy matching finds both TPs; np.unique style missed the second pair.
 
         IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
         assignment is T0<->P0 and T1<->P1 (2 TPs, recall=1.0).

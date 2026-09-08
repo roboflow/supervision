@@ -198,8 +198,8 @@ class MeanAverageRecallResult:
         Plot the Mean Average Recall results.
 
         ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-            ){ align=center width="800" }
+        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+        ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt
 
@@ -325,9 +325,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         self.max_detections = np.array([1, 10, 100])
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -364,8 +362,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
     def compute(self) -> MeanAverageRecallResult:
         """
-        Calculate the Mean Average Recall metric based on the stored predictions
-        and ground-truth, at different IoU thresholds and maximum detection counts.
+        Calculate the Mean Average Recall metric based on the stored predictions and
+        ground-truth, at different IoU thresholds and maximum detection counts.
 
         Returns:
             The Mean Average Recall metric result.
@@ -671,7 +669,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     def _detections_content(
         self, detections: Detections
     ) -> npt.NDArray[Any] | CompactMask:
-        """Return boxes, masks or oriented bounding boxes from detections.
+        """
+        Return boxes, masks or oriented bounding boxes from detections.
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
