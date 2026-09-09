@@ -29,6 +29,8 @@ date_modified: 2026-09-08
 
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks.
 
+- `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The index array was built from an empty list, so NumPy defaulted it to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0` — `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype and the rest now match them. Results with at least one surviving detection are unchanged.
+
 ### 0.30.2 <small>Sep 3, 2026</small>
 
 - `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
