@@ -60,6 +60,34 @@ class TestPolygonZoneInit:
         assert zone.trigger(detections)[0]
         assert zone.trigger(detections)[0]
 
+    @pytest.mark.parametrize(
+        ("polygon", "expected_vertex_count"),
+        [
+            (np.empty((0, 2), dtype=int), 0),
+            (np.array([[20, 20]]), 1),
+            (np.array([[0, 0], [40, 40]]), 2),
+        ],
+    )
+    def test_degenerate_polygon_raises(
+        self, polygon: np.ndarray, expected_vertex_count: int
+    ) -> None:
+        """A polygon enclosing no area cannot be a zone and must not be accepted."""
+        with pytest.raises(
+            ValueError, match=f"at least 3 vertices.*got {expected_vertex_count}"
+        ):
+            sv.PolygonZone(polygon)
+
+    def test_triangle_is_accepted(self) -> None:
+        """Three vertices is the smallest polygon that encloses an area."""
+        zone = sv.PolygonZone(np.array([[0, 0], [100, 0], [100, 100]]))
+
+        assert zone.mask.sum() > 0
+
+    def test_wrongly_shaped_polygon_raises(self) -> None:
+        """A polygon must be (N, 2) coordinate pairs, not a flat or 3-D array."""
+        with pytest.raises(ValueError, match=r"shape \(N, 2\)"):
+            sv.PolygonZone(np.array([0, 0, 40, 0, 40, 40]))
+
 
 class TestPolygonZoneTrigger:
     @pytest.mark.parametrize(

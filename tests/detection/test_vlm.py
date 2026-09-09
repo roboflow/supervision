@@ -1482,3 +1482,129 @@ def test_from_google_gemini_3_5_recovers_malformed_array():
 
     assert xyxy.shape == (2, 4)
     assert list(class_name) == ["cat", "dog"]
+
+
+class TestFromVlmCornerOrdering:
+    """Tests that `from_vlm` returns boxes obeying the `xyxy` corner ordering."""
+
+    @pytest.mark.parametrize(
+        ("vlm", "result", "kwargs"),
+        [
+            pytest.param(
+                VLM.GOOGLE_GEMINI_2_0,
+                '[{"box_2d": [400, 300, 100, 200], "label": "cat"}]',
+                {},
+                id="gemini-2.0",
+            ),
+            pytest.param(
+                VLM.GOOGLE_GEMINI_2_5,
+                '[{"box_2d": [400, 300, 100, 200], "label": "cat"}]',
+                {},
+                id="gemini-2.5",
+            ),
+            pytest.param(
+                VLM.GOOGLE_GEMINI_3_5,
+                '[{"box_2d": [400, 300, 100, 200], "label": "cat"}]',
+                {},
+                id="gemini-3.5",
+            ),
+            pytest.param(
+                VLM.QWEN_2_5_VL,
+                '[{"bbox_2d": [300, 400, 200, 100], "label": "cat"}]',
+                {"input_wh": (1000, 800)},
+                id="qwen-2.5-vl",
+            ),
+            pytest.param(
+                VLM.QWEN_3_VL,
+                '```json\n[{"bbox_2d": [300, 400, 200, 100], "label": "cat"}]\n```',
+                {},
+                id="qwen-3-vl",
+            ),
+            pytest.param(
+                VLM.FLORENCE_2,
+                {"<OD>": {"bboxes": [[300.0, 400.0, 200.0, 100.0]], "labels": ["cat"]}},
+                {},
+                id="florence-2",
+            ),
+            pytest.param(
+                VLM.PALIGEMMA,
+                "<loc0400><loc0300><loc0100><loc0200> cat",
+                {"classes": ["cat"]},
+                id="paligemma",
+            ),
+            pytest.param(
+                VLM.MOONDREAM,
+                {"objects": [{"x_min": 0.4, "y_min": 0.5, "x_max": 0.1, "y_max": 0.2}]},
+                {},
+                id="moondream",
+            ),
+            pytest.param(
+                VLM.DEEPSEEK_VL_2,
+                "<|ref|>cat<|/ref|><|det|>[[900, 800, 100, 200]]<|/det|>",
+                {},
+                id="deepseek-vl-2",
+            ),
+        ],
+    )
+    def test_transposed_model_corners_are_ordered(
+        self, vlm: VLM, result: object, kwargs: dict
+    ) -> None:
+        """A model that emits a corner pair backwards still yields a valid box."""
+        detections = Detections.from_vlm(
+            vlm, result, resolution_wh=(1000, 800), **kwargs
+        )
+
+        assert np.all(detections.xyxy[:, 0] <= detections.xyxy[:, 2])
+        assert np.all(detections.xyxy[:, 1] <= detections.xyxy[:, 3])
+
+    @pytest.mark.parametrize(
+        "vlm",
+        [
+            pytest.param(VLM.GOOGLE_GEMINI_2_5, id="gemini-2.5"),
+            pytest.param(VLM.GOOGLE_GEMINI_3_5, id="gemini-3.5"),
+        ],
+    )
+    def test_transposed_gemini_masks_stay_inside_ordered_boxes(self, vlm: VLM) -> None:
+        """Place Gemini masks after normalizing reversed box corners."""
+        result = (
+            '[{"box_2d": [400, 300, 100, 200], '
+            '"mask": "data:image/png;base64,'
+            "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAAEUlEQVR4nGP8zwADTHAWzZgA"
+            'cU0BE/ldZcMAAAAASUVORK5CYII=", "label": "cat"}]'
+        )
+
+        detections = Detections.from_vlm(vlm, result, resolution_wh=(1000, 800))
+
+        assert detections.mask is not None
+        np.testing.assert_array_equal(
+            detections.xyxy, np.array([[200, 80, 300, 320]], dtype=np.float64)
+        )
+        assert detections.mask.shape == (1, 800, 1000)
+        assert detections.mask[0, 80:320, 200:300].all()
+        assert detections.mask.sum() == 24_000
+
+    def test_transposed_box_keeps_its_region(self) -> None:
+        """Ordering the corners must not move the region the box describes."""
+        transposed = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5,
+            '[{"box_2d": [400, 300, 100, 200], "label": "cat"}]',
+            resolution_wh=(1000, 800),
+        )
+        upright = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5,
+            '[{"box_2d": [100, 200, 400, 300], "label": "cat"}]',
+            resolution_wh=(1000, 800),
+        )
+
+        assert np.array_equal(transposed.xyxy, upright.xyxy)
+
+    def test_ordered_model_corners_are_unchanged(self) -> None:
+        """A correctly ordered box must pass through untouched, dtype included."""
+        detections = Detections.from_vlm(
+            VLM.FLORENCE_2,
+            {"<OD>": {"bboxes": [[10.0, 20.0, 30.0, 40.0]], "labels": ["cat"]}},
+            resolution_wh=(1000, 800),
+        )
+
+        assert np.array_equal(detections.xyxy, np.array([[10.0, 20.0, 30.0, 40.0]]))
+        assert detections.xyxy.dtype == np.float32

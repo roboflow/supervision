@@ -166,6 +166,45 @@ def denormalize_boxes(
     return xyxy * scale
 
 
+def _sort_box_corners(
+    xyxy: npt.NDArray[np.number],
+) -> npt.NDArray[np.number]:
+    """Order each box's corners so that `x_min <= x_max` and `y_min <= y_max`.
+
+    `Detections.xyxy` is defined as `(x_min, y_min, x_max, y_max)`, and every
+    box operation in the library relies on that ordering: `box_iou_batch`
+    clamps its intersection widths at zero, so a box whose corners arrive
+    swapped scores an IoU of `0` even against itself. `box_area` hides the
+    problem rather than surfacing it, because negating both sides leaves their
+    product positive. Sorting the corner pairs restores the invariant without
+    moving the region a box describes; a correctly ordered box is unchanged.
+
+    Args:
+        xyxy: Boxes of shape `(N, 4)`, each row `(x_min, y_min, x_max, y_max)`,
+            possibly with either corner pair transposed.
+
+    Returns:
+        Boxes of shape `(N, 4)` with both corner pairs in ascending order.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _sort_box_corners
+        >>> _sort_box_corners(np.array([[300.0, 320.0, 200.0, 80.0]]))
+        array([[200.,  80., 300., 320.]])
+
+        ```
+    """
+    xyxy = np.asarray(xyxy)
+    if xyxy.size == 0:
+        return xyxy
+    x_min = np.minimum(xyxy[:, 0], xyxy[:, 2])
+    x_max = np.maximum(xyxy[:, 0], xyxy[:, 2])
+    y_min = np.minimum(xyxy[:, 1], xyxy[:, 3])
+    y_max = np.maximum(xyxy[:, 1], xyxy[:, 3])
+    return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
+
+
 def move_boxes(
     xyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
 ) -> npt.NDArray[np.number]:

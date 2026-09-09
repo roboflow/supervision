@@ -13,7 +13,7 @@ import numpy.typing as npt
 from deprecate import deprecated, void
 from PIL import Image
 
-from supervision.detection.utils.boxes import denormalize_boxes
+from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_resolution
@@ -795,11 +795,12 @@ def from_google_gemini_2_5(
         labels_list.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        absolute_bbox = denormalize_boxes(
+        absolute_box = denormalize_boxes(
             np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
-        )[0]
+        )
+        absolute_bbox = _sort_box_corners(absolute_box)[0]
         boxes_list.append(absolute_bbox)
 
         if "mask" in item:

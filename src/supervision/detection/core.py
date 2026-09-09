@@ -28,6 +28,7 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
+    _sort_box_corners,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -2037,6 +2038,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
             }
@@ -2048,6 +2050,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
                 len(xyxy), dtype=float
@@ -2062,6 +2065,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
             return cls(
@@ -2074,6 +2078,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -2083,6 +2088,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             if len(xyxy) == 0:
                 empty = cls.empty()
                 empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
@@ -2102,6 +2108,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -2111,6 +2118,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
             xyxy = from_moondream(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
@@ -2119,9 +2127,10 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
+            gemini_xyxy = _sort_box_corners(gemini_result[0])
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
-                xyxy=gemini_result[0],
+                xyxy=gemini_xyxy,
                 class_id=gemini_result[1],
                 mask=gemini_result[4],
                 confidence=gemini_result[3],
@@ -2134,9 +2143,10 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             gemini_result = from_google_gemini_3_5(result, **kwargs)
+            gemini_xyxy = _sort_box_corners(gemini_result[0])
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
-                xyxy=gemini_result[0],
+                xyxy=gemini_xyxy,
                 class_id=gemini_result[1],
                 mask=gemini_result[4],
                 confidence=gemini_result[3],
