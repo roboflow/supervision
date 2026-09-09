@@ -1,5 +1,6 @@
 import re
 import textwrap
+from collections.abc import Iterator
 from enum import Enum
 from typing import Any, cast
 
@@ -163,6 +164,79 @@ def resolve_color(
     ):
         return PENDING_TRACK_COLOR
     return get_color_by_index(color=color, idx=idx)
+
+
+def _resolve_annotator_color(
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_],
+    custom_color_lookup: ColorLookup | npt.NDArray[np.int_] | None,
+) -> Color:
+    """Resolve a detection's color, letting a per-call lookup override the default.
+
+    Every annotator accepts an optional `custom_color_lookup` on `annotate()` that
+    takes precedence over the lookup it was constructed with. Holding that precedence
+    rule here gives it one definition instead of restating the same conditional at
+    each of the annotators' `resolve_color` call sites.
+
+    Args:
+        color: The annotator's color or palette.
+        detections: The detections being annotated.
+        detection_idx: Index of the detection whose color to resolve.
+        color_lookup: The lookup the annotator was constructed with, used when
+            `custom_color_lookup` is `None`.
+        custom_color_lookup: Per-call lookup override, or `None` to keep
+            `color_lookup`.
+
+    Returns:
+        The resolved color for `detection_idx`.
+    """
+    return resolve_color(
+        color=color,
+        detections=detections,
+        detection_idx=detection_idx,
+        color_lookup=color_lookup
+        if custom_color_lookup is None
+        else custom_color_lookup,
+    )
+
+
+def _iter_resolved_colors(
+    detections: Detections,
+    color: Color | ColorPalette,
+    color_lookup: ColorLookup | npt.NDArray[np.int_],
+    custom_color_lookup: ColorLookup | npt.NDArray[np.int_] | None,
+) -> Iterator[tuple[int, Color]]:
+    """Iterate detections paired with the color each should be drawn in.
+
+    Annotators that draw one shape per detection all open with the same loop: walk
+    `range(len(detections))` and resolve that index's color. Yielding both together
+    keeps the color-precedence arguments, which do not vary across iterations, at the
+    loop header instead of restating them inside every iteration.
+
+    Args:
+        detections: The detections being annotated.
+        color: The annotator's color or palette.
+        color_lookup: The lookup the annotator was constructed with, used when
+            `custom_color_lookup` is `None`.
+        custom_color_lookup: Per-call lookup override, or `None` to keep
+            `color_lookup`.
+
+    Yields:
+        Tuples of `(detection_idx, color)`, in detection order.
+    """
+    for detection_idx in range(len(detections)):
+        yield (
+            detection_idx,
+            _resolve_annotator_color(
+                color=color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=color_lookup,
+                custom_color_lookup=custom_color_lookup,
+            ),
+        )
 
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
