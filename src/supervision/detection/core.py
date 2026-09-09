@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, cast
@@ -87,6 +87,28 @@ from supervision.validators import (
     _validate_detections_fields,
     _validate_resolution,
 )
+
+#: VLM parsers taking a string result and returning `(xyxy, class_id, class_name)`.
+_VLM_BOX_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any]]] = {
+    VLM.PALIGEMMA: from_paligemma,
+    VLM.QWEN_2_5_VL: from_qwen_2_5_vl,
+    VLM.QWEN_3_VL: from_qwen_3_vl,
+    VLM.DEEPSEEK_VL_2: from_deepseek_vl_2,
+    VLM.GOOGLE_GEMINI_2_0: from_google_gemini_2_0,
+}
+
+#: VLM parsers taking a string result and additionally returning `confidence` and
+#: `mask`, as `(xyxy, class_id, class_name, confidence, mask)`.
+_VLM_SEGMENTATION_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any, Any, Any]]] = {
+    VLM.GOOGLE_GEMINI_2_5: from_google_gemini_2_5,
+    VLM.GOOGLE_GEMINI_3_5: from_google_gemini_3_5,
+    VLM.GOOGLE_GEMINI_3_6: from_google_gemini_3_6,
+    VLM.GOOGLE_GEMINI_3_7: from_google_gemini_3_7,
+}
+
+#: VLMs whose parsers report no per-detection score, so `Detections.from_vlm` fills
+#: `confidence` with an all-ones array to keep the field populated.
+_VLM_UNIT_CONFIDENCE: frozenset[VLM] = frozenset({VLM.QWEN_2_5_VL, VLM.QWEN_3_VL})
 
 
 @dataclass
@@ -2036,158 +2058,129 @@ class Detections:
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
-        if vlm == VLM.PALIGEMMA:
+        # `_validate_vlm_parameters` already enforced `RESULT_TYPES[vlm]`, but the type
+        # checker cannot narrow `result` through that table lookup, so each group
+        # restates the type it expects before delegating to its handler.
+        if vlm in _VLM_BOX_PARSERS or vlm in _VLM_SEGMENTATION_PARSERS:
             if not isinstance(result, str):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            data: _DetectionDataType = {
-                CLASS_NAME_DATA_FIELD: class_name,
-            }
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
-
-        if vlm == VLM.QWEN_2_5_VL:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
-                len(xyxy), dtype=float
-            )
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.QWEN_3_VL:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr = np.ones(len(xyxy), dtype=float)
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.DEEPSEEK_VL_2:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            return cls._from_vlm_text_result(vlm, result, **kwargs)
 
         if vlm == VLM.FLORENCE_2:
             if not isinstance(result, dict):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
-            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            if len(xyxy) == 0:
-                empty = cls.empty()
-                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
-                return empty
-
-            data = {}
-            if labels is not None:
-                data[CLASS_NAME_DATA_FIELD] = labels
-            if xyxyxyxy is not None:
-                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
-
-            return cls(xyxy=xyxy, mask=mask, data=data)
-
-        if vlm == VLM.GOOGLE_GEMINI_2_0:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            return cls._from_florence_2_result(result, **kwargs)
 
         if vlm == VLM.MOONDREAM:
             if not isinstance(result, dict):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
-            xyxy = from_moondream(result, **kwargs)
-            xyxy = _sort_box_corners(xyxy)
-            return cls(xyxy=xyxy)
-
-        if vlm == VLM.GOOGLE_GEMINI_2_5:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            gemini_result = from_google_gemini_2_5(result, **kwargs)
-            gemini_xyxy = _sort_box_corners(gemini_result[0])
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_xyxy,
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
-
-        if vlm == VLM.GOOGLE_GEMINI_3_5:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            gemini_result = from_google_gemini_3_5(result, **kwargs)
-            gemini_xyxy = _sort_box_corners(gemini_result[0])
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_xyxy,
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
-
-        if vlm == VLM.GOOGLE_GEMINI_3_6:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            gemini_result = from_google_gemini_3_6(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
-
-        if vlm == VLM.GOOGLE_GEMINI_3_7:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            gemini_result = from_google_gemini_3_7(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
+            return cls._from_moondream_result(result, **kwargs)
 
         raise ValueError(f"Unsupported VLM value: {vlm}.")
+
+    @classmethod
+    def _from_vlm_text_result(cls, vlm: VLM, result: str, **kwargs: Any) -> Detections:
+        """Build detections from the VLMs whose parser consumes a string result.
+
+        Covers both `_VLM_BOX_PARSERS`, which report boxes and labels only, and
+        `_VLM_SEGMENTATION_PARSERS`, which additionally report confidence and masks.
+        The two differ only in how many arrays their parser hands back, so they share
+        one construction site here rather than one near-identical branch each.
+
+        Args:
+            vlm: The VLM whose parser to dispatch to; must be a key of either
+                `_VLM_BOX_PARSERS` or `_VLM_SEGMENTATION_PARSERS`.
+            result: The raw string response from the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`.
+        """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
+        confidence: npt.NDArray[np.floating] | None
+        if vlm in _VLM_BOX_PARSERS:
+            xyxy, class_id, class_name = _VLM_BOX_PARSERS[vlm](result, **kwargs)
+            mask = None
+            confidence = (
+                np.ones(len(xyxy), dtype=float) if vlm in _VLM_UNIT_CONFIDENCE else None
+            )
+        else:
+            xyxy, class_id, class_name, confidence, mask = _VLM_SEGMENTATION_PARSERS[
+                vlm
+            ](result, **kwargs)
+
+        # Sorting is redundant for the Gemini parsers, which already order each box's
+        # corners, but it is idempotent and keeps every string-result VLM on one code
+        # path instead of tracking which parsers happen to emit ordered corners.
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            mask=mask,
+            confidence=confidence,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
+
+    @classmethod
+    def _from_florence_2_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Florence-2 task payload.
+
+        Florence-2 is the only VLM whose per-detection fields vary by task: labels are
+        absent for region proposals and oriented boxes are present only for
+        `<OCR_WITH_REGION>`, so `data` is assembled from whichever the task returned
+        rather than from a fixed set of keys.
+
+        Args:
+            result: The task payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, or an empty one carrying an empty `class_name`
+                array when the task reported no boxes.
+        """
+        xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+        xyxy = _sort_box_corners(xyxy)
+        if len(xyxy) == 0:
+            empty = cls.empty()
+            empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+            return empty
+
+        data: _DetectionDataType = {}
+        if labels is not None:
+            data[CLASS_NAME_DATA_FIELD] = labels
+        if xyxyxyxy is not None:
+            data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+
+        return cls(xyxy=xyxy, mask=mask, data=data)
+
+    @classmethod
+    def _from_moondream_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Moondream payload.
+
+        Moondream reports boxes only - no labels, scores, or masks - so the result
+        carries `xyxy` and nothing else.
+
+        Args:
+            result: The JSON payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, carrying boxes only.
+        """
+        xyxy = from_moondream(result, **kwargs)
+        return cls(xyxy=_sort_box_corners(xyxy))
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:

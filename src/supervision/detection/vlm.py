@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import re
+from collections.abc import Callable
 from enum import Enum
 from typing import Any, cast
 
@@ -225,6 +226,40 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
     return void(vlm, result, kwargs)  # type: ignore[no-any-return]
 
 
+def _filter_by_classes(
+    xyxy: npt.NDArray[Any],
+    class_name: npt.NDArray[Any],
+    classes: list[str],
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+    """Keep detections whose class name is in `classes` and assign `class_id`.
+
+    Shared by the VLM parsers (`from_paligemma`, `from_qwen_2_5_vl`,
+    `from_deepseek_vl_2`, `from_google_gemini_2_0`) that all filter detections with
+    an identical `name in classes` mask and then derive `class_id` from
+    `classes.index(name)` - extracting it once keeps that mask/index pairing from
+    drifting between callers.
+
+    Args:
+        xyxy: Array of shape `(n, 4)` with box coordinates, aligned with
+            `class_name`.
+        class_name: Array of shape `(n,)` with class labels.
+        classes: List of valid class names to keep; also used to assign
+            `class_id` via `classes.index(name)`.
+
+    Returns:
+        A tuple of `(xyxy, class_name, class_id)` narrowed to the detections
+            whose class name is in `classes`, where `class_id` is an array of
+            shape `(n,)` with indices into `classes`.
+    """
+    mask = np.array([name in classes for name in class_name], dtype=bool)
+    xyxy = xyxy[mask]
+    class_name = class_name[mask]
+    # `dtype=int` matters only when every detection is filtered out: an empty list
+    # would otherwise make NumPy pick `float64` for an array of class indices.
+    class_id = np.array([classes.index(name) for name in class_name], dtype=int)
+    return xyxy, class_name, class_id
+
+
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
@@ -260,10 +295,9 @@ def from_paligemma(
     class_id: npt.NDArray[Any] | None = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy_arr = xyxy_arr[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy_arr, class_name, class_id = _filter_by_classes(
+            xyxy_arr, class_name, classes
+        )
 
     return xyxy_arr, class_id, class_name
 
@@ -394,10 +428,7 @@ def from_qwen_2_5_vl(
     class_id = None
 
     if classes is not None:
-        mask = np.array([label in classes for label in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
 
     return xyxy, class_id, class_name
 
@@ -494,10 +525,7 @@ def from_deepseek_vl_2(
     )
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
     else:
         unique_classes = sorted(list(set(class_name)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
@@ -688,6 +716,30 @@ def _recover_gemini_boxes_payload(text: str) -> dict[str, Any] | None:
     return {"boxes": _recover_gemini_json_objects(text[array_index:])}
 
 
+def _parse_gemini_json(result: str, recover: Callable[[str], Any]) -> Any:
+    """Strip a Gemini response's markdown fence and decode its JSON payload.
+
+    Shared by the Gemini parsers (`from_google_gemini_2_0`, `from_google_gemini_2_5`,
+    `from_google_gemini_3_6`) that all fence-strip then `json.loads`, falling back to
+    a recovery function on `JSONDecodeError` - extracting it once keeps that
+    strip/decode/recover sequence from drifting between callers as each targets a
+    different malformed-response shape.
+
+    Args:
+        result: Raw response text, which may wrap its JSON in a ```json fence.
+        recover: Called with the fence-stripped text when `json.loads` fails;
+            returns the best-effort recovered payload.
+
+    Returns:
+        The decoded JSON value, or whatever `recover` returns when decoding fails.
+    """
+    stripped = _strip_gemini_json_fence(result)
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return recover(stripped)
+
+
 def _parse_gemini_boxes(
     items: list[dict[str, Any]],
     resolution_wh: tuple[int, int],
@@ -823,18 +875,13 @@ def from_google_gemini_2_0(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        data = _recover_gemini_json_objects(result)
+    data = _parse_gemini_json(result, _recover_gemini_json_objects)
 
     if not isinstance(data, list):
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     labels = []
-    xyxy = []
+    xyxy_list = []
 
     for item in data:
         if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
@@ -842,13 +889,13 @@ def from_google_gemini_2_0(
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        xyxy.append([box[1], box[0], box[3], box[2]])
+        xyxy_list.append([box[1], box[0], box[3], box[2]])
 
-    if len(xyxy) == 0:
+    if len(xyxy_list) == 0:
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     xyxy = denormalize_boxes(
-        np.array(xyxy, dtype=np.float64),
+        np.array(xyxy_list, dtype=np.float64),
         resolution_wh=(w, h),
         normalization_factor=1000,
     )
@@ -856,10 +903,7 @@ def from_google_gemini_2_0(
     class_id = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
 
     return xyxy, class_id, class_name
 
@@ -909,12 +953,7 @@ def from_google_gemini_2_5(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        data = _recover_gemini_json_objects(result)
+    data = _parse_gemini_json(result, _recover_gemini_json_objects)
 
     empty_result = (
         np.empty((0, 4)),
@@ -1070,12 +1109,7 @@ def from_google_gemini_3_6(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        payload = json.loads(result)
-    except json.JSONDecodeError:
-        payload = _recover_gemini_boxes_payload(result)
+    payload = _parse_gemini_json(result, _recover_gemini_boxes_payload)
 
     if not isinstance(payload, dict) or not isinstance(payload.get("boxes"), list):
         return (
