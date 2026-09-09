@@ -642,6 +642,33 @@ def _recover_gemini_json_objects(text: str) -> list[Any]:
     return objects
 
 
+def _recover_gemini_boxes_payload(text: str) -> dict[str, Any] | None:
+    """Salvage the `boxes` array from a malformed Gemini structured response.
+
+    `_recover_gemini_json_objects` collects `{...}` spans that balance at depth 0, so
+    it recovers nothing from a truncated `{"boxes": [...` response: the wrapper's own
+    brace never closes, the scan never returns to depth 0, and every detection stays
+    nested inside it. Slicing the text down to the `boxes` array first puts those
+    detections back at depth 0, where the shared scanner can reach them.
+
+    Args:
+        text: The (fence-stripped) response text that failed `json.loads`.
+
+    Returns:
+        A payload dict holding the recovered detections, or `None` when the `boxes`
+            array cannot be located.
+    """
+    key_index = text.find('"boxes"')
+    if key_index == -1:
+        return None
+
+    array_index = text.find("[", key_index)
+    if array_index == -1:
+        return None
+
+    return {"boxes": _recover_gemini_json_objects(text[array_index:])}
+
+
 def _parse_gemini_boxes(
     items: list[dict[str, Any]],
     resolution_wh: tuple[int, int],
@@ -1024,7 +1051,7 @@ def from_google_gemini_3_6(
     try:
         payload = json.loads(result)
     except json.JSONDecodeError:
-        payload = None
+        payload = _recover_gemini_boxes_payload(result)
 
     if not isinstance(payload, dict) or not isinstance(payload.get("boxes"), list):
         return (
