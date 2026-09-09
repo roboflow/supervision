@@ -3,6 +3,9 @@ from collections.abc import Iterator
 import numpy as np
 import numpy.typing as npt
 
+from supervision.detection.core import Detections
+from supervision.detection.utils.iou_and_nms import box_iou_batch
+
 
 def _greedy_match(
     iou: npt.NDArray[np.float32],
@@ -94,3 +97,85 @@ def _match_detection_batch_with_target_indices(
                 matched_targets[prediction_idx, i] = target_idx
 
     return correct, matched_targets
+
+
+def match_detections(
+    detections_a: Detections,
+    detections_b: Detections,
+    iou_threshold: float = 0.5,
+    class_agnostic: bool = False,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    """Match detections from two sources into one-to-one pairs.
+
+    The assignment is greedy and highest-IoU-first, identical to the matcher
+    used by the metrics modules: each detection from ``detections_a`` can match
+    at most one detection from ``detections_b``, and vice versa. Pairs below
+    ``iou_threshold`` are never matched, and by default a pair also requires
+    equal ``class_id`` values. ``confidence`` is ignored; callers that want
+    metric-style score ordering should sort their detections first.
+
+    Args:
+        detections_a (Detections): First set of detections.
+        detections_b (Detections): Second set of detections.
+        iou_threshold (float, optional): Minimum IoU required for a pair.
+            Defaults to 0.5.
+        class_agnostic (bool, optional): When True, matching ignores
+            ``class_id`` and uses IoU only. Defaults to False.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of
+        ``(matched_pairs, unmatched_a, unmatched_b)`` where ``matched_pairs``
+        has shape ``(M, 2)`` with column 0 indexing ``detections_a`` and
+        column 1 indexing ``detections_b``; ``unmatched_a`` and
+        ``unmatched_b`` hold the remaining indices of each side.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.core import Detections
+        >>> a = Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ... )
+        >>> b = Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]], dtype=np.float32),
+        ...     class_id=np.array([0, 1]),
+        ... )
+        >>> matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+        >>> matched_pairs.tolist()
+        [[0, 0]]
+        >>> unmatched_a.tolist()
+        []
+        >>> unmatched_b.tolist()
+        [1]
+
+        ```
+    """
+    if len(detections_a) == 0 or len(detections_b) == 0:
+        matched_pairs = np.empty((0, 2), dtype=np.int64)
+        unmatched_a = np.arange(len(detections_a), dtype=np.int64)
+        unmatched_b = np.arange(len(detections_b), dtype=np.int64)
+        return matched_pairs, unmatched_a, unmatched_b
+
+    iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
+    candidates = iou >= iou_threshold
+    if (
+        not class_agnostic
+        and detections_a.class_id is not None
+        and detections_b.class_id is not None
+    ):
+        candidates &= detections_a.class_id[:, None] == detections_b.class_id[None, :]
+
+    matched_indices = np.where(candidates)
+    pairs = list(_greedy_match(iou, matched_indices))
+    matched_pairs = np.asarray(pairs, dtype=np.int64).reshape(-1, 2)
+    if matched_pairs.shape[0] == 0:
+        matched_a = np.empty(0, dtype=np.int64)
+        matched_b = np.empty(0, dtype=np.int64)
+    else:
+        matched_a = matched_pairs[:, 0]
+        matched_b = matched_pairs[:, 1]
+
+    unmatched_a = np.setdiff1d(np.arange(len(detections_a), dtype=np.int64), matched_a)
+    unmatched_b = np.setdiff1d(np.arange(len(detections_b), dtype=np.int64), matched_b)
+    return matched_pairs, unmatched_a, unmatched_b

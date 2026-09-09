@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from supervision.metrics.utils.matching import _greedy_match
+from supervision.detection.core import Detections
+from supervision.metrics.utils.matching import _greedy_match, match_detections
 
 
 class TestGreedyMatch:
@@ -57,3 +58,124 @@ class TestGreedyMatch:
         iou = np.array([[1.0, 0.667], [0.333, 0.538]], dtype=np.float32)
         matched_indices = np.where(iou >= 0.5)
         assert list(_greedy_match(iou, matched_indices)) == [(0, 0), (1, 1)]
+
+
+class TestMatchDetections:
+    """Verify the public ``match_detections`` primitive."""
+
+    def test_identical_single_detection_matches(self) -> None:
+        """Overlapping same-class detections are paired 0-0."""
+        a = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        b = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+        assert matched_pairs.tolist() == [[0, 0]]
+        assert unmatched_a.tolist() == []
+        assert unmatched_b.tolist() == []
+
+    def test_unmatched_side_indices_are_reported(self) -> None:
+        """Detections without a partner appear in the unmatched arrays."""
+        a = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        b = Detections(
+            xyxy=np.array(
+                [[10, 10, 50, 50], [100, 100, 110, 110]],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 0]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+        assert matched_pairs.tolist() == [[0, 0]]
+        assert unmatched_a.tolist() == []
+        assert unmatched_b.tolist() == [1]
+
+    def test_class_mismatch_blocks_pairing_by_default(self) -> None:
+        """Equal boxes with different class_id are not matched by default."""
+        a = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        b = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([1]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+        assert matched_pairs.tolist() == []
+        assert unmatched_a.tolist() == [0]
+        assert unmatched_b.tolist() == [0]
+
+    def test_class_agnostic_ignores_class_id(self) -> None:
+        """class_agnostic=True pairs overlapping boxes regardless of class."""
+        a = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        b = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([1]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(
+            a, b, class_agnostic=True
+        )
+        assert matched_pairs.tolist() == [[0, 0]]
+        assert unmatched_a.tolist() == []
+        assert unmatched_b.tolist() == []
+
+    def test_iou_threshold_filters_pairs(self) -> None:
+        """Partial overlap below the threshold is not paired."""
+        a = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        b = Detections(
+            xyxy=np.array([[0, 0, 6, 6]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        matched_pairs, _, _ = match_detections(a, b, iou_threshold=0.9)
+        assert matched_pairs.tolist() == []
+        matched_pairs, _, _ = match_detections(a, b, iou_threshold=0.3)
+        assert matched_pairs.tolist() == [[0, 0]]
+
+    def test_assignment_is_one_to_one(self) -> None:
+        """A prediction contested by two targets goes to the higher IoU."""
+        a = Detections(
+            xyxy=np.array(
+                [[0, 0, 5, 5], [0, 0, 2, 2]],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 0]),
+        )
+        b = Detections(
+            xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+        assert matched_pairs.tolist() == [[0, 0]]
+        assert unmatched_a.tolist() == [1]
+        assert unmatched_b.tolist() == []
+
+    def test_empty_detections(self) -> None:
+        """An empty side yields no pairs and leaves the other side unmatched."""
+        empty = Detections(xyxy=np.empty((0, 4), dtype=np.float32))
+        single = Detections(
+            xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        matched_pairs, unmatched_a, unmatched_b = match_detections(empty, single)
+        assert matched_pairs.shape == (0, 2)
+        assert unmatched_a.tolist() == []
+        assert unmatched_b.tolist() == [0]
+
+    def test_missing_class_id_falls_back_to_iou_only(self) -> None:
+        """Detections without class_id match on geometry alone."""
+        a = Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32))
+        b = Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32))
+        matched_pairs, _, _ = match_detections(a, b)
+        assert matched_pairs.tolist() == [[0, 0]]
