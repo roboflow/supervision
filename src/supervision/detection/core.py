@@ -2186,6 +2186,7 @@ class Detections:
                 confidence=gemini_result[3],
                 data=data,
             )
+
         raise ValueError(f"Unsupported VLM value: {vlm}.")
 
     @classmethod

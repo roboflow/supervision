@@ -1486,7 +1486,7 @@ def test_from_google_gemini_3_5_recovers_malformed_array():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation():
+def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation() -> None:
     """Gemini 3.6 JSON produces scaled boxes and full-image polygon masks."""
     result = (
         '{"boxes": [{"box_2d": [250, 200, 750, 800], '
@@ -1513,7 +1513,7 @@ def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation():
     assert not detections.mask[0, 40, 19]
 
 
-def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items():
+def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items() -> None:
     """Filtering every Gemini 3.6 item returns valid empty detections."""
     result = (
         '{"boxes": [{"box_2d": [100, 100, 900, 900], '
@@ -1534,7 +1534,7 @@ def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items():
     assert detections.mask.shape == (0, 80, 100)
 
 
-def test_from_vlm_google_gemini_3_7_parses_structured_output():
+def test_from_vlm_google_gemini_3_7_parses_structured_output() -> None:
     """Gemini 3.7 uses the same structured box and polygon contract as 3.6."""
     result = (
         '{"boxes": [{"box_2d": [250, 200, 750, 800], '

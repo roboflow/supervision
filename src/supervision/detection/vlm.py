@@ -607,6 +607,25 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
+def _strip_gemini_json_fence(result: str) -> str:
+    """Unwrap the JSON payload of a Gemini response from its markdown fence.
+
+    Args:
+        result: Raw response text, which may wrap its JSON in a ```json fence.
+
+    Returns:
+        The contents of the first ```json fence, stripped of surrounding
+            whitespace, or `result` unchanged when the response carries no fence.
+    """
+    lines = result.splitlines()
+    for index, line in enumerate(lines):
+        if line == "```json":
+            fenced = "\n".join(lines[index + 1 :])
+            return fenced.split("```")[0].strip()
+
+    return result
+
+
 def _recover_gemini_json_objects(text: str) -> list[Any]:
     """Salvage individual JSON objects from a malformed Gemini JSON array.
 
@@ -804,12 +823,7 @@ def from_google_gemini_2_0(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    lines = result.splitlines()
-    for i, line in enumerate(lines):
-        if line == "```json":
-            result = "\n".join(lines[i + 1 :])
-            result = result.split("```")[0]
-            break
+    result = _strip_gemini_json_fence(result)
 
     try:
         data = json.loads(result)
@@ -895,12 +909,7 @@ def from_google_gemini_2_5(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    lines = result.splitlines()
-    for i, line in enumerate(lines):
-        if line == "```json":
-            result = "\n".join(lines[i + 1 :])
-            result = result.split("```")[0]
-            break
+    result = _strip_gemini_json_fence(result)
 
     try:
         data = json.loads(result)
@@ -1055,12 +1064,7 @@ def from_google_gemini_3_6(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    lines = result.splitlines()
-    for i, line in enumerate(lines):
-        if line == "```json":
-            result = "\n".join(lines[i + 1 :])
-            result = result.split("```")[0]
-            break
+    result = _strip_gemini_json_fence(result)
 
     try:
         payload = json.loads(result)
