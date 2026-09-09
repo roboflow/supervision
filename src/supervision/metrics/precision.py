@@ -30,10 +30,9 @@ if TYPE_CHECKING:
 
 
 class Precision(Metric["PrecisionResult"]):
-    """
-    Precision is a metric used to evaluate object detection models. It is the ratio of
-    true positive detections to the total number of predicted detections. We calculate
-    it at different IoU thresholds.
+    """Precision is a metric used to evaluate object detection models. It is the ratio
+    of true positive detections to the total number of predicted detections. We
+    calculate it at different IoU thresholds.
 
     In simple terms, Precision is a measure of a model's accuracy, calculated as:
 
@@ -73,8 +72,7 @@ class Precision(Metric["PrecisionResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Precision metric.
+        """Initialize the Precision metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -88,9 +86,7 @@ class Precision(Metric["PrecisionResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -99,8 +95,7 @@ class Precision(Metric["PrecisionResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> Precision:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -126,9 +121,8 @@ class Precision(Metric["PrecisionResult"]):
         return self
 
     def compute(self) -> PrecisionResult:
-        """
-        Calculate the precision metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
+        """Calculate the precision metric based on the stored predictions and ground-
+        truth data, at different IoU thresholds.
 
         Returns:
             The precision metric result.
@@ -359,8 +353,8 @@ class Precision(Metric["PrecisionResult"]):
     ]:
         """Compute precision scores from concatenated stats across all images.
 
-        ``unique_classes`` is the union of GT and predicted classes so that
-        predictions of classes absent from GT still count as false positives.
+        ``unique_classes`` is the union of GT and predicted classes so that predictions
+        of classes absent from GT still count as false positives.
         """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
@@ -424,8 +418,7 @@ class Precision(Metric["PrecisionResult"]):
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -446,7 +439,6 @@ class Precision(Metric["PrecisionResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -482,8 +474,7 @@ class Precision(Metric["PrecisionResult"]):
     def _compute_precision(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the precision from the confusion matrix.
+        """Broadcastable function, computing the precision from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -579,9 +570,7 @@ class Precision(Metric["PrecisionResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -596,8 +585,7 @@ class Precision(Metric["PrecisionResult"]):
 
 @dataclass
 class PrecisionResult:
-    """
-    The results of the precision metric calculation.
+    """The results of the precision metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -646,8 +634,7 @@ class PrecisionResult:
     large_objects: PrecisionResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -718,8 +705,7 @@ class PrecisionResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -748,14 +734,12 @@ class PrecisionResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the precision results.
+        """Plot the precision results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
         ){ align=center width="800" }
         """
-
         from matplotlib import pyplot as plt
 
         labels = ["Precision@50", "Precision@75"]

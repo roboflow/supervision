@@ -16,10 +16,8 @@ F = TypeVar("F", bound=Callable[..., Any])
 def ensure_cv2_image_for_class_method(
     annotate_func: F,
 ) -> F:
-    """
-    Decorates `BaseAnnotator.annotate` implementations, converts scene to
-    an image type used internally by the annotators, converts back when annotation
-    is complete.
+    """Decorates `BaseAnnotator.annotate` implementations, converts scene to an image
+    type used internally by the annotators, converts back when annotation is complete.
 
     Assumes the annotators modify the scene in-place.
 
@@ -57,9 +55,8 @@ def ensure_cv2_image_for_annotation(
 def ensure_cv2_image_for_standalone_function(
     image_processing_fun: F,
 ) -> F:
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    np.ndarray, converts back when processing is complete.
+    """Decorates image processing functions that accept np.ndarray, converting `image`
+    to np.ndarray, converts back when processing is complete.
 
     Assumes the annotators do NOT modify the scene in-place.
 
@@ -85,9 +82,8 @@ def ensure_cv2_image_for_standalone_function(
 def ensure_pil_image_for_class_method(
     annotate_func: F,
 ) -> F:
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    PIL image, converts back when processing is complete.
+    """Decorates image processing functions that accept np.ndarray, converting `image`
+    to PIL image, converts back when processing is complete.
 
     Assumes the annotators modify the scene in-place.
 
@@ -136,9 +132,8 @@ def ensure_cv2_image_for_processing(
 def images_to_cv2(
     images: list[npt.NDArray[np.uint8] | Image.Image],
 ) -> list[npt.NDArray[np.uint8]]:
-    """
-    Converts images provided either as Pillow images or OpenCV
-    images into OpenCV format.
+    """Converts images provided either as Pillow images or OpenCV images into OpenCV
+    format.
 
     Args:
         images: Images to be converted
@@ -146,7 +141,6 @@ def images_to_cv2(
     Returns:
         List of input images in OpenCV format
             (with order preserved).
-
     """
     result: list[npt.NDArray[np.uint8]] = []
     for image in images:
@@ -158,13 +152,13 @@ def images_to_cv2(
 
 
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
-    """
-    Converts Pillow image into OpenCV image, handling RGB -> BGR
-    conversion. Palette images are first expanded to RGB so palette indices are
-    resolved to their actual colors.
+    """Converts Pillow image into OpenCV image, handling RGB -> BGR conversion. Palette
+    images are first expanded to RGB so palette indices are resolved to their actual
+    colors. RGBA images are converted to BGR, matching OpenCV by dropping the alpha
+    channel.
 
     Args:
-        image: Pillow image in RGB, grayscale, or palette mode.
+        image: Pillow image in RGB, RGBA, grayscale, or palette mode.
 
     Returns:
         Input image converted to OpenCV format.
@@ -195,9 +189,8 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
-    """
-    Converts an OpenCV image into a Pillow image, reordering channels from
-    OpenCV's BGR(A) convention to Pillow's RGB(A).
+    """Converts an OpenCV image into a Pillow image, reordering channels from OpenCV's
+    BGR(A) convention to Pillow's RGB(A).
 
     Args:
         image: OpenCV image. Accepted shapes:

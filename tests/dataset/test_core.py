@@ -190,12 +190,11 @@ def test_dataset_merge(
     expected_result: DetectionDataset | None,
     exception: Exception,
 ) -> None:
-    """
-    Verify that multiple DetectionDataset objects can be successfully merged.
+    """Verify that multiple DetectionDataset objects can be successfully merged.
 
     Ensures that multiple `DetectionDataset` objects can be merged into single dataset.
-    This is vital for users who need to combine data from different sources or
-    augment their datasets with additional labeled examples.
+    This is vital for users who need to combine data from different sources or augment
+    their datasets with additional labeled examples.
     """
     with exception:
         result = DetectionDataset.merge(dataset_list=dataset_list)
@@ -709,6 +708,65 @@ class TestDetectionDatasetSplit:
 # ---------------------------------------------------------------------------
 # TST-03 - ClassificationDataset folder-structure round-trip
 # ---------------------------------------------------------------------------
+
+
+class TestClassificationDatasetExportCollisions:
+    """Folder exports must not overwrite images assigned to the same class."""
+
+    @pytest.mark.parametrize("second_name", ["image.png", "IMAGE.png"])
+    @pytest.mark.parametrize("with_confidence", [False, True])
+    def test_rejects_collisions_before_writing(
+        self, tmp_path: Path, second_name: str, with_confidence: bool
+    ) -> None:
+        """Resolve the winning class and reject duplicate output paths up front."""
+        paths = ["first/image.png", f"second/{second_name}"]
+        annotations = {p: Classifications(class_id=np.array([0])) for p in paths}
+        if with_confidence:
+            annotations = {
+                paths[0]: Classifications(
+                    class_id=np.array([1, 0]), confidence=np.array([0.1, 0.9])
+                ),
+                paths[1]: Classifications(
+                    class_id=np.array([0, 1]), confidence=np.array([0.9, 0.1])
+                ),
+            }
+        dataset = ClassificationDataset(
+            classes=["cats", "dogs"],
+            images={p: np.zeros((4, 4, 3), dtype=np.uint8) for p in paths},
+            annotations=annotations,
+        )
+        output = tmp_path / "export"
+
+        with pytest.raises(
+            ValueError, match="Ensure all output paths are unique before exporting"
+        ) as error:
+            dataset.as_folder_structure(str(output))
+
+        assert paths[0] in str(error.value)
+        assert paths[1] in str(error.value)
+        assert not output.exists()
+
+    def test_allows_same_basename_in_different_classes(self, tmp_path: Path) -> None:
+        """Distinct class directories preserve both images with a shared basename."""
+        from supervision import _cv2
+
+        paths = ["first/image.png", "second/image.png"]
+        images = {
+            p: np.full((4, 4, 3), i * 255, dtype=np.uint8) for i, p in enumerate(paths)
+        }
+        dataset = ClassificationDataset(
+            classes=["cats", "dogs"],
+            images=images,
+            annotations={
+                p: Classifications(class_id=np.array([i])) for i, p in enumerate(paths)
+            },
+        )
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        for class_name, path in zip(dataset.classes, paths):
+            saved = _cv2.imread(str(tmp_path / class_name / "image.png"))
+            np.testing.assert_array_equal(saved, images[path])
 
 
 class TestClassificationDatasetFolderRoundTrip:

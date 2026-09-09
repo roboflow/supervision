@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class Recall(Metric["RecallResult"]):
-    """
-    Recall is a metric used to evaluate object detection models. It is the ratio of
+    """Recall is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of ground truth instances. We calculate
     it at different IoU thresholds.
 
@@ -64,6 +63,31 @@ class Recall(Metric["RecallResult"]):
 
         ```
 
+        A class that only ever appears in the predictions (for example a detection
+        on a background image with no ground truth) has no instances to recall, so
+        it is tracked with a recall of `0.0` rather than dropped. This keeps the
+        tracked class set aligned with Precision and F1Score for the same input:
+
+        ```pycon
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10], [100, 0, 110, 10]]),
+        ...     class_id=np.array([0, 1]),  # class 1 has no ground-truth instance
+        ...     confidence=np.array([0.9, 0.8])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> recall_result = Recall().update(predictions, targets).compute()
+        >>> recall_result.matched_classes.tolist()
+        [0, 1]
+        >>> round(float(recall_result.recall_per_class[0][0]), 2)  # matched class 0
+        1.0
+        >>> round(float(recall_result.recall_per_class[1][0]), 2)  # prediction-only
+        0.0
+
+        ```
+
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
     ){ align=center width="800" }
@@ -74,8 +98,7 @@ class Recall(Metric["RecallResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the Recall metric.
+        """Initialize the Recall metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -89,9 +112,7 @@ class Recall(Metric["RecallResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -100,8 +121,7 @@ class Recall(Metric["RecallResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> Recall:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -127,8 +147,7 @@ class Recall(Metric["RecallResult"]):
         return self
 
     def compute(self) -> RecallResult:
-        """
-        Calculate the recall metric based on the stored predictions and ground-truth
+        """Calculate the recall metric based on the stored predictions and ground-truth
         data, at different IoU thresholds.
 
         Returns:
@@ -173,7 +192,40 @@ class Recall(Metric["RecallResult"]):
                         == size_category.value
                     )
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image). They produce
+                # no false negatives, so no recall value changes, but the classes still
+                # have to be tracked or `matched_classes` silently disagrees with
+                # Precision and F1Score for the same input.
+                if predictions.class_id is None or predictions.confidence is None:
+                    raise ValueError(
+                        "Recall metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)[
+                    prediction_size_mask
+                ]
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )[prediction_size_mask]
+                if len(prediction_class_ids) == 0:
+                    continue
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        np.zeros(
+                            (len(prediction_class_ids), iou_thresholds.size),
+                            dtype=np.bool_,
+                        ),
+                        prediction_confidence,
+                        prediction_class_ids,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
                 if predictions.class_id is None or targets.class_id is None:
                     raise ValueError(
                         "Recall metric requires `class_id` on both predictions "
@@ -328,7 +380,19 @@ class Recall(Metric["RecallResult"]):
         matches = matches[sorted_indices]
         ignored_matches = ignored_matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Classes that appear only in predictions have no ground-truth instances, so
+        # their recall is 0.0 rather than undefined. Including them keeps the tracked
+        # class set identical to Precision and F1Score and matches sklearn, which infers
+        # labels from the union of y_true and y_pred.
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        pred_classes = np.unique(prediction_class_ids)
+        # Dedupe each side first, then union1d the already-unique arrays: this skips
+        # union1d's internal re-sort/re-unique of the full concatenation and measured
+        # ~1.4x faster than np.unique(np.concatenate(...)). Deduping after the union
+        # (or union1d on the raw arrays) yields no speedup.
+        unique_classes = np.union1d(true_classes, pred_classes)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
@@ -378,8 +442,7 @@ class Recall(Metric["RecallResult"]):
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -400,7 +463,6 @@ class Recall(Metric["RecallResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -436,8 +498,7 @@ class Recall(Metric["RecallResult"]):
     def _compute_recall(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the recall from the confusion matrix.
+        """Broadcastable function, computing the recall from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -543,9 +604,7 @@ class Recall(Metric["RecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -560,8 +619,7 @@ class Recall(Metric["RecallResult"]):
 
 @dataclass
 class RecallResult:
-    """
-    The results of the recall metric calculation.
+    """The results of the recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -575,10 +633,12 @@ class RecallResult:
         recall_scores: the recall scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `recall_per_class`. Classes that
+            appear only in predictions (no ground-truth instances) are included;
+            their per-threshold recall values will be `0.0`.
         small_objects: the Recall metric results
             for small objects (area < 32²).
         medium_objects: the Recall metric results
@@ -608,8 +668,7 @@ class RecallResult:
     large_objects: RecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -678,8 +737,7 @@ class RecallResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -708,11 +766,10 @@ class RecallResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the recall results.
+        """Plot the recall results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt

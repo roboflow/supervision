@@ -15,8 +15,7 @@ from supervision.utils.internal import warn_deprecated
 
 
 class OverlapFilter(Enum):
-    """
-    Enum specifying the strategy for filtering overlapping detections.
+    """Enum specifying the strategy for filtering overlapping detections.
 
     Attributes:
         NONE: Do not filter detections based on overlap.
@@ -53,8 +52,7 @@ class OverlapFilter(Enum):
 
 
 class OverlapMetric(Enum):
-    """
-    Enum specifying the metric for measuring overlap between detections.
+    """Enum specifying the metric for measuring overlap between detections.
 
     Attributes:
         IOU: Intersection over Union. A region-overlap metric that compares
@@ -97,17 +95,22 @@ def _validate_iou_threshold(iou_threshold: float) -> None:
         )
 
 
+def _coordinate_difference(upper: np.number, lower: np.number) -> float:
+    """Subtract box coordinates without overflowing integer NumPy scalars."""
+    return float(np.asarray(upper).item() - np.asarray(lower).item())
+
+
 def box_iou(
-    box_true: list[float] | npt.NDArray[np.floating],
-    box_detection: list[float] | npt.NDArray[np.floating],
+    box_true: list[float] | npt.NDArray[np.number],
+    box_detection: list[float] | npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
-    """
-    Compute overlap metric between two bounding boxes.
+    """Compute overlap metric between two bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics. Returns the overlap value in range
-    `[0, 1]`.
+    `[0, 1]`. Integer coordinates are subtracted before conversion to floating
+    point so large origins remain precise while area products avoid integer overflow.
 
     Args:
         box_true: Ground truth box in format
@@ -122,6 +125,7 @@ def box_iou(
         Overlap value between boxes in `[0, 1]`.
 
     Raises:
+        TypeError: If either box contains complex coordinates.
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
@@ -137,21 +141,30 @@ def box_iou(
         ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
-    x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
-    x_min_det, y_min_det, x_max_det, y_max_det = np.array(box_detection)
+    box_true_array = np.asarray(box_true)
+    box_detection_array = np.asarray(box_detection)
+    if np.iscomplexobj(box_true_array) or np.iscomplexobj(box_detection_array):
+        raise TypeError("box coordinates must be real-valued")
+
+    x_min_true, y_min_true, x_max_true, y_max_true = box_true_array
+    x_min_det, y_min_det, x_max_det, y_max_det = box_detection_array
 
     x_min_inter = max(x_min_true, x_min_det)
     y_min_inter = max(y_min_true, y_min_det)
     x_max_inter = min(x_max_true, x_max_det)
     y_max_inter = min(y_max_true, y_max_det)
 
-    inter_w = max(0.0, x_max_inter - x_min_inter)
-    inter_h = max(0.0, y_max_inter - y_min_inter)
+    inter_w = max(0.0, _coordinate_difference(x_max_inter, x_min_inter))
+    inter_h = max(0.0, _coordinate_difference(y_max_inter, y_min_inter))
 
     area_inter = inter_w * inter_h
 
-    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
-    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
+    area_true = _coordinate_difference(x_max_true, x_min_true) * _coordinate_difference(
+        y_max_true, y_min_true
+    )
+    area_det = _coordinate_difference(x_max_det, x_min_det) * _coordinate_difference(
+        y_max_det, y_min_det
+    )
 
     if overlap_metric == OverlapMetric.IOU:
         area_norm = area_true + area_det - area_inter
@@ -174,8 +187,7 @@ def box_iou_batch(
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.float32]:
-    """
-    Compute pairwise overlap scores between batches of bounding boxes.
+    """Compute pairwise overlap scores between batches of bounding boxes.
 
     Supports standard IOU (intersection-over-union) and IOS
     (intersection-over-smaller-area) metrics for all `boxes_true` and
@@ -383,8 +395,13 @@ def box_iou_batch_with_jaccard(
     return iou
 
 
-def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _polygon_areas(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Compute the area of each oriented-box polygon using the shoelace formula.
+
+    Each polygon is translated to its own first corner before the shoelace
+    products, keeping representable integer coordinates with large origins (e.g.
+    geospatial frames) local before conversion to float64. Float inputs that
+    were already quantized retain their input precision.
 
     Args:
         polygons: ``(N, 4, 2)`` array of polygon corners.
@@ -392,13 +409,21 @@ def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floatin
     Returns:
         ``(N,)`` array of polygon areas.
     """
-    x = polygons[:, :, 0]
-    y = polygons[:, :, 1]
+    origin = polygons[:, 0:1, :]
+    if np.issubdtype(polygons.dtype, np.integer):
+        translated = np.asarray(
+            polygons.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        polygons_float = polygons.astype(np.float64, copy=False)
+        translated = polygons_float - origin.astype(np.float64, copy=False)
+    x = translated[:, :, 0]
+    y = translated[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
-    return cast(npt.NDArray[np.floating], 0.5 * np.abs(cross.sum(axis=1)))
+    return cast(npt.NDArray[np.float64], 0.5 * np.abs(cross.sum(axis=1)))
 
 
-def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+def _aabb_envelopes(polygons: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     """Compute the axis-aligned bounding envelope of each oriented box.
 
     Args:
@@ -415,8 +440,8 @@ def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floati
 
 
 def _overlapping_envelope_pairs(
-    envelopes_true: npt.NDArray[np.floating],
-    envelopes_detection: npt.NDArray[np.floating],
+    envelopes_true: npt.NDArray[np.number],
+    envelopes_detection: npt.NDArray[np.number],
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
 
@@ -451,9 +476,8 @@ def oriented_box_iou_batch(
     boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute pairwise overlap scores between two sets of oriented bounding boxes
-    using the configured `overlap_metric`.
+    """Compute pairwise overlap scores between two sets of oriented bounding boxes using
+    the configured `overlap_metric`.
 
     Overlap areas are computed exactly via convex-polygon intersection, gated by
     a cheap axis-aligned envelope pre-filter — no rasterization is involved, so
@@ -544,13 +568,8 @@ def oriented_box_iou_batch(
     # Capture identity before reshape: NMS / NMM pass the same array twice, so
     # the matrix is symmetric and we can compute only its upper triangle.
     is_self_comparison = boxes_true is boxes_detection
-    boxes_true = cast(
-        npt.NDArray[np.floating], boxes_true.reshape(-1, 4, 2).astype(np.float64)
-    )
-    boxes_detection = cast(
-        npt.NDArray[np.floating],
-        boxes_detection.reshape(-1, 4, 2).astype(np.float64),
-    )
+    boxes_true = boxes_true.reshape(-1, 4, 2)
+    boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
     n, m = len(boxes_true), len(boxes_detection)
     if n == 0 or m == 0:
@@ -568,14 +587,56 @@ def oriented_box_iou_batch(
         upper = rows <= cols
         rows, cols = rows[upper], cols[upper]
 
-    polygons_true = [box.astype(np.float32) for box in boxes_true]
-    polygons_detection = [box.astype(np.float32) for box in boxes_detection]
-
     ious: npt.NDArray[np.float64] = np.zeros((n, m), dtype=np.float64)
-    for i, j in zip(rows, cols):
-        intersection, _ = cv2.intersectConvexConvex(
-            polygons_true[i], polygons_detection[j]
+    local_origins_true = envelopes_true[:, :2]
+    local_origins_detection = envelopes_detection[:, :2]
+    if np.issubdtype(boxes_true.dtype, np.integer):
+        local_polygons_true = np.asarray(
+            boxes_true.astype(object) - local_origins_true[:, None, :].astype(object),
+            dtype=np.float32,
         )
+    else:
+        local_polygons_true = (boxes_true - local_origins_true[:, None, :]).astype(
+            np.float32
+        )
+    if np.issubdtype(boxes_detection.dtype, np.integer):
+        local_polygons_detection = np.asarray(
+            boxes_detection.astype(object)
+            - local_origins_detection[:, None, :].astype(object),
+            dtype=np.float32,
+        )
+    else:
+        local_polygons_detection = (
+            boxes_detection - local_origins_detection[:, None, :]
+        ).astype(np.float32)
+    # Float32 inputs already have quantized origins, so their envelope minima
+    # can be reused without loss. Float64 inputs may retain unit differences at
+    # large origins; keep their pair offsets in float64 until each pair's local
+    # cast instead of rounding absolute minima to float32 up front.
+    origins_true_float32 = (
+        local_origins_true if boxes_true.dtype == np.float32 else None
+    )
+    origins_detection_float32 = (
+        local_origins_detection if boxes_detection.dtype == np.float32 else None
+    )
+    polygon_i_buffer = np.empty((4, 2), dtype=np.float32)
+    polygon_j_buffer = np.empty((4, 2), dtype=np.float32)
+    for i, j in zip(rows, cols):
+        # Rebase precomputed local polygons to the shared overlap origin. This
+        # preserves translation-invariant float32 geometry without repeating
+        # corner reductions and casts for every candidate pair.
+        if origins_true_float32 is not None and origins_detection_float32 is not None:
+            origin_i = origins_true_float32[i]
+            origin_j = origins_detection_float32[j]
+        else:
+            origin_i = local_origins_true[i]
+            origin_j = local_origins_detection[j]
+        pair_origin = np.minimum(origin_i, origin_j)
+        offset_i = (origin_i - pair_origin).astype(np.float32, copy=False)
+        offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
+        np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
+        np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
+        intersection, _ = cv2.intersectConvexConvex(polygon_i_buffer, polygon_j_buffer)
         if intersection <= 0:
             continue
         denominator = (
@@ -705,10 +766,10 @@ def _mask_iou_batch_split(
     masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Internal function.
-    Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`.
+    """Internal function.
+
+    Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Args:
         masks_true: 3D `np.ndarray` representing ground-truth masks.
@@ -774,9 +835,8 @@ def mask_iou_batch(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> npt.NDArray[np.floating]:
-    """
-    Compute Intersection over Union (IoU) of two sets of masks -
-        `masks_true` and `masks_detection`.
+    """Compute Intersection over Union (IoU) of two sets of masks - `masks_true` and
+    `masks_detection`.
 
     Accepts both dense ``(N, H, W)`` boolean arrays and
     :class:`~supervision.detection.compact_mask.CompactMask` objects.
@@ -884,8 +944,7 @@ def mask_non_max_suppression(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on segmentation predictions.
+    """Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
@@ -963,8 +1022,7 @@ def mask_soft_non_max_suppression(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> npt.NDArray[np.floating]:
-    """
-    Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
 
     Unlike `mask_non_max_suppression`, which discards overlapping masks outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
@@ -1046,8 +1104,8 @@ def _prepare_predictions_for_nms(
 ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     """Add an agnostic class column when missing, sort by descending score.
 
-    Returns the score-descending sort index, the reordered predictions, and the
-    category vector for the loop callers to consume.
+    Returns the score-descending sort index, the reordered predictions, and the category
+    vector for the loop callers to consume.
     """
     rows, columns = predictions.shape
     if columns == 5:
@@ -1065,9 +1123,9 @@ def _nms_loop_from_iou_matrix(
 ) -> npt.NDArray[np.bool_]:
     """Greedy NMS suppression loop given a precomputed pairwise IoU matrix.
 
-    Assumes `ious` is square with row/column order matching `categories`.
-    Detections sharing a category whose IoU exceeds `iou_threshold` are dropped
-    in favour of the higher-confidence entry.
+    Assumes `ious` is square with row/column order matching `categories`. Detections
+    sharing a category whose IoU exceeds `iou_threshold` are dropped in favour of the
+    higher-confidence entry.
     """
     rows = len(ious)
     ious = ious - np.eye(rows)
@@ -1115,8 +1173,7 @@ def box_non_max_suppression(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression (NMS) on object detection predictions.
+    """Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
     Args:
         predictions: An array of object detection predictions in
@@ -1161,8 +1218,7 @@ def box_soft_non_max_suppression(
     sigma: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
+    """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
 
     Unlike `box_non_max_suppression`, which discards overlapping boxes outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
@@ -1217,8 +1273,7 @@ def _group_overlapping_masks(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many
+    """Apply greedy version of non-maximum merging to avoid detecting too many.
 
     Args:
         predictions: An array of shape `(n, 5)` containing
@@ -1276,8 +1331,7 @@ def mask_non_max_merge(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging (NMM) on segmentation predictions.
+    """Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
     Args:
         predictions: A 2D array of object detection predictions in
@@ -1438,13 +1492,13 @@ def _non_max_merge_per_category(
     predictions: npt.NDArray[np.floating],
     group_within: Callable[[npt.NDArray[np.int_]], list[list[int]]],
 ) -> list[list[int]]:
-    """Dispatch NMM grouping per class, then translate local indices back to
-    the global row positions of ``predictions``.
+    """Dispatch NMM grouping per class, then translate local indices back to the global
+    row positions of ``predictions``.
 
-    ``group_within(global_indices)`` must return merge groups expressed in
-    terms of *positions inside `global_indices`*, not absolute row positions.
-    When ``predictions`` has no class column, a single pass over all rows is
-    performed instead of per-category iteration.
+    ``group_within(global_indices)`` must return merge groups expressed in terms of
+    *positions inside `global_indices`*, not absolute row positions. When
+    ``predictions`` has no class column, a single pass over all rows is performed
+    instead of per-category iteration.
     """
     if predictions.shape[1] == 5:
         global_indices = np.arange(len(predictions), dtype=int)
@@ -1472,8 +1526,7 @@ def _group_overlapping_boxes(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging to avoid detecting too many
+    """Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
 
     Args:
@@ -1515,9 +1568,8 @@ def box_non_max_merge(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Apply greedy version of non-maximum merging per category to avoid detecting
-    too many overlapping bounding boxes for a given object.
+    """Apply greedy version of non-maximum merging per category to avoid detecting too
+    many overlapping bounding boxes for a given object.
 
     Args:
         predictions: An array of shape `(n, 5)` or `(n, 6)`
@@ -1566,8 +1618,7 @@ def oriented_box_non_max_suppression(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.bool_]:
-    """
-    Perform Non-Maximum Suppression on oriented bounding box predictions.
+    """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
     Overlap is computed via :func:`oriented_box_iou_batch` on the four
     corners of each box, so detections whose axis-aligned bounding boxes
@@ -1662,8 +1713,9 @@ def _group_overlapping_oriented_boxes(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Greedy non-maximum merging on oriented boxes. Mirrors
+    """Greedy non-maximum merging on oriented boxes.
+
+    Mirrors
     :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.
     """
     merge_groups: list[list[int]] = []
@@ -1693,9 +1745,8 @@ def oriented_box_non_max_merge(
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
-    """
-    Perform Non-Maximum Merging on oriented bounding box predictions,
-    grouped per category.
+    """Perform Non-Maximum Merging on oriented bounding box predictions, grouped per
+    category.
 
     Mirrors :func:`box_non_max_merge` but uses oriented-box IoU, so groups
     of rotated detections sharing the same body — rather than the same

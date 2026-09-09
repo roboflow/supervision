@@ -7,6 +7,7 @@ import pytest
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    get_labels_text,
     hex_to_rgba,
     is_valid_hex,
     resolve_color,
@@ -320,3 +321,207 @@ def test_rgba_to_hex_invalid(rgba: tuple[int, ...]) -> None:
 )
 def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:
     assert is_valid_hex(hex_color) is expected_result
+
+
+class TestGetLabelsText:
+    """Tests for the get_labels_text helper."""
+
+    def test_returns_custom_labels_when_provided(self) -> None:
+        """Custom labels are returned as-is without inspecting detections."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[0])
+        custom = ["cat"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field(self) -> None:
+        """Labels come from CLASS_NAME_DATA_FIELD when present in data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        assert get_labels_text(detections, None) == ["cat", "dog"]
+
+    def test_falls_back_to_class_id(self) -> None:
+        """Labels fall back to class_id strings when no class_name data."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[5, 3],
+        )
+        assert get_labels_text(detections, None) == ["5", "3"]
+
+    def test_falls_back_to_class_id_single_detection(self) -> None:
+        """class_id fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]], class_id=[7])
+        assert get_labels_text(detections, None) == ["7"]
+
+    def test_falls_back_to_index(self) -> None:
+        """Labels fall back to detection indices when no class_id."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2], [2, 2, 3, 3]],
+        )
+        assert get_labels_text(detections, None) == ["0", "1", "2"]
+
+    def test_falls_back_to_index_single_detection(self) -> None:
+        """Index fallback holds for a single detection (N=1 edge case)."""
+        detections = _create_detections(xyxy=[[0, 0, 1, 1]])
+        assert get_labels_text(detections, None) == ["0"]
+
+    def test_custom_labels_take_precedence_over_class_name(self) -> None:
+        """Custom labels win over the class_name branch specifically."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        custom = ["a", "b"]
+        assert get_labels_text(detections, custom) is custom
+
+    def test_uses_class_name_data_field_with_non_str_dtype(self) -> None:
+        """Str() coercion is load-bearing when class_name holds a non-str dtype."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array([1, 2])},
+        )
+        assert get_labels_text(detections, None) == ["1", "2"]
+
+    def test_empty_detections(self) -> None:
+        """Empty detections produce an empty label list, via the class_id branch."""
+        detections = Detections.empty()
+        assert detections.class_id is not None
+        assert get_labels_text(detections, None) == []
+
+    def test_raises_on_class_name_length_mismatch(self) -> None:
+        """A class_name array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+            data={"class_name": np.array(["cat", "dog"])},
+        )
+        detections.data["class_name"] = np.array(["cat"])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_name"):
+            get_labels_text(detections, None)
+
+    def test_raises_on_class_id_length_mismatch(self) -> None:
+        """A class_id array shorter than detections raises instead of truncating."""
+        detections = _create_detections(
+            xyxy=[[0, 0, 1, 1], [1, 1, 2, 2]],
+            class_id=[0, 1],
+        )
+        detections.class_id = np.array([0])  # bypass alignment checks
+
+        with pytest.raises(ValueError, match="class_id"):
+            get_labels_text(detections, None)
+
+
+class TestTraceEmptyFrames:
+    """Tests for Trace.put on frames that contain no detections."""
+
+    def test_empty_detections_without_tracker_id_are_accepted(self) -> None:
+        """A frame that detected nothing has no tracker ids to require."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert len(trace.xy) == 0
+        assert len(trace.tracker_id) == 0
+
+    def test_empty_detections_advance_the_frame_counter(self) -> None:
+        """An empty frame is still an elapsed frame for the max_size window."""
+        trace = Trace()
+
+        trace.put(Detections.empty())
+
+        assert trace.current_frame_id == 1
+
+    def test_track_reappearing_after_a_long_gap_drops_its_stale_trail(self) -> None:
+        """A history that fills max_size is pruned by elapsed frames on reappearance."""
+        trace = Trace(max_size=3)
+        for x in (10, 20, 30):
+            trace.put(
+                _create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                )
+            )
+        for _ in range(5):
+            trace.put(Detections.empty())
+
+        trace.put(
+            _create_detections(xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1])
+        )
+
+        assert np.array_equal(trace.get(tracker_id=1), np.array([[92.5, 2.5]]))
+
+    def test_track_reappearing_with_an_under_filled_history_keeps_its_trail(
+        self,
+    ) -> None:
+        """Below max_size stored frames the prune gate stays shut on reappearance."""
+        trace = Trace(max_size=5)
+        for x in (10, 20):
+            trace.put(
+                _create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                )
+            )
+        for _ in range(20):
+            trace.put(Detections.empty())
+
+        trace.put(
+            _create_detections(xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1])
+        )
+
+        assert np.array_equal(
+            trace.get(tracker_id=1),
+            np.array([[12.5, 2.5], [22.5, 2.5], [92.5, 2.5]]),
+        )
+
+    def test_center_of_mass_anchor_accepts_an_empty_first_frame(self) -> None:
+        """An empty batch never reaches the mask-requiring anchor lookup.
+
+        `Position.CENTER_OF_MASS` normally demands a detection mask, but an empty batch
+        is short-circuited before `get_anchors_coordinates` is called, so it must not
+        raise even though it carries no mask.
+        """
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+
+        trace.put(Detections.empty())
+
+        assert len(trace.xy) == 0
+        assert trace.current_frame_id == 1
+
+    def test_center_of_mass_anchor_records_masked_batch_after_empty_frame(
+        self,
+    ) -> None:
+        """A populated, masked frame after an empty one still records an anchor."""
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+        trace.put(Detections.empty())
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 40:60, 30:70] = True
+        detections = _create_detections(
+            xyxy=[[30, 40, 70, 60]],
+            mask=list(mask),
+            class_id=[0],
+            tracker_id=[1],
+        )
+
+        trace.put(detections)
+
+        assert trace.xy.shape == (1, 2)
+
+    def test_center_of_mass_anchor_still_requires_mask_on_populated_batch(
+        self,
+    ) -> None:
+        """A populated, maskless batch still raises for `CENTER_OF_MASS`.
+
+        The empty-batch short-circuit must not swallow the mask requirement for frames
+        that actually carry detections.
+        """
+        trace = Trace(anchor=Position.CENTER_OF_MASS)
+        trace.put(Detections.empty())
+        detections = _create_detections(
+            xyxy=[[30, 40, 70, 60]], class_id=[0], tracker_id=[1]
+        )
+
+        with pytest.raises(ValueError, match="without a detection mask"):
+            trace.put(detections)

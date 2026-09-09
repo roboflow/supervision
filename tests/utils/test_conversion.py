@@ -176,6 +176,15 @@ def test_pillow_to_cv2_handles_palette_images() -> None:
     np.testing.assert_array_equal(result, np.array([[[0, 0, 255]]], dtype=np.uint8))
 
 
+def test_pillow_to_cv2_handles_rgba_images() -> None:
+    """RGBA images drop alpha and reorder color channels like OpenCV."""
+    image = Image.new("RGBA", (1, 1), color=(10, 20, 30, 40))
+
+    result = pillow_to_cv2(image=image)
+
+    np.testing.assert_array_equal(result, np.array([[[30, 20, 10]]], dtype=np.uint8))
+
+
 def test_images_to_cv2_when_empty_input_provided() -> None:
     # when
     result = images_to_cv2(images=[])

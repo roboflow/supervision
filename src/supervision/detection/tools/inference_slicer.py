@@ -3,7 +3,8 @@ from __future__ import annotations
 import threading
 import warnings
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
@@ -28,9 +29,9 @@ from supervision.utils.iterables import create_batches
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally by `_is_windowed_raster` rather than by import so
-    `rasterio` stays an optional dependency — any object exposing these members
-    works. `rasterio.io.DatasetReader` satisfies this protocol.
+    Matched structurally by `_is_windowed_raster` rather than by import so `rasterio`
+    stays an optional dependency — any object exposing these members works.
+    `rasterio.io.DatasetReader` satisfies this protocol.
     """
 
     width: int
@@ -43,8 +44,8 @@ class WindowedRasterDataset(Protocol):
 def _is_windowed_raster(image: object) -> TypeGuard[WindowedRasterDataset]:
     """Duck-type check for a rasterio-style dataset that supports windowed reads.
 
-    Avoids importing rasterio so it remains an optional dependency. numpy arrays
-    and PIL images do not expose this combination of attributes.
+    Avoids importing rasterio so it remains an optional dependency. numpy arrays and PIL
+    images do not expose this combination of attributes.
     """
     return (
         callable(getattr(image, "read", None))
@@ -102,8 +103,7 @@ def move_detections(
 
 
 class InferenceSlicer:
-    """
-    Perform tiled inference on large images by slicing them into overlapping patches.
+    """Perform tiled inference on large images by slicing them into overlapping patches.
 
     This class divides an input image into overlapping slices of configurable size
     and overlap, runs inference on each slice through a user-provided callback, and
@@ -307,8 +307,7 @@ class InferenceSlicer:
         self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
-        """
-        Perform tiled inference on the full image and return merged detections.
+        """Perform tiled inference on the full image and return merged detections.
 
         The first slice always runs synchronously so the output type can be
         inspected before committing to a threading strategy. Detections are
@@ -373,12 +372,12 @@ class InferenceSlicer:
                     )
             else:
                 with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                    batch_futures = [
-                        executor.submit(self._run_callback_batch, image, ob)
-                        for ob in remaining_batches
-                    ]
-                    for batch_future in as_completed(batch_futures):
-                        detections_list.extend(batch_future.result())
+                    # `Executor.map` yields in submission order, so batches merge in
+                    # source order no matter which thread finishes first.
+                    for batch_detections in executor.map(
+                        partial(self._run_callback_batch, image), remaining_batches
+                    ):
+                        detections_list.extend(batch_detections)
             merged = Detections.merge(detections_list=detections_list)
             return self._apply_overlap_filter(merged)
 
@@ -425,12 +424,11 @@ class InferenceSlicer:
                 detections_list.append(self._run_callback(image, offset))
         else:
             with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                futures = [
-                    executor.submit(self._run_callback, image, offset)
-                    for offset in remaining_offsets
-                ]
-                for future in as_completed(futures):
-                    detections_list.append(future.result())
+                # `Executor.map` yields in submission order, so slices merge in
+                # source order no matter which thread finishes first.
+                detections_list.extend(
+                    executor.map(partial(self._run_callback, image), remaining_offsets)
+                )
 
         merged = Detections.merge(detections_list=detections_list)
         return self._apply_overlap_filter(merged)
@@ -474,8 +472,8 @@ class InferenceSlicer:
     def _run_callback(
         self, image: ImageType | WindowedRasterDataset, offset: npt.NDArray[Any]
     ) -> Detections:
-        """
-        Run detection callback on a sliced portion of the image and adjust coordinates.
+        """Run detection callback on a sliced portion of the image and adjust
+        coordinates.
 
         Args:
             image: The full image.
@@ -696,8 +694,8 @@ class InferenceSlicer:
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
     ) -> npt.NDArray[Any]:
-        """
-        Generate bounding boxes defining the coordinates of image slices with overlap.
+        """Generate bounding boxes defining the coordinates of image slices with
+        overlap.
 
         Args:
             resolution_wh: Image resolution `(width, height)`.

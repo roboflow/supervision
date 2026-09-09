@@ -40,13 +40,12 @@ class ViewTransformer:
 def main(
     source_video_path: str,
     target_video_path: str,
-    model_id: str = "yolov8x-640",
+    model_id: str = "rfdetr-small",
     roboflow_api_key: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Vehicle Speed Estimation using Inference and Supervision.
+    """Vehicle Speed Estimation using Inference and Supervision.
 
     Args:
         source_video_path: Path to the source video file

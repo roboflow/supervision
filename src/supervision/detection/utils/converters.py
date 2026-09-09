@@ -12,9 +12,7 @@ CoordinateConvention = Literal["inclusive", "exclusive"]
 
 
 def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Convert an array of boxes to an array of polygons.
-    Retains the input datatype.
+    """Convert an array of boxes to an array of polygons. Retains the input datatype.
 
     Args:
         box: An array of boxes (N, 4), where each box is represented as a
@@ -76,9 +74,8 @@ def polygon_to_mask(
 
 
 def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Converts bounding box coordinates from `(x, y, width, height)`
-    format to `(x_min, y_min, x_max, y_max)` format.
+    """Converts bounding box coordinates from `(x, y, width, height)` format to `(x_min,
+    y_min, x_max, y_max)` format.
 
     Args:
         xywh: A numpy array of shape `(N, 4)` where each row
@@ -109,9 +106,8 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
 
 def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`
-    format to `(x, y, width, height)` format.
+    """Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)` format to
+    `(x, y, width, height)` format.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each row
@@ -143,8 +139,7 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
 
 def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Converts bounding box coordinates from `(center_x, center_y, width, height)`
+    """Converts bounding box coordinates from `(center_x, center_y, width, height)`
     format to `(x_min, y_min, x_max, y_max)` format.
 
     Args:
@@ -170,19 +165,29 @@ def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
-    xyxy = xcycwh.copy()
-    xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
-    xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
-    xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
-    xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
-    return cast(npt.NDArray[np.number], np.asarray(xyxy))
+    # Build the result from the half-extent arithmetic instead of writing into a
+    # copy of the input. Half of an odd width or height is fractional, so an
+    # integer input array would silently truncate those coordinates; letting the
+    # division set the output dtype keeps them exact.
+    center_x = xcycwh[:, 0]
+    center_y = xcycwh[:, 1]
+    half_width = xcycwh[:, 2] / 2
+    half_height = xcycwh[:, 3] / 2
+    xyxy = np.column_stack(
+        (
+            center_x - half_width,
+            center_y - half_height,
+            center_x + half_width,
+            center_y + half_height,
+        )
+    )
+    return cast(npt.NDArray[np.number], xyxy)
 
 
 def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
-    """
-    Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`
-    into measurement space to format `(center x, center y, aspect ratio, height)`,
-    where the aspect ratio is `width / height`.
+    """Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)` into
+    measurement space to format `(center x, center y, aspect ratio, height)`, where the
+    aspect ratio is `width / height`.
 
     Args:
         xyxy: Bounding box in format `(x1, y1, x2, y2)`.
@@ -204,7 +209,6 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
                [32.5       , 47.5       ,  0.77..., 45.        ]])
 
         ```
-
     """
     if xyxy.size == 0:
         return np.empty((0, 4), dtype=float)
@@ -229,8 +233,7 @@ def mask_to_xyxy(
     masks: npt.NDArray[np.bool_],
     coordinate_convention: CoordinateConvention = "inclusive",
 ) -> npt.NDArray[np.int_]:
-    """
-    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
+    """Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
 
     Args:
         masks: A 3D `np.array` of shape `(N, H, W)` containing 2D bool masks.
@@ -293,8 +296,8 @@ def xyxy_to_mask(
     resolution_wh: tuple[int, int],
     coordinate_convention: CoordinateConvention = "inclusive",
 ) -> npt.NDArray[np.bool_]:
-    """
-    Converts a 2D `np.ndarray` of bounding boxes into a 3D `np.ndarray` of bool masks.
+    """Converts a 2D `np.ndarray` of bounding boxes into a 3D `np.ndarray` of bool
+    masks.
 
     Args:
         boxes: A 2D `np.ndarray` of shape `(N, 4)` containing bounding boxes
@@ -364,8 +367,7 @@ def xyxy_to_mask(
 
 
 def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]:
-    """
-    Converts a binary mask to a list of polygons.
+    """Converts a binary mask to a list of polygons.
 
     Args:
         mask: A binary mask represented as a 2D NumPy array of shape `(H, W)`,
@@ -652,8 +654,7 @@ def rle_to_mask(
     rle: npt.NDArray[np.integer[Any]] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
-    """
-    Converts a COCO run-length encoding (RLE) to a binary mask.
+    """Converts a COCO run-length encoding (RLE) to a binary mask.
 
     Implements the COCO RLE format used by ``pycocotools``: pixels are counted
     in **column-major (Fortran) order** — top-to-bottom within each column,
@@ -725,8 +726,7 @@ def rle_to_mask(
 def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
-    """
-    Converts a binary mask into a COCO run-length encoding (RLE).
+    """Converts a binary mask into a COCO run-length encoding (RLE).
 
     Produces RLE in the COCO format used by ``pycocotools``: pixels are counted
     in **column-major (Fortran) order** — top-to-bottom within each column,
@@ -800,8 +800,7 @@ def mask_to_rle(
 
 
 def polygon_to_xyxy(polygon: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
-    """
-    Converts a polygon represented by a NumPy array into a bounding box.
+    """Converts a polygon represented by a NumPy array into a bounding box.
 
     Args:
         polygon: A polygon represented by a NumPy array of shape `(N, 2)`,

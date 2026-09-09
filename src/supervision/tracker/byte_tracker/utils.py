@@ -1,7 +1,6 @@
 class IdCounter:
     def __init__(self, start_id: int = 0) -> None:
-        """
-        Initialize the ID counter.
+        """Initialize the ID counter.
 
         Args:
             start_id: The starting integer for the counter.
@@ -19,8 +18,7 @@ class IdCounter:
         self._id = self.start_id
 
     def new_id(self) -> int:
-        """
-        Get the current ID and increment the counter.
+        """Get the current ID and increment the counter.
 
         Returns:
             The newly assigned ID.

@@ -6,7 +6,10 @@ import numpy.typing as npt
 
 from supervision import Detections
 from supervision import _cv2 as cv2
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
+    polygon_to_mask,
+)
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -14,8 +17,7 @@ from supervision.geometry.utils import get_polygon_center
 
 
 class PolygonZone:
-    """
-    A class for defining a polygon-shaped zone within a frame for detecting objects.
+    """A class for defining a polygon-shaped zone within a frame for detecting objects.
 
     !!! warning
 
@@ -78,6 +80,34 @@ class PolygonZone:
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
         require_all_anchors: bool = True,
     ) -> None:
+        """Build a zone from a polygon.
+
+        Args:
+            polygon: Zone boundary of shape `(N, 2)` holding the `x`, `y`
+                coordinates of its vertices.
+            triggering_anchors: Which anchors of a detection's bounding box
+                decide whether it falls inside the zone.
+            require_all_anchors: Whether every triggering anchor must be inside
+                for the detection to count, rather than any one of them.
+
+        Raises:
+            ValueError: If `polygon` is not of shape `(N, 2)`, has fewer than
+                `MIN_POLYGON_POINT_COUNT` vertices, or `triggering_anchors` is
+                empty.
+        """
+        polygon = np.asarray(polygon)
+        if polygon.ndim != 2 or polygon.shape[-1] != 2:
+            raise ValueError(f"Polygon must have shape (N, 2); got {polygon.shape}.")
+        # Fewer than three vertices enclose no area, so the mask below comes out
+        # empty or a bare line and the zone silently never triggers. Reject it
+        # here rather than let a zone that can never count look like a zone that
+        # simply saw nothing. Zero vertices additionally breaks `np.max`.
+        if len(polygon) < MIN_POLYGON_POINT_COUNT:
+            raise ValueError(
+                f"Polygon must have at least {MIN_POLYGON_POINT_COUNT} vertices "
+                f"to enclose an area; got {len(polygon)}."
+            )
+
         self.polygon = polygon.astype(int)
         # Materialize once so we can safely accept generators without exhausting them.
         self.triggering_anchors = list(triggering_anchors)
@@ -93,8 +123,7 @@ class PolygonZone:
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
-        """
-        Determines if the detections are within the polygon zone.
+        """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
         avoid per-zone clipping shifting anchor positions. This prevents a single
@@ -133,8 +162,7 @@ class PolygonZone:
 
 
 class PolygonZoneAnnotator:
-    """
-    A class for annotating a polygon-shaped zone within a frame with a count of
+    """A class for annotating a polygon-shaped zone within a frame with a count of
     detected objects.
 
     Attributes:
@@ -193,8 +221,7 @@ class PolygonZoneAnnotator:
     def annotate(
         self, scene: npt.NDArray[Any], label: str | None = None
     ) -> npt.NDArray[Any]:
-        """
-        Annotates the polygon zone within a frame with a count of detected objects.
+        """Annotates the polygon zone within a frame with a count of detected objects.
 
         Args:
             scene: The image on which the polygon zone will be annotated

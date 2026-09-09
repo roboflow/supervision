@@ -11,8 +11,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Video Processing with YOLO and ByteTrack.
+    """Video Processing with YOLO and ByteTrack.
 
     Args:
         source_weights_path: Path to the source weights file

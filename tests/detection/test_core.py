@@ -316,10 +316,11 @@ def test_getitem(
     expected_result: Detections | None,
     exception: Exception,
 ) -> None:
-    """
-    Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for various
-    input types. This is a core feature that allows users to filter and manipulate
-    detection results easily.
+    """Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for
+    various input types.
+
+    This is a core feature that allows users to filter and manipulate detection results
+    easily.
     """
     with exception:
         result = detections[index]
@@ -736,14 +737,14 @@ class TestMergeMixedMasks:
         return dense_det
 
     def test_mixed_result_is_compact_mask(self) -> None:
-        """merge([dense, compact]) returns a CompactMask, not ndarray."""
+        """Merge([dense, compact]) returns a CompactMask, not ndarray."""
         det_dense = self._make_dense_det([[5, 5, 15, 15]])
         det_compact = self._make_compact_det([[20, 20, 35, 35]])
         result = Detections.merge([det_dense, det_compact])
         assert isinstance(result.mask, CompactMask)
 
     def test_mixed_pixel_parity_with_all_dense(self) -> None:
-        """merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
+        """Merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_dense_a = self._make_dense_det(xyxy_a)
@@ -758,7 +759,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_compact_first_pixel_parity(self) -> None:
-        """merge([compact, dense]) order: compact input first still gives parity."""
+        """Merge([compact, dense]) order: compact input first still gives parity."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_compact_a = self._make_compact_det(xyxy_a)
@@ -774,7 +775,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_fields_remain_aligned(self) -> None:
-        """confidence, class_id, xyxy stay in order after mixed merge."""
+        """Confidence, class_id, xyxy stay in order after mixed merge."""
         det_dense = self._make_dense_det([[1, 1, 10, 10]])
         det_compact = self._make_compact_det([[30, 30, 40, 40]])
         det_dense.confidence = np.array([0.1])
@@ -805,7 +806,7 @@ class TestMergeMixedMasks:
         )
 
     def test_mixed_compact_image_shape_mismatch_raises(self) -> None:
-        """merge with CompactMasks of different image_shapes raises ValueError."""
+        """Merge with CompactMasks of different image_shapes raises ValueError."""
         h, w = self.IMG_SHAPE
         masks_a = np.zeros((1, h, w), dtype=bool)
         masks_b = np.zeros((1, h + 10, w + 10), dtype=bool)
@@ -849,9 +850,8 @@ class TestMergeMixedMasks:
     def test_mixed_dense_out_of_box_pixels_dropped(self) -> None:
         """Dense True pixels outside xyxy box are dropped after mixed merge.
 
-        from_dense crops each dense mask to its xyxy bounding box — a documented
-        lossy conversion. This test asserts the drop rather than treating it as a
-        regression.
+        from_dense crops each dense mask to its xyxy bounding box — a documented lossy
+        conversion. This test asserts the drop rather than treating it as a regression.
         """
         h, w = self.IMG_SHAPE
         xyxy = [[5, 5, 15, 15]]
@@ -875,7 +875,7 @@ class TestMergeMixedMasks:
         assert not result_dense[0, 0, 0], "out-of-box pixel dropped"
 
     def test_empty_compact_mask_detections_merge_returns_no_mask(self) -> None:
-        """merge on empty CompactMask-carrying Detections returns mask=None."""
+        """Merge on empty CompactMask-carrying Detections returns mask=None."""
         h, w = self.IMG_SHAPE
         cm_empty = CompactMask(
             [],
@@ -1194,19 +1194,21 @@ def test_merge_inner_detection_object_pair(
 @pytest.mark.parametrize(
     ("detections", "expected"),
     [
-        (
+        pytest.param(
             Detections.empty(),
             True,
-        ),  # canonical empty
-        (
+            id="canonical-empty",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10]]),
                 class_id=np.array([1]),
                 confidence=np.array([0.9]),
             ),
             False,
-        ),  # non-empty, no tracker_id
-        (
+            id="non-empty-no-tracker",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1214,8 +1216,9 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with tracker_id — the regression case from #2195
-        (
+            id="filtered-empty-with-tracker-regression-2195",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 class_id=np.array([1, 2]),
@@ -1223,22 +1226,17 @@ def test_merge_inner_detection_object_pair(
                 tracker_id=np.array([1, 2]),
             )[np.array([True, False])],
             False,
-        ),  # one detection remaining after filter
-        (
+            id="one-detection-after-filter",
+        ),
+        pytest.param(
             Detections(
                 xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
                 mask=np.zeros((2, 4, 4), dtype=bool),
                 class_id=np.array([1, 2]),
             )[np.array([False, False])],
             True,
-        ),  # filtered to empty with mask — same bug could affect mask field
-    ],
-    ids=[
-        "canonical_empty",
-        "non_empty_no_tracker",
-        "filtered_empty_with_tracker",
-        "one_remaining_after_filter",
-        "filtered_empty_with_mask",
+            id="filtered-empty-with-mask",
+        ),
     ],
 )
 def test_is_empty(detections: Detections, expected: bool) -> None:
@@ -1434,9 +1432,9 @@ def test_from_inference_compact_masks_matches_dense_default() -> None:
 def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
     """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
 
-    This is the documented behaviour (see Warning in Detections.from_inference):
-    each mask is cropped to its detector bbox, so True pixels outside that box
-    are not stored.  Dense masks are unaffected and preserve the full mask.
+    This is the documented behaviour (see Warning in Detections.from_inference): each
+    mask is cropped to its detector bbox, so True pixels outside that box are not
+    stored.  Dense masks are unaffected and preserve the full mask.
     """
     # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
     # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
@@ -1890,7 +1888,7 @@ class TestGetAnchorsObbDispatch:
 
 
 class TestMergeObbCorners:
-    """_merge_obb_corners"""
+    """_merge_obb_corners."""
 
     @pytest.mark.parametrize(
         ("corners_list", "expected"),
@@ -1962,9 +1960,34 @@ class TestMergeObbCorners:
         else:
             assert result.dtype == np.float32
 
+    @pytest.mark.parametrize(
+        ("dtype", "offset"),
+        [
+            pytest.param(np.uint16, 60_000, id="uint16-near-dtype-max"),
+            pytest.param(np.uint64, 2**40, id="uint64-large-origin"),
+        ],
+    )
+    def test_unsigned_corners_match_float_result(
+        self, dtype: type[np.unsignedinteger], offset: int
+    ) -> None:
+        """Unsigned-integer corners below the origin merge without wrapping."""
+        # Rotated 10x5 rectangles whose second and third corners sit left of
+        # the first, so translating by the origin yields negative deltas.
+        winner = np.array([[0, 0], [-6, 8], [-2, 11], [4, 3]]) + offset
+        other = np.array([[3, 2], [-3, 10], [1, 13], [7, 5]]) + offset
+        corners_unsigned = [winner.astype(dtype), other.astype(dtype)]
+        expected = _merge_obb_corners(
+            [winner.astype(np.float64), other.astype(np.float64)]
+        )
+
+        result = _merge_obb_corners(corners_unsigned)
+
+        assert result.dtype == np.float64
+        assert np.allclose(result - offset, expected - offset, atol=1e-6)
+
 
 class TestMergeDetectionGroup:
-    """_merge_detection_group"""
+    """_merge_detection_group."""
 
     @pytest.mark.parametrize(
         ("detections", "expected_detections"),
@@ -2667,8 +2690,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, detections.box_area)
 
     def test_mask_takes_precedence_over_oriented_box(self) -> None:
-        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is
-        computed from the mask."""
+        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is computed
+        from the mask."""
         mask = np.zeros((40, 40), dtype=bool)
         mask[10:30, 10:25] = True  # 20 rows x 15 cols = 300 pixels
         quad = _rotated_rect(20, 20, 20, 10, 0)  # OBB area = 200
@@ -2682,8 +2705,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, [300.0])
 
     def test_empty_detections_with_obb_data_returns_empty_array(self) -> None:
-        """Boundary case: empty Detections carrying an OBB data field must
-        return an empty area array (matches the mask / box_area branches)."""
+        """Boundary case: empty Detections carrying an OBB data field must return an
+        empty area array (matches the mask / box_area branches)."""
         detections = Detections(
             xyxy=np.empty((0, 4), dtype=np.float32),
             class_id=np.array([], dtype=int),
@@ -2693,8 +2716,8 @@ class TestDetectionsArea:
         assert detections.area.shape == (0,)
 
     def test_degenerate_oriented_box_has_zero_area(self) -> None:
-        """An OBB whose four corners coincide has zero area — the shoelace
-        formula must not produce NaN or a negative value."""
+        """An OBB whose four corners coincide has zero area — the shoelace formula must
+        not produce NaN or a negative value."""
         quad = np.full((4, 2), 5.0, dtype=np.float32)
         detections = _make_obb_detections([quad], [0.9], [0])
 
@@ -2702,8 +2725,10 @@ class TestDetectionsArea:
 
     def test_handles_batched_oriented_boxes(self) -> None:
         """Multiple OBBs in one `Detections` each get their own correct area.
-        Guards against the shoelace reduction collapsing across boxes instead
-        of along the per-box corner axis."""
+
+        Guards against the shoelace reduction collapsing across boxes instead of along
+        the per-box corner axis.
+        """
         quads = [
             _rotated_rect(50, 50, 20, 10, 0),  # 200
             _rotated_rect(100, 100, 20, 10, 45),  # 200 (rotation must not change it)
@@ -2807,3 +2832,102 @@ class TestDetectionsArea:
 
         np.testing.assert_array_equal(detections.area, [expected_area])
         assert detections.area.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_max", "y_max", "expected_area"),
+        [
+            pytest.param(np.int32, 50000, 50000, 2.5e9, id="int32"),
+            pytest.param(np.int16, 300, 300, 90000.0, id="int16"),
+            pytest.param(np.uint16, 300, 300, 90000.0, id="uint16"),
+            pytest.param(np.uint32, 70000, 70000, 4.9e9, id="uint32"),
+        ],
+    )
+    def test_box_area_does_not_overflow_integer_dtypes(
+        self, dtype: type, x_max: int, y_max: int, expected_area: float
+    ) -> None:
+        """Integer box area is computed in float64 so it cannot wrap negative."""
+        detections = Detections(xyxy=np.array([[0, 0, x_max, y_max]], dtype=dtype))
+
+        assert detections.box_area.dtype == np.float64
+        assert detections.box_area[0] == pytest.approx(expected_area)
+
+    @pytest.mark.parametrize(
+        ("dtype", "area_property"),
+        [
+            pytest.param(np.int64, "box_area", id="int64-box-area"),
+            pytest.param(np.int64, "area", id="int64-area"),
+            pytest.param(np.uint64, "box_area", id="uint64-box-area"),
+            pytest.param(np.uint64, "area", id="uint64-area"),
+        ],
+    )
+    def test_integer_area_preserves_large_coordinate_differences(
+        self, dtype: type, area_property: str
+    ) -> None:
+        """Integer AABB areas retain one-unit widths above float64 precision."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, 0, origin + 1, 1]], dtype=dtype)
+        )
+
+        area = getattr(detections, area_property)
+
+        assert area.dtype == np.float64
+        np.testing.assert_array_equal(area, [1.0])
+
+    @pytest.mark.parametrize(
+        ("dtype", "x_min", "x_max"),
+        [
+            pytest.param(
+                np.int64,
+                np.iinfo(np.int64).min,
+                np.iinfo(np.int64).max,
+                id="int64-full-range",
+            ),
+            pytest.param(
+                np.uint64,
+                0,
+                np.iinfo(np.uint64).max,
+                id="uint64-full-range",
+            ),
+        ],
+    )
+    def test_integer_box_area_handles_full_coordinate_range(
+        self, dtype: type, x_min: int, x_max: int
+    ) -> None:
+        """Integer area handles coordinate differences spanning a dtype range."""
+        detections = Detections(xyxy=np.array([[x_min, 0, x_max, 1]], dtype=dtype))
+
+        expected = float(int(x_max) - int(x_min))
+
+        np.testing.assert_array_equal(detections.box_area, [expected])
+        np.testing.assert_array_equal(detections.area, [expected])
+
+
+class TestDetectionsXyxyValidation:
+    @pytest.mark.parametrize(
+        "invalid_coordinate",
+        [
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="positive-infinity"),
+            pytest.param(-np.inf, id="negative-infinity"),
+        ],
+    )
+    def test_non_finite_xyxy_raises(self, invalid_coordinate: float) -> None:
+        """Detections rejects every non-finite xyxy coordinate."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=np.array([[0.0, 0.0, 1.0, invalid_coordinate]]))
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param(np.array([["0", "0", "1", "1"]]), id="string-coordinates"),
+            pytest.param(
+                np.array([[0, 0, 1, "1"]], dtype=object),
+                id="object-coordinates",
+            ),
+        ],
+    )
+    def test_unsupported_xyxy_dtype_raises_value_error(self, xyxy: np.ndarray) -> None:
+        """Detections reports unsupported coordinate dtypes as validation errors."""
+        with pytest.raises(ValueError, match="must contain only finite numeric values"):
+            Detections(xyxy=xyxy)

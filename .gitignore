@@ -156,8 +156,19 @@ Desktop.ini
 
 # local data
 data/
+examples/*/outputs/
 !src/supervision/_cv2/data/
 !src/supervision/_cv2/data/*
+*.mp4
+*.pt
+
+# some artifacts
+/*.py
+/*.jpg
+/*.png
+/*.tif
+/*.json
+
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
 .claude/logs/

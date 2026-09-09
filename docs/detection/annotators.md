@@ -384,9 +384,9 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         ```python
         import supervision as sv
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
 
-        model = YOLO("yolov8x.pt")
+        model = RFDETRMedium()
 
         trace_annotator = sv.TraceAnnotator()
 
@@ -396,8 +396,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         with sv.VideoSink(target_path="...", video_info=video_info) as sink:
             for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
+                detections = model.predict(frame[:, :, ::-1])
                 detections = tracker.update_with_detections(detections)
                 annotated_frame = trace_annotator.annotate(
                     scene=frame.copy(),
@@ -416,9 +415,9 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         ```python
         import supervision as sv
-        from ultralytics import YOLO
+        from rfdetr import RFDETRMedium
 
-        model = YOLO("yolov8x.pt")
+        model = RFDETRMedium()
 
         heat_map_annotator = sv.HeatMapAnnotator()
 
@@ -427,8 +426,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         with sv.VideoSink(target_path="...", video_info=video_info) as sink:
             for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
+                detections = model.predict(frame[:, :, ::-1])
                 annotated_frame = heat_map_annotator.annotate(
                     scene=frame.copy(),
                     detections=detections,
