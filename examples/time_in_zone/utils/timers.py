@@ -6,22 +6,22 @@ import supervision as sv
 
 
 class FPSBasedTimer:
-    """
-    A timer that calculates the duration each object has been detected based on frames
-    per second (FPS).
+    """A timer that calculates the duration each object has been detected based on
+    frames per second (FPS).
 
     Attributes:
-        fps (int): The frame rate of the video stream, used to calculate time durations.
+        fps (float): The frame rate of the video stream, used to calculate
+            time durations.
         frame_id (int): The current frame number in the sequence.
         tracker_id2frame_id (Dict[int, int]): Maps each tracker's ID to the frame number
             at which it was first detected.
     """
 
-    def __init__(self, fps: int = 30) -> None:
+    def __init__(self, fps: float = 30) -> None:
         """Initializes the FPSBasedTimer with the specified frames per second rate.
 
         Args:
-            fps (int): The frame rate of the video stream. Defaults to 30.
+            fps (float): The frame rate of the video stream. Defaults to 30.
         """
         self.fps = fps
         self.frame_id = 0
@@ -51,8 +51,7 @@ class FPSBasedTimer:
 
 
 class ClockBasedTimer:
-    """
-    A timer that calculates the duration each object has been detected based on the
+    """A timer that calculates the duration each object has been detected based on the
     system clock.
 
     Attributes:

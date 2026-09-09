@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # IoU and NMS Utils
@@ -54,10 +53,22 @@ status: new
 :::supervision.detection.utils.iou_and_nms.box_non_max_suppression
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.box_soft_non_max_suppression">box_soft_non_max_suppression</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.box_soft_non_max_suppression
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou_and_nms.mask_non_max_suppression">mask_non_max_suppression</a></h2>
 </div>
 
 :::supervision.detection.utils.iou_and_nms.mask_non_max_suppression
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.mask_soft_non_max_suppression">mask_soft_non_max_suppression</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.mask_soft_non_max_suppression
 
 <div class="md-typeset">
   <h2><a href="#supervision.detection.utils.iou_and_nms.box_non_max_merge">box_non_max_merge</a></h2>
@@ -70,3 +81,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.iou_and_nms.mask_non_max_merge
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.oriented_box_non_max_suppression">oriented_box_non_max_suppression</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.oriented_box_non_max_suppression
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.iou_and_nms.oriented_box_non_max_merge">oriented_box_non_max_merge</a></h2>
+</div>
+
+:::supervision.detection.utils.iou_and_nms.oriented_box_non_max_merge

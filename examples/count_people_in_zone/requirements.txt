@@ -1,5 +1,7 @@
 gdown
 inference
+rfdetr
 supervision
 tqdm
 ultralytics
+jsonargparse[signatures]

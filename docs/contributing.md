@@ -1,1 +1,1 @@
---8<-- "CONTRIBUTING.md"
+--8<-- ".github/CONTRIBUTING.md"

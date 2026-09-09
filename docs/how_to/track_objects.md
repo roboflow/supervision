@@ -1,24 +1,25 @@
 ---
 comments: true
-status: new
+description: Track objects across video frames with ByteTrack in supervision — assign persistent IDs and analyze motion from any object detection model.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+  - name: Soumik Mandal
+    role: ML Engineer, Roboflow
+    github: https://github.com/soumik12345
+date_modified: 2026-04-22
 ---
 
 # Track Objects
 
-Leverage Supervision's advanced capabilities for enhancing your video analysis by
-seamlessly [tracking](/latest/trackers/) objects recognized by
-a multitude of object detection, segmentation and keypoint models. This comprehensive guide will
-take you through the steps to perform inference using the YOLOv8 model via either the
-[Inference](https://github.com/roboflow/inference) or
-[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this,
-you'll discover how to track these objects efficiently and annotate your video content
-for a deeper analysis.
+Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using native [RF-DETR](https://github.com/roboflow/rf-detr), with [Inference](https://github.com/roboflow/inference) and [Ultralytics](https://github.com/ultralytics/ultralytics) alternatives. Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
 
 ## Object Detection & Segmentation
 
-To make it easier for you to follow our tutorial download the video we will use as an
-example. You can do this using
-[`supervision[assets]`](/latest/assets/) extension.
+To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
+
+This section demonstrates how to detect and segment objects in video frames using native RF-DETR first, with Inference and YOLOv8 alternatives. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -32,34 +33,26 @@ download_assets(VideoAssets.PEOPLE_WALKING)
 
 ### Run Inference
 
-First, you'll need to obtain predictions from your object detection or segmentation
-model. In this tutorial, we are using the YOLOv8 model as an example. However,
-Supervision is versatile and compatible with various models. Check this
-[link](/latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
-for guidance on how to plug in other models.
+First, you'll need to obtain predictions from your object detection or segmentation model. In this tutorial, we are using RF-DETR as an example, with YOLOv8 as an alternative. However, Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/#load-predictions-into-supervision) for guidance on how to plug in other models.
 
-We will define a `callback` function, which will process each frame of the video
-by obtaining model predictions and then annotating the frame based on these predictions.
-This `callback` function will be essential in the subsequent steps of the tutorial, as
-it will be modified to include tracking, labeling, and trace annotations.
+We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions. This `callback` function will be essential in the subsequent steps of the tutorial, as it will be modified to include tracking, labeling, and trace annotations.
 
 !!! tip
 
-    Both object detection and segmentation models are supported. Try it with `yolov8n.pt` or `yolov8n-640-seg`!
+    Both object detection and segmentation models are supported. Try it with native `RFDETRMedium` or `rfdetr-seg-medium`, or use their Inference aliases.
 
-=== "Ultralytics"
+=== "RF-DETR"
 
     ```{ .py }
     import numpy as np
     import supervision as sv
-    from ultralytics import YOLO
+    from rfdetr import RFDETRMedium
 
-    model = YOLO("yolov8n.pt")
+    model = RFDETRMedium()
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(results)
+        detections = model.predict(frame[:, :, ::-1])
         return box_annotator.annotate(frame.copy(), detections=detections)
 
     sv.process_video(
@@ -76,12 +69,34 @@ it will be modified to include tracking, labeling, and trace annotations.
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="rfdetr-small", api_key="<ROBOFLOW_API_KEY>")
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
         detections = sv.Detections.from_inference(results)
+        return box_annotator.annotate(frame.copy(), detections=detections)
+
+    sv.process_video(
+        source_path="people-walking.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+=== "Ultralytics"
+
+    ```{ .py }
+    import numpy as np
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8n.pt")
+    box_annotator = sv.BoxAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        detections = sv.Detections.from_ultralytics(results)
         return box_annotator.annotate(frame.copy(), detections=detections)
 
     sv.process_video(
@@ -97,26 +112,25 @@ it will be modified to include tracking, labeling, and trace annotations.
 
 ### Tracking
 
-After running inference and obtaining predictions, the next step is to track the
-detected objects throughout the video. Utilizing Supervision’s
-[`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
-functionality, each detected object is assigned a unique tracker ID,
-enabling the continuous following of the object's motion path across different frames.
+After running inference and obtaining predictions, the next step is to track the detected objects throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames.
 
-=== "Ultralytics"
+!!! warning "Deprecated tracker wrapper"
 
-    ```{ .py hl_lines="6 12" }
+    `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. The external tracker uses `update()` instead of `update_with_detections()`.
+
+=== "RF-DETR"
+
+    ```{ .py hl_lines="5 10" }
     import numpy as np
     import supervision as sv
-    from ultralytics import YOLO
+    from rfdetr import RFDETRMedium
 
-    model = YOLO("yolov8n.pt")
+    model = RFDETRMedium()
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(results)
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
         return box_annotator.annotate(frame.copy(), detections=detections)
 
@@ -134,7 +148,7 @@ enabling the continuous following of the object's motion path across different f
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="rfdetr-small", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
 
@@ -151,17 +165,9 @@ enabling the continuous following of the object's motion path across different f
     )
     ```
 
-### Annotate Video with Tracking IDs
-
-Annotating the video with tracking IDs helps in distinguishing and following each object
-distinctly. With the
-[`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
-in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
-offering a clear visual representation of each object's class and unique identifier.
-
 === "Ultralytics"
 
-    ```{ .py hl_lines="8 15-19 23-24" }
+    ```{ .py hl_lines="6 12" }
     import numpy as np
     import supervision as sv
     from ultralytics import YOLO
@@ -169,11 +175,38 @@ offering a clear visual representation of each object's class and unique identif
     model = YOLO("yolov8n.pt")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
-    label_annotator = sv.LabelAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
         detections = sv.Detections.from_ultralytics(results)
+        detections = tracker.update_with_detections(detections)
+        return box_annotator.annotate(frame.copy(), detections=detections)
+
+    sv.process_video(
+        source_path="people-walking.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+### Annotate Video with Tracking IDs
+
+Annotating the video with tracking IDs helps in distinguishing and following each object distinctly. With the [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) in Supervision, we can overlay the tracker IDs and class labels on the detected objects, offering a clear visual representation of each object's class and unique identifier.
+
+=== "RF-DETR"
+
+    ```{ .py hl_lines="7 14-18 22-23" }
+    import numpy as np
+    import supervision as sv
+    from rfdetr import RFDETRMedium
+
+    model = RFDETRMedium()
+    tracker = sv.ByteTrack()
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
 
         labels = [
@@ -201,7 +234,7 @@ offering a clear visual representation of each object's class and unique identif
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="rfdetr-small", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -209,6 +242,41 @@ offering a clear visual representation of each object's class and unique identif
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
         detections = sv.Detections.from_inference(results)
+        detections = tracker.update_with_detections(detections)
+
+        labels = [
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
+        ]
+
+        annotated_frame = box_annotator.annotate(
+            frame.copy(), detections=detections)
+        return label_annotator.annotate(
+            annotated_frame, detections=detections, labels=labels)
+
+    sv.process_video(
+        source_path="people-walking.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+=== "Ultralytics"
+
+    ```{ .py hl_lines="8 15-19 23-24" }
+    import numpy as np
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8n.pt")
+    tracker = sv.ByteTrack()
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        detections = sv.Detections.from_ultralytics(results)
         detections = tracker.update_with_detections(detections)
 
         labels = [
@@ -235,28 +303,23 @@ offering a clear visual representation of each object's class and unique identif
 
 ### Annotate Video with Traces
 
-Adding traces to the video involves overlaying the historical paths of the detected
-objects. This feature, powered by the
-[`sv.TraceAnnotator`](/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator),
-allows for visualizing the trajectories of objects, helping in understanding the
-movement patterns and interactions between objects in the video.
+Adding traces to the video involves overlaying the historical paths of the detected objects. This feature, powered by the [`sv.TraceAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator), allows for visualizing the trajectories of objects, helping in understanding the movement patterns and interactions between objects in the video.
 
-=== "Ultralytics"
+=== "RF-DETR"
 
-    ```{ .py hl_lines="9 26-27" }
+    ```{ .py hl_lines="8 25-26" }
     import numpy as np
     import supervision as sv
-    from ultralytics import YOLO
+    from rfdetr import RFDETRMedium
 
-    model = YOLO("yolov8n.pt")
+    model = RFDETRMedium()
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     trace_annotator = sv.TraceAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        detections = sv.Detections.from_ultralytics(results)
+        detections = model.predict(frame[:, :, ::-1])
         detections = tracker.update_with_detections(detections)
 
         labels = [
@@ -286,7 +349,7 @@ movement patterns and interactions between objects in the video.
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="rfdetr-small", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -295,6 +358,44 @@ movement patterns and interactions between objects in the video.
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
         detections = sv.Detections.from_inference(results)
+        detections = tracker.update_with_detections(detections)
+
+        labels = [
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
+        ]
+
+        annotated_frame = box_annotator.annotate(
+            frame.copy(), detections=detections)
+        annotated_frame = label_annotator.annotate(
+            annotated_frame, detections=detections, labels=labels)
+        return trace_annotator.annotate(
+            annotated_frame, detections=detections)
+
+    sv.process_video(
+        source_path="people-walking.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+=== "Ultralytics"
+
+    ```{ .py hl_lines="9 26-27" }
+    import numpy as np
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8n.pt")
+    tracker = sv.ByteTrack()
+    box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+    trace_annotator = sv.TraceAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        detections = sv.Detections.from_ultralytics(results)
         detections = tracker.update_with_detections(detections)
 
         labels = [
@@ -325,8 +426,7 @@ movement patterns and interactions between objects in the video.
 
 Models aren't limited to object detection and segmentation. Keypoint detection allows for detailed analysis of body joints and connections, especially valuable for applications like human pose estimation. This section introduces keypoint tracking. We'll walk through the steps of annotating keypoints, converting them into bounding box detections compatible with `ByteTrack`, and applying detection smoothing for enhanced stability.
 
-To make it easier for you to follow our tutorial, let's download the video we will use as an
-example. You can do this using [`supervision[assets]`](/latest/assets/) extension.
+To make it easier for you to follow our tutorial, let's download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -340,12 +440,11 @@ download_assets(VideoAssets.SKIING)
 
 ### Keypoint Detection
 
-First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However,
-Supervision is versatile and compatible with various models. Check this [link](/latest/keypoint/core/) for guidance on how to plug in other models.
+First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However, Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/keypoint/core/) for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 
-Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexAnnotator).
+Let's immediately visualize the results with our [`EdgeAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
 === "Ultralytics"
 
@@ -382,7 +481,7 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
 
@@ -408,9 +507,9 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
 
 ### Convert to Detections
 
-Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.as_detections) function.
+Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections) function.
 
-Let's convert to detections and visualize the results with our [`BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
+Let's convert to detections and visualize the results with our [`BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 
 !!! tip
 
@@ -455,7 +554,7 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -485,7 +584,7 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 
 ### Keypoint Tracking
 
-Now that we have a `Detections` object, we can track it throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
+Now that we have a `Detections` object, we can track it throughout the video. Utilizing Supervision's [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
 
 === "Ultralytics"
 
@@ -532,7 +631,7 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -568,7 +667,7 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
 
 ### Bonus: Smoothing
 
-We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
+We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
 
 === "Ultralytics"
 
@@ -617,7 +716,7 @@ We could stop here as we have successfully tracked the object detected by the ke
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -654,3 +753,26 @@ We could stop here as we have successfully tracked the object detected by the ke
 </video>
 
 This structured walkthrough should give a detailed pathway to annotate videos effectively using Supervision’s various functionalities, including object tracking and trace annotations.
+
+## Frequently Asked Questions
+
+### How do I track objects across video frames with supervision?
+
+Pass `Detections` to `sv.ByteTrack.update_with_detections()` on each frame. The tracker assigns persistent IDs. Combine with `sv.TraceAnnotator` to visualize trajectories. `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the `trackers` package, where the update method is named `update()`.
+
+### What should I know about ByteTrack?
+
+ByteTrack uses low-confidence detections during association, which can improve continuity during missed or weak detections. Supervision's built-in `ByteTrack` wrapper is deprecated in favor of the external `trackers` package.
+
+### Can I track instances instead of bounding boxes?
+
+Yes. ByteTrack tracks bounding boxes. For instance masks, use `sv.MaskAnnotator` with the tracker IDs to color-code each tracked object consistently.
+
+### Does ByteTrack work with any detection model?
+
+Yes. ByteTrack is model-agnostic - it accepts any `Detections` object with bounding boxes, regardless of the supported converter or model output that produced it.
+
+## Authors
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow
+- [Soumik Mandal](https://github.com/soumik12345) — ML Engineer, Roboflow

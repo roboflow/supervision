@@ -1,10 +1,10 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
+site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers."
 repo_name: roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2025. All rights reserved.
+copyright: Roboflow 2026. All rights reserved.
 
 extra:
   social:
@@ -20,16 +20,34 @@ extra:
       link: https://discord.gg/GbfgXGJ8Bk
   analytics:
     provider: google
-    property: G-P7ZG0Y19G5
+    property: G-SEKT4K1EWR
   version:
     provider: mike
+    default: latest
+  # Snapshot from the GitHub API's stargazers_count field on 2026-09-02.
+  # Refresh this value together with the rounded adoption claims in the docs.
+  github_stars: 49848
+  # Version label mike is deploying, used to gate the outdated-version banner at build
+  # time. Material renders that banner into every page and hides it with JavaScript, so
+  # without this gate the "older version" warning would sit in the HTML of /latest/ too,
+  # where crawlers and AI answer engines read it as page text.
+  doc_version: !ENV [MIKE_DOCS_VERSION, ""]
+  # Whether doc_version names the newest stable release — computed by
+  # .github/scripts/compute_is_latest_release.py in publish-docs.yml's release deploy.
+  # `mike deploy <tag>` sets doc_version to the literal tag, never to "latest", so
+  # without this override a release's own docs tree would carry the outdated-version
+  # banner on the day it ships, warning its own readers away from itself.
+  is_latest_release: !ENV [MIKE_IS_LATEST_RELEASE, ""]
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
 
 nav:
   - Home: index.md
+  - About: about.md
+  - Contact: contact.md
+  - FAQ: faq.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
@@ -38,16 +56,20 @@ nav:
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
       - Benchmark a Model: how_to/benchmark_a_model.md
+      - Count in Zone: how_to/count_in_zone.md
+      - Use Compact Masks: how_to/use_compact_masks.md
+      - OpenCV Migration: how_to/opencv_migration.md
   - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
+          - Compact Mask: detection/compact_mask.md
           - Converters: detection/utils/converters.md
           - IoU and NMS: detection/utils/iou_and_nms.md
           - Boxes: detection/utils/boxes.md
           - Masks: detection/utils/masks.md
           - Polygons: detection/utils/polygons.md
-          - VLMs: detection/utils/vlms.md
+          - VLM Utils: detection/utils/vlms.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
@@ -62,7 +84,6 @@ nav:
       - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
-          - Utils: datasets/utils.md
       - Metrics:
           - mAP: metrics/mean_average_precision.md
           - mAR: metrics/mean_average_recall.md
@@ -72,8 +93,10 @@ nav:
           - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:
+          - Conversion: utils/conversion.md
           - Video: utils/video.md
           - Image: utils/image.md
+          - Image Window: utils/image_window.md
           - Iterables: utils/iterables.md
           - Notebook: utils/notebook.md
           - File: utils/file.md
@@ -81,6 +104,9 @@ nav:
           - Geometry: utils/geometry.md
       - Assets: assets.md
   - Cookbooks: cookbooks.md
+  - Contributing: contributing.md
+  - Code of Conduct: code_of_conduct.md
+  - License: license.md
   - Changelog:
       - Changelog: changelog.md
       - Deprecated: deprecated.md
@@ -102,14 +128,11 @@ theme:
     - navigation.tabs.sticky
 
   palette:
-    # Palette for light mode
     - scheme: default
       primary: "custom"
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-
-    # Palette toggle for dark mode
     - scheme: slate
       primary: "custom"
       toggle:
@@ -121,6 +144,12 @@ theme:
     code: IBM Plex Mono
 
 plugins:
+  # mike is auto-injected when deploying, but must be declared explicitly to set
+  # canonical_version: it rewrites site_url to the /latest/ tree for every version
+  # build, so archived versions point their canonical, og:url, and JSON-LD urls at
+  # /latest/ instead of competing with it in search and AI answer engines.
+  - mike:
+      canonical_version: latest
   - search
   - mkdocs-jupyter:
       kernel_name: python3
@@ -131,10 +160,10 @@ plugins:
       default_handler: python
       handlers:
         python:
+          paths: [supervision]
+          load_external_modules: true
           options:
             parameter_headings: true
-            paths: [supervision]
-            load_external_modules: true
             allow_inspection: true
             show_bases: true
             group_by_category: true
@@ -143,9 +172,11 @@ plugins:
             show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
+            show_signature_annotations: true
+            show_docstring_examples: true
           inventories:
-          - url: https://docs.python-requests.org/en/master/objects.inv
-            domains: [std, py]
+            - url: https://docs.python-requests.org/en/master/objects.inv
+              domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
@@ -156,7 +187,16 @@ plugins:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+
+  # uses Pygments + prompt stripping
+  - pymdownx.superfences:
+      custom_fences:
+        - name: pycon
+          class: pycon
+          lexer: pycon
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.inlinehilite
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
@@ -168,24 +208,34 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       check_paths: true
+
+  # Pygments pycon lexer with prompt stripping enabled
   - pymdownx.highlight:
-      anchor_linenums: true
       line_spans: __span
+      anchor_linenums: true
       pygments_lang_class: true
+      linenums: false
+      auto_title: false
+      extend_pygments_lang:
+        - name: pycon
+          lang: pycon
+          options:
+            strip_prompt: true
+            strip_continuation_prompt: true
+
   - pymdownx.arithmatex:
       generic: true
 
 extra_javascript:
+  - "javascripts/version-banner.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/pycon_copy.js"
   - "javascripts/segment.js"
   - "javascripts/mathjax.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
   - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
-# Messages shown during document build
-# Reference: https://www.mkdocs.org/user-guide/configuration/#validation
-# Values: [warn, info, ignore]
 validation:
   nav:
     absolute_links: ignore
