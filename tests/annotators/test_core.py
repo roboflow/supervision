@@ -1804,6 +1804,29 @@ class TestComparisonAnnotator:
         expected[3:5, 3:5] = annotator.color_2.as_bgr()
         np.testing.assert_array_equal(result, expected)
 
+    def test_annotate_with_multiple_dense_masks_in_one_detection_set(self) -> None:
+        """Union separated dense masks before coloring the first detection set."""
+        scene = np.zeros((6, 6, 3), dtype=np.uint8)
+        masks_1 = np.zeros((2, 6, 6), dtype=bool)
+        masks_1[0, 1:3, 1:3] = True
+        masks_1[1, 3:5, 3:5] = True
+        detections_1 = Detections(
+            xyxy=np.array([[1, 1, 2, 2], [3, 3, 4, 4]], dtype=np.float32),
+            mask=masks_1,
+        )
+        annotator = ComparisonAnnotator(opacity=1.0)
+
+        result = annotator.annotate(
+            scene=scene.copy(),
+            detections_1=detections_1,
+            detections_2=Detections.empty(),
+        )
+
+        expected = scene.copy()
+        expected[1:3, 1:3] = annotator.color_1.as_bgr()
+        expected[3:5, 3:5] = annotator.color_1.as_bgr()
+        np.testing.assert_array_equal(result, expected)
+
     def test_annotate_with_compact_masks_avoids_full_stack_materialization(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
