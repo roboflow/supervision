@@ -1,5 +1,7 @@
+import json
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -13,6 +15,8 @@ from supervision.detection.vlm import (
     from_google_gemini_2_0,
     from_google_gemini_2_5,
     from_google_gemini_3_5,
+    from_google_gemini_3_6,
+    from_google_gemini_3_7,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -1397,6 +1401,40 @@ def test_from_vlm_unsupported_future_enum_raises(
         pytest.param(from_google_gemini_3_5, "42", id="gemini_3_5_non_list"),
         pytest.param(from_qwen_2_5_vl, "[1, 2, 3]", id="qwen_2_5_non_dict_items"),
         pytest.param(from_qwen_2_5_vl, "42", id="qwen_2_5_non_list"),
+        pytest.param(from_google_gemini_3_6, "{}", id="gemini_3_6_boxes_key_absent"),
+        pytest.param(
+            from_google_gemini_3_6, '{"boxes":"x"}', id="gemini_3_6_boxes_not_list"
+        ),
+        pytest.param(
+            from_google_gemini_3_6, '{"boxes":[]}', id="gemini_3_6_boxes_empty"
+        ),
+        pytest.param(
+            from_google_gemini_3_6,
+            '{"boxes":[{"box_2d":[100,100,200,200]}]}',
+            id="gemini_3_6_item_missing_label",
+        ),
+        pytest.param(
+            from_google_gemini_3_6,
+            '{"boxes":[{"label":"cat"}]}',
+            id="gemini_3_6_item_missing_box_2d",
+        ),
+        pytest.param(from_google_gemini_3_7, "{}", id="gemini_3_7_boxes_key_absent"),
+        pytest.param(
+            from_google_gemini_3_7, '{"boxes":"x"}', id="gemini_3_7_boxes_not_list"
+        ),
+        pytest.param(
+            from_google_gemini_3_7, '{"boxes":[]}', id="gemini_3_7_boxes_empty"
+        ),
+        pytest.param(
+            from_google_gemini_3_7,
+            '{"boxes":[{"box_2d":[100,100,200,200]}]}',
+            id="gemini_3_7_item_missing_label",
+        ),
+        pytest.param(
+            from_google_gemini_3_7,
+            '{"boxes":[{"label":"cat"}]}',
+            id="gemini_3_7_item_missing_box_2d",
+        ),
     ],
 )
 def test_vlm_parsers_degrade_on_malformed_json(parser, result):
@@ -1552,6 +1590,138 @@ def test_from_vlm_google_gemini_3_7_parses_structured_output() -> None:
     np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["glass"])
     assert detections.mask is not None
     assert detections.mask.shape == (1, 80, 100)
+
+
+def test_from_vlm_google_gemini_3_6_masks_survive_when_filtered_item_lacks_mask() -> (
+    None
+):
+    """A class-filtered-out item's missing mask must not blank the survivor's mask."""
+    result = json.dumps(
+        {
+            "boxes": [
+                {"box_2d": [0, 0, 500, 500], "label": "dog"},
+                {
+                    "box_2d": [500, 500, 1000, 1000],
+                    "mask": [[600, 600], [1000, 600], [1000, 1000], [600, 1000]],
+                    "label": "cat",
+                },
+            ]
+        }
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_6,
+        result=result,
+        resolution_wh=(100, 80),
+        classes=["cat"],
+    )
+
+    assert detections.mask is not None
+    assert detections.mask.shape == (1, 80, 100)
+
+
+def test_from_vlm_google_gemini_3_6_class_filter_partial_keeps_masks_aligned() -> None:
+    """Surviving masks stay matched to their own item after a partial class filter."""
+    result = json.dumps(
+        {
+            "boxes": [
+                {
+                    "box_2d": [0, 0, 500, 500],
+                    "mask": [[0, 0], [400, 0], [400, 500], [0, 500]],
+                    "label": "cat",
+                },
+                {
+                    "box_2d": [0, 500, 500, 1000],
+                    "mask": [[600, 0], [1000, 0], [1000, 500], [600, 500]],
+                    "label": "dog",
+                },
+                {
+                    "box_2d": [500, 0, 1000, 500],
+                    "mask": [[0, 500], [400, 500], [400, 1000], [0, 1000]],
+                    "label": "cat",
+                },
+            ]
+        }
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_6,
+        result=result,
+        resolution_wh=(100, 80),
+        classes=["cat"],
+    )
+
+    assert len(detections) == 2
+    assert detections.mask is not None
+    assert detections.mask.shape == (2, 80, 100)
+    # first surviving item's own region (top-left) must be set, not the dropped
+    # "dog" item's region (top-right) nor the second surviving item's (bottom-left)
+    assert detections.mask[0, 20, 20]
+    assert not detections.mask[0, 60, 20]
+    assert not detections.mask[0, 20, 80]
+    # second surviving item's own region (bottom-left) must be set, not the others
+    assert detections.mask[1, 60, 20]
+    assert not detections.mask[1, 20, 20]
+    assert not detections.mask[1, 20, 80]
+
+
+@pytest.mark.parametrize(
+    "mask_value",
+    [
+        pytest.param([["a", "b"], ["c", "d"], ["e", "f"]], id="non_numeric"),
+        pytest.param([[1, 2, 3], [4, 5, 6], [7, 8, 9]], id="wrong_shape"),
+        pytest.param([[1, 2], [3, 4]], id="too_few_points"),
+        pytest.param([[1, 2], [3, 4], [float("nan"), float("nan")]], id="non_finite"),
+    ],
+)
+def test_from_vlm_google_gemini_3_6_malformed_polygon_degrades_to_empty_mask(
+    mask_value: list[list[Any]],
+) -> None:
+    """A malformed mask polygon degrades to an all-zero mask instead of raising."""
+    result = json.dumps(
+        {
+            "boxes": [
+                {"box_2d": [100, 100, 900, 900], "mask": mask_value, "label": "cat"}
+            ]
+        }
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_6,
+        result=result,
+        resolution_wh=(100, 80),
+    )
+
+    assert detections.mask is not None
+    assert detections.mask.shape == (1, 80, 100)
+    assert not detections.mask.any()
+
+
+def test_from_vlm_google_gemini_3_7_class_filter_can_remove_all_items() -> None:
+    """Filtering every Gemini 3.7 item returns valid empty detections."""
+    result = json.dumps(
+        {
+            "boxes": [
+                {
+                    "box_2d": [100, 100, 900, 900],
+                    "mask": [[100, 100], [900, 100], [900, 900], [100, 900]],
+                    "label": "cat",
+                }
+            ]
+        }
+    )
+
+    detections = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_7,
+        result=result,
+        resolution_wh=(100, 80),
+        classes=["dog"],
+    )
+
+    assert len(detections) == 0
+    assert detections.xyxy.shape == (0, 4)
+    assert detections.mask is not None
+    assert detections.mask.shape == (0, 80, 100)
 
 
 class TestFromVlmCornerOrdering:
