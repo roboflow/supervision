@@ -15,6 +15,8 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    _iter_resolved_colors,
+    _resolve_annotator_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
@@ -258,16 +260,10 @@ class BoxAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -366,16 +362,10 @@ class OrientedBoxAnnotator(BaseAnnotator):
             return scene
         obb_boxes = np.array(detections.data[ORIENTED_BOX_COORDINATES]).astype(int)
 
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             obb = obb_boxes[detection_idx]
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
 
             cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
 
@@ -695,13 +685,12 @@ class PolygonAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx, mask, offset in _iter_mask_crops(detections):
-            color = resolve_color(
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             for polygon in mask_to_polygons(mask=mask):
                 if offset is not None:
@@ -782,16 +771,10 @@ class ColorAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         scene_with_boxes = scene.copy()
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.rectangle(
                 img=scene_with_boxes,
                 pt1=(x1, y1),
@@ -987,16 +970,10 @@ class EllipseAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
             cv2.ellipse(
@@ -1080,16 +1057,10 @@ class BoxCornerAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
             for x, y in corners:
@@ -1170,18 +1141,12 @@ class CircleAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
             distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
             cv2.circle(
                 img=scene,
                 center=center,
@@ -1270,26 +1235,19 @@ class DotAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
 
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
             if self.outline_thickness:
-                outline_color = resolve_color(
+                outline_color = _resolve_annotator_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
+                    color_lookup=self.color_lookup,
+                    custom_color_lookup=custom_color_lookup,
                 )
                 cv2.circle(
                     scene,
@@ -2273,13 +2231,12 @@ class TraceAnnotator(BaseAnnotator):
             if tracker_id_val is None:
                 continue
             tracker_id = int(tracker_id_val)
-            color = resolve_color(
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=filtered_detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
@@ -2657,15 +2614,9 @@ class TriangleAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
-        for detection_idx in range(len(detections)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             tip_x, tip_y = int(xy[detection_idx, 0]), int(xy[detection_idx, 1])
             vertices = np.array(
                 [
@@ -2678,13 +2629,12 @@ class TriangleAnnotator(BaseAnnotator):
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
             if self.outline_thickness:
-                outline_color = resolve_color(
+                outline_color = _resolve_annotator_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
-                    color_lookup=self.color_lookup
-                    if custom_color_lookup is None
-                    else custom_color_lookup,
+                    color_lookup=self.color_lookup,
+                    custom_color_lookup=custom_color_lookup,
                 )
                 cv2.polylines(
                     scene,
@@ -2770,16 +2720,10 @@ class RoundBoxAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        for detection_idx in range(len(detections)):
+        for detection_idx, color in _iter_resolved_colors(
+            detections, self.color, self.color_lookup, custom_color_lookup
+        ):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
 
             radius = (
                 int((x2 - x1) // 2 * self.roundness)
@@ -2937,13 +2881,12 @@ class PercentageBarAnnotator(BaseAnnotator):
                 assert detections.confidence is not None  # MyPy type hint
                 value = detections.confidence[detection_idx]
 
-            color = resolve_color(
+            color = _resolve_annotator_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
@@ -3139,13 +3082,12 @@ class CropAnnotator(BaseAnnotator):
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
             scene = _overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
-            color = resolve_color(
+            color = _resolve_annotator_color(
                 color=self.border_color,
                 detections=detections,
                 detection_idx=idx,
-                color_lookup=self.border_color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
+                color_lookup=self.border_color_lookup,
+                custom_color_lookup=custom_color_lookup,
             )
             cv2.rectangle(
                 img=scene,
