@@ -940,9 +940,15 @@ def from_google_gemini_2_5(
     kept_items = [item for item, keep in zip(items, keep_mask) if keep]
 
     masks: npt.NDArray[Any] | None = None
-    # Masks are all-or-nothing across the response: one item without a `mask` key
-    # leaves every detection unmasked, so only complete responses are decoded.
-    if all("mask" in item for item in items):
+    # Masks are all-or-nothing across the *kept* (class-filtered) detections: one
+    # surviving item without a `mask` key leaves every surviving detection unmasked.
+    # Checking against `kept_items` rather than the raw `items` list means a
+    # class-filtered-out item that lacks a mask no longer nulls masks it never
+    # contributed to. The `kept_items and` guard preserves the pre-existing
+    # all-filtered-out contract (`masks=None`, not an empty array) — `all()` over
+    # an empty `kept_items` is vacuously True and would otherwise wrongly enter the
+    # decode branch below.
+    if kept_items and all("mask" in item for item in kept_items):
         masks_list: list[npt.NDArray[Any]] = []
         # Exactly one append per kept item - including on every failure path below -
         # is what keeps `masks_list` index aligned with `xyxy`.
