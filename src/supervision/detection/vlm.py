@@ -1026,18 +1026,32 @@ def from_google_gemini_3_6(
 ]:
     """Parse Google Gemini 3.6 detection and polygon segmentation output.
 
-    Gemini 3.6 structured output wraps detections in a top-level ``boxes`` key.
-    Each optional ``mask`` is a polygon of ``[x, y]`` coordinates normalized to
-    0-1000 across the full image.
+    Gemini 3.6 structured output wraps detections in a top-level `boxes` key, whose
+    entries carry `box_2d` in `[y_min, x_min, y_max, x_max]` normalized to 0-1000, a
+    `label`, and optionally `mask` and `confidence`. A `mask` is a polygon of
+    `[x, y]` coordinates, also normalized to 0-1000 across the full image, rather
+    than the base64 PNG cutout Gemini 2.5 emits.
+
+    Masks are all-or-nothing for the whole response: if any item surviving the
+    `classes` filter lacks a `mask` key, or no item carries both `box_2d` and
+    `label`, `masks` is `None` for every returned detection. A polygon that is not
+    at least three finite `[x, y]` pairs degrades to an all-false mask, so masks
+    stay index aligned with `xyxy`.
 
     Args:
         result: String containing the structured JSON response.
         resolution_wh: Width and height used to scale boxes and mask polygons.
-        classes: Optional list of valid class names.
+        classes: Optional list of valid class names. If provided, returned
+            boxes/labels are filtered to only those classes found here.
 
     Returns:
-        A tuple of ``(xyxy, class_id, class_name, confidence, masks)`` matching
-            the other Gemini parser contracts.
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` where
+            `xyxy` is an array of shape `(n, 4)` in format `[x1, y1, x2, y2]`,
+            `class_id` is an array of shape `(n,)` with class indices,
+            `class_name` is an array of shape `(n,)` with class labels,
+            `confidence` is an optional array of shape `(n,)` with confidence
+            scores, and `masks` is an optional boolean array of shape `(n, h, w)`
+            with segmentation masks.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -1114,17 +1128,19 @@ def from_google_gemini_3_7(
 ]:
     """Parse Google Gemini 3.7 structured detection and segmentation output.
 
-    Gemini 3.7 uses the same top-level ``boxes`` object and polygon mask format
-    as Gemini 3.6.
+    Gemini 3.7 uses the same top-level `boxes` object and polygon mask format as
+    Gemini 3.6, so parsing delegates to `from_google_gemini_3_6`.
 
     Args:
         result: String containing the structured JSON response.
         resolution_wh: Width and height used to scale boxes and mask polygons.
-        classes: Optional list of valid class names.
+        classes: Optional list of valid class names. If provided, returned
+            boxes/labels are filtered to only those classes found here.
 
     Returns:
-        A tuple of ``(xyxy, class_id, class_name, confidence, masks)`` matching
-            the other Gemini parser contracts.
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` matching the
+            `from_google_gemini_3_6` return contract, including its all-or-nothing
+            mask behavior.
     """
     return from_google_gemini_3_6(result, resolution_wh, classes)
 
