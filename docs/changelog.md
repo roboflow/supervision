@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.VLM.KOSMOS_2` — `sv.Detections.from_vlm` now parses Kosmos-2 grounding results, the `(caption, entities)` pair returned by the model's `AutoProcessor.post_process_generation`. A phrase that grounds to several regions yields one detection per region, and `classes` filters the result and assigns `class_id` by index into that list, matching the other VLM connectors. Kosmos-2 is available through `sv.VLM` only, not through the deprecated `sv.LMM` ([#1903](https://github.com/roboflow/supervision/pull/1903)).
+
 - `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
 
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
