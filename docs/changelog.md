@@ -10,6 +10,7 @@ date_modified: 2026-09-08
 - `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
 
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
+- `sv.PolygonZone.get_occupancy` estimates the fraction of a polygon zone covered by detections, using masks when available and rasterized boxes otherwise ([#1449](https://github.com/roboflow/supervision/issues/1449)).
 
 - `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
 
