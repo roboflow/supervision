@@ -8,36 +8,29 @@ R = TypeVar("R")
 
 
 class Metric(ABC, Generic[R]):
-    """
-    The base class for all supervision metrics.
-    """
+    """The base class for all supervision metrics."""
 
     @abstractmethod
     def update(self, *args: Any, **kwargs: Any) -> Metric[R]:
-        """
-        Add data to the metric, without computing the result.
+        """Add data to the metric, without computing the result.
+
         Return the metric itself to allow method chaining.
         """
         raise NotImplementedError
 
     @abstractmethod
     def reset(self) -> None:
-        """
-        Reset internal metric state.
-        """
+        """Reset internal metric state."""
         raise NotImplementedError
 
     @abstractmethod
     def compute(self, *args: Any, **kwargs: Any) -> R:
-        """
-        Compute the metric from the internal state and return the result.
-        """
+        """Compute the metric from the internal state and return the result."""
         raise NotImplementedError
 
 
 class MetricTarget(Enum):
-    """
-    Specifies what type of detection is used to compute the metric.
+    """Specifies what type of detection is used to compute the metric.
 
     Attributes:
         BOXES: xyxy bounding boxes
@@ -51,8 +44,7 @@ class MetricTarget(Enum):
 
 
 class AveragingMethod(Enum):
-    """
-    Defines different ways of averaging the metric results.
+    """Defines different ways of averaging the metric results.
 
     Suppose, before returning the final result, a metric is computed for each class.
     How do you combine those to get the final number?

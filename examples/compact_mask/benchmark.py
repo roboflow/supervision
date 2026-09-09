@@ -147,9 +147,9 @@ def _make_polygon_mask(
 ) -> np.ndarray:
     """Random polygon mask.
 
-    *num_vertices* is a direct complexity proxy: more vertices → more
-    independent radius samples → jaggier boundary → more RLE runs per row.
-    No smoothing is applied so the relationship is monotone.
+    *num_vertices* is a direct complexity proxy: more vertices → more independent radius
+    samples → jaggier boundary → more RLE runs per row. No smoothing is applied so the
+    relationship is monotone.
     """
     angles = np.sort(rng.uniform(0, 2 * np.pi, num_vertices))
     radii = rng.uniform(0.3, 1.0, num_vertices)
@@ -240,10 +240,9 @@ def compact_memory_bytes_theoretical(compact_mask: CompactMask) -> int:
 def measure_peak_bytes(func: Callable[[], object]) -> int:
     """Wrapper that runs *func* under tracemalloc and returns peak allocation.
 
-    tracemalloc captures every Python-level allocation — numpy buffers, list
-    nodes, object headers — giving the true heap cost of anything *func*
-    builds. The return value of *func* is discarded so the object does not
-    stay alive.
+    tracemalloc captures every Python-level allocation — numpy buffers, list nodes,
+    object headers — giving the true heap cost of anything *func* builds. The return
+    value of *func* is discarded so the object does not stay alive.
     """
     tracemalloc.start()
     tracemalloc.clear_traces()
@@ -280,16 +279,16 @@ def time_reps(
 ) -> float:
     """Run *func* *reps* times and return mean wall-clock seconds per call.
 
-    When ``parallel > 1``, up to ``parallel`` calls run simultaneously in
-    threads. Numpy and OpenCV release the GIL for their C-level work, so
-    threads can execute in parallel on multi-core machines. Each thread
-    records its own elapsed time; the mean across all *reps* is returned.
+    When ``parallel > 1``, up to ``parallel`` calls run simultaneously in threads. Numpy
+    and OpenCV release the GIL for their C-level work, so threads can execute in
+    parallel on multi-core machines. Each thread records its own elapsed time; the mean
+    across all *reps* is returned.
 
-    When ``parallel == 1`` the original sequential loop is used, avoiding
-    any thread-scheduling overhead and improving accuracy for cheap functions.
+    When ``parallel == 1`` the original sequential loop is used, avoiding any thread-
+    scheduling overhead and improving accuracy for cheap functions.
 
-    A full GC cycle is run before timing so accumulated garbage from earlier
-    stages does not trigger collection mid-measurement and inflate results.
+    A full GC cycle is run before timing so accumulated garbage from earlier stages does
+    not trigger collection mid-measurement and inflate results.
     """
     gc.collect()
     if parallel <= 1:
@@ -333,9 +332,9 @@ def stage_build(
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
     """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
 
-    Uses floor-division indexing (``arange * src // dst``) to match the
-    strategy in ``_rle_resize``, ensuring pixel-exact parity for correctness
-    comparisons in :func:`stage_resize`.
+    Uses floor-division indexing (``arange * src // dst``) to match the strategy in
+    ``_rle_resize``, ensuring pixel-exact parity for correctness comparisons in
+    :func:`stage_resize`.
     """
     orig_h, orig_w = masks.shape[1], masks.shape[2]
     x = np.arange(new_w) * orig_w // new_w
@@ -352,9 +351,9 @@ def stage_encode(
 ) -> float:
     """Per-mask encode time: encode each mask individually and average over N.
 
-    Calling from_dense one mask at a time (rather than batching all N) isolates
-    the per-shape cost — each polygon has a different RLE run count, so the
-    average reflects true shape variance.
+    Calling from_dense one mask at a time (rather than batching all N) isolates the per-
+    shape cost — each polygon has a different RLE run count, so the average reflects
+    true shape variance.
     """
     num_masks = len(masks_dense)
     image_shape = (image_height, image_width)
@@ -371,8 +370,8 @@ def stage_encode(
 def stage_decode(compact_mask: CompactMask) -> float:
     """Per-mask decode time: decode each mask individually and average over N.
 
-    Building a list via compact_mask[i] decodes each crop separately, giving
-    the per-mask cost of materialising a single RLE back to a dense array.
+    Building a list via compact_mask[i] decodes each crop separately, giving the per-
+    mask cost of materialising a single RLE back to a dense array.
     """
     num_masks = len(compact_mask)
     return time_reps(lambda: [compact_mask[i] for i in range(num_masks)]) / max(
@@ -436,8 +435,8 @@ def stage_iou(
 ) -> tuple[float, float, bool | None]:
     """Time pairwise self-IoU using dense (N,H,W) AND and compact crop filter.
 
-    Correctness is checked on the first 10 masks only to keep it fast,
-    regardless of whether full dense IoU timing is skipped.
+    Correctness is checked on the first 10 masks only to keep it fast, regardless of
+    whether full dense IoU timing is skipped.
     """
     correct_n = min(len(compact_mask), 10)
     iou_compact_small = sv.mask_iou_batch(
@@ -468,21 +467,22 @@ def stage_nms(
     dense_skipped: bool,
     iou_dense_skipped: bool,
 ) -> tuple[float, float, bool | None, int]:
-    """Time mask NMS. Dense resizes to 640 before IoU; compact uses exact crop IoU.
+    """Time mask NMS.
 
-    Compact NMS is strictly more accurate than dense: it computes pixel-level IoU
-    directly on the full-resolution RLE crops instead of a lossy 640px-downsampled
-    approximation.  For pairs whose true IoU is very close to the 0.5 threshold,
-    the resize step in the dense path can flip a keep/suppress decision.
+    Dense resizes to 640 before IoU; compact uses exact crop IoU.
+        Compact NMS is strictly more accurate than dense: it computes pixel-level IoU
+        directly on the full-resolution RLE crops instead of a lossy 640px-downsampled
+        approximation.  For pairs whose true IoU is very close to the 0.5 threshold,
+        the resize step in the dense path can flip a keep/suppress decision.
 
-    ``n_diff`` counts detections whose decision differs between the two paths.
-    ``nms_ok`` is True when ``n_diff == 0``.
+        ``n_diff`` counts detections whose decision differs between the two paths.
+        ``nms_ok`` is True when ``n_diff == 0``.
 
-    Dense NMS is skipped when ``dense_skipped`` *or* ``iou_dense_skipped`` is True:
-    NMS calls mask_iou_batch internally so the cost is the same as IoU.
+        Dense NMS is skipped when ``dense_skipped`` *or* ``iou_dense_skipped`` is True:
+        NMS calls mask_iou_batch internally so the cost is the same as IoU.
 
-    Returns:
-        Tuple of ``(dense_nms_s, compact_nms_s, nms_ok, n_diff)``.
+        Returns:
+            Tuple of ``(dense_nms_s, compact_nms_s, nms_ok, n_diff)``.
     """
     predictions = np.c_[xyxy, confidence, class_ids.astype(float)]
 
@@ -589,12 +589,11 @@ def stage_resize(
 ) -> tuple[float, float, bool | None]:
     """Time resize to half resolution; check pixel-level correctness.
 
-    Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``.
-    Compact path times ``CompactMask.resize()``, which uses direct RLE
-    arithmetic for sparse masks (below ``_L3_DENSITY_THRESHOLD``) and
-    falls back to ``cv2.INTER_NEAREST`` decode/resize/re-encode for dense
-    masks.  The two nearest-neighbour strategies can differ by 1 px at
-    bbox boundaries, so correctness is checked with 1-pixel tolerance.
+    Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``. Compact path
+    times ``CompactMask.resize()``, which uses direct RLE arithmetic for sparse masks
+    (below ``_L3_DENSITY_THRESHOLD``) and falls back to ``cv2.INTER_NEAREST``
+    decode/resize/re-encode for dense masks.  The two nearest-neighbour strategies can
+    differ by 1 px at bbox boundaries, so correctness is checked with 1-pixel tolerance.
     """
     new_h, new_w = image_height // 2, image_width // 2
     new_shape = (new_h, new_w)
@@ -882,8 +881,8 @@ _OPS = (
 def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
     """Compute derived summary columns from scenario results.
 
-    Returns a DataFrame with all ScenarioResult fields plus derived columns
-    (ratios, speedups, ok) as raw floats.  Consumers apply their own formatting.
+    Returns a DataFrame with all ScenarioResult fields plus derived columns (ratios,
+    speedups, ok) as raw floats.  Consumers apply their own formatting.
     """
     df = pd.DataFrame([dataclasses.asdict(r) for r in results])
     df["ratio_theory"] = df["dense_bytes"] / df["compact_bytes_theoretical"].clip(
@@ -926,8 +925,8 @@ def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
 def _fmt_ratio(ratio: float) -> str:
     """Format a speedup/compression ratio with colour coding.
 
-    ≥10 → green (large win), 1-10 → yellow (modest win), <1 → red (regression).
-    Integer for ≥10, two decimals otherwise.
+    ≥10 → green (large win), 1-10 → yellow (modest win), <1 → red (regression). Integer
+    for ≥10, two decimals otherwise.
     """
     fmt = f"{ratio:.0f}x" if ratio >= 10 else f"{ratio:.2f}x"
     if ratio >= 10:
@@ -1061,8 +1060,8 @@ def print_summary(results: list[ScenarioResult]) -> None:
 def _append_result(result: ScenarioResult, path: Path) -> None:
     """Append one scenario result as a JSON line to *path*.
 
-    ``math.nan`` (used for skipped dense timings) is serialised as ``null``
-    so the file is valid JSON-Lines and can be read back with any JSON parser.
+    ``math.nan`` (used for skipped dense timings) is serialised as ``null`` so the file
+    is valid JSON-Lines and can be read back with any JSON parser.
     """
     row = {
         k: (None if isinstance(v, float) and math.isnan(v) else v)

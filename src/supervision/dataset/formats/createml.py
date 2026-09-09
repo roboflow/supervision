@@ -19,10 +19,10 @@ CreateMLDict = dict[str, Any]
 def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
     """Resolve and validate an image path against the images directory.
 
-    Rejects annotations whose ``image`` field escapes ``images_directory_path``
-    (via ``..`` traversal, an absolute path, or a symlink pointing outside),
-    mirroring the protection used by the COCO loader. Returns the canonical
-    resolved path so aliases collapse to a single dataset entry.
+    Rejects annotations whose ``image`` field escapes ``images_directory_path`` (via
+    ``..`` traversal, an absolute path, or a symlink pointing outside), mirroring the
+    protection used by the COCO loader. Returns the canonical resolved path so aliases
+    collapse to a single dataset entry.
     """
     images_directory_resolved = Path(images_directory_path).resolve()
     image_path = Path(images_directory_path) / Path(image_name)
@@ -77,21 +77,23 @@ def createml_annotations_to_detections(
             ``"label"``, or any coordinate sub-key), or if a coordinate value
             cannot be converted to float.
 
-    Examples:
-        ```python
-        import supervision as sv
-        from supervision.dataset.formats.createml import (
-            createml_annotations_to_detections,
-        )
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.createml import (
+        ...     createml_annotations_to_detections,
+        ... )
+        >>> annotations = [
+        ...     {
+        ...         "label": "dog",
+        ...         "coordinates": {"x": 50, "y": 50, "width": 20, "height": 20},
+        ...     }
+        ... ]
+        >>> detections = createml_annotations_to_detections(annotations, {"dog": 0})
+        >>> detections.xyxy
+        array([[40., 40., 60., 60.]], dtype=float32)
+        >>> detections.class_id
+        array([0])
 
-        annotations = [
-            {
-                "label": "dog",
-                "coordinates": {"x": 50, "y": 50, "width": 20, "height": 20},
-            }
-        ]
-        detections = createml_annotations_to_detections(annotations, {"dog": 0})
-        # detections.xyxy → [[40, 40, 60, 60]]
         ```
     """
     if not image_annotations:
@@ -240,20 +242,21 @@ def detections_to_createml_annotations(
     Raises:
         ValueError: If ``detections.class_id`` is ``None``.
 
-    Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-        from supervision.dataset.formats.createml import (
-            detections_to_createml_annotations,
-        )
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.dataset.formats.createml import (
+        ...     detections_to_createml_annotations,
+        ... )
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32),
+        ...     class_id=np.array([0], dtype=int),
+        ... )
+        >>> detections_to_createml_annotations(detections, classes=["dog"])
+        [{'label': 'dog', 'coordinates':
+          {'x': 50.0, 'y': 50.0, 'width': 20.0, 'height': 20.0}}]
 
-        detections = sv.Detections(
-            xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-        detections_to_createml_annotations(detections, classes=["dog"])
-        # [{"label": "dog", "coordinates": {"x": 50.0, "y": 50.0, ...}}]
         ```
     """
     class_ids = detections.class_id
@@ -301,7 +304,7 @@ def save_createml_annotations(
         ValueError: If two image paths share the same basename and would map to
             the same CreateML ``image`` entry.
 
-    Examples:
+    Example:
         ```python
         import supervision as sv
         from supervision.dataset.formats.createml import save_createml_annotations

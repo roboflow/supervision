@@ -22,9 +22,8 @@ logger = _get_logger(__name__)
 
 @dataclass
 class VideoInfo:
-    """
-    A class to store video information, including width, height, fps and
-        total number of frames.
+    """A class to store video information, including width, height, fps and total number
+    of frames.
 
     Attributes:
         width: width of the video in pixels
@@ -88,8 +87,7 @@ class VideoInfo:
 
 
 class VideoSink:
-    """
-    Context manager that saves video frames to a file using OpenCV.
+    """Context manager that saves video frames to a file using OpenCV.
 
     Attributes:
         target_path: The path to the output file where the video will be saved.
@@ -143,8 +141,7 @@ class VideoSink:
         return self
 
     def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
-        """
-        Writes a single video frame to the target video file.
+        """Writes a single video frame to the target video file.
 
         Args:
             frame: The video frame to be written to the file. The frame
@@ -199,8 +196,7 @@ def get_video_frames_generator(
     iterative_seek: bool = False,
     prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
-    """
-    Get a generator that yields the frames of the video.
+    """Get a generator that yields the frames of the video.
 
     Args:
         source_path: The path of the video file.
@@ -386,8 +382,7 @@ def process_video(
     progress_message: str = "Processing video",
     preserve_audio: bool = False,
 ) -> None:
-    """
-    Process video frames asynchronously using a threaded pipeline.
+    """Process video frames asynchronously using a threaded pipeline.
 
     This function orchestrates a three-stage pipeline to optimize video processing
     throughput:
@@ -410,7 +405,8 @@ def process_video(
             each frame, accepting the frame as a numpy array and its zero-based index,
             returning the processed frame.
         max_frames: Optional maximum number of frames to process.
-            If None, the entire video is processed (default).
+            If None, the entire video is processed (default). A value larger
+            than the number of frames in the video processes the whole video.
         prefetch: Maximum number of frames buffered by the reader thread.
             Controls memory use; default is 32.
         writer_buffer: Maximum number of frames buffered before writing.
@@ -427,6 +423,12 @@ def process_video(
 
     Returns:
         None
+
+    Raises:
+        RuntimeError: If the reader thread fails to open or decode the source
+            video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
+            from the original exception. Exceptions raised by `callback` are
+            re-raised unchanged.
 
     Example:
         ```python
@@ -447,11 +449,17 @@ def process_video(
         ```
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
-    total_frames = (
-        min(video_info.total_frames or 0, max_frames)
-        if max_frames is not None
-        else video_info.total_frames or 0
-    )
+    video_total_frames = video_info.total_frames or 0
+    total_frames = video_total_frames
+    if max_frames is not None:
+        total_frames = min(video_total_frames, max_frames)
+
+    # `max_frames` is a cap, not an exact count: a value larger than the video
+    # must process the whole video. `get_video_frames_generator` raises when
+    # `end` exceeds the frame count, so clamp it whenever the count is known.
+    frames_end: int | None = max_frames
+    if max_frames is not None and video_total_frames > 0:
+        frames_end = total_frames
 
     frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
         maxsize=prefetch
@@ -460,14 +468,25 @@ def process_video(
         maxsize=writer_buffer
     )
 
+    reader_exception: Exception | None = None
+
     def reader_thread() -> None:
-        frame_generator = get_video_frames_generator(
-            source_path=source_path,
-            end=max_frames,
-        )
-        for frame_index, frame in enumerate(frame_generator):
-            frame_read_queue.put((frame_index, frame))
-        frame_read_queue.put(None)
+        """Feed frames into the read queue, always ending with the sentinel."""
+        nonlocal reader_exception
+        try:
+            frame_generator = get_video_frames_generator(
+                source_path=source_path,
+                end=frames_end,
+            )
+            for frame_index, frame in enumerate(frame_generator):
+                frame_read_queue.put((frame_index, frame))
+        except Exception as exc:
+            # The main loop blocks on `frame_read_queue.get()` with no timeout,
+            # so a reader failure must still enqueue the sentinel or the call
+            # never returns. Surface the error once the pipeline has shut down.
+            reader_exception = exc
+        finally:
+            frame_read_queue.put(None)
 
     def writer_thread(video_sink: VideoSink) -> None:
         while True:
@@ -538,6 +557,10 @@ def process_video(
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
+            if reader_exception is not None:
+                raise RuntimeError(
+                    f"Reader thread raised: {reader_exception!r}"
+                ) from reader_exception
 
     if preserve_audio:
         if writer_worker.is_alive():
@@ -550,9 +573,7 @@ def process_video(
 
 
 class FPSMonitor:
-    """
-    A class for monitoring frames per second (FPS) to benchmark latency.
-    """
+    """A class for monitoring frames per second (FPS) to benchmark latency."""
 
     def __init__(self, sample_size: int = 30) -> None:
         """
@@ -578,8 +599,7 @@ class FPSMonitor:
 
     @property
     def fps(self) -> float:
-        """
-        Computes and returns the average FPS based on the stored time stamps.
+        """Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
             The average FPS across the recorded intervals. Returns 0.0 if fewer
@@ -592,13 +612,9 @@ class FPSMonitor:
         return frame_intervals / taken_time if taken_time != 0 else 0.0
 
     def tick(self) -> None:
-        """
-        Adds a new time stamp to the deque for FPS calculation.
-        """
+        """Adds a new time stamp to the deque for FPS calculation."""
         self.all_timestamps.append(time.monotonic())
 
     def reset(self) -> None:
-        """
-        Clears all the time stamps from the deque.
-        """
+        """Clears all the time stamps from the deque."""
         self.all_timestamps.clear()

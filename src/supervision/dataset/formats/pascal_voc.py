@@ -99,8 +99,7 @@ def detections_to_pascal_voc(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> str:
-    """
-    Converts Detections object to Pascal VOC XML format.
+    """Converts Detections object to Pascal VOC XML format.
 
     Args:
         detections: A Detections object containing bounding boxes,
@@ -195,8 +194,7 @@ def load_pascal_voc_annotations(
     force_masks: bool = False,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load Pascal VOC XML annotations in sorted image-path order.
+    """Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.
@@ -211,7 +209,6 @@ def load_pascal_voc_annotations(
             and a dictionary with image paths as keys and corresponding
             Detections instances as values.
     """
-
     image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
@@ -294,7 +291,9 @@ def detections_from_xml_obj(
     Returns:
         A tuple containing a Detections object and an
             updated list of class names, extended with the class names
-            from the XML object.
+            from the XML object. The Detections ``class_id`` is always an
+            integer-dtype array, including the zero-``<object>`` (background)
+            case where it is empty.
     """
     xyxy: list[list[int]] = []
     class_names: list[str] = []
@@ -346,14 +345,28 @@ def detections_from_xml_obj(
     for k in sorted(set(class_names)):
         if k not in extended_classes:
             extended_classes.append(k)
+    # dtype=int forced: on a background image class_names is empty, so
+    # np.array([]) would default to float64 and fail Detections' integer
+    # class_id validation. Redundant on the non-empty path (ints already).
     class_id = np.array(
         [extended_classes.index(class_name) for class_name in class_names],
         dtype=int,
     )
 
+    mask_arr: npt.NDArray[np.bool_] | None
+    if not with_masks:
+        mask_arr = None
+    elif masks:
+        mask_arr = np.array(masks, dtype=bool)
+    else:
+        # Background image with force_masks=True: masks is empty, and
+        # np.array([]) would collapse to shape (0,). Detections requires a 3D
+        # (0, H, W) mask, so build the empty stack explicitly.
+        mask_arr = np.empty((0, resolution_wh[1], resolution_wh[0]), dtype=bool)
+
     annotation = Detections(
         xyxy=xyxy_arr,
-        mask=np.array(masks, dtype=bool) if with_masks else None,
+        mask=mask_arr,
         class_id=class_id,
     )
 

@@ -1,6 +1,4 @@
-"""
-Tests for supervision/annotators/core.py
-"""
+"""Tests for supervision/annotators/core.py."""
 
 import warnings
 from collections.abc import Iterator
@@ -114,13 +112,13 @@ class TestAnnotatorMaskPolicy:
 
 @pytest.fixture
 def test_image() -> np.ndarray:
-    """Create a simple blank test image fixture"""
+    """Create a simple blank test image fixture."""
     return np.zeros((100, 100, 3), dtype=np.uint8)
 
 
 @pytest.fixture
 def test_mask() -> np.ndarray:
-    """Create a simple rectangular mask fixture"""
+    """Create a simple rectangular mask fixture."""
     mask = np.zeros((100, 100), dtype=bool)
     mask[20:80, 20:80] = True
     return mask
@@ -128,7 +126,7 @@ def test_mask() -> np.ndarray:
 
 @pytest.fixture
 def gradient_image() -> np.ndarray:
-    """Create a gradient test image fixture"""
+    """Create a gradient test image fixture."""
     image = np.zeros((100, 100, 3), dtype=np.uint8)
     for i in range(100):
         for j in range(100):
@@ -184,16 +182,14 @@ def test_hex_color_support_across_annotators(
 
 
 class TestBoxAnnotator:
-    """
-    Verify that BoxAnnotator correctly draws bounding boxes on an image.
+    """Verify that BoxAnnotator correctly draws bounding boxes on an image.
 
     Ensures that `BoxAnnotator` correctly draws bounding boxes on an image, which is
     essential for users to visualize detection results.
     """
 
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
-        """
-        Verify that annotation with no detections does not change the image.
+        """Verify that annotation with no detections does not change the image.
 
         Scenario: Annotating an image with an empty set of detections.
         Expected: The scene remains unchanged, ensuring no ghost boxes are drawn.
@@ -204,8 +200,7 @@ class TestBoxAnnotator:
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
-        """
-        Verify that annotation with a single detection draws a bounding box.
+        """Verify that annotation with a single detection draws a bounding box.
 
         Scenario: Annotating an image with a single bounding box.
         Expected: The scene is modified by drawing a box, allowing users to identify
@@ -219,8 +214,7 @@ class TestBoxAnnotator:
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
     def test_annotate_with_multiple_detections(self, test_image: np.ndarray) -> None:
-        """
-        Verify that annotation with multiple detections draws all bounding boxes.
+        """Verify that annotation with multiple detections draws all bounding boxes.
 
         Scenario: Annotating an image with multiple bounding boxes of different classes.
         Expected: All boxes are drawn, enabling visualization of complex scenes with
@@ -237,8 +231,7 @@ class TestBoxAnnotator:
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
     def test_annotate_with_numpy_color_lookup(self, test_image: np.ndarray) -> None:
-        """
-        Verify that annotation respects custom NumPy color lookup array.
+        """Verify that annotation respects custom NumPy color lookup array.
 
         Scenario: Providing a custom NumPy array for color lookup instead of class IDs.
         Expected: Annotator respects the custom mapping, giving users flexible control
@@ -266,17 +259,17 @@ class TestBoxAnnotator:
 
 
 class TestOrientedBoxAnnotator:
-    """Tests for OrientedBoxAnnotator class"""
+    """Tests for OrientedBoxAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = OrientedBoxAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_without_oriented_boxes(self, test_image):
-        """Test that annotate method returns unmodified image when no OBB data"""
+        """Test that annotate method returns unmodified image when no OBB data."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]])
         annotator = OrientedBoxAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
@@ -284,24 +277,24 @@ class TestOrientedBoxAnnotator:
 
 
 class TestMaskAnnotator:
-    """Tests for MaskAnnotator class"""
+    """Tests for MaskAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = MaskAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_without_masks(self, test_image):
-        """Test that annotate method returns unmodified image when no masks"""
+        """Test that annotate method returns unmodified image when no masks."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = MaskAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
-        """Test that annotate method correctly draws a single mask"""
+        """Test that annotate method correctly draws a single mask."""
         detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
@@ -477,24 +470,24 @@ class TestMaskAnnotator:
 
 
 class TestPolygonAnnotator:
-    """Tests for PolygonAnnotator class"""
+    """Tests for PolygonAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = PolygonAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_without_masks(self, test_image):
-        """Test that annotate method returns unmodified image when no masks"""
+        """Test that annotate method returns unmodified image when no masks."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = PolygonAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
-        """Test that annotate method correctly draws a single polygon from mask"""
+        """Test that annotate method correctly draws a single polygon from mask."""
         detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
@@ -563,8 +556,8 @@ class TestPolygonAnnotator:
     def test_annotate_with_all_false_compact_mask_unchanged(self):
         """All-False CompactMask crop (no contours) leaves scene pixels unchanged.
 
-        A detection whose mask is entirely False produces no polygons; the
-        annotator must not paint any pixels for that detection.
+        A detection whose mask is entirely False produces no polygons; the annotator
+        must not paint any pixels for that detection.
         """
         height, width = 60, 80
         scene = np.zeros((height, width, 3), dtype=np.uint8)
@@ -602,8 +595,8 @@ class TestPolygonAnnotator:
     def test_annotate_compact_mask_float_xyxy_truncation(self):
         """Float xyxy with sub-pixel values are truncated to int before crop decode.
 
-        CompactMask stores bbox origins as int32 (via truncation); PolygonAnnotator
-        must produce the same output whether xyxy is integral or has fractional parts.
+        CompactMask stores bbox origins as int32 (via truncation); PolygonAnnotator must
+        produce the same output whether xyxy is integral or has fractional parts.
         """
         height, width = 60, 80
         scene = np.zeros((height, width, 3), dtype=np.uint8)
@@ -631,9 +624,9 @@ class TestPolygonAnnotator:
     def test_compact_mask_disjoint_contours_offset_correct(self):
         """Disjoint-contour mask: both polygon blobs translate to correct image coords.
 
-        Verifies coordinate-level correctness of crop→image offset for a mask
-        with two separate blobs. After annotation, boundary pixels of each blob
-        must be painted; pixels between the blobs must remain unpainted.
+        Verifies coordinate-level correctness of crop→image offset for a mask with two
+        separate blobs. After annotation, boundary pixels of each blob must be painted;
+        pixels between the blobs must remain unpainted.
         """
         height, width = 80, 90
         scene = np.zeros((height, width, 3), dtype=np.uint8)
@@ -660,17 +653,17 @@ class TestPolygonAnnotator:
 
 
 class TestColorAnnotator:
-    """Tests for ColorAnnotator class"""
+    """Tests for ColorAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = ColorAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a single color box"""
+        """Test that annotate method correctly draws a single color box."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = ColorAnnotator(
             color=Color.RED, opacity=1.0, color_lookup=ColorLookup.INDEX
@@ -680,24 +673,24 @@ class TestColorAnnotator:
 
 
 class TestHaloAnnotator:
-    """Tests for HaloAnnotator class"""
+    """Tests for HaloAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = HaloAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_without_masks(self, test_image):
-        """Test that annotate method returns unmodified image when no masks"""
+        """Test that annotate method returns unmodified image when no masks."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = HaloAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
-        """Test that annotate method correctly draws a single halo"""
+        """Test that annotate method correctly draws a single halo."""
         detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
@@ -803,9 +796,9 @@ class TestPaintMasksByArea:
     def test_compact_mask_drops_pixels_outside_bbox(self):
         """CompactMask is lossy: True pixels outside xyxy bbox are silently dropped.
 
-        This test documents that compact and dense paths diverge when a mask has
-        True pixels outside its bounding box — the 'bit-identical' claim holds
-        only for bbox-contained masks.
+        This test documents that compact and dense paths diverge when a mask has True
+        pixels outside its bounding box — the 'bit-identical' claim holds only for bbox-
+        contained masks.
         """
         height, width = 50, 60
         mask = np.zeros((height, width), dtype=bool)
@@ -935,7 +928,7 @@ class TestCompactMaskParity:
 
 
 class TestHeatMapAnnotator:
-    """Tests for HeatMapAnnotator class"""
+    """Tests for HeatMapAnnotator class."""
 
     def test_annotate_with_no_detections_does_not_warn(
         self, test_image: np.ndarray
@@ -1004,18 +997,17 @@ class TestHeatMapAnnotator:
         assert region_painted > 100
 
     def test_reset_clears_accumulated_heat(self, test_image: np.ndarray) -> None:
-        """reset() must zero accumulation so a reused annotator matches a fresh one.
+        """Reset() must zero accumulation so a reused annotator matches a fresh one.
 
-        The heatmap colours each pixel by its heat *relative to the current
-        maximum*, so a single uniformly-painted region always renders identically
-        regardless of its absolute count. To make the assertion actually depend on
-        reset having zeroed the buffer, heat is first built up on region A alone,
-        then after reset both region A and a fresh region B are annotated together.
-        If reset truly zeroed the buffer, A and B carry equal heat and the frame
-        matches a never-used annotator; if reset were a no-op, A's carried-over
-        count would dominate the max-normalisation and B would render a different
-        hue — so byte-equality with the fresh annotator can only hold when the
-        accumulation was genuinely discarded.
+        The heatmap colours each pixel by its heat *relative to the current maximum*, so
+        a single uniformly-painted region always renders identically regardless of its
+        absolute count. To make the assertion actually depend on reset having zeroed the
+        buffer, heat is first built up on region A alone, then after reset both region A
+        and a fresh region B are annotated together. If reset truly zeroed the buffer, A
+        and B carry equal heat and the frame matches a never-used annotator; if reset
+        were a no-op, A's carried-over count would dominate the max-normalisation and B
+        would render a different hue — so byte-equality with the fresh annotator can
+        only hold when the accumulation was genuinely discarded.
         """
         region_a = _create_detections(xyxy=[[10, 10, 30, 30]])
         region_a_and_b = _create_detections(xyxy=[[10, 10, 30, 30], [60, 60, 90, 90]])
@@ -1036,17 +1028,17 @@ class TestHeatMapAnnotator:
 
 
 class TestEllipseAnnotator:
-    """Tests for EllipseAnnotator class"""
+    """Tests for EllipseAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = EllipseAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a single ellipse"""
+        """Test that annotate method correctly draws a single ellipse."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = EllipseAnnotator(
             color=Color.YELLOW, thickness=2, color_lookup=ColorLookup.INDEX
@@ -1056,17 +1048,17 @@ class TestEllipseAnnotator:
 
 
 class TestBoxCornerAnnotator:
-    """Tests for BoxCornerAnnotator class"""
+    """Tests for BoxCornerAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = BoxCornerAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws box corners"""
+        """Test that annotate method correctly draws box corners."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BoxCornerAnnotator(
             color=Color.WHITE,
@@ -1079,17 +1071,17 @@ class TestBoxCornerAnnotator:
 
 
 class TestCircleAnnotator:
-    """Tests for CircleAnnotator class"""
+    """Tests for CircleAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = CircleAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a circle"""
+        """Test that annotate method correctly draws a circle."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CircleAnnotator(
             color=Color.GREEN, thickness=2, color_lookup=ColorLookup.INDEX
@@ -1099,17 +1091,17 @@ class TestCircleAnnotator:
 
 
 class TestDotAnnotator:
-    """Tests for DotAnnotator class"""
+    """Tests for DotAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = DotAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a dot"""
+        """Test that annotate method correctly draws a dot."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = DotAnnotator(
             color=Color.RED,
@@ -1122,7 +1114,7 @@ class TestDotAnnotator:
 
 
 class TestLabelAnnotator:
-    """Tests for LabelAnnotator class"""
+    """Tests for LabelAnnotator class."""
 
     @pytest.mark.parametrize(
         "border_radius",
@@ -1136,8 +1128,8 @@ class TestLabelAnnotator:
     ) -> None:
         """Non-positive radius fills the same pixels as a plain rectangle.
 
-        For border_radius < 0: previously raised cv2.error: radius >= 0 in
-        function 'circle'; fast path now silently draws square corners instead.
+        For border_radius < 0: previously raised cv2.error: radius >= 0 in function
+        'circle'; fast path now silently draws square corners instead.
         """
         scene = np.full((100, 120, 3), 9, dtype=np.uint8)
 
@@ -1172,14 +1164,14 @@ class TestLabelAnnotator:
         assert np.array_equal(result, expected)
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = LabelAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a label"""
+        """Test that annotate method correctly draws a label."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = LabelAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(
@@ -1218,17 +1210,17 @@ class TestLabelAnnotator:
 
 
 class TestRichLabelAnnotator:
-    """Tests for RichLabelAnnotator class"""
+    """Tests for RichLabelAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = RichLabelAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a rich label"""
+        """Test that annotate method correctly draws a rich label."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = RichLabelAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(
@@ -1271,17 +1263,17 @@ class TestRichLabelAnnotator:
 
 
 class TestBlurAnnotator:
-    """Tests for BlurAnnotator class"""
+    """Tests for BlurAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = BlurAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, gradient_image):
-        """Test that annotate method correctly blurs a region"""
+        """Test that annotate method correctly blurs a region."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BlurAnnotator(kernel_size=15)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
@@ -1302,17 +1294,17 @@ class TestBlurAnnotator:
 
 
 class TestPixelateAnnotator:
-    """Tests for PixelateAnnotator class"""
+    """Tests for PixelateAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = PixelateAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, gradient_image):
-        """Test that annotate method correctly pixelates a region"""
+        """Test that annotate method correctly pixelates a region."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = PixelateAnnotator(pixel_size=10)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
@@ -1335,8 +1327,8 @@ class TestPixelateAnnotator:
     def test_annotate_grayscale_image_does_not_raise(self):
         """PixelateAnnotator must work on single-channel (grayscale) images.
 
-        The small-ROI avg-fill branch previously sliced cv2.mean()[:3] into a
-        2-D array, causing a NumPy broadcast error on grayscale frames.
+        The small-ROI avg-fill branch previously sliced cv2.mean()[:3] into a 2-D array,
+        causing a NumPy broadcast error on grayscale frames.
         """
         gray = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
         # Normal-size detection — exercises the resize path on a grayscale frame
@@ -1371,17 +1363,17 @@ class TestPixelateAnnotator:
 
 
 class TestTriangleAnnotator:
-    """Tests for TriangleAnnotator class"""
+    """Tests for TriangleAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = TriangleAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a triangle"""
+        """Test that annotate method correctly draws a triangle."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = TriangleAnnotator(
             color=Color.RED, base=20, height=20, color_lookup=ColorLookup.INDEX
@@ -1391,17 +1383,17 @@ class TestTriangleAnnotator:
 
 
 class TestRoundBoxAnnotator:
-    """Tests for RoundBoxAnnotator class"""
+    """Tests for RoundBoxAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = RoundBoxAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a round box"""
+        """Test that annotate method correctly draws a round box."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = RoundBoxAnnotator(
             color=Color.BLUE, thickness=2, roundness=0.5, color_lookup=ColorLookup.INDEX
@@ -1411,17 +1403,17 @@ class TestRoundBoxAnnotator:
 
 
 class TestPercentageBarAnnotator:
-    """Tests for PercentageBarAnnotator class"""
+    """Tests for PercentageBarAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = PercentageBarAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a percentage bar"""
+        """Test that annotate method correctly draws a percentage bar."""
         detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], confidence=[0.75], class_id=[0]
         )
@@ -1457,17 +1449,17 @@ class TestPositionHelpers:
 
 
 class TestCropAnnotator:
-    """Tests for CropAnnotator class"""
+    """Tests for CropAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = CropAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self, gradient_image):
-        """Test that annotate method correctly draws a crop"""
+        """Test that annotate method correctly draws a crop."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
@@ -1517,7 +1509,7 @@ class TestCropAnnotator:
     def test_annotate_with_box_crossing_scene_border(
         self, gradient_image, xyxy: list[int]
     ) -> None:
-        """Boxes extending past the scene border are clipped instead of raising"""
+        """Boxes extending past the scene border are clipped instead of raising."""
         detections = _create_detections(xyxy=[xyxy], class_id=[0])
         annotator = CropAnnotator()
 
@@ -1537,7 +1529,7 @@ class TestCropAnnotator:
     def test_annotate_skips_boxes_empty_after_clipping(
         self, gradient_image, xyxy: list[int]
     ) -> None:
-        """Boxes with no visible area are skipped instead of raising cv2.error"""
+        """Boxes with no visible area are skipped instead of raising cv2.error."""
         detections = _create_detections(xyxy=[xyxy], class_id=[0])
         annotator = CropAnnotator()
 
@@ -1546,7 +1538,7 @@ class TestCropAnnotator:
         assert np.array_equal(gradient_image, result)
 
     def test_annotate_mixed_valid_and_degenerate_boxes(self, gradient_image) -> None:
-        """A degenerate box does not prevent valid boxes from being drawn"""
+        """A degenerate box does not prevent valid boxes from being drawn."""
         detections = _create_detections(
             xyxy=[[150, 150, 200, 200], [10, 10, 90, 90]], class_id=[0, 1]
         )
@@ -1559,9 +1551,9 @@ class TestCropAnnotator:
     def test_annotate_overlapping_crops_sample_from_original_scene(self) -> None:
         """Later crops must sample the original un-annotated scene.
 
-        box1 is pasted into the region that box2 crops from. Without the
-        source_scene = scene.copy() fix, box2 reads box1's paste value
-        instead of the original pixel — the aliasing regression.
+        box1 is pasted into the region that box2 crops from. Without the source_scene =
+        scene.copy() fix, box2 reads box1's paste value instead of the original pixel —
+        the aliasing regression.
         """
         # Arrange: two distinct pixel bands; box1's paste region overlaps box2's crop
         scene = np.full((80, 80, 3), 50, dtype=np.uint8)
@@ -1595,7 +1587,7 @@ class TestCropAnnotator:
 
 
 class TestIconAnnotator:
-    """Tests for IconAnnotator class"""
+    """Tests for IconAnnotator class."""
 
     def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
         """Internal overlay must not surface the deprecated `overlay_image` warning."""
@@ -1643,17 +1635,17 @@ class TestIconAnnotator:
 
 
 class TestBackgroundOverlayAnnotator:
-    """Tests for BackgroundOverlayAnnotator class"""
+    """Tests for BackgroundOverlayAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections = Detections.empty()
         annotator = BackgroundOverlayAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection(self):
-        """Test that annotate method correctly draws background overlay"""
+        """Test that annotate method correctly draws background overlay."""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
         detections = _create_detections(xyxy=[[10, 10, 90, 90]])
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
@@ -1673,7 +1665,7 @@ class TestBackgroundOverlayAnnotator:
     def test_annotate_preserves_detection_crossing_scene_border(
         self, xyxy: list[int], inside_xy: tuple[int, int], outside_xy: tuple[int, int]
     ) -> None:
-        """The visible part of a box crossing the border keeps original pixels"""
+        """The visible part of a box crossing the border keeps original pixels."""
         image = np.full((100, 100, 3), 200, dtype=np.uint8)
         detections = _create_detections(xyxy=[xyxy])
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
@@ -1686,7 +1678,8 @@ class TestBackgroundOverlayAnnotator:
         assert np.array_equal(result[y_out, x_out], np.array([100, 100, 100]))
 
     def test_annotate_fully_out_negative_box_does_not_corrupt(self) -> None:
-        """Both-negative OOB box must not restore an in-bounds region via wrap-around"""
+        """Both-negative OOB box must not restore an in-bounds region via wrap-
+        around."""
         image = np.full((100, 100, 3), 200, dtype=np.uint8)
         detections = _create_detections(xyxy=[[-30, -30, -5, -5]])
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
@@ -1696,7 +1689,7 @@ class TestBackgroundOverlayAnnotator:
         assert np.array_equal(result[80, 80], np.array([100, 100, 100]))
 
     def test_annotate_force_box_preserves_detection_crossing_scene_border(self):
-        """force_box with a border-crossing box keeps the visible detection region"""
+        """force_box with a border-crossing box keeps the visible detection region."""
         image = np.full((100, 100, 3), 200, dtype=np.uint8)
         mask = np.zeros((100, 100), dtype=bool)
         mask[20:60, 0:40] = True
@@ -1711,7 +1704,7 @@ class TestBackgroundOverlayAnnotator:
         assert np.array_equal(result[80, 60], np.array([100, 100, 100]))
 
     def test_annotate_with_fully_out_of_bounds_detection(self):
-        """A box fully outside the scene leaves the whole scene tinted"""
+        """A box fully outside the scene leaves the whole scene tinted."""
         image = np.full((100, 100, 3), 200, dtype=np.uint8)
         detections = _create_detections(xyxy=[[150, 150, 200, 200]])
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
@@ -1739,10 +1732,10 @@ class TestBackgroundOverlayAnnotator:
 
 
 class TestComparisonAnnotator:
-    """Tests for ComparisonAnnotator class"""
+    """Tests for ComparisonAnnotator class."""
 
     def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+        """Test that annotate method returns unmodified image when no detections."""
         detections1 = Detections.empty()
         detections2 = Detections.empty()
         annotator = ComparisonAnnotator()
@@ -1752,7 +1745,7 @@ class TestComparisonAnnotator:
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_detection_each(self):
-        """Test that annotate method correctly compares two detections"""
+        """Test that annotate method correctly compares two detections."""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
         detections1 = _create_detections(xyxy=[[10, 10, 50, 50]])
         detections2 = _create_detections(xyxy=[[30, 30, 70, 70]])
@@ -1859,7 +1852,7 @@ class TestTraceAnnotatorReset:
     """Tests for TraceAnnotator.reset() clearing accumulated trace history."""
 
     def test_reset_empties_trace_buffers(self, test_image: np.ndarray) -> None:
-        """reset() must clear the underlying Trace buffers to their empty state."""
+        """Reset() must clear the underlying Trace buffers to their empty state."""
         annotator = TraceAnnotator(trace_length=10)
         detections = _create_detections(
             xyxy=[[10, 10, 30, 30]], class_id=[1], tracker_id=[7]
@@ -1876,14 +1869,13 @@ class TestTraceAnnotatorReset:
     def test_reset_matches_fresh_annotator(self, test_image: np.ndarray) -> None:
         """After reset() a reused annotator must render identically to a fresh one.
 
-        The two streams reuse the same ``tracker_id`` but follow spatially
-        distinct paths. If reset were a no-op, ``Trace.get`` would return the
-        first stream's points concatenated with the second's and draw a spurious
-        polyline bridging the two paths; only a genuine reset leaves solely the
-        second stream's points, so byte-equality with a never-used annotator can
-        hold only when the prior history was actually discarded. ``trace_length``
-        is large enough that no windowing prunes away the stale points that a
-        broken reset would leave behind.
+        The two streams reuse the same ``tracker_id`` but follow spatially distinct
+        paths. If reset were a no-op, ``Trace.get`` would return the first stream's
+        points concatenated with the second's and draw a spurious polyline bridging the
+        two paths; only a genuine reset leaves solely the second stream's points, so
+        byte-equality with a never-used annotator can hold only when the prior history
+        was actually discarded. ``trace_length`` is large enough that no windowing
+        prunes away the stale points that a broken reset would leave behind.
         """
         first_stream = [
             _create_detections(
@@ -1922,11 +1914,11 @@ class TestTraceAnnotatorSmoothStationary:
     """Regression tests for TraceAnnotator(smooth=True) on stationary tracker ids."""
 
     def test_stationary_tracker_does_not_crash_spline_fit(self, test_image):
-        """
-        When the same tracker stays at an identical anchor point for several
-        frames the trace buffer accumulates duplicate points. `scipy.splprep`
-        rejects a zero-length input curve with `ValueError: Invalid inputs.`,
-        so the annotator must survive this input without raising.
+        """When the same tracker stays at an identical anchor point for several frames
+        the trace buffer accumulates duplicate points.
+
+        `scipy.splprep` rejects a zero-length input curve with `ValueError: Invalid
+        inputs.`, so the annotator must survive this input without raising.
         """
         detections = _create_detections(
             xyxy=[[100, 100, 120, 120]],
@@ -1942,9 +1934,9 @@ class TestTraceAnnotatorSmoothStationary:
     def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
         """Moving tracker must produce a spline trace distinct from the raw polyline.
 
-        Compares smooth=True output against smooth=False for the same movement
-        path to confirm the smoothing path is actually exercised (not just that
-        some pixels changed).
+        Compares smooth=True output against smooth=False for the same movement path to
+        confirm the smoothing path is actually exercised (not just that some pixels
+        changed).
         """
         smooth_annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
         raw_annotator = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
@@ -1969,15 +1961,14 @@ class TestTraceAnnotatorSmoothStationary:
     @pytest.mark.parametrize(
         "unique_positions",
         [1, 2, 3, 4],
-        ids=["1_unique", "2_unique", "3_unique", "4_unique"],
     )
     def test_smooth_does_not_crash_for_unique_point_counts(
         self, test_image, unique_positions
     ):
-        """smooth=True must not crash for any unique-position count from 1 to 4.
+        """Smooth=True must not crash for any unique-position count from 1 to 4.
 
-        Each position is repeated twice to simulate brief holds between moves.
-        Covers the boundary at len(unique_xy) == 4 where splprep first fires.
+        Each position is repeated twice to simulate brief holds between moves. Covers
+        the boundary at len(unique_xy) == 4 where splprep first fires.
         """
         annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
         scene = test_image.copy()
@@ -2023,8 +2014,8 @@ class TestTraceAnnotatorSmoothStationary:
     def test_smooth_true_single_frame_does_not_crash(self, test_image):
         """A single annotate() call with smooth=True must not crash.
 
-        When len(xy) == 1 the drawing guard skips cv2.polylines entirely;
-        the dedup path runs safely on an empty np.diff result.
+        When len(xy) == 1 the drawing guard skips cv2.polylines entirely; the dedup path
+        runs safely on an empty np.diff result.
         """
         detections = _create_detections(
             xyxy=[[50, 50, 70, 70]],
@@ -2036,7 +2027,7 @@ class TestTraceAnnotatorSmoothStationary:
         assert scene.shape == test_image.shape
 
     def test_smooth_false_stationary_tracker_does_not_crash(self, test_image):
-        """smooth=False with a stationary tracker must not crash (regression guard).
+        """Smooth=False with a stationary tracker must not crash (regression guard).
 
         Ensures the refactor did not accidentally alter the smooth=False code path.
         """
@@ -2050,3 +2041,105 @@ class TestTraceAnnotatorSmoothStationary:
         for _ in range(6):
             scene = annotator.annotate(scene=scene, detections=detections)
         assert scene.shape == test_image.shape
+
+
+class TestTraceAnnotatorEmptyDetections:
+    """Tests for TraceAnnotator on frames in which nothing was detected."""
+
+    def test_empty_detections_annotate_without_raising(
+        self, test_image: np.ndarray
+    ) -> None:
+        """A frame that detected nothing is not a missing-tracker error."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(
+            xyxy=[[10, 10, 30, 30]], class_id=[0], tracker_id=[1]
+        )
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert scene.shape == test_image.shape
+
+    def test_empty_detections_leave_the_scene_untouched(
+        self, test_image: np.ndarray
+    ) -> None:
+        """With nothing to trace there is nothing to draw."""
+        annotator = TraceAnnotator()
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert np.array_equal(scene, test_image)
+
+    def test_empty_detections_advance_the_trace_window(
+        self, test_image: np.ndarray
+    ) -> None:
+        """An empty frame counts toward trace_length like any other frame."""
+        annotator = TraceAnnotator()
+
+        annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+
+        assert annotator.trace.current_frame_id == 1
+
+    def test_populated_detections_without_tracker_id_still_raise(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Forgetting to plug in a tracker remains an error worth reporting."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(xyxy=[[10, 10, 30, 30]], class_id=[0])
+
+        with pytest.raises(ValueError, match="tracker_id"):
+            annotator.annotate(scene=test_image.copy(), detections=detections)
+
+    def test_center_of_mass_position_annotates_empty_detections_without_raising(
+        self, test_image: np.ndarray
+    ) -> None:
+        """`CENTER_OF_MASS` must not demand a mask from an empty batch.
+
+        `Position.CENTER_OF_MASS` normally requires a detection mask, but an empty frame
+        carries no anchors to compute, so `annotate` must not raise even though
+        `TraceAnnotator` was configured for that anchor.
+        """
+        annotator = TraceAnnotator(position=Position.CENTER_OF_MASS)
+
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert scene.shape == test_image.shape
+
+    def test_track_reappearing_after_a_long_gap_drops_its_stale_trail(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Points older than trace_length elapsed frames are pruned on reappearance.
+
+        Mirrors `TestTraceEmptyFrames.
+        test_track_reappearing_after_a_long_gap_drops_its_stale_trail` in
+        `tests/annotators/test_utils.py`, but drives the scenario through the
+        public `annotate()` entry point instead of calling `Trace.put`
+        directly, so the annotator-level integration path is covered too.
+        """
+        annotator = TraceAnnotator(trace_length=3)
+        for x in (10, 20, 30):
+            annotator.annotate(
+                scene=test_image.copy(),
+                detections=_create_detections(
+                    xyxy=[[x, 0, x + 5, 5]], class_id=[0], tracker_id=[1]
+                ),
+            )
+        for _ in range(5):
+            annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+
+        annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[90, 0, 95, 5]], class_id=[0], tracker_id=[1]
+            ),
+        )
+
+        assert np.array_equal(
+            annotator.trace.get(tracker_id=1), np.array([[92.5, 2.5]])
+        )

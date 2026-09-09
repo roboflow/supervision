@@ -1,17 +1,17 @@
 """Crop-RLE compact mask storage for memory-efficient instance segmentation.
 
-Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes
-prohibitive for aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB).
-:class:`CompactMask` stores each mask as a run-length encoding of its
-bounding-box crop, reducing typical usage to tens of MB.
+Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes prohibitive for
+aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB). :class:`CompactMask` stores each
+mask as a run-length encoding of its bounding-box crop, reducing typical usage to tens
+of MB.
 
-The bounding boxes (``xyxy``) already present in ``Detections`` serve as the
-crop boundaries, so no extra metadata is required from the caller.
+The bounding boxes (``xyxy``) already present in ``Detections`` serve as the crop
+boundaries, so no extra metadata is required from the caller.
 
-CompactMask reduces memory footprint but does not improve computational
-speed. The ingestion path (base48 decode, column split, RLE trim) is
-Python-level and is typically slower than the dense NumPy path. The primary
-benefit is memory savings for large images with many sparse masks.
+CompactMask reduces memory footprint but does not improve computational speed. The
+ingestion path (base48 decode, column split, RLE trim) is Python-level and is typically
+slower than the dense NumPy path. The primary benefit is memory savings for large images
+with many sparse masks.
 """
 
 from __future__ import annotations

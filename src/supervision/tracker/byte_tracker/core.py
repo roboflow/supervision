@@ -29,8 +29,7 @@ def _valid_tracking_tensors(
     remove_in="0.31.0",
 )
 class ByteTrack:
-    """
-    Initialize the ByteTrack object.
+    """Initialize the ByteTrack object.
 
     !!! deprecated "Deprecated"
 
@@ -93,8 +92,7 @@ class ByteTrack:
         self.external_id_counter = IdCounter(start_id=1)
 
     def update_with_detections(self, detections: Detections) -> Detections:
-        """
-        Updates the tracker with the provided detections and returns the updated
+        """Updates the tracker with the provided detections and returns the updated
         detection results.
 
         Args:
@@ -103,17 +101,16 @@ class ByteTrack:
         Example:
             ```python
             import supervision as sv
-            from ultralytics import YOLO
+            from rfdetr import RFDETRMedium
 
-            model = YOLO("<MODEL_PATH>")
+            model = RFDETRMedium()
             tracker = sv.ByteTrack()
 
             box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
             def callback(frame: np.ndarray, index: int) -> np.ndarray:
-                results = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(results)
+                detections = model.predict(frame[:, :, ::-1])
                 detections = tracker.update_with_detections(detections)
 
                 labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
@@ -167,13 +164,12 @@ class ByteTrack:
             return detections
 
     def reset(self) -> None:
-        """
-        Resets the internal state of the ByteTrack tracker.
+        """Resets the internal state of the ByteTrack tracker.
 
-        This method clears the tracking data, including tracked, lost,
-        and removed tracks, as well as resetting the frame counter. It's
-        particularly useful when processing multiple videos sequentially,
-        ensuring the tracker starts with a clean state for each new video.
+        This method clears the tracking data, including tracked, lost, and removed
+        tracks, as well as resetting the frame counter. It's particularly useful when
+        processing multiple videos sequentially, ensuring the tracker starts with a
+        clean state for each new video.
         """
         self.frame_id = 0
         self.internal_id_counter.reset()
@@ -183,8 +179,7 @@ class ByteTrack:
         self.removed_tracks = []
 
     def update_with_tensors(self, tensors: npt.NDArray[np.float32]) -> list[STrack]:
-        """
-        Updates the tracker with the provided tensors and returns the updated tracks.
+        """Updates the tracker with the provided tensors and returns the updated tracks.
 
         Args:
             tensors: The new tensors to update with.
@@ -213,7 +208,7 @@ class ByteTrack:
         scores_second = scores[inds_second]
 
         if len(dets) > 0:
-            """Detections"""
+            """Detections."""
             detections = [
                 STrack(
                     STrack.tlbr_to_tlwh(tlbr),
@@ -227,8 +222,7 @@ class ByteTrack:
             ]
         else:
             detections = []
-
-        """ Add newly detected tracklets to tracked_stracks"""
+        """Add newly detected tracklets to tracked_stracks."""
         unconfirmed = []
         tracked_stracks: list[STrack] = []
 
@@ -237,8 +231,7 @@ class ByteTrack:
                 unconfirmed.append(track)
             else:
                 tracked_stracks.append(track)
-
-        """ Step 2: First association, with high score detection boxes"""
+        """Step 2: First association, with high score detection boxes."""
         strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
         STrack.multi_predict(strack_pool, self.shared_kalman)
@@ -258,11 +251,10 @@ class ByteTrack:
             else:
                 track.re_activate(det, self.frame_id)
                 refind_stracks.append(track)
-
-        """ Step 3: Second association, with low score detection boxes"""
+        """Step 3: Second association, with low score detection boxes."""
         # association the untrack to the low score detections
         if len(dets_second) > 0:
-            """Detections"""
+            """Detections."""
             detections_second = [
                 STrack(
                     STrack.tlbr_to_tlwh(tlbr),
@@ -300,8 +292,8 @@ class ByteTrack:
             if not track.state == TrackState.Lost:
                 track.state = TrackState.Lost
                 lost_stracks.append(track)
-
-        """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
+        """Deal with unconfirmed tracks, usually tracks with only one beginning
+        frame."""
         detections = [detections[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, detections)
 
@@ -316,15 +308,14 @@ class ByteTrack:
             track = unconfirmed[it]
             track.state = TrackState.Removed
             removed_stracks.append(track)
-
-        """ Step 4: Init new stracks"""
+        """Step 4: Init new stracks."""
         for inew in u_detection:
             track = detections[inew]
             if track.score < self.det_thresh:
                 continue
             track.activate(self.kalman_filter, self.frame_id)
             activated_starcks.append(track)
-        """ Step 5: Update state"""
+        """Step 5: Update state."""
         for track in self.lost_tracks:
             if self.frame_id - track.frame_id > self.max_time_lost:
                 track.state = TrackState.Removed
@@ -350,9 +341,8 @@ class ByteTrack:
 def joint_tracks(
     track_list_a: list[STrack], track_list_b: list[STrack]
 ) -> list[STrack]:
-    """
-    Joins two lists of tracks, ensuring that the resulting list does not
-    contain tracks with duplicate internal_track_id values.
+    """Joins two lists of tracks, ensuring that the resulting list does not contain
+    tracks with duplicate internal_track_id values.
 
     Args:
         track_list_a: First list of tracks.
@@ -374,9 +364,8 @@ def joint_tracks(
 
 
 def sub_tracks(track_list_a: list[STrack], track_list_b: list[STrack]) -> list[STrack]:
-    """
-    Returns a list of tracks from track_list_a after removing any tracks
-    that share the same internal_track_id with tracks in track_list_b.
+    """Returns a list of tracks from track_list_a after removing any tracks that share
+    the same internal_track_id with tracks in track_list_b.
 
     Args:
         track_list_a: List of tracks.

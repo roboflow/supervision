@@ -30,7 +30,6 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
     for child1, child2 in zip(elem1, elem2):
         if not are_xml_elements_equal(child1, child2):
             return False
-
     return True
 
 
@@ -112,7 +111,6 @@ def test_detections_to_pascal_voc_does_not_mutate_detections():
     second = detections_to_pascal_voc(
         detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
     )
-
     assert np.array_equal(detections.xyxy, expected_xyxy)
     assert first == second
 
@@ -123,7 +121,7 @@ def test_detections_to_pascal_voc_does_not_mutate_detections():
         pytest.param(
             ElementTree.fromstring(
                 """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
-                    <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
+                <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
             ),
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             DoesNotRaise(),
@@ -342,6 +340,57 @@ class TestLoadPascalVocBackgroundImages:
         counts = {Path(path).stem: len(d) for path, d in dataset.annotations.items()}
         assert counts == {"annotated": 1, "background": 0}
 
+    def test_all_background_dataset_has_no_classes_and_empty_detections(
+        self, tmp_path: Path
+    ) -> None:
+        """A dataset where every image is background loads with no classes."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "bg_a", [])
+        _write_voc_sample(images_dir, annotations_dir, "bg_b", [])
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert dataset.classes == []
+        counts = {Path(path).stem: len(d) for path, d in dataset.annotations.items()}
+        assert counts == {"bg_a": 0, "bg_b": 0}
+
+    def test_background_image_sorted_first_still_integer_class_id(
+        self, tmp_path: Path
+    ) -> None:
+        """A background image parsed before any annotated one keeps integer ids."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_voc_sample(images_dir, annotations_dir, "aaa_background", [])
+        _write_voc_sample(images_dir, annotations_dir, "zzz_annotated", ["cat"])
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        by_stem = {Path(path).stem: d for path, d in annotations.items()}
+        assert np.issubdtype(by_stem["aaa_background"].class_id.dtype, np.integer)
+        assert by_stem["aaa_background"].class_id.size == 0
+
+    def test_force_masks_background_image_gets_empty_3d_mask(self) -> None:
+        """force_masks=True on a background XML yields an empty (0, H, W) mask."""
+        root = ElementTree.fromstring("<annotation></annotation>")
+
+        detections, _ = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(30, 20), force_masks=True
+        )
+
+        assert detections.mask is not None
+        assert detections.mask.shape == (0, 20, 30)
+
 
 class TestSavePascalVocAnnotations:
     """save_pascal_voc_annotations: filesystem output contract."""
@@ -398,3 +447,30 @@ class TestSavePascalVocAnnotations:
         save_pascal_voc_annotations(dataset, str(out_dir), show_progress=True)
 
         assert out_dir.is_dir()
+
+    def test_background_image_survives_save_then_load_round_trip(
+        self, tmp_path: Path
+    ) -> None:
+        """A background image written to VOC reloads with integer, empty class_id."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        img_path = images_dir / "background.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(img_path)],
+            annotations={str(img_path): Detections.empty()},
+        )
+        out_dir = tmp_path / "annotations"
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        _, _, annotations = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(out_dir),
+        )
+
+        class_id = next(iter(annotations.values())).class_id
+        assert np.issubdtype(class_id.dtype, np.integer)
+        assert class_id.size == 0

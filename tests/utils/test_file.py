@@ -167,22 +167,25 @@ def test_read_txt_file(
 @pytest.mark.parametrize(
     ("filenames_to_create", "extension", "expected_names"),
     [
-        (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
-        (["image.JPG"], "jpg", {"image.JPG"}),
-        (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
-        (
+        pytest.param(
+            ["image.jpg", "image.png"], ".jpg", {"image.jpg"}, id="leading-dot"
+        ),
+        pytest.param(["image.JPG"], "jpg", {"image.JPG"}, id="case-insensitive"),
+        pytest.param(
+            ["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}, id="multi-part-full"
+        ),
+        pytest.param(
             ["archive.backup.tar.gz", "archive.backup.gz"],
             "tar.gz",
             {"archive.backup.tar.gz"},
+            id="multi-part-filename-tail",
         ),
-        (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
-    ],
-    ids=[
-        "leading_dot",
-        "case_insensitive",
-        "multi_part_full",
-        "multi_part_filename_tail",
-        "multi_part_suffix",
+        pytest.param(
+            ["archive.tar.gz", "data.gz"],
+            "gz",
+            {"archive.tar.gz", "data.gz"},
+            id="multi-part-suffix",
+        ),
     ],
 )
 def test_list_files_with_extensions_normalization(
@@ -198,3 +201,18 @@ def test_list_files_with_extensions_normalization(
     result = list_files_with_extensions(directory=tmp_path, extensions=[extension])
 
     assert {p.name for p in result} == expected_names
+
+
+def test_list_files_with_extensions_without_filter_ignores_directories(
+    tmp_path: Path,
+) -> None:
+    """Directory entries are ignored when no extension filter is provided."""
+    # given
+    (tmp_path / "image.jpg").touch()
+    (tmp_path / "labels").mkdir()
+
+    # when
+    result = list_files_with_extensions(directory=tmp_path)
+
+    # then
+    assert {p.name for p in result} == {"image.jpg"}

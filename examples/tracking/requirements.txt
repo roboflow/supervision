@@ -1,4 +1,5 @@
 inference
+rfdetr
 supervision
 tqdm
 ultralytics

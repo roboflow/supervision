@@ -42,8 +42,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Vehicle Speed Estimation using Ultralytics and Supervision.
+    """Vehicle Speed Estimation using Ultralytics and Supervision.
 
     Args:
         source_video_path: Path to the source video file

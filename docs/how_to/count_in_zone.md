@@ -22,19 +22,19 @@ download_assets(VideoAssets.VEHICLES_2)
 
 ## Initialize a Model and Load Video
 
-First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
+First, we need to initialize a model. Let's use [RF-DETR](https://github.com/roboflow/rf-detr) with its default COCO checkpoint -- its `predict` method returns a `Detections` object directly, no conversion step needed. We also need to load a video on which to run inference.
 
-Create a YOLO model instance and download the source video. The model will process each frame during inference. A shared color palette ensures consistent zone coloring throughout the output video.
+Create an RF-DETR model instance and download the source video. The model will process each frame during inference. A shared color palette ensures consistent zone coloring throughout the output video.
 
 ```python
 import numpy as np
 import supervision as sv
 import cv2
 
-from ultralytics import YOLO
+from rfdetr import RFDETRMedium
 from supervision.assets import VideoAssets, download_assets
 
-model = YOLO("yolov8s.pt")
+model = RFDETRMedium()
 
 VIDEO = download_assets(VideoAssets.VEHICLES_2)
 
@@ -104,12 +104,11 @@ box_annotators = [
 
 We can run inference on a video using the [sv.process_video](https://supervision.roboflow.com/utils/video/#process_video) function. This function accepts a callback that runs inference on each frame and compiles the results into a video.
 
-Below, we can call our YOLOv8 model, annotate predictions and zones, then save the results to a file called `result.mp4`.
+Below, we can call our RF-DETR model, annotate predictions and zones, then save the results to a file called `result.mp4`.
 
 ```python
 def process_frame(frame: np.ndarray, i) -> np.ndarray:
-    results = model(frame, imgsz=1280, verbose=False)[0]
-    detections = sv.Detections.from_ultralytics(results)
+    detections = model.predict(frame[:, :, ::-1])
 
     for zone, zone_annotator, box_annotator in zip(
         zones, zone_annotators, box_annotators

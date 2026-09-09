@@ -118,13 +118,13 @@ class TestImageWindowShow:
         ],
     )
     def test_show_raises_for_invalid_input(self, array, exc_type, match):
-        """show() rejects arrays with invalid dtype or shape."""
+        """Show() rejects arrays with invalid dtype or shape."""
         window = ImageWindow("test")
         with pytest.raises(exc_type, match=match):
             window.show(array)
 
     def test_show_creates_window_and_updates(self):
-        """show() creates a Tk window, sets the PhotoImage, and calls update."""
+        """Show() creates a Tk window, sets the PhotoImage, and calls update."""
         window = ImageWindow("preview")
         mock_root = MagicMock()
         mock_label = MagicMock()
@@ -373,7 +373,7 @@ class TestImageWindowClose:
         assert window.is_open is False
 
     def test_close_destroys_root(self):
-        """close() calls destroy() on the Tk root and nulls internal refs."""
+        """Close() calls destroy() on the Tk root and nulls internal refs."""
         window = ImageWindow()
         mock_root = MagicMock()
         window._root = mock_root
@@ -388,7 +388,7 @@ class TestImageWindowClose:
         assert window._photo is None
 
     def test_close_signals_waiters_and_clears_key_event(self):
-        """close() wakes wait_key() callers and clears stale Tk references."""
+        """Close() wakes wait_key() callers and clears stale Tk references."""
         window = ImageWindow()
         mock_root = MagicMock()
         mock_event = MagicMock()
@@ -404,13 +404,13 @@ class TestImageWindowClose:
         assert window._key_event is None
 
     def test_close_is_idempotent(self):
-        """close() on an already-closed window does not raise."""
+        """Close() on an already-closed window does not raise."""
         window = ImageWindow()
         window.close()  # no window created
         window.close()  # second call must not raise
 
     def test_close_clears_key_queue(self):
-        """close() discards stale keys so they don't fire on next open."""
+        """Close() discards stale keys so they don't fire on next open."""
         window = ImageWindow()
         window._root = MagicMock()
         window._key_queue = ["q", "Escape"]
@@ -436,7 +436,7 @@ class TestImageWindowContextManager:
             mock_close.assert_called_once()
 
     def test_context_manager_closes_on_exception(self):
-        """close() is called even when the body raises."""
+        """Close() is called even when the body raises."""
         with patch.object(ImageWindow, "close") as mock_close:
             with pytest.raises(RuntimeError):
                 with ImageWindow("ctx"):

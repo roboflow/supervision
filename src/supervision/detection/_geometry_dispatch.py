@@ -21,8 +21,7 @@ if TYPE_CHECKING:
 
 
 def detection_area(detections: Detections) -> npt.NDArray[np.generic]:
-    """
-    Calculate detection areas using the richest geometry present.
+    """Calculate detection areas using the richest geometry present.
 
     Selection order:
 
@@ -65,8 +64,7 @@ def detection_iou(
     detections_b: Detections,
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """
-    Calculate pairwise IoU using the richest geometry both operands share.
+    """Calculate pairwise IoU using the richest geometry both operands share.
 
     Selection order:
 

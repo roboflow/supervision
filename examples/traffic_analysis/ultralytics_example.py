@@ -56,7 +56,7 @@ class DetectionsManager:
 
 def initiate_polygon_zones(
     polygons: list[np.ndarray],
-    triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
+    triggering_anchors: Iterable[sv.Position] = (sv.Position.CENTER,),
 ) -> list[sv.PolygonZone]:
     return [
         sv.PolygonZone(
@@ -182,8 +182,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Traffic Flow Analysis with YOLO and ByteTrack.
+    """Traffic Flow Analysis with YOLO and ByteTrack.
 
     Args:
         source_weights_path: Path to the source weights file

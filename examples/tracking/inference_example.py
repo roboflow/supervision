@@ -10,12 +10,11 @@ def main(
     source_video_path: str,
     target_video_path: str,
     roboflow_api_key: str,
-    model_id: str = "yolov8x-1280",
+    model_id: str = "rfdetr-small",
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Video Processing with Inference and ByteTrack.
+    """Video Processing with Inference and ByteTrack.
 
     Args:
         source_video_path: Path to the source video file

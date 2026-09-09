@@ -127,19 +127,38 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 @pytest.mark.parametrize(
     ("xcycwh", "expected_result"),
     [
-        (np.array([[50, 50, 20, 30]]), np.array([[40, 35, 60, 65]])),  # standard case
-        (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
-        (
+        pytest.param(
+            np.array([[50, 50, 20, 30]]),
+            np.array([[40, 35, 60, 65]]),
+            id="standard-case",
+        ),
+        pytest.param(
+            np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]]), id="zero-size"
+        ),
+        pytest.param(
             np.array([[50, 50, 100, 100]]),
             np.array([[0, 0, 100, 100]]),
-        ),  # large bounding box centered at (50, 50)
-        (
+            id="large-centered-box",
+        ),
+        pytest.param(
             np.array([[-10, -10, 20, 30]]),
             np.array([[-20, -25, 0, 5]]),
-        ),  # negative coordinates
-        (np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]])),  # zero width
-        (np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]])),  # zero height
-        (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
+            id="negative-coordinates",
+        ),
+        pytest.param(
+            np.array([[50, 50, 0, 30]]), np.array([[50, 35, 50, 65]]), id="zero-width"
+        ),
+        pytest.param(
+            np.array([[50, 50, 20, 0]]), np.array([[40, 50, 60, 50]]), id="zero-height"
+        ),
+        pytest.param(
+            np.array([[50, 50, 21, 31]]),
+            np.array([[39.5, 34.5, 60.5, 65.5]]),
+            id="integer-odd-dimensions-preserve-fractional-half-extents",
+        ),
+        pytest.param(
+            np.array([]).reshape(0, 4), np.array([]).reshape(0, 4), id="empty-input"
+        ),
     ],
 )
 def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None:

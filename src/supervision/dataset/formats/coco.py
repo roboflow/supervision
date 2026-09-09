@@ -65,15 +65,13 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
     Returns:
         A list of COCO category dictionaries with 1-indexed ``id`` values.
 
-    Examples:
-        ```python
-        from supervision.dataset.formats.coco import classes_to_coco_categories
+    Example:
+        ```pycon
+        >>> from supervision.dataset.formats.coco import classes_to_coco_categories
+        >>> classes_to_coco_categories(classes=["cat", "dog"])
+        [{'id': 1, 'name': 'cat', 'supercategory': 'common-objects'},
+         {'id': 2, 'name': 'dog', 'supercategory': 'common-objects'}]
 
-        classes_to_coco_categories(classes=["cat", "dog"])
-        # [
-        #     {"id": 1, "name": "cat", "supercategory": "common-objects"},
-        #     {"id": 2, "name": "dog", "supercategory": "common-objects"},
-        # ]
         ```
     """
     return [
@@ -280,23 +278,25 @@ def detections_to_coco_annotations(
         (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
         force polygon output regardless of mask topology.
 
-    Examples:
-        ```python
-        import numpy as np
-        from supervision import Detections
-        from supervision.dataset.formats.coco import (
-            detections_to_coco_annotations,
-        )
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision import Detections
+        >>> from supervision.dataset.formats.coco import (
+        ...     detections_to_coco_annotations,
+        ... )
+        >>> detections = Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0], dtype=int),
+        ... )
+        >>> annotations, next_id = detections_to_coco_annotations(
+        ...     detections=detections, image_id=1, annotation_id=1
+        ... )
+        >>> annotations[0]["category_id"]
+        1
+        >>> next_id
+        2
 
-        detections = Detections(
-            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-            class_id=np.array([0], dtype=int),
-        )
-        annotations, next_id = detections_to_coco_annotations(
-            detections=detections, image_id=1, annotation_id=1
-        )
-        annotations[0]["category_id"]
-        # 1
         ```
     """
     coco_annotations: list[CocoDict] = []
@@ -385,8 +385,7 @@ def detections_to_coco_annotations(
 
 
 def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
-    """
-    Generates a mapping from sequential class indices to original COCO class ids.
+    """Generates a mapping from sequential class indices to original COCO class ids.
 
     This function is essential when working with models that expect class ids to be
     zero-indexed and sequential (0 to 79), as opposed to the original COCO
@@ -462,8 +461,7 @@ def load_coco_annotations(
     use_iscrowd: bool = True,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load COCO annotations and convert them to `Detections`.
+    """Load COCO annotations and convert them to `Detections`.
 
     If `force_masks` is `False`, masks are still loaded for images whose annotations
     include a `segmentation` field. This keeps mask handling consistent with other
@@ -584,9 +582,9 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[int, int]:
     """Return ``(height, width)`` for ``image_path`` without decoding pixels.
 
-    Uses the in-memory array when the dataset holds one; otherwise reads the
-    size from the file header via lazy ``PIL.Image.open``, which parses only
-    image metadata — the same optimization the YOLO loader uses (#1636).
+    Uses the in-memory array when the dataset holds one; otherwise reads the size from
+    the file header via lazy ``PIL.Image.open``, which parses only image metadata — the
+    same optimization the YOLO loader uses (#1636).
     """
     if dataset._images_in_memory:
         image_height, image_width = dataset._images_in_memory[image_path].shape[:2]

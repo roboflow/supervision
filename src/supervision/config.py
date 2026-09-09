@@ -2,6 +2,14 @@ CLASS_NAME_DATA_FIELD: str = "class_name"
 COCO_RAW_SEGMENTATION: str = "coco_raw_segmentation"
 #: Key for per-detection area metadata in ``Detections.data``.
 AREA_DATA_FIELD: str = "area"
+#: Key for the MediaPipe hand-handedness score in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, holding the
+#: top-1 handedness classification score of each detected hand as reported by
+#: :meth:`~supervision.key_points.core.KeyPoints.from_mediapipe`. MediaPipe floors
+#: this score at ``0.5`` — it rates confidence in the ``Left``/``Right`` label, not
+#: the quality of the detection, so it is kept out of ``detection_confidence``.
+HANDEDNESS_SCORE_DATA_FIELD: str = "handedness_score"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel

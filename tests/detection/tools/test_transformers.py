@@ -282,7 +282,7 @@ class TestProcessTransformersV5PanopticSegmentationResult:
         np.testing.assert_array_equal(out["class_id"], expected_class_ids)
 
     def test_with_id2label_sets_class_names(self) -> None:
-        """id2label maps unique IDs to class name strings in output data."""
+        """Id2label maps unique IDs to class name strings in output data."""
         seg_array = np.array([[3, 3], [5, 5]], dtype=np.int64)
 
         out = process_transformers_v5_panoptic_segmentation_result(
@@ -294,7 +294,7 @@ class TestProcessTransformersV5PanopticSegmentationResult:
         )
 
     def test_with_id2label_preserves_zero_class_name(self) -> None:
-        """id2label maps class id zero when it appears in a tensor map."""
+        """Id2label maps class id zero when it appears in a tensor map."""
         seg_array = np.array([[0, 0], [1, 1]], dtype=np.int64)
 
         out = process_transformers_v5_panoptic_segmentation_result(

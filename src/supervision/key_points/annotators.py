@@ -38,9 +38,9 @@ class BaseKeyPointAnnotator(ABC):
 
 
 class VertexAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton vertices on images. It uses
-    specified key points to determine the locations where the vertices should be
+    """A class that specializes in drawing skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
     drawn.
     """
 
@@ -59,10 +59,9 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Annotates the given scene with skeleton vertices based on the provided key
-        points. It draws circles at each key point location. Anchors marked as
-        not visible via ``key_points.visible`` are skipped.
+        """Annotates the given scene with skeleton vertices based on the provided key
+        points. It draws circles at each key point location. Anchors marked as not
+        visible via ``key_points.visible`` are skipped.
 
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
@@ -121,9 +120,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
 
 class EdgeAnnotator(BaseKeyPointAnnotator):
-    """
-    A class that specializes in drawing skeleton edges on images using specified key
-    points. It connects key points with lines to form the skeleton structure.
+    """A class that specializes in drawing skeleton edges on images using specified key
+    points.
+
+    It connects key points with lines to form the skeleton structure.
     """
 
     def __init__(
@@ -151,9 +151,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Annotates the given scene by drawing lines between specified key points to form
-        edges. Edges where either endpoint is marked as not visible via
+        """Annotates the given scene by drawing lines between specified key points to
+        form edges. Edges where either endpoint is marked as not visible via
         ``key_points.visible`` are skipped.
 
         Args:
@@ -381,16 +380,14 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
 
 
 class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled semi-transparent covariance ellipses at multiple sigma levels
-    around each keypoint, each ring in a different color.  This produces a
-    bullseye-like uncertainty visualization where inner rings represent higher
-    probability density.
+    """Draws filled semi-transparent covariance ellipses at multiple sigma levels around
+    each keypoint, each ring in a different color.  This produces a bullseye-like
+    uncertainty visualization where inner rings represent higher probability density.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -417,8 +414,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws filled semi-transparent covariance ellipses around each keypoint.
+        """Draws filled semi-transparent covariance ellipses around each keypoint.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -484,14 +480,13 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws stroke-only concentric covariance ellipse rings at multiple sigma
-    levels around each keypoint.
+    """Draws stroke-only concentric covariance ellipse rings at multiple sigma levels
+    around each keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     def __init__(
@@ -517,8 +512,7 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws stroke-only covariance ellipse outlines around each keypoint.
+        """Draws stroke-only covariance ellipse outlines around each keypoint.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -583,16 +577,15 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
 
 class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
-    """
-    Draws filled covariance ellipses with a radial fade: full opacity at the
-    center, smoothly falling off to zero at the ellipse boundary.  The falloff
-    follows a power curve controlled by ``decay``, producing a soft glow that
-    is strongest near the keypoint.
+    """Draws filled covariance ellipses with a radial fade: full opacity at the center,
+    smoothly falling off to zero at the ellipse boundary.  The falloff follows a power
+    curve controlled by ``decay``, producing a soft glow that is strongest near the
+    keypoint.
 
     !!! warning
 
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    This annotator uses `key_points.data["covariance"]` with shape `(N, K, 2, 2)` in
+    pixel coordinates.
     """
 
     _DECAY: float = 2.0
@@ -621,8 +614,7 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws radially-fading covariance ellipses around each keypoint.
+        """Draws radially-fading covariance ellipses around each keypoint.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -720,9 +712,10 @@ VertexEllipseAnnotator = VertexEllipseAreaAnnotator
 
 
 class VertexLabelAnnotator:
-    """
-    A class that draws labels of skeleton vertices on images. It uses specified key
-    points to determine the locations where the vertices should be drawn.
+    """A class that draws labels of skeleton vertices on images.
+
+    It uses specified key points to determine the locations where the vertices should be
+    drawn.
     """
 
     def __init__(
@@ -763,9 +756,8 @@ class VertexLabelAnnotator:
         key_points: KeyPoints,
         labels: list[str] | dict[int, list[str]] | None = None,
     ) -> ImageType:
-        """
-        Draws labels at skeleton vertex positions on the image. Vertices
-        marked not visible via ``key_points.visible`` are skipped.
+        """Draws labels at skeleton vertex positions on the image. Vertices marked not
+        visible via ``key_points.visible`` are skipped.
 
         Args:
             scene: The image where vertex labels will be drawn. `ImageType` is a

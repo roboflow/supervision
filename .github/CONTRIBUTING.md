@@ -64,7 +64,7 @@ Then, run `git clone` to download the project code to your computer.
 You should also set up `roboflow/supervision` as an "upstream" remote (that is, tell git that the reference Supervision repository was the source of your fork of it):
 
 ```bash
-git remote add upstream https://github.com/roboflow/supervision.git
+git remote add -t develop upstream https://github.com/roboflow/supervision.git
 git fetch upstream
 ```
 
@@ -164,7 +164,7 @@ Before starting your work on the project, set up your development environment:
 2. **Set up the upstream remote:**
 
    ```bash
-   git remote add upstream https://github.com/roboflow/supervision.git
+   git remote add -t develop upstream https://github.com/roboflow/supervision.git
    git fetch upstream
    ```
 
@@ -339,7 +339,7 @@ class TestDetectionsWithNms:
     def test_raises_when_confidence_missing(self): ...
 ```
 
-**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case — not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and survives reordering.
+**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use bare strings, numbers, booleans, and `None` values. Use `pytest.param(..., id="semantic-slug")` when a case passes a function, object, or compound setup; needs a per-case mark; or would otherwise produce an unclear or empty ID. Never use a parallel `ids=[...]` list: co-locate an explicit ID with its arguments so it survives reordering. Move a trailing comment that only names a case into that ID; retain comments only when they explain a non-obvious invariant.
 
 ```python
 @pytest.mark.parametrize(

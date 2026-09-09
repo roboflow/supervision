@@ -1,0 +1,171 @@
+# One-shot backfill: point the canonical tag of already-published doc versions at /latest/.
+#
+# `canonical_version: latest` in mkdocs.yml only takes effect on builds made after it
+# landed. The version trees already on gh-pages were built with a self-referential
+# canonical and are never rebuilt — archived tags will not resolve against current
+# dependencies — so they keep competing with /latest/ in search and AI answer engines
+# until their published HTML is rewritten in place. This job does that rewrite.
+#
+# Two trigger modes:
+#   workflow_dispatch — the real run: rewrites, commits, and pushes gh-pages.
+#   pull_request (only when this workflow or the banner script itself changes) — a dry
+#     run that does everything except the final commit/push, so the diff is visible on
+#     the PR before the logic that produces it merges.
+#
+# Safe to re-run: rewriting an already-correct file is a no-op. Every dispatch run that
+# changes something first pushes the pre-rewrite gh-pages tip to a
+# `gh-pages-backup-<timestamp>` branch, named in the job summary; delete that branch
+# once the published site is verified.
+
+name: Backfill Docs Canonicals
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type BACKFILL to rewrite canonical tags on the gh-pages branch"
+        required: true
+        default: ""
+  pull_request:
+    paths:
+      - .github/workflows/docs-backfill.yml
+      - .github/scripts/inject_outdated_banner.py
+
+permissions:
+  contents: write
+
+concurrency:
+  # Real dispatch runs share the "gh-pages" group — the branch both this workflow and
+  # publish-docs.yml write to — with publish-docs.yml: both write gh-pages via a
+  # fetch-then-push, and running them concurrently loses the "fetch first" race (see
+  # publish-docs.yml). PR dry runs get their own per-ref lock instead: they push
+  # nothing, so collisions are harmless, and sharing the dispatch lock would queue a
+  # real backfill behind CI.
+  group: ${{ github.event_name == 'pull_request' && format('{0}-{1}', github.workflow, github.ref) || 'gh-pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backfill:
+    name: Backfill canonicals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 🔒 Check confirmation
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ "${{ inputs.confirm }}" != "BACKFILL" ]]; then
+            echo "::error::Confirmation input must be exactly 'BACKFILL'"
+            exit 1
+          fi
+
+      - name: 📥 Checkout gh-pages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: gh-pages
+
+      # A second checkout, into a subdirectory so it does not clobber the gh-pages
+      # tree above: the banner script lives in the source tree, not on gh-pages.
+      - name: 📥 Checkout banner script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+          path: _scripts
+
+      - name: 🔗 Rewrite canonical tags
+        run: |
+          shopt -s nullglob
+          # Only the canonical link is rewritten. A blanket host+version substitution
+          # would also rewrite in-page links that are deliberately version-pinned.
+          for dir in develop [0-9]*; do
+            [[ -d "$dir" ]] || continue
+            find "$dir" -name '*.html' -print0 | xargs -0 --no-run-if-empty sed -i \
+              -e "s|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g" \
+              -e "s|<link rel=\"canonical\" href=\"https://roboflow.github.io/supervision/$dir/|<link rel=\"canonical\" href=\"https://supervision.roboflow.com/latest/|g"
+          done
+          git diff --stat | tail -5
+
+      - name: 🏷️ Inject outdated-version banner markup, styling, and offset script
+        run: |
+          # docs/theme/main.html, docs/stylesheets/extra.css, and
+          # docs/javascripts/version-banner.js have rendered, styled, and offset the
+          # header below this banner since 403f35a1, but that only reaches trees mike
+          # rebuilds — an archived version's tag may not build against today's
+          # dependencies, so a rebuild is not an option (see header). Patch the empty
+          # banner div, its frozen per-version stylesheet, and its script list. The
+          # highest-numbered version tree is skipped, and un-patched if an earlier run
+          # reached it: it holds the current release that /latest/ serves, which is
+          # not an older version.
+          # The script orders version directories with `packaging`. Install it into a
+          # throwaway venv rather than the runner's system Python, which is marked
+          # externally managed and refuses a plain `pip install`.
+          python3 -m venv "$RUNNER_TEMP/backfill-venv"
+          "$RUNNER_TEMP/backfill-venv/bin/pip" install --quiet packaging
+          "$RUNNER_TEMP/backfill-venv/bin/python" \
+            "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
+          git diff --stat | tail -5
+
+      - name: 🔎 Report canonicals with no page under latest/
+        run: |
+          # A rewritten canonical can now point at a page /latest/ does not have: an API
+          # an archived version documents may since have been removed. Google ignores a
+          # canonical whose target 404s, so those pages keep competing with /latest/ in
+          # search. Report-only — the rewrite still fixes every page that does resolve.
+          shopt -s nullglob
+          version_dirs=()
+          for dir in develop [0-9]*; do
+            [[ -d "$dir" ]] || continue
+            version_dirs+=("$dir")
+          done
+          if [[ ! -d latest || ${#version_dirs[@]} -eq 0 ]]; then
+            echo "no latest/ tree or no version trees — skipping the resolution check"
+            exit 0
+          fi
+          canonicals="$(grep -rho \
+            'rel="canonical" href="https://supervision.roboflow.com/latest/[^"]*"' \
+            "${version_dirs[@]}" | sed -e 's|.*/latest/||' -e 's|"$||' | sort -u || true)"
+          missing=""
+          missing_count=0
+          if [[ -n "$canonicals" ]]; then
+            while IFS= read -r target; do
+              # Canonicals are directory URLs, so the page behind one is its index.html.
+              if [[ -f "latest/${target}index.html" ]]; then
+                continue
+              fi
+              missing="${missing}/latest/${target}"$'\n'
+              missing_count=$((missing_count + 1))
+            done <<< "$canonicals"
+          fi
+          {
+            echo "### Canonical targets missing from \`latest/\`"
+            if [[ "$missing_count" -eq 0 ]]; then
+              echo "None — every rewritten canonical resolves to a published page."
+            else
+              echo "$missing_count path(s) do not exist under \`latest/\`:"
+              printf '%s' "$missing" | sed 's|^|- `|; s|$|`|' | sed -n '1,20p'
+              if [[ "$missing_count" -gt 20 ]]; then
+                echo "- … and $((missing_count - 20)) more"
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📤 Commit and push
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u
+          if git diff --cached --quiet; then
+            echo "canonicals already point at /latest/ — nothing to do"
+            exit 0
+          fi
+          # Snapshot the pre-rewrite tree before replacing it. gh-pages holds the only
+          # copy of the archived version trees — the tags that produced them no longer
+          # build against current dependencies — so a bad rewrite has no rebuild path.
+          # HEAD is still the untouched tip here: the rewrite only touched the worktree.
+          backup="gh-pages-backup-$(date -u +%Y%m%dT%H%M%SZ)"
+          git push origin "HEAD:refs/heads/$backup"
+          echo "Pre-rewrite snapshot pushed to \`$backup\`; delete it once /latest/ is verified." \
+            >> "$GITHUB_STEP_SUMMARY"
+          git commit -m "chore(docs): canonicalise archived versions to /latest/"
+          git push origin gh-pages

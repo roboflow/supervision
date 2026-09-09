@@ -13,15 +13,14 @@ import numpy.typing as npt
 from deprecate import deprecated, void
 from PIL import Image
 
-from supervision.detection.utils.boxes import denormalize_boxes
+from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_resolution
 
 
 class LMM(Enum):
-    """
-    Enum specifying supported Large Multimodal Models (LMMs).
+    """Enum specifying supported Large Multimodal Models (LMMs).
 
     !!! deprecated "Deprecated"
 
@@ -72,8 +71,7 @@ class LMM(Enum):
 
 
 class VLM(Enum):
-    """
-    Enum specifying supported Vision-Language Models (VLMs).
+    """Enum specifying supported Vision-Language Models (VLMs).
 
     Attributes:
         PALIGEMMA: Google's PaliGemma vision-language model.
@@ -169,8 +167,7 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 def _validate_vlm_parameters(
     vlm: VLM | str, result: Any, kwargs: dict[str, Any]
 ) -> VLM:
-    """
-    Validates the parameters and result type for a given Vision-Language Model (VLM).
+    """Validates the parameters and result type for a given Vision-Language Model (VLM).
 
     Args:
         vlm: The VLM enum or string specifying the model.
@@ -221,8 +218,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
-    """
-    Parse bounding boxes from paligemma-formatted text, scale them to the specified
+    """Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
 
     Args:
@@ -237,7 +233,6 @@ def from_paligemma(
             optional array of shape `(n,)` with class indices, and `class_name`
             is an array of shape `(n,)` with class labels.
     """
-
     w, h = _validate_resolution(resolution_wh)
 
     pattern = re.compile(
@@ -264,9 +259,8 @@ def from_paligemma(
 
 
 def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
-    """
-    Attempt to recover and parse a truncated or malformed JSON snippet from Qwen-2.5-VL
-    output.
+    """Attempt to recover and parse a truncated or malformed JSON snippet from
+    Qwen-2.5-VL output.
 
     This utility extracts a JSON-like portion from a string that may be truncated or
     malformed, cleans trailing commas, and attempts to parse it into a Python object.
@@ -314,8 +308,7 @@ def from_qwen_2_5_vl(
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
-    """
-    Parse and rescale bounding boxes and class labels from Qwen-2.5-VL JSON output.
+    """Parse and rescale bounding boxes and class labels from Qwen-2.5-VL JSON output.
 
     The JSON is expected to be enclosed in triple backticks with the format:
       ```json
@@ -339,7 +332,6 @@ def from_qwen_2_5_vl(
             is an optional array of shape `(N,)` with class indices, and
             `class_name` is an array of shape `(N,)` with class names.
     """
-
     in_w, in_h = _validate_resolution(input_wh)
     out_w, out_h = _validate_resolution(resolution_wh)
 
@@ -405,8 +397,7 @@ def from_qwen_3_vl(
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
-    """
-    Parse and scale bounding boxes from Qwen-3-VL style JSON output.
+    """Parse and scale bounding boxes from Qwen-3-VL style JSON output.
 
     Args:
         result: String containing the Qwen-3-VL JSON output.
@@ -430,9 +421,8 @@ def from_qwen_3_vl(
 def from_deepseek_vl_2(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
-    """
-    Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
-    resolution, and optionally filter by classes.
+    """Parse bounding boxes from deepseek-vl2-formatted text, scale them to the
+    specified resolution, and optionally filter by classes.
 
     The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
     and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
@@ -608,8 +598,7 @@ def from_florence_2(
 
 
 def _recover_gemini_json_objects(text: str) -> list[Any]:
-    """
-    Salvage individual JSON objects from a malformed Gemini JSON array.
+    """Salvage individual JSON objects from a malformed Gemini JSON array.
 
     Scans for balanced `{...}` spans and parses each independently, keeping the
     ones that decode into a `dict` and skipping the rest. This recovers the valid
@@ -681,7 +670,6 @@ def from_google_gemini_2_0(
             is an array of shape `(n,)` with class labels.
 
     """
-
     w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
@@ -807,11 +795,12 @@ def from_google_gemini_2_5(
         labels_list.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        absolute_bbox = denormalize_boxes(
+        absolute_box = denormalize_boxes(
             np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
-        )[0]
+        )
+        absolute_bbox = _sort_box_corners(absolute_box)[0]
         boxes_list.append(absolute_bbox)
 
         if "mask" in item:
@@ -912,8 +901,8 @@ def from_google_gemini_3_5(
     npt.NDArray[Any] | None,
     npt.NDArray[Any] | None,
 ]:
-    """
-    Parse and scale bounding boxes and masks from Google Gemini 3.5 style JSON output.
+    """Parse and scale bounding boxes and masks from Google Gemini 3.5 style JSON
+    output.
 
     Gemini 3.5 emits the same detection JSON as Gemini 2.5 (`box_2d` in
     `[y_min, x_min, y_max, x_max]` normalized to 0-1000, plus `label` and optional
@@ -936,8 +925,7 @@ def from_moondream(
     result: dict[str, Any],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[Any]:
-    """
-    Parse and scale bounding boxes from moondream JSON output.
+    """Parse and scale bounding boxes from moondream JSON output.
 
     The JSON is expected to have a key "objects" with a list of dictionaries:
       {
@@ -963,7 +951,6 @@ def from_moondream(
         An array of shape `(n, 4)` containing the bounding boxes coordinates
             in format `[x1, y1, x2, y2]`.
     """
-
     w, h = resolution_wh
     if w <= 0 or h <= 0:
         raise ValueError(

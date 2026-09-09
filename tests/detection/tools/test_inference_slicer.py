@@ -1,5 +1,8 @@
 import threading
 import warnings
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any
 
 import numpy as np
 import pytest
@@ -205,8 +208,8 @@ def test_generate_offset(
 
 
 def test_run_callback_warns_when_detections_outside_slice_bounds() -> None:
-    """Test that a warning is emitted when callback returns detections with
-    coordinates outside the slice bounds."""
+    """Test that a warning is emitted when callback returns detections with coordinates
+    outside the slice bounds."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         # Return detections with coordinates exceeding the 64x64 slice size
@@ -224,8 +227,8 @@ def test_run_callback_warns_when_detections_outside_slice_bounds() -> None:
 
 
 def test_run_callback_warns_only_once_for_out_of_bounds_detections() -> None:
-    """Test that the out-of-bounds warning is only emitted once even across
-    multiple slices."""
+    """Test that the out-of-bounds warning is only emitted once even across multiple
+    slices."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -251,8 +254,8 @@ def test_run_callback_warns_only_once_for_out_of_bounds_detections() -> None:
 
 
 def test_run_callback_no_warning_when_detections_inside_slice_bounds() -> None:
-    """Test that no warning is emitted when callback returns detections within
-    the slice bounds."""
+    """Test that no warning is emitted when callback returns detections within the slice
+    bounds."""
 
     def in_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -278,8 +281,8 @@ def test_run_callback_no_warning_when_detections_inside_slice_bounds() -> None:
 
 
 def test_run_callback_warns_when_detections_have_negative_coordinates() -> None:
-    """Test that a warning is emitted when callback returns detections with
-    negative coordinates, indicating wrong reference frame."""
+    """Test that a warning is emitted when callback returns detections with negative
+    coordinates, indicating wrong reference frame."""
 
     def negative_coords_callback(_: np.ndarray) -> Detections:
         # Return detections with negative coordinates (e.g., returned in full-image
@@ -300,8 +303,8 @@ def test_run_callback_warns_when_detections_have_negative_coordinates() -> None:
 
 
 def test_run_callback_warns_only_once_with_multiple_threads() -> None:
-    """Test that exactly one warning fires even with thread_workers > 1, validating
-    that the threading.Lock makes the check-and-set atomic."""
+    """Test that exactly one warning fires even with thread_workers > 1, validating that
+    the threading.Lock makes the check-and-set atomic."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -333,8 +336,8 @@ def test_run_callback_warns_only_once_with_multiple_threads() -> None:
 
 
 def test_run_callback_no_warning_for_detection_exactly_at_slice_boundary() -> None:
-    """Test that a detection whose coordinates exactly equal the slice dimensions
-    does not trigger the warning (boundary is exclusive: > not >=)."""
+    """Test that a detection whose coordinates exactly equal the slice dimensions does
+    not trigger the warning (boundary is exclusive: > not >=)."""
 
     def at_boundary_callback(_: np.ndarray) -> Detections:
         # x2=64, y2=64 on a 64x64 slice — touching the edge but not exceeding it
@@ -361,8 +364,8 @@ def test_run_callback_no_warning_for_detection_exactly_at_slice_boundary() -> No
 
 
 def test_run_callback_does_not_rewarn_on_second_call() -> None:
-    """Test that a second call to the same slicer instance does not re-emit
-    the out-of-bounds warning even when detections are still out of bounds."""
+    """Test that a second call to the same slicer instance does not re-emit the out-of-
+    bounds warning even when detections are still out of bounds."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -390,7 +393,6 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
 
 def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     """Test that OBB callbacks are serialized even when thread_workers > 1."""
-
     active_calls = 0
     max_active_calls = 0
     concurrent_callbacks = 0
@@ -454,11 +456,10 @@ def _rotated_rect(
 def test_inference_slicer_keeps_crossed_obb_detections(
     overlap_filter: OverlapFilter,
 ) -> None:
-    """Regression for issue #1679: the SAHI workflow with OBB detections
-    dropped valid detections at the merge step because `with_nms`/`with_nmm`
-    historically used axis-aligned IoU. For crossed thin rectangles the AABBs
-    are nearly identical (IoU ≈ 1.0) while the OBBs barely overlap (IoU ≈ 0.06)
-    — so AABB-NMS suppressed one of them.
+    """Regression for issue #1679: the SAHI workflow with OBB detections dropped valid
+    detections at the merge step because `with_nms`/`with_nmm` historically used axis-
+    aligned IoU. For crossed thin rectangles the AABBs are nearly identical (IoU ≈ 1.0)
+    while the OBBs barely overlap (IoU ≈ 0.06) — so AABB-NMS suppressed one of them.
 
     Both crossed OBBs must survive end-to-end through `InferenceSlicer`.
     """
@@ -716,3 +717,151 @@ class TestInferenceSlicerBatch:
 
         np.testing.assert_array_equal(detections.xyxy, original_xyxy)
         np.testing.assert_array_equal(moved.xyxy, np.array([[11.0, 22.0, 13.0, 24.0]]))
+
+
+class TestInferenceSlicerOrdering:
+    """Merged detections must follow source slice order, not thread completion order."""
+
+    GATE_TIMEOUT_SECONDS = 10.0
+
+    @staticmethod
+    def _striped_image(slice_count: int, slice_size: int = 64) -> np.ndarray:
+        """Build a single row of tiles, each stamped with its own slice index."""
+        image = np.zeros((slice_size, slice_size * slice_count, 3), dtype=np.uint8)
+        for index in range(slice_count):
+            image[:, index * slice_size : (index + 1) * slice_size, 0] = index
+        return image
+
+    @staticmethod
+    def _detections_for(index: int) -> Detections:
+        """Return one detection tagged with the index of the slice it came from."""
+        return Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            confidence=np.array([0.9]),
+            class_id=np.array([index]),
+        )
+
+    @staticmethod
+    def _install_reverse_completion_gate(
+        monkeypatch: pytest.MonkeyPatch, submitted_source_indices: list[int]
+    ) -> tuple[list[int], dict[int, threading.Event]]:
+        """Gate callbacks so each source predecessor follows a completed Future."""
+        completion_order: list[int] = []
+        release_events = {
+            source_index: threading.Event() for source_index in submitted_source_indices
+        }
+        predecessor_by_index = dict(
+            zip(submitted_source_indices[1:], submitted_source_indices)
+        )
+
+        class CompletionAcknowledgingExecutor(ThreadPoolExecutor):
+            """Release a preceding callback only after this Future is complete."""
+
+            def submit(
+                self,
+                fn: Callable[..., Any],
+                /,
+                *args: Any,
+                **kwargs: Any,
+            ) -> Future[Any]:
+                """Attach a post-completion release callback to each submitted task."""
+                future = super().submit(fn, *args, **kwargs)
+                offsets = np.asarray(args[-1])
+                source_index = int(offsets.flat[0] // 64)
+
+                def release_predecessor(_: Future[Any]) -> None:
+                    """Release the preceding source task after this Future completes."""
+                    predecessor = predecessor_by_index.get(source_index)
+                    if predecessor is not None:
+                        release_events[predecessor].set()
+
+                future.add_done_callback(release_predecessor)
+                return future
+
+        monkeypatch.setattr(
+            "supervision.detection.tools.inference_slicer.ThreadPoolExecutor",
+            CompletionAcknowledgingExecutor,
+        )
+        return completion_order, release_events
+
+    @pytest.mark.parametrize(
+        ("slice_count", "thread_workers"),
+        [
+            pytest.param(3, 4, id="3-slices-4-workers"),
+            pytest.param(5, 8, id="5-slices-8-workers"),
+        ],
+    )
+    def test_threaded_slices_merge_in_source_order(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        slice_count: int,
+        thread_workers: int,
+    ) -> None:
+        """Slices completing out of order still merge in source order."""
+        completion_order, release_events = self._install_reverse_completion_gate(
+            monkeypatch=monkeypatch,
+            submitted_source_indices=list(range(1, slice_count)),
+        )
+
+        def callback(image_slice: np.ndarray) -> Detections:
+            """Wait until the succeeding slice Future has completed."""
+            index = int(image_slice[0, 0, 0])
+            if index == slice_count - 1:
+                completion_order.append(index)
+            elif index > 0:
+                assert release_events[index].wait(timeout=self.GATE_TIMEOUT_SECONDS)
+                completion_order.append(index)
+            return self._detections_for(index)
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            thread_workers=thread_workers,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert completion_order == list(range(slice_count - 1, 0, -1))
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))
+
+    def test_threaded_batches_merge_in_source_order(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Batches completing out of order still merge in source order."""
+        slice_count, batch_size = 6, 2
+        completion_order, release_events = self._install_reverse_completion_gate(
+            monkeypatch=monkeypatch,
+            submitted_source_indices=list(range(batch_size, slice_count, batch_size)),
+        )
+
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Wait until the succeeding batch Future has completed."""
+            first_index = int(tiles[0][0, 0, 0])
+            if first_index == slice_count - batch_size:
+                completion_order.append(first_index)
+            elif first_index >= batch_size:
+                assert release_events[first_index].wait(
+                    timeout=self.GATE_TIMEOUT_SECONDS
+                )
+                completion_order.append(first_index)
+            return [self._detections_for(int(tile[0, 0, 0])) for tile in tiles]
+
+        image = self._striped_image(slice_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert completion_order == list(range(slice_count - batch_size, 0, -batch_size))
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == list(range(slice_count))

@@ -47,7 +47,7 @@ class TestImageSink:
         assert names == ["frame_000.jpg"]
 
     def test_overwrite_false_reuses_existing_dir(self, tmp_path: Path) -> None:
-        """overwrite=False keeps existing directory contents intact."""
+        """Overwrite=False keeps existing directory contents intact."""
         existing = tmp_path / "existing"
         existing.mkdir()
         sentinel = existing / "keep.txt"
@@ -61,7 +61,7 @@ class TestImageSink:
         assert len(list(existing.iterdir())) == 2
 
     def test_overwrite_true_clears_existing_dir(self, tmp_path: Path) -> None:
-        """overwrite=True removes pre-existing files before writing."""
+        """Overwrite=True removes pre-existing files before writing."""
         target = tmp_path / "target"
         target.mkdir()
         sentinel = target / "old.txt"
