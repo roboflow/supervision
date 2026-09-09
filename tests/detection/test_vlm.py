@@ -1515,6 +1515,12 @@ class TestFromVlmCornerOrdering:
                 id="qwen-2.5-vl",
             ),
             pytest.param(
+                VLM.QWEN_3_VL,
+                '```json\n[{"bbox_2d": [300, 400, 200, 100], "label": "cat"}]\n```',
+                {},
+                id="qwen-3-vl",
+            ),
+            pytest.param(
                 VLM.FLORENCE_2,
                 {"<OD>": {"bboxes": [[300.0, 400.0, 200.0, 100.0]], "labels": ["cat"]}},
                 {},
@@ -1550,6 +1556,32 @@ class TestFromVlmCornerOrdering:
 
         assert np.all(detections.xyxy[:, 0] <= detections.xyxy[:, 2])
         assert np.all(detections.xyxy[:, 1] <= detections.xyxy[:, 3])
+
+    @pytest.mark.parametrize(
+        "vlm",
+        [
+            pytest.param(VLM.GOOGLE_GEMINI_2_5, id="gemini-2.5"),
+            pytest.param(VLM.GOOGLE_GEMINI_3_5, id="gemini-3.5"),
+        ],
+    )
+    def test_transposed_gemini_masks_stay_inside_ordered_boxes(self, vlm: VLM) -> None:
+        """Place Gemini masks after normalizing reversed box corners."""
+        result = (
+            '[{"box_2d": [400, 300, 100, 200], '
+            '"mask": "data:image/png;base64,'
+            "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAAEUlEQVR4nGP8zwADTHAWzZgA"
+            'cU0BE/ldZcMAAAAASUVORK5CYII=", "label": "cat"}]'
+        )
+
+        detections = Detections.from_vlm(vlm, result, resolution_wh=(1000, 800))
+
+        assert detections.mask is not None
+        np.testing.assert_array_equal(
+            detections.xyxy, np.array([[200, 80, 300, 320]], dtype=np.float64)
+        )
+        assert detections.mask.shape == (1, 800, 1000)
+        assert detections.mask[0, 80:320, 200:300].all()
+        assert detections.mask.sum() == 24_000
 
     def test_transposed_box_keeps_its_region(self) -> None:
         """Ordering the corners must not move the region the box describes."""
