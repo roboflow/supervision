@@ -71,6 +71,7 @@ from supervision.detection.vlm import (
     from_google_gemini_3_5,
     from_google_gemini_3_6,
     from_google_gemini_3_7,
+    from_kosmos_2,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -1662,6 +1663,7 @@ class Detections:
         | Google Gemini 3.7   | `GOOGLE_GEMINI_3_7`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Kosmos-2            | `KOSMOS_2`           | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
@@ -2054,6 +2056,54 @@ class Detections:
                   dtype='<U24')}
 
             ```
+
+        !!! example "Kosmos-2"
+
+            ??? tip "Prompt engineering"
+                Kosmos-2 grounds phrases only when the prompt opens with the
+                `<grounding>` token.
+
+                **To ground a specific object, use the following user prompt:**
+
+                ```
+                <grounding>Detect the cats
+                ```
+
+                **To ground every phrase of a caption, use the following user prompt:**
+
+                ```
+                <grounding>Describe this image in detail
+                ```
+
+            `result` is the `(caption, entities)` pair returned by the model's
+            `AutoProcessor.post_process_generation`. An entity grounding several
+            regions contributes one detection per region.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> kosmos_2_result = (
+            ...     'An image of a cat and a gramophone.',
+            ...     [
+            ...         ('a cat', (12, 17), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+            ...         ('a gramophone', (24, 36), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+            ...     ],
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     vlm=sv.VLM.KOSMOS_2,
+            ...     result=kosmos_2_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy
+            array([[265.625,  15.625, 703.125, 984.375],
+                   [234.375,  15.625, 703.125, 515.625]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['a cat', 'a gramophone'], dtype='<U12')}
+
+            ```
         """  # noqa: E501
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
@@ -2081,6 +2131,13 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
             return cls._from_moondream_result(result, **kwargs)
+
+        if vlm == VLM.KOSMOS_2:
+            if not isinstance(result, tuple):
+                raise ValueError(
+                    f"Invalid VLM result type: {type(result)}. Must be tuple."
+                )
+            return cls._from_kosmos_2_result(result, **kwargs)
 
         raise ValueError(f"Unsupported VLM value: {vlm}.")
 
@@ -2181,6 +2238,31 @@ class Detections:
         """
         xyxy = from_moondream(result, **kwargs)
         return cls(xyxy=_sort_box_corners(xyxy))
+
+    @classmethod
+    def _from_kosmos_2_result(
+        cls, result: tuple[str, list[Any]], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Kosmos-2 grounding payload.
+
+        Kosmos-2 is the only VLM whose result is a `(caption, entities)` tuple rather
+        than a string or a mapping, so it gets its own construction site here.
+
+        Args:
+            result: The `(caption, entities)` pair returned by the model's
+                post-processor.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, carrying boxes and labels.
+        """
+        xyxy, class_id, class_name = from_kosmos_2(result, **kwargs)
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:

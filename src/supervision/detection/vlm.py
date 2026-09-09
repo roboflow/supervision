@@ -85,6 +85,7 @@ class VLM(Enum):
         GOOGLE_GEMINI_3_6: Google Gemini 3.6 vision-language model.
         GOOGLE_GEMINI_3_7: Google Gemini 3.7 vision-language model.
         MOONDREAM: The Moondream vision-language model.
+        KOSMOS_2: Microsoft's Kosmos-2 grounded vision-language model.
     """
 
     PALIGEMMA = "paligemma"
@@ -98,6 +99,7 @@ class VLM(Enum):
     GOOGLE_GEMINI_3_6 = "gemini_3_6"
     GOOGLE_GEMINI_3_7 = "gemini_3_7"
     MOONDREAM = "moondream"
+    KOSMOS_2 = "kosmos_2"
 
     @classmethod
     def list(cls) -> list[str]:
@@ -131,6 +133,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.GOOGLE_GEMINI_3_6: str,
     VLM.GOOGLE_GEMINI_3_7: str,
     VLM.MOONDREAM: dict,
+    VLM.KOSMOS_2: tuple,
 }
 
 REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -145,6 +148,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_3_6: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_3_7: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -159,6 +163,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_3_6: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_3_7: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -1251,3 +1256,90 @@ def from_moondream(
             resolution_wh=(w, h),
         ),
     )
+
+
+def from_kosmos_2(
+    result: tuple[str, list[Any]],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+    """Parse and scale bounding boxes from a Kosmos-2 grounding result.
+
+    Kosmos-2 returns the pair its `AutoProcessor.post_process_generation` produces: the
+    generated caption, and one entity per grounded phrase. Each entity is
+    `(phrase, (start, end), boxes)`, where `(start, end)` locates the phrase in the
+    caption and `boxes` holds every region that phrase grounds to, normalized to
+    `[0, 1]`:
+
+    ```python
+    result = (
+        "An image of a cat and a dog.",
+        [
+            ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+            ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+        ],
+    )
+    ```
+
+    Args:
+        result: The `(caption, entities)` pair returned by the model's post-processor.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here, and `class_id` indexes into
+            this list.
+
+    Returns:
+        A tuple of `(xyxy, class_id, class_name)`, where `xyxy` has shape `(n, 4)` in
+            `[x1, y1, x2, y2]` format, and `class_id` and `class_name` have shape
+            `(n,)`.
+
+    Examples:
+        ```pycon
+        >>> import supervision as sv
+        >>> from supervision.detection.vlm import from_kosmos_2
+        >>> result = (
+        ...     "An image of a cat.",
+        ...     [("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)])],
+        ... )
+        >>> from_kosmos_2(result, resolution_wh=(1000, 1000))
+        (array([[200., 300., 600., 700.]]), array([0]), array(['a cat'], dtype='<U5'))
+
+        ```
+    """
+    w, h = _validate_resolution(resolution_wh)
+
+    if len(result) != 2:
+        raise ValueError(
+            f"Invalid Kosmos-2 result: expected a (caption, entities) pair, "
+            f"got {len(result)} elements."
+        )
+    _, entities = result
+
+    normalized_xyxy: list[Any] = []
+    class_name_list: list[str] = []
+    for phrase, _span, boxes in entities:
+        # One phrase grounds to every region it matches, so an entity carries a list
+        # of boxes; each becomes its own detection under the shared phrase.
+        for box in boxes:
+            normalized_xyxy.append(box)
+            class_name_list.append(phrase)
+
+    if normalized_xyxy:
+        xyxy = denormalize_boxes(
+            np.array(normalized_xyxy, dtype=np.float64), resolution_wh=(w, h)
+        )
+        class_name = np.array(class_name_list)
+    else:
+        xyxy = np.empty((0, 4), dtype=np.float64)
+        class_name = np.array([], dtype=object)
+
+    if classes is not None:
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
+    else:
+        unique_classes = sorted(set(class_name_list))
+        class_to_id = {name: i for i, name in enumerate(unique_classes)}
+        # `dtype=int` matters only when there are no detections: an empty list would
+        # otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([class_to_id[name] for name in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
