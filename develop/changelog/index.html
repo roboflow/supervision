@@ -3979,12 +3979,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.process_video</code> no longer hangs when <code>max_frames</code> exceeds the video's frame count. The reader thread used to fail on the out-of-range <code>end</code> before enqueuing its sentinel, blocking the main loop on the read queue. <code>max_frames</code> is now capped at the video length so the whole video processes, and any reader-thread error now surfaces as <code>RuntimeError("Reader thread raised: ...")</code> from the original exception instead of stalling the call (<a href="https://github.com/roboflow/supervision/issues/2545">#2545</a>).</p>
 </li>
-<li>
-<p><code>sv.PolygonZone</code> now rejects a polygon with fewer than three vertices, or one that is not of shape <code>(N, 2)</code>, instead of building a zone that can never trigger. One or two vertices enclose no area, so the zone mask came out as a single pixel or a bare line and every detection tested against it read as outside — indistinguishable from a correctly configured zone that simply saw nothing. Zero vertices raised <code>zero-size array to reduction operation maximum</code> from NumPy rather than naming the problem. The three-vertex minimum matches <code>MIN_POLYGON_POINT_COUNT</code>, which <code>sv.mask_to_polygons</code> already enforces when producing polygons.</p>
-</li>
-<li>
-<p><code>sv.Detections.from_vlm</code> now orders each parsed box's corners, so a model that emits a corner pair backwards no longer produces an <code>xyxy</code> row with <code>x_min &gt; x_max</code>. Every VLM parser passed such a row straight through, and nothing downstream caught it: <code>sv.box_iou_batch</code> clamps intersection widths at zero, so the box scored an IoU of <code>0.0</code> against itself — surviving NMS as a duplicate and counting as a total miss in mAP — while <code>sv.Detections.box_area</code> reported a plausible positive value, because negating both sides leaves their product positive. Correctly ordered boxes, their dtypes included, are unchanged.</p>
-</li>
 </ul>
 <h3 id="0302-sep-3-2026">0.30.2 <small>Sep 3, 2026</small><a class="headerlink" href="#0302-sep-3-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6214,7 +6208,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 8, 2026 18:58:45 UTC">September 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 8, 2026 15:55:07 UTC">September 8, 2026</span>
   </span>
 
     
@@ -6242,11 +6236,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/tedo001" class="md-author" title="@tedo001">
-          
-          <img src="https://avatars.githubusercontent.com/u/213774615?v=4&size=72" alt="tedo001">
-        </a>
-      
         <a href="https://github.com/Bortlesboat" class="md-author" title="@Bortlesboat">
           
           <img src="https://avatars.githubusercontent.com/u/169967362?v=4&size=72" alt="Bortlesboat">
@@ -6260,6 +6249,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
+        <a href="https://github.com/abhijithneilabraham" class="md-author" title="@abhijithneilabraham">
+          
+          <img src="https://avatars.githubusercontent.com/u/35420019?v=4&size=72" alt="abhijithneilabraham">
         </a>
       
       
