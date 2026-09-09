@@ -32,8 +32,7 @@ def dummy_video_path(tmp_path):
 
 
 def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
-    """
-    Verify that process_video correctly propagates exceptions from the callback.
+    """Verify that process_video correctly propagates exceptions from the callback.
 
     Scenario: Processing a video where the callback raises an exception.
     Expected: `process_video` should propagate the exception, allowing users to
@@ -55,8 +54,7 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
 
 
 def test_process_video_success(dummy_video_path, tmp_path) -> None:
-    """
-    Verify successful video processing with a pass-through callback.
+    """Verify successful video processing with a pass-through callback.
 
     Scenario: Successfully processing a video with a simple pass-through callback.
     Expected: The video is processed without error and the target file is created,
@@ -76,8 +74,7 @@ def test_process_video_success(dummy_video_path, tmp_path) -> None:
 
 
 def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -> None:
-    """
-    Verify that process_video handles exceptions correctly even with small buffers.
+    """Verify that process_video handles exceptions correctly even with small buffers.
 
     Scenario: Processing a video with minimal buffering where an exception occurs.
     Expected: The exception is still correctly propagated even with low memory settings.
@@ -415,8 +412,7 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
-    """
-    Verify that process_video respects the max_frames parameter.
+    """Verify that process_video respects the max_frames parameter.
 
     Scenario: Processing only a limited number of frames using `max_frames`.
     Expected: Only the specified number of frames are processed, which is useful for
@@ -440,9 +436,83 @@ def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     assert processed_indices == [0, 1, 2, 3, 4]
 
 
-def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
+def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> None:
+    """Run process_video in a daemon thread; fail on timeout, re-raise its error.
+
+    A hang must not block the whole test session, so the call runs in a daemon thread
+    with a deadline. Exceptions stay confined to that thread, so they are captured and
+    re-raised here to keep a crash from passing as a clean return.
     """
-    Verify that process_video works correctly with custom performance parameters.
+    errors: list[BaseException] = []
+    finished = threading.Event()
+
+    def run() -> None:
+        """Call process_video, keeping any exception for the calling thread."""
+        try:
+            process_video(**kwargs)
+        except BaseException as exc:
+            errors.append(exc)
+        finally:
+            finished.set()
+
+    threading.Thread(target=run, daemon=True).start()
+    if not finished.wait(timeout=deadline_seconds):
+        pytest.fail(f"process_video did not return within {deadline_seconds}s")
+    if errors:
+        raise errors[0]
+
+
+def test_process_video_max_frames_larger_than_video_processes_whole_video(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
+    """A max_frames above the frame count processes every frame and returns."""
+    target_path = str(tmp_path / "target_max_frames_overshoot.mp4")
+    processed_indices: list[int] = []
+
+    def callback(frame, index):
+        """Record the index of every processed frame."""
+        processed_indices.append(index)
+        return frame
+
+    _run_process_video_with_deadline(
+        deadline_seconds=30,
+        source_path=dummy_video_path,
+        target_path=target_path,
+        callback=callback,
+        max_frames=10_000,
+    )
+
+    assert processed_indices == list(range(10))
+    assert os.path.exists(target_path)
+
+
+def test_process_video_propagates_reader_thread_errors(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A failing reader thread raises RuntimeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_reader_error.mp4")
+
+    def failing_generator(*args, **kwargs):
+        """Stand in for a reader that cannot open or decode the source."""
+        raise OSError("decode failed")
+
+    monkeypatch.setattr(
+        "supervision.utils.video.get_video_frames_generator", failing_generator
+    )
+
+    with pytest.raises(RuntimeError, match="Reader thread raised") as exc_info:
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: frame,
+        )
+
+    assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
+    """Verify that process_video works correctly with custom performance parameters.
 
     Scenario: Processing video with custom prefetch and buffer parameters.
     Expected: Video is processed successfully, showing that these performance-tuning
@@ -466,8 +536,7 @@ def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
 
 
 def test_video_info(dummy_video_path) -> None:
-    """
-    Verify that VideoInfo correctly retrieves metadata from a video file.
+    """Verify that VideoInfo correctly retrieves metadata from a video file.
 
     Scenario: Retrieving metadata from a video file using `VideoInfo`.
     Expected: Correct width, height, fps, and frame count are returned, which is
@@ -483,8 +552,7 @@ def test_video_info(dummy_video_path) -> None:
 
 
 def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
-    """
-    Verify that VideoInfo preserves non-integer FPS values as floats.
+    """Verify that VideoInfo preserves non-integer FPS values as floats.
 
     Scenario: Retrieving metadata from a video while OpenCV reports 23.976 fps.
     Expected: fps is returned as the original float value, not truncated to an
@@ -506,8 +574,7 @@ def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
 
 
 def test_get_video_frames_generator(dummy_video_path) -> None:
-    """
-    Verify that get_video_frames_generator yields frames with correct shapes.
+    """Verify that get_video_frames_generator yields frames with correct shapes.
 
     Scenario: Iterating over video frames using a generator.
     Expected: All frames are yielded in order as NumPy arrays with correct shapes,
@@ -603,7 +670,7 @@ def test_get_video_frames_generator_prefetch_param_forwarding(
 
 
 def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> None:
-    """prefetch=1 creates maximum backpressure; all frames must be returned in order.
+    """Prefetch=1 creates maximum backpressure; all frames must be returned in order.
 
     Scenario: Using prefetch=1 forces the reader to block after every decoded
         frame, maximising producer-consumer synchronisation pressure.
@@ -617,8 +684,7 @@ def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> 
 
 
 def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None:
-    """
-    Verify that the capture is released when a consumer breaks out early.
+    """Verify that the capture is released when a consumer breaks out early.
 
     Scenario: A consumer iterates one frame then abandons the generator, raising
     GeneratorExit at the yield point.
@@ -850,8 +916,7 @@ def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> No
 
 
 def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
-    """
-    Verify that get_video_frames_generator correctly handles the stride parameter.
+    """Verify that get_video_frames_generator correctly handles the stride parameter.
 
     Scenario: Iterating over video frames with specified stride (e.g., every 2nd frame).
     Expected: The generator correctly skips frames according to the stride, allowing
@@ -878,8 +943,7 @@ def test_fps_monitor_uses_frame_intervals(monkeypatch) -> None:
 
 
 def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> None:
-    """
-    Verify that process_video calls _mux_audio when preserve_audio=True.
+    """Verify that process_video calls _mux_audio when preserve_audio=True.
 
     Scenario: Processing a video with preserve_audio=True and ffmpeg available.
     Expected: _mux_audio is called exactly once with the correct source and target
@@ -900,8 +964,7 @@ def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> N
 
 
 def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
-    """
-    Verify that process_video does not call _mux_audio when preserve_audio=False.
+    """Verify that process_video does not call _mux_audio when preserve_audio=False.
 
     Scenario: Default process_video call without setting preserve_audio.
     Expected: _mux_audio is never called, preserving existing behavior for callers
@@ -919,8 +982,7 @@ def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
-    """
-    Verify that get_video_frames_generator respects start and end frame indices.
+    """Verify that get_video_frames_generator respects start and end frame indices.
 
     Scenario: Iterating over a specific range of video frames using `start` and `end`.
     Expected: Only frames within the specified range are yielded, enabling targeted

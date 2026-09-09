@@ -102,9 +102,9 @@ class TestSkeletons:
         """Test MediaPipe hand skeleton follows expected palm and finger connections.
 
         The palm is the closing knuckle arch defined by MediaPipe's
-        `HAND_PALM_CONNECTIONS`, not a spoke-fan from the wrist: the wrist links
-        only to the thumb, index and pinky bases, and the knuckles chain across.
-        Asserted against the independently-transcribed `HAND` tuple above, not
-        imported from `skeletons.py`, so this fails loudly on a regression there.
+        `HAND_PALM_CONNECTIONS`, not a spoke-fan from the wrist: the wrist links only to
+        the thumb, index and pinky bases, and the knuckles chain across. Asserted
+        against the independently-transcribed `HAND` tuple above, not imported from
+        `skeletons.py`, so this fails loudly on a regression there.
         """
         assert Skeleton.HAND.value == HAND

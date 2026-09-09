@@ -25,8 +25,8 @@ class _FakeCRS:
 class _FakeRasterDataset:
     """Lightweight rasterio-style dataset supporting windowed reads.
 
-    Mimics the duck-typed interface that ``InferenceSlicer`` relies on without
-    requiring ``rasterio`` to be installed.
+    Mimics the duck-typed interface that ``InferenceSlicer`` relies on without requiring
+    ``rasterio`` to be installed.
     """
 
     def __init__(self, image_hwc: np.ndarray, crs: object | None = None):

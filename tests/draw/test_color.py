@@ -58,8 +58,7 @@ from supervision.draw.color import Color, ColorPalette, unify_to_bgr
 def test_color_from_hex(
     color_hex, expected_result: Color | None, exception: Exception
 ) -> None:
-    """
-    Verify that Color.from_hex correctly parses various hex string formats.
+    """Verify that Color.from_hex correctly parses various hex string formats.
 
     Scenario: Creating a `Color` object from various hex string formats (3-, 4-, 6-,
     and 8-digit, with/without # prefix).
@@ -91,8 +90,7 @@ def test_color_from_hex(
 def test_color_as_hex(
     color: Color, expected_result: str | None, exception: Exception
 ) -> None:
-    """
-    Verify that Color.as_hex correctly converts Color objects to hex strings.
+    """Verify that Color.as_hex correctly converts Color objects to hex strings.
 
     Scenario: Converting a `Color` object back to a hex string.
     Expected: 6-digit hex (#RRGGBB) when alpha is 255, 8-digit hex (#RRGGBBAA)

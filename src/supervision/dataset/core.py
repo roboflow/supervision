@@ -70,10 +70,10 @@ class BaseDataset(ABC):
 
 
 class DetectionDataset(BaseDataset):
-    """
-    Contains information about a detection dataset. Handles lazy image loading
-    and annotation retrieval, dataset splitting, conversions into multiple
-    formats.
+    """Contains information about a detection dataset.
+
+    Handles lazy image loading and annotation retrieval, dataset splitting, conversions
+    into multiple formats.
 
     Attributes:
         classes: List containing dataset class names.
@@ -170,8 +170,7 @@ class DetectionDataset(BaseDataset):
         return image_path, image, annotation
 
     def __iter__(self) -> Iterator[tuple[str, npt.NDArray[np.uint8], Detections]]:
-        """
-        Iterate over the images and annotations in the dataset.
+        """Iterate over the images and annotations in the dataset.
 
         Yields:
             Tuples containing the image path, image data, and its annotation.
@@ -208,9 +207,8 @@ class DetectionDataset(BaseDataset):
         random_state: int | None = None,
         shuffle: bool = True,
     ) -> tuple[DetectionDataset, DetectionDataset]:
-        """
-        Splits the dataset into two parts (training and testing)
-            using the provided split_ratio. The input dataset is not mutated.
+        """Splits the dataset into two parts (training and testing) using the provided
+        split_ratio. The input dataset is not mutated.
 
         Args:
             split_ratio: The ratio of the training
@@ -276,9 +274,8 @@ class DetectionDataset(BaseDataset):
 
     @classmethod
     def merge(cls, dataset_list: list[DetectionDataset]) -> DetectionDataset:
-        """
-        Merge a list of `DetectionDataset` objects into a single
-            `DetectionDataset` object.
+        """Merge a list of `DetectionDataset` objects into a single `DetectionDataset`
+        object.
 
         This method takes a list of `DetectionDataset` objects and combines
         their respective fields (`classes`, `images`,
@@ -386,11 +383,11 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         show_progress: bool = False,
     ) -> None:
-        """
-        Exports the dataset to PASCAL VOC format. This method saves the images
-        and their corresponding annotations in PASCAL VOC format. Both output
-        layouts are preflighted before any files are written so a collision in
-        either target fails without partial output.
+        """Exports the dataset to PASCAL VOC format.
+
+        This method saves the images and their corresponding annotations in PASCAL VOC
+        format. Both output layouts are preflighted before any files are written so a
+        collision in either target fails without partial output.
 
         Args:
             images_directory_path: The path to the directory
@@ -456,8 +453,7 @@ class DetectionDataset(BaseDataset):
         force_masks: bool = False,
         show_progress: bool = False,
     ) -> DetectionDataset:
-        """
-        Creates a Dataset instance from PASCAL VOC formatted data.
+        """Creates a Dataset instance from PASCAL VOC formatted data.
 
         Args:
             images_directory_path: Path to the directory containing the images.
@@ -516,8 +512,7 @@ class DetectionDataset(BaseDataset):
         is_obb: bool = False,
         show_progress: bool = False,
     ) -> DetectionDataset:
-        """
-        Creates a Dataset instance from YOLO formatted data.
+        """Creates a Dataset instance from YOLO formatted data.
 
         Args:
             images_directory_path: The path to the
@@ -584,9 +579,9 @@ class DetectionDataset(BaseDataset):
         is_obb: bool = False,
         show_progress: bool = False,
     ) -> None:
-        """
-        Exports the dataset to YOLO format. This method saves the
-        images and their corresponding annotations in YOLO format.
+        """Exports the dataset to YOLO format.
+
+        This method saves the images and their corresponding annotations in YOLO format.
 
         Args:
             images_directory_path: The path to the
@@ -678,8 +673,7 @@ class DetectionDataset(BaseDataset):
         annotations_directory_path: str,
         force_masks: bool = False,
     ) -> DetectionDataset:
-        """
-        Creates a Dataset instance from LabelMe formatted data.
+        """Creates a Dataset instance from LabelMe formatted data.
 
         LabelMe stores one JSON file per image, each containing a list of
         ``shapes``. ``rectangle`` shapes are loaded as bounding boxes and
@@ -735,14 +729,13 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str | None = None,
         annotations_directory_path: str | None = None,
     ) -> None:
-        """
-        Exports the dataset to LabelMe format. This method saves the images and
-        their corresponding annotations as per-image LabelMe ``.json`` files.
-        Masked detections are written as ``polygon`` shapes whose vertices
-        approximate the mask contour, so masks are not bit-exact on round-trip.
-        Because the bounding box is recomputed from the quantized polygon contour
-        on re-import, bounding boxes for masked detections may also shift by
-        approximately one pixel after a save-load cycle.
+        """Exports the dataset to LabelMe format. This method saves the images and their
+        corresponding annotations as per-image LabelMe ``.json`` files. Masked
+        detections are written as ``polygon`` shapes whose vertices approximate the mask
+        contour, so masks are not bit-exact on round-trip. Because the bounding box is
+        recomputed from the quantized polygon contour on re-import, bounding boxes for
+        masked detections may also shift by approximately one pixel after a save-load
+        cycle.
 
         Args:
             images_directory_path: The path to the directory
@@ -781,8 +774,7 @@ class DetectionDataset(BaseDataset):
         annotations_path: str,
         show_progress: bool = False,
     ) -> DetectionDataset:
-        """
-        Creates a Dataset instance from CreateML formatted data.
+        """Creates a Dataset instance from CreateML formatted data.
 
         CreateML stores object-detection annotations in a single JSON file as a
         list of per-image entries, with each box expressed as a pixel-space
@@ -835,9 +827,8 @@ class DetectionDataset(BaseDataset):
         annotations_path: str | None = None,
         show_progress: bool = False,
     ) -> None:
-        """
-        Exports the dataset to CreateML format. This method saves the
-        images and their corresponding annotations in CreateML format.
+        """Exports the dataset to CreateML format. This method saves the images and
+        their corresponding annotations in CreateML format.
 
         Args:
             images_directory_path: The path to the directory where the images
@@ -882,8 +873,7 @@ class DetectionDataset(BaseDataset):
         *,
         use_iscrowd: bool = True,
     ) -> DetectionDataset:
-        """
-        Creates a Dataset instance from COCO formatted data.
+        """Creates a Dataset instance from COCO formatted data.
 
         Args:
             images_directory_path: The path to the
@@ -941,9 +931,8 @@ class DetectionDataset(BaseDataset):
         starting_annotation_id: int = 1,
         show_progress: bool = False,
     ) -> tuple[int, int]:
-        """
-        Exports the dataset to COCO format. This method saves the
-        images and their corresponding annotations in COCO format.
+        """Exports the dataset to COCO format. This method saves the images and their
+        corresponding annotations in COCO format.
 
         !!! tip
 
@@ -1037,9 +1026,8 @@ class DetectionDataset(BaseDataset):
 
 @dataclass
 class ClassificationDataset(BaseDataset):
-    """
-    Contains information about a classification dataset, handles lazy image
-    loading, dataset splitting.
+    """Contains information about a classification dataset, handles lazy image loading,
+    dataset splitting.
 
     Attributes:
         classes: List containing dataset class names.
@@ -1101,8 +1089,7 @@ class ClassificationDataset(BaseDataset):
     def __iter__(
         self,
     ) -> Iterator[tuple[str, npt.NDArray[np.uint8], Classifications]]:
-        """
-        Iterate over the images and annotations in the dataset.
+        """Iterate over the images and annotations in the dataset.
 
         Yields:
             Tuples containing the image path, image data, and its annotation.
@@ -1139,9 +1126,8 @@ class ClassificationDataset(BaseDataset):
         random_state: int | None = None,
         shuffle: bool = True,
     ) -> tuple[ClassificationDataset, ClassificationDataset]:
-        """
-        Splits the dataset into two parts (training and testing)
-            using the provided split_ratio.
+        """Splits the dataset into two parts (training and testing) using the provided
+        split_ratio.
 
         Args:
             split_ratio: The ratio of the training
@@ -1209,41 +1195,57 @@ class ClassificationDataset(BaseDataset):
     def as_folder_structure(
         self, root_directory_path: str, show_progress: bool = False
     ) -> None:
-        """
-        Saves the dataset as a multi-class folder structure.
+        """Saves the dataset as a multi-class folder structure.
+
+        Images assigned to the same class must have unique basenames
+        (case-insensitive). Conflicts are rejected before any files are written.
 
         Args:
             root_directory_path: The path to the directory
                 where the dataset will be saved.
             show_progress: If True, display a progress bar during saving.
+
+        Raises:
+            ValueError: If two images would be saved to the same output path.
         """
-        os.makedirs(root_directory_path, exist_ok=True)
-
-        for class_name in self.classes:
-            os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
-
-        for image_save_path, image, annotation in tqdm(
-            self,
-            total=len(self),
-            desc="Saving classification images",
-            disable=not show_progress,
-        ):
-            image_name = Path(image_save_path).name
+        output_paths = {}
+        for image_path in self.image_paths:
+            annotation = self.annotations[image_path]
             class_id = (
                 annotation.class_id[0]
                 if annotation.confidence is None
                 else annotation.get_top_k(1)[0][0]
             )
-            class_name = self.classes[class_id]
-            image_save_path = os.path.join(root_directory_path, class_name, image_name)
+            output_paths[image_path] = os.path.join(
+                self.classes[class_id], Path(image_path).name
+            )
+
+        check_no_basename_collisions(
+            image_paths=self.image_paths,
+            key=lambda path: output_paths[path],
+            output_kind="classification image",
+        )
+        os.makedirs(root_directory_path, exist_ok=True)
+
+        for class_name in self.classes:
+            os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
+
+        for image_path, image, _ in tqdm(
+            self,
+            total=len(self),
+            desc="Saving classification images",
+            disable=not show_progress,
+        ):
+            image_save_path = os.path.join(
+                root_directory_path, output_paths[image_path]
+            )
             cv2.imwrite(image_save_path, image)
 
     @classmethod
     def from_folder_structure(
         cls, root_directory_path: str, show_progress: bool = False
     ) -> ClassificationDataset:
-        """
-        Load data from a multiclass folder structure into a ClassificationDataset.
+        """Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
             root_directory_path: The path to the dataset directory. Hidden

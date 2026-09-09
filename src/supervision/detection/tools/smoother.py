@@ -26,8 +26,7 @@ def _align_oriented_corners(corners: np.ndarray, reference: np.ndarray) -> np.nd
 
 
 class DetectionsSmoother:
-    """
-    A utility class for smoothing detections over multiple frames in video tracking.
+    """A utility class for smoothing detections over multiple frames in video tracking.
     It maintains a history of detections for each track and provides smoothed
     predictions based on these histories.
 
@@ -111,10 +110,9 @@ class DetectionsSmoother:
         )
 
     def reset(self) -> None:
-        """
-        Clears the per-track detection history so the smoother can be reused
-        across independent streams without carrying over frames from a
-        previous stream. The configured window `length` is preserved.
+        """Clears the per-track detection history so the smoother can be reused across
+        independent streams without carrying over frames from a previous stream. The
+        configured window `length` is preserved.
 
         Examples:
             ```pycon
@@ -138,13 +136,11 @@ class DetectionsSmoother:
         self.tracks.clear()
 
     def update_with_detections(self, detections: Detections) -> Detections:
-        """
-        Updates the smoother with a new set of detections from a frame.
+        """Updates the smoother with a new set of detections from a frame.
 
         Args:
             detections: The detections to add to the smoother.
         """
-
         if detections.tracker_id is None:
             warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "

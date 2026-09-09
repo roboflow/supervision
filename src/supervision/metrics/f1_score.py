@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class F1Score(Metric["F1ScoreResult"]):
-    """
-    F1 Score is a metric used to evaluate object detection models. It is the harmonic
+    """F1 Score is a metric used to evaluate object detection models. It is the harmonic
     mean of precision and recall, calculated at different IoU thresholds.
 
     In simple terms, F1 Score is a measure of a model's balance between precision and
@@ -71,8 +70,7 @@ class F1Score(Metric["F1ScoreResult"]):
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
     ):
-        """
-        Initialize the F1Score metric.
+        """Initialize the F1Score metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -86,9 +84,7 @@ class F1Score(Metric["F1ScoreResult"]):
         self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -97,8 +93,7 @@ class F1Score(Metric["F1ScoreResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> F1Score:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -124,9 +119,8 @@ class F1Score(Metric["F1ScoreResult"]):
         return self
 
     def compute(self) -> F1ScoreResult:
-        """
-        Calculate the F1 score metric based on the stored predictions and ground-truth
-        data, at different IoU thresholds.
+        """Calculate the F1 score metric based on the stored predictions and ground-
+        truth data, at different IoU thresholds.
 
         Returns:
             The F1 score metric result.
@@ -363,8 +357,8 @@ class F1Score(Metric["F1ScoreResult"]):
     ]:
         """Compute F1 scores from concatenated stats across all images.
 
-        ``unique_classes`` is the union of GT and predicted classes so that
-        predictions of classes absent from GT still count as false positives.
+        ``unique_classes`` is the union of GT and predicted classes so that predictions
+        of classes absent from GT still count as false positives.
         """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
@@ -426,8 +420,7 @@ class F1Score(Metric["F1ScoreResult"]):
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -448,7 +441,6 @@ class F1Score(Metric["F1ScoreResult"]):
             shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
-
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
@@ -485,8 +477,7 @@ class F1Score(Metric["F1ScoreResult"]):
     def _compute_f1(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the F1 score from the confusion matrix.
+        """Broadcastable function, computing the F1 score from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
@@ -589,9 +580,7 @@ class F1Score(Metric["F1ScoreResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory,
     ) -> tuple[list[Detections], list[Detections]]:
-        """
-        Filter predictions and targets by object size category.
-        """
+        """Filter predictions and targets by object size category."""
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -606,8 +595,7 @@ class F1Score(Metric["F1ScoreResult"]):
 
 @dataclass
 class F1ScoreResult:
-    """
-    The results of the F1 score metric calculation.
+    """The results of the F1 score metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -656,8 +644,7 @@ class F1ScoreResult:
     large_objects: F1ScoreResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -724,8 +711,7 @@ class F1ScoreResult:
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -754,11 +740,10 @@ class F1ScoreResult:
         return pd.DataFrame(pandas_data, index=[0])
 
     def plot(self) -> None:
-        """
-        Plot the F1 results.
+        """Plot the F1 results.
 
         ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
         ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt

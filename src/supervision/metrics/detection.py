@@ -65,8 +65,7 @@ def detections_to_tensor(
     with_confidence: bool = False,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> npt.NDArray[np.float32]:
-    """
-    Convert Supervision Detections to a numpy tensor for metric computation.
+    """Convert Supervision Detections to a numpy tensor for metric computation.
 
     Args:
         detections: Detections/Targets in the format of sv.Detections.
@@ -183,9 +182,7 @@ def _validate_input_tensors(
     targets: list[npt.NDArray[np.float32]],
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
-    """
-    Checks for shape consistency of input tensors.
-    """
+    """Checks for shape consistency of input tensors."""
     if len(predictions) != len(targets):
         raise ValueError(
             f"Number of predictions ({len(predictions)}) and"
@@ -226,8 +223,7 @@ def _split_detections_by_outcome(
     iou_threshold: float,
     metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> tuple[Detections, Detections, Detections]:
-    """
-    Split detections into true positives, false positives, and false negatives.
+    """Split detections into true positives, false positives, and false negatives.
 
     Matching follows the same attribution logic as
     ``ConfusionMatrix.evaluate_detection_batch``:
@@ -252,7 +248,6 @@ def _split_detections_by_outcome(
         A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
         each element is a ``Detections`` instance sliced from the input arrays.
     """
-
     if predictions.class_id is None:
         raise ValueError("Predictions must contain class_id values.")
 
@@ -643,8 +638,7 @@ def validate_input_tensors(
 
 @dataclass
 class ConfusionMatrix:
-    """
-    Confusion matrix for object detection tasks.
+    """Confusion matrix for object detection tasks.
 
     Attributes:
         matrix: An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)`
@@ -689,8 +683,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix based on predicted and ground-truth detections.
+        """Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
             targets: Detections objects from ground-truth.
@@ -773,8 +766,7 @@ class ConfusionMatrix:
         iou_threshold: float = 0.5,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix based on predicted and ground-truth detections.
+        """Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
             predictions: Each element of the list describes a single
@@ -866,8 +858,7 @@ class ConfusionMatrix:
         iou_threshold: float,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> npt.NDArray[np.int32]:
-        """
-        Calculate confusion matrix for a batch of detections for a single image.
+        """Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
             predictions: Batch prediction. Describes a single image and
@@ -1028,9 +1019,10 @@ class ConfusionMatrix:
     def _drop_extra_matches(
         matches: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.float32]:
-        """
-        Deduplicate matches. If there are multiple matches for the same true or
-        predicted box, only the one with the highest IoU is kept.
+        """Deduplicate matches.
+
+        If there are multiple matches for the same true or predicted box, only the one
+        with the highest IoU is kept.
         """
         if matches.shape[0] > 0:
             matches = matches[matches[:, 2].argsort()[::-1]]
@@ -1051,8 +1043,7 @@ class ConfusionMatrix:
         *,
         save_directory_path: str | Path | None = None,
     ) -> ConfusionMatrix:
-        """
-        Calculate confusion matrix from dataset and callback function.
+        """Calculate confusion matrix from dataset and callback function.
 
         Args:
             dataset: Object detection dataset used for evaluation.
@@ -1155,8 +1146,7 @@ class ConfusionMatrix:
         normalize: bool = False,
         fig_size: tuple[int, int] = (12, 10),
     ) -> Figure:
-        """
-        Create confusion matrix plot and save it at selected location.
+        """Create confusion matrix plot and save it at selected location.
 
         Args:
             save_path: Path to save the plot. If not provided,
@@ -1247,10 +1237,8 @@ class ConfusionMatrix:
 )
 @dataclass(frozen=True)
 class MeanAveragePrecision:
-    """
-    !!! deprecated "Deprecated"
-        `MeanAveragePrecision` is **deprecated** and will be removed in
-        `supervision-0.31.0`.
+    """!!! deprecated "Deprecated" `MeanAveragePrecision` is **deprecated** and will be
+    removed in `supervision-0.31.0`.
 
         The deprecated implementation provides results that are inconsistent with
         `pycocotools`. Please use
@@ -1282,8 +1270,8 @@ class MeanAveragePrecision:
         predictions: list[Detections],
         targets: list[Detections],
     ) -> MeanAveragePrecision:
-        """
-        Calculate mean average precision based on predicted and ground-truth detections.
+        """Calculate mean average precision based on predicted and ground-truth
+        detections.
 
         Args:
             targets: Detections objects from ground-truth.
@@ -1335,8 +1323,7 @@ class MeanAveragePrecision:
         dataset: DetectionDataset,
         callback: Callable[[npt.NDArray[np.uint8]], Detections],
     ) -> MeanAveragePrecision:
-        """
-        Calculate mean average precision from dataset and callback function.
+        """Calculate mean average precision from dataset and callback function.
 
         Args:
             dataset: Object detection dataset used for evaluation.
@@ -1381,9 +1368,8 @@ class MeanAveragePrecision:
         predictions: list[npt.NDArray[np.float32]],
         targets: list[npt.NDArray[np.float32]],
     ) -> MeanAveragePrecision:
-        """
-        Calculate Mean Average Precision based on predicted and ground-truth
-            detections at different threshold.
+        """Calculate Mean Average Precision based on predicted and ground-truth
+        detections at different threshold.
 
         Args:
             predictions: Each element of the list describes
@@ -1515,9 +1501,8 @@ class MeanAveragePrecision:
         recall: npt.NDArray[np.float64],
         precision: npt.NDArray[np.float64],
     ) -> float:
-        """
-        Compute the average precision using 101-point interpolation (COCO), given
-            the recall and precision curves.
+        """Compute the average precision using 101-point interpolation (COCO), given the
+        recall and precision curves.
 
         Args:
             recall: The recall curve.
@@ -1546,8 +1531,7 @@ class MeanAveragePrecision:
         targets: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        """
-        Match predictions with target labels based on IoU levels.
+        """Match predictions with target labels based on IoU levels.
 
         Args:
             predictions: Batch prediction. Describes a single image and

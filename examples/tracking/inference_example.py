@@ -14,8 +14,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """
-    Video Processing with Inference and ByteTrack.
+    """Video Processing with Inference and ByteTrack.
 
     Args:
         source_video_path: Path to the source video file

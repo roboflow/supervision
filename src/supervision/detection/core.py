@@ -28,6 +28,7 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
+    _sort_box_corners,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -90,11 +91,12 @@ from supervision.validators import (
 
 @dataclass
 class Detections:
-    """
-    The `sv.Detections` class in the Supervision library standardizes results from
+    """The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/),
+    [annotators](/latest/detection/annotators/), and
+    [tools](/detection/tools/line_zone/).
 
     === "RF-DETR"
 
@@ -211,9 +213,7 @@ class Detections:
         )
 
     def __len__(self) -> int:
-        """
-        Returns the number of detections in the Detections object.
-        """
+        """Returns the number of detections in the Detections object."""
         return len(self.xyxy)
 
     def __iter__(
@@ -228,10 +228,8 @@ class Detections:
             _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
-        """
+        """Iterates over the Detections object and yield a tuple of `(xyxy, mask,
+        confidence, class_id, tracker_id, data)` for each detection."""
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
@@ -1144,10 +1142,8 @@ class Detections:
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-        !!! deprecated "Deprecated"
-            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
-            Please use `Detections.from_vlm` instead.
+        """!!! deprecated "Deprecated" `Detections.from_lmm` is **deprecated** and will
+        be removed in `supervision-0.31.0`. Please use `Detections.from_vlm` instead.
 
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -1630,10 +1626,8 @@ class Detections:
     def from_vlm(
         cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-
-        Creates a Detections object from the given result string based on the specified
-        Vision Language Model (VLM).
+        """Creates a Detections object from the given result string based on the
+        specified Vision Language Model (VLM).
 
         | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
@@ -2040,7 +2034,6 @@ class Detections:
                   dtype='<U24')}
 
             ```
-
         """  # noqa: E501
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
@@ -2051,6 +2044,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
             }
@@ -2062,6 +2056,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
                 len(xyxy), dtype=float
@@ -2076,6 +2071,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
             return cls(
@@ -2088,6 +2084,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -2097,6 +2094,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             if len(xyxy) == 0:
                 empty = cls.empty()
                 empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
@@ -2116,6 +2114,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -2125,6 +2124,7 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
             xyxy = from_moondream(result, **kwargs)
+            xyxy = _sort_box_corners(xyxy)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
@@ -2133,9 +2133,10 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
+            gemini_xyxy = _sort_box_corners(gemini_result[0])
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
-                xyxy=gemini_result[0],
+                xyxy=gemini_xyxy,
                 class_id=gemini_result[1],
                 mask=gemini_result[4],
                 confidence=gemini_result[3],
@@ -2148,9 +2149,10 @@ class Detections:
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
             gemini_result = from_google_gemini_3_5(result, **kwargs)
+            gemini_xyxy = _sort_box_corners(gemini_result[0])
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
-                xyxy=gemini_result[0],
+                xyxy=gemini_xyxy,
                 class_id=gemini_result[1],
                 mask=gemini_result[4],
                 confidence=gemini_result[3],
@@ -2310,9 +2312,8 @@ class Detections:
 
     @classmethod
     def empty(cls) -> Detections:
-        """
-        Create an empty Detections object with no bounding boxes,
-            confidences, or class IDs.
+        """Create an empty Detections object with no bounding boxes, confidences, or
+        class IDs.
 
         Returns:
             An empty Detections object.
@@ -2333,8 +2334,7 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """
-        Check whether the `Detections` object has zero bounding boxes.
+        """Check whether the `Detections` object has zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
@@ -2358,8 +2358,7 @@ class Detections:
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
-        """
-        Merge a list of Detections objects into a single Detections object.
+        """Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
@@ -2776,8 +2775,7 @@ class Detections:
         | npt.NDArray[np.generic]
         | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
-        """
-        Get a subset of the Detections object or access an item from its data field.
+        """Get a subset of the Detections object or access an item from its data field.
 
         When provided with an integer, slice, list of integers, or a numpy array, this
         method returns a new Detections object that represents a subset of the original
@@ -2811,8 +2809,7 @@ class Detections:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the Detections object.
+        """Set a value in the data dictionary of the Detections object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -2853,8 +2850,7 @@ class Detections:
 
     @property
     def area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each detection in the set of object detections.
+        """Calculate the area of each detection in the set of object detections.
 
         Selection order:
 
@@ -2869,8 +2865,8 @@ class Detections:
         ``with_nms``, ``with_nmm``, and this property — always store OBB corners
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
-        **Return dtype**: ``float64`` (OBB branch), input dtype (AABB fallback),
-        ``int64`` (mask branch).
+        **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
+        floating input dtype (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
@@ -2912,20 +2908,33 @@ class Detections:
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each bounding box in the set of object detections.
+        """Calculate the area of each bounding box in the set of object detections.
 
         Returns:
             An array of floats containing the area of each bounding
-                box in the format of `(area_1, area_2, ..., area_n)`,
-                where n is the number of detections.
+            box in the format of `(area_1, area_2, ..., area_n)`,
+                where n is the number of detections. Integer coordinates
+                produce ``float64``; floating coordinates preserve their dtype.
         """
-        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract as Python integers first: converting corners to float64
+            # would collapse adjacent 64-bit coordinates above 2**53, while
+            # native integer subtraction can overflow across the dtype range.
+            integer_coordinates = xyxy.astype(object)
+            widths = integer_coordinates[:, 2] - integer_coordinates[:, 0]
+            heights = integer_coordinates[:, 3] - integer_coordinates[:, 1]
+            return np.asarray(widths, dtype=np.float64) * np.asarray(
+                heights, dtype=np.float64
+            )
+
+        widths = xyxy[:, 2] - xyxy[:, 0]
+        heights = xyxy[:, 3] - xyxy[:, 1]
+        return widths * heights
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
-        """
-        Compute the aspect ratio (width divided by height) for each bounding box.
+        """Compute the aspect ratio (width divided by height) for each bounding box.
 
         Returns:
             Array of shape `(N,)` containing aspect ratios, where `N` is the
@@ -3058,11 +3067,11 @@ class Detections:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
-        """
-        Performs non-max suppression on detection set. Dispatch order: (1) if mask
-        data present, IoU mask is used; (2) else if oriented-box coordinates
-        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
-        otherwise, axis-aligned box IoU is used.
+        """Performs non-max suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -3121,9 +3130,9 @@ class Detections:
         class_agnostic: bool = False,
         score_threshold: float | None = None,
     ) -> Detections:
-        """
-        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch
-        order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        """Performs Gaussian Soft Non-Maximum Suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
         axis-aligned box IoU is used. Oriented-box detections are not given
         dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
 
@@ -3270,7 +3279,7 @@ class Detections:
 
 
 def _merge_obb_corners(
-    corners_list: list[npt.NDArray[np.floating]],
+    corners_list: list[npt.NDArray[np.number]],
 ) -> npt.NDArray[np.floating]:
     """Merge multiple OBB corner arrays using winner-angle projection.
 
@@ -3291,16 +3300,29 @@ def _merge_obb_corners(
         input_dtype if np.issubdtype(input_dtype, np.floating) else np.float64
     )
     origin = corners_list[0][0]
-    all_corners = np.concatenate(corners_list, axis=0) - origin
+    stacked = np.concatenate(corners_list, axis=0)
+    # Translate to the winner's first corner before any float math so large
+    # integer coordinates (e.g. geospatial or stitched frames) are reduced to
+    # local extents. Object arithmetic keeps those integer differences exact
+    # and avoids unsigned wrap-around for corners lying below the origin.
+    if np.issubdtype(input_dtype, np.integer):
+        all_corners = np.asarray(
+            stacked.astype(object) - origin.astype(object), dtype=np.float64
+        )
+    else:
+        all_corners = stacked.astype(np.float64, copy=False) - origin.astype(
+            np.float64, copy=False
+        )
     # Use winner's first edge to derive orientation angle -- avoids
-    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
-    winner_edge = corners_list[0][1] - corners_list[0][0]
+    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects). Read it
+    # off the translated corners so it inherits the same wrap-safety.
+    winner_edge = all_corners[1] - all_corners[0]
     angle = float(np.arctan2(float(winner_edge[1]), float(winner_edge[0])))
     cos, sin = float(np.cos(angle)), float(np.sin(angle))
 
     # De-rotate all corners into the winner's local frame
     to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float64)
-    local_corners = all_corners.astype(np.float64, copy=False) @ to_local
+    local_corners = all_corners @ to_local
     x_min = float(local_corners[:, 0].min())
     x_max = float(local_corners[:, 0].max())
     y_min = float(local_corners[:, 1].min())
@@ -3436,9 +3458,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
-    """
-    Merges two Detections objects into a single Detections object.
-    Assumes each Detections contains exactly one object.
+    """Merges two Detections objects into a single Detections object. Assumes each
+    Detections contains exactly one object.
 
     A `winning` detection is determined based on the confidence score of the two
     input detections. This winning detection is then used to specify which
@@ -3534,10 +3555,9 @@ def merge_inner_detections_objects(
     threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3555,10 +3575,9 @@ def merge_inner_detections_objects(
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3569,8 +3588,7 @@ def merge_inner_detections_objects_without_iou(
 def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
-    """
-    Verify that for each optional field in the Detections, both instances either have
+    """Verify that for each optional field in the Detections, both instances either have
     the field set to None or both have it set to non-None values.
 
     `data` field is ignored.

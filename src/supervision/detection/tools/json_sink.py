@@ -11,9 +11,8 @@ from supervision.detection.core import Detections
 
 
 class JSONSink:
-    """
-    A utility class for saving detection data to a JSON file. This class is designed to
-    efficiently serialize detection objects into a JSON format, allowing for the
+    """A utility class for saving detection data to a JSON file. This class is designed
+    to efficiently serialize detection objects into a JSON format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
     `class_id`, and `tracker_id`.
 
@@ -49,8 +48,7 @@ class JSONSink:
     """
 
     def __init__(self, file_name: str = "output.json") -> None:
-        """
-        Initialize the JSONSink instance.
+        """Initialize the JSONSink instance.
 
         Args:
             file_name: The name of the JSON file.
@@ -72,9 +70,7 @@ class JSONSink:
         self.write_and_close()
 
     def open(self) -> None:
-        """
-        Open the JSON file for writing.
-        """
+        """Open the JSON file for writing."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
@@ -108,9 +104,7 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
-        """
-        Write and close the JSON file.
-        """
+        """Write and close the JSON file."""
         if self.file:
             try:
                 json.dump(
@@ -121,8 +115,7 @@ class JSONSink:
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
-        """
-        Return the i-th element when the value stores per-detection data.
+        """Return the i-th element when the value stores per-detection data.
 
         Dispatch rules:
             - np.ndarray with ndim == 0: return as-is for broadcasting
@@ -149,8 +142,7 @@ class JSONSink:
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """
-        Convert detections and optional custom data into per-detection rows.
+        """Convert detections and optional custom data into per-detection rows.
 
         Builds one dictionary per detection containing bounding box coordinates,
         detection attributes, and any values from ``detections.data`` or
@@ -200,8 +192,7 @@ class JSONSink:
     def append(
         self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
-        """
-        Append detection data to the JSON file.
+        """Append detection data to the JSON file.
 
         Args:
             detections: The detection data.

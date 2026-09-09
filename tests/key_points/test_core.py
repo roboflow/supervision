@@ -1954,8 +1954,8 @@ class TestFromMediapipeHandedness:
     def test_omits_handedness_when_absent(self):
         """Hand results without handedness keep `class_id` and `data` unset.
 
-        Older callers and partial mocks supply landmarks alone; reading handedness
-        must stay optional rather than raising on the missing attribute.
+        Older callers and partial mocks supply landmarks alone; reading handedness must
+        stay optional rather than raising on the missing attribute.
         """
         mediapipe_results = _FakeMediapipeResults(hand_landmarks=_hand_landmarks(1))
 
@@ -2001,8 +2001,8 @@ class TestFromMediapipeHandedness:
     def test_leaves_pose_results_untouched(self):
         """Pose results keep their existing `class_id`/`data` behaviour.
 
-        Handedness handling is additive for hand branches only; this pins that the
-        pose path did not inherit an empty-but-present data field or a class id.
+        Handedness handling is additive for hand branches only; this pins that the pose
+        path did not inherit an empty-but-present data field or a class id.
         """
         mediapipe_results = _FakeMediapipeResults(
             pose_landmarks=_FakeMediapipePose(

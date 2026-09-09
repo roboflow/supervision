@@ -385,8 +385,7 @@ def detections_to_coco_annotations(
 
 
 def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
-    """
-    Generates a mapping from sequential class indices to original COCO class ids.
+    """Generates a mapping from sequential class indices to original COCO class ids.
 
     This function is essential when working with models that expect class ids to be
     zero-indexed and sequential (0 to 79), as opposed to the original COCO
@@ -462,8 +461,7 @@ def load_coco_annotations(
     use_iscrowd: bool = True,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load COCO annotations and convert them to `Detections`.
+    """Load COCO annotations and convert them to `Detections`.
 
     If `force_masks` is `False`, masks are still loaded for images whose annotations
     include a `segmentation` field. This keeps mask handling consistent with other
@@ -584,9 +582,9 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[int, int]:
     """Return ``(height, width)`` for ``image_path`` without decoding pixels.
 
-    Uses the in-memory array when the dataset holds one; otherwise reads the
-    size from the file header via lazy ``PIL.Image.open``, which parses only
-    image metadata — the same optimization the YOLO loader uses (#1636).
+    Uses the in-memory array when the dataset holds one; otherwise reads the size from
+    the file header via lazy ``PIL.Image.open``, which parses only image metadata — the
+    same optimization the YOLO loader uses (#1636).
     """
     if dataset._images_in_memory:
         image_height, image_width = dataset._images_in_memory[image_path].shape[:2]

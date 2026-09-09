@@ -1,25 +1,69 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-08-11
+date_modified: 2026-09-08
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
-### Added
+- `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
+
+- `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
+
+- `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
+
+- `sv.scale_boxes` now preserves exact integer intermediates until its final float64 conversion for 64-bit coordinates beyond `2**53`, preventing scaled-corner rounding errors while retaining a vectorized fast path for exactly representable integer coordinates ([#2541](https://github.com/roboflow/supervision/pull/2541)).
+
+- `sv.filter_polygons_by_area` and `sv.approximate_polygon` now preserve local geometry for large-origin integer and `float64` polygons instead of losing coordinate deltas during OpenCV conversion ([#2542](https://github.com/roboflow/supervision/pull/2542)).
+
+- `sv.TraceAnnotator.annotate` no longer raises `` ValueError: The `tracker_id` field is missing `` for a frame with no detections. An empty `sv.Detections` carries no `tracker_id`, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except `sv.ByteTrack`, which works around it by returning an empty `tracker_id` array. Such a frame now draws nothing and still advances `sv.Trace`'s frame counter, keeping `trace_length` a window over elapsed frames: pruning fires on the next detection-carrying frame, and only once stored frames outnumber `trace_length` — so a track that filled the window before a long gap starts a fresh trail instead of joining its pre-gap one. Detections with boxes but no `tracker_id` still raise, as before.
+
+- `sv.CSVSink` no longer lets an empty batch fix the CSV header. Appending an empty `sv.Detections` — the normal result for a frame with nothing detected — wrote a header without the `data`/`custom_data` columns, then silently truncated every later row to that schema, dropping fields like `class_name` for the whole file. Empty batches now write nothing, leaving the header to the first batch that actually carries detections; a run where every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning is gone.
+
+- `sv.process_video` no longer hangs when `max_frames` exceeds the video's frame count. The reader thread used to fail on the out-of-range `end` before enqueuing its sentinel, blocking the main loop on the read queue. `max_frames` is now capped at the video length so the whole video processes, and any reader-thread error now surfaces as `RuntimeError("Reader thread raised: ...")` from the original exception instead of stalling the call ([#2545](https://github.com/roboflow/supervision/issues/2545)).
+
+- `sv.PolygonZone` now rejects a polygon with fewer than three vertices, or one that is not of shape `(N, 2)`, instead of building a zone that can never trigger. One or two vertices enclose no area, so the zone mask came out as a single pixel or a bare line and every detection tested against it read as outside — indistinguishable from a correctly configured zone that simply saw nothing. Zero vertices raised `zero-size array to reduction operation maximum` from NumPy rather than naming the problem. The three-vertex minimum matches `MIN_POLYGON_POINT_COUNT`, which `sv.mask_to_polygons` already enforces when producing polygons.
+
+- `sv.Detections.from_vlm` now orders each parsed box's corners, so a model that emits a corner pair backwards no longer produces an `xyxy` row with `x_min > x_max`. Every VLM parser passed such a row straight through, and nothing downstream caught it: `sv.box_iou_batch` clamps intersection widths at zero, so the box scored an IoU of `0.0` against itself — surviving NMS as a duplicate and counting as a total miss in mAP — while `sv.Detections.box_area` reported a plausible positive value, because negating both sides leaves their product positive. Correctly ordered boxes, their dtypes included, are unchanged.
 
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks.
 
-### Fixed
+### 0.30.2 <small>Sep 3, 2026</small>
+
+- `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
+
+- `sv.denormalize_boxes` no longer truncates coordinates for integer input arrays. Scaling now multiplies by a floating-point factor so integer normalized coordinates (for example VLM boxes quantized to `0..1000`) map to exact absolute pixel values instead of being silently rounded down.
+
+- `sv.Detections.box_area` (and therefore `sv.Detections.area` for axis-aligned boxes) now computes integer-coordinate box areas in `float64`, preventing integer overflow for large boxes (e.g. an `int32` `50000 x 50000` box previously wrapped to a negative area).
+
+- `sv.InferenceSlicer` now merges slice results in source order when `thread_workers > 1`, restoring the ordering guarantee its docstring documents. Results were previously collected in thread-completion order, so the row order of the returned `Detections` — and, for tied confidences, which overlapping box survived `with_nms`/`with_nmm` — varied between runs on identical input. Both the per-slice and `batch_size > 1` paths are affected ([#2517](https://github.com/roboflow/supervision/pull/2517)).
+
+### 0.30.1 <small>Aug 24, 2026</small>
+
+- RF-DETR example scripts (`rfdetr_example.py`) added to the `count_people_in_zone`, `heatmap_and_track`, `speed_estimation`, `tracking`, and `traffic_analysis` bundled examples ([#2497](https://github.com/roboflow/supervision/pull/2497)).
+
+- `sv.box_iou` now raises `TypeError` for complex-valued box coordinates instead of silently discarding the imaginary part ([#2485](https://github.com/roboflow/supervision/pull/2485)).
+
+- Performance: `DetectionsSmoother.update_with_detections` now checks active tracker IDs via set membership instead of scanning per tracked object ([#2496](https://github.com/roboflow/supervision/pull/2496)). No output changes.
 
 - RF-DETR speed estimation now measures elapsed source-frame intervals, including gaps when tracked detections are temporarily missed.
-- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for polygons with large coordinates.
+
+- `sv.get_polygon_center` now calculates polygon centroids in translated `float64` coordinates, preventing integer overflow and precision loss for realistic-magnitude large-coordinate polygons.
+
 - `sv.Detections.area` and `sv.oriented_box_iou_batch` now translate oriented-box coordinates to local origins before floating-point area/intersection math, preserving differences representable by the input dtype and preventing self-IoU collapse for large-coordinate inputs (e.g. geospatial or stitched frames).
+
+- `sv.Detections.with_nmm` now translates oriented-box corners to a local origin with exact integer arithmetic before merging, preventing unsigned-integer wrap-around (e.g. `uint16`/`uint64` coordinates) from corrupting both the merged extent and the winner's orientation angle.
+
 - `DetectionsSmoother` now keeps oriented-box corners aligned with smoothed `xyxy` geometry, including rotated tracks and mixed metadata windows.
-- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. Its scalar result now matches `sv.box_iou_batch` for the same input.
+
+- `sv.box_iou` now calculates overlap in `float64`, preventing `int32` area overflow for large boxes. For realistic coordinate magnitudes (below 2^53), its scalar result now matches `sv.box_iou_batch`; `box_iou_batch` still casts to `float64` before subtracting, so the two can diverge above that threshold.
+
 - `sv.list_files_with_extensions` no longer includes directories when listing all files without an extension filter.
+
 - `sv.pillow_to_cv2` now accepts RGBA images when the cv2-free fallback backend is active, matching OpenCV by dropping alpha and returning BGR channels.
+
+- `import supervision` no longer loads PyAV's native libraries when the OpenCV backend is selected. PyAV is now imported lazily on first use by the PyAV-backed video/audio fallback, preventing a duplicate `libavdevice` warning (and possible crash) on macOS when both `av` and `opencv-python` are installed.
 
 ### 0.30.0 <small>Aug 4, 2026</small>
 
@@ -28,8 +72,6 @@ date_modified: 2026-08-11
     With the upcoming `supervision-0.30.0` release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now **3.10**.
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
-
-### Added
 
 - `sv.load_image_from_url` — load an image from an HTTP(S) URL as an OpenCV image, with optional on-disk caching under the shared supervision cache directory (`{tmpdir}/supervision/image-url/` by default, configurable via `cache_dir`) ([#2372](https://github.com/roboflow/supervision/pull/2372))
 
@@ -86,8 +128,6 @@ date_modified: 2026-08-11
 
 - Added [#2284](https://github.com/roboflow/supervision/pull/2284): [`DetectionDataset.from_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_createml) and [`DetectionDataset.as_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_createml) add load and export support for the CreateML object-detection JSON format, alongside the existing COCO, YOLO, and Pascal VOC formats.
 
-### Changed
-
 - **Breaking**: `sv.JSONSink` now emits native JSON types for numeric and boolean data fields instead of stringified values. Fields previously serialized as `"True"`/`"False"`, `"1"`/`"0.85"`, or `"400.0"` are now `true`/`false`, `1`/`0.85`, `400.0`. Downstream consumers that compare field values as strings (e.g. `row["score"] == "1"`) or use strict string-typed schema validators must be updated. `sv.CSVSink` remains textual, but its custom-data slicing now matches `sv.JSONSink`: NumPy arrays, lists, and tuples are sliced per row only when their length matches the detection count; mismatched-length values are broadcast unchanged ([#2400](https://github.com/roboflow/supervision/pull/2400)).
 
 - **Breaking**: `sv.mask_non_max_merge` now computes exact mask overlap at the original mask resolution and ignores the deprecated `mask_dimension` parameter. Code that relied on downscaled mask overlap should recalibrate thresholds. Passing `overlap_metric` or `mask_dimension` positionally is deprecated in `0.30.0` and removed in `0.33.0`: the values are still honored (a positional `overlap_metric` still takes effect) but a `DeprecationWarning` is now emitted — pass both by keyword to silence it. More than five positional arguments raises `TypeError` ([#2400](https://github.com/roboflow/supervision/pull/2400)).
@@ -103,8 +143,6 @@ date_modified: 2026-08-11
 - Changed: delayed `sv.ByteTrack`, `supervision.keypoint`, `normalized_xyxy` for `sv.denormalize_boxes`, and `supervision.dataset.utils` RLE compatibility removals from `supervision-0.30.0` to `supervision-0.31.0` so the deprecated APIs keep a full transition window ([#2415](https://github.com/roboflow/supervision/pull/2415)).
 
 - `supervision` now requires `av>=14.2` as a mandatory install-time dependency for the PyAV cv2-free video fallback introduced during the OpenCV-optional transition ([#2438](https://github.com/roboflow/supervision/pull/2438)). This doesn't change any public API — code that used supervision correctly before still behaves the same — but environments that pin exact dependency sets or vendor dependencies need to account for the new `av` requirement.
-
-### Fixed
 
 - Fixed [#2467](https://github.com/roboflow/supervision/issues/2467) via [#2468](https://github.com/roboflow/supervision/pull/2468): `sv.Recall` now tracks classes that appear only in predictions, matching `sv.Precision` and `sv.F1Score` after [#2331](https://github.com/roboflow/supervision/pull/2331) and matching sklearn, which infers labels from the union of `y_true` and `y_pred`. `matched_classes` and `recall_per_class` are now aligned across the three metrics, including for samples that have predictions but no targets (background images), so per-class results can be compared row for row. `matched_classes` and `recall_per_class` gain a row for each prediction-only class under every averaging method; only the scalar `MACRO` recall changes value, since such a class now contributes `0.0`, while the scalar `MICRO` and `WEIGHTED` aggregates are unaffected. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
 
@@ -747,8 +785,6 @@ date_modified: 2026-08-11
 
 - Fixed a bug where `class_agnostic` setting in `MeanAveragePrecision` would not work. ([#1577](https://github.com/roboflow/supervision/pull/1577)) hacktoberfest
 
-- Removed welcome workflow from our CI system. ([#1596](https://github.com/roboflow/supervision/pull/1596))
-
 - Large refactor of `ByteTrack`: STrack moved to separate class, removed superfluous `BaseTrack` class, removed unused variables ([#1603](https://github.com/roboflow/supervision/pull/1603))
 
 - Large refactor of `RichLabelAnnotator`, matching its contents with `LabelAnnotator`. ([#1625](https://github.com/roboflow/supervision/pull/1625))
@@ -877,10 +913,6 @@ date_modified: 2026-08-11
 - Supervision now depends on `opencv-python` rather than `opencv-python-headless`. [#1530](https://github.com/roboflow/supervision/pull/1530)
 
 - Fixed the COCO 101 point Average Precision algorithm to correctly interpolate precision, providing a more precise calculation of average precision without averaging out intermediate values. [#1500](https://github.com/roboflow/supervision/pull/1500)
-
-- Resolved miscellaneous issues highlighted when building documentation. This mostly includes whitespace adjustments and type inconsistencies. Updated documentation for clarity and fixed formatting issues. Added explicit version for `mkdocstrings-python`. [#1549](https://github.com/roboflow/supervision/pull/1549)
-
-- Enabled and fixed Ruff rules for code formatting, including changes like avoiding unnecessary iterable allocations and using Optional for default mutable arguments. [#1526](https://github.com/roboflow/supervision/pull/1526)
 
 ### 0.23.0 <small>Aug 28, 2024</small>
 
