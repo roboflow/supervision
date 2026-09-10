@@ -924,6 +924,27 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     assert set(line_zone.crossing_state_history) == {1}
 
 
+def test_line_zone_counts_crossing_with_generator_triggering_anchors() -> None:
+    """A generator of triggering anchors survives construction and counts a crossing."""
+    anchors = (
+        anchor
+        for anchor in (
+            Position.TOP_LEFT,
+            Position.TOP_RIGHT,
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_RIGHT,
+        )
+    )
+    line_zone = LineZone(
+        start=Point(0, 100), end=Point(200, 100), triggering_anchors=anchors
+    )
+
+    line_zone.trigger(_create_detections(xyxy=[[10, 110, 20, 150]], tracker_id=[1]))
+    line_zone.trigger(_create_detections(xyxy=[[10, 50, 20, 90]], tracker_id=[1]))
+
+    assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
     """Empty frames age out tracker crossing history."""
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))

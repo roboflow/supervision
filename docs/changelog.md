@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LineZone` no longer consumes the `triggering_anchors` iterable during validation. The parameter is typed `Iterable[Position]`, but the emptiness check ran `list()` over the caller's object and stored the original, so a generator or `map` — the natural way to build anchors from a config file — was left exhausted and the first `trigger()` call raised `ValueError: operands could not be broadcast together with shapes (0,) (2,)`. The anchors are now materialized once, matching `sv.PolygonZone`.
+
 - `sv.match_detections` now exposes the metrics matcher as a public primitive: given two `sv.Detections`, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 
 - `sv.VLM.KOSMOS_2` — `sv.Detections.from_vlm` now parses Kosmos-2 grounding results, the `(caption, entities)` pair returned by the model's `AutoProcessor.post_process_generation`. A phrase that grounds to several regions yields one detection per region, and `classes` filters the result and assigns `class_id` by index into that list, matching the other VLM connectors. Kosmos-2 is available through `sv.VLM` only, not through the deprecated `sv.LMM` ([#1903](https://github.com/roboflow/supervision/pull/1903)).
