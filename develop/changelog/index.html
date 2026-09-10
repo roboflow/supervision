@@ -2294,6 +2294,34 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
     <li class="md-nav__item">
+      <a href="../metrics/match_detections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Match Detections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../metrics/common_values/" class="md-nav__link">
         
   
@@ -3955,6 +3983,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
+<li>
+<p><code>sv.match_detections</code> now exposes the metrics matcher as a public primitive: given two <code>sv.Detections</code>, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side (<a href="https://github.com/roboflow/supervision/issues/2476">#2476</a>).</p>
+</li>
 <li>
 <p><code>sv.VLM.KOSMOS_2</code> — <code>sv.Detections.from_vlm</code> now parses Kosmos-2 grounding results, the <code>(caption, entities)</code> pair returned by the model's <code>AutoProcessor.post_process_generation</code>. A phrase that grounds to several regions yields one detection per region, and <code>classes</code> filters the result and assigns <code>class_id</code> by index into that list, matching the other VLM connectors. Kosmos-2 is available through <code>sv.VLM</code> only, not through the deprecated <code>sv.LMM</code> (<a href="https://github.com/roboflow/supervision/pull/1903">#1903</a>).</p>
 </li>
@@ -6223,7 +6254,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 9, 2026 20:47:31 UTC">September 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 10, 2026 09:25:07 UTC">September 10, 2026</span>
   </span>
 
     
@@ -6251,9 +6282,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/soumik12345" class="md-author" title="@soumik12345">
+        <a href="https://github.com/jabrailkhalil" class="md-author" title="@jabrailkhalil">
           
-          <img src="https://avatars.githubusercontent.com/u/19887676?v=4&size=72" alt="soumik12345">
+          <img src="https://avatars.githubusercontent.com/u/78273416?v=4&size=72" alt="jabrailkhalil">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6261,21 +6292,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/soumik12345" class="md-author" title="@soumik12345">
+          
+          <img src="https://avatars.githubusercontent.com/u/19887676?v=4&size=72" alt="soumik12345">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
-        <a href="https://github.com/Xayar145" class="md-author" title="@Xayar145">
-          
-          <img src="https://avatars.githubusercontent.com/u/199441672?v=4&size=72" alt="Xayar145">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +33
+            +34
           </a>
         
       

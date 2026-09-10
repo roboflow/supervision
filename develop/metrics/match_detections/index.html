@@ -12,13 +12,13 @@
         <meta name="author" content="Roboflow">
       
       
-        <link rel="canonical" href="https://supervision.roboflow.com/latest/metrics/common_values/">
+        <link rel="canonical" href="https://supervision.roboflow.com/latest/metrics/match_detections/">
       
       
-        <link rel="prev" href="../match_detections/">
+        <link rel="prev" href="../f1_score/">
       
       
-        <link rel="next" href="../../detection/metrics/">
+        <link rel="next" href="../common_values/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Common Values - Supervision</title>
+        <title>Match Detections - Supervision</title>
       
     
     
@@ -196,8 +196,8 @@
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "Common Values",
-      "item": "https://supervision.roboflow.com/latest/metrics/common_values/"
+      "name": "Match Detections",
+      "item": "https://supervision.roboflow.com/latest/metrics/match_detections/"
     }
   ]
 }
@@ -207,9 +207,9 @@
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
-<meta property="og:title" content="Common Values" />
+<meta property="og:title" content="Match Detections" />
 <meta property="og:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
-<meta property="og:url" content="https://supervision.roboflow.com/latest/metrics/common_values/" />
+<meta property="og:url" content="https://supervision.roboflow.com/latest/metrics/match_detections/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta property="og:image:width" content="1200" />
@@ -217,7 +217,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
-<meta name="twitter:title" content="Common Values" />
+<meta name="twitter:title" content="Match Detections" />
 <meta name="twitter:description" content="Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -230,10 +230,10 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "additionalType": "https://schema.org/DocumentationPage",
-  "name": "Common Values",
+  "name": "Match Detections",
   "description": "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including RF-DETR, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, Ultralytics, and VLM parsers.",
-  "url": "https://supervision.roboflow.com/latest/metrics/common_values/",
-  "mainEntityOfPage": "https://supervision.roboflow.com/latest/metrics/common_values/",
+  "url": "https://supervision.roboflow.com/latest/metrics/match_detections/",
+  "mainEntityOfPage": "https://supervision.roboflow.com/latest/metrics/match_detections/",
   "publisher": {
     "@type": "Organization",
     "name": "Roboflow",
@@ -278,7 +278,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#common-values" class="md-skip">
+        <a href="#match-detections" class="md-skip">
           Skip to content
         </a>
       
@@ -362,7 +362,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
             </a>
             
-              Common Values
+              Match Detections
             
           </span>
         </div>
@@ -2324,34 +2324,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../match_detections/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Match Detections
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -2371,7 +2343,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
   <span class="md-ellipsis">
     
   
-    Common Values
+    Match Detections
   
 
     
@@ -2389,7 +2361,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
   <span class="md-ellipsis">
     
   
-    Common Values
+    Match Detections
   
 
     
@@ -2415,24 +2387,63 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supervision.metrics.core.MetricTarget" class="md-nav__link">
+  <a href="#supervision.detection.utils.matching.match_detections" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MetricTarget
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;match_detections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" match_detections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(detections_a)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;detections_a
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#supervision.metrics.core.AveragingMethod" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(detections_b)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AveragingMethod
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;detections_b
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(iou_threshold)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;iou_threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(class_agnostic)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;class_agnostic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2440,6 +2451,34 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common_values/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Values
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3102,24 +3141,63 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supervision.metrics.core.MetricTarget" class="md-nav__link">
+  <a href="#supervision.detection.utils.matching.match_detections" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;MetricTarget
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;match_detections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" match_detections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(detections_a)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;detections_a
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#supervision.metrics.core.AveragingMethod" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(detections_b)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AveragingMethod
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;detections_b
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(iou_threshold)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;iou_threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.matching.match_detections(class_agnostic)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;class_agnostic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3142,7 +3220,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 
   
-    <a href="https://github.com/roboflow/supervision/tree/main/docs/metrics/common_values.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/roboflow/supervision/tree/main/docs/metrics/match_detections.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -3150,74 +3228,154 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
 
 
-<h1 id="common-values">Common Values<a class="headerlink" href="#common-values" title="Permanent link">&para;</a></h1>
-<p>This page contains supplementary values, types and enums that metrics use.</p>
-<p>Install the metrics extra before using metrics APIs:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;supervision[metrics]&quot;</span>
+<h1 id="match-detections">Match Detections<a class="headerlink" href="#match-detections" title="Permanent link">&para;</a></h1>
+<p>Match two <code>sv.Detections</code> objects into one-to-one pairs by greedy, highest-IoU-first assignment. The function returns index arrays, so the result composes with <code>sv.Detections</code> slicing.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">matched_pairs</span><span class="p">,</span> <span class="n">unmatched_a</span><span class="p">,</span> <span class="n">unmatched_b</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">match_detections</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">detections_a</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">detections_b</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">iou_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">class_agnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
+<p><code>matched_pairs</code> has shape <code>(M, 2)</code>: column 0 indexes <code>detections_a</code>, column 1 indexes <code>detections_b</code>. <code>unmatched_a</code> and <code>unmatched_b</code> hold the indices of the remaining detections on each side.</p>
+<p>Matching is greedy, highest-IoU-first, and one-to-one; it is not a globally optimal assignment. With <code>class_agnostic=False</code> (the default), both inputs must provide <code>class_id</code>. Set <code>class_agnostic=True</code> to match on geometry only.</p>
 <div class="md-typeset">
-    <h2><a href="#supervision.metrics.core.MetricTarget">MetricTarget</a></h2>
+    <h2><a href="#supervision.detection.utils.matching.match_detections">match_detections</a></h2>
 </div>
 
 
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h2 id="supervision.detection.utils.matching.match_detections" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">matching</span><span class="o">.</span><span class="n">match_detections</span><span class="p">(</span><span class="n">detections_a</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">detections_b</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]]</span></code>
 
-<h2 id="supervision.metrics.core.MetricTarget" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>supervision.metrics.core.MetricTarget</code>
-
-
-<a href="#supervision.metrics.core.MetricTarget" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#supervision.detection.utils.matching.match_detections" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents first">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.Enum">Enum</span></code></p>
+
+        <p>Match detections from two sources into one-to-one pairs.</p>
+<p>The assignment is greedy and highest-IoU-first, identical to the matcher
+used by the metrics modules: each detection from <code>detections_a</code> can match
+at most one detection from <code>detections_b</code>, and vice versa. It does not
+compute a globally optimal assignment. Pairs below <code>iou_threshold</code> are
+never matched, and by default a pair also requires equal <code>class_id</code>
+values. <code>confidence</code> is ignored; callers that want metric-style score
+ordering should sort their detections first.</p>
 
 
-
-        <p>Specifies what type of detection is used to compute the metric.</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
+<p><span class="doc-section-title">Parameters:</span></p>
     <table>
       <thead>
         <tr>
           <th>Name</th>
           <th>Type</th>
           <th>Description</th>
+          <th>Default</th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.MetricTarget.BOXES">BOXES</span></code></td>
             <td>
+<h3 id="supervision.detection.utils.matching.match_detections(detections_a)" class="doc doc-heading doc-heading-parameter">                  <code>detections_a</code>
+<a href="#supervision.detection.utils.matching.match_detections(detections_a)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>xyxy bounding boxes</p>
+                <p>First set of detections.</p>
               </div>
+            </td>
+            <td>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.MetricTarget.MASKS">MASKS</span></code></td>
             <td>
+<h3 id="supervision.detection.utils.matching.match_detections(detections_b)" class="doc doc-heading doc-heading-parameter">                  <code>detections_b</code>
+<a href="#supervision.detection.utils.matching.match_detections(detections_b)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="../../detection/core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Binary masks</p>
+                <p>Second set of detections.</p>
               </div>
+            </td>
+            <td>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.MetricTarget.ORIENTED_BOUNDING_BOXES">ORIENTED_BOUNDING_BOXES</span></code></td>
             <td>
+<h3 id="supervision.detection.utils.matching.match_detections(iou_threshold)" class="doc doc-heading doc-heading-parameter">                  <code>iou_threshold</code>
+<a href="#supervision.detection.utils.matching.match_detections(iou_threshold)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Oriented bounding boxes (OBB)</p>
+                <p>Minimum IoU required for a pair.
+Defaults to 0.5.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.matching.match_detections(class_agnostic)" class="doc doc-heading doc-heading-parameter">                  <code>class_agnostic</code>
+<a href="#supervision.detection.utils.matching.match_detections(class_agnostic)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When True, matching ignores
+<code>class_id</code> and uses IoU only. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>iou_threshold</code> is outside <code>[0, 1]</code>, or class-aware
+matching is requested without class IDs on both inputs.</p>
               </div>
             </td>
           </tr>
@@ -3225,130 +3383,62 @@ APIs described here may change or may never ship in a release, so use the <a hre
     </table>
 
 
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/supervision/metrics/core.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span>
-<span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">class</span><span class="w"> </span><span class="nc">MetricTarget</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Specifies what type of detection is used to compute the metric.</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    Attributes:</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        BOXES: xyxy bounding boxes</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        MASKS: Binary masks</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        ORIENTED_BOUNDING_BOXES: Oriented bounding boxes (OBB)</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="n">BOXES</span> <span class="o">=</span> <span class="s2">&quot;boxes&quot;</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="n">MASKS</span> <span class="o">=</span> <span class="s2">&quot;masks&quot;</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">ORIENTED_BOUNDING_BOXES</span> <span class="o">=</span> <span class="s2">&quot;obb&quot;</span>
-</span></code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div><div class="md-typeset">
-    <h2><a href="#supervision.metrics.core.AveragingMethod">AveragingMethod</a></h2>
-</div>
-
-
-
-<div class="doc doc-object doc-class">
-
-
-
-<h2 id="supervision.metrics.core.AveragingMethod" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>supervision.metrics.core.AveragingMethod</code>
-
-
-<a href="#supervision.metrics.core.AveragingMethod" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents first">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.Enum">Enum</span></code></p>
-
-
-
-        <p>Defines different ways of averaging the metric results.</p>
-<p>Suppose, before returning the final result, a metric is computed for each class.
-How do you combine those to get the final number?</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
+    <p><span class="doc-section-title">Returns:</span></p>
     <table>
       <thead>
         <tr>
-          <th>Name</th>
           <th>Type</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.AveragingMethod.MACRO">MACRO</span></code></td>
             <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Calculate the metric for each class and average the results. The simplest
-averaging method, but it does not take class imbalance into account.</p>
+                <p>tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.AveragingMethod.MICRO">MICRO</span></code></td>
             <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Calculate the metric globally by counting the total true positives, false
-positives, and false negatives. Micro averaging is useful when you want to
-give more importance to classes with more samples. It's also more
-appropriate if you have an imbalance in the number of instances per class.</p>
+                <p><code>(matched_pairs, unmatched_a, unmatched_b)</code> where <code>matched_pairs</code></p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="supervision.metrics.core.AveragingMethod.WEIGHTED">WEIGHTED</span></code></td>
             <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Calculate the metric for each class and average the results, weighted
-by the number of true instances of each class. Use weighted averaging if
-you want to take class imbalance into account.</p>
+                <p>has shape <code>(M, 2)</code> with column 0 indexing <code>detections_a</code> and</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>], <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>], <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>column 1 indexing <code>detections_b</code>; <code>unmatched_a</code> and</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>], <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>], <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int64">int64</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>unmatched_b</code> hold the remaining indices of each side.</p>
               </div>
             </td>
           </tr>
@@ -3356,75 +3446,216 @@ you want to take class imbalance into account.</p>
     </table>
 
 
+<p><span class="doc-section-title">Examples:</span></p>
+    <pre class="pycon"><code>&gt;&gt;&gt; import numpy as np
+&gt;&gt;&gt; from supervision.detection.core import Detections
+&gt;&gt;&gt; a = Detections(
+...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+...     class_id=np.array([0]),
+... )
+&gt;&gt;&gt; b = Detections(
+...     xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]], dtype=np.float32),
+...     class_id=np.array([0, 1]),
+... )
+&gt;&gt;&gt; matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)
+&gt;&gt;&gt; matched_pairs.tolist()
+[[0, 0]]
+&gt;&gt;&gt; unmatched_a.tolist()
+[]
+&gt;&gt;&gt; unmatched_b.tolist()
+[1]
+</code></pre>
 
 
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/supervision/metrics/core.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#__codelineno-0-66">66</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="k">class</span><span class="w"> </span><span class="nc">AveragingMethod</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines different ways of averaging the metric results.</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    Suppose, before returning the final result, a metric is computed for each class.</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">    How do you combine those to get the final number?</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">    Attributes:</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">        MACRO: Calculate the metric for each class and average the results. The simplest</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">            averaging method, but it does not take class imbalance into account.</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        MICRO: Calculate the metric globally by counting the total true positives, false</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">            positives, and false negatives. Micro averaging is useful when you want to</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">            give more importance to classes with more samples. It&#39;s also more</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">            appropriate if you have an imbalance in the number of instances per class.</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">        WEIGHTED: Calculate the metric for each class and average the results, weighted</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">            by the number of true instances of each class. Use weighted averaging if</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            you want to take class imbalance into account.</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">MACRO</span> <span class="o">=</span> <span class="s2">&quot;macro&quot;</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="n">MICRO</span> <span class="o">=</span> <span class="s2">&quot;micro&quot;</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="n">WEIGHTED</span> <span class="o">=</span> <span class="s2">&quot;weighted&quot;</span>
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/supervision/detection/utils/matching.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span>
+<span class="normal"><a href="#__codelineno-0-137">137</a></span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#__codelineno-0-148">148</a></span>
+<span class="normal"><a href="#__codelineno-0-149">149</a></span>
+<span class="normal"><a href="#__codelineno-0-150">150</a></span>
+<span class="normal"><a href="#__codelineno-0-151">151</a></span>
+<span class="normal"><a href="#__codelineno-0-152">152</a></span>
+<span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span>
+<span class="normal"><a href="#__codelineno-0-158">158</a></span>
+<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span>
+<span class="normal"><a href="#__codelineno-0-164">164</a></span>
+<span class="normal"><a href="#__codelineno-0-165">165</a></span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span>
+<span class="normal"><a href="#__codelineno-0-168">168</a></span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span>
+<span class="normal"><a href="#__codelineno-0-171">171</a></span>
+<span class="normal"><a href="#__codelineno-0-172">172</a></span>
+<span class="normal"><a href="#__codelineno-0-173">173</a></span>
+<span class="normal"><a href="#__codelineno-0-174">174</a></span>
+<span class="normal"><a href="#__codelineno-0-175">175</a></span>
+<span class="normal"><a href="#__codelineno-0-176">176</a></span>
+<span class="normal"><a href="#__codelineno-0-177">177</a></span>
+<span class="normal"><a href="#__codelineno-0-178">178</a></span>
+<span class="normal"><a href="#__codelineno-0-179">179</a></span>
+<span class="normal"><a href="#__codelineno-0-180">180</a></span>
+<span class="normal"><a href="#__codelineno-0-181">181</a></span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span>
+<span class="normal"><a href="#__codelineno-0-183">183</a></span>
+<span class="normal"><a href="#__codelineno-0-184">184</a></span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span>
+<span class="normal"><a href="#__codelineno-0-186">186</a></span>
+<span class="normal"><a href="#__codelineno-0-187">187</a></span>
+<span class="normal"><a href="#__codelineno-0-188">188</a></span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#__codelineno-0-198">198</a></span>
+<span class="normal"><a href="#__codelineno-0-199">199</a></span>
+<span class="normal"><a href="#__codelineno-0-200">200</a></span>
+<span class="normal"><a href="#__codelineno-0-201">201</a></span>
+<span class="normal"><a href="#__codelineno-0-202">202</a></span>
+<span class="normal"><a href="#__codelineno-0-203">203</a></span>
+<span class="normal"><a href="#__codelineno-0-204">204</a></span>
+<span class="normal"><a href="#__codelineno-0-205">205</a></span>
+<span class="normal"><a href="#__codelineno-0-206">206</a></span>
+<span class="normal"><a href="#__codelineno-0-207">207</a></span>
+<span class="normal"><a href="#__codelineno-0-208">208</a></span>
+<span class="normal"><a href="#__codelineno-0-209">209</a></span>
+<span class="normal"><a href="#__codelineno-0-210">210</a></span>
+<span class="normal"><a href="#__codelineno-0-211">211</a></span>
+<span class="normal"><a href="#__codelineno-0-212">212</a></span>
+<span class="normal"><a href="#__codelineno-0-213">213</a></span>
+<span class="normal"><a href="#__codelineno-0-214">214</a></span>
+<span class="normal"><a href="#__codelineno-0-215">215</a></span>
+<span class="normal"><a href="#__codelineno-0-216">216</a></span>
+<span class="normal"><a href="#__codelineno-0-217">217</a></span>
+<span class="normal"><a href="#__codelineno-0-218">218</a></span>
+<span class="normal"><a href="#__codelineno-0-219">219</a></span>
+<span class="normal"><a href="#__codelineno-0-220">220</a></span>
+<span class="normal"><a href="#__codelineno-0-221">221</a></span>
+<span class="normal"><a href="#__codelineno-0-222">222</a></span>
+<span class="normal"><a href="#__codelineno-0-223">223</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="k">def</span><span class="w"> </span><span class="nf">match_detections</span><span class="p">(</span>
+</span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="n">detections_a</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span>
+</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="n">detections_b</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span>
+</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]]:</span>
+</span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Match detections from two sources into one-to-one pairs.</span>
+</span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a>
+</span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="sd">    The assignment is greedy and highest-IoU-first, identical to the matcher</span>
+</span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="sd">    used by the metrics modules: each detection from ``detections_a`` can match</span>
+</span><span id="__span-0-141"><a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="sd">    at most one detection from ``detections_b``, and vice versa. It does not</span>
+</span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">    compute a globally optimal assignment. Pairs below ``iou_threshold`` are</span>
+</span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">    never matched, and by default a pair also requires equal ``class_id``</span>
+</span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">    values. ``confidence`` is ignored; callers that want metric-style score</span>
+</span><span id="__span-0-145"><a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">    ordering should sort their detections first.</span>
+</span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a>
+</span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        detections_a (Detections): First set of detections.</span>
+</span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">        detections_b (Detections): Second set of detections.</span>
+</span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">        iou_threshold (float, optional): Minimum IoU required for a pair.</span>
+</span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">            Defaults to 0.5.</span>
+</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">        class_agnostic (bool, optional): When True, matching ignores</span>
+</span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">            ``class_id`` and uses IoU only. Defaults to False.</span>
+</span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a>
+</span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-156"><a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">        ValueError: If `iou_threshold` is outside `[0, 1]`, or class-aware</span>
+</span><span id="__span-0-157"><a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">            matching is requested without class IDs on both inputs.</span>
+</span><span id="__span-0-158"><a id="__codelineno-0-158" name="__codelineno-0-158"></a>
+</span><span id="__span-0-159"><a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-160"><a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">        tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of</span>
+</span><span id="__span-0-161"><a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">        ``(matched_pairs, unmatched_a, unmatched_b)`` where ``matched_pairs``</span>
+</span><span id="__span-0-162"><a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">        has shape ``(M, 2)`` with column 0 indexing ``detections_a`` and</span>
+</span><span id="__span-0-163"><a id="__codelineno-0-163" name="__codelineno-0-163"></a><span class="sd">        column 1 indexing ``detections_b``; ``unmatched_a`` and</span>
+</span><span id="__span-0-164"><a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="sd">        ``unmatched_b`` hold the remaining indices of each side.</span>
+</span><span id="__span-0-165"><a id="__codelineno-0-165" name="__codelineno-0-165"></a>
+</span><span id="__span-0-166"><a id="__codelineno-0-166" name="__codelineno-0-166"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-167"><a id="__codelineno-0-167" name="__codelineno-0-167"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-168"><a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="sd">        &gt;&gt;&gt; from supervision.detection.core import Detections</span>
+</span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">        &gt;&gt;&gt; a = Detections(</span>
+</span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="sd">        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">        ...     class_id=np.array([0]),</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        ... )</span>
+</span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">        &gt;&gt;&gt; b = Detections(</span>
+</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        ...     xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]], dtype=np.float32),</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">        ...     class_id=np.array([0, 1]),</span>
+</span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        ... )</span>
+</span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        &gt;&gt;&gt; matched_pairs, unmatched_a, unmatched_b = match_detections(a, b)</span>
+</span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">        &gt;&gt;&gt; matched_pairs.tolist()</span>
+</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        [[0, 0]]</span>
+</span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">        &gt;&gt;&gt; unmatched_a.tolist()</span>
+</span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">        []</span>
+</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">        &gt;&gt;&gt; unmatched_b.tolist()</span>
+</span><span id="__span-0-184"><a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">        [1]</span>
+</span><span id="__span-0-185"><a id="__codelineno-0-185" name="__codelineno-0-185"></a>
+</span><span id="__span-0-186"><a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">        ```</span>
+</span><span id="__span-0-187"><a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-188"><a id="__codelineno-0-188" name="__codelineno-0-188"></a>    <span class="n">_validate_iou_threshold</span><span class="p">(</span><span class="n">iou_threshold</span><span class="p">)</span>
+</span><span id="__span-0-189"><a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">class_agnostic</span> <span class="ow">and</span> <span class="p">(</span>
+</span><span id="__span-0-190"><a id="__codelineno-0-190" name="__codelineno-0-190"></a>        <span class="n">detections_a</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">detections_b</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="kc">None</span>
+</span><span id="__span-0-191"><a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="p">):</span>
+</span><span id="__span-0-192"><a id="__codelineno-0-192" name="__codelineno-0-192"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-193"><a id="__codelineno-0-193" name="__codelineno-0-193"></a>            <span class="s2">&quot;Both detections must provide class_id when class_agnostic is False.&quot;</span>
+</span><span id="__span-0-194"><a id="__codelineno-0-194" name="__codelineno-0-194"></a>        <span class="p">)</span>
+</span><span id="__span-0-195"><a id="__codelineno-0-195" name="__codelineno-0-195"></a>
+</span><span id="__span-0-196"><a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections_b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-197"><a id="__codelineno-0-197" name="__codelineno-0-197"></a>        <span class="n">matched_pairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-198"><a id="__codelineno-0-198" name="__codelineno-0-198"></a>        <span class="n">unmatched_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections_a</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-199"><a id="__codelineno-0-199" name="__codelineno-0-199"></a>        <span class="n">unmatched_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections_b</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-200"><a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="k">return</span> <span class="n">matched_pairs</span><span class="p">,</span> <span class="n">unmatched_a</span><span class="p">,</span> <span class="n">unmatched_b</span>
+</span><span id="__span-0-201"><a id="__codelineno-0-201" name="__codelineno-0-201"></a>
+</span><span id="__span-0-202"><a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="n">iou</span> <span class="o">=</span> <span class="n">box_iou_batch</span><span class="p">(</span><span class="n">detections_a</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="n">detections_b</span><span class="o">.</span><span class="n">xyxy</span><span class="p">)</span>
+</span><span id="__span-0-203"><a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="n">candidates</span> <span class="o">=</span> <span class="n">iou</span> <span class="o">&gt;=</span> <span class="n">iou_threshold</span>
+</span><span id="__span-0-204"><a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">class_agnostic</span><span class="p">:</span>
+</span><span id="__span-0-205"><a id="__codelineno-0-205" name="__codelineno-0-205"></a>        <span class="n">class_ids_a</span> <span class="o">=</span> <span class="n">detections_a</span><span class="o">.</span><span class="n">class_id</span>
+</span><span id="__span-0-206"><a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="n">class_ids_b</span> <span class="o">=</span> <span class="n">detections_b</span><span class="o">.</span><span class="n">class_id</span>
+</span><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a>        <span class="k">assert</span> <span class="n">class_ids_a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-0-208"><a id="__codelineno-0-208" name="__codelineno-0-208"></a>        <span class="k">assert</span> <span class="n">class_ids_b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-0-209"><a id="__codelineno-0-209" name="__codelineno-0-209"></a>        <span class="n">candidates</span> <span class="o">&amp;=</span> <span class="n">class_ids_a</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">==</span> <span class="n">class_ids_b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+</span><span id="__span-0-210"><a id="__codelineno-0-210" name="__codelineno-0-210"></a>
+</span><span id="__span-0-211"><a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="n">matched_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+</span><span id="__span-0-212"><a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_greedy_match</span><span class="p">(</span><span class="n">iou</span><span class="p">,</span> <span class="n">matched_indices</span><span class="p">))</span>
+</span><span id="__span-0-213"><a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="n">matched_pairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-0-214"><a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="k">if</span> <span class="n">matched_pairs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="n">matched_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-216"><a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="n">matched_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="n">matched_a</span> <span class="o">=</span> <span class="n">matched_pairs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-219"><a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="n">matched_b</span> <span class="o">=</span> <span class="n">matched_pairs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a>
+</span><span id="__span-0-221"><a id="__codelineno-0-221" name="__codelineno-0-221"></a>    <span class="n">unmatched_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections_a</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">matched_a</span><span class="p">)</span>
+</span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a>    <span class="n">unmatched_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections_b</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">matched_b</span><span class="p">)</span>
+</span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="k">return</span> <span class="n">matched_pairs</span><span class="p">,</span> <span class="n">unmatched_a</span><span class="p">,</span> <span class="n">unmatched_b</span>
 </span></code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
+            </details>
     </div>
 
 </div>
@@ -3450,7 +3681,7 @@ you want to take class imbalance into account.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 12:30:32 UTC">July 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 10, 2026 09:25:07 UTC">September 10, 2026</span>
   </span>
 
     
@@ -3460,7 +3691,7 @@ you want to take class imbalance into account.</p>
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 18, 2024 12:15:40 UTC">October 18, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 10, 2026 09:25:07 UTC">September 10, 2026</span>
   </span>
 
     
@@ -3478,9 +3709,9 @@ you want to take class imbalance into account.</p>
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/jabrailkhalil" class="md-author" title="@jabrailkhalil">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/78273416?v=4&size=72" alt="jabrailkhalil">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3488,21 +3719,21 @@ you want to take class imbalance into account.</p>
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
+        <a href="https://github.com/pre-commit-ci%5Bbot%5D" class="md-author" title="@pre-commit-ci[bot]">
           
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
+          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="GitHub user">
         </a>
       
-        <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
+          <img src="https://avatars.githubusercontent.com/u/6035284?u=7c22640672aa21785bef224ee8cee1a52e5fc1c1&v=4&size=72" alt="Jirka Borovec">
         </a>
       
       
       
         
-          <a href="https://github.com/roboflow/supervision/tree/main/docs/metrics/common_values.md" class="md-author md-author--more">
-            +2
+          <a href="https://github.com/roboflow/supervision/tree/main/docs/metrics/match_detections.md" class="md-author md-author--more">
+            +1
           </a>
         
       
