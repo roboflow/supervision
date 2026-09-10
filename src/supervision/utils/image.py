@@ -532,7 +532,7 @@ def tint_image(
 
     Returns:
         Tinted image matching input
-            type.
+            type. The input image is left unchanged.
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
@@ -548,6 +548,8 @@ def tint_image(
         ... )
         >>> tinted_image.shape
         (100, 100, 3)
+        >>> int(image.max())
+        0
 
         ```
 
@@ -557,10 +559,15 @@ def tint_image(
         raise ValueError("opacity must be between 0.0 and 1.0")
 
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
-    cv2.addWeighted(
-        src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0, dst=image
+    # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
+    # the tint back into the caller's array for a NumPy input, while a Pillow input
+    # was shielded by the ndarray conversion the decorator makes.
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.addWeighted(
+            src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0
+        ),
     )
-    return image
 
 
 @ensure_cv2_image_for_standalone_function
