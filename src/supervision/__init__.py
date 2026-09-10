@@ -139,7 +139,7 @@ from supervision.key_points.annotators import (
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
-from supervision.metrics.utils.matching import match_detections
+from supervision.detection.utils.matching import match_detections
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (

@@ -22,8 +22,8 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     oriented_box_iou_batch,
 )
+from supervision.detection.utils.matching import _greedy_match
 from supervision.metrics.core import MetricTarget
-from supervision.metrics.utils.matching import _greedy_match
 
 if TYPE_CHECKING:
     from matplotlib.figure import Figure

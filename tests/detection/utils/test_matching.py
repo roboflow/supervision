@@ -1,4 +1,4 @@
-"""Tests for supervision.metrics.utils.matching — greedy one-to-one IoU matching."""
+"""Tests for supervision.detection.utils.matching — greedy one-to-one IoU matching."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.metrics.utils.matching import _greedy_match, match_detections
+from supervision.detection.utils.matching import _greedy_match, match_detections
 
 
 class TestGreedyMatch:
@@ -191,9 +191,37 @@ class TestMatchDetections:
         with pytest.raises(ValueError, match="closed range from 0 to 1"):
             match_detections(empty, empty, iou_threshold=iou_threshold)
 
-    def test_missing_class_id_falls_back_to_iou_only(self) -> None:
-        """Detections without class_id match on geometry alone."""
+    def test_class_agnostic_matching_allows_missing_class_id(self) -> None:
+        """Class-agnostic matching permits detections without class IDs."""
         a = Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32))
         b = Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32))
-        matched_pairs, _, _ = match_detections(a, b)
+        matched_pairs, _, _ = match_detections(a, b, class_agnostic=True)
         assert matched_pairs.tolist() == [[0, 0]]
+
+    @pytest.mark.parametrize(
+        ("detections_a", "detections_b"),
+        [
+            pytest.param(
+                Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32)),
+                Detections(
+                    xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="first-collection-missing-class-id",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                Detections(xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32)),
+                id="second-collection-missing-class-id",
+            ),
+        ],
+    )
+    def test_class_aware_matching_requires_class_ids(
+        self, detections_a: Detections, detections_b: Detections
+    ) -> None:
+        """Class-aware matching rejects an input that lacks class IDs."""
+        with pytest.raises(ValueError, match="class_id"):
+            match_detections(detections_a, detections_b)

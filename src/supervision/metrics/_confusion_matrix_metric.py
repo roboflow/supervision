@@ -28,11 +28,11 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
-from supervision.metrics.utils.matching import (
+from supervision.detection.utils.matching import (
     _match_detection_batch_with_target_indices,
 )
+from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,

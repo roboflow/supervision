@@ -6,7 +6,8 @@ Purpose:
     objects.
 Scope:
     Matches two in-memory ``Detections`` instances using bounding-box IoU and,
-    unless requested otherwise, equal class identifiers. It does not rank by
+    unless requested otherwise, equal class identifiers. Class-aware matching
+    requires both collections to provide class IDs. It does not rank by
     confidence, mutate inputs, calculate metrics, or perform model inference.
 Usage:
     Import ``match_detections`` through ``supervision`` and pass two detection
@@ -16,10 +17,10 @@ Outputs:
     dtypes, suitable for slicing the original detection collections.
 Failure:
     Raises ``ValueError`` for an IoU threshold outside the closed valid range;
-    malformed detection arrays retain the validation behavior of ``Detections``
-    and the underlying IoU utility.
+    class-aware matching without class IDs; and malformed detection arrays as
+    defined by ``Detections`` and the underlying IoU utility.
 Used by:
-    Public ``sv.match_detections`` callers and metrics utilities that share the
+    Public ``sv.match_detections`` callers and metrics utilities sharing the
     greedy matching policy.
 """
 
@@ -137,10 +138,11 @@ def match_detections(
 
     The assignment is greedy and highest-IoU-first, identical to the matcher
     used by the metrics modules: each detection from ``detections_a`` can match
-    at most one detection from ``detections_b``, and vice versa. Pairs below
-    ``iou_threshold`` are never matched, and by default a pair also requires
-    equal ``class_id`` values. ``confidence`` is ignored; callers that want
-    metric-style score ordering should sort their detections first.
+    at most one detection from ``detections_b``, and vice versa. It does not
+    compute a globally optimal assignment. Pairs below ``iou_threshold`` are
+    never matched, and by default a pair also requires equal ``class_id``
+    values. ``confidence`` is ignored; callers that want metric-style score
+    ordering should sort their detections first.
 
     Args:
         detections_a (Detections): First set of detections.
@@ -149,6 +151,10 @@ def match_detections(
             Defaults to 0.5.
         class_agnostic (bool, optional): When True, matching ignores
             ``class_id`` and uses IoU only. Defaults to False.
+
+    Raises:
+        ValueError: If `iou_threshold` is outside `[0, 1]`, or class-aware
+            matching is requested without class IDs on both inputs.
 
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of
@@ -180,20 +186,22 @@ def match_detections(
         ```
     """
     _validate_iou_threshold(iou_threshold)
-
     if len(detections_a) == 0 or len(detections_b) == 0:
         matched_pairs = np.empty((0, 2), dtype=np.int64)
         unmatched_a = np.arange(len(detections_a), dtype=np.int64)
         unmatched_b = np.arange(len(detections_b), dtype=np.int64)
         return matched_pairs, unmatched_a, unmatched_b
 
+    if not class_agnostic and (
+        detections_a.class_id is None or detections_b.class_id is None
+    ):
+        raise ValueError(
+            "Both detections must provide class_id when class_agnostic is False."
+        )
+
     iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
     candidates = iou >= iou_threshold
-    if (
-        not class_agnostic
-        and detections_a.class_id is not None
-        and detections_b.class_id is not None
-    ):
+    if not class_agnostic:
         candidates &= detections_a.class_id[:, None] == detections_b.class_id[None, :]
 
     matched_indices = np.where(candidates)
