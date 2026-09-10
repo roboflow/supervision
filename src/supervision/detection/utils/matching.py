@@ -186,18 +186,18 @@ def match_detections(
         ```
     """
     _validate_iou_threshold(iou_threshold)
-    if len(detections_a) == 0 or len(detections_b) == 0:
-        matched_pairs = np.empty((0, 2), dtype=np.int64)
-        unmatched_a = np.arange(len(detections_a), dtype=np.int64)
-        unmatched_b = np.arange(len(detections_b), dtype=np.int64)
-        return matched_pairs, unmatched_a, unmatched_b
-
     if not class_agnostic and (
         detections_a.class_id is None or detections_b.class_id is None
     ):
         raise ValueError(
             "Both detections must provide class_id when class_agnostic is False."
         )
+
+    if len(detections_a) == 0 or len(detections_b) == 0:
+        matched_pairs = np.empty((0, 2), dtype=np.int64)
+        unmatched_a = np.arange(len(detections_a), dtype=np.int64)
+        unmatched_b = np.arange(len(detections_b), dtype=np.int64)
+        return matched_pairs, unmatched_a, unmatched_b
 
     iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
     candidates = iou >= iou_threshold

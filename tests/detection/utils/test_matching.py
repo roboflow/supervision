@@ -169,7 +169,9 @@ class TestMatchDetections:
             xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
             class_id=np.array([0]),
         )
-        matched_pairs, unmatched_a, unmatched_b = match_detections(empty, single)
+        matched_pairs, unmatched_a, unmatched_b = match_detections(
+            empty, single, class_agnostic=True
+        )
         assert matched_pairs.shape == (0, 2)
         assert unmatched_a.tolist() == []
         assert unmatched_b.tolist() == [0]
@@ -225,3 +227,14 @@ class TestMatchDetections:
         """Class-aware matching rejects an input that lacks class IDs."""
         with pytest.raises(ValueError, match="class_id"):
             match_detections(detections_a, detections_b)
+
+    def test_empty_class_aware_matching_requires_class_ids(self) -> None:
+        """Class-aware matching rejects empty detections without class IDs."""
+        empty = Detections(xyxy=np.empty((0, 4), dtype=np.float32))
+        classified_empty = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            class_id=np.empty(0, dtype=np.int32),
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            match_detections(empty, classified_empty)
