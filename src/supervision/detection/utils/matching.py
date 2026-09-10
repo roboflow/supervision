@@ -202,7 +202,11 @@ def match_detections(
     iou = box_iou_batch(detections_a.xyxy, detections_b.xyxy)
     candidates = iou >= iou_threshold
     if not class_agnostic:
-        candidates &= detections_a.class_id[:, None] == detections_b.class_id[None, :]
+        class_ids_a = detections_a.class_id
+        class_ids_b = detections_b.class_id
+        assert class_ids_a is not None
+        assert class_ids_b is not None
+        candidates &= class_ids_a[:, None] == class_ids_b[None, :]
 
     matched_indices = np.where(candidates)
     pairs = list(_greedy_match(iou, matched_indices))
