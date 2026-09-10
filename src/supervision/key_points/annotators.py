@@ -31,6 +31,19 @@ def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[in
     return vertex_a - 1, vertex_b - 1
 
 
+def _is_drawable(point: npt.NDArray[np.number]) -> bool:
+    """Report whether a keypoint carries coordinates that can be rasterized.
+
+    Pose estimators mark an undetected or occluded keypoint with `NaN` rather than
+    dropping it, and `KeyPoints` accepts those values, so annotators receive them
+    routinely. Every drawing helper below converts a coordinate to `int`, which
+    raises on `NaN` and on an infinity, and `np.allclose(point, 0)` does not catch
+    either. `KeyPoints.as_detections` already excludes non-finite coordinates; this
+    keeps the annotators on the same rule instead of aborting the whole frame.
+    """
+    return bool(np.isfinite(point).all())
+
+
 class BaseKeyPointAnnotator(ABC):
     @abstractmethod
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -61,7 +74,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """Annotates the given scene with skeleton vertices based on the provided key
         points. It draws circles at each key point location. Anchors marked as not
-        visible via ``key_points.visible`` are skipped.
+        visible via ``key_points.visible``, and anchors whose coordinates are not
+        finite, are skipped.
 
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
@@ -101,7 +115,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0):
+                if np.allclose((x, y), 0) or not _is_drawable(xy[point_index]):
                     continue
                 if (
                     key_points.visible is not None
@@ -153,7 +167,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """Annotates the given scene by drawing lines between specified key points to
         form edges. Edges where either endpoint is marked as not visible via
-        ``key_points.visible`` are skipped.
+        ``key_points.visible``, or where either endpoint has a non-finite coordinate,
+        are skipped.
 
         Args:
             scene: The image where skeleton edges will be drawn. `ImageType` is a
@@ -252,6 +267,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                 xy_b = xy[idx_b]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
                     continue
+                if not _is_drawable(xy_a) or not _is_drawable(xy_b):
+                    continue
                 if key_points.visible is not None:
                     if (
                         not key_points.visible[detection_index, idx_a]
@@ -349,7 +366,7 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
         ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0):
+                if np.allclose((x, y), 0) or not _is_drawable(xy[point_index]):
                     continue
                 if (
                     key_points.visible is not None
@@ -757,7 +774,8 @@ class VertexLabelAnnotator:
         labels: list[str] | dict[int, list[str]] | None = None,
     ) -> ImageType:
         """Draws labels at skeleton vertex positions on the image. Vertices marked not
-        visible via ``key_points.visible`` are skipped.
+        visible via ``key_points.visible``, and vertices whose coordinates are not
+        finite, are skipped.
 
         Args:
             scene: The image where vertex labels will be drawn. `ImageType` is a
@@ -867,6 +885,8 @@ class VertexLabelAnnotator:
                     if not key_points.visible[i, j]:
                         continue
                 elif np.allclose(xy[j], 0):
+                    continue
+                if not _is_drawable(xy[j]):
                     continue
 
                 anchor = (int(xy[j][0]), int(xy[j][1]))

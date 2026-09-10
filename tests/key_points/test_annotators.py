@@ -93,6 +93,25 @@ class TestVertexAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """A vertex with a non-finite coordinate is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_vertex_does_not_hide_finite_ones(self, scene):
+        """A non-finite vertex is skipped while its finite neighbours still draw."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
 
 class TestEdgeAnnotator:
     """Verify that EdgeAnnotator correctly draws skeleton edges between keypoints.
@@ -161,6 +180,26 @@ class TestEdgeAnnotator:
             visible=np.array([[True, True]]),
         )
         annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_edge_with_non_finite_endpoint_is_skipped(self, scene):
+        """An edge is skipped when either endpoint carries a non-finite coordinate."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [np.nan, np.nan]]], dtype=np.float32),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_endpoint_does_not_hide_finite_edges(self, scene):
+        """Edges between finite endpoints still draw next to a non-finite keypoint."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [[[10.0, 10.0], [90.0, 90.0], [np.nan, np.nan]]], dtype=np.float32
+            ),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2), (2, 3)])
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
@@ -295,6 +334,18 @@ class TestVertexEllipseAnnotator:
         assert result.shape == scene.shape
         assert not np.array_equal(result, scene)
 
+    def test_non_finite_vertex_is_skipped(self, scene):
+        """An ellipse anchored to a non-finite keypoint is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan]]], dtype=np.float32),
+            data={
+                "covariance": np.tile(np.eye(2, dtype=np.float32) * 25, (1, 1, 1, 1))
+            },
+        )
+        annotator = sv.VertexEllipseAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
     @pytest.mark.parametrize(
         ("kwargs", "match"),
         [
@@ -416,6 +467,24 @@ class TestVertexEllipseHaloAnnotator:
 
 
 class TestVertexLabelAnnotator:
+    def test_non_finite_vertex_is_skipped(self, scene):
+        """A label anchored to a non-finite keypoint is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_vertex_does_not_hide_finite_labels(self, scene):
+        """Labels on finite keypoints still draw next to a non-finite keypoint."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
     @pytest.mark.parametrize(
         ("labels", "points_count", "class_id", "expected"),
         [
