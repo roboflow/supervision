@@ -1,10 +1,38 @@
+"""Provide reusable greedy one-to-one matching for ``Detections`` collections.
+
+Purpose:
+    Expose the metrics package's highest-IoU-first matching primitive as a
+    public, index-oriented operation without coupling callers to metric result
+    objects.
+Scope:
+    Matches two in-memory ``Detections`` instances using bounding-box IoU and,
+    unless requested otherwise, equal class identifiers. It does not rank by
+    confidence, mutate inputs, calculate metrics, or perform model inference.
+Usage:
+    Import ``match_detections`` through ``supervision`` and pass two detection
+    sets plus an IoU threshold in the closed range from zero to one.
+Outputs:
+    Returns matched index pairs and unmatched indices with stable NumPy integer
+    dtypes, suitable for slicing the original detection collections.
+Failure:
+    Raises ``ValueError`` for an IoU threshold outside the closed valid range;
+    malformed detection arrays retain the validation behavior of ``Detections``
+    and the underlying IoU utility.
+Used by:
+    Public ``sv.match_detections`` callers and metrics utilities that share the
+    greedy matching policy.
+"""
+
 from collections.abc import Iterator
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.detection.utils.iou_and_nms import (
+    _validate_iou_threshold,
+    box_iou_batch,
+)
 
 
 def _greedy_match(
@@ -151,6 +179,8 @@ def match_detections(
 
         ```
     """
+    _validate_iou_threshold(iou_threshold)
+
     if len(detections_a) == 0 or len(detections_b) == 0:
         matched_pairs = np.empty((0, 2), dtype=np.int64)
         unmatched_a = np.arange(len(detections_a), dtype=np.int64)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.utils.matching import _greedy_match, match_detections
@@ -172,6 +173,23 @@ class TestMatchDetections:
         assert matched_pairs.shape == (0, 2)
         assert unmatched_a.tolist() == []
         assert unmatched_b.tolist() == [0]
+
+    @pytest.mark.parametrize(
+        "iou_threshold",
+        [
+            pytest.param(-0.1, id="negative"),
+            pytest.param(1.1, id="greater-than-one"),
+            pytest.param(float("nan"), id="nan"),
+        ],
+    )
+    def test_invalid_iou_threshold_raises_value_error(
+        self, iou_threshold: float
+    ) -> None:
+        """Reject thresholds outside the valid IoU domain before matching."""
+        empty = Detections(xyxy=np.empty((0, 4), dtype=np.float32))
+
+        with pytest.raises(ValueError, match="closed range from 0 to 1"):
+            match_detections(empty, empty, iou_threshold=iou_threshold)
 
     def test_missing_class_id_falls_back_to_iou_only(self) -> None:
         """Detections without class_id match on geometry alone."""
