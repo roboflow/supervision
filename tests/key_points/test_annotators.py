@@ -613,9 +613,8 @@ class TestVertexLabelAnnotator:
         assert np.array_equal(result, scene)
 
     def test_all_non_finite_multi_detection_draws_nothing(self, scene):
-        """A fully non-finite, multi-detection, multi-point array draws nothing and
-        does not raise.
-        """
+        """A fully non-finite, multi-detection, multi-point array draws nothing and does
+        not raise."""
         key_points = sv.KeyPoints(
             xy=np.full((2, 3, 2), np.nan, dtype=np.float32),
         )
