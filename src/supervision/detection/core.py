@@ -3601,8 +3601,11 @@ def merge_inner_detection_object_pair(
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)
 
+        from supervision.detection.core import merge_inner_detection_object_pair
+
         merged_detections = merge_inner_detection_object_pair(
-            detections[0], detections[1])
+            detections[0], detections[1]
+        )
         ```
     """
     if len(detections_1) != 1 or len(detections_2) != 1:
