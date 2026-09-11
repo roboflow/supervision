@@ -101,8 +101,8 @@ class LineZone:
         Args:
             start: The starting point of the line.
             end: The ending point of the line.
-            triggering_anchors: A list of positions specifying which anchors of
-                the detections bounding box to consider when deciding on whether
+            triggering_anchors: Any iterable of positions specifying which anchors
+                of the detections bounding box to consider when deciding on whether
                 the detection has passed the line counter or not. By default,
                 this contains the four corners of the detection's bounding box.
             minimum_crossing_threshold: Detection needs to be seen on the other
@@ -123,8 +123,9 @@ class LineZone:
         self._tracker_frames_absent: dict[int, int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
-        self.triggering_anchors = triggering_anchors
-        if not list(self.triggering_anchors):
+        # Materialize once so we can safely accept generators without exhausting them.
+        self.triggering_anchors = list(triggering_anchors)
+        if not self.triggering_anchors:
             raise ValueError("Triggering anchors cannot be empty.")
         self.class_id_to_name: dict[int, str] = {}
 

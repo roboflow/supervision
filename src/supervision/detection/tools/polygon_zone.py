@@ -28,7 +28,7 @@ class PolygonZone:
     Attributes:
         polygon: A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        triggering_anchors: A list of positions specifying
+        triggering_anchors: Any iterable of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
