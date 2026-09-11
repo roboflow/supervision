@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- The key point annotators — `sv.VertexAnnotator`, `sv.EdgeAnnotator`, `sv.VertexLabelAnnotator` and the `sv.VertexEllipse*Annotator` family — now skip key points whose coordinates are not finite instead of raising `ValueError: cannot convert float NaN to integer`. Pose estimators commonly report an undetected or occluded key point as `NaN` rather than dropping it, so a single missing joint aborted the whole frame. `sv.KeyPoints.as_detections` already treats non-finite coordinates as missing; the annotators now apply the same rule, drawing every other key point in the skeleton. For 3-component key points (`xy` shape `(N, K, 3)`), the check applies to the full row, so a key point with a finite, drawable `(x, y)` but a non-finite third component is skipped too, for parity with `sv.KeyPoints.as_detections`.
+
 - `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
 
 - `sv.filter_polygons_by_area` and `sv.approximate_polygon` now preserve local geometry for large-origin integer and `float64` polygons instead of losing coordinate deltas during OpenCV conversion ([#2542](https://github.com/roboflow/supervision/pull/2542)).
