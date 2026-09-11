@@ -905,6 +905,61 @@ def test_line_zone_trigger_does_not_call_np_cross(
     assert line_zone.out_count == 1
 
 
+@pytest.mark.parametrize(
+    "make_anchors",
+    [
+        pytest.param(
+            lambda: (
+                anchor
+                for anchor in (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+                )
+            ),
+            id="generator",
+        ),
+        pytest.param(
+            lambda: map(
+                lambda name: Position[name],
+                ["TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"],
+            ),
+            id="map",
+        ),
+        pytest.param(
+            lambda: filter(
+                lambda _: True,
+                (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+                ),
+            ),
+            id="filter",
+        ),
+    ],
+)
+def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
+    make_anchors,
+) -> None:
+    """A single-pass anchors iterable survives construction and counts a crossing.
+
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report
+    — generator expression, `map`, and `filter` — none of which must be exhausted
+    by the constructor's emptiness check before `trigger()` iterates them.
+    """
+    line_zone = LineZone(
+        start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
+    )
+
+    line_zone.trigger(_create_detections(xyxy=[[10, 110, 20, 150]], tracker_id=[1]))
+    line_zone.trigger(_create_detections(xyxy=[[10, 50, 20, 90]], tracker_id=[1]))
+
+    assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
 def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     """History for tracker IDs absent from the current frame is evicted."""
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
@@ -991,6 +1046,39 @@ def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
 
     assert annotated_frame.shape == frame.shape
     assert not np.array_equal(annotated_frame, frame)
+
+
+class TestLineZoneInit:
+    @pytest.mark.parametrize(
+        ("triggering_anchors", "exception"),
+        [
+            pytest.param([Position.CENTER], DoesNotRaise(), id="non-empty-list"),
+            pytest.param(
+                [],
+                pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
+                id="empty-list",
+            ),
+            pytest.param(
+                (anchor for anchor in []),
+                pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
+                id="empty-generator",
+            ),
+        ],
+    )
+    def test_empty_anchors_raises(self, triggering_anchors, exception) -> None:
+        """LineZone rejects an anchors iterable that is empty, generator included.
+
+        Mirrors `TestPolygonZoneInit::test_empty_anchors_raises`. The empty-generator
+        case is the regression guard for #2561: the constructor must materialize a
+        single-pass iterable before checking it, or an empty generator would reach
+        the check unconsumed and slip past it.
+        """
+        with exception:
+            LineZone(
+                start=Point(0, 0),
+                end=Point(10, 0),
+                triggering_anchors=triggering_anchors,
+            )
 
 
 def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
