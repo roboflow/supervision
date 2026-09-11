@@ -13,6 +13,7 @@ date_modified: 2026-09-08
 
 - `sv.ClassificationDataset.as_folder_structure` now rejects images that would overwrite the same class-relative filename before writing any files. Identical basenames in different class directories remain supported.
 
+- `sv.match_detections` primitive added to expose greedy highest-IoU-first one-to-one instance matching between two `sv.Detections` objects ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 - `sv.Detections` now validates `xyxy` boxes for finite numeric coordinates (no NaN/inf), raising a clear `ValueError` for non-finite or unsupported-dtype values instead of failing silently downstream.
 
 - `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
