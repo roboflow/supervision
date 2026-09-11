@@ -31,7 +31,7 @@ def _validate_edge_indices(edge: tuple[int, int], vertex_count: int) -> tuple[in
     return vertex_a - 1, vertex_b - 1
 
 
-def _is_drawable(point: npt.NDArray[np.number]) -> bool:
+def _has_finite_coordinates(point: npt.ArrayLike) -> bool:
     """Report whether a keypoint carries coordinates that can be rasterized.
 
     Pose estimators mark an undetected or occluded keypoint with `NaN` rather than
@@ -115,7 +115,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0) or not _is_drawable(xy[point_index]):
+                if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
                     key_points.visible is not None
@@ -267,7 +267,9 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                 xy_b = xy[idx_b]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
                     continue
-                if not _is_drawable(xy_a) or not _is_drawable(xy_b):
+                if not _has_finite_coordinates(xy_a) or not _has_finite_coordinates(
+                    xy_b
+                ):
                     continue
                 if key_points.visible is not None:
                     if (
@@ -366,7 +368,7 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
         ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0) or not _is_drawable(xy[point_index]):
+                if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
                     key_points.visible is not None
@@ -432,6 +434,8 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """Draws filled semi-transparent covariance ellipses around each keypoint.
+        Keypoints marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -529,7 +533,9 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """Draws stroke-only covariance ellipse outlines around each keypoint.
+        """Draws stroke-only covariance ellipse outlines around each keypoint. Keypoints
+        marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -631,7 +637,9 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """Draws radially-fading covariance ellipses around each keypoint.
+        """Draws radially-fading covariance ellipses around each keypoint. Keypoints
+        marked as not visible via ``key_points.visible``, and keypoints whose
+        coordinates are not finite, are skipped.
 
         Args:
             scene: The image to annotate. ``ImageType`` accepts either
@@ -881,12 +889,12 @@ class VertexLabelAnnotator:
             )
 
             for j in range(points_count):
+                if not _has_finite_coordinates(xy[j]):
+                    continue
                 if key_points.visible is not None:
                     if not key_points.visible[i, j]:
                         continue
                 elif np.allclose(xy[j], 0):
-                    continue
-                if not _is_drawable(xy[j]):
                     continue
 
                 anchor = (int(xy[j][0]), int(xy[j][1]))
