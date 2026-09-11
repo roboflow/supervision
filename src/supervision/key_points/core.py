@@ -1220,28 +1220,58 @@ class KeyPoints:
             A subset of the KeyPoints object or an item from the data field.
 
         Examples:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ...     keypoint_confidence=np.array(
+            ...         [[0.9, 0.9, 0.2], [0.8, 0.8, 0.1], [0.7, 0.7, 0.2]]
+            ...     ),
+            ...     data={'class_name': np.array(['person', 'person', 'dog'])},
+            ... )
 
-            key_points = sv.KeyPoints(...)
+            Detection-level filtering returns a `KeyPoints` subset:
 
-            # detection-level filtering (returns KeyPoints)
-            high_conf = key_points[key_points.detection_confidence > 0.5]
-            class_0 = key_points[key_points.class_id == 0]
+            >>> key_points[key_points.detection_confidence > 0.7].class_id
+            array([0, 1])
+            >>> key_points[key_points.class_id == 0].detection_confidence
+            array([0.9, 0.6])
 
-            # keypoint-level filtering (returns KeyPoints)
-            visible = key_points[key_points.keypoint_confidence > 0.3]
+            Keypoint-level filtering with a 2D boolean mask keeps only the
+            selected anchors. Every skeleton must keep the same number of
+            anchors, otherwise a `ValueError` is raised:
 
-            # indexing
-            first = key_points[0]
-            first_two = key_points[0:2]
-            subset = key_points[[0, 2]]
+            >>> key_points[key_points.keypoint_confidence > 0.3].xy.shape
+            (3, 2, 2)
 
-            # anchor selection (uniform across all skeletons)
-            nose_and_eyes = key_points[:, [0, 1, 2]]
+            Integer, slice, and list indexing:
 
-            # data field access
-            class_names = key_points['class_name']
+            >>> key_points[0].xy
+            array([[[10., 10.],
+                    [20., 10.],
+                    [15., 20.]]])
+            >>> key_points[0:2].xy.shape
+            (2, 3, 2)
+            >>> key_points[[0, 2]].class_id
+            array([0, 1])
+
+            Anchor selection, uniform across all skeletons:
+
+            >>> key_points[:, [0, 1]].xy.shape
+            (3, 2, 2)
+
+            Data field access:
+
+            >>> key_points['class_name']
+            array(['person', 'person', 'dog'], dtype='<U6')
+
             ```
         """
         if isinstance(index, str):
@@ -1272,6 +1302,20 @@ class KeyPoints:
                  for class_id
                  in key_points.class_id
              ]
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[10, 10], [20, 10]], [[100, 100], [110, 100]]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'dog'}
+            >>> key_points['class_name'] = [names[c] for c in key_points.class_id]
+            >>> key_points['class_name']
+            array(['person', 'dog'], dtype='<U6')
+
             ```
         """
         if not isinstance(value, (np.ndarray, list)):
@@ -1476,6 +1520,29 @@ class KeyPoints:
 
             key_points = model.predict(image)
             key_points = key_points.with_nms(threshold=0.5)
+            ```
+
+            Two overlapping skeletons of the same class collapse to the more
+            confident one:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ... )
+            >>> suppressed = key_points.with_nms(threshold=0.5)
+            >>> suppressed.detection_confidence
+            array([0.9, 0.8])
+            >>> suppressed.class_id
+            array([0, 1])
+
             ```
         """
         if len(self) == 0:

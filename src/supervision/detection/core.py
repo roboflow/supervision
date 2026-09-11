@@ -2864,18 +2864,34 @@ class Detections:
             A subset of the Detections object or an item from the data field.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[10, 10, 50, 50], [60, 10, 180, 50], [10, 60, 50, 180]]
+            ...     ),
+            ...     confidence=np.array([0.9, 0.4, 0.7]),
+            ...     class_id=np.array([0, 1, 0]),
+            ...     data={'feature_vector': np.array([1.0, 2.0, 3.0])},
+            ... )
+            >>> detections[0].xyxy
+            array([[10, 10, 50, 50]])
+            >>> detections[0:2].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 60,  10, 180,  50]])
+            >>> detections[[0, 2]].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.class_id == 0].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.confidence > 0.5].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections['feature_vector']
+            array([1., 2., 3.])
 
-            detections = sv.Detections()
-
-            first_detection = detections[0]
-            first_10_detections = detections[0:10]
-            some_detections = detections[[0, 2, 4]]
-            class_0_detections = detections[detections.class_id == 0]
-            high_confidence_detections = detections[detections.confidence > 0.5]
-
-            feature_vector = detections['feature_vector']
             ```
         """
         if isinstance(index, str):
@@ -2906,6 +2922,20 @@ class Detections:
                  for class_id
                  in detections.class_id
              ]
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 50, 50], [60, 10, 180, 50]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'car'}
+            >>> detections['names'] = [names[c] for c in detections.class_id]
+            >>> detections['names']
+            array(['person', 'car'], dtype='<U6')
+
             ```
 
         Raises:
@@ -3015,24 +3045,21 @@ class Detections:
                 number of boxes (width / height for each box).
 
         Examples:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> xyxy = np.array([
+            ...     [10, 10, 50, 50],
+            ...     [60, 10, 180, 50],
+            ...     [10, 60, 50, 180],
+            ... ])
+            >>> detections = sv.Detections(xyxy=xyxy)
+            >>> detections.box_aspect_ratio
+            array([1.        , 3.        , 0.33333333])
+            >>> ar = detections.box_aspect_ratio
+            >>> detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            array([[10, 10, 50, 50]])
 
-            xyxy = np.array([
-                [10, 10, 50, 50],
-                [60, 10, 180, 50],
-                [10, 60, 50, 180],
-            ])
-
-            detections = sv.Detections(xyxy=xyxy)
-
-            detections.box_aspect_ratio
-            # array([1.0, 3.0, 0.33333333])
-
-            ar = detections.box_aspect_ratio
-            detections[(ar < 2.0) & (ar > 0.5)].xyxy
-            # array([[10., 10., 50., 50.]])
             ```
         """
         widths = self.xyxy[:, 2] - self.xyxy[:, 0]
@@ -3068,14 +3095,21 @@ class Detections:
             when conversion is not needed.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
-            detections = sv.Detections(
-                xyxy=np.array([[0, 0, 10, 10]]),
-                mask=np.ones((1, 20, 20), dtype=bool),
-            )
-            compact = detections.to_compact_masks()
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     mask=np.ones((1, 20, 20), dtype=bool),
+            ... )
+            >>> compact = detections.to_compact_masks()
+            >>> type(compact.mask).__name__
+            'CompactMask'
+            >>> compact.mask.image_shape
+            (20, 20)
+            >>> np.array_equal(compact.mask.to_dense(), detections.mask)
+            True
+
             ```
         """
         from supervision.detection.compact_mask import CompactMask
@@ -3567,8 +3601,11 @@ def merge_inner_detection_object_pair(
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)
 
-        merged_detections = merge_object_detection_pair(
-            detections[0], detections[1])
+        from supervision.detection.core import merge_inner_detection_object_pair
+
+        merged_detections = merge_inner_detection_object_pair(
+            detections[0], detections[1]
+        )
         ```
     """
     if len(detections_1) != 1 or len(detections_2) != 1:
