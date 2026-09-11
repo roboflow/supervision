@@ -9,6 +9,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
+from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
     _overlay_image,
@@ -342,6 +343,46 @@ def test_letterbox_image_for_pillow_image() -> None:
     assert difference.getbbox() is None, (
         "Expected padding to be added top and bottom with padding added top and bottom"
     )
+
+
+def test_tint_image_leaves_numpy_input_unchanged() -> None:
+    """Tinting a NumPy image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = np.full((4, 4, 3), 200, dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert np.array_equal(image, original)
+    assert not np.array_equal(result, original)
+
+
+def test_tint_image_leaves_pillow_input_unchanged() -> None:
+    """Tinting a Pillow image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = Image.new(mode="RGB", size=(4, 4), color=(200, 200, 200))
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert ImageChops.difference(image, original).getbbox() is None
+    assert ImageChops.difference(result, original).getbbox() is not None
+
+
+def test_tint_image_blends_towards_color() -> None:
+    """Tinting at 0.5 opacity averages the image with the tint colour."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    assert np.array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
 
 
 def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
