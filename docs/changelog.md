@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- The key point annotators — `sv.VertexAnnotator`, `sv.EdgeAnnotator`, `sv.VertexLabelAnnotator` and the `sv.VertexEllipse*Annotator` family — now skip key points whose coordinates are not finite instead of raising `ValueError: cannot convert float NaN to integer`. Pose estimators commonly report an undetected or occluded key point as `NaN` rather than dropping it, so a single missing joint aborted the whole frame. `sv.KeyPoints.as_detections` already treats non-finite coordinates as missing; the annotators now apply the same rule, drawing every other key point in the skeleton. For 3-component key points (`xy` shape `(N, K, 3)`), the check applies to the full row, so a key point with a finite, drawable `(x, y)` but a non-finite third component is skipped too, for parity with `sv.KeyPoints.as_detections`.
+
 - `sv.match_detections` now exposes the metrics matcher as a public primitive: given two `sv.Detections`, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 
 - `sv.VLM.KOSMOS_2` — `sv.Detections.from_vlm` now parses Kosmos-2 grounding results, the `(caption, entities)` pair returned by the model's `AutoProcessor.post_process_generation`. A phrase that grounds to several regions yields one detection per region, and `classes` filters the result and assigns `class_id` by index into that list, matching the other VLM connectors. Kosmos-2 is available through `sv.VLM` only, not through the deprecated `sv.LMM` ([#1903](https://github.com/roboflow/supervision/pull/1903)).
