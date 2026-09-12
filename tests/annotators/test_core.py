@@ -1489,6 +1489,15 @@ class TestCropAnnotator:
         assert result.shape == gradient_image.shape
         assert not np.array_equal(gradient_image, result)
 
+    def test_annotate_with_box_too_small_for_scale_factor(self, gradient_image):
+        """A box whose scaled crop rounds below one pixel is rendered, not fatal."""
+        detections = _create_detections(xyxy=[[30, 30, 33, 33]], class_id=[0])
+        annotator = CropAnnotator(scale_factor=0.3)
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
+        assert result.shape == gradient_image.shape
+
     def test_annotate_with_fully_out_of_bounds_detection(self, gradient_image):
         """A box fully outside the scene collapses to zero area and is skipped."""
         detections = _create_detections(xyxy=[[-50, -50, -10, -10]], class_id=[0])

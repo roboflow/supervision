@@ -235,6 +235,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If scale factor is non-positive.
 
+    Note:
+        Each axis keeps at least one pixel, so a factor small enough to round an
+        axis of a small image down to zero returns a one-pixel-wide or
+        one-pixel-tall image rather than raising.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -264,8 +269,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         raise ValueError("Scale factor must be positive.")
 
     width_old, height_old = image.shape[1], image.shape[0]
-    width_new = int(width_old * scale_factor)
-    height_new = int(height_old * scale_factor)
+    # A small factor on a small image truncates an axis to zero, and `cv2.resize`
+    # answers a zero-sized target with a bare assertion. One pixel is the smallest
+    # image that still exists, so clamp there instead.
+    width_new = max(1, int(width_old * scale_factor))
+    height_new = max(1, int(height_old * scale_factor))
     return cast(
         npt.NDArray[np.uint8],
         cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
@@ -292,6 +300,11 @@ def resize_image(
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
+    Note:
+        With `keep_aspect_ratio=True` the fitted axis keeps at least one pixel, so
+        an aspect ratio too extreme to fit the target box returns a one-pixel-wide
+        or one-pixel-tall image rather than raising.
 
     Examples:
         ```pycon
@@ -325,12 +338,15 @@ def resize_image(
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
+        # The fitted axis truncates to zero once the aspect ratio outgrows the target
+        # box, and `cv2.resize` answers a zero-sized target with a bare assertion.
+        # One pixel is the smallest image that still exists, so clamp there instead.
         if image_ratio >= target_ratio:
             width_new = resolution_wh[0]
-            height_new = int(resolution_wh[0] / image_ratio)
+            height_new = max(1, int(resolution_wh[0] / image_ratio))
         else:
             height_new = resolution_wh[1]
-            width_new = int(resolution_wh[1] * image_ratio)
+            width_new = max(1, int(resolution_wh[1] * image_ratio))
     else:
         width_new, height_new = resolution_wh
 

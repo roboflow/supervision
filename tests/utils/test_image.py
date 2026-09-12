@@ -256,6 +256,73 @@ def test_resize_image_for_pillow_image() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("image_hw", "resolution_wh", "expected_hw"),
+    [
+        pytest.param((480, 640), (1024, 1024), (768, 1024), id="landscape"),
+        pytest.param((640, 480), (1024, 1024), (1024, 768), id="portrait"),
+        pytest.param((8, 1200), (100, 100), (1, 100), id="height-would-round-to-zero"),
+        pytest.param((1200, 8), (100, 100), (100, 1), id="width-would-round-to-zero"),
+    ],
+)
+def test_resize_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    expected_hw: tuple[int, int],
+) -> None:
+    """Aspect-ratio fitting never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = resize_image(
+        image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+    )
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+@pytest.mark.parametrize(
+    ("image_hw", "scale_factor", "expected_hw"),
+    [
+        pytest.param((100, 100), 0.5, (50, 50), id="shrink"),
+        pytest.param((100, 100), 2.0, (200, 200), id="enlarge"),
+        pytest.param((3, 3), 0.3, (1, 1), id="both-axes-would-round-to-zero"),
+        pytest.param((40, 2), 0.25, (10, 1), id="one-axis-would-round-to-zero"),
+    ],
+)
+def test_scale_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int], scale_factor: float, expected_hw: tuple[int, int]
+) -> None:
+    """Scaling down never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = scale_image(image=image, scale_factor=scale_factor)
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+def test_letterbox_image_for_extreme_aspect_ratio() -> None:
+    """A strip too thin to scale into the target still fills the target resolution."""
+    # given
+    image = np.zeros((8, 1200, 3), dtype=np.uint8)
+
+    # when
+    result = letterbox_image(
+        image=image, resolution_wh=(100, 100), color=(255, 255, 255)
+    )
+
+    # then
+    assert result.shape == (100, 100, 3)
+    assert np.array_equal(result[49], np.zeros((100, 3), dtype=np.uint8))
+    assert np.all(result[:49] == 255)
+    assert np.all(result[50:] == 255)
+
+
 def test_letterbox_image_for_opencv_image() -> None:
     # given
     image = np.zeros((480, 640, 3), dtype=np.uint8)
