@@ -1488,8 +1488,10 @@ class KeyPoints:
     ) -> KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
-        A keypoint is considered valid when its coordinates are not all-zero and its
-        `visible` flag is `True` (if `visible` is set).
+        A keypoint is considered valid when its coordinates are finite and not
+        all-zero, and its `visible` flag is `True` (if `visible` is set). A skeleton
+        left without a valid keypoint keeps a zero-area box, so it overlaps nothing
+        and passes through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1561,14 +1563,23 @@ class KeyPoints:
             )
 
         xy = self.xy
-        valid = ~np.all(xy == 0, axis=-1)
+        # A non-finite keypoint marks an undetected joint, so it must not reach the
+        # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
+        # every corner, leaving an all-`NaN` box that compares False against every
+        # IoU threshold and therefore suppresses nothing. `as_detections` applies
+        # the same rule.
+        valid = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
         if self.visible is not None:
             valid = valid & self.visible
+        has_valid = valid.any(axis=1)
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
         x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
         y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
         xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
+        # Skeletons left without a single valid keypoint would otherwise carry the
+        # `inf` sentinels above; a zero-area box keeps them out of every overlap.
+        xyxy[~has_valid] = 0.0
 
         if class_agnostic:
             predictions = np.hstack([xyxy, self.detection_confidence.reshape(-1, 1)])
