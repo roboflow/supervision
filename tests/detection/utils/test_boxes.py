@@ -615,6 +615,118 @@ def test_pad_boxes(
     np.testing.assert_array_equal(result, expected)
 
 
+class TestPadBoxes:
+    """Padding handles integer arithmetic without changing floating input dtypes."""
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64"],
+    )
+    def test_pads_beyond_integer_dtype_bounds(self, dtype: str) -> None:
+        """Padding may cross either bound of the input integer dtype."""
+        upper = int(np.iinfo(dtype).max)
+        xyxy = np.array([[1, 2, upper - 1, upper]], dtype=dtype)
+        original = xyxy.copy()
+        expected_dtype = np.float64 if upper + 20 > np.iinfo(np.int64).max else np.int64
+        expected = np.array([[-9, -18, upper + 9, upper + 20]], dtype=expected_dtype)
+
+        result = pad_boxes(xyxy, px=10, py=20)
+
+        np.testing.assert_array_equal(result, expected)
+        np.testing.assert_array_equal(xyxy, original)
+        assert result.dtype == expected_dtype
+
+    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
+    def test_preserves_large_integer_coordinates(self, dtype: str) -> None:
+        """Integer coordinates beyond 2**53 retain their exact padded values."""
+        origin = 2**53 + 1
+        xyxy = np.array([[origin, origin, origin + 6, origin + 8]], dtype=dtype)
+        expected = np.array(
+            [[origin - 1, origin - 3, origin + 7, origin + 11]], dtype=np.int64
+        )
+
+        result = pad_boxes(xyxy, px=1, py=3)
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin", "px", "py", "expected"),
+        [
+            pytest.param(
+                "uint64",
+                2**63 + 1,
+                2**63 + 1,
+                -(2**63),
+                [[0, 2**64 + 1, 2**64 + 2, 1]],
+                id="unsigned-cancellation",
+            ),
+            pytest.param(
+                "int64",
+                -(2**63),
+                -(2**63),
+                2**63 + 1,
+                [[0, -(2**64) - 1, -(2**64), 1]],
+                id="signed-cancellation",
+            ),
+        ],
+    )
+    def test_preserves_integer_cancellation(
+        self, dtype: str, origin: int, px: int, py: int, expected: list[list[int]]
+    ) -> None:
+        """Large positive and negative padding cancel without prior float rounding."""
+        xyxy = np.full((1, 4), origin, dtype=dtype)
+
+        result = pad_boxes(xyxy, px=px, py=py)
+
+        np.testing.assert_array_equal(result, np.asarray(expected, dtype=np.float64))
+
+    def test_accepts_numpy_integer_padding_at_its_lower_bound(self) -> None:
+        """NumPy padding scalars do not overflow while selecting the safe path."""
+        xyxy = np.zeros((1, 4), dtype=np.int64)
+        padding = np.int64(-(2**63))
+        expected = np.array([[2**63, 0, -(2**63), 0]], dtype=np.float64)
+
+        result = pad_boxes(xyxy, px=padding, py=0)
+
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("padding", [-5, 0, 5])
+    def test_accepts_signed_padding_for_unsigned_coordinates(
+        self, padding: int
+    ) -> None:
+        """Unsigned coordinates accept expansion, shrinking, and zero padding."""
+        xyxy = np.array([[10, 20, 30, 40]], dtype=np.uint16)
+        expected = np.array(
+            [[10 - padding, 20 - padding, 30 + padding, 40 + padding]], dtype=np.float64
+        )
+
+        result = pad_boxes(xyxy, px=padding)
+
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float16", "float32", "float64"])
+    def test_preserves_floating_dtype(self, dtype: str) -> None:
+        """Floating coordinates retain their dtype and fractional values."""
+        xyxy = np.array([[1.5, 2.5, 30.5, 40.5]], dtype=dtype)
+        expected = np.array([[-3.5, -7.5, 35.5, 50.5]], dtype=dtype)
+
+        result = pad_boxes(xyxy, px=5, py=10)
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == xyxy.dtype
+
+    @pytest.mark.parametrize("dtype", ["int16", "uint64"])
+    def test_preserves_empty_batch_shape(self, dtype: str) -> None:
+        """Empty integer batches return an empty array with four coordinates."""
+        xyxy = np.empty((0, 4), dtype=dtype)
+
+        result = pad_boxes(xyxy, px=5)
+
+        assert result.shape == (0, 4)
+        assert result.dtype == np.int64
+
+
 @pytest.mark.parametrize(
     "origin",
     [
