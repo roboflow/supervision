@@ -1488,10 +1488,10 @@ class KeyPoints:
     ) -> KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
-        A keypoint is considered valid when its coordinates are finite and not
-        all-zero, and its `visible` flag is `True` (if `visible` is set). A skeleton
-        left without a valid keypoint keeps a zero-area box, so it overlaps nothing
-        and passes through.
+        A keypoint is considered valid when its coordinates are finite and not all-zero,
+        and its `visible` flag is `True` (if `visible` is set). A skeleton left without
+        a valid keypoint keeps a zero-area box, so it overlaps nothing and passes
+        through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
