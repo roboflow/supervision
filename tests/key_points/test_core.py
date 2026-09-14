@@ -16,6 +16,8 @@ from tests.helpers import (
     _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
+    _FakeTensor,
+    _FakeUltralyticsBoxes,
     _FakeYoloNasKeyPoint,
     _FakeYoloNasKeyPointResults,
 )
@@ -1290,6 +1292,92 @@ def test_from_inference_invalid_input():
         ValueError, match=r"from_inference\(\) operates on a single result at a time.*"
     ):
         KeyPoints.from_inference([key_points])
+
+
+class _FakeUltralyticsPoseTensor(_FakeTensor):
+    """Tensor stand-in that also reports its element count like `torch.Tensor`."""
+
+    def numel(self) -> int:
+        """Return the number of elements in the wrapped array."""
+        return int(self._arr.size)
+
+
+class _FakeUltralyticsKeypoints:
+    """Ultralytics-like `Keypoints`: `conf` is `None` without a visibility column."""
+
+    def __init__(self, data: np.ndarray) -> None:
+        """Split `(N, K, 2)` or `(N, K, 3)` key point data into `xy` and `conf`."""
+        self.xy = _FakeUltralyticsPoseTensor(data[..., :2])
+        self.conf = _FakeTensor(data[..., 2]) if data.shape[-1] == 3 else None
+
+
+class _FakeUltralyticsPoseResults:
+    """Ultralytics-like pose `Results` holding boxes, names and key points."""
+
+    def __init__(self, keypoints: np.ndarray, class_id: list[int]) -> None:
+        """Wrap key point data with one box and class id per skeleton."""
+        count = len(class_id)
+        self.keypoints = _FakeUltralyticsKeypoints(keypoints)
+        self.boxes = _FakeUltralyticsBoxes(
+            xyxy=np.zeros((count, 4)),
+            conf=np.ones(count),
+            cls=np.array(class_id, dtype=float),
+        )
+        self.names = {0: "person"}
+
+
+class TestFromUltralytics:
+    """KeyPoints.from_ultralytics for pose models with and without visibility."""
+
+    def test_keypoints_with_visibility_keep_their_confidence(self) -> None:
+        """A `(N, K, 3)` result maps the third column to `keypoint_confidence`."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.array(
+                [[[10.0, 20.0, 0.9], [30.0, 40.0, 0.4]]], dtype=np.float32
+            ),
+            class_id=[0],
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.4]])
+        np.testing.assert_array_equal(key_points.class_id, [0])
+        np.testing.assert_array_equal(key_points.data["class_name"], ["person"])
+
+    def test_keypoints_without_visibility_load_without_confidence(self) -> None:
+        """A `(N, K, 2)` result, whose `conf` is `None`, loads with no confidence."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.array(
+                [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
+                dtype=np.float32,
+            ),
+            class_id=[0, 0],
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        np.testing.assert_array_equal(
+            key_points.xy,
+            [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
+        )
+        assert key_points.keypoint_confidence is None
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
+        np.testing.assert_array_equal(
+            key_points.data["class_name"], ["person", "person"]
+        )
+
+    @pytest.mark.parametrize("depth", [2, 3])
+    def test_result_without_keypoints_is_empty(self, depth: int) -> None:
+        """A result with no skeletons returns `KeyPoints.empty()`."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.zeros((0, 17, depth), dtype=np.float32), class_id=[]
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        assert key_points == KeyPoints.empty()
 
 
 @pytest.mark.parametrize(

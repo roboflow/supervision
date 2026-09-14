@@ -199,6 +199,8 @@ def load_pascal_voc_annotations(
 
     Args:
         images_directory_path: The path to the directory containing the images.
+            Files with a ``.bmp``, ``.jpeg``, ``.jpg``, ``.png``, ``.tif``,
+            ``.tiff`` or ``.webp`` extension are loaded.
         annotations_directory_path: The path to the directory containing the
             PASCAL VOC annotation files.
         force_masks: If True, forces masks to be loaded for all
@@ -213,7 +215,8 @@ def load_pascal_voc_annotations(
     image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+            directory=images_directory_path,
+            extensions=["bmp", "jpeg", "jpg", "png", "tif", "tiff", "webp"],
         )
     )
 
