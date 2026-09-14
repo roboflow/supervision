@@ -396,8 +396,8 @@ def _parse_coordinate(text: str, tag: str) -> float:
 def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
     """Parse ``<polygon>`` vertices, rounding decimal values to the nearest pixel.
 
-    Rounding matches the YOLO and LabelMe loaders, which round polygon vertices
-    before rasterising them into masks.
+    Rounding matches the YOLO and LabelMe loaders, which round polygon vertices before
+    rasterising them into masks.
     """
     coordinates: list[int] = []
     for coord in polygon.findall(".//*"):
