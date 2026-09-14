@@ -392,6 +392,124 @@ class TestLoadPascalVocBackgroundImages:
         assert detections.mask.shape == (0, 20, 30)
 
 
+def _single_object_xml(
+    bndbox: tuple[str, str, str, str], polygon: tuple[str, ...] = ()
+) -> str:
+    """Build a one-object VOC annotation from raw coordinate text."""
+    xmin, ymin, xmax, ymax = bndbox
+    polygon_xml = "".join(
+        f"<{'x' if index % 2 == 0 else 'y'}{index // 2 + 1}>{value}"
+        f"</{'x' if index % 2 == 0 else 'y'}{index // 2 + 1}>"
+        for index, value in enumerate(polygon)
+    )
+    if polygon_xml:
+        polygon_xml = f"<polygon>{polygon_xml}</polygon>"
+    return (
+        f"<annotation><object><name>dog</name><bndbox><xmin>{xmin}</xmin>"
+        f"<ymin>{ymin}</ymin><xmax>{xmax}</xmax><ymax>{ymax}</ymax></bndbox>"
+        f"{polygon_xml}</object></annotation>"
+    )
+
+
+class TestLoadPascalVocDecimalCoordinates:
+    """VOC coordinates written as decimals load instead of raising."""
+
+    @pytest.mark.parametrize(
+        ("bndbox", "expected_xyxy"),
+        [
+            pytest.param(
+                ("48.5", "24.25", "95.75", "71.5"),
+                [47.5, 23.25, 94.75, 70.5],
+                id="fractional",
+            ),
+            pytest.param(
+                ("48.0", "24.0", "95.0", "71.0"),
+                [47.0, 23.0, 94.0, 70.0],
+                id="whole-number-written-as-decimal",
+            ),
+        ],
+    )
+    def test_bndbox_keeps_decimal_precision(
+        self, bndbox: tuple[str, str, str, str], expected_xyxy: list[float]
+    ) -> None:
+        """Decimal bndbox values are read as-is before the 1-index offset."""
+        root = ElementTree.fromstring(_single_object_xml(bndbox=bndbox))
+
+        detections, classes = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(100, 100)
+        )
+
+        assert classes == ["dog"]
+        np.testing.assert_allclose(detections.xyxy, [expected_xyxy])
+
+    def test_polygon_rasterises_like_rounded_polygon(self) -> None:
+        """A decimal polygon produces the mask of the same polygon rounded."""
+        bndbox = ("3", "3", "12", "12")
+        decimal_root = ElementTree.fromstring(
+            _single_object_xml(
+                bndbox=bndbox,
+                polygon=("2.4", "2.6", "11.6", "2.6", "11.6", "11.4", "2.4", "11.4"),
+            )
+        )
+        rounded_root = ElementTree.fromstring(
+            _single_object_xml(
+                bndbox=bndbox, polygon=("2", "3", "12", "3", "12", "11", "2", "11")
+            )
+        )
+
+        decimal, _ = detections_from_xml_obj(
+            decimal_root, classes=[], resolution_wh=(20, 20)
+        )
+        rounded, _ = detections_from_xml_obj(
+            rounded_root, classes=[], resolution_wh=(20, 20)
+        )
+
+        assert decimal.mask is not None
+        assert rounded.mask is not None
+        assert rounded.mask.any()
+        np.testing.assert_array_equal(decimal.mask, rounded.mask)
+
+    @pytest.mark.parametrize("value", ["nan", "inf", "12px"])
+    @pytest.mark.parametrize("location", ["bndbox", "polygon"])
+    def test_non_numeric_coordinate_is_rejected(
+        self, value: str, location: str
+    ) -> None:
+        """A coordinate that is not a finite number still raises ValueError."""
+        if location == "bndbox":
+            xml = _single_object_xml(bndbox=(value, "1", "10", "10"))
+        else:
+            xml = _single_object_xml(
+                bndbox=("1", "1", "10", "10"),
+                polygon=(value, "1", "10", "1", "10", "10"),
+            )
+        root = ElementTree.fromstring(xml)
+
+        with pytest.raises(ValueError, match=value):
+            detections_from_xml_obj(root, classes=[], resolution_wh=(20, 20))
+
+    def test_from_pascal_voc_loads_decimal_annotation_file(
+        self, tmp_path: Path
+    ) -> None:
+        """DetectionDataset.from_pascal_voc reads a file with decimal coordinates."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        cv2.imwrite(str(images_dir / "img.jpg"), np.zeros((100, 100, 3), np.uint8))
+        (annotations_dir / "img.xml").write_text(
+            _single_object_xml(bndbox=("48.5", "24.25", "95.75", "71.5"))
+        )
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        _, _, detections = dataset[0]
+        assert dataset.classes == ["dog"]
+        np.testing.assert_allclose(detections.xyxy, [[47.5, 23.25, 94.75, 70.5]])
+
+
 class TestSavePascalVocAnnotations:
     """save_pascal_voc_annotations: filesystem output contract."""
 

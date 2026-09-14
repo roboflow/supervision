@@ -1,3 +1,4 @@
+import math
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -295,7 +296,7 @@ def detections_from_xml_obj(
             integer-dtype array, including the zero-``<object>`` (background)
             case where it is empty.
     """
-    xyxy: list[list[int]] = []
+    xyxy: list[list[float]] = []
     class_names: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
     with_masks = force_masks or any(
@@ -309,10 +310,10 @@ def detections_from_xml_obj(
         bbox = obj.find("bndbox")
         if bbox is None:
             raise ValueError("Missing bndbox in Pascal VOC annotation.")
-        x1 = int(_get_required_text(bbox, "xmin"))
-        y1 = int(_get_required_text(bbox, "ymin"))
-        x2 = int(_get_required_text(bbox, "xmax"))
-        y2 = int(_get_required_text(bbox, "ymax"))
+        x1 = _parse_coordinate(_get_required_text(bbox, "xmin"), "xmin")
+        y1 = _parse_coordinate(_get_required_text(bbox, "ymin"), "ymin")
+        x2 = _parse_coordinate(_get_required_text(bbox, "xmax"), "xmax")
+        y2 = _parse_coordinate(_get_required_text(bbox, "ymax"), "ymax")
 
         xyxy.append([x1, y1, x2, y2])
 
@@ -377,12 +378,32 @@ def _with_poly_mask(obj: Element) -> bool:
     return obj.find("polygon") is not None
 
 
+def _parse_coordinate(text: str, tag: str) -> float:
+    """Parse one Pascal VOC coordinate written as an integer or a decimal.
+
+    Exporters that keep sub-pixel boxes write values such as ``48.5`` or ``48.0``,
+    which ``int()`` rejects. Anything that is not a finite number still raises.
+    """
+    try:
+        value = float(text)
+    except ValueError:
+        value = math.nan
+    if not math.isfinite(value):
+        raise ValueError(f"Invalid '{tag}' value {text!r} in Pascal VOC annotation.")
+    return value
+
+
 def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
+    """Parse ``<polygon>`` vertices, rounding decimal values to the nearest pixel.
+
+    Rounding matches the YOLO and LabelMe loaders, which round polygon vertices
+    before rasterising them into masks.
+    """
     coordinates: list[int] = []
     for coord in polygon.findall(".//*"):
         if coord.text is None:
             raise ValueError("Missing polygon coordinate value in Pascal VOC.")
-        coordinates.append(int(coord.text))
+        coordinates.append(round(_parse_coordinate(coord.text, coord.tag)))
     return np.array(
         [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)],
         dtype=int,
