@@ -261,6 +261,9 @@ def test_resize_image_for_pillow_image() -> None:
     [
         pytest.param((480, 640), (1024, 1024), (768, 1024), id="landscape"),
         pytest.param((640, 480), (1024, 1024), (1024, 768), id="portrait"),
+        pytest.param(
+            (1080, 1920), (1000, 1000), (562, 1000), id="positive-fraction-truncates"
+        ),
         pytest.param((8, 1200), (100, 100), (1, 100), id="height-would-round-to-zero"),
         pytest.param((1200, 8), (100, 100), (100, 1), id="width-would-round-to-zero"),
     ],
