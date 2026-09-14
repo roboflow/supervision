@@ -14,8 +14,7 @@ pip install "supervision[metrics]"
 
 ## Compare Metric Results
 
-Compute the same metric for each model, then aggregate the resulting scores in a
-table or a grouped bar chart.
+Compute the same metric for each model, then aggregate the resulting scores in a table or a grouped bar chart.
 
 ```python
 import numpy as np
