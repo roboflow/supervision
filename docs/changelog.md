@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.from_inference` no longer fails, or shifts key points onto the wrong joints, when Inference leaves some key points out of a result. Inference drops every key point scored below the request's `keypoint_confidence`, and a model whose classes have different skeletons stops each object at its own class's key point count, so objects in one result can list different key points. The connector stacked those lists as they came: lists of different lengths raised `ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions`, and lists of the same length that were missing different key points loaded with later key points moved into earlier slots, so skeleton edges joined the wrong points. Each key point is now placed at the slot given by its `class_id`, which Inference sets to the key point's skeleton index; slots that were left out stay at `(0, 0)` with zero confidence, which the key point annotators and `KeyPoints.as_detections` already skip as missing. A result in which every key point was left out now loads with zero key points per object instead of failing validation. Results that list every key point load as before.
+
 - Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/1731)).
 
 - Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
