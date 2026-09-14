@@ -545,7 +545,7 @@ class TestLoadPascalVocDecimalCoordinates:
         assert rounded.mask.any()
         np.testing.assert_array_equal(decimal.mask, rounded.mask)
 
-    @pytest.mark.parametrize("value", ["nan", "inf", "12px"])
+    @pytest.mark.parametrize("value", ["nan", "inf", "-inf", "12px"])
     @pytest.mark.parametrize("location", ["bndbox", "polygon"])
     def test_non_numeric_coordinate_is_rejected(
         self, value: str, location: str
