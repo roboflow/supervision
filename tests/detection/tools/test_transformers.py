@@ -245,6 +245,35 @@ class TestProcessTransformersV4PanopticSegmentationResult:
             out["data"][CLASS_NAME_DATA_FIELD], ["background"]
         )
 
+    def test_empty_segments_info_returns_zero_detections(self) -> None:
+        """Empty segments_info yields zero-length arrays shaped like the PNG."""
+        seg_result = {
+            "png_string": make_panoptic_png(np.zeros((3, 5), dtype=np.uint8)),
+            "segments_info": [],
+        }
+
+        out = process_transformers_v4_panoptic_segmentation_result(seg_result, None)
+
+        assert out["xyxy"].shape == (0, 4)
+        assert out["mask"].shape == (0, 3, 5)
+        assert out["class_id"].shape == (0,)
+        assert np.issubdtype(out["class_id"].dtype, np.integer)
+
+    def test_empty_segments_info_builds_empty_detections(self) -> None:
+        """Detections.from_transformers accepts a v4 panoptic result with no segment."""
+        from supervision.detection.core import Detections
+
+        seg_result = {
+            "png_string": make_panoptic_png(np.zeros((3, 5), dtype=np.uint8)),
+            "segments_info": [],
+        }
+
+        detections = Detections.from_transformers(seg_result, id2label={0: "cat"})
+
+        assert len(detections) == 0
+        assert detections.mask is not None
+        assert detections.mask.shape == (0, 3, 5)
+
 
 # ---------------------------------------------------------------------------
 # process_transformers_v5_panoptic_segmentation_result
