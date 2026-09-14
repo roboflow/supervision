@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_transformers` now loads Mask2Former and MaskFormer instance segmentation results produced with `post_process_instance_segmentation(return_binary_maps=True)`, the option Transformers recommends when instances can overlap. With it, `segmentation` is a `(num_instances, height, width)` stack of binary maps instead of a `(height, width)` map of segment ids, but the v5 instance path compared that stack against each segment's `id` as if it were an id map, producing a four-dimensional mask array that `mask_to_xyxy` rejected with `ValueError: too many values to unpack (expected 3)`. Each segment now takes the binary map at its `id`, which is the map's position in the stack, so overlapping instances keep their full masks. Results with a segment-id map load as before.
+
 - Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/1731)).
 
 - Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
