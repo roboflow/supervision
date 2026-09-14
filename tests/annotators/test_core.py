@@ -1497,6 +1497,7 @@ class TestCropAnnotator:
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
 
         assert result.shape == gradient_image.shape
+        assert not np.array_equal(gradient_image, result)
 
     def test_annotate_with_fully_out_of_bounds_detection(self, gradient_image):
         """A box fully outside the scene collapses to zero area and is skipped."""
