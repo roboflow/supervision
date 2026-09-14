@@ -1,14 +1,46 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
+
+from supervision.draw.color import LEGACY_COLOR_PALETTE
 
 if TYPE_CHECKING:
     import pandas as pd
 
 R = TypeVar("R")
+T = TypeVar("T")
+
+
+def _append_object_size_plot_details(
+    labels: list[str],
+    values: list[float],
+    colors: list[str],
+    *,
+    include_object_sizes: bool,
+    metric_labels: list[str],
+    small_objects: T | None,
+    medium_objects: T | None,
+    large_objects: T | None,
+    value_getter: Callable[[T], list[float]],
+) -> None:
+    """Append available object-size bars using the shared category order and colors."""
+    if not include_object_sizes:
+        return
+
+    for name, palette_index, object_sizes in (
+        ("Small", 3, small_objects),
+        ("Medium", 2, medium_objects),
+        ("Large", 4, large_objects),
+    ):
+        if object_sizes is None:
+            continue
+        labels.extend(f"{name}: {metric_label}" for metric_label in metric_labels)
+        values.extend(value_getter(object_sizes))
+        colors.extend([LEGACY_COLOR_PALETTE[palette_index]] * len(metric_labels))
 
 
 @dataclass

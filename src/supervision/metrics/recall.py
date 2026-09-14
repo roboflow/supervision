@@ -23,6 +23,7 @@ from supervision.metrics.core import (
     MetricResult,
     MetricTarget,
     PlotDetails,
+    _append_object_size_plot_details,
 )
 from supervision.metrics.utils.object_size import ObjectSizeCategory
 
@@ -357,31 +358,17 @@ class RecallResult(MetricResult):
         labels = ["Recall@50", "Recall@75"]
         values = [self.recall_at_50, self.recall_at_75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 2
-
-        if include_object_sizes:
-            if self.small_objects is not None:
-                labels += ["Small: R@50", "Small: R@75"]
-                values += [
-                    self.small_objects.recall_at_50,
-                    self.small_objects.recall_at_75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[3]] * 2
-
-            if self.medium_objects is not None:
-                labels += ["Medium: R@50", "Medium: R@75"]
-                values += [
-                    self.medium_objects.recall_at_50,
-                    self.medium_objects.recall_at_75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[2]] * 2
-
-            if self.large_objects is not None:
-                labels += ["Large: R@50", "Large: R@75"]
-                values += [
-                    self.large_objects.recall_at_50,
-                    self.large_objects.recall_at_75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[4]] * 2
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["R@50", "R@75"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [result.recall_at_50, result.recall_at_75],
+        )
 
         size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (

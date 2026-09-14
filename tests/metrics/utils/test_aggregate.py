@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, MetricResult, MetricTarget
 from supervision.metrics.f1_score import F1ScoreResult
 from supervision.metrics.mean_average_precision import MeanAveragePrecisionResult
@@ -291,8 +292,9 @@ class TestGetPlotDetails:
         assert len(details.colors) == 2
 
     def test_f1_with_object_sizes(self) -> None:
-        """F1 plot details with object sizes includes size category bars."""
+        """F1 plot details preserve size-bucket order while skipping missing buckets."""
         small = _make_f1_result(f1_50=0.5, f1_75=0.3)
+        large = _make_f1_result(f1_50=0.2, f1_75=0.1)
         r = F1ScoreResult(
             metric_target=MetricTarget.BOXES,
             averaging_method=AveragingMethod.WEIGHTED,
@@ -302,11 +304,23 @@ class TestGetPlotDetails:
             matched_classes=np.array([0], dtype=np.int32),
             small_objects=small,
             medium_objects=None,
-            large_objects=None,
+            large_objects=large,
         )
         details = r._get_plot_details(include_object_sizes=True)
-        assert len(details.labels) == 4
-        assert "Small: F1@50" in details.labels
+        assert details.labels == [
+            "F1@50",
+            "F1@75",
+            "Small: F1@50",
+            "Small: F1@75",
+            "Large: F1@50",
+            "Large: F1@75",
+        ]
+        assert details.values == [0.8, 0.6, 0.5, 0.3, 0.2, 0.1]
+        assert details.colors == (
+            [LEGACY_COLOR_PALETTE[0]] * 2
+            + [LEGACY_COLOR_PALETTE[3]] * 2
+            + [LEGACY_COLOR_PALETTE[4]] * 2
+        )
 
     def test_map_plot_details(self) -> None:
         """MeanAveragePrecisionResult returns 3 labels without sizes."""
@@ -331,6 +345,28 @@ class TestGetPlotDetails:
         r = _make_mar_result()
         details = r._get_plot_details(include_object_sizes=False)
         assert details.labels == ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
+
+    def test_mar_with_object_sizes(self) -> None:
+        """mAR plot details append all three values for an available size bucket."""
+        medium = _make_mar_result(mar1=0.1, mar10=0.2, mar100=0.3)
+        r = _make_mar_result()
+        r.medium_objects = medium
+
+        details = r._get_plot_details(include_object_sizes=True)
+
+        assert details.labels == [
+            "mAR @ 1",
+            "mAR @ 10",
+            "mAR @ 100",
+            "Medium: mAR @ 1",
+            "Medium: mAR @ 10",
+            "Medium: mAR @ 100",
+        ]
+        assert details.values == [0.4, 0.7, 0.8, 0.1, 0.2, 0.3]
+        assert (
+            details.colors
+            == [LEGACY_COLOR_PALETTE[0]] * 3 + [LEGACY_COLOR_PALETTE[2]] * 3
+        )
 
     def test_title_excludes_object_size_when_disabled(self) -> None:
         """Title omits 'by Object Size' when include_object_sizes=False."""

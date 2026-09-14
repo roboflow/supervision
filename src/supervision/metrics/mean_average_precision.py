@@ -20,7 +20,13 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricResult, MetricTarget, PlotDetails
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+)
 from supervision.metrics.utils.utils import ensure_pandas_installed
 from supervision.utils.logger import _get_logger
 
@@ -228,46 +234,21 @@ class MeanAveragePrecisionResult(MetricResult):
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
         values = [self.map50_95, self.map50, self.map75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
-
-        if include_object_sizes:
-            if self.small_objects is not None:
-                labels += [
-                    "Small: mAP@50:95",
-                    "Small: mAP@50",
-                    "Small: mAP@75",
-                ]
-                values += [
-                    self.small_objects.map50_95,
-                    self.small_objects.map50,
-                    self.small_objects.map75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[3]] * 3
-
-            if self.medium_objects is not None:
-                labels += [
-                    "Medium: mAP@50:95",
-                    "Medium: mAP@50",
-                    "Medium: mAP@75",
-                ]
-                values += [
-                    self.medium_objects.map50_95,
-                    self.medium_objects.map50,
-                    self.medium_objects.map75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[2]] * 3
-
-            if self.large_objects is not None:
-                labels += [
-                    "Large: mAP@50:95",
-                    "Large: mAP@50",
-                    "Large: mAP@75",
-                ]
-                values += [
-                    self.large_objects.map50_95,
-                    self.large_objects.map50,
-                    self.large_objects.map75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAP@50:95", "mAP@50", "mAP@75"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.map50_95,
+                result.map50,
+                result.map75,
+            ],
+        )
 
         title = "Mean Average Precision"
         return PlotDetails(labels=labels, values=values, colors=colors, title=title)

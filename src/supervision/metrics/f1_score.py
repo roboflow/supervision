@@ -23,6 +23,7 @@ from supervision.metrics.core import (
     MetricResult,
     MetricTarget,
     PlotDetails,
+    _append_object_size_plot_details,
 )
 from supervision.metrics.utils.object_size import ObjectSizeCategory
 
@@ -331,25 +332,17 @@ class F1ScoreResult(MetricResult):
         labels = ["F1@50", "F1@75"]
         values = [self.f1_50, self.f1_75]
         colors = [LEGACY_COLOR_PALETTE[0]] * 2
-
-        if include_object_sizes:
-            if self.small_objects is not None:
-                labels += ["Small: F1@50", "Small: F1@75"]
-                values += [self.small_objects.f1_50, self.small_objects.f1_75]
-                colors += [LEGACY_COLOR_PALETTE[3]] * 2
-
-            if self.medium_objects is not None:
-                labels += ["Medium: F1@50", "Medium: F1@75"]
-                values += [
-                    self.medium_objects.f1_50,
-                    self.medium_objects.f1_75,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[2]] * 2
-
-            if self.large_objects is not None:
-                labels += ["Large: F1@50", "Large: F1@75"]
-                values += [self.large_objects.f1_50, self.large_objects.f1_75]
-                colors += [LEGACY_COLOR_PALETTE[4]] * 2
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["F1@50", "F1@75"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [result.f1_50, result.f1_75],
+        )
 
         size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (

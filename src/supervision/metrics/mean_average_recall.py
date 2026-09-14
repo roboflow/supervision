@@ -19,7 +19,13 @@ from supervision.detection.utils.matching import (
     _match_detection_batch_with_target_indices,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricResult, MetricTarget, PlotDetails
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -200,46 +206,21 @@ class MeanAverageRecallResult(MetricResult):
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
         colors = [LEGACY_COLOR_PALETTE[0]] * 3
-
-        if include_object_sizes:
-            if self.small_objects is not None:
-                labels += [
-                    "Small: mAR @ 1",
-                    "Small: mAR @ 10",
-                    "Small: mAR @ 100",
-                ]
-                values += [
-                    self.small_objects.mAR_at_1,
-                    self.small_objects.mAR_at_10,
-                    self.small_objects.mAR_at_100,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[3]] * 3
-
-            if self.medium_objects is not None:
-                labels += [
-                    "Medium: mAR @ 1",
-                    "Medium: mAR @ 10",
-                    "Medium: mAR @ 100",
-                ]
-                values += [
-                    self.medium_objects.mAR_at_1,
-                    self.medium_objects.mAR_at_10,
-                    self.medium_objects.mAR_at_100,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[2]] * 3
-
-            if self.large_objects is not None:
-                labels += [
-                    "Large: mAR @ 1",
-                    "Large: mAR @ 10",
-                    "Large: mAR @ 100",
-                ]
-                values += [
-                    self.large_objects.mAR_at_1,
-                    self.large_objects.mAR_at_10,
-                    self.large_objects.mAR_at_100,
-                ]
-                colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAR @ 1", "mAR @ 10", "mAR @ 100"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.mAR_at_1,
+                result.mAR_at_10,
+                result.mAR_at_100,
+            ],
+        )
 
         size_suffix = ", by Object Size" if include_object_sizes else ""
         title = (
