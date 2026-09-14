@@ -52,7 +52,7 @@ Pip install the supervision package in a [**Python>=3.10**](https://www.python.o
 pip install supervision
 ```
 
-Read more about conda, mamba, and installing from source in our [guide](https://roboflow.github.io/supervision/).
+Read more about conda, mamba, and installing from source in our [guide](https://supervision.roboflow.com/).
 
 ## 🔥 Quickstart
 
@@ -262,7 +262,7 @@ https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-
 
 ## 📚 Documentation
 
-Visit our [documentation](https://roboflow.github.io/supervision) page to learn how supervision can help you build computer vision applications faster and more reliably.
+Visit our [documentation](https://supervision.roboflow.com/) page to learn how supervision can help you build computer vision applications faster and more reliably.
 
 ## 🏆 Contribution
 
