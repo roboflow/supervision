@@ -96,6 +96,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     mask_soft_non_max_suppression,
+    match_detections,
     oriented_box_iou_batch,
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
