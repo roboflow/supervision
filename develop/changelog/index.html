@@ -4006,6 +4006,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.from_pascal_voc</code> no longer fails on annotations whose coordinates are written as decimals. The loader parsed every <code>&lt;bndbox&gt;</code> and <code>&lt;polygon&gt;</code> value with <code>int()</code>, so one file carrying <code>&lt;xmin&gt;48.5&lt;/xmin&gt;</code> — or even <code>&lt;xmin&gt;48.0&lt;/xmin&gt;</code> — aborted the whole load with <code>ValueError: invalid literal for int() with base 10: '48.5'</code>. Exporters that keep sub-pixel boxes write VOC this way; Datumaro, which CVAT uses for its exports, is one of them. Box coordinates are now read as floats and keep their precision, and polygon vertices are rounded to the nearest pixel before rasterising, as the YOLO and LabelMe loaders already do. Integer coordinates load exactly as before, and values that are not finite numbers are still rejected. <a href="https://github.com/roboflow/supervision/pull/2568">#2568</a></p>
+</li>
+<li>
+<p><code>sv.Detections.from_transformers</code> no longer crashes on a Transformers v4 panoptic result that holds no segments. <code>post_process_panoptic</code> returns an empty <code>segments_info</code> whenever no query clears its <code>threshold</code> (or every kept segment is filtered out as too small), but the v4 panoptic path stacked the per-segment masks with <code>np.array([...])</code>, which turns an empty list into a 1-D <code>(0,)</code> array, and <code>mask_to_xyxy</code> then failed with <code>ValueError: not enough values to unpack (expected 3, got 1)</code>. The path now builds a <code>(0, H, W)</code> mask stack and an integer <code>class_id</code> for that case, as the v5 semantic, instance and panoptic paths already do, so such a frame yields empty <code>Detections</code>.</p>
+</li>
+<li>
 <p><code>sv.KeyPoints.from_ultralytics</code> no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value <code>kpt_shape</code> (<code>[K, 2]</code>, coordinates only) return key points of shape <code>(N, K, 2)</code>, and for those <code>Results.keypoints.conf</code> is <code>None</code>. The connector called <code>.cpu()</code> on it unconditionally, so every non-empty frame raised <code>AttributeError: 'NoneType' object has no attribute 'cpu'</code>. Such results now load with <code>keypoint_confidence=None</code>, the same as any other <code>sv.KeyPoints</code> without scores; models that do report visibility keep their confidences.</p>
 </li>
 <li>
@@ -6306,7 +6312,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 15:32:07 UTC">September 14, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 16:51:10 UTC">September 14, 2026</span>
   </span>
 
     
