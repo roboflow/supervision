@@ -391,7 +391,7 @@ class Detections:
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
-                class_id=np.arange(len(ultralytics_results)),
+                class_id=np.zeros(len(masks), dtype=int),
             )
 
         if (
