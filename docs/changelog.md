@@ -9,7 +9,6 @@ date_modified: 2026-09-08
 
 - `sv.DetectionDataset.from_pascal_voc` no longer skips `.bmp`, `.tif`, `.tiff` and `.webp` images. The loader only listed `.jpg`, `.jpeg` and `.png` files, so every other image was left out of the dataset without a warning — even though `sv.DetectionDataset.from_yolo` and `sv.ClassificationDataset.from_folder_structure` load those formats, and `DetectionDataset.as_pascal_voc` writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as `sv.ClassificationDataset.from_folder_structure`.
 
-
 - `sv.match_detections` now exposes the metrics matcher as a public primitive: given two `sv.Detections`, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 
 - `sv.VLM.KOSMOS_2` — `sv.Detections.from_vlm` now parses Kosmos-2 grounding results, the `(caption, entities)` pair returned by the model's `AutoProcessor.post_process_generation`. A phrase that grounds to several regions yields one detection per region, and `classes` filters the result and assigns `class_id` by index into that list, matching the other VLM connectors. Kosmos-2 is available through `sv.VLM` only, not through the deprecated `sv.LMM` ([#1903](https://github.com/roboflow/supervision/pull/1903)).
