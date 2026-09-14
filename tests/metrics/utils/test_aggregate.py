@@ -59,13 +59,17 @@ def _make_precision_result(p50: float = 0.9, p75: float = 0.7) -> PrecisionResul
 
 
 def _make_map_result(
-    map50: float = 0.85, map75: float = 0.65
+    map50: float = 0.85,
+    map75: float = 0.65,
+    *,
+    metric_target: MetricTarget = MetricTarget.BOXES,
+    is_class_agnostic: bool = False,
 ) -> MeanAveragePrecisionResult:
     """Build a minimal MeanAveragePrecisionResult for testing."""
     scores = np.array([map50, 0.0, 0.0, 0.0, 0.0, map75, 0.0, 0.0, 0.0, 0.0])
     return MeanAveragePrecisionResult(
-        metric_target=MetricTarget.BOXES,
-        is_class_agnostic=False,
+        metric_target=metric_target,
+        is_class_agnostic=is_class_agnostic,
         mAP_scores=scores,
         ap_per_class=np.zeros((1, 10)),
         iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float64),
@@ -275,6 +279,22 @@ class TestPlotAggregateMetricResults:
         second = _make_f1_result(
             metric_target=metric_target, averaging_method=averaging_method
         )
+
+        with pytest.raises(ValueError, match="Plot configuration mismatch"):
+            plot_aggregate_metric_results([first, second])
+
+    def test_map_target_mismatch_raises(self) -> None:
+        """MAP results with different targets cannot be combined."""
+        first = _make_map_result(metric_target=MetricTarget.BOXES)
+        second = _make_map_result(metric_target=MetricTarget.MASKS)
+
+        with pytest.raises(ValueError, match="Plot configuration mismatch"):
+            plot_aggregate_metric_results([first, second])
+
+    def test_map_class_agnostic_mismatch_raises(self) -> None:
+        """MAP results with different class handling cannot be combined."""
+        first = _make_map_result(is_class_agnostic=False)
+        second = _make_map_result(is_class_agnostic=True)
 
         with pytest.raises(ValueError, match="Plot configuration mismatch"):
             plot_aggregate_metric_results([first, second])

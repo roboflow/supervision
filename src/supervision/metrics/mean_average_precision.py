@@ -250,7 +250,11 @@ class MeanAveragePrecisionResult(MetricResult):
             ],
         )
 
-        title = "Mean Average Precision"
+        title = (
+            "Mean Average Precision\n"
+            f"(target: {self.metric_target.value}, "
+            f"class agnostic: {self.is_class_agnostic})"
+        )
         return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
     def plot(self) -> None:
