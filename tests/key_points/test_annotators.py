@@ -562,6 +562,16 @@ class TestVertexEllipseHaloAnnotator:
 
 
 class TestVertexLabelAnnotator:
+    def test_smart_position_draws_overlapping_labels(self) -> None:
+        """Label padding preserves integer coordinates accepted by the renderer."""
+        scene = np.zeros((120, 120, 3), dtype=np.uint8)
+        key_points = sv.KeyPoints(xy=np.array([[[40.0, 40.0], [50.0, 50.0]]]))
+        annotator = sv.VertexLabelAnnotator(smart_position=True)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert np.any(result != scene)
+
     @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
     def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
         """A label anchored to a non-finite keypoint is skipped, not drawn."""
