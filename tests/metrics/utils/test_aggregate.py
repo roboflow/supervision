@@ -347,7 +347,7 @@ class TestGetPlotDetails:
         assert details.labels == ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
 
     def test_mar_with_object_sizes(self) -> None:
-        """mAR plot details append all three values for an available size bucket."""
+        """MAR plot details append all three values for an available size bucket."""
         medium = _make_mar_result(mar1=0.1, mar10=0.2, mar100=0.3)
         r = _make_mar_result()
         r.medium_objects = medium
