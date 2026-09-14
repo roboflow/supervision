@@ -9,7 +9,6 @@ date_modified: 2026-09-08
 
 - `sv.DetectionDataset.from_pascal_voc` no longer skips `.bmp`, `.tif`, `.tiff` and `.webp` images. The loader only listed `.jpg`, `.jpeg` and `.png` files, so every other image was left out of the dataset without a warning — even though `sv.DetectionDataset.from_yolo` and `sv.ClassificationDataset.from_folder_structure` load those formats, and `DetectionDataset.as_pascal_voc` writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as `sv.ClassificationDataset.from_folder_structure`.
 
-- `sv.pad_boxes` now computes integer-coordinate padding without overflow or unsigned casting errors. Integer inputs are promoted to `int64`, with a `float64` fallback only when padded coordinates exceed its range; floating-point inputs retain their dtype. Padding can extend boxes below zero or above the input dtype's maximum without wrapping their coordinates, while ordinary integer boxes remain compatible with annotation renderers.
 
 - `sv.match_detections` now exposes the metrics matcher as a public primitive: given two `sv.Detections`, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 
