@@ -325,8 +325,10 @@ def detections_from_xml_obj(
             # https://github.com/roboflow/supervision/issues/144
             polygon -= 1
 
+            # Round only after the 1-index offset, as the YOLO and LabelMe loaders
+            # round zero-indexed vertices; rounding first would move `.5` values.
             mask_from_polygon = polygon_to_mask(
-                polygon=polygon,
+                polygon=np.round(polygon).astype(np.int32),
                 resolution_wh=resolution_wh,
             )
             object_mask |= mask_from_polygon.astype(bool)
@@ -393,20 +395,20 @@ def _parse_coordinate(text: str, tag: str) -> float:
     return value
 
 
-def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
-    """Parse ``<polygon>`` vertices, rounding decimal values to the nearest pixel.
+def parse_polygon_points(polygon: Element) -> npt.NDArray[np.float64]:
+    """Parse ``<polygon>`` vertices, keeping decimal values as written.
 
-    Rounding matches the YOLO and LabelMe loaders, which round polygon vertices before
-    rasterising them into masks.
+    Vertices stay floats so the caller can apply the 1-index offset before rounding
+    them to pixels for rasterisation.
     """
-    coordinates: list[int] = []
+    coordinates: list[float] = []
     for coord in polygon.findall(".//*"):
         if coord.text is None:
             raise ValueError("Missing polygon coordinate value in Pascal VOC.")
-        coordinates.append(round(_parse_coordinate(coord.text, coord.tag)))
+        coordinates.append(_parse_coordinate(coord.text, coord.tag))
     return np.array(
         [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)],
-        dtype=int,
+        dtype=np.float64,
     )
 
 

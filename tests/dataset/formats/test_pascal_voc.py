@@ -442,19 +442,31 @@ class TestLoadPascalVocDecimalCoordinates:
         assert classes == ["dog"]
         np.testing.assert_allclose(detections.xyxy, [expected_xyxy])
 
-    def test_polygon_rasterises_like_rounded_polygon(self) -> None:
-        """A decimal polygon produces the mask of the same polygon rounded."""
+    @pytest.mark.parametrize(
+        ("decimal_polygon", "integer_polygon"),
+        [
+            pytest.param(
+                ("2.4", "2.6", "11.6", "2.6", "11.6", "11.4", "2.4", "11.4"),
+                ("2", "3", "12", "3", "12", "11", "2", "11"),
+                id="fractional",
+            ),
+            pytest.param(
+                ("2.5", "2.5", "11.5", "2.5", "11.5", "11.5", "2.5", "11.5"),
+                ("3", "3", "11", "3", "11", "11", "3", "11"),
+                id="half-pixel-rounded-after-offset",
+            ),
+        ],
+    )
+    def test_polygon_rasterises_like_rounded_polygon(
+        self, decimal_polygon: tuple[str, ...], integer_polygon: tuple[str, ...]
+    ) -> None:
+        """A decimal polygon rasterises like its zero-indexed vertices rounded."""
         bndbox = ("3", "3", "12", "12")
         decimal_root = ElementTree.fromstring(
-            _single_object_xml(
-                bndbox=bndbox,
-                polygon=("2.4", "2.6", "11.6", "2.6", "11.6", "11.4", "2.4", "11.4"),
-            )
+            _single_object_xml(bndbox=bndbox, polygon=decimal_polygon)
         )
         rounded_root = ElementTree.fromstring(
-            _single_object_xml(
-                bndbox=bndbox, polygon=("2", "3", "12", "3", "12", "11", "2", "11")
-            )
+            _single_object_xml(bndbox=bndbox, polygon=integer_polygon)
         )
 
         decimal, _ = detections_from_xml_obj(
