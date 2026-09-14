@@ -394,6 +394,70 @@ class TestLoadPascalVocBackgroundImages:
         assert detections.mask.shape == (0, 20, 30)
 
 
+class TestLoadPascalVocImageFormats:
+    """Every image format the other dataset loaders accept is loaded from VOC."""
+
+    @pytest.mark.parametrize(
+        "extension", ["jpg", "jpeg", "png", "bmp", "tif", "tiff", "webp"]
+    )
+    def test_image_with_annotation_is_loaded(
+        self, tmp_path: Path, extension: str
+    ) -> None:
+        """An annotated image is loaded regardless of its file extension."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        image_path = images_dir / f"img.{extension}"
+        cv2.imwrite(str(image_path), np.zeros((20, 20, 3), dtype=np.uint8))
+        (annotations_dir / "img.xml").write_text(
+            "<annotation><object><name>cat</name><bndbox><xmin>1</xmin>"
+            "<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>"
+            "</annotation>"
+        )
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert [Path(path).name for path in dataset.image_paths] == [image_path.name]
+        assert len(dataset.annotations[dataset.image_paths[0]]) == 1
+
+    def test_save_then_load_keeps_every_image(self, tmp_path: Path) -> None:
+        """A dataset exported to VOC reloads with all of its images."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        image_paths = [str(images_dir / f"img_{ext}.{ext}") for ext in ("jpg", "bmp")]
+        for image_path in image_paths:
+            cv2.imwrite(image_path, np.zeros((20, 20, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=image_paths,
+            annotations={
+                image_path: Detections(
+                    xyxy=np.array([[1, 1, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                )
+                for image_path in image_paths
+            },
+        )
+        annotations_dir = tmp_path / "annotations"
+        dataset.as_pascal_voc(annotations_directory_path=str(annotations_dir))
+
+        reloaded = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert sorted(Path(path).name for path in reloaded.image_paths) == [
+            "img_bmp.bmp",
+            "img_jpg.jpg",
+        ]
+
+
 class TestSavePascalVocAnnotations:
     """save_pascal_voc_annotations: filesystem output contract."""
 
