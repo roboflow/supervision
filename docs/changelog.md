@@ -7,6 +7,8 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_ultralytics` now assigns the placeholder class ID `0` to every mask in a masks-only result. Previously the placeholder IDs were sequential (`0`, `1`, `2`, ...) despite every mask belonging to the same image. Results that carry boxes keep their real class IDs and are unaffected.
+
 - `sv.pad_boxes` now computes integer-coordinate padding without overflow or unsigned casting errors. Integer inputs are promoted to `int64`, with a `float64` fallback only when padded coordinates exceed its range; floating-point inputs retain their dtype. Padding can extend boxes below zero or above the input dtype's maximum without wrapping their coordinates, while ordinary integer boxes remain compatible with annotation renderers.
 
 - `sv.scale_image` and `sv.resize_image(keep_aspect_ratio=True)` no longer derive a zero-sized target. Both compute the output size from the input and truncate it with `int()`, so a small enough factor — or an aspect ratio too extreme for the target box — rounded an axis down to `0`, and `cv2.resize` answered with `error: (-215:Assertion failed) inv_scale_x > 0`, an assertion that names nothing the caller passed. Each axis now keeps at least one pixel. This also reaches two callers: `sv.letterbox_image` could not fill the resolution it was asked for (a `1200 x 8` strip into `(100, 100)`), and `sv.CropAnnotator` with a `scale_factor` below `1` aborted the whole frame as soon as one detection box was a few pixels across. Sizes that did not round to zero are unchanged.
