@@ -167,11 +167,16 @@ def process_transformers_v4_panoptic_segmentation_result(
     """
     segments_info = segmentation_result["segments_info"]
     png_string = segmentation_result["png_string"]
-    class_ids = np.array([segment["category_id"] for segment in segments_info])
+    class_ids = np.array(
+        [segment["category_id"] for segment in segments_info], dtype=int
+    )
     segmentation_array = png_string_to_segmentation_array(png_string=png_string)
-    masks = np.array(
-        [segmentation_array == segment["id"] for segment in segments_info]
-    ).astype(bool)
+    if len(segments_info) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.array(
+            [segmentation_array == segment["id"] for segment in segments_info]
+        ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(
