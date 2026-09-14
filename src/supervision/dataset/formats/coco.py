@@ -583,8 +583,8 @@ def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[in
     """Return ``(height, width)`` for ``image_path`` without decoding pixels.
 
     Uses the in-memory array when the dataset holds one; otherwise reads the size from
-    the file header, following its EXIF orientation the way loading the image does —
-    the same optimization the YOLO loader uses (#1636).
+    the file header, following its EXIF orientation the way loading the image does — the
+    same optimization the YOLO loader uses (#1636).
     """
     if dataset._images_in_memory:
         image_height, image_width = dataset._images_in_memory[image_path].shape[:2]

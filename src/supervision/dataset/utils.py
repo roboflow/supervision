@@ -37,9 +37,9 @@ _QUARTER_TURN_EXIF_ORIENTATIONS = frozenset({5, 6, 7, 8})
 def _image_file_resolution_wh(image_path: str) -> tuple[int, int]:
     """Return the `(width, height)` at which `cv2.imread` loads an image file.
 
-    Only the file header is read, which is much faster than decoding the image
-    (#1554). Loading applies the EXIF orientation tag, and orientations 5 to 8 turn the
-    image a quarter turn, so for those the header's width and height are swapped.
+    Only the file header is read, which is much faster than decoding the image (#1554).
+    Loading applies the EXIF orientation tag, and orientations 5 to 8 turn the image a
+    quarter turn, so for those the header's width and height are swapped.
     """
     with Image.open(image_path) as image:
         width, height = image.size
