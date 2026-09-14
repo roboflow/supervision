@@ -62,10 +62,11 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], expected_names)
 
 
-def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
+def test_from_ultralytics_segmentation_only_keeps_class_zero_for_every_mask(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    results = _FakeUltralyticsResults(boxes=None, names={}, length=3)
+    """One image with three masks yields three class-zero detections."""
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=1)
 
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
@@ -79,7 +80,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
 
     np.testing.assert_allclose(det.xyxy, fake_xyxy)
     np.testing.assert_array_equal(det.mask, fake_masks)
-    np.testing.assert_array_equal(det.class_id, np.arange(len(results)))
+    np.testing.assert_array_equal(det.class_id, np.zeros(len(fake_masks), dtype=int))
 
 
 def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> None:
