@@ -8,6 +8,8 @@ date_modified: 2026-09-14
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.from_ultralytics` no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value `kpt_shape` (`[K, 2]`, coordinates only) return key points of shape `(N, K, 2)`, and for those `Results.keypoints.conf` is `None`. The connector called `.cpu()` on it unconditionally, so every non-empty frame raised `AttributeError: 'NoneType' object has no attribute 'cpu'`. Such results now load with `keypoint_confidence=None`, the same as any other `sv.KeyPoints` without scores; models that do report visibility keep their confidences.
+
 - `sv.DetectionDataset.from_pascal_voc` no longer skips `.bmp`, `.tif`, `.tiff` and `.webp` images. The loader only listed `.jpg`, `.jpeg` and `.png` files, so every other image was left out of the dataset without a warning — even though `sv.DetectionDataset.from_yolo` and `sv.ClassificationDataset.from_folder_structure` load those formats, and `DetectionDataset.as_pascal_voc` writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as `sv.ClassificationDataset.from_folder_structure`.
 
 ### 0.30.3 <small>Sep 14, 2026</small>
