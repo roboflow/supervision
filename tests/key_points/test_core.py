@@ -1306,6 +1306,7 @@ class _FakeUltralyticsKeypoints:
     """Ultralytics-like `Keypoints`: `conf` is `None` without a visibility column."""
 
     def __init__(self, data: np.ndarray) -> None:
+        """Split `(N, K, 2)` or `(N, K, 3)` key point data into `xy` and `conf`."""
         self.xy = _FakeUltralyticsPoseTensor(data[..., :2])
         self.conf = _FakeTensor(data[..., 2]) if data.shape[-1] == 3 else None
 
@@ -1314,6 +1315,7 @@ class _FakeUltralyticsPoseResults:
     """Ultralytics-like pose `Results` holding boxes, names and key points."""
 
     def __init__(self, keypoints: np.ndarray, class_id: list[int]) -> None:
+        """Wrap key point data with one box and class id per skeleton."""
         count = len(class_id)
         self.keypoints = _FakeUltralyticsKeypoints(keypoints)
         self.boxes = _FakeUltralyticsBoxes(
