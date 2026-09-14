@@ -4,13 +4,34 @@ import numpy.typing as npt
 from supervision import _cv2 as cv2
 
 
+def _to_local_cv2_polygon(
+    polygon: npt.NDArray[np.number],
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.number]]:
+    """Translate a polygon to a local float32 coordinate system for OpenCV.
+
+    Integer subtraction uses object arithmetic so unsigned and signed inputs do not wrap
+    before conversion. Translating first preserves representable local geometry when
+    absolute coordinates exceed float32 precision.
+    """
+    origin = polygon.min(axis=0)
+    if np.issubdtype(polygon.dtype, np.integer):
+        local_polygon = np.asarray(
+            polygon.astype(object) - origin.astype(object), dtype=np.float32
+        )
+    else:
+        local_polygon = (
+            polygon.astype(np.float64, copy=False)
+            - origin.astype(np.float64, copy=False)
+        ).astype(np.float32)
+    return local_polygon, origin
+
+
 def filter_polygons_by_area(
     polygons: list[npt.NDArray[np.number]],
     min_area: float | None = None,
     max_area: float | None = None,
 ) -> list[npt.NDArray[np.number]]:
-    """
-    Filters a list of polygons based on their area.
+    """Filters a list of polygons based on their area.
 
     Args:
         polygons: A list of polygons, where each polygon is
@@ -45,10 +66,10 @@ def filter_polygons_by_area(
     """
     if min_area is None and max_area is None:
         return polygons
-    ares = [cv2.contourArea(polygon) for polygon in polygons]
+    areas = [cv2.contourArea(_to_local_cv2_polygon(polygon)[0]) for polygon in polygons]
     return [
         polygon
-        for polygon, area in zip(polygons, ares)
+        for polygon, area in zip(polygons, areas)
         if (min_area is None or area >= min_area)
         and (max_area is None or area <= max_area)
     ]
@@ -57,8 +78,7 @@ def filter_polygons_by_area(
 def approximate_polygon(
     polygon: npt.NDArray[np.number], percentage: float, epsilon_step: float = 0.05
 ) -> npt.NDArray[np.number]:
-    """
-    Approximates a given polygon by reducing a certain percentage of points.
+    """Approximates a given polygon by reducing a certain percentage of points.
 
     This function uses the Ramer-Douglas-Peucker algorithm to simplify the input
     polygon by reducing the number of points while preserving the general shape.
@@ -118,15 +138,28 @@ def approximate_polygon(
     if len(polygon) <= target_points:
         return polygon
 
+    original_dtype = polygon.dtype
+    cv_polygon, origin = _to_local_cv2_polygon(polygon)
+
     epsilon: float = 0
     approximated_points = polygon
     while len(approximated_points) > target_points:
         epsilon += epsilon_step
-        candidate = np.squeeze(cv2.approxPolyDP(polygon, epsilon, closed=True), axis=1)
+        candidate = np.squeeze(
+            cv2.approxPolyDP(cv_polygon, epsilon, closed=True), axis=1
+        )
         # Stop before the approximation collapses below a valid polygon; keep the
         # last result with at least three points.
         if len(candidate) < 3:
             break
-        approximated_points = candidate
+        if np.issubdtype(original_dtype, np.integer):
+            approximated_points = np.asarray(
+                candidate.astype(original_dtype).astype(object) + origin.astype(object),
+                dtype=original_dtype,
+            )
+        else:
+            approximated_points = (
+                candidate.astype(np.float64) + origin.astype(np.float64)
+            ).astype(original_dtype)
 
     return approximated_points

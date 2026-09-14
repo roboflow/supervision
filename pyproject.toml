@@ -52,7 +52,7 @@ dependencies = [
   "matplotlib>=3.6",
   "numpy>=1.21.2",
   "pillow>=9.4",
-  "pydeprecate>=0.9,<0.12",
+  "pydeprecate>=0.9,<0.13",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
@@ -93,7 +93,7 @@ docs = [
   "mkdocstrings-python>=2,<3",
 ]
 build = [
-  "build>=1,<1.6",
+  "build>=1,<1.7",
   "twine>=5.1.1,<8",
   "wheel>=0.40,<0.49",
 ]
@@ -192,6 +192,11 @@ ignore-words-list = "STrack,sTrack,strack"
 skip = "*.ipynb"
 count = true
 quiet-level = 3
+
+[tool.docformatter]
+recursive = true
+wrap-summaries = 88
+wrap-descriptions = 88
 
 [tool.mypy]
 mypy_path = "src"

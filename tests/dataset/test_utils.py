@@ -259,14 +259,14 @@ class TestTrainTestSplitRngIsolation:
     """Regression tests for train_test_split RNG isolation (DAT-02)."""
 
     def test_does_not_mutate_input_list(self) -> None:
-        """split() must not reorder the caller's list in place."""
+        """Split() must not reorder the caller's list in place."""
         data = list(range(10))
         original = data.copy()
         train_test_split(data=data, train_ratio=0.5, random_state=42, shuffle=True)
         assert data == original
 
     def test_does_not_pollute_global_rng(self) -> None:
-        """split() must not disturb the process-global random state."""
+        """Split() must not disturb the process-global random state."""
         state_before = random.getstate()
         train_test_split(
             data=list(range(10)), train_ratio=0.5, random_state=42, shuffle=True

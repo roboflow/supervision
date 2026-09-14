@@ -22,8 +22,7 @@ def main(
     track_seconds: int = 5,
     minimum_matching_threshold: float = 0.99,
 ) -> None:
-    """
-    Heatmap and Tracking with Supervision.
+    """Heatmap and Tracking with Supervision.
 
     Args:
         source_weights_path: Path to the source weights file

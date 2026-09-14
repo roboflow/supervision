@@ -46,9 +46,7 @@ DEFAULT_IMAGE_URL_CACHE_DIR = SUPERVISION_CACHE_DIR / "image-url"
 
 
 def _get_image_url_cache_path(value: str, cache_dir: str | Path | None) -> Path:
-    """
-    Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`.
-    """
+    """Build the cache file path for a URL: `<cache root>/<md5(url)><suffix>`."""
     cache_root = (
         DEFAULT_IMAGE_URL_CACHE_DIR
         if cache_dir is None
@@ -64,9 +62,7 @@ def _decode_image_from_bytes(
     value: bytes,
     cv_imread_flags: int,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Decode raw image bytes into an OpenCV image, raising on undecodable data.
-    """
+    """Decode raw image bytes into an OpenCV image, raising on undecodable data."""
     image = cv2.imdecode(
         np.frombuffer(value, dtype=np.uint8),
         cv_imread_flags,
@@ -85,8 +81,7 @@ def load_image_from_url(
     cache_dir: str | Path | None = None,
     force_reload: bool = False,
 ) -> npt.NDArray[np.uint8]:
-    """
-    Load an image from a URL as an OpenCV image.
+    """Load an image from a URL as an OpenCV image.
 
     Args:
         value: HTTP(S) URL of the image.
@@ -157,8 +152,7 @@ def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[np.number] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
-    """
-    Crop image based on bounding box coordinates.
+    """Crop image based on bounding box coordinates.
 
     Args:
         image: The image to crop.
@@ -227,8 +221,7 @@ def crop_image(
 
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
-    """
-    Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
+    """Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
         image: The image to scale.
@@ -241,6 +234,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If scale factor is non-positive.
+
+    Note:
+        Each axis keeps at least one pixel, so a factor small enough to round an
+        axis of a small image down to zero returns a one-pixel-wide or
+        one-pixel-tall image rather than raising.
 
     Examples:
         ```pycon
@@ -271,8 +269,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         raise ValueError("Scale factor must be positive.")
 
     width_old, height_old = image.shape[1], image.shape[0]
-    width_new = int(width_old * scale_factor)
-    height_new = int(height_old * scale_factor)
+    # A small factor on a small image truncates an axis to zero, and `cv2.resize`
+    # answers a zero-sized target with a bare assertion. One pixel is the smallest
+    # image that still exists, so clamp there instead.
+    width_new = max(1, int(width_old * scale_factor))
+    height_new = max(1, int(height_old * scale_factor))
     return cast(
         npt.NDArray[np.uint8],
         cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
@@ -285,8 +286,7 @@ def resize_image(
     resolution_wh: tuple[int, int],
     keep_aspect_ratio: bool = False,
 ) -> ImageType:
-    """
-    Resize image to specified resolution. Can optionally maintain aspect ratio.
+    """Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
         image: The image to resize.
@@ -300,6 +300,11 @@ def resize_image(
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
+    Note:
+        With `keep_aspect_ratio=True` the fitted axis keeps at least one pixel, so
+        an aspect ratio too extreme to fit the target box returns a one-pixel-wide
+        or one-pixel-tall image rather than raising.
 
     Examples:
         ```pycon
@@ -333,12 +338,15 @@ def resize_image(
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
+        # The fitted axis truncates to zero once the aspect ratio outgrows the target
+        # box, and `cv2.resize` answers a zero-sized target with a bare assertion.
+        # One pixel is the smallest image that still exists, so clamp there instead.
         if image_ratio >= target_ratio:
             width_new = resolution_wh[0]
-            height_new = int(resolution_wh[0] / image_ratio)
+            height_new = max(1, int(resolution_wh[0] / image_ratio))
         else:
             height_new = resolution_wh[1]
-            width_new = int(resolution_wh[1] * image_ratio)
+            width_new = max(1, int(resolution_wh[1] * image_ratio))
     else:
         width_new, height_new = resolution_wh
 
@@ -354,9 +362,8 @@ def letterbox_image(
     resolution_wh: tuple[int, int],
     color: tuple[int, int, int] | Color = Color.BLACK,
 ) -> ImageType:
-    """
-    Resize image and pad with color to achieve desired resolution while
-    maintaining aspect ratio.
+    """Resize image and pad with color to achieve desired resolution while maintaining
+    aspect ratio.
 
     Args:
         image: The image to resize and pad. Accepts BGR arrays of shape
@@ -432,9 +439,8 @@ def overlay_image(
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
-    """
-    Deprecated since 0.27.0; removal in 0.31.0. Use `_overlay_image` for
-    internal callers, or avoid calling `overlay_image` directly in external code.
+    """Deprecated since 0.27.0; removal in 0.31.0. Use `_overlay_image` for internal
+    callers, or avoid calling `overlay_image` directly in external code.
 
     Overlay image onto scene at specified anchor point. Handles cases where
     overlay position is partially or completely outside scene bounds.
@@ -532,8 +538,7 @@ def tint_image(
     color: Color = Color.BLACK,
     opacity: float = 0.5,
 ) -> ImageType:
-    """
-    Tint image with solid color overlay at specified opacity.
+    """Tint image with solid color overlay at specified opacity.
 
     Args:
         image: The image to tint.
@@ -543,7 +548,7 @@ def tint_image(
 
     Returns:
         Tinted image matching input
-            type.
+            type. The input image is left unchanged.
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
@@ -559,6 +564,8 @@ def tint_image(
         ... )
         >>> tinted_image.shape
         (100, 100, 3)
+        >>> int(image.max())
+        0
 
         ```
 
@@ -568,17 +575,21 @@ def tint_image(
         raise ValueError("opacity must be between 0.0 and 1.0")
 
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
-    cv2.addWeighted(
-        src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0, dst=image
+    # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
+    # the tint back into the caller's array for a NumPy input, while a Pillow input
+    # was shielded by the ndarray conversion the decorator makes.
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.addWeighted(
+            src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0
+        ),
     )
-    return image
 
 
 @ensure_cv2_image_for_standalone_function
 def grayscale_image(image: ImageType) -> ImageType:
-    """
-    Convert image to 3-channel grayscale. Luminance channel is broadcast to
-    all three channels for compatibility with color-based drawing helpers.
+    """Convert image to 3-channel grayscale. Luminance channel is broadcast to all three
+    channels for compatibility with color-based drawing helpers.
 
     Args:
         image: The image to convert to
@@ -607,8 +618,8 @@ def grayscale_image(image: ImageType) -> ImageType:
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
-    """
-    Get image width and height as a tuple `(width, height)` for various image formats.
+    """Get image width and height as a tuple `(width, height)` for various image
+    formats.
 
     Supports both `numpy.ndarray` images (with shape `(H, W, ...)`) and
     `PIL.Image.Image` inputs.
@@ -654,11 +665,10 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 
 
 class ImageSink:
-    """
-    Save sequential images into a directory through a context manager.
+    """Save sequential images into a directory through a context manager.
 
-    `ImageSink` creates the target directory on entry and writes each image
-    using `save_image`, incrementing the image name pattern after every save.
+    `ImageSink` creates the target directory on entry and writes each image using
+    `save_image`, incrementing the image name pattern after every save.
     """
 
     def __init__(
@@ -667,8 +677,7 @@ class ImageSink:
         overwrite: bool = False,
         image_name_pattern: str = "image_{:05d}.png",
     ) -> None:
-        """
-        Initialize context manager for saving images to directory.
+        """Initialize context manager for saving images to directory.
 
         Args:
             target_dir_path: Target directory path where images will be
@@ -713,8 +722,7 @@ class ImageSink:
     def save_image(
         self, image: npt.NDArray[np.uint8], image_name: str | None = None
     ) -> None:
-        """
-        Save image to target directory with optional custom filename.
+        """Save image to target directory with optional custom filename.
 
         Args:
             image: Image to save with shape `(height, width, 3)`
@@ -767,11 +775,10 @@ def create_tiles(
     titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
     default_title_placement: RelativePosition = "top",
 ) -> ImageType:
-    """
-    Creates tiles mosaic from input images, automating grid placement and
-    converting images to common resolution maintaining aspect ratio. It is
-    also possible to render text titles on tiles, using optional set of
-    parameters specifying text drawing (see parameters description).
+    """Creates tiles mosaic from input images, automating grid placement and converting
+    images to common resolution maintaining aspect ratio. It is also possible to render
+    text titles on tiles, using optional set of parameters specifying text drawing (see
+    parameters description).
 
     Automated grid placement will try to maintain square shape of grid
     (with size being the nearest integer square root of #images), up to two exceptions:

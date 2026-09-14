@@ -15,8 +15,7 @@ def clip_boxes(
     xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.number]:
-    """
-    Clips bounding boxes coordinates to fit within the frame resolution.
+    """Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each
@@ -58,8 +57,7 @@ def pad_boxes(
     px: int,
     py: int | None = None,
 ) -> npt.NDArray[np.number]:
-    """
-    Pads bounding boxes coordinates with a constant padding.
+    """Pads bounding boxes coordinates with a constant padding.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each
@@ -74,7 +72,9 @@ def pad_boxes(
     Returns:
         A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
-            values.
+            values. Integer inputs produce `int64` output, or `float64` if a padded
+            coordinate exceeds the `int64` range. Floating-point inputs preserve
+            their dtype.
 
     Examples:
         ```pycon
@@ -93,10 +93,31 @@ def pad_boxes(
     if py is None:
         py = px
 
-    result = cast(npt.NDArray[Any], xyxy.copy())
-    result[:, [0, 1]] -= [px, py]
-    result[:, [2, 3]] += [px, py]
+    integer_input = np.issubdtype(xyxy.dtype, np.integer)
+    padding: list[int] | npt.NDArray[Any] = [px, py]
+    if integer_input:
+        px, py = int(px), int(py)
+        exact_integer_limit = np.iinfo(np.int64).max // 2
+        is_safe_to_cast = max(abs(px), abs(py)) <= exact_integer_limit and np.all(
+            xyxy <= exact_integer_limit
+            if np.issubdtype(xyxy.dtype, np.unsignedinteger)
+            else (xyxy >= -exact_integer_limit) & (xyxy <= exact_integer_limit)
+        )
+        # Use exact Python integers only when int64 intermediates could overflow.
+        result = xyxy.astype(np.int64 if is_safe_to_cast else object)
+        padding = np.asarray([px, py], dtype=result.dtype)
+    else:
+        result = cast(npt.NDArray[Any], xyxy.copy())
+    result[:, [0, 1]] -= padding
+    result[:, [2, 3]] += padding
 
+    if integer_input and result.dtype == object:
+        limits = np.iinfo(np.int64)
+        fits_int64 = np.all((result >= limits.min) & (result <= limits.max))
+        return cast(
+            npt.NDArray[np.number],
+            np.asarray(result, dtype=np.int64 if fits_int64 else np.float64),
+        )
     return cast(npt.NDArray[np.number], result)
 
 
@@ -112,8 +133,7 @@ def denormalize_boxes(
     normalization_factor: float = 1.0,
     normalized_xyxy: npt.NDArray[np.number] | None = None,
 ) -> npt.NDArray[np.number]:
-    """
-    Convert normalized bounding box coordinates to absolute pixel coordinates.
+    """Convert normalized bounding box coordinates to absolute pixel coordinates.
 
     Multiplies each bounding box coordinate by image size and divides by
     `normalization_factor`, mapping values from normalized `[0, normalization_factor]`
@@ -167,6 +187,45 @@ def denormalize_boxes(
     scale /= normalization_factor
 
     return xyxy * scale
+
+
+def _sort_box_corners(
+    xyxy: npt.NDArray[np.number],
+) -> npt.NDArray[np.number]:
+    """Order each box's corners so that `x_min <= x_max` and `y_min <= y_max`.
+
+    `Detections.xyxy` is defined as `(x_min, y_min, x_max, y_max)`, and every
+    box operation in the library relies on that ordering: `box_iou_batch`
+    clamps its intersection widths at zero, so a box whose corners arrive
+    swapped scores an IoU of `0` even against itself. `box_area` hides the
+    problem rather than surfacing it, because negating both sides leaves their
+    product positive. Sorting the corner pairs restores the invariant without
+    moving the region a box describes; a correctly ordered box is unchanged.
+
+    Args:
+        xyxy: Boxes of shape `(N, 4)`, each row `(x_min, y_min, x_max, y_max)`,
+            possibly with either corner pair transposed.
+
+    Returns:
+        Boxes of shape `(N, 4)` with both corner pairs in ascending order.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _sort_box_corners
+        >>> _sort_box_corners(np.array([[300.0, 320.0, 200.0, 80.0]]))
+        array([[200.,  80., 300., 320.]])
+
+        ```
+    """
+    xyxy = np.asarray(xyxy)
+    if xyxy.size == 0:
+        return xyxy
+    x_min = np.minimum(xyxy[:, 0], xyxy[:, 2])
+    x_max = np.maximum(xyxy[:, 0], xyxy[:, 2])
+    y_min = np.minimum(xyxy[:, 1], xyxy[:, 3])
+    y_max = np.maximum(xyxy[:, 1], xyxy[:, 3])
+    return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
 
 
 def move_boxes(
@@ -425,20 +484,20 @@ def _oriented_box_anchors(
 
 
 def scale_boxes(
-    xyxy: npt.NDArray[np.float64], factor: float
-) -> npt.NDArray[np.float64]:
-    """
-    Scale the dimensions of bounding boxes.
+    xyxy: npt.NDArray[np.number], factor: float
+) -> npt.NDArray[np.floating]:
+    """Scale the dimensions of bounding boxes.
 
     Args:
-        xyxy: An array of shape `(n, 4)` containing the
-            bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        xyxy: An integer or floating-point array of shape `(n, 4)` containing
+            bounding box coordinates in format `[x1, y1, x2, y2]`.
         factor: A float value representing the factor by which the box
             dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
             factor less than 1 shrinks them.
 
     Returns:
-        Scaled bounding boxes.
+        Scaled bounding boxes. Integer input arrays produce `float64` output;
+        floating-point inputs preserve their existing dtype.
 
     Examples:
         ```pycon
@@ -454,17 +513,59 @@ def scale_boxes(
 
         ```
     """
-    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
-    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
-    return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
+    if np.issubdtype(xyxy.dtype, np.integer):
+        exact_integer_limit = 2**52
+        is_safe_to_cast = np.all(
+            xyxy <= exact_integer_limit
+            if np.issubdtype(xyxy.dtype, np.unsignedinteger)
+            else (xyxy >= -exact_integer_limit) & (xyxy <= exact_integer_limit)
+        )
+        if is_safe_to_cast:
+            xyxy = xyxy.astype(np.float64)
+        elif np.isfinite(factor):
+            # Preserve 64-bit integer precision through both final-corner
+            # expressions. Converting the center first can change the final
+            # float64 rounding near 2**53.
+            factor_numerator, factor_denominator = factor.as_integer_ratio()
+            integer_coordinates = xyxy.astype(object)
+            coordinate_sum = integer_coordinates[:, :2] + integer_coordinates[:, 2:]
+            coordinate_size = integer_coordinates[:, 2:] - integer_coordinates[:, :2]
+            denominator = 2 * factor_denominator
+            lower = np.asarray(
+                (
+                    coordinate_sum * factor_denominator
+                    - coordinate_size * factor_numerator
+                )
+                / denominator,
+                dtype=np.float64,
+            )
+            upper = np.asarray(
+                (
+                    coordinate_sum * factor_denominator
+                    + coordinate_size * factor_numerator
+                )
+                / denominator,
+                dtype=np.float64,
+            )
+            return cast(
+                npt.NDArray[np.floating], np.concatenate((lower, upper), axis=1)
+            )
+        else:
+            xyxy = xyxy.astype(np.float64)
+
+    centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
+    new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+    return cast(
+        npt.NDArray[np.floating],
+        np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1),
+    )
 
 
 def spread_out_boxes(
     xyxy: npt.NDArray[np.number],
     max_iterations: int = 100,
 ) -> npt.NDArray[np.number]:
-    """
-    Spread out boxes that overlap with each other.
+    """Spread out boxes that overlap with each other.
 
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.

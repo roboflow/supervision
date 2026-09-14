@@ -15,11 +15,11 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricResult, MetricTarget, PlotDetails
-from supervision.metrics.utils.matching import (
+from supervision.detection.utils.matching import (
     _match_detection_batch_with_target_indices,
 )
+from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.metrics.core import Metric, MetricResult, MetricTarget, PlotDetails
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -32,8 +32,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class MeanAverageRecallResult(MetricResult):
-    """
-    The results of the Mean Average Recall metric calculation.
+    """The results of the Mean Average Recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
 
@@ -87,8 +86,7 @@ class MeanAverageRecallResult(MetricResult):
     large_objects: MeanAverageRecallResult | None
 
     def __str__(self) -> str:
-        """
-        Format as a pretty string.
+        """Format as a pretty string.
 
         Example:
             ```pycon
@@ -163,8 +161,7 @@ class MeanAverageRecallResult(MetricResult):
         return out_str
 
     def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
+        """Convert the result to a pandas DataFrame.
 
         Returns:
             The result as a DataFrame.
@@ -251,12 +248,11 @@ class MeanAverageRecallResult(MetricResult):
         return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
     def plot(self) -> None:
-        """
-        Plot the Mean Average Recall results.
+        """Plot the Mean Average Recall results.
 
         ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-            ){ align=center width="800" }
+        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
+        ){ align=center width="800" }
         """
         from matplotlib import pyplot as plt
 
@@ -292,10 +288,9 @@ class MeanAverageRecallResult(MetricResult):
 
 
 class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
-    """
-    Mean Average Recall (mAR) measures how well the model detects
-    and retrieves relevant objects by averaging recall over multiple
-    IoU thresholds, classes and detection limits.
+    """Mean Average Recall (mAR) measures how well the model detects and retrieves
+    relevant objects by averaging recall over multiple IoU thresholds, classes and
+    detection limits.
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each
@@ -333,8 +328,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
     ):
-        """
-        Initialize the Mean Average Recall metric.
+        """Initialize the Mean Average Recall metric.
 
         Args:
             metric_target: The type of detection data to use.
@@ -347,9 +341,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         self.max_detections = np.array([1, 10, 100])
 
     def reset(self) -> None:
-        """
-        Reset the metric to its initial state, clearing all stored data.
-        """
+        """Reset the metric to its initial state, clearing all stored data."""
         self._predictions_list = []
         self._targets_list = []
 
@@ -358,8 +350,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         predictions: Detections | list[Detections],
         targets: Detections | list[Detections],
     ) -> MeanAverageRecall:
-        """
-        Add new predictions and targets to the metric, but do not compute the result.
+        """Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
             predictions: The predicted detections.
@@ -385,9 +376,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         return self
 
     def compute(self) -> MeanAverageRecallResult:
-        """
-        Calculate the Mean Average Recall metric based on the stored predictions
-        and ground-truth, at different IoU thresholds and maximum detection counts.
+        """Calculate the Mean Average Recall metric based on the stored predictions and
+        ground-truth, at different IoU thresholds and maximum detection counts.
 
         Returns:
             The Mean Average Recall metric result.
@@ -598,8 +588,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         unique_classes: npt.NDArray[np.integer],
         class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
-        """
-        Compute the confusion matrix for each class and IoU threshold.
+        """Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
@@ -661,8 +650,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     def _compute_recall(
         confusion_matrix: npt.NDArray[np.float64],
     ) -> npt.NDArray[np.float64]:
-        """
-        Broadcastable function, computing the recall from the confusion matrix.
+        """Broadcastable function, computing the recall from the confusion matrix.
 
         Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension

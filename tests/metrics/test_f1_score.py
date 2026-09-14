@@ -40,7 +40,7 @@ class TestF1Score:
         )
 
     def test_initialization_default(self):
-        """Test that F1Score can be initialized with default parameters"""
+        """Test that F1Score can be initialized with default parameters."""
         metric = F1Score()
         assert metric._metric_target == MetricTarget.BOXES
         assert metric.averaging_method == AveragingMethod.WEIGHTED
@@ -48,7 +48,7 @@ class TestF1Score:
         assert metric._targets_list == []
 
     def test_initialization_custom(self):
-        """Test that F1Score can be initialized with custom parameters"""
+        """Test that F1Score can be initialized with custom parameters."""
         metric = F1Score(
             metric_target=MetricTarget.MASKS,
             averaging_method=AveragingMethod.MACRO,
@@ -92,7 +92,7 @@ class TestF1Score:
         assert r_dense.f1_50 == pytest.approx(r_compact.f1_50)
 
     def test_reset(self, dummy_prediction):
-        """Test that reset() clears all stored data"""
+        """Test that reset() clears all stored data."""
         metric = F1Score()
 
         # Add some dummy data
@@ -108,7 +108,7 @@ class TestF1Score:
         assert metric._targets_list == []
 
     def test_perfect_match(self, detections_50_50, targets_50_50):
-        """Test F1 score with perfect matching predictions and targets"""
+        """Test F1 score with perfect matching predictions and targets."""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_50_50).compute()
 
@@ -123,7 +123,7 @@ class TestF1Score:
         assert result.matched_classes[0] == 0
 
     def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
-        """Test F1 score with predictions that don't overlap with targets"""
+        """Test F1 score with predictions that don't overlap with targets."""
         metric = F1Score()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
 
@@ -135,7 +135,7 @@ class TestF1Score:
         assert result.f1_75 == 0.0
 
     def test_empty_predictions(self, targets_50_50):
-        """Test F1 score with empty predictions but existing targets"""
+        """Test F1 score with empty predictions but existing targets."""
         predictions = Detections.empty()
 
         metric = F1Score()
@@ -149,7 +149,7 @@ class TestF1Score:
         assert result.f1_75 == 0.0
 
     def test_empty_targets(self, detections_50_50):
-        """Test F1 score with predictions but no targets"""
+        """Test F1 score with predictions but no targets."""
         targets = Detections.empty()
 
         metric = F1Score()
@@ -223,8 +223,8 @@ class TestF1Score:
         ],
     )
     def test_false_positives_of_absent_class_counted(self, method, expected):
-        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED
-        excludes them by design (GT support=0 → weight=0, consistent with sklearn)."""
+        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED excludes
+        them by design (GT support=0 → weight=0, consistent with sklearn)."""
         predictions = Detections(
             xyxy=np.array(
                 [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
@@ -262,7 +262,7 @@ class TestF1Score:
     def test_single_class_mixed_results(
         self, predictions_confidence_ranking, targets_50_50
     ):
-        """Test F1 score calculation with mixed precision and recall"""
+        """Test F1 score calculation with mixed precision and recall."""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -277,7 +277,7 @@ class TestF1Score:
     def test_precision_recall_imbalance(
         self, detections_50_50, targets_two_objects_class_0
     ):
-        """Test F1 score with different precision and recall scenarios"""
+        """Test F1 score with different precision and recall scenarios."""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_two_objects_class_0).compute()
 
@@ -292,7 +292,7 @@ class TestF1Score:
     def test_multiple_classes(
         self, predictions_multiple_classes, targets_multiple_classes
     ):
-        """Test F1 score calculation for multiple classes"""
+        """Test F1 score calculation for multiple classes."""
         metric = F1Score()
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -308,7 +308,7 @@ class TestF1Score:
         assert 1 in result.matched_classes
 
     def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
-        """Test F1 score at different IoU thresholds"""
+        """Test F1 score at different IoU thresholds."""
         metric = F1Score()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
 
@@ -319,7 +319,7 @@ class TestF1Score:
         assert result.f1_75 == 0.0
 
     def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
-        """Test that F1 score respects confidence ranking"""
+        """Test that F1 score respects confidence ranking."""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
 
@@ -333,7 +333,7 @@ class TestF1Score:
     def test_list_inputs(
         self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
     ):
-        """Test F1 score with list inputs"""
+        """Test F1 score with list inputs."""
         metric = F1Score()
         result = metric.update(
             [detections_50_50, prediction_class_1], [targets_50_50, target_class_1]
@@ -344,7 +344,7 @@ class TestF1Score:
         assert result.f1_75 == 1.0
 
     def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
-        """Test that mismatched prediction/target list lengths raise error"""
+        """Test that mismatched prediction/target list lengths raise error."""
         metric = F1Score()
 
         # Should raise ValueError for mismatched lengths
@@ -395,7 +395,7 @@ class TestF1Score:
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
     def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
-        """Test different averaging methods"""
+        """Test different averaging methods."""
         metric = F1Score(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
 
@@ -406,7 +406,7 @@ class TestF1Score:
     def test_macro_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
     ):
-        """Test MACRO averaging with specific example"""
+        """Test MACRO averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.MACRO)
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -419,7 +419,7 @@ class TestF1Score:
     def test_micro_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
     ):
-        """Test MICRO averaging with specific example"""
+        """Test MICRO averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.MICRO)
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -432,7 +432,7 @@ class TestF1Score:
     def test_weighted_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
     ):
-        """Test WEIGHTED averaging with specific example"""
+        """Test WEIGHTED averaging with specific example."""
         metric = F1Score(averaging_method=AveragingMethod.WEIGHTED)
         result = metric.update(
             predictions_multiple_classes, targets_multiple_classes
@@ -463,12 +463,12 @@ class TestF1Score:
         assert result.f1_50 == 1.0
 
     def test_compute_no_runtime_warning_for_zero_denominator_bucket(self) -> None:
-        """compute() must not emit RuntimeWarning when a size bucket has a
-        zero true-positive/false-positive/false-negative denominator.
+        """Compute() must not emit RuntimeWarning when a size bucket has a zero true-
+        positive/false-positive/false-negative denominator.
 
-        Regression test for #2434: a single medium-sized match leaves the
-        small-object bucket with an all-zero confusion-matrix row, which used
-        to trigger a spurious `invalid value encountered in divide` warning.
+        Regression test for #2434: a single medium-sized match leaves the small-object
+        bucket with an all-zero confusion-matrix row, which used to trigger a spurious
+        `invalid value encountered in divide` warning.
         """
         predictions = Detections(
             xyxy=np.array([[0, 0, 31, 31]], dtype=np.float32),
@@ -489,8 +489,8 @@ class TestF1Score:
 
 
 class TestComputeF1:
-    """Direct coverage of `F1Score._compute_f1`, the broadcastable helper that
-    turns a confusion matrix into per-element F1 scores."""
+    """Direct coverage of `F1Score._compute_f1`, the broadcastable helper that turns a
+    confusion matrix into per-element F1 scores."""
 
     @pytest.mark.parametrize(
         ("confusion_matrix", "expected_f1"),
@@ -520,10 +520,9 @@ class TestComputeF1:
     def test_compute_f1_matches_expected_score_without_warning(
         self, confusion_matrix, expected_f1
     ) -> None:
-        """_compute_f1 returns the expected score and never emits
-        RuntimeWarning, including for confusion matrix rows whose
-        true-positive/false-positive/false-negative denominator is zero.
-        """
+        """_compute_f1 returns the expected score and never emits RuntimeWarning,
+        including for confusion matrix rows whose true-positive/false-positive/false-
+        negative denominator is zero."""
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             f1_score = F1Score._compute_f1(confusion_matrix)
@@ -531,9 +530,8 @@ class TestComputeF1:
         assert f1_score == pytest.approx(expected_f1)
 
     def test_compute_f1_raises_value_error_for_wrong_last_dimension(self) -> None:
-        """_compute_f1 raises ValueError when the input's last axis isn't
-        length 3 (true positives, false positives, false negatives).
-        """
+        """_compute_f1 raises ValueError when the input's last axis isn't length 3 (true
+        positives, false positives, false negatives)."""
         confusion_matrix = np.zeros((2, 2))
 
         with pytest.raises(ValueError, match="Confusion matrix must have shape"):

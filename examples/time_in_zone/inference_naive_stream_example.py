@@ -21,8 +21,7 @@ def main(
     classes: list[int] = [],
     roboflow_api_key: str = "",
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using RTSP stream.
+    """Calculating detections dwell time in zones, using RTSP stream.
 
     Args:
         zone_configuration_path: Path to the zone configuration JSON file

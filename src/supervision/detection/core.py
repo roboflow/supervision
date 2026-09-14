@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from functools import reduce
 from typing import Any, cast
@@ -28,6 +28,7 @@ from supervision.detection.utils._typing import (
 )
 from supervision.detection.utils.boxes import (
     _oriented_box_anchors,
+    _sort_box_corners,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -68,6 +69,9 @@ from supervision.detection.vlm import (
     from_google_gemini_2_0,
     from_google_gemini_2_5,
     from_google_gemini_3_5,
+    from_google_gemini_3_6,
+    from_google_gemini_3_7,
+    from_kosmos_2,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -85,14 +89,37 @@ from supervision.validators import (
     _validate_resolution,
 )
 
+#: VLM parsers taking a string result and returning `(xyxy, class_id, class_name)`.
+_VLM_BOX_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any]]] = {
+    VLM.PALIGEMMA: from_paligemma,
+    VLM.QWEN_2_5_VL: from_qwen_2_5_vl,
+    VLM.QWEN_3_VL: from_qwen_3_vl,
+    VLM.DEEPSEEK_VL_2: from_deepseek_vl_2,
+    VLM.GOOGLE_GEMINI_2_0: from_google_gemini_2_0,
+}
+
+#: VLM parsers taking a string result and additionally returning `confidence` and
+#: `mask`, as `(xyxy, class_id, class_name, confidence, mask)`.
+_VLM_SEGMENTATION_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any, Any, Any]]] = {
+    VLM.GOOGLE_GEMINI_2_5: from_google_gemini_2_5,
+    VLM.GOOGLE_GEMINI_3_5: from_google_gemini_3_5,
+    VLM.GOOGLE_GEMINI_3_6: from_google_gemini_3_6,
+    VLM.GOOGLE_GEMINI_3_7: from_google_gemini_3_7,
+}
+
+#: VLMs whose parsers report no per-detection score, so `Detections.from_vlm` fills
+#: `confidence` with an all-ones array to keep the field populated.
+_VLM_UNIT_CONFIDENCE: frozenset[VLM] = frozenset({VLM.QWEN_2_5_VL, VLM.QWEN_3_VL})
+
 
 @dataclass
 class Detections:
-    """
-    The `sv.Detections` class in the Supervision library standardizes results from
+    """The `sv.Detections` class in the Supervision library standardizes results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [trackers](/trackers/), [annotators](/latest/detection/annotators/), and [tools](/detection/tools/line_zone/).
+    integration with Supervision [trackers](/trackers/),
+    [annotators](/latest/detection/annotators/), and
+    [tools](/detection/tools/line_zone/).
 
     === "RF-DETR"
 
@@ -209,9 +236,7 @@ class Detections:
         )
 
     def __len__(self) -> int:
-        """
-        Returns the number of detections in the Detections object.
-        """
+        """Returns the number of detections in the Detections object."""
         return len(self.xyxy)
 
     def __iter__(
@@ -226,10 +251,8 @@ class Detections:
             _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Detections object and yield a tuple of
-        `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
-        """
+        """Iterates over the Detections object and yield a tuple of `(xyxy, mask,
+        confidence, class_id, tracker_id, data)` for each detection."""
         for i in range(len(self.xyxy)):
             yield (
                 self.xyxy[i],
@@ -368,7 +391,7 @@ class Detections:
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
-                class_id=np.arange(len(ultralytics_results)),
+                class_id=np.zeros(len(masks), dtype=int),
             )
 
         if (
@@ -1142,10 +1165,8 @@ class Detections:
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-        !!! deprecated "Deprecated"
-            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
-            Please use `Detections.from_vlm` instead.
+        """!!! deprecated "Deprecated" `Detections.from_lmm` is **deprecated** and will
+        be removed in `supervision-0.31.0`. Please use `Detections.from_vlm` instead.
 
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -1626,10 +1647,8 @@ class Detections:
     def from_vlm(
         cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
-        """
-
-        Creates a Detections object from the given result string based on the specified
-        Vision Language Model (VLM).
+        """Creates a Detections object from the given result string based on the
+        specified Vision Language Model (VLM).
 
         | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
@@ -1640,8 +1659,11 @@ class Detections:
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.6   | `GOOGLE_GEMINI_3_6`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.7   | `GOOGLE_GEMINI_3_7`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Kosmos-2            | `KOSMOS_2`           | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
@@ -2035,123 +2057,212 @@ class Detections:
 
             ```
 
+        !!! example "Kosmos-2"
+
+            ??? tip "Prompt engineering"
+                Kosmos-2 grounds phrases only when the prompt opens with the
+                `<grounding>` token.
+
+                **To ground a specific object, use the following user prompt:**
+
+                ```
+                <grounding>Detect the cats
+                ```
+
+                **To ground every phrase of a caption, use the following user prompt:**
+
+                ```
+                <grounding>Describe this image in detail
+                ```
+
+            `result` is the `(caption, entities)` pair returned by the model's
+            `AutoProcessor.post_process_generation`. An entity grounding several
+            regions contributes one detection per region.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> kosmos_2_result = (
+            ...     'An image of a cat and a gramophone.',
+            ...     [
+            ...         ('a cat', (12, 17), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+            ...         ('a gramophone', (24, 36), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+            ...     ],
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     vlm=sv.VLM.KOSMOS_2,
+            ...     result=kosmos_2_result,
+            ...     resolution_wh=(1000, 1000),
+            ... )
+            >>> detections.xyxy
+            array([[265.625,  15.625, 703.125, 984.375],
+                   [234.375,  15.625, 703.125, 515.625]])
+            >>> detections.class_id
+            array([0, 1])
+            >>> detections.data
+            {'class_name': array(['a cat', 'a gramophone'], dtype='<U12')}
+
+            ```
         """  # noqa: E501
 
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
-        if vlm == VLM.PALIGEMMA:
+        # `_validate_vlm_parameters` already enforced `RESULT_TYPES[vlm]`, but the type
+        # checker cannot narrow `result` through that table lookup, so each group
+        # restates the type it expects before delegating to its handler.
+        if vlm in _VLM_BOX_PARSERS or vlm in _VLM_SEGMENTATION_PARSERS:
             if not isinstance(result, str):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be str."
                 )
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data: _DetectionDataType = {
-                CLASS_NAME_DATA_FIELD: class_name,
-            }
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
-
-        if vlm == VLM.QWEN_2_5_VL:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
-                len(xyxy), dtype=float
-            )
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.QWEN_3_VL:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr = np.ones(len(xyxy), dtype=float)
-            return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
-            )
-
-        if vlm == VLM.DEEPSEEK_VL_2:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            return cls._from_vlm_text_result(vlm, result, **kwargs)
 
         if vlm == VLM.FLORENCE_2:
             if not isinstance(result, dict):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
-            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
-            if len(xyxy) == 0:
-                empty = cls.empty()
-                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
-                return empty
-
-            data = {}
-            if labels is not None:
-                data[CLASS_NAME_DATA_FIELD] = labels
-            if xyxyxyxy is not None:
-                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
-
-            return cls(xyxy=xyxy, mask=mask, data=data)
-
-        if vlm == VLM.GOOGLE_GEMINI_2_0:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            return cls._from_florence_2_result(result, **kwargs)
 
         if vlm == VLM.MOONDREAM:
             if not isinstance(result, dict):
                 raise ValueError(
                     f"Invalid VLM result type: {type(result)}. Must be dict."
                 )
-            xyxy = from_moondream(result, **kwargs)
-            return cls(xyxy=xyxy)
+            return cls._from_moondream_result(result, **kwargs)
 
-        if vlm == VLM.GOOGLE_GEMINI_2_5:
-            if not isinstance(result, str):
+        if vlm == VLM.KOSMOS_2:
+            if not isinstance(result, tuple):
                 raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
+                    f"Invalid VLM result type: {type(result)}. Must be tuple."
                 )
-            gemini_result = from_google_gemini_2_5(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
-
-        if vlm == VLM.GOOGLE_GEMINI_3_5:
-            if not isinstance(result, str):
-                raise ValueError(
-                    f"Invalid VLM result type: {type(result)}. Must be str."
-                )
-            gemini_result = from_google_gemini_3_5(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
-            return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
-            )
+            return cls._from_kosmos_2_result(result, **kwargs)
 
         raise ValueError(f"Unsupported VLM value: {vlm}.")
+
+    @classmethod
+    def _from_vlm_text_result(cls, vlm: VLM, result: str, **kwargs: Any) -> Detections:
+        """Build detections from the VLMs whose parser consumes a string result.
+
+        Covers both `_VLM_BOX_PARSERS`, which report boxes and labels only, and
+        `_VLM_SEGMENTATION_PARSERS`, which additionally report confidence and masks.
+        The two differ only in how many arrays their parser hands back, so they share
+        one construction site here rather than one near-identical branch each.
+
+        Args:
+            vlm: The VLM whose parser to dispatch to; must be a key of either
+                `_VLM_BOX_PARSERS` or `_VLM_SEGMENTATION_PARSERS`.
+            result: The raw string response from the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`.
+        """
+        mask: npt.NDArray[np.bool_] | CompactMask | None
+        confidence: npt.NDArray[np.floating] | None
+        if vlm in _VLM_BOX_PARSERS:
+            xyxy, class_id, class_name = _VLM_BOX_PARSERS[vlm](result, **kwargs)
+            mask = None
+            confidence = (
+                np.ones(len(xyxy), dtype=float) if vlm in _VLM_UNIT_CONFIDENCE else None
+            )
+        else:
+            xyxy, class_id, class_name, confidence, mask = _VLM_SEGMENTATION_PARSERS[
+                vlm
+            ](result, **kwargs)
+
+        # Sorting is redundant for the Gemini parsers, which already order each box's
+        # corners, but it is idempotent and keeps every string-result VLM on one code
+        # path instead of tracking which parsers happen to emit ordered corners.
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            mask=mask,
+            confidence=confidence,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
+
+    @classmethod
+    def _from_florence_2_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Florence-2 task payload.
+
+        Florence-2 is the only VLM whose per-detection fields vary by task: labels are
+        absent for region proposals and oriented boxes are present only for
+        `<OCR_WITH_REGION>`, so `data` is assembled from whichever the task returned
+        rather than from a fixed set of keys.
+
+        Args:
+            result: The task payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, or an empty one carrying an empty `class_name`
+                array when the task reported no boxes.
+        """
+        xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
+        xyxy = _sort_box_corners(xyxy)
+        if len(xyxy) == 0:
+            empty = cls.empty()
+            empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+            return empty
+
+        data: _DetectionDataType = {}
+        if labels is not None:
+            data[CLASS_NAME_DATA_FIELD] = labels
+        if xyxyxyxy is not None:
+            data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+
+        return cls(xyxy=xyxy, mask=mask, data=data)
+
+    @classmethod
+    def _from_moondream_result(
+        cls, result: dict[str, Any], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Moondream payload.
+
+        Moondream reports boxes only - no labels, scores, or masks - so the result
+        carries `xyxy` and nothing else.
+
+        Args:
+            result: The JSON payload returned by the model.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, carrying boxes only.
+        """
+        xyxy = from_moondream(result, **kwargs)
+        return cls(xyxy=_sort_box_corners(xyxy))
+
+    @classmethod
+    def _from_kosmos_2_result(
+        cls, result: tuple[str, list[Any]], **kwargs: Any
+    ) -> Detections:
+        """Build detections from a Kosmos-2 grounding payload.
+
+        Kosmos-2 is the only VLM whose result is a `(caption, entities)` tuple rather
+        than a string or a mapping, so it gets its own construction site here.
+
+        Args:
+            result: The `(caption, entities)` pair returned by the model's
+                post-processor.
+            **kwargs: Parser arguments, already validated against
+                `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
+
+        Returns:
+            The parsed `Detections`, carrying boxes and labels.
+        """
+        xyxy, class_id, class_name = from_kosmos_2(result, **kwargs)
+        return cls(
+            xyxy=_sort_box_corners(xyxy),
+            class_id=class_id,
+            data={CLASS_NAME_DATA_FIELD: class_name},
+        )
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:
@@ -2275,9 +2386,8 @@ class Detections:
 
     @classmethod
     def empty(cls) -> Detections:
-        """
-        Create an empty Detections object with no bounding boxes,
-            confidences, or class IDs.
+        """Create an empty Detections object with no bounding boxes, confidences, or
+        class IDs.
 
         Returns:
             An empty Detections object.
@@ -2298,8 +2408,7 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """
-        Check whether the `Detections` object has zero bounding boxes.
+        """Check whether the `Detections` object has zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
@@ -2323,8 +2432,7 @@ class Detections:
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
-        """
-        Merge a list of Detections objects into a single Detections object.
+        """Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
         respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
@@ -2741,8 +2849,7 @@ class Detections:
         | npt.NDArray[np.generic]
         | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
-        """
-        Get a subset of the Detections object or access an item from its data field.
+        """Get a subset of the Detections object or access an item from its data field.
 
         When provided with an integer, slice, list of integers, or a numpy array, this
         method returns a new Detections object that represents a subset of the original
@@ -2757,18 +2864,34 @@ class Detections:
             A subset of the Detections object or an item from the data field.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[10, 10, 50, 50], [60, 10, 180, 50], [10, 60, 50, 180]]
+            ...     ),
+            ...     confidence=np.array([0.9, 0.4, 0.7]),
+            ...     class_id=np.array([0, 1, 0]),
+            ...     data={'feature_vector': np.array([1.0, 2.0, 3.0])},
+            ... )
+            >>> detections[0].xyxy
+            array([[10, 10, 50, 50]])
+            >>> detections[0:2].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 60,  10, 180,  50]])
+            >>> detections[[0, 2]].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.class_id == 0].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections[detections.confidence > 0.5].xyxy
+            array([[ 10,  10,  50,  50],
+                   [ 10,  60,  50, 180]])
+            >>> detections['feature_vector']
+            array([1., 2., 3.])
 
-            detections = sv.Detections()
-
-            first_detection = detections[0]
-            first_10_detections = detections[0:10]
-            some_detections = detections[[0, 2, 4]]
-            class_0_detections = detections[detections.class_id == 0]
-            high_confidence_detections = detections[detections.confidence > 0.5]
-
-            feature_vector = detections['feature_vector']
             ```
         """
         if isinstance(index, str):
@@ -2776,8 +2899,7 @@ class Detections:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the Detections object.
+        """Set a value in the data dictionary of the Detections object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -2802,6 +2924,20 @@ class Detections:
              ]
             ```
 
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 10, 50, 50], [60, 10, 180, 50]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'car'}
+            >>> detections['names'] = [names[c] for c in detections.class_id]
+            >>> detections['names']
+            array(['person', 'car'], dtype='<U6')
+
+            ```
+
         Raises:
             TypeError: If `value` is not a `np.ndarray` or `list`.
             ValueError: If `value` has a length or shape incompatible with
@@ -2818,8 +2954,7 @@ class Detections:
 
     @property
     def area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each detection in the set of object detections.
+        """Calculate the area of each detection in the set of object detections.
 
         Selection order:
 
@@ -2877,8 +3012,7 @@ class Detections:
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
-        """
-        Calculate the area of each bounding box in the set of object detections.
+        """Calculate the area of each bounding box in the set of object detections.
 
         Returns:
             An array of floats containing the area of each bounding
@@ -2904,32 +3038,28 @@ class Detections:
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
-        """
-        Compute the aspect ratio (width divided by height) for each bounding box.
+        """Compute the aspect ratio (width divided by height) for each bounding box.
 
         Returns:
             Array of shape `(N,)` containing aspect ratios, where `N` is the
                 number of boxes (width / height for each box).
 
         Examples:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> xyxy = np.array([
+            ...     [10, 10, 50, 50],
+            ...     [60, 10, 180, 50],
+            ...     [10, 60, 50, 180],
+            ... ])
+            >>> detections = sv.Detections(xyxy=xyxy)
+            >>> detections.box_aspect_ratio
+            array([1.        , 3.        , 0.33333333])
+            >>> ar = detections.box_aspect_ratio
+            >>> detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            array([[10, 10, 50, 50]])
 
-            xyxy = np.array([
-                [10, 10, 50, 50],
-                [60, 10, 180, 50],
-                [10, 60, 50, 180],
-            ])
-
-            detections = sv.Detections(xyxy=xyxy)
-
-            detections.box_aspect_ratio
-            # array([1.0, 3.0, 0.33333333])
-
-            ar = detections.box_aspect_ratio
-            detections[(ar < 2.0) & (ar > 0.5)].xyxy
-            # array([[10., 10., 50., 50.]])
             ```
         """
         widths = self.xyxy[:, 2] - self.xyxy[:, 0]
@@ -2965,14 +3095,21 @@ class Detections:
             when conversion is not needed.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
-            detections = sv.Detections(
-                xyxy=np.array([[0, 0, 10, 10]]),
-                mask=np.ones((1, 20, 20), dtype=bool),
-            )
-            compact = detections.to_compact_masks()
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     mask=np.ones((1, 20, 20), dtype=bool),
+            ... )
+            >>> compact = detections.to_compact_masks()
+            >>> type(compact.mask).__name__
+            'CompactMask'
+            >>> compact.mask.image_shape
+            (20, 20)
+            >>> np.array_equal(compact.mask.to_dense(), detections.mask)
+            True
+
             ```
         """
         from supervision.detection.compact_mask import CompactMask
@@ -3038,11 +3175,11 @@ class Detections:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
-        """
-        Performs non-max suppression on detection set. Dispatch order: (1) if mask
-        data present, IoU mask is used; (2) else if oriented-box coordinates
-        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
-        otherwise, axis-aligned box IoU is used.
+        """Performs non-max suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -3101,9 +3238,9 @@ class Detections:
         class_agnostic: bool = False,
         score_threshold: float | None = None,
     ) -> Detections:
-        """
-        Performs Gaussian Soft Non-Maximum Suppression on detection set. Dispatch
-        order: (1) if mask data present, IoU mask is used; (2) otherwise,
+        """Performs Gaussian Soft Non-Maximum Suppression on detection set.
+
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) otherwise,
         axis-aligned box IoU is used. Oriented-box detections are not given
         dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
 
@@ -3429,9 +3566,8 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
-    """
-    Merges two Detections objects into a single Detections object.
-    Assumes each Detections contains exactly one object.
+    """Merges two Detections objects into a single Detections object. Assumes each
+    Detections contains exactly one object.
 
     A `winning` detection is determined based on the confidence score of the two
     input detections. This winning detection is then used to specify which
@@ -3465,8 +3601,11 @@ def merge_inner_detection_object_pair(
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)
 
-        merged_detections = merge_object_detection_pair(
-            detections[0], detections[1])
+        from supervision.detection.core import merge_inner_detection_object_pair
+
+        merged_detections = merge_inner_detection_object_pair(
+            detections[0], detections[1]
+        )
         ```
     """
     if len(detections_1) != 1 or len(detections_2) != 1:
@@ -3527,10 +3666,9 @@ def merge_inner_detections_objects(
     threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3548,10 +3686,9 @@ def merge_inner_detections_objects(
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
-    """
-    Given N detections each of length 1 (exactly one object inside), combine them into a
-    single detection object of length 1. The contained inner object will be the merged
-    result of all the input detections.
+    """Given N detections each of length 1 (exactly one object inside), combine them
+    into a single detection object of length 1. The contained inner object will be the
+    merged result of all the input detections.
 
     For example, this lets you merge N boxes into one big box, N masks into one mask,
     etc.
@@ -3562,8 +3699,7 @@ def merge_inner_detections_objects_without_iou(
 def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
-    """
-    Verify that for each optional field in the Detections, both instances either have
+    """Verify that for each optional field in the Detections, both instances either have
     the field set to None or both have it set to non-None values.
 
     `data` field is ignored.

@@ -67,8 +67,8 @@ def approximate_mask_with_polygons(
 ) -> list[npt.NDArray[np.number]]:
     """Filter mask polygons by area and optionally simplify them.
 
-    The default `approximation_percentage=0.0` preserves the original contour
-    unless callers explicitly ask for simplification.
+    The default `approximation_percentage=0.0` preserves the original contour unless
+    callers explicitly ask for simplification.
     """
     height, width = mask.shape
     image_area = height * width
@@ -185,7 +185,7 @@ def check_no_basename_collisions(
             raise ValueError(
                 f"Cannot export dataset: image paths {first_path!r} and "
                 f"{image_path!r} both map to {output_kind} file {first_name!r}. "
-                "Ensure all image basenames are unique before exporting."
+                "Ensure all output paths are unique before exporting."
             )
         seen[case_key] = (output_name, image_path)
 
@@ -241,8 +241,7 @@ def train_test_split(
     random_state: int | None = None,
     shuffle: bool = True,
 ) -> tuple[list[T], list[T]]:
-    """
-    Splits the data into two parts using the provided train_ratio.
+    """Splits the data into two parts using the provided train_ratio.
 
     Args:
         data: The data to split.

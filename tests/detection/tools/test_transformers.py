@@ -245,6 +245,35 @@ class TestProcessTransformersV4PanopticSegmentationResult:
             out["data"][CLASS_NAME_DATA_FIELD], ["background"]
         )
 
+    def test_empty_segments_info_returns_zero_detections(self) -> None:
+        """Empty segments_info yields zero-length arrays shaped like the PNG."""
+        seg_result = {
+            "png_string": make_panoptic_png(np.zeros((3, 5), dtype=np.uint8)),
+            "segments_info": [],
+        }
+
+        out = process_transformers_v4_panoptic_segmentation_result(seg_result, None)
+
+        assert out["xyxy"].shape == (0, 4)
+        assert out["mask"].shape == (0, 3, 5)
+        assert out["class_id"].shape == (0,)
+        assert np.issubdtype(out["class_id"].dtype, np.integer)
+
+    def test_empty_segments_info_builds_empty_detections(self) -> None:
+        """Detections.from_transformers accepts a v4 panoptic result with no segment."""
+        from supervision.detection.core import Detections
+
+        seg_result = {
+            "png_string": make_panoptic_png(np.zeros((3, 5), dtype=np.uint8)),
+            "segments_info": [],
+        }
+
+        detections = Detections.from_transformers(seg_result, id2label={0: "cat"})
+
+        assert len(detections) == 0
+        assert detections.mask is not None
+        assert detections.mask.shape == (0, 3, 5)
+
 
 # ---------------------------------------------------------------------------
 # process_transformers_v5_panoptic_segmentation_result
@@ -282,7 +311,7 @@ class TestProcessTransformersV5PanopticSegmentationResult:
         np.testing.assert_array_equal(out["class_id"], expected_class_ids)
 
     def test_with_id2label_sets_class_names(self) -> None:
-        """id2label maps unique IDs to class name strings in output data."""
+        """Id2label maps unique IDs to class name strings in output data."""
         seg_array = np.array([[3, 3], [5, 5]], dtype=np.int64)
 
         out = process_transformers_v5_panoptic_segmentation_result(
@@ -294,7 +323,7 @@ class TestProcessTransformersV5PanopticSegmentationResult:
         )
 
     def test_with_id2label_preserves_zero_class_name(self) -> None:
-        """id2label maps class id zero when it appears in a tensor map."""
+        """Id2label maps class id zero when it appears in a tensor map."""
         seg_array = np.array([[0, 0], [1, 1]], dtype=np.int64)
 
         out = process_transformers_v5_panoptic_segmentation_result(

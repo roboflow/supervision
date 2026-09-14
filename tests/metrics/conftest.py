@@ -146,8 +146,7 @@ def _yolo_dataset_factory(
     classes: list[str] | None = None,
     objects_per_image_range: tuple[int, int] = (1, 3),
 ):
-    """
-    Factory function to create synthetic YOLO-format datasets with custom parameters.
+    """Factory function to create synthetic YOLO-format datasets with custom parameters.
 
     Args:
         tmp_path: Pytest tmp_path fixture
@@ -175,8 +174,7 @@ def _yolo_dataset_factory(
 
 @pytest.fixture
 def yolo_dataset_structure(tmp_path):
-    """
-    Synthetic YOLO-format dataset for testing confusion matrix and detection metrics.
+    """Synthetic YOLO-format dataset for testing confusion matrix and detection metrics.
 
     Configuration:
     - 20 images
@@ -199,8 +197,7 @@ def yolo_dataset_structure(tmp_path):
 
 @pytest.fixture
 def yolo_dataset_two_classes(tmp_path):
-    """
-    Synthetic YOLO-format dataset for testing mAR and binary classification metrics.
+    """Synthetic YOLO-format dataset for testing mAR and binary classification metrics.
 
     Configuration:
     - 15 images

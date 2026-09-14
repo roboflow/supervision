@@ -1211,7 +1211,7 @@ def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
-    """area stored in detections.data should be used instead of bbox area."""
+    """Area stored in detections.data should be used instead of bbox area."""
     detections = Detections(
         xyxy=np.array([[10.0, 20.0, 110.0, 120.0]], dtype=np.float32),
         class_id=np.array([0], dtype=int),
@@ -1233,7 +1233,7 @@ def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
 def test_detections_to_coco_annotations_preserves_iscrowd_from_data_when_no_mask() -> (
     None
 ):
-    """iscrowd stored in detections.data should be used when no mask is present."""
+    """Iscrowd stored in detections.data should be used when no mask is present."""
     detections = Detections(
         xyxy=np.array([[0.0, 0.0, 100.0, 100.0]], dtype=np.float32),
         class_id=np.array([0], dtype=int),
@@ -1253,7 +1253,7 @@ def test_detections_to_coco_annotations_preserves_iscrowd_from_data_when_no_mask
 
 
 def test_detections_to_coco_annotations_iscrowd_is_int_when_mask_provided() -> None:
-    """iscrowd should be stored as int (0 or 1), not as Python bool."""
+    """Iscrowd should be stored as int (0 or 1), not as Python bool."""
     mask = np.zeros((1, 5, 5), dtype=bool)
     mask[0, 0:3, 0:3] = True  # simple single-component rectangle
 
@@ -1275,7 +1275,7 @@ def test_detections_to_coco_annotations_iscrowd_is_int_when_mask_provided() -> N
 
 
 def test_detections_to_coco_annotations_data_area_overrides_bbox_with_mask() -> None:
-    """data["area"] should override computed bbox area even when a mask is present."""
+    """Data["area"] should override computed bbox area even when a mask is present."""
     mask = np.zeros((1, 10, 10), dtype=bool)
     mask[0, 0:4, 0:4] = True  # 16-pixel polygon area
 
@@ -1850,8 +1850,8 @@ def test_detections_to_coco_annotations_category_id_is_one_indexed() -> None:
 def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
     tmp_path,
 ) -> None:
-    """as_coco -> from_coco is lossless for internal class_ids while the
-    on-disk COCO category ids are 1-indexed (regression for #1181)."""
+    """as_coco -> from_coco is lossless for internal class_ids while the on-disk COCO
+    category ids are 1-indexed (regression for #1181)."""
     classes = ["cat", "dog"]
     image_paths: list[str] = []
     annotations: dict[str, Detections] = {}
@@ -1897,9 +1897,12 @@ def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
 def _tiny_detection_dataset(
     tmp_path, prefix: str, num_images: int, dets_per_image: int
 ) -> DetectionDataset:
-    """Build a DetectionDataset of ``num_images`` 10x10 RGB images on disk,
-    each holding ``dets_per_image`` 1x1 detections of class 0. Image content
-    is irrelevant; only the per-image Detections drive the COCO write path."""
+    """Build a DetectionDataset of ``num_images`` 10x10 RGB images on disk, each holding
+    ``dets_per_image`` 1x1 detections of class 0.
+
+    Image content is irrelevant; only the per-image Detections drive the COCO write
+    path.
+    """
     classes = ["object"]
     image_paths: list[str] = []
     annotations: dict[str, Detections] = {}
@@ -1990,8 +1993,8 @@ def test_save_coco_annotations_respects_starting_ids(tmp_path):
 
 
 def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
-    """Regression for #768: exporting train/valid/test splits with the
-    returned ids fed forward yields globally unique image and annotation ids."""
+    """Regression for #768: exporting train/valid/test splits with the returned ids fed
+    forward yields globally unique image and annotation ids."""
     train = _tiny_detection_dataset(tmp_path, "train", num_images=3, dets_per_image=2)
     valid = _tiny_detection_dataset(tmp_path, "valid", num_images=2, dets_per_image=4)
     test = _tiny_detection_dataset(tmp_path, "test", num_images=1, dets_per_image=5)
@@ -2031,8 +2034,8 @@ def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
 
 
 def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
-    """An empty dataset writes a valid (but empty) COCO file and returns
-    the starting ids unchanged so chaining still composes around it."""
+    """An empty dataset writes a valid (but empty) COCO file and returns the starting
+    ids unchanged so chaining still composes around it."""
     dataset = DetectionDataset(classes=["object"], images=[], annotations={})
     annotation_path = tmp_path / "annotations.json"
 
@@ -2051,8 +2054,8 @@ def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
 
 
 def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
-    """When only writing images, the starting ids round-trip unchanged so
-    chaining still works in the images-only branch."""
+    """When only writing images, the starting ids round-trip unchanged so chaining still
+    works in the images-only branch."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=1)
     next_image_id, next_annotation_id = dataset.as_coco(
         images_directory_path=str(tmp_path / "imgs"),
@@ -2064,8 +2067,8 @@ def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
 
 
 def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_path):
-    """Every annotation's image_id must reference an image id present in the
-    same file, even when a non-default starting_image_id is used."""
+    """Every annotation's image_id must reference an image id present in the same file,
+    even when a non-default starting_image_id is used."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=3, dets_per_image=2)
     annotation_path = tmp_path / "annotations.json"
 
@@ -2086,8 +2089,8 @@ def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_
 
 
 def test_save_coco_annotations_zero_annotation_images(tmp_path):
-    """Dataset with images but zero detections per image: image ids are
-    assigned sequentially but annotation list stays empty."""
+    """Dataset with images but zero detections per image: image ids are assigned
+    sequentially but annotation list stays empty."""
     dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=0)
     annotation_path = tmp_path / "annotations.json"
 
@@ -2169,8 +2172,8 @@ class TestSaveCocoAnnotationsHeaderSizeReads:
 
 
 def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
-    """COCO files with 0-indexed category ids (written by supervision <=0.28.x)
-    must still load and produce correct internal 0-indexed class_ids."""
+    """COCO files with 0-indexed category ids (written by supervision <=0.28.x) must
+    still load and produce correct internal 0-indexed class_ids."""
     images_dir = tmp_path / "images"
     images_dir.mkdir()
     img_path = images_dir / "img.jpg"
@@ -2420,8 +2423,8 @@ def test_coco_polygon_segmentation_survives_roundtrip(
 
 def test_coco_raw_segmentation_preserved_when_masks_not_decoded() -> None:
     """When masks are NOT decoded (with_masks=False), raw polygon data stored in
-    data['segmentation'] is used as a lossless fallback so as_coco() still emits
-    non-empty segmentation."""
+    data['segmentation'] is used as a lossless fallback so as_coco() still emits non-
+    empty segmentation."""
     image_annotations = [
         _coco_annotation_with_segmentation(segmentation=[[0, 0, 4, 0, 4, 4, 0, 4]])
     ]

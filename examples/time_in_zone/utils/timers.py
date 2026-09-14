@@ -6,9 +6,8 @@ import supervision as sv
 
 
 class FPSBasedTimer:
-    """
-    A timer that calculates the duration each object has been detected based on frames
-    per second (FPS).
+    """A timer that calculates the duration each object has been detected based on
+    frames per second (FPS).
 
     Attributes:
         fps (float): The frame rate of the video stream, used to calculate
@@ -52,8 +51,7 @@ class FPSBasedTimer:
 
 
 class ClockBasedTimer:
-    """
-    A timer that calculates the duration each object has been detected based on the
+    """A timer that calculates the duration each object has been detected based on the
     system clock.
 
     Attributes:

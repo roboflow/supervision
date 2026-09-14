@@ -10,8 +10,7 @@ from supervision.utils.conversion import pillow_to_cv2
 def plot_image(
     image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
 ) -> None:
-    """
-    Plots image using matplotlib.
+    """Plots image using matplotlib.
 
     Args:
         image: The frame to be displayed ImageType
@@ -57,8 +56,7 @@ def plot_images_grid(
     size: tuple[int, int] = (12, 12),
     cmap: str | None = "gray",
 ) -> None:
-    """
-    Plots images in a grid using matplotlib.
+    """Plots images in a grid using matplotlib.
 
     Args:
        images: A list of images as ImageType

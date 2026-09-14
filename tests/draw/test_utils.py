@@ -95,8 +95,8 @@ def test_draw_rounded_rectangle_square_matches_plain_rectangle(
 ) -> None:
     """Non-positive border_radius fills exactly the same pixels as a plain box.
 
-    For border_radius < 0: previously raised cv2.error: radius >= 0 in
-    function 'circle'; fast path now silently draws square corners instead.
+    For border_radius < 0: previously raised cv2.error: radius >= 0 in function
+    'circle'; fast path now silently draws square corners instead.
     """
     rect = Rect(x=20, y=30, width=120, height=80)
     scene = np.full((150, 200, 3), 17, dtype=np.uint8)
@@ -229,7 +229,7 @@ def test_draw_filled_rectangle_fills_interior() -> None:
 
 
 def test_draw_filled_rectangle_opacity_blends() -> None:
-    """opacity<1 blends the fill colour with the original background."""
+    """Opacity<1 blends the fill colour with the original background."""
     scene = np.zeros((50, 50, 3), dtype=np.uint8)
     draw_filled_rectangle(
         scene=scene,

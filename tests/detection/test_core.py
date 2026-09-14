@@ -316,10 +316,11 @@ def test_getitem(
     expected_result: Detections | None,
     exception: Exception,
 ) -> None:
-    """
-    Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for various
-    input types. This is a core feature that allows users to filter and manipulate
-    detection results easily.
+    """Ensures that `Detections.__getitem__` (indexing/slicing) works correctly for
+    various input types.
+
+    This is a core feature that allows users to filter and manipulate detection results
+    easily.
     """
     with exception:
         result = detections[index]
@@ -736,14 +737,14 @@ class TestMergeMixedMasks:
         return dense_det
 
     def test_mixed_result_is_compact_mask(self) -> None:
-        """merge([dense, compact]) returns a CompactMask, not ndarray."""
+        """Merge([dense, compact]) returns a CompactMask, not ndarray."""
         det_dense = self._make_dense_det([[5, 5, 15, 15]])
         det_compact = self._make_compact_det([[20, 20, 35, 35]])
         result = Detections.merge([det_dense, det_compact])
         assert isinstance(result.mask, CompactMask)
 
     def test_mixed_pixel_parity_with_all_dense(self) -> None:
-        """merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
+        """Merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_dense_a = self._make_dense_det(xyxy_a)
@@ -758,7 +759,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_compact_first_pixel_parity(self) -> None:
-        """merge([compact, dense]) order: compact input first still gives parity."""
+        """Merge([compact, dense]) order: compact input first still gives parity."""
         xyxy_a = [[5, 5, 15, 15]]
         xyxy_b = [[20, 20, 35, 35]]
         det_compact_a = self._make_compact_det(xyxy_a)
@@ -774,7 +775,7 @@ class TestMergeMixedMasks:
         assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_fields_remain_aligned(self) -> None:
-        """confidence, class_id, xyxy stay in order after mixed merge."""
+        """Confidence, class_id, xyxy stay in order after mixed merge."""
         det_dense = self._make_dense_det([[1, 1, 10, 10]])
         det_compact = self._make_compact_det([[30, 30, 40, 40]])
         det_dense.confidence = np.array([0.1])
@@ -805,7 +806,7 @@ class TestMergeMixedMasks:
         )
 
     def test_mixed_compact_image_shape_mismatch_raises(self) -> None:
-        """merge with CompactMasks of different image_shapes raises ValueError."""
+        """Merge with CompactMasks of different image_shapes raises ValueError."""
         h, w = self.IMG_SHAPE
         masks_a = np.zeros((1, h, w), dtype=bool)
         masks_b = np.zeros((1, h + 10, w + 10), dtype=bool)
@@ -849,9 +850,8 @@ class TestMergeMixedMasks:
     def test_mixed_dense_out_of_box_pixels_dropped(self) -> None:
         """Dense True pixels outside xyxy box are dropped after mixed merge.
 
-        from_dense crops each dense mask to its xyxy bounding box — a documented
-        lossy conversion. This test asserts the drop rather than treating it as a
-        regression.
+        from_dense crops each dense mask to its xyxy bounding box — a documented lossy
+        conversion. This test asserts the drop rather than treating it as a regression.
         """
         h, w = self.IMG_SHAPE
         xyxy = [[5, 5, 15, 15]]
@@ -875,7 +875,7 @@ class TestMergeMixedMasks:
         assert not result_dense[0, 0, 0], "out-of-box pixel dropped"
 
     def test_empty_compact_mask_detections_merge_returns_no_mask(self) -> None:
-        """merge on empty CompactMask-carrying Detections returns mask=None."""
+        """Merge on empty CompactMask-carrying Detections returns mask=None."""
         h, w = self.IMG_SHAPE
         cm_empty = CompactMask(
             [],
@@ -1432,9 +1432,9 @@ def test_from_inference_compact_masks_matches_dense_default() -> None:
 def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
     """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
 
-    This is the documented behaviour (see Warning in Detections.from_inference):
-    each mask is cropped to its detector bbox, so True pixels outside that box
-    are not stored.  Dense masks are unaffected and preserve the full mask.
+    This is the documented behaviour (see Warning in Detections.from_inference): each
+    mask is cropped to its detector bbox, so True pixels outside that box are not
+    stored.  Dense masks are unaffected and preserve the full mask.
     """
     # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
     # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
@@ -1888,7 +1888,7 @@ class TestGetAnchorsObbDispatch:
 
 
 class TestMergeObbCorners:
-    """_merge_obb_corners"""
+    """_merge_obb_corners."""
 
     @pytest.mark.parametrize(
         ("corners_list", "expected"),
@@ -1987,7 +1987,7 @@ class TestMergeObbCorners:
 
 
 class TestMergeDetectionGroup:
-    """_merge_detection_group"""
+    """_merge_detection_group."""
 
     @pytest.mark.parametrize(
         ("detections", "expected_detections"),
@@ -2690,8 +2690,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, detections.box_area)
 
     def test_mask_takes_precedence_over_oriented_box(self) -> None:
-        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is
-        computed from the mask."""
+        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is computed
+        from the mask."""
         mask = np.zeros((40, 40), dtype=bool)
         mask[10:30, 10:25] = True  # 20 rows x 15 cols = 300 pixels
         quad = _rotated_rect(20, 20, 20, 10, 0)  # OBB area = 200
@@ -2705,8 +2705,8 @@ class TestDetectionsArea:
         assert np.allclose(detections.area, [300.0])
 
     def test_empty_detections_with_obb_data_returns_empty_array(self) -> None:
-        """Boundary case: empty Detections carrying an OBB data field must
-        return an empty area array (matches the mask / box_area branches)."""
+        """Boundary case: empty Detections carrying an OBB data field must return an
+        empty area array (matches the mask / box_area branches)."""
         detections = Detections(
             xyxy=np.empty((0, 4), dtype=np.float32),
             class_id=np.array([], dtype=int),
@@ -2716,8 +2716,8 @@ class TestDetectionsArea:
         assert detections.area.shape == (0,)
 
     def test_degenerate_oriented_box_has_zero_area(self) -> None:
-        """An OBB whose four corners coincide has zero area — the shoelace
-        formula must not produce NaN or a negative value."""
+        """An OBB whose four corners coincide has zero area — the shoelace formula must
+        not produce NaN or a negative value."""
         quad = np.full((4, 2), 5.0, dtype=np.float32)
         detections = _make_obb_detections([quad], [0.9], [0])
 
@@ -2725,8 +2725,10 @@ class TestDetectionsArea:
 
     def test_handles_batched_oriented_boxes(self) -> None:
         """Multiple OBBs in one `Detections` each get their own correct area.
-        Guards against the shoelace reduction collapsing across boxes instead
-        of along the per-box corner axis."""
+
+        Guards against the shoelace reduction collapsing across boxes instead of along
+        the per-box corner axis.
+        """
         quads = [
             _rotated_rect(50, 50, 20, 10, 0),  # 200
             _rotated_rect(100, 100, 20, 10, 45),  # 200 (rotation must not change it)

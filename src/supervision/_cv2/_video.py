@@ -284,8 +284,8 @@ def _best_effort_cleanup(action: Callable[[], None], description: str) -> None:
     """Run a cleanup action, logging and suppressing any failure.
 
     Cleanup steps in a ``finally`` block must never raise, otherwise a failing
-    ``container.close()`` (or file removal) would mask or replace the primary
-    result or the original exception that sent control into ``finally``.
+    ``container.close()`` (or file removal) would mask or replace the primary result or
+    the original exception that sent control into ``finally``.
     """
     try:
         action()

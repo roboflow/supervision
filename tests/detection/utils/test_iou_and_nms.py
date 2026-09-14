@@ -1577,11 +1577,11 @@ def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
 ) -> None:
     """`float64`/`int64` inputs keep full precision at the `2**24` boundary.
 
-    `float64` accumulation is exact for these integer-valued coordinates, so the
-    result must match the analytic value. Two 50x50 boxes shifted by 25 in x give
-    intersection 25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5.
-    This does not exercise the `float32`-storage case, which cannot be recovered
-    inside this function; it guards the `float64`/`int64` accumulation path only.
+    `float64` accumulation is exact for these integer-valued coordinates, so the result
+    must match the analytic value. Two 50x50 boxes shifted by 25 in x give intersection
+    25*50=1250 and union 2*2500-1250=3750, so IoU=1/3 and IoS=0.5. This does not
+    exercise the `float32`-storage case, which cannot be recovered inside this function;
+    it guards the `float64`/`int64` accumulation path only.
     """
     box_a, box_b = _boundary_box_pair(origin, dtype=np.float64)
 
@@ -1595,9 +1595,9 @@ def test_box_iou_batch_float64_input_precision_at_2pow24_boundary(
 def test_box_iou_batch_int32_input_does_not_overflow() -> None:
     """`int32` coordinates with large areas must not overflow to a wrong IoU.
 
-    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`.
-    Before upcasting the corners to `float64`, this made the union non-positive
-    and the function returned `0.0`; it must now return the analytic IoU of 1/3.
+    A 60000x60000 box has area 3.6e9, which wraps to a negative value in `int32`. Before
+    upcasting the corners to `float64`, this made the union non-positive and the
+    function returned `0.0`; it must now return the analytic IoU of 1/3.
     """
     side, shift = 60000, 30000
     box_a, box_b = _boundary_box_pair(0, side=side, shift=shift, dtype=np.int32)
@@ -1706,10 +1706,9 @@ def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
 ) -> None:
     """IoU is invariant under per-axis (anisotropic) scaling.
 
-    An affine map multiplies every area — intersection and union alike — by the
-    same determinant, so exact polygon IoU is unchanged. Equality is exact
-    because the computation is rasterization-free; the analytic IoU of these two
-    rectangles is 0.25.
+    An affine map multiplies every area — intersection and union alike — by the same
+    determinant, so exact polygon IoU is unchanged. Equality is exact because the
+    computation is rasterization-free; the analytic IoU of these two rectangles is 0.25.
     """
     boxes_true = np.array([[[1, 0], [0, 1], [3, 4], [4, 3]]], dtype=np.float32)
     boxes_detection = np.array([[[1, 1], [2, 0], [4, 2], [3, 3]]], dtype=np.float32)
@@ -1739,9 +1738,10 @@ class TestOrientedBoxIouBatch:
     ) -> None:
         """IoU is invariant under uniform scaling and translation.
 
-        Both are affine maps, so exact polygon IoU matches the small-coordinate
-        baseline exactly — free of the pixel-quantization error that the prior
-        rasterization-based implementation exhibited."""
+        Both are affine maps, so exact polygon IoU matches the small-coordinate baseline
+        exactly — free of the pixel-quantization error that the prior rasterization-
+        based implementation exhibited.
+        """
         boxes_true = _rotated_rect(50, 50, 40, 20, 30)[None]
         boxes_detection = _rotated_rect(52, 48, 40, 20, 35)[None]
         baseline = oriented_box_iou_batch(boxes_true, boxes_detection)
@@ -1852,8 +1852,8 @@ class TestOrientedBoxIouBatch:
     def test_envelope_overlap_without_polygon_overlap_scores_zero(self) -> None:
         """Parallel rotated bars share an envelope but not a body, so they score 0.
 
-        Exercises the path where a pair passes the axis-aligned gate yet has no
-        exact polygon intersection.
+        Exercises the path where a pair passes the axis-aligned gate yet has no exact
+        polygon intersection.
         """
         boxes_true = _rotated_rect(50, 50, 100, 4, 45)[None]
         boxes_detection = _rotated_rect(72, 28, 100, 4, 45)[None]
@@ -1949,9 +1949,11 @@ class TestOrientedBoxNonMaxSuppression:
     """Tests for `oriented_box_non_max_suppression`."""
 
     def test_keeps_x_pattern(self) -> None:
-        """X-pattern: two thin rectangles crossing at +/-45° share an AABB but
-        barely overlap as OBBs. AABB-NMS would suppress one; OBB-NMS must keep
-        both."""
+        """X-pattern: two thin rectangles crossing at +/-45° share an AABB but barely
+        overlap as OBBs.
+
+        AABB-NMS would suppress one; OBB-NMS must keep both.
+        """
         quad_a = _rotated_rect(50, 50, 100, 10, +45)
         quad_b = _rotated_rect(50, 50, 100, 10, -45)
         oriented_boxes = np.stack([quad_a, quad_b])
@@ -1981,7 +1983,10 @@ class TestOrientedBoxNonMaxSuppression:
     def test_suppression_is_class_aware(
         self, class_id_b: int, expected_keep: list[bool]
     ) -> None:
-        """Same class: lower-score OBB suppressed. Different class: both kept."""
+        """Same class: lower-score OBB suppressed.
+
+        Different class: both kept.
+        """
         quad = _rotated_rect(50, 50, 100, 10, 45)
         shifted = _rotated_rect(51, 51, 100, 10, 45)
         oriented_boxes = np.stack([quad, shifted])
@@ -2001,8 +2006,8 @@ class TestOrientedBoxNonMaxSuppression:
         assert np.array_equal(keep, np.array(expected_keep))
 
     def test_length_mismatch_raises(self) -> None:
-        """Mismatched predictions and oriented_boxes must fail loudly, not
-        silently misalign rows."""
+        """Mismatched predictions and oriented_boxes must fail loudly, not silently
+        misalign rows."""
         predictions = np.zeros((3, 5), dtype=np.float32)
         oriented_boxes = np.zeros((2, 4, 2), dtype=np.float32)
         with pytest.raises(ValueError, match="same length"):
@@ -2130,8 +2135,8 @@ class TestOrientedBoxNonMaxMerge:
         assert groups == [[0]]
 
     def test_groups_overlapping_oriented_boxes(self) -> None:
-        """Two near-identical OBBs should be merged into one group; an X-pattern
-        pair should produce two separate groups."""
+        """Two near-identical OBBs should be merged into one group; an X-pattern pair
+        should produce two separate groups."""
         quad_dup_a = _rotated_rect(50, 50, 100, 10, 45)
         quad_dup_b = _rotated_rect(51, 51, 100, 10, 45)
         quad_x = _rotated_rect(50, 50, 100, 10, -45)
@@ -2375,7 +2380,7 @@ class TestMaskIouBatch:
         )
 
     def test_float64_promotion_for_large_float32_masks(self) -> None:
-        """float32 masks with pixel count > 2**24 must give exact IoU via float64."""
+        """Float32 masks with pixel count > 2**24 must give exact IoU via float64."""
         # 1x(2**24+1) pixels: float32 area sum rounds, float64 area sum is exact.
         # Without CRIT-2 fix, IoU would exceed 1.0 due to dtype mismatch.
         mask = np.ones((1, 1, 2**24 + 1), dtype=np.float32)
@@ -2397,7 +2402,7 @@ class TestMaskIouBatch:
         np.testing.assert_allclose(mask_iou_batch(masks, cm), dense_vs_dense, rtol=1e-5)
 
     def test_detection_exceeds_limit_warns_and_completes(self) -> None:
-        """detection > memory_limit emits UserWarning; result shape is still correct."""
+        """Detection > memory_limit emits UserWarning; result shape is still correct."""
         rng = np.random.default_rng(4)
         masks_true = rng.random((3, 32, 32)) > 0.5
         # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.

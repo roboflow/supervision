@@ -549,7 +549,7 @@ def test_process_roboflow_result_invalid_polygon_is_box_only(
 
 
 def test_polygon_prediction_compact_masks_true() -> None:
-    """polygon prediction with compact_masks=True returns a CompactMask."""
+    """Polygon prediction with compact_masks=True returns a CompactMask."""
     roboflow_result = _result(
         _pred(
             yx=(2.5, 2.5),
@@ -573,7 +573,7 @@ def test_polygon_prediction_compact_masks_true() -> None:
 
 
 def test_box_only_compact_masks_true_returns_none_mask() -> None:
-    """box-only predictions with compact_masks=True yield None mask."""
+    """Box-only predictions with compact_masks=True yield None mask."""
     roboflow_result = _result(
         _pred(yx=(2.0, 2.0), size=(3.0, 3.0), class_name="cat"),
         img_w=5,

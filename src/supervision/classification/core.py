@@ -11,18 +11,14 @@ if TYPE_CHECKING:
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
-    """
-    Ensure that class_id is a 1d np.ndarray with (n, ) shape.
-    """
+    """Ensure that class_id is a 1d np.ndarray with (n, ) shape."""
     is_valid = isinstance(class_id, np.ndarray) and class_id.shape == (n,)
     if not is_valid:
         raise ValueError("class_id must be 1d np.ndarray with (n, ) shape")
 
 
 def _validate_confidence(confidence: Any, n: int) -> None:
-    """
-    Ensure that confidence is a 1d np.ndarray with (n, ) shape.
-    """
+    """Ensure that confidence is a 1d np.ndarray with (n, ) shape."""
     if confidence is not None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n,)
         if not is_valid:
@@ -35,18 +31,14 @@ class Classifications:
     confidence: npt.NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
-        """
-        Validate the classification inputs.
-        """
+        """Validate the classification inputs."""
         n = len(self.class_id)
 
         _validate_class_ids(self.class_id, n)
         _validate_confidence(self.confidence, n)
 
     def __eq__(self, other: object) -> bool:
-        """
-        Compare classifications by value across numpy-backed fields.
-        """
+        """Compare classifications by value across numpy-backed fields."""
         if not isinstance(other, Classifications):
             return NotImplemented
         if not np.array_equal(self.class_id, other.class_id):
@@ -56,9 +48,7 @@ class Classifications:
         return bool(np.array_equal(self.confidence, other.confidence))
 
     def __len__(self) -> int:
-        """
-        Returns the number of classifications.
-        """
+        """Returns the number of classifications."""
         return len(self.class_id)
 
     @classmethod
@@ -182,9 +172,8 @@ class Classifications:
     def get_top_k(
         self, k: int
     ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
-        """
-        Retrieve the top k class IDs and confidences,
-            ordered in descending order by confidence.
+        """Retrieve the top k class IDs and confidences, ordered in descending order by
+        confidence.
 
         Args:
             k: The number of top class IDs and confidences to retrieve.

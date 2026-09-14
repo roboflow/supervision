@@ -55,9 +55,9 @@ def _handedness_pairs(
 ) -> list[tuple[str, float]] | None:
     """Convert MediaPipe top-1 handedness categories into `(label, score)` pairs.
 
-    Returns `None` as soon as any category is missing a label or a score, so the
-    caller can drop handedness wholesale instead of emitting a partially filled
-    array that would silently mis-align with `xy`.
+    Returns `None` as soon as any category is missing a label or a score, so the caller
+    can drop handedness wholesale instead of emitting a partially filled array that
+    would silently mis-align with `xy`.
     """
     pairs: list[tuple[str, float]] = []
     for top in top_categories:
@@ -72,8 +72,8 @@ def _handedness_pairs(
 def _tasks_api_handedness(mediapipe_results: Any) -> list[tuple[str, float]] | None:
     """Read handedness `(label, score)` pairs from a Tasks API `HandLandmarkerResult`.
 
-    The Tasks API exposes `handedness` as one descending-score category list per
-    hand; only the top-1 entry carries the `Left`/`Right` decision.
+    The Tasks API exposes `handedness` as one descending-score category list per hand;
+    only the top-1 entry carries the `Left`/`Right` decision.
     """
     handedness = getattr(mediapipe_results, "handedness", None)
     if not handedness or not all(handedness):
@@ -128,8 +128,7 @@ def _normalize_row_index(
 
 @dataclass(init=False)
 class KeyPoints:
-    """
-    The `sv.KeyPoints` class in the Supervision library standardizes results from
+    """The `sv.KeyPoints` class in the Supervision library standardizes results from
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
@@ -362,7 +361,10 @@ class KeyPoints:
 
     @property
     def confidence(self) -> npt.NDArray[np.float32] | None:
-        """Deprecated since 0.29.0. Use ``keypoint_confidence`` instead."""
+        """Deprecated since 0.29.0.
+
+        Use ``keypoint_confidence`` instead.
+        """
         warn_deprecated(
             "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
             "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
@@ -378,8 +380,7 @@ class KeyPoints:
         self.keypoint_confidence = value
 
     def __len__(self) -> int:
-        """
-        Returns the number of objects in the `sv.KeyPoints` object.
+        """Returns the number of objects in the `sv.KeyPoints` object.
 
         Returns:
             The number of objects.
@@ -407,10 +408,8 @@ class KeyPoints:
             _DetectionDataType,
         ]
     ]:
-        """
-        Iterates over the Keypoint object and yield a tuple of
-        `(xy, keypoint_confidence, class_id, data)` for each object detection.
-        """
+        """Iterates over the Keypoint object and yield a tuple of `(xy,
+        keypoint_confidence, class_id, data)` for each object detection."""
         for i in range(len(self.xy)):
             yield (
                 self.xy[i],
@@ -452,7 +451,8 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, and per-keypoint confidences when supplied by the
+                source result. Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -770,7 +770,10 @@ class KeyPoints:
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
-        confidence = ultralytics_results.keypoints.conf.cpu().numpy()
+        # Models trained with a two-value `kpt_shape` report no per-keypoint
+        # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
+        keypoints_conf = ultralytics_results.keypoints.conf
+        confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
@@ -1208,8 +1211,7 @@ class KeyPoints:
         self,
         index: Index1D | Index2D | str,
     ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
-        """
-        Get a subset of the KeyPoints object or access an item from its data field.
+        """Get a subset of the KeyPoints object or access an item from its data field.
 
         Supports detection-level (skeleton) filtering, keypoint-level (anchor)
         filtering, combined tuple indexing, and data field access by string key.
@@ -1222,28 +1224,58 @@ class KeyPoints:
             A subset of the KeyPoints object or an item from the data field.
 
         Examples:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ...     keypoint_confidence=np.array(
+            ...         [[0.9, 0.9, 0.2], [0.8, 0.8, 0.1], [0.7, 0.7, 0.2]]
+            ...     ),
+            ...     data={'class_name': np.array(['person', 'person', 'dog'])},
+            ... )
 
-            key_points = sv.KeyPoints(...)
+            Detection-level filtering returns a `KeyPoints` subset:
 
-            # detection-level filtering (returns KeyPoints)
-            high_conf = key_points[key_points.detection_confidence > 0.5]
-            class_0 = key_points[key_points.class_id == 0]
+            >>> key_points[key_points.detection_confidence > 0.7].class_id
+            array([0, 1])
+            >>> key_points[key_points.class_id == 0].detection_confidence
+            array([0.9, 0.6])
 
-            # keypoint-level filtering (returns KeyPoints)
-            visible = key_points[key_points.keypoint_confidence > 0.3]
+            Keypoint-level filtering with a 2D boolean mask keeps only the
+            selected anchors. Every skeleton must keep the same number of
+            anchors, otherwise a `ValueError` is raised:
 
-            # indexing
-            first = key_points[0]
-            first_two = key_points[0:2]
-            subset = key_points[[0, 2]]
+            >>> key_points[key_points.keypoint_confidence > 0.3].xy.shape
+            (3, 2, 2)
 
-            # anchor selection (uniform across all skeletons)
-            nose_and_eyes = key_points[:, [0, 1, 2]]
+            Integer, slice, and list indexing:
 
-            # data field access
-            class_names = key_points['class_name']
+            >>> key_points[0].xy
+            array([[[10., 10.],
+                    [20., 10.],
+                    [15., 20.]]])
+            >>> key_points[0:2].xy.shape
+            (2, 3, 2)
+            >>> key_points[[0, 2]].class_id
+            array([0, 1])
+
+            Anchor selection, uniform across all skeletons:
+
+            >>> key_points[:, [0, 1]].xy.shape
+            (3, 2, 2)
+
+            Data field access:
+
+            >>> key_points['class_name']
+            array(['person', 'person', 'dog'], dtype='<U6')
+
             ```
         """
         if isinstance(index, str):
@@ -1251,8 +1283,7 @@ class KeyPoints:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """
-        Set a value in the data dictionary of the `sv.KeyPoints` object.
+        """Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -1276,6 +1307,20 @@ class KeyPoints:
                  in key_points.class_id
              ]
             ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[10, 10], [20, 10]], [[100, 100], [110, 100]]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'dog'}
+            >>> key_points['class_name'] = [names[c] for c in key_points.class_id]
+            >>> key_points['class_name']
+            array(['person', 'dog'], dtype='<U6')
+
+            ```
         """
         if not isinstance(value, (np.ndarray, list)):
             raise TypeError("Value must be a np.ndarray or a list")
@@ -1287,8 +1332,7 @@ class KeyPoints:
 
     @classmethod
     def empty(cls) -> KeyPoints:
-        """
-        Create an empty KeyPoints object with no key points.
+        """Create an empty KeyPoints object with no key points.
 
         Returns:
             An empty `sv.KeyPoints` object.
@@ -1305,8 +1349,7 @@ class KeyPoints:
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
-        """
-        Returns `True` if the `KeyPoints` object is considered empty.
+        """Returns `True` if the `KeyPoints` object is considered empty.
 
         Returns:
             `True` if the object is empty, `False` otherwise.
@@ -1324,8 +1367,7 @@ class KeyPoints:
 
     @classmethod
     def merge(cls, key_points_list: list[KeyPoints]) -> KeyPoints:
-        """
-        Merge a list of KeyPoints objects into a single KeyPoints object.
+        """Merge a list of KeyPoints objects into a single KeyPoints object.
 
         This method takes a list of KeyPoints objects and combines their
         respective fields (`xy`, `class_id`, `keypoint_confidence`,
@@ -1448,11 +1490,12 @@ class KeyPoints:
         class_agnostic: bool = False,
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> KeyPoints:
-        """
-        Performs non-max suppression on the keypoint detections. Bounding boxes
-        are derived from valid keypoints of each skeleton, and standard box NMS
-        is applied. A keypoint is considered valid when its coordinates are not
-        all-zero and its `visible` flag is `True` (if `visible` is set).
+        """Performs non-max suppression on the keypoint detections. Bounding boxes are
+        derived from valid keypoints of each skeleton, and standard box NMS is applied.
+        A keypoint is considered valid when its coordinates are finite and not all-zero,
+        and its `visible` flag is `True` (if `visible` is set). A skeleton left without
+        a valid keypoint keeps a zero-area box, so it overlaps nothing and passes
+        through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1484,6 +1527,29 @@ class KeyPoints:
             key_points = model.predict(image)
             key_points = key_points.with_nms(threshold=0.5)
             ```
+
+            Two overlapping skeletons of the same class collapse to the more
+            confident one:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ... )
+            >>> suppressed = key_points.with_nms(threshold=0.5)
+            >>> suppressed.detection_confidence
+            array([0.9, 0.8])
+            >>> suppressed.class_id
+            array([0, 1])
+
+            ```
         """
         if len(self) == 0:
             return self
@@ -1501,14 +1567,23 @@ class KeyPoints:
             )
 
         xy = self.xy
-        valid = ~np.all(xy == 0, axis=-1)
+        # A non-finite keypoint marks an undetected joint, so it must not reach the
+        # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
+        # every corner, leaving an all-`NaN` box that compares False against every
+        # IoU threshold and therefore suppresses nothing. `as_detections` applies
+        # the same rule.
+        valid = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
         if self.visible is not None:
             valid = valid & self.visible
+        has_valid = valid.any(axis=1)
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
         x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
         y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
         xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
+        # Skeletons left without a single valid keypoint would otherwise carry the
+        # `inf` sentinels above; a zero-area box keeps them out of every overlap.
+        xyxy[~has_valid] = 0.0
 
         if class_agnostic:
             predictions = np.hstack([xyxy, self.detection_confidence.reshape(-1, 1)])
@@ -1533,10 +1608,9 @@ class KeyPoints:
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
     ) -> Detections:
-        """
-        Convert a KeyPoints object to a Detections object. This
-        approximates the bounding box of the detected object by
-        taking the bounding box that fits all key points.
+        """Convert a KeyPoints object to a Detections object. This approximates the
+        bounding box of the detected object by taking the bounding box that fits all key
+        points.
 
         Args:
             selected_keypoint_indices: The

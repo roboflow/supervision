@@ -54,10 +54,10 @@ def test_release_deploy_step_forwards_is_latest_release(
 ) -> None:
     """The release deploy step passes through the is-latest-release verdict.
 
-    A release tag's own docs tree must know whether it is the newest stable
-    release to suppress its own outdated-version banner (see
-    `docs/theme/main.html`'s `is_latest_release` check) — this wiring is what a
-    future refactor could silently drop.
+    A release tag's own docs tree must know whether it is the newest stable release to
+    suppress its own outdated-version banner (see `docs/theme/main.html`'s
+    `is_latest_release` check) — this wiring is what a future refactor could silently
+    drop.
     """
     step = workflow_step(
         PUBLISH_WORKFLOW, PUBLISH_JOB, "\N{ROCKET} Deploy Release Docs"
@@ -75,8 +75,8 @@ def test_release_metadata_step_computes_is_latest_release(
     """The metadata step delegates the version comparison to the shared script.
 
     Keeps the workflow YAML and the comparison logic from drifting apart, since
-    `.github/_tests/test_compute_is_latest_release.py` covers the comparison
-    itself and this test only covers that the workflow actually calls it.
+    `.github/_tests/test_compute_is_latest_release.py` covers the comparison itself and
+    this test only covers that the workflow actually calls it.
     """
     step = workflow_step(
         PUBLISH_WORKFLOW,
@@ -99,9 +99,9 @@ def test_archive_step_only_runs_when_this_release_is_the_new_latest(
 ) -> None:
     """A backport release for an older line must not touch the real /latest/ tree.
 
-    Only promoting a release to the newest actually demotes something — a patch
-    release for an older minor line leaves the current /latest/ untouched, so
-    nothing needs archiving.
+    Only promoting a release to the newest actually demotes something — a patch release
+    for an older minor line leaves the current /latest/ untouched, so nothing needs
+    archiving.
     """
     step = workflow_step(PUBLISH_WORKFLOW, PUBLISH_JOB, ARCHIVE_STEP)
 

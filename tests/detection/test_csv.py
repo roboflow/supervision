@@ -1,11 +1,13 @@
 import csv
 import os
 from typing import Any
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.detection.tools import csv_sink as csv_sink_module
 from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
 
@@ -613,4 +615,209 @@ class TestCSVSinkLifecycle:
                 "tracker_id": "",
                 "second_label": "second",
             }
+        ]
+
+
+class TestCSVSinkEmptyBatches:
+    """Tests for appending batches that contain no detections.
+
+    Also covers close() idempotency for the deferred-header path, since that behavior is
+    only reachable through an empty-batch-only session.
+    """
+
+    def test_empty_first_batch_does_not_drop_later_columns(self, tmp_path: Any) -> None:
+        """A detection-free first frame leaves the header to the first real frame."""
+        path = tmp_path / "empty_first.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert rows == [
+            {
+                "x_min": "10",
+                "y_min": "20",
+                "x_max": "30",
+                "y_max": "40",
+                "class_id": "",
+                "confidence": "",
+                "tracker_id": "",
+                "class_name": "person",
+                "frame_number": "1",
+            }
+        ]
+
+    def test_empty_batch_does_not_warn_about_field_names(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A detection-free frame is not a header mismatch worth reporting.
+
+        The trailing empty batch must also contribute zero data rows: it is
+        not just silent about the field-name mismatch, it writes nothing at
+        all beyond the header the first, populated batch already fixed.
+        """
+        path = tmp_path / "empty_second.csv"
+        detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        warnings: list[tuple[Any, ...]] = []
+        monkeypatch.setattr(
+            csv_sink_module.logger,
+            "warning",
+            lambda *args, **kwargs: warnings.append(args),
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        assert warnings == []
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+        assert len(rows) == 2  # header row plus the one populated detection row
+
+    def test_only_empty_batches_still_write_header(self, tmp_path: Any) -> None:
+        """A run that never detects anything stays readable as an empty table."""
+        path = tmp_path / "all_empty.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.reader(file)
+            rows = list(reader)
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_closing_twice_does_not_duplicate_header(self, tmp_path: Any) -> None:
+        """The deferred header is written once, however often close() is called."""
+        path = tmp_path / "double_close.csv"
+        sink = sv.CSVSink(str(path))
+
+        sink.open()
+        sink.append(sv.Detections.empty())
+        sink.close()
+        sink.close()
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+            ]
+        ]
+
+    def test_differing_schema_empty_batches_use_first_batch_header(
+        self, tmp_path: Any
+    ) -> None:
+        """Empty batches with differing custom_data keys resolve via first-wins.
+
+        No batch in this run ever carries a detection, so the deferred header is built
+        entirely from empty-batch schemas. When those empty batches disagree on their
+        custom_data keys, the file must keep the schema remembered from the first empty
+        batch, not silently overwrite it with the schema of a later, equally empty
+        batch.
+        """
+        path = tmp_path / "differing_empty_schema.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(sv.Detections.empty(), custom_data={"frame_number": 0})
+            sink.append(sv.Detections.empty(), custom_data={"camera_id": "north"})
+
+        with open(path, newline="") as file:
+            rows = list(csv.reader(file))
+
+        assert rows == [
+            [
+                "x_min",
+                "y_min",
+                "x_max",
+                "y_max",
+                "class_id",
+                "confidence",
+                "tracker_id",
+                "frame_number",
+            ]
+        ]
+
+    def test_failing_deferred_header_write_still_closes_file(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A writer failing on the deferred header still releases the file handle."""
+        path = tmp_path / "failing_header.csv"
+        sink = sv.CSVSink(str(path))
+        sink.open()
+        sink.append(sv.Detections.empty())
+        failing_writer = Mock(spec=csv_sink_module.WriterProtocol)
+        failing_writer.writerow.side_effect = OSError("disk full")
+        monkeypatch.setattr(sink, "writer", failing_writer)
+
+        with pytest.raises(OSError, match="disk full"):
+            sink.close()
+
+        assert sink.file is not None
+        assert sink.file.closed
+
+    def test_reopening_after_all_empty_session_resets_deferred_schema(
+        self, tmp_path: Any
+    ) -> None:
+        """Reopening after an all-empty session drops the stale deferred schema.
+
+        Session 1 never appends a real detection, so ``open()`` resetting
+        ``deferred_field_names`` is the only thing standing between session 2 and a
+        header still carrying columns from a run that detected nothing.
+        """
+        path = tmp_path / "reopen_after_empty.csv"
+        populated_detections = sv.Detections(
+            xyxy=np.array([[10, 20, 30, 40]]),
+            data={"class_name": np.array(["person"])},
+        )
+        sink = sv.CSVSink(str(path))
+
+        with sink:
+            sink.append(sv.Detections.empty(), custom_data={"stale_field": 0})
+        with sink:
+            sink.append(populated_detections, custom_data={"frame_number": 1})
+
+        with open(path, newline="") as file:
+            reader = csv.DictReader(file)
+            field_names = reader.fieldnames
+
+        assert field_names == [
+            "x_min",
+            "y_min",
+            "x_max",
+            "y_max",
+            "class_id",
+            "confidence",
+            "tracker_id",
+            "class_name",
+            "frame_number",
         ]

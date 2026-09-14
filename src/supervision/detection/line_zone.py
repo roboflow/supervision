@@ -22,8 +22,7 @@ TEXT_MARGIN = 10
 
 
 class LineZone:
-    """
-    This class is responsible for counting the number of objects that cross a
+    """This class is responsible for counting the number of objects that cross a
     predefined line.
 
     <video controls>
@@ -102,8 +101,8 @@ class LineZone:
         Args:
             start: The starting point of the line.
             end: The ending point of the line.
-            triggering_anchors: A list of positions specifying which anchors of
-                the detections bounding box to consider when deciding on whether
+            triggering_anchors: Any iterable of positions specifying which anchors
+                of the detections bounding box to consider when deciding on whether
                 the detection has passed the line counter or not. By default,
                 this contains the four corners of the detection's bounding box.
             minimum_crossing_threshold: Detection needs to be seen on the other
@@ -124,8 +123,9 @@ class LineZone:
         self._tracker_frames_absent: dict[int, int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
-        self.triggering_anchors = triggering_anchors
-        if not list(self.triggering_anchors):
+        # Materialize once so we can safely accept generators without exhausting them.
+        self.triggering_anchors = list(triggering_anchors)
+        if not self.triggering_anchors:
             raise ValueError("Triggering anchors cannot be empty.")
         self.class_id_to_name: dict[int, str] = {}
 
@@ -148,8 +148,8 @@ class LineZone:
     def trigger(
         self, detections: Detections
     ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
-        """
-        Update the `in_count` and `out_count` based on the objects that cross the line.
+        """Update the `in_count` and `out_count` based on the objects that cross the
+        line.
 
         Args:
             detections: A Detections object for which to update the counts.
@@ -266,9 +266,8 @@ class LineZone:
     def _compute_anchor_sides(
         self, detections: Detections
     ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
-        """
-        Find if detections' anchors are within the limit of the line
-        zone and which anchors are on its left and right side.
+        """Find if detections' anchors are within the limit of the line zone and which
+        anchors are on its left and right side.
 
         Assumes:
             * At least 1 detection is provided
@@ -323,9 +322,8 @@ class LineZone:
         return in_limits, has_any_left_trigger, has_any_right_trigger
 
     def _update_class_id_to_name(self, detections: Detections) -> None:
-        """
-        Update the attribute keeping track of which class
-        IDs correspond to which class names.
+        """Update the attribute keeping track of which class IDs correspond to which
+        class names.
 
         Assumes that class_names are only provided when class_ids are.
         """
@@ -346,11 +344,10 @@ class LineZone:
 
 
 class LineZoneAnnotator:
-    """
-    Draw a `LineZone` and its in/out counts on a video frame.
+    """Draw a `LineZone` and its in/out counts on a video frame.
 
-    Use this annotator after calling `LineZone.trigger` so the rendered counts
-    reflect the latest tracked detections.
+    Use this annotator after calling `LineZone.trigger` so the rendered counts reflect
+    the latest tracked detections.
     """
 
     def __init__(
@@ -370,9 +367,7 @@ class LineZoneAnnotator:
         text_orient_to_line: bool = False,
         text_centered: bool = True,
     ) -> None:
-        """
-        A class for drawing the `LineZone` and its detected object count
-        on an image.
+        """A class for drawing the `LineZone` and its detected object count on an image.
 
         Args:
             thickness: Line thickness.
@@ -391,7 +386,6 @@ class LineZoneAnnotator:
                 Recommended to set to `True`.
             text_centered: Pass `False` to disable text centering. Useful
                 when the label overlaps something important.
-
         """
         self.thickness: int = thickness
         self.color: Color = color
@@ -411,8 +405,7 @@ class LineZoneAnnotator:
     def annotate(
         self, frame: npt.NDArray[np.uint8], line_counter: LineZone
     ) -> npt.NDArray[np.uint8]:
-        """
-        Draws the line on the frame using the line zone provided.
+        """Draws the line on the frame using the line zone provided.
 
         Args:
             frame: The image on which the line will be drawn.
@@ -420,7 +413,6 @@ class LineZoneAnnotator:
 
         Returns:
             The image with the line drawn on it.
-
         """
         line_start = line_counter.vector.start.as_xy_int_tuple()
         line_end = line_counter.vector.end.as_xy_int_tuple()
@@ -479,8 +471,7 @@ class LineZoneAnnotator:
         return frame
 
     def _get_line_angle(self, line_zone: LineZone) -> float:
-        """
-        Calculate the line counter angle (in degrees).
+        """Calculate the line counter angle (in degrees).
 
         Args:
             line_zone: The line zone object.
@@ -511,8 +502,8 @@ class LineZoneAnnotator:
         is_in_count: bool,
         label_dimension: int,
     ) -> tuple[int, int]:
-        """
-        Calculate insertion anchor in frame to position the center of the count image.
+        """Calculate insertion anchor in frame to position the center of the count
+        image.
 
         Args:
             line_zone: The line counter object used for counting.
@@ -574,9 +565,9 @@ class LineZoneAnnotator:
         text: str,
         is_in_count: bool,
     ) -> npt.NDArray[np.uint8]:
-        """
-        Draw the count label on the frame. For example: "out: 7".
-        The label contains horizontal text and is not rotated.
+        """Draw the count label on the frame.
+
+        For example: "out: 7". The label contains horizontal text and is not rotated.
 
         Args:
             frame: The entire scene, on which the label will be placed.
@@ -617,9 +608,9 @@ class LineZoneAnnotator:
         text: str,
         is_in_count: bool,
     ) -> npt.NDArray[np.uint8]:
-        """
-        Draw the count label on the frame. For example: "out: 7".
-        The label is oriented to match the line angle.
+        """Draw the count label on the frame.
+
+        For example: "out: 7". The label is oriented to match the line angle.
 
         Args:
             frame: The entire scene, on which the label will be placed.
@@ -631,7 +622,6 @@ class LineZoneAnnotator:
         Returns:
             The scene with the label drawn on it.
         """
-
         line_angle_degrees = self._get_line_angle(line_zone)
         label_image = self._make_label_image(
             text,
@@ -674,21 +664,21 @@ class LineZoneAnnotator:
         text_box_color: Color,
         line_angle_degrees: float,
     ) -> npt.NDArray[np.uint8]:
-        """
-        Create the small text box displaying line zone count. E.g. "out: 7".
+        """Create the small text box displaying line zone count, E.g.
 
-        Args:
-            text: The text to display.
-            text_scale: The scale of the text.
-            text_thickness: The thickness of the text.
-            text_padding: The padding around the text.
-            text_color: The color of the text.
-            text_box_show: Whether to display the text box.
-            text_box_color: The color of the text box.
-            line_angle_degrees: The angle of the line in degrees.
+        "out: 7".
+                Args:
+                    text: The text to display.
+                    text_scale: The scale of the text.
+                    text_thickness: The thickness of the text.
+                    text_padding: The padding around the text.
+                    text_color: The color of the text.
+                    text_box_show: Whether to display the text box.
+                    text_box_color: The color of the text box.
+                    line_angle_degrees: The angle of the line in degrees.
 
-        Returns:
-            The label of shape (H, W, 4), in BGRA format.
+                Returns:
+                    The label of shape (H, W, 4), in BGRA format.
         """
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, text_thickness
@@ -744,11 +734,10 @@ class LineZoneAnnotator:
 
 
 class LineZoneAnnotatorMulticlass:
-    """
-    Draw per-class crossing counts for one or more `LineZone` instances.
+    """Draw per-class crossing counts for one or more `LineZone` instances.
 
-    The annotator renders a table with one row per line zone and one column per
-    class observed by the zones.
+    The annotator renders a table with one row per line zone and one column per class
+    observed by the zones.
     """
 
     def __init__(
@@ -769,8 +758,7 @@ class LineZoneAnnotatorMulticlass:
         text_thickness: int = 1,
         force_draw_class_ids: bool = False,
     ) -> None:
-        """
-        Draw a table showing how many items of each class crossed each line.
+        """Draw a table showing how many items of each class crossed each line.
 
         Args:
             table_position: The position of the table.
@@ -812,8 +800,8 @@ class LineZoneAnnotatorMulticlass:
         line_zones: list[LineZone],
         line_zone_labels: list[str] | None = None,
     ) -> npt.NDArray[np.uint8]:
-        """
-        Draws a table with the number of objects of each class that crossed each line.
+        """Draws a table with the number of objects of each class that crossed each
+        line.
 
         Args:
             frame: The image on which the table will be drawn.
@@ -823,7 +811,6 @@ class LineZoneAnnotatorMulticlass:
 
         Returns:
             The image with the table drawn on it.
-
         """
         if line_zone_labels is None:
             line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]

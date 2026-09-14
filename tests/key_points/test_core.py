@@ -16,6 +16,8 @@ from tests.helpers import (
     _FakeMediapipeLandmarkWithZeroVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
+    _FakeTensor,
+    _FakeUltralyticsBoxes,
     _FakeYoloNasKeyPoint,
     _FakeYoloNasKeyPointResults,
 )
@@ -1292,6 +1294,92 @@ def test_from_inference_invalid_input():
         KeyPoints.from_inference([key_points])
 
 
+class _FakeUltralyticsPoseTensor(_FakeTensor):
+    """Tensor stand-in that also reports its element count like `torch.Tensor`."""
+
+    def numel(self) -> int:
+        """Return the number of elements in the wrapped array."""
+        return int(self._arr.size)
+
+
+class _FakeUltralyticsKeypoints:
+    """Ultralytics-like `Keypoints`: `conf` is `None` without a visibility column."""
+
+    def __init__(self, data: np.ndarray) -> None:
+        """Split `(N, K, 2)` or `(N, K, 3)` key point data into `xy` and `conf`."""
+        self.xy = _FakeUltralyticsPoseTensor(data[..., :2])
+        self.conf = _FakeTensor(data[..., 2]) if data.shape[-1] == 3 else None
+
+
+class _FakeUltralyticsPoseResults:
+    """Ultralytics-like pose `Results` holding boxes, names and key points."""
+
+    def __init__(self, keypoints: np.ndarray, class_id: list[int]) -> None:
+        """Wrap key point data with one box and class id per skeleton."""
+        count = len(class_id)
+        self.keypoints = _FakeUltralyticsKeypoints(keypoints)
+        self.boxes = _FakeUltralyticsBoxes(
+            xyxy=np.zeros((count, 4)),
+            conf=np.ones(count),
+            cls=np.array(class_id, dtype=float),
+        )
+        self.names = {0: "person"}
+
+
+class TestFromUltralytics:
+    """KeyPoints.from_ultralytics for pose models with and without visibility."""
+
+    def test_keypoints_with_visibility_keep_their_confidence(self) -> None:
+        """A `(N, K, 3)` result maps the third column to `keypoint_confidence`."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.array(
+                [[[10.0, 20.0, 0.9], [30.0, 40.0, 0.4]]], dtype=np.float32
+            ),
+            class_id=[0],
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.4]])
+        np.testing.assert_array_equal(key_points.class_id, [0])
+        np.testing.assert_array_equal(key_points.data["class_name"], ["person"])
+
+    def test_keypoints_without_visibility_load_without_confidence(self) -> None:
+        """A `(N, K, 2)` result, whose `conf` is `None`, loads with no confidence."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.array(
+                [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
+                dtype=np.float32,
+            ),
+            class_id=[0, 0],
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        np.testing.assert_array_equal(
+            key_points.xy,
+            [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]],
+        )
+        assert key_points.keypoint_confidence is None
+        np.testing.assert_array_equal(key_points.class_id, [0, 0])
+        np.testing.assert_array_equal(
+            key_points.data["class_name"], ["person", "person"]
+        )
+
+    @pytest.mark.parametrize("depth", [2, 3])
+    def test_result_without_keypoints_is_empty(self, depth: int) -> None:
+        """A result with no skeletons returns `KeyPoints.empty()`."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.zeros((0, 17, depth), dtype=np.float32), class_id=[]
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        assert key_points == KeyPoints.empty()
+
+
 @pytest.mark.parametrize(
     ("yolo_nas_results", "expected_key_points"),
     [
@@ -1698,6 +1786,24 @@ class TestDeprecatedConfidenceConstructor:
         pytest.param(
             _create_key_points(
                 xy=[
+                    [[100, 100], [150, 150], [200, 200]],
+                    [[np.nan, np.nan], [110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+            ),
+            0.3,
+            False,
+            _create_key_points(
+                xy=[[[100, 100], [150, 150], [200, 200]]],
+                detection_confidence=[0.9],
+                class_id=[0],
+            ),
+            id="non-finite-keypoints-excluded-from-bbox",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
                     [[100, 100], [200, 200], [0, 0], [0, 0]],
                     [[0, 0], [0, 0], [110, 110], [210, 210]],
                 ],
@@ -1846,6 +1952,22 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
     assert result == expected_result
 
 
+def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
+    """A skeleton with no usable keypoint survives NMS rather than being dropped."""
+    key_points = _create_key_points(
+        xy=[
+            [[100, 100], [200, 200]],
+            [[np.nan, np.nan], [np.inf, np.inf]],
+        ],
+        detection_confidence=[0.9, 0.7],
+        class_id=[0, 0],
+    )
+
+    result = key_points.with_nms(threshold=0.3)
+
+    assert np.allclose(result.detection_confidence, [0.9, 0.7])
+
+
 @pytest.mark.parametrize(
     ("key_points", "threshold", "class_agnostic", "match"),
     [
@@ -1954,8 +2076,8 @@ class TestFromMediapipeHandedness:
     def test_omits_handedness_when_absent(self):
         """Hand results without handedness keep `class_id` and `data` unset.
 
-        Older callers and partial mocks supply landmarks alone; reading handedness
-        must stay optional rather than raising on the missing attribute.
+        Older callers and partial mocks supply landmarks alone; reading handedness must
+        stay optional rather than raising on the missing attribute.
         """
         mediapipe_results = _FakeMediapipeResults(hand_landmarks=_hand_landmarks(1))
 
@@ -2001,8 +2123,8 @@ class TestFromMediapipeHandedness:
     def test_leaves_pose_results_untouched(self):
         """Pose results keep their existing `class_id`/`data` behaviour.
 
-        Handedness handling is additive for hand branches only; this pins that the
-        pose path did not inherit an empty-but-present data field or a class id.
+        Handedness handling is additive for hand branches only; this pins that the pose
+        path did not inherit an empty-but-present data field or a class id.
         """
         mediapipe_results = _FakeMediapipeResults(
             pose_landmarks=_FakeMediapipePose(

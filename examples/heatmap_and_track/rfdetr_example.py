@@ -27,8 +27,7 @@ def main(
     track_seconds: int = 5,
     minimum_matching_threshold: float = 0.99,
 ) -> None:
-    """
-    Heatmap and Tracking with RF-DETR and Supervision.
+    """Heatmap and Tracking with RF-DETR and Supervision.
 
     Args:
         source_video_path: Path to the source video file

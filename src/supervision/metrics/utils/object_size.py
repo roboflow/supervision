@@ -18,8 +18,7 @@ SIZE_THRESHOLDS = (32**2, 96**2)
 
 
 class ObjectSizeCategory(Enum):
-    """
-    Enum for object size categories based on area in pixels.
+    """Enum for object size categories based on area in pixels.
 
     Small: area < 32^2
     Medium: 32^2 <= area < 96^2
@@ -48,8 +47,7 @@ def get_object_size_category(
     data: npt.NDArray[np.number] | npt.NDArray[np.bool_],
     metric_target: MetricTarget,
 ) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of an object. Distinguish based on the metric target.
+    """Get the size category of an object. Distinguish based on the metric target.
 
     Args:
         data: The object data, shaped (N, ...).
@@ -88,8 +86,7 @@ def get_object_size_category(
 
 
 def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of a bounding boxes array.
+    """Get the size category of a bounding boxes array.
 
     Args:
         xyxy: The bounding boxes array shaped (N, 4).
@@ -166,8 +163,7 @@ def get_area_size_category(
 def get_mask_size_category(
     mask: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of detection masks.
+    """Get the size category of detection masks.
 
     Args:
         mask: The mask array shaped (N, H, W), or a
@@ -211,8 +207,7 @@ def get_mask_size_category(
 
 
 def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
-    """
-    Get the size category of a oriented bounding boxes array.
+    """Get the size category of a oriented bounding boxes array.
 
     Args:
         xyxyxyxy: The bounding boxes array shaped (N, 4, 2).

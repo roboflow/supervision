@@ -99,8 +99,7 @@ def detections_to_pascal_voc(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> str:
-    """
-    Converts Detections object to Pascal VOC XML format.
+    """Converts Detections object to Pascal VOC XML format.
 
     Args:
         detections: A Detections object containing bounding boxes,
@@ -195,11 +194,12 @@ def load_pascal_voc_annotations(
     force_masks: bool = False,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """
-    Load Pascal VOC XML annotations in sorted image-path order.
+    """Load Pascal VOC XML annotations in sorted image-path order.
 
     Args:
         images_directory_path: The path to the directory containing the images.
+            Files with a ``.bmp``, ``.jpeg``, ``.jpg``, ``.png``, ``.tif``,
+            ``.tiff`` or ``.webp`` extension are loaded.
         annotations_directory_path: The path to the directory containing the
             PASCAL VOC annotation files.
         force_masks: If True, forces masks to be loaded for all
@@ -211,11 +211,11 @@ def load_pascal_voc_annotations(
             and a dictionary with image paths as keys and corresponding
             Detections instances as values.
     """
-
     image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+            directory=images_directory_path,
+            extensions=["bmp", "jpeg", "jpg", "png", "tif", "tiff", "webp"],
         )
     )
 

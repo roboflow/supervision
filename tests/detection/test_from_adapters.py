@@ -62,10 +62,11 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], expected_names)
 
 
-def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
+def test_from_ultralytics_segmentation_only_keeps_class_zero_for_every_mask(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    results = _FakeUltralyticsResults(boxes=None, names={}, length=3)
+    """One image with three masks yields three class-zero detections."""
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=1)
 
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
@@ -79,7 +80,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
 
     np.testing.assert_allclose(det.xyxy, fake_xyxy)
     np.testing.assert_array_equal(det.mask, fake_masks)
-    np.testing.assert_array_equal(det.class_id, np.arange(len(results)))
+    np.testing.assert_array_equal(det.class_id, np.zeros(len(fake_masks), dtype=int))
 
 
 def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> None:
@@ -236,7 +237,7 @@ class TestFromTransformers:
         assert len(det) == 0
 
     def test_detection_path_with_id2label_populates_class_names(self) -> None:
-        """id2label mapping adds class name strings to data dict."""
+        """Id2label mapping adds class name strings to data dict."""
         labels = np.array([0, 1], dtype=np.int64)
         result = {
             "boxes": _FakeDetachTensor(np.zeros((2, 4), dtype=np.float32)),
@@ -523,7 +524,7 @@ class TestFromDeepSparse:
         labels: np.ndarray,
         expected_len: int,
     ) -> None:
-        """boxes[0], scores[0], labels[0] are extracted into Detections fields."""
+        """Boxes[0], scores[0], labels[0] are extracted into Detections fields."""
         result = _FakeDeepSparseResults(boxes=[boxes], scores=[scores], labels=[labels])
 
         det = Detections.from_deepsparse(result)
@@ -594,7 +595,7 @@ class TestFromEasyOCR:
         np.testing.assert_allclose(det.data[ORIENTED_BOX_COORDINATES], np.array([bbox]))
 
     def test_detail_zero_results_raise_clear_error(self) -> None:
-        """detail=0 EasyOCR results must fail with a descriptive ValueError."""
+        """Detail=0 EasyOCR results must fail with a descriptive ValueError."""
         with pytest.raises(ValueError, match="detail=1"):
             Detections.from_easyocr(["text"])
 
@@ -739,7 +740,7 @@ class TestFromNCNN:
         ],
     )
     def test_maps_xywh_rect_to_xyxy(self, objects: list, expected_len: int) -> None:
-        """rect xywh converts to xyxy; prob and label map to confidence/class_id."""
+        """Rect xywh converts to xyxy; prob and label map to confidence/class_id."""
         det = Detections.from_ncnn(objects)
 
         assert len(det) == expected_len

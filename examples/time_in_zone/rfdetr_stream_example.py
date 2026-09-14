@@ -144,8 +144,7 @@ def main(
     iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
-    """
-    Calculating detections dwell time in zones using an RTSP stream.
+    """Calculating detections dwell time in zones using an RTSP stream.
 
     Args:
         rtsp_url: Complete RTSP URL for the video stream

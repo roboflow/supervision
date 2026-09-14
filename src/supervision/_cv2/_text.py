@@ -1,11 +1,10 @@
 """Private Pillow-based text fallback for the OpenCV compatibility facade.
 
-OpenCV renders text with built-in Hershey stroke fonts. The fallback instead
-draws a proportional TrueType face (DejaVu Sans, shipped with Matplotlib, an
-existing required dependency), so glyph shapes and text metrics differ from
-OpenCV within the documented visual-divergence tier. ``getTextSize`` derives
-its box from the same font ``putText`` renders with, so the reported rectangle
-always encloses the drawn text.
+OpenCV renders text with built-in Hershey stroke fonts. The fallback instead draws a
+proportional TrueType face (DejaVu Sans, shipped with Matplotlib, an existing required
+dependency), so glyph shapes and text metrics differ from OpenCV within the documented
+visual-divergence tier. ``getTextSize`` derives its box from the same font ``putText``
+renders with, so the reported rectangle always encloses the drawn text.
 """
 
 from __future__ import annotations
@@ -88,8 +87,8 @@ def _put_text(
     """Render text with a Pillow face, anchored at OpenCV's baseline origin.
 
     Thickness maps to a Pillow stroke width to emulate OpenCV's bolder strokes.
-    ``bottomLeftOrigin`` (an inverted-axis mode no Supervision caller uses) is
-    rejected rather than silently ignored.
+    ``bottomLeftOrigin`` (an inverted-axis mode no Supervision caller uses) is rejected
+    rather than silently ignored.
     """
     del lineType
     if bottomLeftOrigin:

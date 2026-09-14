@@ -7,16 +7,15 @@ from tests.helpers import assert_image_mostly_same
 
 
 class TestVertexAnnotator:
-    """
-    Verify that VertexAnnotator correctly draws keypoints on an image.
+    """Verify that VertexAnnotator correctly draws keypoints on an image.
 
     Ensures that `VertexAnnotator` correctly draws keypoints (vertices) on an image,
     which is essential for human pose estimation or similar tasks.
     """
 
     def test_annotate_with_default_parameters(self, scene, sample_key_points):
-        """
-        Verify that VertexAnnotator correctly draws keypoints with default parameters.
+        """Verify that VertexAnnotator correctly draws keypoints with default
+        parameters.
 
         Scenario: Annotating a scene using default vertex parameters.
         Expected: Scene is modified, showing keypoints at their detected locations.
@@ -33,8 +32,7 @@ class TestVertexAnnotator:
         )
 
     def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points):
-        """
-        Verify that VertexAnnotator respects custom color and radius settings.
+        """Verify that VertexAnnotator respects custom color and radius settings.
 
         Scenario: Annotating a scene with user-specified color and radius.
         Expected: Scene is modified according to custom style, allowing users to
@@ -54,8 +52,8 @@ class TestVertexAnnotator:
         )
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
-        """
-        Verify that VertexAnnotator handles empty keypoints without modifying the scene.
+        """Verify that VertexAnnotator handles empty keypoints without modifying the
+        scene.
 
         Scenario: Annotating a scene with no key points detected.
         Expected: Original scene is returned untouched, preventing phantom annotations.
@@ -95,18 +93,73 @@ class TestVertexAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """A vertex with a non-finite coordinate is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_vertex_does_not_hide_finite_ones(self, scene):
+        """A non-finite vertex is skipped while its finite neighbours still draw."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_partial_non_finite_vertex_is_skipped(self, scene):
+        """A vertex with one finite axis and one non-finite axis is skipped.
+
+        A pose estimator commonly resolves only one of the two axes, so this pins the
+        realistic partial-failure case rather than only the both-axes-non-finite case
+        covered elsewhere.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_zero_coordinate_vertex_is_skipped(self, scene):
+        """A `[0, 0]` keypoint is treated as an undetected-keypoint sentinel and
+        skipped.
+
+        Pins the pre-existing `np.allclose(point, 0)` guard so a future change to the
+        non-finite check does not accidentally drop this unrelated behavior.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[0.0, 0.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_all_non_finite_multi_detection_draws_nothing(self, scene):
+        """A fully non-finite, multi-detection, multi-point array draws nothing and does
+        not raise."""
+        key_points = sv.KeyPoints(
+            xy=np.full((2, 3, 2), np.nan, dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
 
 class TestEdgeAnnotator:
-    """
-    Verify that EdgeAnnotator correctly draws skeleton edges between keypoints.
+    """Verify that EdgeAnnotator correctly draws skeleton edges between keypoints.
 
     Ensures that `EdgeAnnotator` correctly draws connections (edges) between keypoints,
     forming skeletons that help users interpret spatial relationships.
     """
 
     def test_annotate_with_default_parameters(self, scene, sample_key_points):
-        """
-        Verify correctly draw skeleton edges with default parameters.
+        """Verify correctly draw skeleton edges with default parameters.
 
         Scenario: Annotating a scene with default skeleton (e.g., COCO).
         Expected: Skeleton edges are drawn between corresponding keypoints.
@@ -120,8 +173,7 @@ class TestEdgeAnnotator:
         )
 
     def test_annotate_with_custom_edges(self, scene, sample_key_points):
-        """
-        Verify that EdgeAnnotator respects custom-defined skeleton structures.
+        """Verify that EdgeAnnotator respects custom-defined skeleton structures.
 
         Scenario: Annotating a scene with a custom-defined skeleton structure.
         Expected: Only the specified connections are drawn, giving users flexibility
@@ -137,8 +189,8 @@ class TestEdgeAnnotator:
         )
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
-        """
-        Verify that EdgeAnnotator handles empty keypoints without modifying the scene.
+        """Verify that EdgeAnnotator handles empty keypoints without modifying the
+        scene.
 
         Scenario: Annotating a scene with no key points for edge drawing.
         Expected: Original scene is returned untouched.
@@ -169,6 +221,55 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_edge_with_non_finite_endpoint_is_skipped(self, scene, missing_coordinate):
+        """An edge is skipped when either endpoint carries a non-finite coordinate."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [[[10.0, 10.0], [missing_coordinate, missing_coordinate]]],
+                dtype=np.float32,
+            ),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_endpoint_does_not_hide_finite_edges(self, scene):
+        """Edges between finite endpoints still draw next to a non-finite keypoint."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [[[10.0, 10.0], [90.0, 90.0], [np.nan, np.nan]]], dtype=np.float32
+            ),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2), (2, 3)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_non_finite_z_skips_edge_despite_finite_xy(self, scene):
+        """A finite (x, y) pair with a non-finite z component is skipped.
+
+        Pins the current full-row finiteness rule, which matches
+        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is
+        never rasterized by EdgeAnnotator. A future change to only check (x, y)
+        should be a deliberate decision, not an accidental one.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0, np.nan], [90.0, 90.0, 1.0]]], dtype=np.float32),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_all_non_finite_multi_detection_draws_nothing(self, scene):
+        """A fully non-finite, multi-detection, multi-point array draws nothing and does
+        not raise."""
+        key_points = sv.KeyPoints(
+            xy=np.full((2, 3, 2), np.nan, dtype=np.float32),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2), (2, 3)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
     @pytest.mark.parametrize(
         "edges",
         [
@@ -188,8 +289,7 @@ class TestEdgeAnnotator:
             annotator.annotate(scene=scene.copy(), key_points=key_points)
 
     def test_annotate_no_edges_found(self, scene):
-        """
-        Verify returning unmodified scene when no known skeleton matches.
+        """Verify returning unmodified scene when no known skeleton matches.
 
         Scenario: Key points provided don't match any known or provided skeleton.
         Expected: No edges are drawn, and the original scene is returned, avoiding
@@ -207,14 +307,12 @@ class TestEdgeAnnotator:
 
 
 class TestVertexEllipseAnnotator:
-    """
-    Verify that VertexEllipseAnnotator draws filled semi-transparent
-    covariance ellipses around keypoints.
-    """
+    """Verify that VertexEllipseAnnotator draws filled semi-transparent covariance
+    ellipses around keypoints."""
 
     def test_annotate_with_covariance_data(self, scene, sample_key_points):
-        """
-        Scenario: Annotating keypoints with per-point covariance matrices.
+        """Scenario: Annotating keypoints with per-point covariance matrices.
+
         Expected: Scene is modified with filled ellipses at keypoint locations.
         """
         covariance = np.tile(
@@ -234,8 +332,8 @@ class TestVertexEllipseAnnotator:
         assert not np.array_equal(result, scene)
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
-        """
-        Scenario: Annotating a scene with no keypoints.
+        """Scenario: Annotating a scene with no keypoints.
+
         Expected: Original scene is returned untouched.
         """
         annotator = sv.VertexEllipseAnnotator()
@@ -244,8 +342,8 @@ class TestVertexEllipseAnnotator:
         assert np.array_equal(result, scene)
 
     def test_annotate_missing_covariance_data_raises(self, scene, sample_key_points):
-        """
-        Scenario: Annotating non-empty keypoints without covariance data.
+        """Scenario: Annotating non-empty keypoints without covariance data.
+
         Expected: Clear error explaining the expected data field.
         """
         annotator = sv.VertexEllipseAnnotator()
@@ -254,8 +352,8 @@ class TestVertexEllipseAnnotator:
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
     def test_annotate_invalid_covariance_shape_raises(self, scene, sample_key_points):
-        """
-        Scenario: Covariance data does not match keypoint dimensions.
+        """Scenario: Covariance data does not match keypoint dimensions.
+
         Expected: Clear shape validation error.
         """
         sample_key_points.data["covariance"] = np.zeros((1, 1, 2, 2), dtype=np.float32)
@@ -302,6 +400,19 @@ class TestVertexEllipseAnnotator:
 
         assert result.shape == scene.shape
         assert not np.array_equal(result, scene)
+
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """An ellipse anchored to a non-finite keypoint is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+            data={
+                "covariance": np.tile(np.eye(2, dtype=np.float32) * 25, (1, 1, 1, 1))
+            },
+        )
+        annotator = sv.VertexEllipseAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
 
     @pytest.mark.parametrize(
         ("kwargs", "match"),
@@ -370,6 +481,20 @@ class TestVertexEllipseOutlineAnnotator:
         assert np.array_equal(result_hidden, scene)
         assert not np.array_equal(result_visible, scene)
 
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """An ellipse outline anchored to a non-finite keypoint is skipped, not
+        drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+            data={
+                "covariance": np.tile(np.eye(2, dtype=np.float32) * 25, (1, 1, 1, 1))
+            },
+        )
+        annotator = sv.VertexEllipseOutlineAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
 
 class TestVertexEllipseHaloAnnotator:
     """Tests for VertexEllipseHaloAnnotator (blurred glow effect)."""
@@ -422,8 +547,91 @@ class TestVertexEllipseHaloAnnotator:
         assert np.array_equal(result_hidden, scene)
         assert not np.array_equal(result_visible, scene)
 
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """A halo anchored to a non-finite keypoint is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+            data={
+                "covariance": np.tile(np.eye(2, dtype=np.float32) * 25, (1, 1, 1, 1))
+            },
+        )
+        annotator = sv.VertexEllipseHaloAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
 
 class TestVertexLabelAnnotator:
+    def test_smart_position_draws_overlapping_labels(self) -> None:
+        """Label padding preserves integer coordinates accepted by the renderer."""
+        scene = np.zeros((120, 120, 3), dtype=np.uint8)
+        key_points = sv.KeyPoints(xy=np.array([[[40.0, 40.0], [50.0, 50.0]]]))
+        annotator = sv.VertexLabelAnnotator(smart_position=True)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert np.any(result != scene)
+
+    @pytest.mark.parametrize("missing_coordinate", [np.nan, np.inf, -np.inf])
+    def test_non_finite_vertex_is_skipped(self, scene, missing_coordinate):
+        """A label anchored to a non-finite keypoint is skipped, not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[missing_coordinate, missing_coordinate]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_non_finite_vertex_does_not_hide_finite_labels(self, scene):
+        """Labels on finite keypoints still draw next to a non-finite keypoint."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_non_finite_vertex_skipped_when_visible_is_set(self, scene):
+        """A non-finite keypoint is skipped even when `visible` is explicitly set.
+
+        When `visible` is provided, the zero-coordinate sentinel branch never
+        runs (it is an `elif` on `visible is None`), so this pins that the
+        finiteness check still applies on its own and is not accidentally
+        bypassed alongside it.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
+            visible=np.array([[True, True]]),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_non_finite_z_skips_label_despite_finite_xy(self, scene):
+        """A finite (x, y) pair with a non-finite z component is skipped.
+
+        Pins the current full-row finiteness rule, which matches
+        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is
+        never rasterized by VertexLabelAnnotator. A future change to only check
+        (x, y) should be a deliberate decision, not an accidental one.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0, np.nan]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_all_non_finite_multi_detection_draws_nothing(self, scene):
+        """A fully non-finite, multi-detection, multi-point array draws nothing and does
+        not raise."""
+        key_points = sv.KeyPoints(
+            xy=np.full((2, 3, 2), np.nan, dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
     @pytest.mark.parametrize(
         ("labels", "points_count", "class_id", "expected"),
         [

@@ -1,9 +1,8 @@
-"""
-Helper functions and utilities for testing the `supervision` library.
+"""Helper functions and utilities for testing the `supervision` library.
 
-This module provides convenient factory functions for creating `Detections`
-and `KeyPoints` objects from simple list-based inputs, as well as utilities
-for generating synthetic test data and performing custom assertions.
+This module provides convenient factory functions for creating `Detections` and
+`KeyPoints` objects from simple list-based inputs, as well as utilities for generating
+synthetic test data and performing custom assertions.
 """
 
 from __future__ import annotations
@@ -21,8 +20,8 @@ from supervision.key_points.core import KeyPoints
 def make_panoptic_png(segment_map: np.ndarray) -> bytes:
     """Encode a segment-ID array as a 24-bit RGBA PNG byte string.
 
-    Segment IDs are stored in RGB little-endian order so tests can cover
-    panoptic labels above 255 without collisions.
+    Segment IDs are stored in RGB little-endian order so tests can cover panoptic labels
+    above 255 without collisions.
     """
     segment_map_u32 = np.asarray(segment_map, dtype=np.uint32)
     arr = np.zeros((*segment_map_u32.shape, 4), dtype=np.uint8)
@@ -43,8 +42,7 @@ def _create_detections(
     tracker_id: list[int] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> Detections:
-    """
-    Create a Detections object from list-based inputs.
+    """Create a Detections object from list-based inputs.
 
     This is a helper function primarily used for testing purposes to quickly
     instantiate a Detections object without manually converting lists to numpy arrays.
@@ -103,8 +101,7 @@ def _create_key_points(
     visible: list[list[bool]] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
-    """
-    Create a KeyPoints object from list-based inputs.
+    """Create a KeyPoints object from list-based inputs.
 
     This is a helper function primarily used for testing purposes to quickly
     instantiate a KeyPoints object without manually converting lists to numpy arrays.
@@ -167,8 +164,8 @@ def _generate_random_boxes(
     max_box_size: int = 200,
     seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Generate random bounding boxes within given image dimensions and size constraints.
+    """Generate random bounding boxes within given image dimensions and size
+    constraints.
 
     Creates `count` bounding boxes randomly positioned and sized, ensuring each
     stays within image bounds and has width and height in the specified range.
@@ -214,8 +211,7 @@ def _generate_random_boxes(
 
 
 def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
-    """
-    Assert that two values are equal within a specified tolerance.
+    """Assert that two values are equal within a specified tolerance.
 
     Args:
         actual: The value to check.
@@ -237,8 +233,7 @@ def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
 def assert_image_mostly_same(
     original: np.ndarray, annotated: np.ndarray, similarity_threshold: float = 0.9
 ) -> None:
-    """
-    Assert that the annotated image is mostly the same as the original.
+    """Assert that the annotated image is mostly the same as the original.
 
     Args:
         original: Original image
@@ -439,8 +434,7 @@ def create_yolo_dataset(
     objects_per_image_range: tuple[int, int] = (2, 4),
     seed: int = 42,
 ) -> dict[str, Any]:
-    """
-    Create a synthetic YOLO-format dataset on disk.
+    """Create a synthetic YOLO-format dataset on disk.
 
     Generates dummy images with YOLO-format annotations, `data.yaml` file,
     and directory structure suitable for testing dataset loading.
@@ -652,8 +646,7 @@ class _FakeNCNNObject:
 def create_predictions_with_class_iou_tests(
     gt_detections: Detections, num_classes: int
 ) -> Detections:
-    """
-    Create predictions that test IoU+class matching behavior.
+    """Create predictions that test IoU+class matching behavior.
 
     For each ground truth detection, creates predictions with different patterns:
     - Pattern 0 (i%3==0): Correct match (same bbox, correct class)

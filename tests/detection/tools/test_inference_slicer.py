@@ -208,8 +208,8 @@ def test_generate_offset(
 
 
 def test_run_callback_warns_when_detections_outside_slice_bounds() -> None:
-    """Test that a warning is emitted when callback returns detections with
-    coordinates outside the slice bounds."""
+    """Test that a warning is emitted when callback returns detections with coordinates
+    outside the slice bounds."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         # Return detections with coordinates exceeding the 64x64 slice size
@@ -227,8 +227,8 @@ def test_run_callback_warns_when_detections_outside_slice_bounds() -> None:
 
 
 def test_run_callback_warns_only_once_for_out_of_bounds_detections() -> None:
-    """Test that the out-of-bounds warning is only emitted once even across
-    multiple slices."""
+    """Test that the out-of-bounds warning is only emitted once even across multiple
+    slices."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -254,8 +254,8 @@ def test_run_callback_warns_only_once_for_out_of_bounds_detections() -> None:
 
 
 def test_run_callback_no_warning_when_detections_inside_slice_bounds() -> None:
-    """Test that no warning is emitted when callback returns detections within
-    the slice bounds."""
+    """Test that no warning is emitted when callback returns detections within the slice
+    bounds."""
 
     def in_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -281,8 +281,8 @@ def test_run_callback_no_warning_when_detections_inside_slice_bounds() -> None:
 
 
 def test_run_callback_warns_when_detections_have_negative_coordinates() -> None:
-    """Test that a warning is emitted when callback returns detections with
-    negative coordinates, indicating wrong reference frame."""
+    """Test that a warning is emitted when callback returns detections with negative
+    coordinates, indicating wrong reference frame."""
 
     def negative_coords_callback(_: np.ndarray) -> Detections:
         # Return detections with negative coordinates (e.g., returned in full-image
@@ -303,8 +303,8 @@ def test_run_callback_warns_when_detections_have_negative_coordinates() -> None:
 
 
 def test_run_callback_warns_only_once_with_multiple_threads() -> None:
-    """Test that exactly one warning fires even with thread_workers > 1, validating
-    that the threading.Lock makes the check-and-set atomic."""
+    """Test that exactly one warning fires even with thread_workers > 1, validating that
+    the threading.Lock makes the check-and-set atomic."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -336,8 +336,8 @@ def test_run_callback_warns_only_once_with_multiple_threads() -> None:
 
 
 def test_run_callback_no_warning_for_detection_exactly_at_slice_boundary() -> None:
-    """Test that a detection whose coordinates exactly equal the slice dimensions
-    does not trigger the warning (boundary is exclusive: > not >=)."""
+    """Test that a detection whose coordinates exactly equal the slice dimensions does
+    not trigger the warning (boundary is exclusive: > not >=)."""
 
     def at_boundary_callback(_: np.ndarray) -> Detections:
         # x2=64, y2=64 on a 64x64 slice — touching the edge but not exceeding it
@@ -364,8 +364,8 @@ def test_run_callback_no_warning_for_detection_exactly_at_slice_boundary() -> No
 
 
 def test_run_callback_does_not_rewarn_on_second_call() -> None:
-    """Test that a second call to the same slicer instance does not re-emit
-    the out-of-bounds warning even when detections are still out of bounds."""
+    """Test that a second call to the same slicer instance does not re-emit the out-of-
+    bounds warning even when detections are still out of bounds."""
 
     def out_of_bounds_callback(_: np.ndarray) -> Detections:
         return Detections(
@@ -393,7 +393,6 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
 
 def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     """Test that OBB callbacks are serialized even when thread_workers > 1."""
-
     active_calls = 0
     max_active_calls = 0
     concurrent_callbacks = 0
@@ -457,11 +456,10 @@ def _rotated_rect(
 def test_inference_slicer_keeps_crossed_obb_detections(
     overlap_filter: OverlapFilter,
 ) -> None:
-    """Regression for issue #1679: the SAHI workflow with OBB detections
-    dropped valid detections at the merge step because `with_nms`/`with_nmm`
-    historically used axis-aligned IoU. For crossed thin rectangles the AABBs
-    are nearly identical (IoU ≈ 1.0) while the OBBs barely overlap (IoU ≈ 0.06)
-    — so AABB-NMS suppressed one of them.
+    """Regression for issue #1679: the SAHI workflow with OBB detections dropped valid
+    detections at the merge step because `with_nms`/`with_nmm` historically used axis-
+    aligned IoU. For crossed thin rectangles the AABBs are nearly identical (IoU ≈ 1.0)
+    while the OBBs barely overlap (IoU ≈ 0.06) — so AABB-NMS suppressed one of them.
 
     Both crossed OBBs must survive end-to-end through `InferenceSlicer`.
     """

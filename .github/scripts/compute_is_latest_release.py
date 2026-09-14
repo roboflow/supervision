@@ -39,8 +39,8 @@ _RC_SUFFIX_RE = re.compile(r"(^|[._-])rc\d+$|\drc\d+$")
 def _normalize_tag(tag: str) -> str:
     """Strip the release workflow's `v` prefix and `.postN` suffix from a git tag.
 
-    Mirrors the bash normalization publish-docs.yml already applies to
-    ``release_tag``, so a raw tag from ``git tag --list`` compares on equal footing.
+    Mirrors the bash normalization publish-docs.yml already applies to ``release_tag``,
+    so a raw tag from ``git tag --list`` compares on equal footing.
     """
     return re.sub(r"\.post\d+$", "", tag.removeprefix("v"))
 
@@ -48,8 +48,8 @@ def _normalize_tag(tag: str) -> str:
 def _parse_stable_version(tag: str) -> Version | None:
     """Return the parsed version for a stable release tag, or None to skip it.
 
-    Skips release-candidate tags and anything that does not parse as a version —
-    the same two exclusions publish-docs.yml applies to ``release_tag`` itself.
+    Skips release-candidate tags and anything that does not parse as a version — the
+    same two exclusions publish-docs.yml applies to ``release_tag`` itself.
     """
     normalized = _normalize_tag(tag)
     if _RC_SUFFIX_RE.search(normalized.lower()):

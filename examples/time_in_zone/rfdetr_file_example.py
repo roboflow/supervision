@@ -98,8 +98,7 @@ def main(
     iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
-    """
-    Calculating detections dwell time in zones, using video file.
+    """Calculating detections dwell time in zones, using video file.
 
     Args:
         source_video_path: Path to the source video file

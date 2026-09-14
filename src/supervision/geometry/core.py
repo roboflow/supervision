@@ -6,9 +6,7 @@ from math import sqrt
 
 
 class Position(Enum):
-    """
-    Enum representing the position of an anchor point.
-    """
+    """Enum representing the position of an anchor point."""
 
     CENTER = "CENTER"
     CENTER_LEFT = "CENTER_LEFT"
@@ -29,8 +27,7 @@ class Position(Enum):
 
 @dataclass
 class Point:
-    """
-    Represents a point in 2D space.
+    """Represents a point in 2D space.
 
     Attributes:
         x: The x-coordinate of the point.
@@ -52,8 +49,7 @@ class Point:
     y: float
 
     def as_xy_int_tuple(self) -> tuple[int, int]:
-        """
-        Returns the point as a tuple of integers.
+        """Returns the point as a tuple of integers.
 
         Returns:
             The point as (x, y) integers.
@@ -61,8 +57,7 @@ class Point:
         return int(self.x), int(self.y)
 
     def as_xy_float_tuple(self) -> tuple[float, float]:
-        """
-        Returns the point as a tuple of floats.
+        """Returns the point as a tuple of floats.
 
         Returns:
             The point as (x, y) floats.
@@ -72,8 +67,7 @@ class Point:
 
 @dataclass
 class Vector:
-    """
-    Represents a vector in 2D space, defined by a start and an end point.
+    """Represents a vector in 2D space, defined by a start and an end point.
 
     Attributes:
         start: The starting point of the vector.
@@ -98,8 +92,7 @@ class Vector:
 
     @property
     def magnitude(self) -> float:
-        """
-        Calculate the magnitude (length) of the vector.
+        """Calculate the magnitude (length) of the vector.
 
         Returns:
             The magnitude of the vector.
@@ -110,8 +103,7 @@ class Vector:
 
     @property
     def center(self) -> Point:
-        """
-        Calculate the center point of the vector.
+        """Calculate the center point of the vector.
 
         Returns:
             The center point of the vector.
@@ -122,8 +114,7 @@ class Vector:
         )
 
     def cross_product(self, point: Point) -> float:
-        """
-        Calculate the 2D cross product (also known as the vector product or outer
+        """Calculate the 2D cross product (also known as the vector product or outer
         product) of the vector and a point, treated as vectors in 2D space.
 
         Args:
@@ -145,8 +136,7 @@ class Vector:
 
 @dataclass
 class Rect:
-    """
-    Represents a rectangle in 2D space.
+    """Represents a rectangle in 2D space.
 
     Attributes:
         x: The x-coordinate of the top-left corner of the rectangle.

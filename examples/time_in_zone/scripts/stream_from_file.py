@@ -12,8 +12,7 @@ BASE_STREAM_URL = "rtsp://localhost:8554/live"
 
 
 def main(video_directory: str, number_of_streams: int = 6) -> None:
-    """
-    Script to stream videos using RTSP protocol.
+    """Script to stream videos using RTSP protocol.
 
     Args:
         video_directory: Directory containing video files to stream.

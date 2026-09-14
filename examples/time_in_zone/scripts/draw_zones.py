@@ -128,8 +128,7 @@ def save_polygons_to_json(
 
 
 def main(source_path: str, zone_configuration_path: str) -> None:
-    """
-    Interactively draw polygons on images or video frames and save the annotations.
+    """Interactively draw polygons on images or video frames and save the annotations.
 
     Args:
         source_path: Path to the source image or video file for drawing polygons.

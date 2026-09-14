@@ -49,8 +49,7 @@ class TestPolygonZoneInit:
 
         Calls trigger() twice on the same zone: a materialized list keeps returning
         results on repeated calls, whereas an un-materialized generator would be
-        exhausted after the first trigger() and silently yield no anchors on the
-        second.
+        exhausted after the first trigger() and silently yield no anchors on the second.
         """
         zone = sv.PolygonZone(
             POLYGON, triggering_anchors=(p for p in [sv.Position.CENTER])
@@ -60,6 +59,34 @@ class TestPolygonZoneInit:
         )
         assert zone.trigger(detections)[0]
         assert zone.trigger(detections)[0]
+
+    @pytest.mark.parametrize(
+        ("polygon", "expected_vertex_count"),
+        [
+            (np.empty((0, 2), dtype=int), 0),
+            (np.array([[20, 20]]), 1),
+            (np.array([[0, 0], [40, 40]]), 2),
+        ],
+    )
+    def test_degenerate_polygon_raises(
+        self, polygon: np.ndarray, expected_vertex_count: int
+    ) -> None:
+        """A polygon enclosing no area cannot be a zone and must not be accepted."""
+        with pytest.raises(
+            ValueError, match=f"at least 3 vertices.*got {expected_vertex_count}"
+        ):
+            sv.PolygonZone(polygon)
+
+    def test_triangle_is_accepted(self) -> None:
+        """Three vertices is the smallest polygon that encloses an area."""
+        zone = sv.PolygonZone(np.array([[0, 0], [100, 0], [100, 100]]))
+
+        assert zone.mask.sum() > 0
+
+    def test_wrongly_shaped_polygon_raises(self) -> None:
+        """A polygon must be (N, 2) coordinate pairs, not a flat or 3-D array."""
+        with pytest.raises(ValueError, match=r"shape \(N, 2\)"):
+            sv.PolygonZone(np.array([0, 0, 40, 0, 40, 40]))
 
 
 class TestPolygonZoneTrigger:
@@ -184,8 +211,8 @@ class TestPolygonZoneTrigger:
 
     def test_anchor_on_polygon_boundary_included_any_mode(self) -> None:
         """With require_all_anchors=False and multiple anchors, an anchor landing
-        exactly on the polygon boundary is enough to trigger, even though the
-        other anchors of the same detection fall outside the polygon."""
+        exactly on the polygon boundary is enough to trigger, even though the other
+        anchors of the same detection fall outside the polygon."""
         polygon = np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
         anchors = [sv.Position.TOP_LEFT, sv.Position.BOTTOM_RIGHT]
         # TOP_LEFT = (-50, -50) is outside; BOTTOM_RIGHT = (100, 100) is exactly
@@ -243,9 +270,9 @@ class TestPolygonZoneTrigger:
         assert any_anchor.current_count == 0
 
     def test_require_all_anchors_default_matches_explicit_true(self) -> None:
-        """Omitting require_all_anchors and passing require_all_anchors=True
-        explicitly must produce identical trigger() results, pinning the
-        documented default (True)."""
+        """Omitting require_all_anchors and passing require_all_anchors=True explicitly
+        must produce identical trigger() results, pinning the documented default
+        (True)."""
         anchors = (
             sv.Position.TOP_LEFT,
             sv.Position.TOP_RIGHT,
@@ -263,7 +290,9 @@ class TestPolygonZoneTrigger:
     def test_require_all_anchors_has_no_effect_with_single_anchor(self) -> None:
         """With a single triggering anchor, require_all_anchors is a no-op: both
         settings must produce identical trigger() results (per the docstring:
-        "Has no effect when triggering_anchors has a single entry")."""
+
+        "Has no effect when triggering_anchors has a single entry").
+        """
         # Box [140, 140, 160, 160] has its BOTTOM_CENTER inside POLYGON.
         detections = _create_detections(
             xyxy=[[140.0, 140.0, 160.0, 160.0]], class_id=[0]

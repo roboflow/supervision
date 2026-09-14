@@ -6,8 +6,7 @@ import numpy as np
 
 
 def load_zones_config(file_path: str) -> list[np.ndarray]:
-    """
-    Load polygon zone configurations from a JSON file.
+    """Load polygon zone configurations from a JSON file.
 
     This function reads a JSON file which contains polygon coordinates, and
     converts them into a list of NumPy arrays. Each polygon is represented as
@@ -42,8 +41,7 @@ def find_in_list(array: np.ndarray, search_list: list[int]) -> np.ndarray:
 
 
 def get_stream_frames_generator(rtsp_url: str) -> Generator[np.ndarray, None, None]:
-    """
-    Generator function to yield frames from an RTSP stream.
+    """Generator function to yield frames from an RTSP stream.
 
     Args:
         rtsp_url (str): URL of the RTSP video stream.

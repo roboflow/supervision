@@ -29,9 +29,9 @@ if str(SCRIPTS_DIR) not in sys.path:
 def _jupyter_platform_dirs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Opt into Jupyter's platform directories for every test in this directory.
 
-    Loading the MkDocs config pulls in Jupyter, which warns about its legacy paths.
-    The suite promotes ``DeprecationWarning`` to an error, so without this the docs
-    tests fail on a warning that has nothing to do with what they assert.
+    Loading the MkDocs config pulls in Jupyter, which warns about its legacy paths. The
+    suite promotes ``DeprecationWarning`` to an error, so without this the docs tests
+    fail on a warning that has nothing to do with what they assert.
     """
     monkeypatch.setenv("JUPYTER_PLATFORM_DIRS", "1")
 
@@ -81,8 +81,8 @@ def workflow_step(
 ) -> Callable[[str, str, str], dict[str, Any]]:
     """Return a lookup for one workflow step, addressed by job id and step name.
 
-    Steps are looked up by name rather than list position so that inserting a step
-    into a workflow cannot silently repoint an existing test at a different step.
+    Steps are looked up by name rather than list position so that inserting a step into
+    a workflow cannot silently repoint an existing test at a different step.
     """
 
     def lookup(workflow_file: str, job: str, step_name: str) -> dict[str, Any]:

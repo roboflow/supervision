@@ -45,7 +45,7 @@ class TestMeanAveragePrecision:
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_multiple_perfect_detections(self):
-        """Test that multiple perfect detections get 1.0 mAP"""
+        """Test that multiple perfect detections get 1.0 mAP."""
         # Multiple perfect detections in one image
         detections = Detections(
             xyxy=np.array(
@@ -90,7 +90,7 @@ class TestMeanAveragePrecision:
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_batch_updates_perfect_detections(self, detections_50_50, targets_50_50):
-        """Test that batch updates with perfect detections get 1.0 mAP"""
+        """Test that batch updates with perfect detections get 1.0 mAP."""
         metric = MeanAveragePrecision()
         # Add 3 batch updates
         metric.update([detections_50_50], [targets_50_50])
@@ -102,7 +102,7 @@ class TestMeanAveragePrecision:
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_scenario_1_success_case_imperfect_match(self):
-        """Scenario 1: Success Case with imperfect match"""
+        """Scenario 1: Success Case with imperfect match."""
         # Small object (class 0) - area = 30*30 = 900 < 1024
         small_perfect = Detections(
             xyxy=np.array([[10, 10, 40, 40]], dtype=np.float64),
@@ -312,7 +312,7 @@ class TestMeanAveragePrecision:
     def test_mixed_classes_with_missing_detections(
         self, detections_50_50, targets_50_50
     ):
-        """Test mixed scenario with some classes having no detections"""
+        """Test mixed scenario with some classes having no detections."""
         # Class 1: GT exists but no prediction
         class_1_target = Detections(
             xyxy=np.array([[60, 60, 100, 100]], dtype=np.float64),
@@ -340,7 +340,7 @@ class TestMeanAveragePrecision:
         assert result.map50_95 < 1.0
 
     def test_empty_predictions_and_targets(self):
-        """Test completely empty predictions and targets"""
+        """Test completely empty predictions and targets."""
         metric = MeanAveragePrecision()
         metric.update([Detections.empty()], [Detections.empty()])
         result = metric.compute()
@@ -478,8 +478,8 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
     def test_cross_matched_obb_orients_iou_correctly(self) -> None:
         """2x2 cross-match: pred0->target1, pred1->target0 must both score as TP.
 
-        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0.
-        Passing asserts the (dt, gt) orientation is correct end-to-end.
+        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0. Passing
+        asserts the (dt, gt) orientation is correct end-to-end.
         """
         box_tl = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
         box_br = np.array([[20, 20], [30, 20], [30, 30], [20, 30]], dtype=np.float32)
@@ -599,8 +599,8 @@ class TestMeanAveragePrecisionMasksOrientation:
     def test_cross_matched_masks_orient_iou_correctly(self) -> None:
         """2x2 cross-match: pred0->target1, pred1->target0 must both score as TP.
 
-        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0.
-        Passing asserts the (dt, gt) orientation is correct end-to-end.
+        A transposed (gt, dt) matrix would yield 0 IoU for every pair; map50=0. Passing
+        asserts the (dt, gt) orientation is correct end-to-end.
         """
         top_mask = np.zeros((1, 32, 32), dtype=bool)
         top_mask[0, :16, :] = True

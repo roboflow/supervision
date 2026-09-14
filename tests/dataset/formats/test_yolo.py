@@ -442,8 +442,8 @@ def test_load_yolo_annotations_accepts_pil_readable_image_modes(
 def test_polygons_to_masks_multiple_polygons_shape() -> None:
     """Regression test for #1746: _polygons_to_masks must return shape (N, H, W).
 
-    The original PR rewrite processed only a single polygon and always returned
-    shape (1, H, W), breaking multi-polygon detections.
+    The original PR rewrite processed only a single polygon and always returned shape
+    (1, H, W), breaking multi-polygon detections.
     """
     from supervision.dataset.formats.yolo import _polygons_to_masks
 
