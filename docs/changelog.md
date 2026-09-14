@@ -7,7 +7,7 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_ultralytics` no longer sizes the placeholder `class_id` of a masks-only result by the number of results. `Results.__len__` reports how many images the result holds, not how many masks, so a single image carrying three masks produced a `class_id` of length one and the call raised `ValueError: class_id must be a 1D np.ndarray with shape (3,), but got shape (1,)`. The placeholder now follows `mask`, so every mask keeps the class `0` of the image it belongs to. Results that do carry boxes keep their real class ids and are unaffected.
+- `sv.Detections.from_ultralytics` now assigns the placeholder class ID `0` to every mask in a masks-only result. Previously the placeholder IDs were sequential (`0`, `1`, `2`, ...) despite every mask belonging to the same image. Results that carry boxes keep their real class IDs and are unaffected.
 
 - `sv.pad_boxes` now computes integer-coordinate padding without overflow or unsigned casting errors. Integer inputs are promoted to `int64`, with a `float64` fallback only when padded coordinates exceed its range; floating-point inputs retain their dtype. Padding can extend boxes below zero or above the input dtype's maximum without wrapping their coordinates, while ordinary integer boxes remain compatible with annotation renderers.
 
