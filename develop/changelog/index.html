@@ -4006,6 +4006,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.KeyPoints.from_ultralytics</code> no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value <code>kpt_shape</code> (<code>[K, 2]</code>, coordinates only) return key points of shape <code>(N, K, 2)</code>, and for those <code>Results.keypoints.conf</code> is <code>None</code>. The connector called <code>.cpu()</code> on it unconditionally, so every non-empty frame raised <code>AttributeError: 'NoneType' object has no attribute 'cpu'</code>. Such results now load with <code>keypoint_confidence=None</code>, the same as any other <code>sv.KeyPoints</code> without scores; models that do report visibility keep their confidences.</p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_pascal_voc</code> no longer skips <code>.bmp</code>, <code>.tif</code>, <code>.tiff</code> and <code>.webp</code> images. The loader only listed <code>.jpg</code>, <code>.jpeg</code> and <code>.png</code> files, so every other image was left out of the dataset without a warning — even though <code>sv.DetectionDataset.from_yolo</code> and <code>sv.ClassificationDataset.from_folder_structure</code> load those formats, and <code>DetectionDataset.as_pascal_voc</code> writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as <code>sv.ClassificationDataset.from_folder_structure</code>.</p>
 </li>
 <li>
@@ -6303,7 +6306,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 13:59:35 UTC">September 14, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 15:32:07 UTC">September 14, 2026</span>
   </span>
 
     
