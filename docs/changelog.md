@@ -1,11 +1,14 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-08
+
+date_modified: 2026-09-14
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+### 0.30.3 <small>Sep 14, 2026</small>
 
 - `sv.Detections.from_ultralytics` now assigns the placeholder class ID `0` to every mask in a masks-only result. Previously the placeholder IDs were sequential (`0`, `1`, `2`, ...) despite every mask belonging to the same image. Results that carry boxes keep their real class IDs and are unaffected.
 
@@ -31,21 +34,25 @@ date_modified: 2026-09-08
 
 - `sv.Detections.from_vlm` now orders each parsed box's corners, so a model that emits a corner pair backwards no longer produces an `xyxy` row with `x_min > x_max`. Every VLM parser passed such a row straight through, and nothing downstream caught it: `sv.box_iou_batch` clamps intersection widths at zero, so the box scored an IoU of `0.0` against itself — surviving NMS as a duplicate and counting as a total miss in mAP — while `sv.Detections.box_area` reported a plausible positive value, because negating both sides leaves their product positive. Correctly ordered boxes, their dtypes included, are unchanged.
 
+- `sv.TraceAnnotator.annotate` no longer raises `ValueError: The `tracker_id` field is missing` for a frame in which nothing was detected. An empty `sv.Detections` carries no `tracker_id`, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except `sv.ByteTrack`, which works around it by returning an empty `tracker_id` array. Such a frame now draws nothing and still advances `sv.Trace`'s frame counter, keeping `trace_length` a window over elapsed frames — pruning fires on the next frame that does carry detections, and only once the frames stored in the trace outnumber `trace_length`, so a track that had filled the window before a long gap starts a fresh trail instead of being joined to its pre-gap one. Detections that do contain boxes but no `tracker_id` still raise, as before.
+
+- `sv.CSVSink` no longer lets a batch with no detections fix the CSV header. Appending an empty `sv.Detections` — the normal result for a frame in which nothing was detected — wrote a header without the `data` and `custom_data` columns, and every later row was then silently truncated to that schema, dropping fields such as `class_name` for the whole file. Empty batches now write nothing and leave the header to the first batch that actually carries detections; a run in which every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning those batches logged is gone.
+
+- `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
+
+- `sv.scale_boxes` now preserves exact integer intermediates until its final float64 conversion for 64-bit coordinates beyond `2**53`, preventing scaled-corner rounding errors while retaining a vectorized fast path for exactly representable integer coordinates ([#2541](https://github.com/roboflow/supervision/pull/2541)).
+
 ### 0.30.2 <small>Sep 3, 2026</small>
 
 ### Added
 
 ### Fixed
 
-- `sv.TraceAnnotator.annotate` no longer raises `ValueError: The `tracker_id` field is missing` for a frame in which nothing was detected. An empty `sv.Detections` carries no `tracker_id`, so the documented per-frame annotate loop crashed on the first empty frame for every tracker except `sv.ByteTrack`, which works around it by returning an empty `tracker_id` array. Such a frame now draws nothing and still advances `sv.Trace`'s frame counter, keeping `trace_length` a window over elapsed frames — pruning fires on the next frame that does carry detections, and only once the frames stored in the trace outnumber `trace_length`, so a track that had filled the window before a long gap starts a fresh trail instead of being joined to its pre-gap one. Detections that do contain boxes but no `tracker_id` still raise, as before.
-- `sv.CSVSink` no longer lets a batch with no detections fix the CSV header. Appending an empty `sv.Detections` — the normal result for a frame in which nothing was detected — wrote a header without the `data` and `custom_data` columns, and every later row was then silently truncated to that schema, dropping fields such as `class_name` for the whole file. Empty batches now write nothing and leave the header to the first batch that actually carries detections; a run in which every batch is empty still writes the header alone, and the spurious "Field names do not match the header" warning those batches logged is gone.
 - Versioned documentation banners now adjust MkDocs Material’s desktop sidebar inline layout and scroll height without shifting the mobile navigation drawer.
 - Versioned documentation builds now emit a valid `/latest/search/` SearchAction URL when Mike removes the trailing slash from `site_url`; docs CI renders the custom theme under Mike version contexts to protect the URL, version banners, and star JSON-LD. This source change applies to future builds; existing published archive trees require a separately approved backfill.
 - `sv.xcycwh_to_xyxy` no longer truncates coordinates for integer input arrays. Half of an odd width or height is fractional, and the previous implementation wrote those values into a copy of the integer input, silently rounding them; the converted boxes are now exact.
 - `sv.denormalize_boxes` no longer truncates coordinates for integer input arrays. Scaling now multiplies by a floating-point factor so integer normalized coordinates (for example VLM boxes quantized to `0..1000`) map to exact absolute pixel values instead of being silently rounded down.
 - `sv.Detections.box_area` (and therefore `sv.Detections.area` for axis-aligned boxes) now computes integer-coordinate box areas in `float64`, preventing integer overflow for large boxes (e.g. an `int32` `50000 x 50000` box previously wrapped to a negative area).
-- `sv.scale_boxes` now calculates box centers and scaled dimensions using overflow-safe arithmetic, preventing integer overflow and coordinate wrap-around for integer-coordinate bounding boxes (e.g. large `int32` or `uint16` coordinates) ([#2540](https://github.com/roboflow/supervision/issues/2540)).
-- `sv.scale_boxes` now preserves exact integer intermediates until its final float64 conversion for 64-bit coordinates beyond `2**53`, preventing scaled-corner rounding errors while retaining a vectorized fast path for exactly representable integer coordinates ([#2541](https://github.com/roboflow/supervision/pull/2541)).
 - Docs deployment for `latest` no longer fails with `error: version 'latest' already exists` when `latest` exists as an alias of a released version; the publish workflow now always deletes `latest` before redeploying it ([#2512](https://github.com/roboflow/supervision/issues/2512)).
 - Versioned documentation deploys now export the version being deployed to the docs build, so the outdated-version banner reaches readers of the `develop` tree and of archived release trees. The publish workflow never set `MIKE_DOCS_VERSION`, which gates the banner, so every tree was built without it. This applies to future builds going forward.
 - The canonical backfill workflow now pushes the pre-rewrite `gh-pages` tip to a timestamped backup branch before committing over it, and reports rewritten canonicals whose target page does not exist under `latest/` — a canonical pointing at a removed page is ignored by search engines, so those pages keep competing with `/latest/`. The same workflow now also backfills the outdated-version banner itself into already-published archive trees, patching the empty banner markup those pages already carry rather than rebuilding them — archived tags may not build against current dependencies, so a rebuild is not an option. The highest-numbered version tree is left out of that backfill — it holds the current release that `/latest/` serves, so an "older version" warning there is wrong — and a banner an earlier run injected into it is removed.

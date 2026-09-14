@@ -135,6 +135,9 @@ jobs:
             git commit -m "chore(docs): archive the previously-latest release"
             git push origin gh-pages
           fi
+          # The next step reads docs/ from the source tree, not gh-pages — restore
+          # the original release-tag checkout this job started on.
+          git checkout "$GITHUB_REF_NAME"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
