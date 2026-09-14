@@ -398,8 +398,8 @@ def _parse_coordinate(text: str, tag: str) -> float:
 def parse_polygon_points(polygon: Element) -> npt.NDArray[np.float64]:
     """Parse ``<polygon>`` vertices, keeping decimal values as written.
 
-    Vertices stay floats so the caller can apply the 1-index offset before rounding
-    them to pixels for rasterisation.
+    Vertices stay floats so the caller can apply the 1-index offset before rounding them
+    to pixels for rasterisation.
     """
     coordinates: list[float] = []
     for coord in polygon.findall(".//*"):
