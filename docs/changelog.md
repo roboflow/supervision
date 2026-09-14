@@ -7,6 +7,12 @@ date_modified: 2026-09-08
 
 ### Unreleased <small>upcoming</small>
 
+- Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/2498)).
+
+- Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
+
+- Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#2498](https://github.com/roboflow/supervision/pull/2498)).
+
 - `sv.Detections.from_transformers` no longer crashes on a Transformers v4 panoptic result that holds no segments. `post_process_panoptic` returns an empty `segments_info` whenever no query clears its `threshold` (or every kept segment is filtered out as too small), but the v4 panoptic path stacked the per-segment masks with `np.array([...])`, which turns an empty list into a 1-D `(0,)` array, and `mask_to_xyxy` then failed with `ValueError: not enough values to unpack (expected 3, got 1)`. The path now builds a `(0, H, W)` mask stack and an integer `class_id` for that case, as the v5 semantic, instance and panoptic paths already do, so such a frame yields empty `Detections`.
 
 - `sv.KeyPoints.from_ultralytics` no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value `kpt_shape` (`[K, 2]`, coordinates only) return key points of shape `(N, K, 2)`, and for those `Results.keypoints.conf` is `None`. The connector called `.cpu()` on it unconditionally, so every non-empty frame raised `AttributeError: 'NoneType' object has no attribute 'cpu'`. Such results now load with `keypoint_confidence=None`, the same as any other `sv.KeyPoints` without scores; models that do report visibility keep their confidences.
@@ -171,12 +177,6 @@ date_modified: 2026-09-08
 - Changed: delayed `sv.ByteTrack`, `supervision.keypoint`, `normalized_xyxy` for `sv.denormalize_boxes`, and `supervision.dataset.utils` RLE compatibility removals from `supervision-0.30.0` to `supervision-0.31.0` so the deprecated APIs keep a full transition window ([#2415](https://github.com/roboflow/supervision/pull/2415)).
 
 - `supervision` now requires `av>=14.2` as a mandatory install-time dependency for the PyAV cv2-free video fallback introduced during the OpenCV-optional transition ([#2438](https://github.com/roboflow/supervision/pull/2438)). This doesn't change any public API — code that used supervision correctly before still behaves the same — but environments that pin exact dependency sets or vendor dependencies need to account for the new `av` requirement.
-
-### Added
-
-- Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/2498)).
-- Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
-- Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#2498](https://github.com/roboflow/supervision/pull/2498)).
 
 ### Fixed
 
