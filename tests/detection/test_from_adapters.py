@@ -66,7 +66,7 @@ def test_from_ultralytics_segmentation_only_keeps_class_zero_for_every_mask(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """One image with three masks yields three class-zero detections."""
-    results = _FakeUltralyticsResults(boxes=None, names={}, length=3)
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=1)
 
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
