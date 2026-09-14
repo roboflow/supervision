@@ -3984,6 +3984,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.scale_image</code> and <code>sv.resize_image(keep_aspect_ratio=True)</code> no longer derive a zero-sized target. Both compute the output size from the input and truncate it with <code>int()</code>, so a small enough factor — or an aspect ratio too extreme for the target box — rounded an axis down to <code>0</code>, and <code>cv2.resize</code> answered with <code>error: (-215:Assertion failed) inv_scale_x &gt; 0</code>, an assertion that names nothing the caller passed. Each axis now keeps at least one pixel. This also reaches two callers: <code>sv.letterbox_image</code> could not fill the resolution it was asked for (a <code>1200 x 8</code> strip into <code>(100, 100)</code>), and <code>sv.CropAnnotator</code> with a <code>scale_factor</code> below <code>1</code> aborted the whole frame as soon as one detection box was a few pixels across. Sizes that did not round to zero are unchanged.</p>
+</li>
+<li>
 <p><code>sv.KeyPoints.with_nms</code> no longer stops suppressing as soon as a key point is not finite. The box it feeds to NMS is derived from the key points a skeleton considers valid, but the validity test was <code>xy == 0</code> alone, and <code>NaN</code> is not <code>0</code> — so an undetected joint, which pose estimators report as <code>NaN</code> rather than dropping, stayed in the box, <code>np.min</code>/<code>np.max</code> propagated it into all four corners, and every IoU comparison against that all-<code>NaN</code> box was <code>False</code>. The duplicate skeleton therefore survived and the caller got two poses drawn on top of each other, with no error to trace it back to. Non-finite coordinates are now excluded, matching <code>sv.KeyPoints.as_detections</code> and the key point annotators. A skeleton the filter empties — every key point zero, non-finite, or marked invisible — now carries a zero-area box instead of the <code>±inf</code> sentinels used to fill the reduction, and still passes through untouched.</p>
 </li>
 <li>
@@ -6266,7 +6269,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 06:50:06 UTC">September 14, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 14, 2026 09:06:16 UTC">September 14, 2026</span>
   </span>
 
     
