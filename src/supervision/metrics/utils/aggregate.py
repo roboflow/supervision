@@ -80,6 +80,7 @@ def plot_aggregate_metric_results(
     *,
     model_names: list[str] | None = None,
     include_object_sizes: bool = False,
+    show: bool = False,
 ) -> None:
     """Plot multiple :class:`MetricResult` objects on a single grouped bar chart.
 
@@ -93,10 +94,11 @@ def plot_aggregate_metric_results(
             ``"Model 2"``, etc.
         include_object_sizes: When ``True``, include bars for
             small / medium / large object-size categories.
+        show: When ``True``, display the completed plot with ``plt.show()``.
 
     Raises:
         ValueError: If the list is empty, *model_names* length does not
-            match *metric_results*, or results have mismatched labels.
+            match *metric_results*, or results have mismatched plot details.
         TypeError: If the list contains mixed result types.
     """
     from matplotlib import pyplot as plt
@@ -128,13 +130,18 @@ def plot_aggregate_metric_results(
     ]
 
     labels = all_details[0].labels
+    title = all_details[0].title
     for i, details in enumerate(all_details[1:], 1):
         if details.labels != labels:
             raise ValueError(
                 f"Label mismatch: result 0 has {labels}, "
                 f"result {i} has {details.labels}."
             )
-    title = all_details[0].title
+        if details.title != title:
+            raise ValueError(
+                f"Plot configuration mismatch: result 0 has title {title!r}, "
+                f"result {i} has title {details.title!r}."
+            )
     num_models = len(metric_results)
     num_labels = len(labels)
 
@@ -175,4 +182,5 @@ def plot_aggregate_metric_results(
     plt.rcParams["font.family"] = "sans-serif"
 
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()

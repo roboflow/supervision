@@ -174,9 +174,9 @@ date_modified: 2026-09-08
 
 ### Added
 
-- Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#1707](https://github.com/roboflow/supervision/issues/1707)).
-- Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#1707](https://github.com/roboflow/supervision/issues/1707)).
-- Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#1707](https://github.com/roboflow/supervision/issues/1707)).
+- Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/2498)).
+- Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
+- Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#2498](https://github.com/roboflow/supervision/pull/2498)).
 
 ### Fixed
 

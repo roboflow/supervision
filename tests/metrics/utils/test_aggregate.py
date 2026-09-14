@@ -19,12 +19,18 @@ from supervision.metrics.utils.aggregate import (
 )
 
 
-def _make_f1_result(f1_50: float = 0.8, f1_75: float = 0.6) -> F1ScoreResult:
+def _make_f1_result(
+    f1_50: float = 0.8,
+    f1_75: float = 0.6,
+    *,
+    metric_target: MetricTarget = MetricTarget.BOXES,
+    averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
+) -> F1ScoreResult:
     """Build a minimal F1ScoreResult for testing."""
     scores = np.array([f1_50, 0.0, 0.0, 0.0, 0.0, f1_75, 0.0, 0.0, 0.0, 0.0])
     return F1ScoreResult(
-        metric_target=MetricTarget.BOXES,
-        averaging_method=AveragingMethod.WEIGHTED,
+        metric_target=metric_target,
+        averaging_method=averaging_method,
         f1_scores=scores,
         f1_per_class=np.zeros((1, 10)),
         iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
@@ -210,11 +216,19 @@ class TestPlotAggregateMetricResults:
             plot_aggregate_metric_results([f1], model_names=["a", "b"])
 
     @patch("matplotlib.pyplot.show")
-    def test_plot_is_called(self, mock_show: MagicMock) -> None:
-        """Plotting runs without error and calls plt.show()."""
+    def test_plot_skips_show_by_default(self, mock_show: MagicMock) -> None:
+        """Plotting does not display a figure unless requested."""
         r1 = _make_f1_result(f1_50=0.8, f1_75=0.6)
         r2 = _make_f1_result(f1_50=0.9, f1_75=0.7)
         plot_aggregate_metric_results([r1, r2], model_names=["YOLO", "DETR"])
+        mock_show.assert_not_called()
+
+    @patch("matplotlib.pyplot.show")
+    def test_plot_shows_when_requested(self, mock_show: MagicMock) -> None:
+        """Plotting displays a figure when show=True."""
+        r1 = _make_f1_result(f1_50=0.8, f1_75=0.6)
+        r2 = _make_f1_result(f1_50=0.9, f1_75=0.7)
+        plot_aggregate_metric_results([r1, r2], model_names=["YOLO", "DETR"], show=True)
         mock_show.assert_called_once()
 
     def test_label_mismatch_raises(self) -> None:
@@ -236,6 +250,33 @@ class TestPlotAggregateMetricResults:
             plot_aggregate_metric_results(
                 [r_with_sizes, r_without_sizes], include_object_sizes=True
             )
+
+    @pytest.mark.parametrize(
+        ("metric_target", "averaging_method"),
+        [
+            pytest.param(
+                MetricTarget.BOXES,
+                AveragingMethod.MACRO,
+                id="averaging-method",
+            ),
+            pytest.param(
+                MetricTarget.MASKS,
+                AveragingMethod.WEIGHTED,
+                id="metric-target",
+            ),
+        ],
+    )
+    def test_configuration_mismatch_raises(
+        self, metric_target: MetricTarget, averaging_method: AveragingMethod
+    ) -> None:
+        """Incompatible plot configurations raise instead of sharing a title."""
+        first = _make_f1_result()
+        second = _make_f1_result(
+            metric_target=metric_target, averaging_method=averaging_method
+        )
+
+        with pytest.raises(ValueError, match="Plot configuration mismatch"):
+            plot_aggregate_metric_results([first, second])
 
 
 class TestGetPlotDetails:
