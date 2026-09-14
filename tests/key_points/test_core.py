@@ -1698,6 +1698,24 @@ class TestDeprecatedConfidenceConstructor:
         pytest.param(
             _create_key_points(
                 xy=[
+                    [[100, 100], [150, 150], [200, 200]],
+                    [[np.nan, np.nan], [110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+            ),
+            0.3,
+            False,
+            _create_key_points(
+                xy=[[[100, 100], [150, 150], [200, 200]]],
+                detection_confidence=[0.9],
+                class_id=[0],
+            ),
+            id="non-finite-keypoints-excluded-from-bbox",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
                     [[100, 100], [200, 200], [0, 0], [0, 0]],
                     [[0, 0], [0, 0], [110, 110], [210, 210]],
                 ],
@@ -1844,6 +1862,22 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
     """NMS filters overlapping keypoint skeletons."""
     result = key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
     assert result == expected_result
+
+
+def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
+    """A skeleton with no usable keypoint survives NMS rather than being dropped."""
+    key_points = _create_key_points(
+        xy=[
+            [[100, 100], [200, 200]],
+            [[np.nan, np.nan], [np.inf, np.inf]],
+        ],
+        detection_confidence=[0.9, 0.7],
+        class_id=[0, 0],
+    )
+
+    result = key_points.with_nms(threshold=0.3)
+
+    assert np.allclose(result.detection_confidence, [0.9, 0.7])
 
 
 @pytest.mark.parametrize(
