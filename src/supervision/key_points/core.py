@@ -394,7 +394,8 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, and per-keypoint confidences when supplied by the
+                source result. Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -628,7 +629,10 @@ class KeyPoints:
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
-        confidence = ultralytics_results.keypoints.conf.cpu().numpy()
+        # Models trained with a two-value `kpt_shape` report no per-keypoint
+        # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
+        keypoints_conf = ultralytics_results.keypoints.conf
+        confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
