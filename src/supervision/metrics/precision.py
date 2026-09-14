@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.core import Detections
+from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics._confusion_matrix_metric import (
     _ConfusionMatrixMetric,
     _format_result,
@@ -17,7 +18,13 @@ from supervision.metrics._confusion_matrix_metric import (
     _ResultView,
     _validate_confusion_matrix,
 )
-from supervision.metrics.core import AveragingMethod, MetricTarget
+from supervision.metrics.core import (
+    AveragingMethod,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+)
 from supervision.metrics.utils.object_size import ObjectSizeCategory
 
 if TYPE_CHECKING:
@@ -200,7 +207,7 @@ class Precision(_ConfusionMatrixMetric["PrecisionResult"]):
 
 
 @dataclass
-class PrecisionResult:
+class PrecisionResult(MetricResult):
     """The results of the precision metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
@@ -317,6 +324,39 @@ class PrecisionResult:
             The result as a DataFrame.
         """
         return _result_to_pandas(self._result_view())
+
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for precision scores.
+
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
+        labels = ["Precision@50", "Precision@75"]
+        values = [self.precision_at_50, self.precision_at_75]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 2
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["P@50", "P@75"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.precision_at_50,
+                result.precision_at_75,
+            ],
+        )
+
+        size_suffix = ", by Object Size" if include_object_sizes else ""
+        title = (
+            f"Precision{size_suffix}"
+            f"\n(target: {self.metric_target.value},"
+            f" averaging: {self.averaging_method.value})"
+        )
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
     def plot(self) -> None:
         """Plot the precision results.

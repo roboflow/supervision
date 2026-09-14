@@ -19,7 +19,13 @@ from supervision.detection.utils.matching import (
     _match_detection_batch_with_target_indices,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
+)
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -31,7 +37,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class MeanAverageRecallResult:
+class MeanAverageRecallResult(MetricResult):
     """The results of the Mean Average Recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
@@ -190,6 +196,38 @@ class MeanAverageRecallResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for mAR scores.
+
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
+        labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
+        values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAR @ 1", "mAR @ 10", "mAR @ 100"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.mAR_at_1,
+                result.mAR_at_10,
+                result.mAR_at_100,
+            ],
+        )
+
+        size_suffix = ", by Object Size" if include_object_sizes else ""
+        title = (
+            f"Mean Average Recall{size_suffix}\n(target: {self.metric_target.value})"
+        )
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
+
     def plot(self) -> None:
         """Plot the Mean Average Recall results.
 
@@ -199,55 +237,20 @@ class MeanAverageRecallResult:
         """
         from matplotlib import pyplot as plt
 
-        labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
-        values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 3
-
-        if self.small_objects is not None:
-            small_objects = self.small_objects
-            labels += ["Small: mAR @ 1", "Small: mAR @ 10", "Small: mAR @ 100"]
-            values += [
-                small_objects.mAR_at_1,
-                small_objects.mAR_at_10,
-                small_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
-
-        if self.medium_objects is not None:
-            medium_objects = self.medium_objects
-            labels += ["Medium: mAR @ 1", "Medium: mAR @ 10", "Medium: mAR @ 100"]
-            values += [
-                medium_objects.mAR_at_1,
-                medium_objects.mAR_at_10,
-                medium_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
-
-        if self.large_objects is not None:
-            large_objects = self.large_objects
-            labels += ["Large: mAR @ 1", "Large: mAR @ 10", "Large: mAR @ 100"]
-            values += [
-                large_objects.mAR_at_1,
-                large_objects.mAR_at_10,
-                large_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        details = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Mean Average Recall, by Object Size\n(target: {self.metric_target.value})"
-        )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
         for bar in bars:
             y_value = bar.get_height()
