@@ -207,6 +207,23 @@ def _resize(
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
+_EXIF_ORIENTATION_TAG = 0x0112
+
+
+def _exif_oriented(image: Any) -> Any:
+    """Rotate and flip a Pillow image by its EXIF orientation tag, as OpenCV does.
+
+    `cv2.imread` and `cv2.imdecode` apply the tag on every read except
+    `IMREAD_UNCHANGED`. An image without the tag, or with the identity orientation
+    `1`, is returned as it is rather than copied.
+    """
+    from PIL import ImageOps
+
+    if image.getexif().get(_EXIF_ORIENTATION_TAG, 1) == 1:
+        return image
+    return ImageOps.exif_transpose(image)
+
+
 def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
     """Decode any source Pillow can open into BGR or BGRA arrays."""
     from PIL import Image
@@ -223,12 +240,12 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
                 else:
                     values = np.asarray(image)
             elif image.mode in {"I", "I;16", "I;16B", "I;16L"}:
-                values = np.asarray(image).astype(np.float64)
+                values = np.asarray(_exif_oriented(image)).astype(np.float64)
                 values = np.clip(np.rint(values / 256), 0, 255).astype(np.uint8)
                 if values.ndim == 2:
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
-                values = np.asarray(image.convert("RGB"))
+                values = np.asarray(_exif_oriented(image).convert("RGB"))
     except (FileNotFoundError, OSError, ValueError):
         return None
 
