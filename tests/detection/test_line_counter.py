@@ -885,6 +885,51 @@ def test_line_zone_tracker_id_reuse_with_different_classes(
     assert line_zone.out_count_per_class == expected_out_count_per_class
 
 
+def test_line_zone_ignores_unconfirmed_tracker_id() -> None:
+    """Detections with tracker_id < 0 (unconfirmed tracks) must not be counted.
+
+    Trackers such as `roboflow/trackers`' `ByteTrackTracker` report -1 for
+    tracks that have not yet been confirmed. Several distinct unconfirmed
+    objects can carry that same placeholder id, so they must not be treated
+    as a single track — see issue #2578.
+    """
+    line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+
+    for _, y in [(-1, 20), (-1, 160)] * 3:
+        detections = _create_detections(xyxy=[[80, y, 120, y + 40]], tracker_id=[-1])
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        assert not crossed_in[0]
+        assert not crossed_out[0]
+
+    assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+
+def test_line_zone_unconfirmed_tracker_id_does_not_affect_confirmed_tracks() -> None:
+    """An unconfirmed detection (tracker_id < 0) sharing a frame with confirmed tracks
+    must be skipped without disturbing the confirmed tracks' own counts.
+
+    tracker_id=-1 repeats tracker_id=1's own crossing motion, so if the bug (unconfirmed
+    detections lumped into one shared track keyed by -1) were still present it would
+    register as an extra crossing on top of the real ones from tracker_id=1 and
+    tracker_id=2.
+    """
+    line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+
+    xyxy_sequence = [
+        [[10, 110, 20, 150], [10, 50, 20, 90], [10, 110, 20, 150]],
+        [[10, 50, 20, 90], [10, 110, 20, 150], [10, 50, 20, 90]],
+    ]
+    tracker_id_sequence = [[1, 2, -1], [1, 2, -1]]
+
+    for xyxy, tracker_id in zip(xyxy_sequence, tracker_id_sequence):
+        detections = _create_detections(xyxy=xyxy, tracker_id=tracker_id)
+        crossed_in, crossed_out = line_zone.trigger(detections)
+
+    assert not crossed_in[2]
+    assert not crossed_out[2]
+    assert (line_zone.in_count, line_zone.out_count) == (1, 1)
+
+
 def test_line_zone_trigger_does_not_call_np_cross(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

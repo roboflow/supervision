@@ -195,6 +195,14 @@ class LineZone:
             if not in_limits[i]:
                 continue
 
+            # Unconfirmed tracks (tracker_id < 0, the convention used by e.g.
+            # roboflow/trackers) have no stable identity yet: several distinct
+            # objects can all carry the same placeholder id, so treating them as
+            # one track and feeding them into the shared crossing history would
+            # inflate counts. Skip them until the tracker assigns a real id.
+            if tracker_id < 0:
+                continue
+
             if has_any_left_trigger[i] and has_any_right_trigger[i]:
                 continue
 
