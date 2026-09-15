@@ -13,9 +13,11 @@ from typing import TYPE_CHECKING, TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
+from supervision._cv2._image import _EXIF_ORIENTATION_TAG
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
 from supervision.detection.utils.converters import (
@@ -28,6 +30,23 @@ from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+
+_QUARTER_TURN_EXIF_ORIENTATIONS = frozenset({5, 6, 7, 8})
+
+
+def _image_file_resolution_wh(image_path: str) -> tuple[int, int]:
+    """Return the `(width, height)` at which `cv2.imread` loads an image file.
+
+    Only the file header is read, which is much faster than decoding the image (#1554).
+    Loading applies the EXIF orientation tag, and orientations 5 to 8 turn the image a
+    quarter turn, so for those the header's width and height are swapped.
+    """
+    with Image.open(image_path) as image:
+        width, height = image.size
+        orientation = image.getexif().get(_EXIF_ORIENTATION_TAG)
+    if orientation in _QUARTER_TURN_EXIF_ORIENTATIONS:
+        return height, width
+    return width, height
 
 
 @deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
