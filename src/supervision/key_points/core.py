@@ -1650,7 +1650,9 @@ class KeyPoints:
 
             ```
         """
-        if self.is_empty():
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or self.xy.shape[1] == 0:
             return Detections.empty()
 
         xy = self.xy

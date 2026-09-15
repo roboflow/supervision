@@ -1417,6 +1417,17 @@ class TestFromInferenceOmittedKeypoints:
         assert key_points.xy.shape == (2, 0, 2)
         np.testing.assert_array_equal(key_points.class_id, np.array([0, 0]))
 
+    def test_objects_without_keypoints_convert_to_empty_detections(self) -> None:
+        """All-omitted Inference key points produce no detection boxes."""
+        result = _inference_pose_result([[], []])
+
+        detections = KeyPoints.from_inference(result).as_detections()
+
+        assert len(detections) == 0
+        np.testing.assert_array_equal(
+            detections.xyxy, np.empty((0, 4), dtype=np.float32)
+        )
+
 
 class _FakeUltralyticsPoseTensor(_FakeTensor):
     """Tensor stand-in that also reports its element count like `torch.Tensor`."""
