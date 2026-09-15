@@ -438,29 +438,43 @@ class KeyPoints:
         if not inference_result.get("predictions"):
             return cls.empty()
 
-        xy = []
-        confidence = []
-        class_id = []
-        class_names = []
+        predictions = inference_result["predictions"]
 
-        for prediction in inference_result["predictions"]:
-            prediction_xy = []
-            prediction_confidence = []
-            for keypoint in prediction["keypoints"]:
-                prediction_xy.append([keypoint["x"], keypoint["y"]])
-                prediction_confidence.append(keypoint["confidence"])
-            xy.append(prediction_xy)
-            confidence.append(prediction_confidence)
+        # Inference omits every key point scored below the request's
+        # `keypoint_confidence`, so objects can list different key points. Each key
+        # point's `class_id` is its index in the skeleton; placing it there keeps
+        # skeleton edges on the right joints. Results without that field fall back
+        # to list order. Omitted slots stay at (0, 0) with zero confidence, the
+        # missing-key-point marker that the annotators and `as_detections` skip.
+        slots = [
+            [
+                keypoint.get("class_id", position)
+                for position, keypoint in enumerate(prediction["keypoints"])
+            ]
+            for prediction in predictions
+        ]
+        keypoint_count = max(
+            (max(object_slots) + 1 for object_slots in slots if object_slots),
+            default=0,
+        )
 
-            class_id.append(prediction["class_id"])
-            class_names.append(prediction["class"])
+        xy = np.zeros((len(predictions), keypoint_count, 2), dtype=np.float32)
+        confidence = np.zeros((len(predictions), keypoint_count), dtype=np.float32)
+        for object_index, (prediction, object_slots) in enumerate(
+            zip(predictions, slots)
+        ):
+            for slot, keypoint in zip(object_slots, prediction["keypoints"]):
+                xy[object_index, slot] = (keypoint["x"], keypoint["y"])
+                confidence[object_index, slot] = keypoint["confidence"]
 
-        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+        class_id = np.array([prediction["class_id"] for prediction in predictions])
+        class_names = np.array([prediction["class"] for prediction in predictions])
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
 
         return cls(
-            xy=np.array(xy, dtype=np.float32),
-            keypoint_confidence=np.array(confidence, dtype=np.float32),
-            class_id=np.array(class_id, dtype=int),
+            xy=xy,
+            keypoint_confidence=confidence,
+            class_id=class_id.astype(int),
             data=data,
         )
 
@@ -1434,7 +1448,9 @@ class KeyPoints:
 
             ```
         """
-        if self.is_empty():
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or self.xy.shape[1] == 0:
             return Detections.empty()
 
         xy = self.xy
