@@ -331,3 +331,47 @@ def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
         _imread(str(sixteen_bit_path), _IMREAD_COLOR),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_COLOR),
     )
+
+
+def _write_png_with_exif_orientation(path: Path, orientation: int) -> None:
+    """Write a small asymmetric PNG whose EXIF orientation tag is `orientation`."""
+    from PIL import Image
+
+    pixels = np.arange(2 * 3 * 3, dtype=np.uint8).reshape(2, 3, 3) * 10
+    exif = Image.Exif()
+    exif[0x0112] = orientation
+    Image.fromarray(pixels).save(path, exif=exif.tobytes())
+
+
+@pytest.mark.parametrize("orientation", [1, 2, 3, 4, 5, 6, 7, 8])
+@pytest.mark.parametrize(
+    "flags",
+    [
+        pytest.param(_IMREAD_COLOR, id="color"),
+        pytest.param(_IMREAD_UNCHANGED, id="unchanged"),
+    ],
+)
+def test_fallback_imread_matches_opencv_exif_orientation(
+    tmp_path: Path, orientation: int, flags: int
+) -> None:
+    """Apply an image's EXIF orientation exactly when OpenCV applies it."""
+    image_path = tmp_path / "oriented.png"
+    _write_png_with_exif_orientation(image_path, orientation)
+
+    np.testing.assert_array_equal(
+        _imread(str(image_path), flags), cv2.imread(str(image_path), flags)
+    )
+
+
+@pytest.mark.parametrize("orientation", [3, 6, 8])
+def test_fallback_imdecode_matches_opencv_exif_orientation(
+    tmp_path: Path, orientation: int
+) -> None:
+    """Orient decoded image bytes the same way cv2.imdecode orients them."""
+    image_path = tmp_path / "oriented.png"
+    _write_png_with_exif_orientation(image_path, orientation)
+    encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+
+    np.testing.assert_array_equal(
+        _imdecode(encoded, _IMREAD_COLOR), cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+    )

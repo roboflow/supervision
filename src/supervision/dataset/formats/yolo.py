@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import (
+    _image_file_resolution_wh,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
@@ -265,9 +265,7 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        # PIL is much faster than cv2 for checking image shape: https://github.com/roboflow/supervision/issues/1554
-        with Image.open(image_path) as image:
-            w, h = image.size
+        w, h = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         resolution_wh = (w, h)
 

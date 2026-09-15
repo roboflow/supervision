@@ -439,6 +439,32 @@ def test_load_yolo_annotations_accepts_pil_readable_image_modes(
     )
 
 
+def test_from_yolo_scales_annotations_to_exif_rotated_image(tmp_path: Path) -> None:
+    """Boxes and masks match the image as loaded, after its EXIF rotation."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    Image.new("RGB", (100, 40)).save(images_dir / "photo.jpg", exif=exif.tobytes())
+    (labels_dir / "photo.txt").write_text("0 0.5 0.5 0.5 0.5\n")
+    (tmp_path / "data.yaml").write_text("names: ['object']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+        force_masks=True,
+    )
+    _, image, detections = dataset[0]
+
+    assert image.shape[:2] == (100, 40)
+    assert detections.mask is not None
+    assert detections.mask.shape == (1, 100, 40)
+    np.testing.assert_allclose(detections.xyxy, [[10.0, 25.0, 30.0, 75.0]])
+
+
 def test_polygons_to_masks_multiple_polygons_shape() -> None:
     """Regression test for #1746: _polygons_to_masks must return shape (N, H, W).
 

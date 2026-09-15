@@ -2147,6 +2147,28 @@ class TestSaveCocoAnnotationsHeaderSizeReads:
         assert coco["images"][0]["height"] == 8
         assert coco["images"][0]["width"] == 12
 
+    def test_header_sizes_follow_exif_orientation(self, tmp_path: Path) -> None:
+        """Sizes follow the EXIF rotation that loading the image applies."""
+        from PIL import Image
+
+        image_path = str(tmp_path / "photo.jpg")
+        exif = Image.Exif()
+        exif[0x0112] = 6
+        Image.new("RGB", (12, 8)).save(image_path, exif=exif.tobytes())
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: Detections.empty()},
+        )
+        annotation_path = tmp_path / "annotations.json"
+
+        save_coco_annotations(dataset=dataset, annotation_path=str(annotation_path))
+
+        with open(annotation_path) as f:
+            coco = json.load(f)
+        assert coco["images"][0]["height"] == 12
+        assert coco["images"][0]["width"] == 8
+
     def test_in_memory_images_use_array_shape(self, tmp_path: Path) -> None:
         """Datasets built from in-memory arrays take sizes from the arrays."""
         from supervision.utils.internal import SupervisionWarnings
