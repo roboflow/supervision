@@ -1,12 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-
-date_modified: 2026-09-14
+date_modified: 2026-09-08
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.Detections.from_transformers` now loads Mask2Former and MaskFormer instance segmentation results produced with `post_process_instance_segmentation(return_binary_maps=True)`, the option Transformers recommends when instances can overlap. With it, `segmentation` is a `(num_instances, height, width)` stack of binary maps instead of a `(height, width)` map of segment ids, but the v5 instance path compared that stack against each segment's `id` as if it were an id map, producing a four-dimensional mask array that `mask_to_xyxy` rejected with `ValueError: too many values to unpack (expected 3)`. Each segment now takes the binary map at its `id`, which is the map's position in the stack, so overlapping instances keep their full masks. Results with a segment-id map load as before. [#2576](https://github.com/roboflow/supervision/pull/2576)
 
 - `sv.KeyPoints.from_inference` no longer fails, or shifts key points onto the wrong joints, when Inference leaves some key points out of a result. Inference drops every key point scored below the request's `keypoint_confidence`, and a model whose classes have different skeletons stops each object at its own class's key point count, so objects in one result can list different key points. The connector stacked those lists as they came: lists of different lengths raised `ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions`, and lists of the same length that were missing different key points loaded with later key points moved into earlier slots, so skeleton edges joined the wrong points. Each key point is now placed at the slot given by its `class_id`, which Inference sets to the key point's skeleton index; slots that were left out stay at `(0, 0)` with zero confidence, which the key point annotators and `KeyPoints.as_detections` already skip as missing. A result in which every key point was left out now loads with zero key points per object instead of failing validation. Results that list every key point load as before. [#2575](https://github.com/roboflow/supervision/pull/2575)
 
