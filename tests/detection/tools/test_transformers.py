@@ -381,6 +381,52 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         assert out["mask"].shape == (0, 2, 2)
         assert out["confidence"].shape == (0,)
 
+    def test_binary_maps_produce_one_mask_per_segment(self) -> None:
+        """Stacked binary maps keep one mask per segment, overlaps included."""
+        binary_maps, seg_result = _instance_binary_maps_result()
+
+        out = process_transformers_v5_semantic_or_instance_segmentation_result(
+            seg_result, None
+        )
+
+        np.testing.assert_array_equal(out["mask"], binary_maps.astype(bool))
+        np.testing.assert_array_equal(out["xyxy"], [[0, 0, 1, 1], [1, 1, 3, 3]])
+
+    def test_binary_maps_build_detections(self) -> None:
+        """Detections.from_transformers accepts a `return_binary_maps=True` result."""
+        from supervision.detection.core import Detections
+
+        _, seg_result = _instance_binary_maps_result()
+
+        detections = Detections.from_transformers(
+            seg_result, id2label={3: "cat", 5: "dog"}
+        )
+
+        assert len(detections) == 2
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], ["cat", "dog"]
+        )
+
+
+def _instance_binary_maps_result() -> tuple[np.ndarray, dict]:
+    """Build a v5 instance result as `return_binary_maps=True` returns it.
+
+    Mask2Former and MaskFormer then stack one 0/1 map per kept instance instead of a
+    segment-id map, in the order the instances were assigned their ids. The two maps
+    overlap at pixel (1, 1), which a segment-id map cannot represent.
+    """
+    binary_maps = np.zeros((2, 4, 4), dtype=np.float32)
+    binary_maps[0, 0:2, 0:2] = 1
+    binary_maps[1, 1:4, 1:4] = 1
+    seg_result = {
+        "segmentation": _FakeDetachTensor(binary_maps),
+        "segments_info": [
+            {"id": 0, "label_id": 3, "was_fused": False, "score": 0.9},
+            {"id": 1, "label_id": 5, "was_fused": False, "score": 0.8},
+        ],
+    }
+    return binary_maps, seg_result
+
 
 # ---------------------------------------------------------------------------
 # process_transformers_v5_segmentation_result (dispatcher)
