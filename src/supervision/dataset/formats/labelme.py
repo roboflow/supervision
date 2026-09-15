@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -251,7 +251,10 @@ def load_labelme_annotations(
         # ponytail: basename-only, no symlink resolution — images_directory_path
         # is trusted; annotation-driven traversal is neutralised by .name.
         # See createml._resolve_image_path for the full .resolve()+parents pattern.
-        image_name = Path(raw_image_path).name
+        # LabelMe writes imagePath with the separator of the OS that saved the file,
+        # so files saved on Windows hold backslashes. PureWindowsPath splits on both
+        # separators on every OS, as LabelMe does when it reads its own files.
+        image_name = PureWindowsPath(raw_image_path).name
         if not image_name or image_name in ("..", "."):
             raise ValueError(
                 f"LabelMe annotation has an invalid 'imagePath' {raw_image_path!r}."
