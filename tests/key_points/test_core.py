@@ -1294,6 +1294,141 @@ def test_from_inference_invalid_input():
         KeyPoints.from_inference([key_points])
 
 
+def _inference_keypoint(
+    keypoint_id: int, xy: tuple[float, float], confidence: float
+) -> dict:
+    """Build one key point the way Inference serializes it, with its skeleton index."""
+    return {
+        "x": xy[0],
+        "y": xy[1],
+        "confidence": confidence,
+        "class_id": keypoint_id,
+        "class": f"keypoint-{keypoint_id}",
+    }
+
+
+def _inference_pose_result(keypoint_lists: list[list[dict]]) -> dict:
+    """Wrap per-object key point lists in an Inference keypoint-detection response."""
+    return {
+        "image": {"width": 100, "height": 100},
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 40,
+                "confidence": 0.9,
+                "class": "person",
+                "class_id": 0,
+                "keypoints": keypoints,
+            }
+            for keypoints in keypoint_lists
+        ],
+    }
+
+
+class TestFromInferenceOmittedKeypoints:
+    """Inference leaves out key points below `keypoint_confidence`."""
+
+    @pytest.mark.parametrize(
+        ("keypoint_lists", "expected_xy", "expected_confidence"),
+        [
+            pytest.param(
+                [
+                    [
+                        _inference_keypoint(0, (10, 11), 0.9),
+                        _inference_keypoint(1, (20, 21), 0.8),
+                        _inference_keypoint(2, (30, 31), 0.7),
+                    ],
+                    [
+                        _inference_keypoint(0, (40, 41), 0.9),
+                        _inference_keypoint(2, (60, 61), 0.6),
+                    ],
+                ],
+                [[[10, 11], [20, 21], [30, 31]], [[40, 41], [0, 0], [60, 61]]],
+                [[0.9, 0.8, 0.7], [0.9, 0.0, 0.6]],
+                id="objects-with-different-keypoint-counts",
+            ),
+            pytest.param(
+                [
+                    [
+                        _inference_keypoint(0, (10, 11), 0.9),
+                        _inference_keypoint(1, (20, 21), 0.8),
+                    ],
+                    [
+                        _inference_keypoint(0, (40, 41), 0.9),
+                        _inference_keypoint(2, (60, 61), 0.6),
+                    ],
+                ],
+                [[[10, 11], [20, 21], [0, 0]], [[40, 41], [0, 0], [60, 61]]],
+                [[0.9, 0.8, 0.0], [0.9, 0.0, 0.6]],
+                id="objects-missing-different-keypoints",
+            ),
+        ],
+    )
+    def test_places_each_keypoint_at_its_skeleton_index(
+        self,
+        keypoint_lists: list[list[dict]],
+        expected_xy: list,
+        expected_confidence: list,
+    ) -> None:
+        """An omitted key point leaves its own slot empty instead of shifting others."""
+        result = _inference_pose_result(keypoint_lists)
+
+        key_points = KeyPoints.from_inference(result)
+
+        np.testing.assert_array_equal(
+            key_points.xy, np.array(expected_xy, dtype=np.float32)
+        )
+        np.testing.assert_allclose(
+            key_points.keypoint_confidence,
+            np.array(expected_confidence, dtype=np.float32),
+        )
+
+    def test_omitted_keypoint_is_left_out_of_the_detection_box(self) -> None:
+        """The empty slot does not stretch the box built by `as_detections`."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (40, 41), 0.9),
+                    _inference_keypoint(2, (60, 61), 0.6),
+                ],
+                [
+                    _inference_keypoint(0, (10, 11), 0.9),
+                    _inference_keypoint(1, (20, 21), 0.8),
+                    _inference_keypoint(2, (30, 31), 0.7),
+                ],
+            ]
+        )
+
+        detections = KeyPoints.from_inference(result).as_detections()
+
+        np.testing.assert_array_equal(
+            detections.xyxy,
+            np.array([[40, 41, 60, 61], [10, 11, 30, 31]], dtype=np.float32),
+        )
+
+    def test_objects_without_keypoints_keep_their_class(self) -> None:
+        """Objects whose key points were all omitted still load, with no key points."""
+        result = _inference_pose_result([[], []])
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.xy.shape == (2, 0, 2)
+        np.testing.assert_array_equal(key_points.class_id, np.array([0, 0]))
+
+    def test_objects_without_keypoints_convert_to_empty_detections(self) -> None:
+        """All-omitted Inference key points produce no detection boxes."""
+        result = _inference_pose_result([[], []])
+
+        detections = KeyPoints.from_inference(result).as_detections()
+
+        assert len(detections) == 0
+        np.testing.assert_array_equal(
+            detections.xyxy, np.empty((0, 4), dtype=np.float32)
+        )
+
+
 class _FakeUltralyticsPoseTensor(_FakeTensor):
     """Tensor stand-in that also reports its element count like `torch.Tensor`."""
 
