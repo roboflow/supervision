@@ -4034,6 +4034,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.from_yolo</code> now loads label files whose class ids are written as decimals. The loader parsed the class column with <code>int()</code>, so a single line such as <code>1.0 0.5 0.5 0.2 0.4</code> aborted the whole load with <code>ValueError: invalid literal for int() with base 10: '1.0'</code>. Label files saved with <code>np.savetxt</code> are written this way, because its default format writes every column as a float (<code>1.000000000000000000e+00</code>), and Ultralytics reads the class column as a float, so such datasets train there without complaint. Class ids that are whole numbers now load in any notation; values that are fractional, not finite, or not numbers at all still raise a <code>ValueError</code>, which now names the offending class id. Integer class ids load as before. <a href="https://github.com/roboflow/supervision/pull/2580">#2580</a></p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_yolo</code> and <code>sv.DetectionDataset.as_coco</code> now take image sizes from the image as it loads, after its EXIF orientation is applied. Photos from phones and cameras are often stored sideways with an EXIF orientation tag that says how to turn them upright. <code>cv2.imread</code>, which the dataset uses to load images, applies that tag, but both functions read the size from the file header with Pillow, which does not. For a quarter-turned photo, <code>from_yolo</code> therefore scaled normalized boxes and polygons by the swapped width and height, so they landed outside the loaded image and masks came out with a <code>(height, width)</code> that did not match it, and <code>as_coco</code> wrote the swapped <code>width</code> and <code>height</code> into <code>images</code>. The header read now swaps width and height for orientations 5 to 8. The OpenCV-free fallback backend's <code>imread</code> and <code>imdecode</code> also apply the orientation tag now, as OpenCV does for every read except <code>IMREAD_UNCHANGED</code>; before, the same file loaded with a different shape depending on whether <code>opencv-python</code> was installed. Images without an orientation tag load and export as before. <a href="https://github.com/roboflow/supervision/pull/2577">#2577</a></p>
 </li>
 <li>
@@ -6358,7 +6361,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 15, 2026 11:34:55 UTC">September 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 12:24:21 UTC">September 16, 2026</span>
   </span>
 
     
