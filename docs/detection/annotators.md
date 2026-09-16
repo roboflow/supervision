@@ -380,11 +380,16 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
 === "Tracking & Aggregation"
 
+    !!! warning "Removed tracker wrapper"
+
+        `sv.ByteTrack` was removed as of `supervision-0.31.0`. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`) instead — its update method is `update()`, not `update_with_detections()`.
+
     === "Trace"
 
         ```python
         import supervision as sv
         from rfdetr import RFDETRMedium
+        from trackers import ByteTrackTracker
 
         model = RFDETRMedium()
 
@@ -392,12 +397,15 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         video_info = sv.VideoInfo.from_video_path(video_path="...")
         frames_generator = sv.get_video_frames_generator(source_path="...")
-        tracker = sv.ByteTrack()
+        tracker = ByteTrackTracker(
+            track_activation_threshold=0.25, minimum_consecutive_frames=1
+        )
 
         with sv.VideoSink(target_path="...", video_info=video_info) as sink:
             for frame in frames_generator:
                 detections = model.predict(frame[:, :, ::-1])
-                detections = tracker.update_with_detections(detections)
+                detections = tracker.update(detections)
+                detections = detections[detections.tracker_id != -1]
                 annotated_frame = trace_annotator.annotate(
                     scene=frame.copy(),
                     detections=detections,

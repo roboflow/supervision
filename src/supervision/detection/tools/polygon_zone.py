@@ -22,7 +22,7 @@ class PolygonZone:
     !!! warning
 
         PolygonZone uses the `tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
+        [here](https://trackers.roboflow.com/latest/) to learn how to plug
         tracking into your inference pipeline.
 
     Attributes:

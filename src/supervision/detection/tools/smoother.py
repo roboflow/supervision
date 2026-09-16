@@ -39,7 +39,7 @@ class DetectionsSmoother:
     !!! warning
 
         - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
-          [Roboflow Trackers](/latest/trackers/) for
+          [Roboflow Trackers](https://trackers.roboflow.com/latest/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
         - When detections in a frame disagree on confidence presence — some tracks
@@ -77,13 +77,18 @@ class DetectionsSmoother:
         import supervision as sv
 
         from rfdetr import RFDETRMedium
+        from trackers import ByteTrackTracker
 
         video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_FILE_PATH>")
         frame_generator = sv.get_video_frames_generator(
             source_path="<SOURCE_FILE_PATH>")
 
         model = RFDETRMedium()
-        tracker = sv.ByteTrack(frame_rate=video_info.fps)
+        tracker = ByteTrackTracker(
+            frame_rate=video_info.fps,
+            track_activation_threshold=0.25,
+            minimum_consecutive_frames=1,
+        )
         smoother = sv.DetectionsSmoother()
 
         box_annotator = sv.BoxAnnotator()
@@ -91,7 +96,8 @@ class DetectionsSmoother:
         with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
             for frame in frame_generator:
                 detections = model.predict(frame[:, :, ::-1])
-                detections = tracker.update_with_detections(detections)
+                detections = tracker.update(detections)
+                detections = detections[detections.tracker_id != -1]
                 detections = smoother.update_with_detections(detections)
 
                 annotated_frame = box_annotator.annotate(frame.copy(), detections)
@@ -144,7 +150,7 @@ class DetectionsSmoother:
         if detections.tracker_id is None:
             warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more "
+                "https://trackers.roboflow.com/latest/ for more "
                 "information.",
                 category=SupervisionWarnings,
             )

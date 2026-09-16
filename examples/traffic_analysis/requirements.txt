@@ -3,5 +3,6 @@ inference
 rfdetr
 supervision
 tqdm
+trackers
 ultralytics
 jsonargparse[signatures]

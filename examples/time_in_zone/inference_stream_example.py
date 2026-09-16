@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, load_zones_config
 from utils.timers import ClockBasedTimer
 
@@ -15,9 +16,16 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: list[int]) -> None:
+    def __init__(
+        self,
+        zone_configuration_path: str,
+        classes: list[int],
+        confidence_threshold: float,
+    ) -> None:
         self.classes = classes
-        self.tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+        self.tracker = ByteTrackTracker(
+            minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+        )
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
         self.timers = [ClockBasedTimer() for _ in self.polygons]
@@ -35,7 +43,8 @@ class CustomSink:
 
         detections = sv.Detections.from_inference(result)
         detections = detections[find_in_list(detections.class_id, self.classes)]
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.image.copy()
         annotated_frame = sv.draw_text(
@@ -94,7 +103,11 @@ def main(
         classes: List of class IDs to track. If empty, all classes are tracked
         roboflow_api_key: Roboflow API key for accessing private models
     """
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
+    sink = CustomSink(
+        zone_configuration_path=zone_configuration_path,
+        classes=classes,
+        confidence_threshold=confidence_threshold,
+    )
 
     pipeline = InferencePipeline.init(
         model_id=model_id,

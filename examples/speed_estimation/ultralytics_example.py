@@ -2,6 +2,7 @@ from collections import defaultdict, deque
 
 import cv2
 import numpy as np
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 
 import supervision as sv
@@ -53,7 +54,7 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = YOLO("yolo11x.pt")
 
-    byte_track = sv.ByteTrack(
+    byte_track = ByteTrackTracker(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
@@ -86,7 +87,8 @@ def main(
             result = model(frame, conf=confidence_threshold, iou=iou_threshold)[0]
             detections = sv.Detections.from_ultralytics(result)
             detections = detections[polygon_zone.trigger(detections)]
-            detections = byte_track.update_with_detections(detections=detections)
+            detections = byte_track.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             points = detections.get_anchors_coordinates(
                 anchor=sv.Position.BOTTOM_CENTER
