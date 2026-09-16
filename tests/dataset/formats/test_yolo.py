@@ -211,6 +211,72 @@ def test_yolo_annotations_to_detections(
         ) or _arrays_almost_equal(result.mask, expected_result.mask)
 
 
+class TestYoloAnnotationsToDetectionsClassId:
+    """Tests for how ``yolo_annotations_to_detections`` reads the class id column."""
+
+    @pytest.mark.parametrize(
+        "class_token",
+        [
+            "2",
+            "2.0",
+            pytest.param("2.000000000000000000e+00", id="numpy-savetxt-default"),
+        ],
+    )
+    def test_loads_whole_number_class_id(self, class_token: str) -> None:
+        """Class ids written as whole numbers load as integers in any notation."""
+        lines = [f"{class_token} 0.5 0.5 0.2 0.2"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 100), with_masks=False
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([2]))
+        np.testing.assert_allclose(result.xyxy, [[40.0, 40.0, 60.0, 60.0]])
+
+    @pytest.mark.parametrize(
+        "class_token",
+        [
+            "2.5",
+            "nan",
+            "inf",
+            "dog",
+            pytest.param("2.0000000000000001", id="binary-rounding"),
+            pytest.param("1e-400", id="binary-underflow"),
+        ],
+    )
+    def test_rejects_class_id_that_is_not_a_whole_number(
+        self, class_token: str
+    ) -> None:
+        """Class ids that are not finite whole numbers raise ValueError."""
+        lines = [f"{class_token} 0.5 0.5 0.2 0.2"]
+
+        with pytest.raises(ValueError, match="class id"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+
+def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None:
+    """Label files written by ``np.savetxt``, floats in every column, load."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    np.savetxt(labels_dir / "test.txt", np.array([[1, 0.5, 0.5, 0.2, 0.4]]))
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+
+
 @pytest.mark.parametrize(
     ("image_name", "expected_result", "exception"),
     [
