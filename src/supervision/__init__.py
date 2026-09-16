@@ -138,7 +138,7 @@ from supervision.key_points.annotators import (
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
-from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
+from supervision.metrics.detection import ConfusionMatrix
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
@@ -201,7 +201,6 @@ __all__ = [
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
-    "MeanAveragePrecision",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
