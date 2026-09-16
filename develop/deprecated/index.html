@@ -1987,34 +1987,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="../trackers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Trackers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -2027,10 +1999,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -2048,8 +2020,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2113,10 +2085,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
             
   
   
@@ -2134,8 +2106,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2423,10 +2395,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
   
   
@@ -2444,8 +2416,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3062,21 +3034,26 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h1 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h1>
 <p>These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.</p>
 <ul>
-<li><a href="https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> is deprecated in <code>supervision-0.28.0</code> in favour of <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>). The update method is renamed from <code>update_with_detections()</code> to <code>update()</code>. Removal is planned for <code>supervision-0.31.0</code>.</li>
-<li><code>supervision.keypoint</code> module is deprecated in <code>supervision-0.27.0</code>; use <code>supervision.key_points</code> instead. It will be removed in <code>supervision-0.31.0</code>.</li>
-<li><code>create_tiles</code> in <code>supervision.utils.image</code> is deprecated in <code>supervision-0.27.0</code>. It will be removed in <code>supervision-0.31.0</code>.</li>
-<li><code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code> is deprecated in <code>supervision-0.27.0</code>. It will be removed in <code>supervision-0.31.0</code>.</li>
-<li>Keypoint validation utilities in <code>supervision.validators</code> are deprecated in <code>supervision-0.27.0</code>. They will be removed in <code>supervision-0.31.0</code>.</li>
-<li><code>normalized_xyxy</code> argument in <a href="https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes"><code>sv.denormalize_boxes</code></a> is deprecated in <code>supervision-0.27.0</code> and renamed to <code>xyxy</code>. Passing <code>normalized_xyxy=</code> emits a <code>FutureWarning</code>; support will be removed in <code>supervision-0.31.0</code>.</li>
-<li><code>supervision.dataset.utils</code> import path for <a href="https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask"><code>sv.rle_to_mask</code></a> and <a href="https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle"><code>sv.mask_to_rle</code></a> is deprecated in <code>supervision-0.28.0</code>. These functions moved to <code>supervision.detection.utils.converters</code> and will be removed from <code>supervision.dataset.utils</code> in <code>supervision-0.31.0</code>.</li>
-<li><code>sv.LMM</code> enum is deprecated in <code>supervision-0.27.0</code> and will be removed in <code>supervision-0.31.0</code>. Use <code>sv.VLM</code> instead.</li>
-<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> classmethod is deprecated in <code>supervision-0.26.0</code> and will be removed in <code>supervision-0.31.0</code>. Use <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_vlm</code></a> instead.</li>
 <li><code>KeyPoints.confidence</code> is deprecated in <code>supervision-0.29.0</code>. Use <code>KeyPoints.keypoint_confidence</code> instead. It will be removed in <code>supervision-0.32.0</code>.</li>
 <li>Public <code>validate_*</code> helper functions are deprecated in <code>supervision-0.29.0</code> and will be removed in <code>supervision-0.32.0</code>. Supervision internals now use private <code>_validate_*</code> helpers.</li>
 <li><code>merge_inner_detection_object_pair</code>, <code>merge_inner_detections_objects</code>, and <code>merge_inner_detections_objects_without_iou</code> in <code>supervision.detection.core</code> are deprecated in <code>supervision-0.29.0</code> and will be removed in <code>supervision-0.32.0</code>.</li>
 <li>Passing <code>overlap_metric</code> or <code>mask_dimension</code> positionally to <a href="https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge"><code>sv.mask_non_max_merge</code></a> is deprecated in <code>supervision-0.30.0</code> and will be removed in <code>supervision-0.33.0</code>. Pass both by keyword instead.</li>
 </ul>
 <h1 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h1>
+<h3 id="0310">0.31.0<a class="headerlink" href="#0310" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sv.ByteTrack</code> was removed as of <code>supervision-0.31.0</code>. Use <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>) instead; its update method is <code>update()</code>, not <code>update_with_detections()</code>.</li>
+<li>The <code>supervision.keypoint</code> module was removed as of <code>supervision-0.31.0</code>. Import from <code>supervision.key_points</code> instead.</li>
+<li><code>create_tiles</code> in <code>supervision.utils.image</code> was removed as of <code>supervision-0.31.0</code>.</li>
+<li><code>overlay_image</code> in <code>supervision.utils.image</code> was removed as of <code>supervision-0.31.0</code>.</li>
+<li><code>ensure_cv2_image_for_annotation</code>, <code>ensure_pil_image_for_annotation</code>, and <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code> were removed as of <code>supervision-0.31.0</code>.</li>
+<li>The keypoint validation utilities <code>validate_keypoint_confidence</code> and <code>validate_keypoints_fields</code> in <code>supervision.validators</code> were removed as of <code>supervision-0.31.0</code>.</li>
+<li>The <code>normalized_xyxy</code> argument of <a href="https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes"><code>sv.denormalize_boxes</code></a> was removed as of <code>supervision-0.31.0</code>. Use <code>xyxy</code> instead.</li>
+<li>The <code>supervision.dataset.utils</code> import path for <code>sv.rle_to_mask</code> and <code>sv.mask_to_rle</code> was removed as of <code>supervision-0.31.0</code>. Import from <code>supervision.detection.utils.converters</code> (or top-level <code>sv.rle_to_mask</code>/<code>sv.mask_to_rle</code>) instead.</li>
+<li><code>sv.LMM</code> was removed as of <code>supervision-0.31.0</code>. Use <code>sv.VLM</code> instead.</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_lmm</code></a> was removed as of <code>supervision-0.31.0</code>. Use <code>sv.Detections.from_vlm</code> instead.</li>
+<li>The legacy <code>MeanAveragePrecision</code> class in <code>supervision.metrics.detection</code> was removed as of <code>supervision-0.31.0</code>. Use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code> (<code>sv.metrics.MeanAveragePrecision</code>) instead, which matches <code>pycocotools</code>.</li>
+</ul>
 <h3 id="0270">0.27.0<a class="headerlink" href="#0270" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>overlap_ratio_wh</code> parameter in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> has been removed. Use the pixel-based <code>overlap_wh</code> parameter instead.</li>
@@ -3094,7 +3071,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <h3 id="0230">0.23.0<a class="headerlink" href="#0230" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The <code>track_buffer</code>, <code>track_thresh</code>, and <code>match_thresh</code> parameters in <a href="../trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>ByteTrack</code></a> are deprecated and were removed as of <code>supervision-0.23.0</code>. Use <code>lost_track_buffer,</code> <code>track_activation_threshold</code>, and <code>minimum_matching_threshold</code> instead.</li>
+<li>The <code>track_buffer</code>, <code>track_thresh</code>, and <code>match_thresh</code> parameters in <code>ByteTrack</code> are deprecated and were removed as of <code>supervision-0.23.0</code>. Use <code>lost_track_buffer,</code> <code>track_activation_threshold</code>, and <code>minimum_matching_threshold</code> instead.</li>
 <li>The <code>triggering_position</code> parameter in <a href="../detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone"><code>sv.PolygonZone</code></a> was removed as of <code>supervision-0.23.0</code>. Use <code>triggering_anchors</code> instead.</li>
 </ul>
 <h3 id="0220">0.22.0<a class="headerlink" href="#0220" title="Permanent link">&para;</a></h3>
@@ -3131,7 +3108,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 7, 2026 18:54:08 UTC">September 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
   </span>
 
     

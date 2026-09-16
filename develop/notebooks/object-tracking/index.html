@@ -1983,34 +1983,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="../../trackers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Trackers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -2023,10 +1995,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -2044,8 +2016,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2109,10 +2081,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
             
   
   
@@ -2130,8 +2102,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2419,10 +2391,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
   
   
@@ -2440,8 +2412,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3851,7 +3823,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <h1 id="object-tracking">Object Tracking<a class="anchor-link" href="#object-tracking">¶</a></h1><hr/>
 <p><a href="https://colab.research.google.com/github/roboflow/supervision/blob/develop/docs/notebooks/object-tracking.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/></a></p>
 <p>In some cases, it's important for us to track objects across multiple frames of a video. For example, we may need to figure out the direction a vehicle is moving, or count objects in a frame. Some Supervision <a href="https://supervision.roboflow.com/latest/detection/annotators/">Annotators</a> and Tools like <a href="https://supervision.roboflow.com/latest/detection/tools/line_zone/">LineZone</a> require tracking to be setup.  In this cookbook, we'll cover how to get a tracker up and running for use in your computer vision applications.</p>
-<h2 id="what-is-a-tracker">What is a Tracker?<a class="anchor-link" href="#what-is-a-tracker">¶</a></h2><p>Trackers are a piece of code that identifies objects across frames and assigns them a unique <code>tracker_id</code>. There are a few popular trackers at the time of writing this including ByteTrack and Bot-SORT. Supervision makes using trackers a breeze and comes with ByteTrack built-in.</p>
+<h2 id="what-is-a-tracker">What is a Tracker?<a class="anchor-link" href="#what-is-a-tracker">¶</a></h2><p>Trackers are a piece of code that identifies objects across frames and assigns them a unique <code>tracker_id</code>. There are a few popular trackers at the time of writing this including ByteTrack and Bot-SORT. Supervision works with the external <a href="https://trackers.roboflow.com/latest/"><code>trackers</code></a> package, which provides ByteTrack and returns tracked <code>sv.Detections</code>.</p>
 </div>
 </div>
 </div>
@@ -3955,9 +3927,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span><span class="o">-</span><span class="n">gpu</span> <span class="s2">"supervision"</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span><span class="o">-</span><span class="n">gpu</span> <span class="s2">"supervision"</span> <span class="n">trackers</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">!pip install -q inference-gpu "supervision"</div>
+<div class="clipboard-copy-txt" id="cell-2">!pip install -q inference-gpu "supervision" trackers</div>
 </div>
 </div>
 </div>
@@ -4052,8 +4024,11 @@ path_to_video = download_assets(VideoAssets.PEOPLE_WALKING)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">inference.models.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_roboflow_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">trackers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ByteTrackTracker</span>
 
 <span class="c1"># Load a pre trained RF-DETR small model from Roboflow Inference.</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">get_roboflow_model</span><span class="p">(</span><span class="s1">'rfdetr-small'</span><span class="p">)</span>
@@ -4064,23 +4039,30 @@ path_to_video = download_assets(VideoAssets.PEOPLE_WALKING)</div>
 <span class="c1"># Create a label annotator for labeling detections with our tracker_id.</span>
 <span class="n">label</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">()</span>
 
-<span class="c1"># Create a ByteTrack object to track detections.</span>
-<span class="n">byte_tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">(</span><span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">)</span>
+<span class="c1"># Create a ByteTrackTracker object to track detections. The activation</span>
+<span class="c1"># threshold is kept low so low-confidence detections still start tracks.</span>
+<span class="n">byte_tracker</span> <span class="o">=</span> <span class="n">ByteTrackTracker</span><span class="p">(</span>
+    <span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">,</span> <span class="n">track_activation_threshold</span><span class="o">=</span><span class="mf">0.25</span>
+<span class="p">)</span>
 
 <span class="c1"># Create a frame generator from video path for iteration of frames.</span>
 <span class="n">frame_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">path_to_video</span><span class="p">)</span>
 
-<span class="c1"># Grab a frame from the frame_generator.</span>
-<span class="n">frame</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">frame_generator</span><span class="p">)</span>
+<span class="c1"># A track only earns a tracker_id once it has been matched across several</span>
+<span class="c1"># consecutive frames, so warm the tracker up before annotating a frame.</span>
+<span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">(</span><span class="n">frame_generator</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
 
-<span class="c1"># Run inference on the frame by passing it to our model.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Run inference on the frame by passing it to our model.</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-<span class="c1"># Convert model results to a supervision detection object.</span>
-<span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="c1"># Convert model results to a supervision detection object.</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-<span class="c1"># Update detections with tracker ids fro byte_tracker.</span>
-<span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">byte_tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+    <span class="c1"># Update detections with tracker ids from byte_tracker.</span>
+    <span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">byte_tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+
+<span class="c1"># Drop detections whose track is not confirmed yet.</span>
+<span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">tracked_detections</span><span class="p">[</span><span class="n">tracked_detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
 <span class="c1"># Create labels with tracker_id for label annotator.</span>
 <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">tracker_id</span> <span class="ow">in</span> <span class="n">tracked_detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="p">]</span>
@@ -4091,8 +4073,11 @@ path_to_video = download_assets(VideoAssets.PEOPLE_WALKING)</div>
 <span class="c1"># Display the frame.</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">import supervision as sv
+<div class="clipboard-copy-txt" id="cell-4">import itertools
+
+import supervision as sv
 from inference.models.utils import get_roboflow_model
+from trackers import ByteTrackTracker
 
 # Load a pre trained RF-DETR small model from Roboflow Inference.
 model = get_roboflow_model('rfdetr-small')
@@ -4103,23 +4088,30 @@ video_info = sv.VideoInfo.from_video_path(path_to_video)
 # Create a label annotator for labeling detections with our tracker_id.
 label = sv.LabelAnnotator()
 
-# Create a ByteTrack object to track detections.
-byte_tracker = sv.ByteTrack(frame_rate=video_info.fps)
+# Create a ByteTrackTracker object to track detections. The activation
+# threshold is kept low so low-confidence detections still start tracks.
+byte_tracker = ByteTrackTracker(
+    frame_rate=video_info.fps, track_activation_threshold=0.25
+)
 
 # Create a frame generator from video path for iteration of frames.
 frame_generator = sv.get_video_frames_generator(path_to_video)
 
-# Grab a frame from the frame_generator.
-frame = next(frame_generator)
+# A track only earns a tracker_id once it has been matched across several
+# consecutive frames, so warm the tracker up before annotating a frame.
+for frame in itertools.islice(frame_generator, 5):
 
-# Run inference on the frame by passing it to our model.
-result = model.infer(frame)[0]
+    # Run inference on the frame by passing it to our model.
+    result = model.infer(frame)[0]
 
-# Convert model results to a supervision detection object.
-detections = sv.Detections.from_inference(result)
+    # Convert model results to a supervision detection object.
+    detections = sv.Detections.from_inference(result)
 
-# Update detections with tracker ids fro byte_tracker.
-tracked_detections = byte_tracker.update_with_detections(detections)
+    # Update detections with tracker ids from byte_tracker.
+    tracked_detections = byte_tracker.update(detections)
+
+# Drop detections whose track is not confirmed yet.
+tracked_detections = tracked_detections[tracked_detections.tracker_id != -1]
 
 # Create labels with tracker_id for label annotator.
 labels = [ f"{tracker_id}" for tracker_id in tracked_detections.tracker_id ]
@@ -4187,8 +4179,10 @@ sv.plot_image(annotated_frame)</div>
 <span class="c1"># Create a label annotator for labeling detections with our tracker_id.</span>
 <span class="n">label</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">()</span>
 
-<span class="c1"># Create a ByteTrack object to track detections.</span>
-<span class="n">byte_tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">(</span><span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">)</span>
+<span class="c1"># Create a ByteTrackTracker object to track detections.</span>
+<span class="n">byte_tracker</span> <span class="o">=</span> <span class="n">ByteTrackTracker</span><span class="p">(</span>
+    <span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">,</span> <span class="n">track_activation_threshold</span><span class="o">=</span><span class="mf">0.25</span>
+<span class="p">)</span>
 
 <span class="c1"># Create a frame generator from video path for iteration of frames.</span>
 <span class="n">frame_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">path_to_video</span><span class="p">)</span>
@@ -4205,8 +4199,13 @@ sv.plot_image(annotated_frame)</div>
         <span class="c1"># Convert model results to a supervision detection object.</span>
         <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-        <span class="c1"># Update detections with tracker ids fro byte_tracker.</span>
-        <span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">byte_tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+        <span class="c1"># Update detections with tracker ids from byte_tracker.</span>
+        <span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">byte_tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+
+        <span class="c1"># Drop detections whose track is not confirmed yet.</span>
+        <span class="n">tracked_detections</span> <span class="o">=</span> <span class="n">tracked_detections</span><span class="p">[</span>
+            <span class="n">tracked_detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">]</span>
 
         <span class="c1"># Create labels with tracker_id for label annotator.</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">tracker_id</span> <span class="ow">in</span> <span class="n">tracked_detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="p">]</span>
@@ -4228,8 +4227,10 @@ video_info = sv.VideoInfo.from_video_path(path_to_video)
 # Create a label annotator for labeling detections with our tracker_id.
 label = sv.LabelAnnotator()
 
-# Create a ByteTrack object to track detections.
-byte_tracker = sv.ByteTrack(frame_rate=video_info.fps)
+# Create a ByteTrackTracker object to track detections.
+byte_tracker = ByteTrackTracker(
+    frame_rate=video_info.fps, track_activation_threshold=0.25
+)
 
 # Create a frame generator from video path for iteration of frames.
 frame_generator = sv.get_video_frames_generator(path_to_video)
@@ -4246,8 +4247,13 @@ with sv.VideoSink(target_path="output.mp4", video_info=video_info) as sink:
         # Convert model results to a supervision detection object.
         detections = sv.Detections.from_inference(result)
 
-        # Update detections with tracker ids fro byte_tracker.
-        tracked_detections = byte_tracker.update_with_detections(detections)
+        # Update detections with tracker ids from byte_tracker.
+        tracked_detections = byte_tracker.update(detections)
+
+        # Drop detections whose track is not confirmed yet.
+        tracked_detections = tracked_detections[
+            tracked_detections.tracker_id != -1
+        ]
 
         # Create labels with tracker_id for label annotator.
         labels = [ f"{tracker_id}" for tracker_id in tracked_detections.tracker_id ]
@@ -4308,7 +4314,7 @@ with sv.VideoSink(target_path="output.mp4", video_info=video_info) as sink:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
   </span>
 
     

@@ -1989,34 +1989,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="../trackers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Trackers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -2029,10 +2001,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -2050,8 +2022,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2115,10 +2087,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
             
   
   
@@ -2136,8 +2108,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2425,10 +2397,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
   
   
@@ -2446,8 +2418,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4034,6 +4006,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Removed, as scheduled for <code>supervision-0.31.0</code>: <code>sv.ByteTrack</code> (use <code>ByteTrackTracker</code> from the <code>trackers</code> package instead); the <code>supervision.keypoint</code> module (use <code>supervision.key_points</code>); <code>create_tiles</code> and <code>overlay_image</code> in <code>supervision.utils.image</code>; <code>ensure_cv2_image_for_annotation</code>, <code>ensure_pil_image_for_annotation</code>, and <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code>; <code>validate_keypoint_confidence</code> and <code>validate_keypoints_fields</code> in <code>supervision.validators</code>; the <code>normalized_xyxy</code> argument of <code>sv.denormalize_boxes</code> (use <code>xyxy</code>); the <code>supervision.dataset.utils</code> import path for <code>sv.mask_to_rle</code>/<code>sv.rle_to_mask</code> (import from <code>supervision.detection.utils.converters</code> instead); <code>sv.LMM</code> and <code>Detections.from_lmm</code> (use <code>sv.VLM</code>/<code>Detections.from_vlm</code>); and the legacy <code>MeanAveragePrecision</code> in <code>supervision.metrics.detection</code> (use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code>, exposed as <code>sv.metrics.MeanAveragePrecision</code>). See <a href="../deprecated/">Deprecated</a> for the full list. <a href="https://github.com/roboflow/supervision/pull/2582">#2582</a></p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_labelme</code> now finds images for LabelMe files saved on Windows when it runs on Linux or macOS. LabelMe writes <code>imagePath</code> relative to the JSON file with the separator of the system that saved it, so a file saved on Windows holds a value such as <code>..\images\a.jpg</code>. The loader keeps only the file name of <code>imagePath</code>, but took it with <code>Path(...).name</code>, which on Linux and macOS does not treat a backslash as a separator; the whole value became the file name, the dataset pointed at <code>images/..\images\a.jpg</code>, and reading the image failed with <code>ValueError: Could not read image from path</code>. The file name is now taken with either separator on every system, as LabelMe itself does when it reads its own files. Files that use forward slashes, and every file on Windows, load as before. <a href="https://github.com/roboflow/supervision/pull/2581">#2581</a></p>
 </li>
 <li>
@@ -4634,7 +4609,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2156">#2156</a>: <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionDataset</code></a> now populates <code>data["class_name"]</code> on every loaded annotation, matching what model connectors produce. Downstream code can rely on <code>class_name</code> being present whether detections come from a dataset or a model.</p>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1364">#1364</a>: <a href="https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> now preserves externally assigned <code>tracker_id</code> values instead of overwriting them with internal ids on the first update.</p>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1364">#1364</a>: <code>sv.ByteTrack</code> now preserves externally assigned <code>tracker_id</code> values instead of overwriting them with internal ids on the first update.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/1853">#1853</a>: <a href="https://supervision.roboflow.com/latest/detection/metrics/#supervision.metrics.detection.ConfusionMatrix"><code>sv.ConfusionMatrix</code></a> <code>evaluate_detection_batch</code> now matches predictions to ground truth correctly when multiple detections fall on the same target. Previously, double-counting inflated false-positive and false-negative counts.</p>
@@ -4646,7 +4621,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/1086">#1086</a>, <a href="https://github.com/roboflow/supervision/pull/265">#265</a>: COCO export and <code>force_masks</code> behaviour are now consistent across dataset formats. Empty polygons no longer raise during <code>as_coco</code>, and <code>force_masks=True</code> produces masks regardless of source format.</p>
 </li>
 <li>
-<p>Deprecated <a href="https://github.com/roboflow/supervision/pull/2215">#2215</a>: <a href="https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> is deprecated in favour of <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>). The update method is renamed from <code>update_with_detections()</code> to <code>update()</code>. Removal is now planned for <code>supervision-0.31.0</code>.</p>
+<p>Deprecated <a href="https://github.com/roboflow/supervision/pull/2215">#2215</a>: <code>sv.ByteTrack</code> is deprecated in favour of <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>). The update method is renamed from <code>update_with_detections()</code> to <code>update()</code>. Removal is now planned for <code>supervision-0.31.0</code>.</p>
 </li>
 <li>
 <p>Deprecated <a href="https://github.com/roboflow/supervision/pull/2214">#2214</a>: <code>supervision.keypoint</code> module is deprecated; use <code>supervision.key_points</code> instead. <code>create_tiles</code> in <code>supervision.utils.image</code>, <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code>, and keypoint validation utilities in <code>supervision.validators</code> are deprecated. The <code>LMM</code> enum (use <code>VLM</code>) and <code>from_lmm</code> method (use <code>from_vlm</code>) were deprecated in 0.26.0; this release migrates their deprecation mechanism to <code>pydeprecate</code>.</p>
@@ -5338,7 +5313,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
-<p>The <code>track_buffer</code>, <code>track_thresh</code>, and <code>match_thresh</code> parameters in <a href="../trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>ByteTrack</code></a> are deprecated and were removed as of <code>supervision-0.23.0</code>. Use <code>lost_track_buffer,</code> <code>track_activation_threshold</code>, and <code>minimum_matching_threshold</code> instead.</p>
+<p>The <code>track_buffer</code>, <code>track_thresh</code>, and <code>match_thresh</code> parameters in <code>ByteTrack</code> are deprecated and were removed as of <code>supervision-0.23.0</code>. Use <code>lost_track_buffer,</code> <code>track_activation_threshold</code>, and <code>minimum_matching_threshold</code> instead.</p>
 </div>
 <div class="admonition failure">
 <p class="admonition-title">Removed</p>
@@ -6364,7 +6339,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 12:37:21 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
   </span>
 
     
@@ -6392,6 +6367,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
           <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
@@ -6407,16 +6387,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/68085490?v=4&size=72" alt="shaoming11">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +37
+            +36
           </a>
         
       

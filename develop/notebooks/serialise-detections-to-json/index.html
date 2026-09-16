@@ -1983,34 +1983,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="../../trackers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Trackers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -2023,10 +1995,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -2044,8 +2016,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2109,10 +2081,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
             
   
   
@@ -2130,8 +2102,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2419,10 +2391,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
   
   
@@ -2440,8 +2412,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3945,9 +3917,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span> <span class="n">trackers</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">!pip install -q inference requests tqdm supervision</div>
+<div class="clipboard-copy-txt" id="cell-1">!pip install -q inference requests tqdm supervision trackers</div>
 </div>
 </div>
 </div>
@@ -4193,7 +4165,7 @@ sv.plot_image(frame, (12, 12))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="initialize-bytetrack">Initialize ByteTrack<a class="anchor-link" href="#initialize-bytetrack">¶</a></h2><p><a href="https://supervision.roboflow.com/latest/trackers/#bytetrack">ByteTrack</a> is a multi-object tracking algorithm used by Supervision to track and link detected objects across multiple frames, providing consistent IDs for each object.</p>
+<h2 id="initialize-bytetrack">Initialize ByteTrack<a class="anchor-link" href="#initialize-bytetrack">¶</a></h2><p><a href="https://trackers.roboflow.com/latest/">ByteTrack</a> is a multi-object tracking algorithm from the external <code>trackers</code> package. It tracks and links detected objects across multiple frames, providing consistent IDs for each object.</p>
 </div>
 </div>
 </div>
@@ -4216,10 +4188,18 @@ sv.plot_image(frame, (12, 12))</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">byte_track</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">(</span><span class="n">minimum_consecutive_frames</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">trackers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ByteTrackTracker</span>
+
+<span class="n">byte_track</span> <span class="o">=</span> <span class="n">ByteTrackTracker</span><span class="p">(</span>
+    <span class="n">minimum_consecutive_frames</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">track_activation_threshold</span><span class="o">=</span><span class="n">CONFIDENCE_THRESHOLD</span>
+<span class="p">)</span>
 <span class="n">byte_track</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6">byte_track = sv.ByteTrack(minimum_consecutive_frames=3)
+<div class="clipboard-copy-txt" id="cell-6">from trackers import ByteTrackTracker
+
+byte_track = ByteTrackTracker(
+    minimum_consecutive_frames=3, track_activation_threshold=CONFIDENCE_THRESHOLD
+)
 byte_track.reset()</div>
 </div>
 </div>
@@ -4305,7 +4285,8 @@ json_sink.open()</div>
     <span class="n">detections</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"class_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">"person"</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">))])</span>
 
-    <span class="n">detections</span> <span class="o">=</span> <span class="n">byte_track</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">byte_track</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+    <span class="n">detections</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># -1 = pending track</span>
     <span class="n">json_sink</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="p">{</span><span class="s1">'frame_number'</span><span class="p">:</span> <span class="n">frame</span><span class="o">.</span><span class="n">frame_id</span><span class="p">})</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-8">def callback(predictions: dict, frame: VideoFrame) -&gt; np.ndarray:
@@ -4315,7 +4296,8 @@ json_sink.open()</div>
     detections = detections[detections.class_id == 0]
     detections.data["class_name"] = np.array(["person" for _ in range(len(detections))])
 
-    detections = byte_track.update_with_detections(detections)
+    detections = byte_track.update(detections)
+    detections = detections[detections.tracker_id != -1]  # -1 = pending track
     json_sink.append(detections, custom_data={'frame_number': frame.frame_id})</div>
 </div>
 </div>
@@ -4964,7 +4946,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
 <li>sv.Detections: <a href="https://supervision.roboflow.com/develop/detection/core/#detections">https://supervision.roboflow.com/develop/detection/core/#detections</a></li>
 <li>Save Detections to JSON: <a href="https://supervision.roboflow.com/develop/how_to/save_detections/#save-detections-as-json">https://supervision.roboflow.com/develop/how_to/save_detections/#save-detections-as-json</a></li>
 <li>Custom fields: <a href="https://supervision.roboflow.com/develop/how_to/save_detections/#custom-fields">https://supervision.roboflow.com/develop/how_to/save_detections/#custom-fields</a></li>
-<li>ByteTrack: <a href="https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack">https://supervision.roboflow.com/trackers/#supervision.tracker.byte_tracker.core.ByteTrack</a></li>
+<li>ByteTrack (external <code>trackers</code> package): <a href="https://trackers.roboflow.com/latest/">https://trackers.roboflow.com/latest/</a></li>
 <li>Inference: <a href="https://inference.roboflow.com/">https://inference.roboflow.com/</a></li>
 <li>Inference Pipeline: <a href="https://inference.roboflow.com/using_inference/inference_pipeline/">https://inference.roboflow.com/using_inference/inference_pipeline/</a></li>
 <li>Inference Aliases: <a href="https://inference.roboflow.com/quickstart/aliases/">https://inference.roboflow.com/quickstart/aliases/</a></li>
@@ -5002,7 +4984,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
   </span>
 
     

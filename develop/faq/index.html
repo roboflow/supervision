@@ -215,7 +215,7 @@
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections through update_with_detections(). After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
+        "text": "Assign persistent tracker IDs before visualization using ByteTrackTracker from the external trackers package; the built-in sv.ByteTrack wrapper was removed as of supervision-0.31.0. After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
       }
     },
     {
@@ -2246,34 +2246,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
   
   
   
-    <li class="md-nav__item">
-      <a href="../trackers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Trackers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -2286,10 +2258,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -2307,8 +2279,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2372,10 +2344,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_6" >
         
           
-          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_6" id="__nav_6_6_label" tabindex="0">
             
   
   
@@ -2393,8 +2365,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2682,10 +2654,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" >
         
           
-          <label class="md-nav__link" for="__nav_6_8" id="__nav_6_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
   
   
@@ -2703,8 +2675,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3449,7 +3421,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h2 id="what-can-i-do-with-supervision">What can I do with Supervision?<a class="headerlink" href="#what-can-i-do-with-supervision" title="Permanent link">&para;</a></h2>
 <p>You can annotate images and video, filter detections, track objects, count objects in zones or across lines, load and convert datasets, evaluate models with detection metrics, and export predictions for downstream analysis.</p>
 <h2 id="how-do-i-track-objects-across-video-frames">How do I track objects across video frames?<a class="headerlink" href="#how-do-i-track-objects-across-video-frames" title="Permanent link">&para;</a></h2>
-<p>Assign persistent tracker IDs before visualization. The built-in <code>sv.ByteTrack</code> wrapper accepts <code>Detections</code> through <code>update_with_detections()</code>, but it is deprecated in favor of <code>ByteTrackTracker</code> from the external <code>trackers</code> package. After tracking, combine the output with annotators such as <code>sv.TraceAnnotator</code>, <code>sv.BoxAnnotator</code>, and <code>sv.LabelAnnotator</code>.</p>
+<p>Assign persistent tracker IDs before visualization. Use <code>ByteTrackTracker</code> from the external <code>trackers</code> package (<code>pip install trackers</code>), which accepts <code>Detections</code> through <code>update()</code>; the built-in <code>sv.ByteTrack</code> wrapper, which used <code>update_with_detections()</code>, was removed as of <code>supervision-0.31.0</code>. After tracking, combine the output with annotators such as <code>sv.TraceAnnotator</code>, <code>sv.BoxAnnotator</code>, and <code>sv.LabelAnnotator</code>.</p>
 <h2 id="what-dataset-formats-does-supervision-support">What dataset formats does Supervision support?<a class="headerlink" href="#what-dataset-formats-does-supervision-support" title="Permanent link">&para;</a></h2>
 <p>For detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use <code>DetectionDataset.from_yolo()</code>, <code>DetectionDataset.from_coco()</code>, <code>DetectionDataset.from_pascal_voc()</code>, <code>DetectionDataset.from_createml()</code>, or <code>DetectionDataset.from_labelme()</code> to load datasets, and the matching <code>as_*</code> methods to export them.</p>
 <h2 id="how-do-i-count-objects-in-a-zone">How do I count objects in a zone?<a class="headerlink" href="#how-do-i-count-objects-in-a-zone" title="Permanent link">&para;</a></h2>
@@ -3499,7 +3471,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
   </span>
 
     
@@ -3542,9 +3514,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
         </a>
       
-        <a href="https://github.com/claude" class="md-author" title="@claude">
+        <a href="https://github.com/codex" class="md-author" title="@codex">
           
-          <img src="https://avatars.githubusercontent.com/u/81847?u=577eaff0520b33aadc0f9fb6d11f5cdb2dd9486e&v=4&size=72" alt="Claude">
+          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
       
