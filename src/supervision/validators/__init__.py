@@ -172,15 +172,6 @@ def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
     void(confidence, n, m)
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_keypoint_confidence,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
-    void(confidence, n, m)
-
-
 def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     expected_shape = f"({n},)"
     actual_shape = str(getattr(tracker_id, "shape", None))
@@ -330,17 +321,6 @@ def _validate_keypoints_fields(
     remove_in="0.32.0",
 )
 def validate_key_points_fields(
-    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
-) -> None:
-    void(xy, class_id, confidence, data)
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=_validate_keypoints_fields,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoints_fields(
     xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
 ) -> None:
     void(xy, class_id, confidence, data)

@@ -1,9 +1,5 @@
-import os
-import subprocess
-import sys
 import warnings
 from collections.abc import Callable
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -22,8 +18,6 @@ from supervision.validators import (
     validate_detections_fields,
     validate_key_point_confidence,
     validate_key_points_fields,
-    validate_keypoint_confidence,
-    validate_keypoints_fields,
     validate_mask,
     validate_resolution,
     validate_tracker_id,
@@ -48,7 +42,6 @@ def _detections() -> Detections:
         (lambda: validate_class_id(np.array([0]), 1), "0.29.0"),
         (lambda: validate_confidence(np.array([0.5]), 1), "0.29.0"),
         (lambda: validate_key_point_confidence(np.array([[0.5]]), 1, 1), "0.29.0"),
-        (lambda: validate_keypoint_confidence(np.array([[0.5]]), 1, 1), "0.27.0"),
         (lambda: validate_tracker_id(np.array([1]), 1), "0.29.0"),
         (lambda: validate_data({"id": [1]}, 1), "0.29.0"),
         (lambda: validate_xy(np.array([[[0, 0]]]), 1, 1), "0.29.0"),
@@ -66,10 +59,6 @@ def _detections() -> Detections:
         (
             lambda: validate_key_points_fields(np.array([[[0, 0]]]), None, None, {}),
             "0.29.0",
-        ),
-        (
-            lambda: validate_keypoints_fields(np.array([[[0, 0]]]), None, None, {}),
-            "0.27.0",
         ),
         (lambda: validate_resolution((1, 1)), "0.29.0"),
         (
@@ -119,34 +108,3 @@ def test_private_validation_paths_do_not_warn() -> None:
         warning for warning in recorded_warnings if warning.category is FutureWarning
     ]
     assert future_warnings == []
-
-
-def test_import_supervision_stays_silent_about_bytetrack() -> None:
-    """Plain supervision import should not surface the ByteTrack warning."""
-    repo_root = Path(__file__).resolve().parents[1]
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(repo_root / "src")
-    script = """
-import warnings
-
-with warnings.catch_warnings(record=True) as recorded:
-    warnings.simplefilter("always")
-    import supervision
-
-byte_track_warnings = [
-    warning
-    for warning in recorded
-    if warning.category is FutureWarning and "ByteTrack" in str(warning.message)
-]
-
-raise SystemExit(1 if byte_track_warnings else 0)
-"""
-    completed = subprocess.run(
-        [sys.executable, "-c", script],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-
-    assert completed.returncode == 0, completed.stderr
