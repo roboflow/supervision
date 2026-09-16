@@ -205,6 +205,36 @@ class TestLoadLabelmeAnnotations:
     @pytest.mark.parametrize(
         "image_path_value",
         [
+            pytest.param("..\\images\\a.jpg", id="relative"),
+            pytest.param("C:\\data\\images\\a.jpg", id="absolute-with-drive"),
+        ],
+    )
+    def test_loads_image_referenced_by_windows_style_image_path(
+        self, tmp_path: Path, image_path_value: str
+    ) -> None:
+        """A backslash-separated imagePath, as LabelMe saves on Windows, loads."""
+        images_dir = tmp_path / "images"
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        _write_image(images_dir / "a.jpg", 64, 48)
+        _write_labelme(
+            annotations_dir / "a.json",
+            image_path_value,
+            [_rectangle("dog", 1, 1, 5, 5)],
+        )
+
+        dataset = DetectionDataset.from_labelme(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+        image_path, image, _ = dataset[0]
+
+        assert image_path == str(images_dir / "a.jpg")
+        assert image.shape == (48, 64, 3)
+
+    @pytest.mark.parametrize(
+        "image_path_value",
+        [
             pytest.param(".", id="dot"),
             pytest.param("..", id="dotdot"),
         ],
