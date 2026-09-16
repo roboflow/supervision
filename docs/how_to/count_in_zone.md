@@ -142,7 +142,7 @@ Yes. Use `sv.LineZone` — define a start and end point. `zone.trigger(detection
 
 ### Can I combine zone counting with tracking?
 
-Yes. You can pass tracker IDs from `sv.ByteTrack` alongside your detections, but `sv.PolygonZone` still evaluates the zone on each frame and reports which objects are currently inside it. If you want to count each object only once when it first enters the zone, maintain a set of seen `tracker_id` values after filtering detections with `zone.trigger(detections)`, or use a dedicated entry/crossing counting tool such as `sv.LineZone` when it better matches your use case.
+Yes. You can pass tracker IDs from `ByteTrackTracker` (external `trackers` package; `sv.ByteTrack` was removed as of `supervision-0.31.0`) alongside your detections, but `sv.PolygonZone` still evaluates the zone on each frame and reports which objects are currently inside it. If you want to count each object only once when it first enters the zone, first discard unconfirmed detections with `detections = detections[detections.tracker_id != -1]`, then call `mask = zone.trigger(detections)` and update your set from `detections.tracker_id[mask]`. Use a dedicated entry/crossing counting tool such as `sv.LineZone` when it better matches your use case.
 
 ## Author
 

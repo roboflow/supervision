@@ -2057,8 +2057,9 @@ class TraceAnnotator(BaseAnnotator):
 
     !!! warning
 
-    This annotator uses the `sv.Detections.tracker_id`. Read [here](/latest/trackers/)
-    to learn how to plug tracking into your inference pipeline.
+    This annotator uses the `sv.Detections.tracker_id`. Read
+    [here](https://trackers.roboflow.com/latest/) to learn how to plug
+    tracking into your inference pipeline.
     """
 
     def __init__(
@@ -2151,18 +2152,22 @@ class TraceAnnotator(BaseAnnotator):
             ```python
             import supervision as sv
             from rfdetr import RFDETRMedium
+            from trackers import ByteTrackTracker
 
             model = RFDETRMedium()
             trace_annotator = sv.TraceAnnotator()
 
             video_info = sv.VideoInfo.from_video_path(video_path='...')
             frames_generator = sv.get_video_frames_generator(source_path='...')
-            tracker = sv.ByteTrack()
+            tracker = ByteTrackTracker(
+                track_activation_threshold=0.25, minimum_consecutive_frames=1
+            )
 
             with sv.VideoSink(target_path='...', video_info=video_info) as sink:
                for frame in frames_generator:
                    detections = model.predict(frame[:, :, ::-1])
-                   detections = tracker.update_with_detections(detections)
+                   detections = tracker.update(detections)
+                   detections = detections[detections.tracker_id != -1]
                    annotated_frame = trace_annotator.annotate(
                        scene=frame.copy(),
                        detections=detections)

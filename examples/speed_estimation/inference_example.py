@@ -4,6 +4,7 @@ from collections import defaultdict, deque
 import cv2
 import numpy as np
 from inference.models.utils import get_roboflow_model
+from trackers import ByteTrackTracker
 
 import supervision as sv
 
@@ -67,7 +68,7 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
 
-    byte_track = sv.ByteTrack(
+    byte_track = ByteTrackTracker(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
@@ -102,7 +103,8 @@ def main(
             )[0]
             detections = sv.Detections.from_inference(results)
             detections = detections[polygon_zone.trigger(detections)]
-            detections = byte_track.update_with_detections(detections=detections)
+            detections = byte_track.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             points = detections.get_anchors_coordinates(
                 anchor=sv.Position.BOTTOM_CENTER

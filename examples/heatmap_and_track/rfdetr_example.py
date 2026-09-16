@@ -1,4 +1,5 @@
 from rfdetr import RFDETRMedium
+from trackers import ByteTrackTracker
 
 import supervision as sv
 from supervision import _cv2 as cv2
@@ -64,10 +65,10 @@ def main(
     cap.release()
 
     ### tracker config
-    byte_tracker = sv.ByteTrack(
+    byte_tracker = ByteTrackTracker(
         track_activation_threshold=track_activation_threshold,
         lost_track_buffer=track_seconds * fps,
-        minimum_matching_threshold=minimum_matching_threshold,
+        minimum_iou_threshold=1 - minimum_matching_threshold,
         frame_rate=fps,
     )
 
@@ -85,9 +86,8 @@ def main(
             detections = detections[detections.class_id == PERSON_CLASS_ID]
             detections = detections.with_nms(threshold=iou_threshold)
 
-            detections = byte_tracker.update_with_detections(
-                detections
-            )  # update tracker
+            detections = byte_tracker.update(detections)  # update tracker
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             ### draw heatmap
             annotated_frame = heat_map_annotator.annotate(

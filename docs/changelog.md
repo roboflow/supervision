@@ -7,6 +7,8 @@ date_modified: 2026-09-15
 
 ### Unreleased <small>upcoming</small>
 
+- Removed, as scheduled for `supervision-0.31.0`: `sv.ByteTrack` (use `ByteTrackTracker` from the `trackers` package instead); the `supervision.keypoint` module (use `supervision.key_points`); `create_tiles` and `overlay_image` in `supervision.utils.image`; `ensure_cv2_image_for_annotation`, `ensure_pil_image_for_annotation`, and `ensure_cv2_image_for_processing` in `supervision.utils.conversion`; `validate_keypoint_confidence` and `validate_keypoints_fields` in `supervision.validators`; the `normalized_xyxy` argument of `sv.denormalize_boxes` (use `xyxy`); the `supervision.dataset.utils` import path for `sv.mask_to_rle`/`sv.rle_to_mask` (import from `supervision.detection.utils.converters` instead); `sv.LMM` and `Detections.from_lmm` (use `sv.VLM`/`Detections.from_vlm`); and the legacy `MeanAveragePrecision` in `supervision.metrics.detection` (use `supervision.metrics.mean_average_precision.MeanAveragePrecision`, exposed as `sv.metrics.MeanAveragePrecision`). See [Deprecated](deprecated.md) for the full list. [#2582](https://github.com/roboflow/supervision/pull/2582)
+
 - `sv.DetectionDataset.from_labelme` now finds images for LabelMe files saved on Windows when it runs on Linux or macOS. LabelMe writes `imagePath` relative to the JSON file with the separator of the system that saved it, so a file saved on Windows holds a value such as `..\images\a.jpg`. The loader keeps only the file name of `imagePath`, but took it with `Path(...).name`, which on Linux and macOS does not treat a backslash as a separator; the whole value became the file name, the dataset pointed at `images/..\images\a.jpg`, and reading the image failed with `ValueError: Could not read image from path`. The file name is now taken with either separator on every system, as LabelMe itself does when it reads its own files. Files that use forward slashes, and every file on Windows, load as before. [#2581](https://github.com/roboflow/supervision/pull/2581)
 
 - `sv.DetectionDataset.from_yolo` now loads label files whose class ids are written as decimals. The loader parsed the class column with `int()`, so a single line such as `1.0 0.5 0.5 0.2 0.4` aborted the whole load with `ValueError: invalid literal for int() with base 10: '1.0'`. Label files saved with `np.savetxt` are written this way, because its default format writes every column as a float (`1.000000000000000000e+00`), and Ultralytics reads the class column as a float, so such datasets train there without complaint. Class ids that are whole numbers now load in any notation; values that are fractional, not finite, or not numbers at all still raise a `ValueError`, which now names the offending class id. Integer class ids load as before. [#2580](https://github.com/roboflow/supervision/pull/2580)
@@ -414,7 +416,7 @@ date_modified: 2026-09-15
 
 - Fixed [#2156](https://github.com/roboflow/supervision/pull/2156): [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) now populates `data["class_name"]` on every loaded annotation, matching what model connectors produce. Downstream code can rely on `class_name` being present whether detections come from a dataset or a model.
 
-- Fixed [#1364](https://github.com/roboflow/supervision/pull/1364): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) now preserves externally assigned `tracker_id` values instead of overwriting them with internal ids on the first update.
+- Fixed [#1364](https://github.com/roboflow/supervision/pull/1364): `sv.ByteTrack` now preserves externally assigned `tracker_id` values instead of overwriting them with internal ids on the first update.
 
 - Fixed [#1853](https://github.com/roboflow/supervision/pull/1853): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/latest/detection/metrics/#supervision.metrics.detection.ConfusionMatrix) `evaluate_detection_batch` now matches predictions to ground truth correctly when multiple detections fall on the same target. Previously, double-counting inflated false-positive and false-negative counts.
 
@@ -422,7 +424,7 @@ date_modified: 2026-09-15
 
 - Fixed [#1086](https://github.com/roboflow/supervision/pull/1086), [#265](https://github.com/roboflow/supervision/pull/265): COCO export and `force_masks` behaviour are now consistent across dataset formats. Empty polygons no longer raise during `as_coco`, and `force_masks=True` produces masks regardless of source format.
 
-- Deprecated [#2215](https://github.com/roboflow/supervision/pull/2215): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal is now planned for `supervision-0.31.0`.
+- Deprecated [#2215](https://github.com/roboflow/supervision/pull/2215): `sv.ByteTrack` is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal is now planned for `supervision-0.31.0`.
 
 - Deprecated [#2214](https://github.com/roboflow/supervision/pull/2214): `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. `create_tiles` in `supervision.utils.image`, `ensure_cv2_image_for_processing` in `supervision.utils.conversion`, and keypoint validation utilities in `supervision.validators` are deprecated. The `LMM` enum (use `VLM`) and `from_lmm` method (use `from_vlm`) were deprecated in 0.26.0; this release migrates their deprecation mechanism to `pydeprecate`.
 
@@ -1073,7 +1075,7 @@ date_modified: 2026-09-15
 
 !!! failure "Removed"
 
-    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in [`ByteTrack`](trackers.md/#supervision.tracker.byte_tracker.core.ByteTrack) are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+    The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `ByteTrack` are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
 
 !!! failure "Removed"
 

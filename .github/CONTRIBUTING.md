@@ -270,7 +270,7 @@ Always specify both the deprecation version and the planned removal version in t
 
 ### Deprecated module aliases
 
-`supervision.keypoint` is deprecated since `0.27.0` and will be removed in `0.30.0`. Always import from `supervision.key_points`:
+`supervision.keypoint` was deprecated since `0.27.0` and removed in `0.31.0`. Always import from `supervision.key_points`:
 
 ```python
 from supervision.key_points import KeyPoints  # correct

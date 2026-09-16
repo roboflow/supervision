@@ -2,6 +2,7 @@ from collections.abc import Iterable
 
 import numpy as np
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 
 import supervision as sv
@@ -82,7 +83,7 @@ class VideoProcessor:
         self.target_video_path = target_video_path
 
         self.model = YOLO(source_weights_path)
-        self.tracker = sv.ByteTrack()
+        self.tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
@@ -158,7 +159,8 @@ class VideoProcessor:
         )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections.class_id = np.zeros(len(detections))
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         detections_in_zones = []
         detections_out_zones = []
@@ -182,7 +184,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """Traffic Flow Analysis with YOLO and ByteTrack.
+    """Traffic Flow Analysis with YOLO and ByteTrackTracker.
 
     Args:
         source_weights_path: Path to the source weights file

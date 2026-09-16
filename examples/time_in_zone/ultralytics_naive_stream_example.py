@@ -1,4 +1,5 @@
 import numpy as np
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
 from utils.timers import ClockBasedTimer
@@ -33,7 +34,9 @@ def main(
         classes: List of class IDs to track. If empty, all classes are tracked
     """
     model = YOLO(weights)
-    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    tracker = ByteTrackTracker(
+        minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+    )
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
     fps_monitor = sv.FPSMonitor()
 
@@ -61,7 +64,8 @@ def main(
         )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[find_in_list(detections.class_id, classes)]
-        detections = tracker.update_with_detections(detections)
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.copy()
         annotated_frame = sv.draw_text(

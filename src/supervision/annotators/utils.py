@@ -68,8 +68,8 @@ def resolve_color_idx(
         if detections.tracker_id is None:
             raise ValueError(
                 "Could not resolve color by track because "
-                "Detections do not have tracker_id. Did you call "
-                "tracker.update_with_detections(...) before annotating?"
+                "Detections do not have tracker_id. Did you run a tracker's "
+                "update(...) method (e.g. ByteTrackTracker) before annotating?"
             )
         return int(detections.tracker_id[detection_idx])
     raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")

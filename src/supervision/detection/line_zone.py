@@ -34,7 +34,7 @@ class LineZone:
     !!! warning
 
         LineZone uses the `tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
+        [here](https://trackers.roboflow.com/latest/) to learn how to plug
         tracking into your inference pipeline.
 
     Attributes:
@@ -170,7 +170,7 @@ class LineZone:
         if detections.tracker_id is None:
             warnings.warn(
                 "Line zone counting skipped. LineZone requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more "
+                "https://trackers.roboflow.com/latest/ for more "
                 "information.",
                 category=SupervisionWarnings,
             )

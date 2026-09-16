@@ -3,6 +3,7 @@ from collections.abc import Iterable
 import numpy as np
 from rfdetr import RFDETRMedium
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 
 import supervision as sv
 from supervision import _cv2 as cv2
@@ -90,7 +91,7 @@ class VideoProcessor:
         self.target_video_path = target_video_path
 
         self.model = RFDETRMedium(device=device)
-        self.tracker = sv.ByteTrack()
+        self.tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
 
         self.video_info = sv.VideoInfo.from_video_path(source_video_path)
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
@@ -169,7 +170,8 @@ class VideoProcessor:
         detections = detections[np.isin(detections.class_id, VEHICLE_CLASS_IDS)]
         detections = detections.with_nms(threshold=self.iou_threshold)
         detections.class_id = np.zeros(len(detections))
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         detections_in_zones = []
         detections_out_zones = []
@@ -193,7 +195,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """Traffic Flow Analysis with RF-DETR and ByteTrack.
+    """Traffic Flow Analysis with RF-DETR and ByteTrackTracker.
 
     Args:
         source_video_path: Path to the source video file

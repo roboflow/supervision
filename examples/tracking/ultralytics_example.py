@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 from ultralytics import YOLO
 
 import supervision as sv
@@ -11,7 +12,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """Video Processing with YOLO and ByteTrack.
+    """Video Processing with YOLO and ByteTrackTracker.
 
     Args:
         source_weights_path: Path to the source weights file
@@ -22,7 +23,7 @@ def main(
     """
     model = YOLO(source_weights_path)
 
-    tracker = sv.ByteTrack()
+    tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
@@ -34,7 +35,8 @@ def main(
                 frame, verbose=False, conf=confidence_threshold, iou=iou_threshold
             )[0]
             detections = sv.Detections.from_ultralytics(results)
-            detections = tracker.update_with_detections(detections)
+            detections = tracker.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             annotated_frame = box_annotator.annotate(
                 scene=frame.copy(), detections=detections
