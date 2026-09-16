@@ -10,7 +10,6 @@ import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.vlm import (
-    LMM,
     VLM,
     from_florence_2,
     from_google_gemini_2_0,
@@ -2041,7 +2040,3 @@ class TestFromKosmos2:
         """Malformed results and resolutions must fail loudly, not silently."""
         with exception:
             Detections.from_vlm(vlm=VLM.KOSMOS_2, result=result, **kwargs)
-
-    def test_kosmos_2_is_absent_from_the_deprecated_lmm_enum(self) -> None:
-        """Kosmos-2 is VLM-only; `LMM` is already past its removal version."""
-        assert "kosmos_2" not in LMM.list()
