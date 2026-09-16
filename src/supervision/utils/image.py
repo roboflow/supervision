@@ -419,9 +419,6 @@ def _overlay_image(
 ) -> npt.NDArray[np.uint8]:
     """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
-    Non-deprecated internal implementation backing the public `overlay_image`.
-    Kept separate so library-internal callers do not emit a deprecation warning.
-
     Args:
         image: Background BGR array of shape ``(H, W, 3)``. Modified in place
             and returned.
