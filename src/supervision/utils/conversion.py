@@ -4,7 +4,6 @@ from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image
 
 from supervision import _cv2 as cv2
@@ -39,17 +38,6 @@ def ensure_cv2_image_for_class_method(
         raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=ensure_cv2_image_for_class_method,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def ensure_cv2_image_for_annotation(
-    annotate_func: F,
-) -> F:
-    return cast(F, void(annotate_func))
 
 
 def ensure_cv2_image_for_standalone_function(
@@ -105,28 +93,6 @@ def ensure_pil_image_for_class_method(
         raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=ensure_pil_image_for_class_method,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def ensure_pil_image_for_annotation(
-    annotate_func: F,
-) -> F:
-    return cast(F, void(annotate_func))
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=ensure_cv2_image_for_standalone_function,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def ensure_cv2_image_for_processing(
-    image_processing_fun: F,
-) -> F:
-    return cast(F, void(image_processing_fun))
 
 
 def images_to_cv2(

@@ -1466,7 +1466,7 @@ class TestCropAnnotator:
         assert not np.array_equal(gradient_image, result)
 
     def test_annotate_emits_no_deprecation_warning(self, gradient_image):
-        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        """Internal overlay must not surface any deprecation warning."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         with warnings.catch_warnings(record=True) as caught:
@@ -1600,7 +1600,7 @@ class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
     def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
-        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        """Internal overlay must not surface any deprecation warning."""
         icon_path = str(tmp_path / "icon.png")
         icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
         cv2.imwrite(icon_path, icon)
