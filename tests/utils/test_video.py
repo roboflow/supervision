@@ -991,3 +991,41 @@ def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
     generator = get_video_frames_generator(dummy_video_path, start=2, end=5)
     frames = list(generator)
     assert len(frames) == 3
+
+
+@pytest.fixture
+def numbered_video_path(tmp_path):
+    """Write a 10-frame video whose frame `i` is filled with intensity `25 * i`."""
+    path = str(tmp_path / "numbered_video.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(path, fourcc, 25, (64, 48))
+    for frame_index in range(10):
+        out.write(np.full((48, 64, 3), 25 * frame_index, dtype=np.uint8))
+    out.release()
+    return path
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+@pytest.mark.parametrize(
+    ("start", "end", "stride", "expected_frame_indices"),
+    [
+        pytest.param(2, 5, 1, [2, 3, 4], id="range-longer-than-start"),
+        pytest.param(4, 6, 1, [4, 5], id="range-shorter-than-start"),
+        pytest.param(2, 8, 2, [2, 4, 6], id="with-stride"),
+    ],
+)
+def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
+    numbered_video_path, start, end, stride, iterative_seek, expected_frame_indices
+) -> None:
+    """Frames from `start` up to `end` are yielded whichever way `start` is sought."""
+    frames = get_video_frames_generator(
+        numbered_video_path,
+        stride=stride,
+        start=start,
+        end=end,
+        iterative_seek=iterative_seek,
+    )
+
+    frame_indices = [round(float(frame.mean()) / 25) for frame in frames]
+
+    assert frame_indices == expected_frame_indices
