@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import warnings
 from collections.abc import Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -154,11 +155,12 @@ def _parse_class_id(value: str) -> int:
     except ValueError:
         pass
     try:
-        class_id = float(value)
-    except ValueError:
-        class_id = float("nan")
-    # `is_integer` is False for nan and infinity as well as for fractions.
-    if not class_id.is_integer():
+        class_id = Decimal(value)
+    except InvalidOperation:
+        raise ValueError(
+            f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
+        ) from None
+    if not class_id.is_finite() or class_id != class_id.to_integral_value():
         raise ValueError(
             f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
         )

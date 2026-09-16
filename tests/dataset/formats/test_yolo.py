@@ -233,7 +233,17 @@ class TestYoloAnnotationsToDetectionsClassId:
         np.testing.assert_array_equal(result.class_id, np.array([2]))
         np.testing.assert_allclose(result.xyxy, [[40.0, 40.0, 60.0, 60.0]])
 
-    @pytest.mark.parametrize("class_token", ["2.5", "nan", "inf", "dog"])
+    @pytest.mark.parametrize(
+        "class_token",
+        [
+            "2.5",
+            "nan",
+            "inf",
+            "dog",
+            pytest.param("2.0000000000000001", id="binary-rounding"),
+            pytest.param("1e-400", id="binary-underflow"),
+        ],
+    )
     def test_rejects_class_id_that_is_not_a_whole_number(
         self, class_token: str
     ) -> None:
