@@ -16,59 +16,7 @@ from PIL import Image
 
 from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
-from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_resolution
-
-
-class LMM(Enum):
-    """Enum specifying supported Large Multimodal Models (LMMs).
-
-    !!! deprecated "Deprecated"
-
-        `LMM` is deprecated and will be removed in `supervision-0.31.0`.
-        Use `VLM` instead.
-
-    Attributes:
-        PALIGEMMA: Google's PaliGemma vision-language model.
-        FLORENCE_2: Microsoft's Florence-2 vision-language model.
-        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.\
-        QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
-        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
-        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
-        MOONDREAM: The Moondream vision-language model.
-    """
-
-    PALIGEMMA = "paligemma"
-    FLORENCE_2 = "florence_2"
-    QWEN_2_5_VL = "qwen_2_5_vl"
-    QWEN_3_VL = "qwen_3_vl"
-    DEEPSEEK_VL_2 = "deepseek_vl_2"
-    GOOGLE_GEMINI_2_0 = "gemini_2_0"
-    GOOGLE_GEMINI_2_5 = "gemini_2_5"
-    MOONDREAM = "moondream"
-
-    @classmethod
-    def list(cls) -> list[str]:
-        return [c.value for c in cls]
-
-    @classmethod
-    def from_value(cls, value: LMM | str) -> LMM:
-        warn_deprecated(
-            "`LMM` is deprecated since `supervision-0.27.0` and will be removed in "
-            "`supervision-0.31.0`. Use `VLM` instead."
-        )
-        if isinstance(value, cls):
-            return value
-        if isinstance(value, str):
-            value = value.lower()
-            try:
-                return cls(value)
-            except ValueError:
-                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
-        raise ValueError(
-            f"Invalid value type: {type(value)}. Must be an instance of "
-            f"{cls.__name__} or str."
-        )
 
 
 class VLM(Enum):

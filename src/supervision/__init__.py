@@ -113,7 +113,7 @@ from supervision.detection.utils.polygons import (
     filter_polygons_by_area,
 )
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
-from supervision.detection.vlm import LMM, VLM
+from supervision.detection.vlm import VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
@@ -163,7 +163,6 @@ from supervision.utils.video import (
 )
 
 __all__ = [
-    "LMM",
     "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
