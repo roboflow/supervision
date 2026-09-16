@@ -81,7 +81,6 @@ nav:
           - Inference Slicer: detection/tools/inference_slicer.md
           - Detection Smoother: detection/tools/smoother.md
           - Save Detections: detection/tools/save_detections.md
-      - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
       - Metrics:

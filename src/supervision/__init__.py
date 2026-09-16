@@ -1,5 +1,4 @@
 import importlib.metadata as importlib_metadata
-from typing import TYPE_CHECKING, Any
 
 try:
     # This will read version from pyproject.toml
@@ -164,9 +163,6 @@ from supervision.utils.video import (
     process_video,
 )
 
-if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.core import ByteTrack
-
 __all__ = [
     "LMM",
     "VLM",
@@ -175,7 +171,6 @@ __all__ = [
     "BlurAnnotator",
     "BoxAnnotator",
     "BoxCornerAnnotator",
-    "ByteTrack",
     "CSVSink",
     "CircleAnnotator",
     "ClassificationDataset",
@@ -307,13 +302,3 @@ __all__ = [
     "xyxy_to_xywh",
     "xyxyxyxy_to_xyxy",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    """Lazily resolve deprecated compatibility exports."""
-    if name == "ByteTrack":
-        from supervision.tracker.byte_tracker.core import ByteTrack as byte_track
-
-        globals()[name] = byte_track
-        return byte_track
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
