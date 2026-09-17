@@ -1462,6 +1462,34 @@ def test_coco_annotations_to_masks_handles_rle_polygon_and_invalid_dict() -> Non
     assert not masks[2].any()
 
 
+def test_coco_annotations_to_masks_rounds_decimal_polygon_vertices() -> None:
+    """Sub-pixel polygon vertices snap to the nearest pixel, as in the other loaders."""
+    image_annotations = [
+        {"id": 1, "segmentation": [[2.6, 2.6, 7.6, 2.6, 7.6, 7.6, 2.6, 7.6]]}
+    ]
+
+    masks = coco_annotations_to_masks(
+        image_annotations=image_annotations, resolution_wh=(12, 12)
+    )
+
+    expected_mask = np.zeros((12, 12), dtype=bool)
+    expected_mask[3:9, 3:9] = True
+    np.testing.assert_array_equal(masks[0], expected_mask)
+
+
+@pytest.mark.parametrize("vertex", [float("nan"), float("inf")])
+def test_coco_annotations_to_masks_rejects_non_finite_polygon_vertex(
+    vertex: float,
+) -> None:
+    """A polygon vertex that is not a finite number is rejected with a clear error."""
+    image_annotations = [{"id": 7, "segmentation": [[0, 0, 4, 0, vertex, 4, 0, 4]]}]
+
+    with pytest.raises(ValueError, match="id=7 has a vertex that is not a finite"):
+        coco_annotations_to_masks(
+            image_annotations=image_annotations, resolution_wh=(5, 5)
+        )
+
+
 @pytest.mark.parametrize(
     "file_name",
     [".", "", "subdir/.."],
