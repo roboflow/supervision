@@ -384,7 +384,7 @@ class InferenceSlicer:
                             has_source_image = True
                             d.metadata.pop("source_image", None)
 
-                    
+
                     merged = Detections.merge(detections_list=detections_list)
 
                     if has_source_image and isinstance(image, np.ndarray):
