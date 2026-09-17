@@ -235,6 +235,9 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
     """
     Read a json file and return a dict.
 
+    The file is decoded as UTF-8, the encoding JSON files are written in, whatever
+    the platform's default encoding is.
+
     Args:
         file_path: The file path as a string or Path object.
 
@@ -255,7 +258,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 
         ```
     """
-    with open(str(file_path)) as file:
+    with open(str(file_path), encoding="utf-8") as file:
         data = json.load(file)
     return data  # type: ignore
 
@@ -279,13 +282,15 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
     """
     Read a yaml file and return a dict.
 
+    The file is decoded as UTF-8, whatever the platform's default encoding is.
+
     Args:
         file_path: The file path as a string or Path object.
 
     Returns:
         A dict of content information
     """
-    with open(str(file_path)) as file:
+    with open(str(file_path), encoding="utf-8") as file:
         data = yaml.safe_load(file)
     return data  # type: ignore
 

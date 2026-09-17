@@ -1,6 +1,8 @@
 import os
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -10,7 +12,9 @@ from supervision.utils.file import (
     _download_to_file,
     _normalize_http_url,
     list_files_with_extensions,
+    read_json_file,
     read_txt_file,
+    read_yaml_file,
 )
 
 
@@ -216,3 +220,35 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 
     # then
     assert {p.name for p in result} == {"image.jpg"}
+
+
+@pytest.mark.parametrize(
+    ("read_file", "file_name", "content"),
+    [
+        pytest.param(
+            read_json_file,
+            "data.json",
+            '{"names": ["café", "고양이", "猫"]}',
+            id="json",
+        ),
+        pytest.param(
+            read_yaml_file,
+            "data.yaml",
+            "names:\n  - café\n  - 고양이\n  - 猫\n",
+            id="yaml",
+        ),
+    ],
+)
+def test_read_structured_file_decodes_utf8_text(
+    tmp_path: Path,
+    read_file: Callable[[Path], dict[str, Any]],
+    file_name: str,
+    content: str,
+) -> None:
+    """Non-ASCII text in a UTF-8 file reads back unchanged on every platform."""
+    file_path = tmp_path / file_name
+    file_path.write_bytes(content.encode("utf-8"))
+
+    data = read_file(file_path)
+
+    assert data == {"names": ["café", "고양이", "猫"]}
