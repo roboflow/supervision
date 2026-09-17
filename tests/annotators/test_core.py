@@ -1599,7 +1599,7 @@ class TestCropAnnotator:
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
-    def test_draws_grayscale_icon(self, tmp_path):
+    def test_draws_grayscale_icon(self, tmp_path) -> None:
         """A grayscale PNG icon without alpha is drawn as its gray pixels."""
         icon_path = tmp_path / "gray.png"
         Image.fromarray(np.full((16, 16), 200, dtype=np.uint8)).save(icon_path)
