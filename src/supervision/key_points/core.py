@@ -394,8 +394,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                class names, and per-keypoint confidences when supplied by the
-                source result. Two-value keypoints have `keypoint_confidence=None`.
+                class names, and confidences of each keypoint.
 
         Examples:
             ```python
