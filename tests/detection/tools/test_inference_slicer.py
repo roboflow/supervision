@@ -866,6 +866,7 @@ class TestInferenceSlicerOrdering:
         assert detections.class_id is not None
         assert detections.class_id.tolist() == list(range(slice_count))
 
+
 def test_inference_slicer_with_source_image_metadata() -> None:
     # Prepare dummy image and callback returning detections with source_image metadata
     image = np.zeros((1000, 1000, 3), dtype=np.uint8)
@@ -885,4 +886,3 @@ def test_inference_slicer_with_source_image_metadata() -> None:
 
     assert "source_image" in result.metadata
     assert np.array_equal(result.metadata["source_image"], image)
-    
