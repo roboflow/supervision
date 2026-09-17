@@ -2307,9 +2307,17 @@ class TraceAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
-        filtered_detections: Detections = detections[
-            detections.tracker_id != PENDING_TRACK_ID
-        ]  # type: ignore
+        is_confirmed = detections.tracker_id != PENDING_TRACK_ID
+        filtered_detections: Detections = detections[is_confirmed]  # type: ignore
+        # Validate before filtering so an invalid lookup cannot happen to match only
+        # the confirmed tracks. The matching lookup then drops pending-track entries.
+        if custom_color_lookup is not None:
+            if len(custom_color_lookup) != len(detections):
+                raise ValueError(
+                    f"Length of color lookup {len(custom_color_lookup)} "
+                    f"does not match length of detections {len(detections)}"
+                )
+            custom_color_lookup = custom_color_lookup[is_confirmed]
 
         self.trace.put(filtered_detections)
         for detection_idx in range(len(filtered_detections)):

@@ -42,7 +42,7 @@ from supervision.annotators.core import (
 from supervision.annotators.utils import ColorLookup
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
-from supervision.draw.color import Color
+from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
 
@@ -2068,3 +2068,57 @@ class TestTraceAnnotatorEmptyDetections:
         assert np.array_equal(
             annotator.trace.get(tracker_id=1), np.array([[92.5, 2.5]])
         )
+
+
+class TestTraceAnnotatorPendingTracks:
+    """Tests for TraceAnnotator on frames that carry pending (`-1`) tracks."""
+
+    def test_rejects_lookup_not_sized_to_original_detections(
+        self, test_image: np.ndarray
+    ) -> None:
+        """A lookup cannot become valid only after pending tracks are removed."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(
+            xyxy=[[0, 0, 10, 10], [40, 40, 60, 60]],
+            class_id=[0, 0],
+            tracker_id=[-1, 7],
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Length of color lookup 1 does not match length of detections 2",
+        ):
+            annotator.annotate(
+                scene=test_image.copy(),
+                detections=detections,
+                custom_color_lookup=np.array([1]),
+            )
+
+    def test_custom_color_lookup_stays_aligned_when_a_track_is_pending(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Each confirmed track takes its own entry of a per-detection lookup."""
+        palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+        annotator = TraceAnnotator(color=palette, thickness=1)
+        custom_color_lookup = np.array([1, 2])
+        annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[0, 0, 10, 10], [40, 40, 60, 60]],
+                class_id=[0, 0],
+                tracker_id=[-1, 7],
+            ),
+            custom_color_lookup=custom_color_lookup,
+        )
+
+        scene = annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[0, 0, 10, 10], [60, 40, 80, 60]],
+                class_id=[0, 0],
+                tracker_id=[-1, 7],
+            ),
+            custom_color_lookup=custom_color_lookup,
+        )
+
+        assert tuple(scene[50, 60]) == Color.BLUE.as_bgr()
