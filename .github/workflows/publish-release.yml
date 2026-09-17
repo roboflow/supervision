@@ -5,7 +5,7 @@ on:
     types: [published]
   workflow_dispatch:
   pull_request:
-    branches: [main, develop]
+    branches: ["main", "develop", "release/*"]
     paths:
       - ".github/workflows/build-package.yml"
       - ".github/workflows/publish-release.yml"

@@ -13,37 +13,11 @@ date_modified: 2026-09-17
 
 - `sv.DetectionDataset.from_coco` now rounds polygon vertices to the nearest pixel before rasterising masks, as `from_yolo`, `from_labelme` and `from_pascal_voc` already do. COCO polygons commonly hold sub-pixel float coordinates, but the loader cast them straight to integers, which truncates, so every polygon mask came out shifted up and to the left by up to a pixel. The same polygon therefore loaded one pixel apart depending on the format it was stored in: a square with corners at `2.6` and `7.6` covered pixels 2 to 7 from COCO but 3 to 8 from LabelMe, an IoU of 0.53 between the two masks. A vertex that is not a finite number is now rejected with a `ValueError` that names the annotation. Integer vertices and RLE masks load as before. [#2587](https://github.com/roboflow/supervision/pull/2587)
 
-- `sv.TraceAnnotator.annotate` no longer rejects a `custom_color_lookup` when some detections belong to pending tracks. The annotator skips detections whose `tracker_id` is `-1`, which trackers report for tracks that are not confirmed yet, but it resolved colors for the remaining detections against the full lookup, which still held an entry for every detection passed in. Any frame with a pending track therefore failed with `ValueError: Length of color lookup 3 does not match length of detections 2`, although the other annotators accept the same `detections` and lookup. The lookup now drops the pending tracks along with the detections, so each confirmed track keeps its own color. Frames without pending tracks, and calls without `custom_color_lookup`, are unchanged. [#2586](https://github.com/roboflow/supervision/pull/2586)
-
-- `sv.DetectionDataset.from_coco`, `from_labelme`, `from_createml` and `from_yolo` now read their JSON and YAML files as UTF-8 on Windows, and `sv.DetectionDataset.as_pascal_voc` writes its XML files as UTF-8 there. These files were opened with the platform's default encoding, which on Windows is a legacy code page such as cp1252, but JSON and YAML files are UTF-8 and the Pascal VOC XML declares no encoding, so readers take it as UTF-8. Any class name outside ASCII therefore broke on Windows: a COCO category or YOLO `data.yaml` name such as `café` loaded as `cafÃ©`, one such as `고양이` failed with `UnicodeDecodeError`, and `as_pascal_voc` either failed with `UnicodeEncodeError` or wrote a file that `from_pascal_voc` rejected with `ParseError: not well-formed (invalid token)`. Linux and macOS, where the default encoding is already UTF-8, are unchanged. [#2585](https://github.com/roboflow/supervision/pull/2585)
-
-- `sv.ClassificationDataset.as_folder_structure` now copies image files unchanged instead of decoding and re-encoding them. It read every image with `cv2.imread` and wrote it back with `cv2.imwrite`, so the export was not the images the dataset was loaded from: a PNG lost its alpha channel, a grayscale PNG became three-channel, a 16-bit PNG was cut to 8 bits, and every JPEG was compressed again, losing a little more quality on each export. Exporting into the folder the dataset was loaded from rewrote its own images the same way. The `sv.DetectionDataset` exports (`as_yolo`, `as_pascal_voc`, `as_coco`) already copy image files; the classification export now does too. Images held in memory are still encoded with `cv2.imwrite`. [#2584](https://github.com/roboflow/supervision/pull/2584)
-
-- `sv.get_video_frames_generator` now stops at `end` when `iterative_seek=True`. The iterative seek grabbed frames up to `start` by counting `start` itself down to zero, and the generator then measured `end` from that zero instead of from `start`. It therefore read on past `end` by `start` frames: `start=2, end=5` yielded frames 2 to 6 instead of 2 to 4, and `start=4, end=6` yielded frames 4 to 9. The seek now counts with a separate counter, so both seek modes yield the same frames. Calls without `iterative_seek`, and calls with `start=0`, are unchanged. [#2583](https://github.com/roboflow/supervision/pull/2583)
-
-- `sv.DetectionDataset.from_labelme` now finds images for LabelMe files saved on Windows when it runs on Linux or macOS. LabelMe writes `imagePath` relative to the JSON file with the separator of the system that saved it, so a file saved on Windows holds a value such as `..\images\a.jpg`. The loader keeps only the file name of `imagePath`, but took it with `Path(...).name`, which on Linux and macOS does not treat a backslash as a separator; the whole value became the file name, the dataset pointed at `images/..\images\a.jpg`, and reading the image failed with `ValueError: Could not read image from path`. The file name is now taken with either separator on every system, as LabelMe itself does when it reads its own files. Files that use forward slashes, and every file on Windows, load as before. [#2581](https://github.com/roboflow/supervision/pull/2581)
-
-- `sv.DetectionDataset.from_yolo` now loads label files whose class ids are written as decimals. The loader parsed the class column with `int()`, so a single line such as `1.0 0.5 0.5 0.2 0.4` aborted the whole load with `ValueError: invalid literal for int() with base 10: '1.0'`. Label files saved with `np.savetxt` are written this way, because its default format writes every column as a float (`1.000000000000000000e+00`), and Ultralytics reads the class column as a float, so such datasets train there without complaint. Class ids that are whole numbers now load in any notation; values that are fractional, not finite, or not numbers at all still raise a `ValueError`, which now names the offending class id. Integer class ids load as before. [#2580](https://github.com/roboflow/supervision/pull/2580)
-
-- `sv.DetectionDataset.from_yolo` and `sv.DetectionDataset.as_coco` now take image sizes from the image as it loads, after its EXIF orientation is applied. Photos from phones and cameras are often stored sideways with an EXIF orientation tag that says how to turn them upright. `cv2.imread`, which the dataset uses to load images, applies that tag, but both functions read the size from the file header with Pillow, which does not. For a quarter-turned photo, `from_yolo` therefore scaled normalized boxes and polygons by the swapped width and height, so they landed outside the loaded image and masks came out with a `(height, width)` that did not match it, and `as_coco` wrote the swapped `width` and `height` into `images`. The header read now swaps width and height for orientations 5 to 8. The OpenCV-free fallback backend's `imread` and `imdecode` also apply the orientation tag now, as OpenCV does for every read except `IMREAD_UNCHANGED`; before, the same file loaded with a different shape depending on whether `opencv-python` was installed. Images without an orientation tag load and export as before. [#2577](https://github.com/roboflow/supervision/pull/2577)
-
-- `sv.KeyPoints.from_inference` no longer fails, or shifts key points onto the wrong joints, when Inference leaves some key points out of a result. Inference drops every key point scored below the request's `keypoint_confidence`, and a model whose classes have different skeletons stops each object at its own class's key point count, so objects in one result can list different key points. The connector stacked those lists as they came: lists of different lengths raised `ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions`, and lists of the same length that were missing different key points loaded with later key points moved into earlier slots, so skeleton edges joined the wrong points. Each key point is now placed at the slot given by its `class_id`, which Inference sets to the key point's skeleton index; slots that were left out stay at `(0, 0)` with zero confidence, which the key point annotators and `KeyPoints.as_detections` already skip as missing. A result in which every key point was left out now loads with zero key points per object instead of failing validation. Results that list every key point load as before. [#2575](https://github.com/roboflow/supervision/pull/2575)
-
-- `sv.Detections.from_transformers` now loads Mask2Former and MaskFormer instance segmentation results produced with `post_process_instance_segmentation(return_binary_maps=True)`, the option Transformers recommends when instances can overlap. With it, `segmentation` is a `(num_instances, height, width)` stack of binary maps instead of a `(height, width)` map of segment ids, but the v5 instance path compared that stack against each segment's `id` as if it were an id map, producing a four-dimensional mask array that `mask_to_xyxy` rejected with `ValueError: too many values to unpack (expected 3)`. Each segment now takes the binary map at its `id`, which is the map's position in the stack, so overlapping instances keep their full masks. Results with a segment-id map load as before. [#2576](https://github.com/roboflow/supervision/pull/2576)
-
 - Added `MetricResult` abstract base class as a common parent for all metric result dataclasses, with `to_pandas()`, `plot()`, and `_get_plot_details()` abstract methods ([#2498](https://github.com/roboflow/supervision/pull/1731)).
 
 - Added `aggregate_metric_results()` to combine multiple metric results into a single `pd.DataFrame` for model comparison ([#2498](https://github.com/roboflow/supervision/pull/2498)).
 
 - Added `plot_aggregate_metric_results()` to visualize multiple metric results on a single grouped bar chart ([#2498](https://github.com/roboflow/supervision/pull/2498)).
-
-- `sv.DetectionDataset.from_pascal_voc` no longer fails on annotations whose coordinates are written as decimals. The loader parsed every `<bndbox>` and `<polygon>` value with `int()`, so one file carrying `<xmin>48.5</xmin>` — or even `<xmin>48.0</xmin>` — aborted the whole load with `ValueError: invalid literal for int() with base 10: '48.5'`. Exporters that keep sub-pixel boxes write VOC this way; Datumaro, which CVAT uses for its exports, is one of them. Box coordinates are now read as floats and keep their precision, and polygon vertices are rounded to the nearest pixel before rasterising, as the YOLO and LabelMe loaders already do. Integer coordinates load exactly as before, and values that are not finite numbers are still rejected. [#2568](https://github.com/roboflow/supervision/pull/2568)
-
-- `sv.Detections.from_transformers` no longer crashes on a Transformers v4 panoptic result that holds no segments. `post_process_panoptic` returns an empty `segments_info` whenever no query clears its `threshold` (or every kept segment is filtered out as too small), but the v4 panoptic path stacked the per-segment masks with `np.array([...])`, which turns an empty list into a 1-D `(0,)` array, and `mask_to_xyxy` then failed with `ValueError: not enough values to unpack (expected 3, got 1)`. The path now builds a `(0, H, W)` mask stack and an integer `class_id` for that case, as the v5 semantic, instance and panoptic paths already do, so such a frame yields empty `Detections`.
-
-- `sv.KeyPoints.from_ultralytics` no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value `kpt_shape` (`[K, 2]`, coordinates only) return key points of shape `(N, K, 2)`, and for those `Results.keypoints.conf` is `None`. The connector called `.cpu()` on it unconditionally, so every non-empty frame raised `AttributeError: 'NoneType' object has no attribute 'cpu'`. Such results now load with `keypoint_confidence=None`, the same as any other `sv.KeyPoints` without scores; models that do report visibility keep their confidences.
-
-- `sv.DetectionDataset.from_pascal_voc` no longer skips `.bmp`, `.tif`, `.tiff` and `.webp` images. The loader only listed `.jpg`, `.jpeg` and `.png` files, so every other image was left out of the dataset without a warning — even though `sv.DetectionDataset.from_yolo` and `sv.ClassificationDataset.from_folder_structure` load those formats, and `DetectionDataset.as_pascal_voc` writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as `sv.ClassificationDataset.from_folder_structure`.
 
 - `sv.match_detections` now exposes the metrics matcher as a public primitive: given two `sv.Detections`, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side ([#2476](https://github.com/roboflow/supervision/issues/2476)).
 
@@ -54,6 +28,36 @@ date_modified: 2026-09-17
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks ([#2504](https://github.com/roboflow/supervision/pull/2504)).
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The index array was built from an empty list, so NumPy defaulted it to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0` — `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype and the rest now match them. Results with at least one surviving detection are unchanged.
+
+### 0.30.4 <small>Sep 17, 2026</small>
+
+- `sv.DetectionDataset.from_coco` now rounds polygon vertices to the nearest pixel before rasterising masks, instead of truncating them to `int32`, as `from_yolo`/`from_labelme`/`from_pascal_voc` already do. Truncation shifted every mask up and to the left by up to a pixel — a polygon with corners at `2.6`/`7.6` covered pixels 2 to 7 from COCO but 3 to 8 from LabelMe, an IoU of 0.53 between the two masks. A non-finite vertex now raises `ValueError` naming the annotation id; integer vertices and RLE masks load as before. [#2587](https://github.com/roboflow/supervision/pull/2587)
+
+- `sv.TraceAnnotator.annotate` no longer raises `ValueError: Length of color lookup 3 does not match length of detections 2` when a `custom_color_lookup` is passed alongside pending (`tracker_id == -1`) tracks — the annotator skips those detections but still resolved colors against the full-length lookup, although the other annotators accept the same detections and lookup. The lookup is now filtered alongside the detections, so each confirmed track keeps its own color; frames without pending tracks, and calls without `custom_color_lookup`, are unchanged. [#2586](https://github.com/roboflow/supervision/pull/2586)
+
+- `sv.DetectionDataset.from_coco`/`from_labelme`/`from_createml`/`from_yolo` now read JSON/YAML as UTF-8, and `as_pascal_voc` writes XML as UTF-8, instead of the platform default (cp1252 on Windows). A COCO category or YOLO `data.yaml` name outside ASCII broke on Windows: `café` loaded as `cafÃ©`, `고양이` failed with `UnicodeDecodeError`, and `as_pascal_voc` either failed with `UnicodeEncodeError` or wrote a file `from_pascal_voc` rejected with `ParseError: not well-formed (invalid token)` — Linux/macOS, already UTF-8 by default, are unaffected. [#2585](https://github.com/roboflow/supervision/pull/2585)
+
+- `sv.ClassificationDataset.as_folder_structure` now copies source image files unchanged instead of round-tripping them through `cv2.imread`/`cv2.imwrite`, which dropped alpha channels, downcast 16-bit PNGs to 8-bit, and recompressed JPEGs on every export — matching `sv.DetectionDataset`'s exports (`as_yolo`/`as_pascal_voc`/`as_coco`), which already copied — exporting into the folder the dataset was loaded from previously rewrote its own images the same lossy way. Images held in memory are still encoded with `cv2.imwrite`. [#2584](https://github.com/roboflow/supervision/pull/2584)
+
+- `sv.get_video_frames_generator` no longer reads `start` frames past `end` when `iterative_seek=True` — it counted `start` down to zero, then measured `end` from that zero instead of from `start` (`start=2, end=5` yielded frames 2 to 6 instead of 2 to 4; `start=4, end=6` yielded frames 4 to 9 instead of 4 to 6). A separate counter now keeps both seek modes aligned; `start=0` and non-iterative calls are unchanged. [#2583](https://github.com/roboflow/supervision/pull/2583)
+
+- `sv.DetectionDataset.from_labelme` now finds images for LabelMe files saved on Windows when loading on Linux or macOS. `imagePath` is written with `\`, but the loader took only `Path(...).name`, which doesn't split on `\` on POSIX — the whole value became the filename and reading failed with `ValueError: Could not read image from path`. The filename is now taken with either separator on every system, as LabelMe itself does when reading its own files; forward-slash paths, and every file on Windows, are unchanged. [#2581](https://github.com/roboflow/supervision/pull/2581)
+
+- `sv.DetectionDataset.from_yolo` now loads label files whose class ids are written as decimals (e.g. `1.0 0.5 0.5 0.2 0.4`), which previously aborted the whole load with `ValueError: invalid literal for int()` — `np.savetxt` writes floats by default and Ultralytics tolerates them. Whole numbers load in any notation now; fractional, non-finite, or non-numeric ids still raise, naming the offending id. [#2580](https://github.com/roboflow/supervision/pull/2580)
+
+- `sv.DetectionDataset.from_yolo`/`as_coco` now size EXIF-oriented images the way `cv2.imread` loads them (swapping width/height for orientations 5 to 8), instead of reading the un-rotated file-header size via Pillow — quarter-turned photos previously scaled boxes/polygons by the swapped dimensions and produced mismatched mask shapes. The OpenCV-free fallback backend's `imread`/`imdecode` now apply EXIF orientation too, matching OpenCV's behavior for every read except `IMREAD_UNCHANGED` — previously the same file loaded with a different shape depending on whether `opencv-python` was installed. [#2577](https://github.com/roboflow/supervision/pull/2577)
+
+- `sv.Detections.from_transformers` now loads Transformers v5 `return_binary_maps=True` instance results (a `(num_instances, H, W)` stack), which the v5 path previously compared against each segment's `id` as if it were an id-map, producing a 4-D array that `mask_to_xyxy` rejected with `ValueError: too many values to unpack (expected 3)`. Each segment now indexes the stack at its own `id`, keeping full masks for overlapping instances; segment-id-map results are unchanged. [#2576](https://github.com/roboflow/supervision/pull/2576)
+
+- `sv.KeyPoints.from_inference` now places each key point at the slot given by its `class_id` (skeleton index) instead of appending in received order — Inference drops key points below `keypoint_confidence` and multi-skeleton models report different counts per object, so stacking as-received either raised `ValueError: ... inhomogeneous shape` or silently slid later key points into earlier slots, joining the wrong joints. Omitted slots now stay `(0, 0)` at zero confidence, already skipped by the key point annotators and `as_detections`; a result with every key point omitted now loads with zero key points instead of failing validation. [#2575](https://github.com/roboflow/supervision/pull/2575)
+
+- `sv.DetectionDataset.from_pascal_voc` no longer fails on annotations with decimal coordinates (e.g. `<xmin>48.5</xmin>`), which aborted the whole load with `ValueError: invalid literal for int()` — Datumaro, which CVAT uses for its exports, writes VOC this way. Box coordinates are now read as floats and keep their precision; polygon vertices are rounded after the 1-index offset, as the YOLO and LabelMe loaders already do; non-finite values are still rejected. [#2568](https://github.com/roboflow/supervision/pull/2568)
+
+- `sv.Detections.from_transformers` no longer crashes on a Transformers v4 panoptic result with no segments — `post_process_panoptic`'s empty `segments_info` produced a `(0,)` mask array instead of `(0, H, W)`, and `mask_to_xyxy` raised `ValueError: not enough values to unpack (expected 3, got 1)`. The path now builds a `(0, H, W)` mask stack and an integer `class_id`, matching the v5 paths, and yields empty `Detections`. [#2571](https://github.com/roboflow/supervision/pull/2571)
+
+- `sv.KeyPoints.from_ultralytics` no longer crashes on pose models whose key points carry no visibility score (`kpt_shape=[K,2]`, where `Results.keypoints.conf` is `None`) — the connector called `.cpu()` on it unconditionally, raising `AttributeError: 'NoneType' object has no attribute 'cpu'` on every non-empty frame. Such results now load with `keypoint_confidence=None`; models that do report visibility are unaffected. [#2570](https://github.com/roboflow/supervision/pull/2570)
+
+- `sv.DetectionDataset.from_pascal_voc` no longer skips `.bmp`, `.tif`, `.tiff`, and `.webp` images without a warning — the loader only listed `.jpg`/`.jpeg`/`.png`, even though `from_yolo`/`from_folder_structure` load those formats and `as_pascal_voc` writes annotations for them, so a dataset exported to Pascal VOC and read back came back smaller than it went out. It now accepts the same extensions as `sv.ClassificationDataset.from_folder_structure`. [#2569](https://github.com/roboflow/supervision/pull/2569)
 
 ### 0.30.3 <small>Sep 14, 2026</small>
 
@@ -444,7 +448,7 @@ date_modified: 2026-09-17
 
 ### 0.27.0 <small>Nov 16, 2025</small>
 
-- Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.
+- Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold, for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.
 
 - Added [#2006](https://github.com/roboflow/supervision/pull/2006): [`sv.xyxy_to_mask`](https://supervision.roboflow.com/0.27.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_mask) to convert bounding boxes into 2D boolean masks, where each mask corresponds to a single box.
 
@@ -464,15 +468,15 @@ date_modified: 2026-09-17
 
 - Changed [#2015](https://github.com/roboflow/supervision/pull/2015): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections.from_vlm) now parses Qwen 2.5 VL outputs more robustly and handles incomplete or truncated JSON responses.
 
-- Changed [#2014](https://github.com/roboflow/supervision/pull/2014): [`sv.InferenceSlicer`](https://supervision.roboflow.com/0.27.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now uses a new offset generation logic that removes redundant tiles and aligns borders cleanly. This reduces the number of processed tiles and shortens inference time without hurting detection quality.
+- Changed [#2014](https://github.com/roboflow/supervision/pull/2014): [`sv.InferenceSlicer`](https://supervision.roboflow.com/0.27.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now uses a new offset generation logic that removes redundant tiles and aligns borders cleanly, shortening inference time without hurting detection quality.
 
 - Changed [#2016](https://github.com/roboflow/supervision/pull/2016): [`sv.Detections`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections) now includes a `box_aspect_ratio` property for vectorized aspect ratio computation, useful for filtering detections based on box shape.
 
-- Changed [#2001](https://github.com/roboflow/supervision/pull/2001): Significantly improved the performance of [`sv.box_iou_batch`](https://supervision.roboflow.com/0.27.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch). On internal benchmarks, processing runs approximately 2x to 5x faster.
+- Changed [#2001](https://github.com/roboflow/supervision/pull/2001): Improved the performance of [`sv.box_iou_batch`](https://supervision.roboflow.com/0.27.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch), approximately 2x to 5x faster on internal benchmarks.
 
-- Changed [#1997](https://github.com/roboflow/supervision/pull/1997): [`sv.process_video`](https://supervision.roboflow.com/0.27.0/utils/video/#supervision.utils.video.process_video) now uses a threaded reader, processor, and writer pipeline. This removes I/O stalls and improves throughput while keeping the callback single threaded and safe for stateful models.
+- Changed [#1997](https://github.com/roboflow/supervision/pull/1997): [`sv.process_video`](https://supervision.roboflow.com/0.27.0/utils/video/#supervision.utils.video.process_video) now uses a threaded reader, processor, and writer pipeline, removing I/O stalls and improving throughput while keeping the callback single threaded and safe for stateful models.
 
-- Changed: [`sv.denormalize_boxes`](https://supervision.roboflow.com/0.27.0/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) now supports batch conversion of bounding boxes. The function accepts arrays of shape `(N, 4)` and returns a batch of absolute pixel coordinates.
+- Changed: [`sv.denormalize_boxes`](https://supervision.roboflow.com/0.27.0/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) now accepts arrays of shape `(N, 4)` and returns a batch of absolute pixel coordinates.
 
 - Changed [#1917](https://github.com/roboflow/supervision/pull/1917): [`sv.LabelAnnotator`](https://supervision.roboflow.com/0.27.0/detection/annotators/#supervision.annotators.core.LabelAnnotator) and [`sv.RichLabelAnnotator`](https://supervision.roboflow.com/0.27.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator) now accept `text_offset=(x, y)` to shift the label relative to `text_position`. Works with smart label position and line wrapping.
 
@@ -675,9 +679,9 @@ date_modified: 2026-09-17
     # array([0, 1])
     ````
 
-- Changed [#1786](https://github.com/roboflow/supervision/pull/1786): Significantly improved the speed of HSV color mapping in [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator), achieving approximately 28x faster performance on 1920x1080 frames.
+- Changed [#1786](https://github.com/roboflow/supervision/pull/1786): Improved the speed of HSV color mapping in [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator), approximately 28x faster on 1920x1080 frames.
 
-- Fixed [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision’s [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) is now fully aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, ensuring accurate and standardized metrics. This update enabled us to launch a new version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
+- Fixed [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision’s [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) is now fully aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool. This update enabled us to launch a new version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
 
     ```python
     import supervision as sv
@@ -703,9 +707,9 @@ date_modified: 2026-09-17
 
 - No removals or deprecations in this release!
 
-- Essential update to the [`LineZone`](https://supervision.roboflow.com/0.25.0/detection/tools/line_zone/): when computing line crossings, detections that jitter might be counted twice (or more). This can now be solved with the `minimum_crossing_threshold` argument. If you set it to `2` or more, extra frames will be used to confirm the crossing, improving the accuracy significantly. ([#1540](https://github.com/roboflow/supervision/pull/1540))
+- Added `minimum_crossing_threshold` to [`LineZone`](https://supervision.roboflow.com/0.25.0/detection/tools/line_zone/) to stop jittering detections from being counted twice or more at a crossing. Setting it to `2` or more requires extra confirmation frames, significantly improving accuracy. ([#1540](https://github.com/roboflow/supervision/pull/1540))
 
-- It is now possible to track objects detected as [`KeyPoints`](https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints). See the complete step-by-step guide in the [Object Tracking Guide](https://supervision.roboflow.com/latest/how_to/track_objects/#keypoints). ([#1658](https://github.com/roboflow/supervision/pull/1658))
+- Objects detected as [`KeyPoints`](https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints) can now be tracked; see the step-by-step guide in the [Object Tracking Guide](https://supervision.roboflow.com/latest/how_to/track_objects/#keypoints). ([#1658](https://github.com/roboflow/supervision/pull/1658))
 
     ```python
     import numpy as np
@@ -745,7 +749,7 @@ date_modified: 2026-09-17
     path_to_video = download_assets(VideoAssets.SKIING)
     ```
 
-- Supervision can now be used with [`Python 3.13`](https://docs.python.org/3/whatsnew/3.13.html). The most renowned update is the ability to run Python [without Global Interpreter Lock (GIL)](https://docs.python.org/3/whatsnew/3.13.html#whatsnew313-free-threaded-cpython). We expect support for this among our dependencies to be inconsistent, but if you do attempt it - let us know the results! ([#1595](https://github.com/roboflow/supervision/pull/1595))
+- Supervision can now be used with [`Python 3.13`](https://docs.python.org/3/whatsnew/3.13.html), most notably its ability to run [without the Global Interpreter Lock (GIL)](https://docs.python.org/3/whatsnew/3.13.html#whatsnew313-free-threaded-cpython). Dependency support for this is expected to be inconsistent, but if you try it, let us know the results! ([#1595](https://github.com/roboflow/supervision/pull/1595))
 
 - Added [`Mean Average Recall`](https://supervision.roboflow.com/latest/metrics/mean_average_recall/) mAR metric, which returns a recall score, averaged over IoU thresholds, detected object classes, and limits imposed on maximum considered detections. ([#1661](https://github.com/roboflow/supervision/pull/1661))
 
@@ -790,7 +794,7 @@ date_modified: 2026-09-17
     f1_result = f1_metric.update(predictions, targets).compute()
     ```
 
-- Introducing Smart Labels! When `smart_position` is set for [`LabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.LabelAnnotator), [`RichLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator) or [`VertexLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator), the labels will move around to avoid overlapping others. ([#1625](https://github.com/roboflow/supervision/pull/1625))
+- Added Smart Labels: when `smart_position` is set for [`LabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.LabelAnnotator), [`RichLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator) or [`VertexLabelAnnotator`](https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator), labels move to avoid overlapping others. ([#1625](https://github.com/roboflow/supervision/pull/1625))
 
     ```python
     import supervision as sv
@@ -808,7 +812,7 @@ date_modified: 2026-09-17
     sv.plot_image(annotated_frame)
     ```
 
-- Added the `metadata` variable to [`Detections`](https://supervision.roboflow.com/0.25.0/detection/core/#supervision.detection.core.Detections). It allows you to store custom data per-image, rather than per-detected-object as was possible with `data` variable. For example, `metadata` could be used to store the source video path, camera model or camera parameters. ([#1589](https://github.com/roboflow/supervision/pull/1589))
+- Added the `metadata` variable to [`Detections`](https://supervision.roboflow.com/0.25.0/detection/core/#supervision.detection.core.Detections), storing custom data per-image rather than per-detected-object as `data` does, for example the source video path, camera model, or camera parameters. ([#1589](https://github.com/roboflow/supervision/pull/1589))
 
     ```python
     import supervision as sv
@@ -827,7 +831,7 @@ date_modified: 2026-09-17
     detections.metadata["camera_model"] = "Luxonis OAK-D"
     ```
 
-- Added a `py.typed` type hints metafile. It should provide a stronger signal to type annotators and IDEs that type support is available. ([#1586](https://github.com/roboflow/supervision/pull/1586))
+- Added a `py.typed` type hints metafile, signaling to type annotators and IDEs that type support is available. ([#1586](https://github.com/roboflow/supervision/pull/1586))
 
 - `ByteTrack` no longer requires `detections` to have a `class_id` ([#1637](https://github.com/roboflow/supervision/pull/1637))
 
@@ -841,7 +845,7 @@ date_modified: 2026-09-17
 
 - Small improvements to error handling in polygons: ([#1602](https://github.com/roboflow/supervision/pull/1602))
 
-- Updated [`ByteTrack`](https://supervision.roboflow.com/0.25.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack), removing shared variables. Previously, multiple instances of `ByteTrack` would share some date, requiring liberal use of `tracker.reset()`. ([#1603](https://github.com/roboflow/supervision/pull/1603)), ([#1528](https://github.com/roboflow/supervision/pull/1528))
+- Updated [`ByteTrack`](https://supervision.roboflow.com/0.25.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) to remove shared variables between instances, previously requiring liberal use of `tracker.reset()`. ([#1603](https://github.com/roboflow/supervision/pull/1603)), ([#1528](https://github.com/roboflow/supervision/pull/1528))
 
 - Fixed a bug where `class_agnostic` setting in `MeanAveragePrecision` would not work. ([#1577](https://github.com/roboflow/supervision/pull/1577)) hacktoberfest
 
@@ -868,11 +872,11 @@ date_modified: 2026-09-17
     print(f1_result.small_objects.f1_50)
     ```
 
-- Added new cookbook: [Small Object Detection with SAHI](https://supervision.roboflow.com/0.24.0/notebooks/small-object-detection-with-sahi/). This cookbook provides a detailed guide on using [`InferenceSlicer`](https://supervision.roboflow.com/0.24.0/detection/tools/inference_slicer/) for small object detection. [#1483](https://github.com/roboflow/supervision/pull/1483)
+- Added new cookbook: [Small Object Detection with SAHI](https://supervision.roboflow.com/0.24.0/notebooks/small-object-detection-with-sahi/), a guide to using [`InferenceSlicer`](https://supervision.roboflow.com/0.24.0/detection/tools/inference_slicer/) for small object detection. [#1483](https://github.com/roboflow/supervision/pull/1483)
 
 - Added an [Embedded Workflow](https://roboflow.com/workflows), which allows you to [preview annotators](https://supervision.roboflow.com/0.24.0/detection/annotators/). [#1533](https://github.com/roboflow/supervision/pull/1533)
 
-- Enhanced [`LineZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator), allowing the labels to align with the line, even when it's not horizontal. Also, you can now disable text background, and choose to draw labels off-center which minimizes overlaps for multiple [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) labels. [#854](https://github.com/roboflow/supervision/pull/854)
+- Enhanced [`LineZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator): labels now align with the line even when it's not horizontal. You can also disable the text background and draw labels off-center to minimize overlap for multiple [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) labels. [#854](https://github.com/roboflow/supervision/pull/854)
 
     ```python
     import supervision as sv
@@ -892,7 +896,7 @@ date_modified: 2026-09-17
     sv.plot_image(frame)
     ```
 
-- Added per-class counting capabilities to [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) and introduced [`LineZoneAnnotatorMulticlass`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass) for visualizing the counts per class. This feature allows tracking of individual classes crossing a line, enhancing the flexibility of use cases like traffic monitoring or crowd analysis. [#1555](https://github.com/roboflow/supervision/pull/1555)
+- Added per-class counting to [`LineZone`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone) and introduced [`LineZoneAnnotatorMulticlass`](https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass) to visualize per-class counts — tracks individual classes crossing a line, useful for traffic monitoring or crowd analysis. [#1555](https://github.com/roboflow/supervision/pull/1555)
 
     ```python
     import supervision as sv
@@ -908,7 +912,7 @@ date_modified: 2026-09-17
     sv.plot_image(frame)
     ```
 
-- Added [`from_easyocr`](https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr), allowing integration of OCR results into the supervision framework. [EasyOCR](https://github.com/JaidedAI/EasyOCR) is an open-source optical character recognition (OCR) library that can read text from images. [#1515](https://github.com/roboflow/supervision/pull/1515)
+- Added [`from_easyocr`](https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr), integrating results from [EasyOCR](https://github.com/JaidedAI/EasyOCR), an open-source OCR library, into the supervision framework. [#1515](https://github.com/roboflow/supervision/pull/1515)
 
     ```python
     import supervision as sv
@@ -931,7 +935,7 @@ date_modified: 2026-09-17
     sv.plot_image(annotated_image)
     ```
 
-- Added [`oriented_box_iou_batch`](https://supervision.roboflow.com/0.24.0/detection/utils/#supervision.detection.utils.oriented_box_iou_batch) function to `detection.utils`. This function computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). [#1502](https://github.com/roboflow/supervision/pull/1502)
+- Added [`oriented_box_iou_batch`](https://supervision.roboflow.com/0.24.0/detection/utils/#supervision.detection.utils.oriented_box_iou_batch) to `detection.utils` — computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). [#1502](https://github.com/roboflow/supervision/pull/1502)
 
     ```python
     import numpy as np
@@ -942,7 +946,7 @@ date_modified: 2026-09-17
     print("IoU between true and detected boxes:", ious)
     ```
 
-- Extended [`PolygonZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator) to allow setting opacity when drawing zones, providing enhanced visualization by filling the zone with adjustable transparency. [#1527](https://github.com/roboflow/supervision/pull/1527)
+- Extended [`PolygonZoneAnnotator`](https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator) with an opacity option for zone fill (adjustable transparency). [#1527](https://github.com/roboflow/supervision/pull/1527)
 
     ```python
     import cv2
@@ -972,11 +976,11 @@ date_modified: 2026-09-17
 
 - Supervision now depends on `opencv-python` rather than `opencv-python-headless`. [#1530](https://github.com/roboflow/supervision/pull/1530)
 
-- Fixed the COCO 101 point Average Precision algorithm to correctly interpolate precision, providing a more precise calculation of average precision without averaging out intermediate values. [#1500](https://github.com/roboflow/supervision/pull/1500)
+- Fixed the COCO 101-point Average Precision algorithm to correctly interpolate precision, avoiding averaged-out intermediate values. [#1500](https://github.com/roboflow/supervision/pull/1500)
 
 ### 0.23.0 <small>Aug 28, 2024</small>
 
-- Added [#930](https://github.com/roboflow/supervision/pull/930): `IconAnnotator`, a [new annotator](https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator) that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.
+- Added [#930](https://github.com/roboflow/supervision/pull/930): `IconAnnotator`, a [new annotator](https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator) that draws an icon on each detection — useful for per-class icons.
 
     ```python
     import supervision as sv
@@ -1071,7 +1075,7 @@ date_modified: 2026-09-17
 
 - Fixed [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
 
-- Fixed [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
+- Fixed [#1348](https://github.com/roboflow/supervision/pull/1348): Added a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), for cases where traditional seeking fails. Enable with `iterative_seek=True`.
 
     ```python
     import supervision as sv
@@ -1138,15 +1142,15 @@ date_modified: 2026-09-17
         pass
     ```
 
-- Added [#1296](https://github.com/roboflow/supervision/pull/1296): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm) now supports parsing results from the [Florence 2](https://huggingface.co/microsoft/Florence-2-large) model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our [Colab notebook](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb).
+- Added [#1296](https://github.com/roboflow/supervision/pull/1296): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm) now supports parsing results from the [Florence 2](https://huggingface.co/microsoft/Florence-2-large) model, a Large Multimodal Model (LMM) — includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our [Colab notebook](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb).
 
-- Added [#1232](https://github.com/roboflow/supervision/pull/1232) to support keypoint detection with Mediapipe. Both [legacy](https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb) and [modern](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python) pipelines are supported. See [`sv.KeyPoints.from_mediapipe`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe) for more.
+- Added [#1232](https://github.com/roboflow/supervision/pull/1232): keypoint detection support with Mediapipe — both [legacy](https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb) and [modern](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python) pipelines. See [`sv.KeyPoints.from_mediapipe`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe) for more.
 
-- Added [#1316](https://github.com/roboflow/supervision/pull/1316): [`sv.KeyPoints.from_mediapipe`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe) extended to support FaceMesh from Mediapipe. This enhancement allows for processing both face landmarks from `FaceLandmarker`, and legacy results from `FaceMesh`.
+- Added [#1316](https://github.com/roboflow/supervision/pull/1316): [`sv.KeyPoints.from_mediapipe`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe) extended to support FaceMesh — processes face landmarks from both `FaceLandmarker` and legacy `FaceMesh`.
 
-- Added [#1310](https://github.com/roboflow/supervision/pull/1310): [`sv.KeyPoints.from_detectron2`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2) is a new `KeyPoints` method, adding support for extracting keypoints from the popular [Detectron 2](https://github.com/facebookresearch/detectron2) platform.
+- Added [#1310](https://github.com/roboflow/supervision/pull/1310): [`sv.KeyPoints.from_detectron2`](https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2), a new `KeyPoints` method for extracting keypoints from the popular [Detectron 2](https://github.com/facebookresearch/detectron2) platform.
 
-- Added [#1300](https://github.com/roboflow/supervision/pull/1300): [`sv.Detections.from_detectron2`](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_detectron2) now supports segmentation models detectron2. The resulting masks can be used with [`sv.MaskAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.MaskAnnotator) for displaying annotations.
+- Added [#1300](https://github.com/roboflow/supervision/pull/1300): [`sv.Detections.from_detectron2`](https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_detectron2) now supports Detectron2 segmentation models — resulting masks work with [`sv.MaskAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.MaskAnnotator).
 
     ```python
     import supervision as sv
@@ -1174,7 +1178,7 @@ date_modified: 2026-09-17
 
 - Added [#1277](https://github.com/roboflow/supervision/pull/1277): if you provide a font that supports symbols of a language, [`sv.RichLabelAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator.annotate) will draw them on your images.
 
-    - Various other annotators have been revised to ensure proper in-place functionality when used with `numpy` arrays. Additionally, we fixed a bug where `sv.ColorAnnotator` was filling boxes with solid color when used in-place.
+    - Various annotators revised for correct in-place behavior with `numpy` arrays; fixed a bug where `sv.ColorAnnotator` filled boxes with solid color when used in-place.
 
         ```python
         import cv2
@@ -1193,7 +1197,7 @@ date_modified: 2026-09-17
         )
         ```
 
-- Added [#1227](https://github.com/roboflow/supervision/pull/1227): Added support for loading Oriented Bounding Boxes dataset in YOLO format.
+- Added [#1227](https://github.com/roboflow/supervision/pull/1227): support for loading Oriented Bounding Box datasets in YOLO format.
 
     ```python
     import supervision as sv
@@ -1211,7 +1215,7 @@ date_modified: 2026-09-17
     annotated_image = obb_annotator.annotate(scene=image.copy(), detections=detections)
     ```
 
-- Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): Fixed [`CropAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
+- Fixed [#1312](https://github.com/roboflow/supervision/pull/1312): [`CropAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate).
 
 !!! failure "Removed"
 
@@ -1223,7 +1227,7 @@ date_modified: 2026-09-17
 
 - Added [#975](https://github.com/roboflow/supervision/pull/975) 📝 New Cookbooks: serialize detections into [json](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb) and [csv](https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb).
 
-- Added [#1290](https://github.com/roboflow/supervision/pull/1290): Mostly an internal change, our file utility function now support both `str` and `pathlib` paths.
+- Added [#1290](https://github.com/roboflow/supervision/pull/1290): internal change — file utility functions now support both `str` and `pathlib` paths.
 
 - Added [#1340](https://github.com/roboflow/supervision/pull/1340): Two new methods for converting between bounding box formats - [`xywh_to_xyxy`](https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xywh_to_xyxy) and [`xcycwh_to_xyxy`](https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy)
 
@@ -1263,7 +1267,7 @@ date_modified: 2026-09-17
 
 - Added [#500](https://github.com/roboflow/supervision/pull/500): [`sv.Detections.with_nmm`](https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.with_nmm) to perform non-maximum merging on the current set of object detections.
 
-- Added [#1221](https://github.com/roboflow/supervision/pull/1221): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.from_lmm) allowing to parse Large Multimodal Model (LMM) text result into [`sv.Detections`](https://supervision.roboflow.com/0.21.0/detection/core/) object. For now `from_lmm` supports only [PaliGemma](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb) result parsing.
+- Added [#1221](https://github.com/roboflow/supervision/pull/1221): [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.from_lmm) to parse Large Multimodal Model (LMM) text results into [`sv.Detections`](https://supervision.roboflow.com/0.21.0/detection/core/). Currently supports only [PaliGemma](https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb) result parsing.
 
     ```python
     import supervision as sv
@@ -1354,9 +1358,9 @@ date_modified: 2026-09-17
     annotated_image = edge_annotators.annotate(image.copy(), keypoints)
     ```
 
-- Changed [#1037](https://github.com/roboflow/supervision/pull/1037): [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) by adding an additional `corner_radius` argument that allows for rounding the corners of the bounding box.
+- Changed [#1037](https://github.com/roboflow/supervision/pull/1037): [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) by adding a `corner_radius` argument to round the corners of the bounding box.
 
-- Changed [#1109](https://github.com/roboflow/supervision/pull/1109): [`sv.PolygonZone`](https://supervision.roboflow.com/0.20.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) such that the `frame_resolution_wh` argument is no longer required to initialize `sv.PolygonZone`.
+- Changed [#1109](https://github.com/roboflow/supervision/pull/1109): [`sv.PolygonZone`](https://supervision.roboflow.com/0.20.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone) so the `frame_resolution_wh` argument is no longer required to initialize it.
 
 !!! failure "Deprecated"
 
@@ -1395,7 +1399,7 @@ date_modified: 2026-09-17
     annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections)
     ```
 
-- Fixed [#787](https://github.com/roboflow/supervision/pull/787): [`sv.ByteTrack.update_with_detections`](https://supervision.roboflow.com/0.20.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections) which was removing segmentation masks while tracking. Now, `ByteTrack` can be used alongside segmentation models.
+- Fixed [#787](https://github.com/roboflow/supervision/pull/787): [`sv.ByteTrack.update_with_detections`](https://supervision.roboflow.com/0.20.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections) which removed segmentation masks while tracking; `ByteTrack` now works alongside segmentation models.
 
 ### 0.19.0 <small>March 15, 2024</small>
 
@@ -1470,7 +1474,7 @@ date_modified: 2026-09-17
 
     The `triggering_position ` parameter in `sv.PolygonZone` is deprecated and will be removed in `supervision-0.23.0`. Use `triggering_anchors` instead.
 
-- Changed [#875](https://github.com/roboflow/supervision/pull/875): annotators adding support for Pillow images. All supervision Annotators can now accept an image as either a numpy array or a Pillow Image. They automatically detect its type, draw annotations, and return the output in the same format as the input.
+- Changed [#875](https://github.com/roboflow/supervision/pull/875): annotators adding support for Pillow images — all supervision Annotators now accept an image as either a numpy array or a Pillow Image, auto-detect its type, and return the output in the same format as the input.
 
 - Fixed [#944](https://github.com/roboflow/supervision/pull/944): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/0.19.0/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) removing `tracking_id` from `sv.Detections`.
 
@@ -1524,9 +1528,9 @@ date_modified: 2026-09-17
 
 - Changed [#770](https://github.com/roboflow/supervision/pull/770): [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/0.18.0/detection/core/#supervision.detection.core.Detections.from_ultralytics) adding support for OBB (Oriented Bounding Boxes).
 
-- Changed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone) to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as `sv.Position.BOTTOM_CENTER`, or any other combination of anchors defined as `List[sv.Position]`.
+- Changed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone) to now accept a list of specific box anchors that must cross the line for a detection to be counted — a single anchor such as `sv.Position.BOTTOM_CENTER`, or any combination defined as `List[sv.Position]`, instead of requiring all four box corners.
 
-- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/0.18.0/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/0.18.0/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a more intuitive and conventional property-based method (`sv.Color.RED`).
+- Changed [#756](https://github.com/roboflow/supervision/pull/756): [`sv.Color`](https://supervision.roboflow.com/0.18.0/draw/color/#color)'s and [`sv.ColorPalette`](https://supervision.roboflow.com/0.18.0/draw/color/#colorpalette)'s method of accessing predefined colors, transitioning from a function-based approach (`sv.Color.red()`) to a property-based method (`sv.Color.RED`).
 
 !!! failure "Deprecated"
 
@@ -1540,7 +1544,7 @@ date_modified: 2026-09-17
 
     `Detections.from_roboflow()` is deprecated and will be removed in `supervision-0.22.0`. Use `Detections.from_inference` instead.
 
-- Fixed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone) functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.
+- Fixed [#735](https://github.com/roboflow/supervision/pull/735): [`sv.LineZone`](https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone) functionality to accurately update the counter when an object crosses a line from any direction, including from the side — enabling more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.
 
 ### 0.17.0 <small>December 06, 2023</small>
 
@@ -1619,7 +1623,7 @@ date_modified: 2026-09-17
 
 - Added [#454](https://github.com/roboflow/supervision/pull/454): 🤗 Hugging Face Annotators [space](https://huggingface.co/spaces/Roboflow/Annotators).
 
-- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.trigger`](https://supervision.roboflow.com/0.16.0/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now return `Tuple[np.ndarray, np.ndarray]`. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.
+- Changed [#482](https://github.com/roboflow/supervision/pull/482): [`sv.LineZone.trigger`](https://supervision.roboflow.com/0.16.0/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger) now returns `Tuple[np.ndarray, np.ndarray]` — the first array indicates detections that crossed the line from outside to inside, the second from inside to outside.
 
 - Changed [#465](https://github.com/roboflow/supervision/pull/465): Annotator argument name from `color_map: str` to `color_lookup: ColorLookup` enum to increase type safety.
 
@@ -1845,17 +1849,17 @@ date_modified: 2026-09-17
     cs.as_folder_structure(root_directory_path="...")
     ```
 
-- Added [#125](https://github.com/roboflow/supervision/pull/125): support for [`sv.ClassificationDataset.split`](https://supervision.roboflow.com/0.10.0/dataset/core/#supervision.dataset.core.ClassificationDataset.split) allowing to divide `sv.ClassificationDataset` into two parts.
+- Added [#125](https://github.com/roboflow/supervision/pull/125): support for [`sv.ClassificationDataset.split`](https://supervision.roboflow.com/0.10.0/dataset/core/#supervision.dataset.core.ClassificationDataset.split), dividing `sv.ClassificationDataset` into two parts.
 
 - Added [#110](https://github.com/roboflow/supervision/pull/110): ability to extract masks from Roboflow API results using [`sv.Detections.from_roboflow`](https://supervision.roboflow.com/0.10.0/detection/core/#supervision.detection.core.Detections.from_roboflow).
 
-- Added [commit hash](https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6): Supervision Quickstart [notebook](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) where you can learn more about Detection, Dataset and Video APIs.
+- Added [commit hash](https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6): Supervision Quickstart [notebook](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb) covering Detection, Dataset and Video APIs.
 
 - Changed [#135](https://github.com/roboflow/supervision/pull/135): `sv.get_video_frames_generator` documentation to better describe actual behavior.
 
 ### 0.9.0 <small>June 7, 2023</small>
 
-- Added [#118](https://github.com/roboflow/supervision/pull/118): ability to select [`sv.Detections`](https://supervision.roboflow.com/0.9.0/detection/core/#supervision.detection.core.Detections.__getitem__) by index, list of indexes or slice. Here is an example illustrating the new selection methods.
+- Added [#118](https://github.com/roboflow/supervision/pull/118): ability to select [`sv.Detections`](https://supervision.roboflow.com/0.9.0/detection/core/#supervision.detection.core.Detections.__getitem__) by index, list of indexes or slice.
 
     ```python
     import supervision as sv
@@ -1869,11 +1873,11 @@ date_modified: 2026-09-17
     # 2
     ```
 
-- Added [#101](https://github.com/roboflow/supervision/pull/101): ability to extract masks from YOLOv8 result using [`sv.Detections.from_yolov8`](https://supervision.roboflow.com/0.8.0/detection/core/#supervision.detection.core.Detections.from_yolov8). Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.
+- Added [#101](https://github.com/roboflow/supervision/pull/101): ability to extract masks from YOLOv8 result using [`sv.Detections.from_yolov8`](https://supervision.roboflow.com/0.8.0/detection/core/#supervision.detection.core.Detections.from_yolov8).
 
-- Added [#122](https://github.com/roboflow/supervision/pull/122): ability to crop image using [`sv.crop`](https://supervision.roboflow.com/0.9.0/utils/image/#crop). Here is an example showing how to get a separate crop for each detection in `sv.Detections`.
+- Added [#122](https://github.com/roboflow/supervision/pull/122): ability to crop image using [`sv.crop`](https://supervision.roboflow.com/0.9.0/utils/image/#crop).
 
-- Added [#120](https://github.com/roboflow/supervision/pull/120): ability to conveniently save multiple images into directory using [`sv.ImageSink`](https://supervision.roboflow.com/0.9.0/utils/image/#imagesink). Here is an example showing how to save every tenth video frame as a separate image.
+- Added [#120](https://github.com/roboflow/supervision/pull/120): ability to conveniently save multiple images into directory using [`sv.ImageSink`](https://supervision.roboflow.com/0.9.0/utils/image/#imagesink).
 
     ```python
     import supervision as sv
@@ -1889,7 +1893,7 @@ date_modified: 2026-09-17
 
 ### 0.8.0 <small>May 17, 2023</small>
 
-- Added [#100](https://github.com/roboflow/supervision/pull/100): support for dataset inheritance. The current `Dataset` got renamed to `DetectionDataset`. Now [`DetectionDataset`](https://supervision.roboflow.com/0.8.0/dataset/core/#detectiondataset) inherits from `BaseDataset`. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.
+- Added [#100](https://github.com/roboflow/supervision/pull/100): support for dataset inheritance — `Dataset` renamed to `DetectionDataset`, now inheriting from [`BaseDataset`](https://supervision.roboflow.com/0.8.0/dataset/core/#detectiondataset), to keep future computer vision dataset APIs consistent.
 
 - Added [#100](https://github.com/roboflow/supervision/pull/100): ability to save datasets in YOLO format using [`DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.as_yolo).
 
@@ -1915,7 +1919,7 @@ date_modified: 2026-09-17
     # ['dog', 'person']
     ```
 
-- Added [#103](https://github.com/roboflow/supervision/pull/103): support for [`DetectionDataset.split`](https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.split) allowing to divide `DetectionDataset` into two parts.
+- Added [#103](https://github.com/roboflow/supervision/pull/103): support for [`DetectionDataset.split`](https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.split), dividing `DetectionDataset` into two parts.
 
     ```python
     import supervision as sv
