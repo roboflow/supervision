@@ -4009,6 +4009,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Removed, as scheduled for <code>supervision-0.31.0</code>: <code>sv.ByteTrack</code> (use <code>ByteTrackTracker</code> from the <code>trackers</code> package instead); the <code>supervision.keypoint</code> module (use <code>supervision.key_points</code>); <code>create_tiles</code> and <code>overlay_image</code> in <code>supervision.utils.image</code>; <code>ensure_cv2_image_for_annotation</code>, <code>ensure_pil_image_for_annotation</code>, and <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code>; <code>validate_keypoint_confidence</code> and <code>validate_keypoints_fields</code> in <code>supervision.validators</code>; the <code>normalized_xyxy</code> argument of <code>sv.denormalize_boxes</code> (use <code>xyxy</code>); the <code>supervision.dataset.utils</code> import path for <code>sv.mask_to_rle</code>/<code>sv.rle_to_mask</code> (import from <code>supervision.detection.utils.converters</code> instead); <code>sv.LMM</code> and <code>Detections.from_lmm</code> (use <code>sv.VLM</code>/<code>Detections.from_vlm</code>); and the legacy <code>MeanAveragePrecision</code> in <code>supervision.metrics.detection</code> (use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code>, exposed as <code>sv.metrics.MeanAveragePrecision</code>). See <a href="../deprecated/">Deprecated</a> for the full list. <a href="https://github.com/roboflow/supervision/pull/2582">#2582</a></p>
 </li>
 <li>
+<p><code>sv.DetectionDataset.from_coco</code>, <code>from_labelme</code>, <code>from_createml</code> and <code>from_yolo</code> now read their JSON and YAML files as UTF-8 on Windows, and <code>sv.DetectionDataset.as_pascal_voc</code> writes its XML files as UTF-8 there. These files were opened with the platform's default encoding, which on Windows is a legacy code page such as cp1252, but JSON and YAML files are UTF-8 and the Pascal VOC XML declares no encoding, so readers take it as UTF-8. Any class name outside ASCII therefore broke on Windows: a COCO category or YOLO <code>data.yaml</code> name such as <code>café</code> loaded as <code>cafÃ©</code>, one such as <code>고양이</code> failed with <code>UnicodeDecodeError</code>, and <code>as_pascal_voc</code> either failed with <code>UnicodeEncodeError</code> or wrote a file that <code>from_pascal_voc</code> rejected with <code>ParseError: not well-formed (invalid token)</code>. Linux and macOS, where the default encoding is already UTF-8, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2585">#2585</a></p>
+</li>
+<li>
 <p><code>sv.ClassificationDataset.as_folder_structure</code> now copies image files unchanged instead of decoding and re-encoding them. It read every image with <code>cv2.imread</code> and wrote it back with <code>cv2.imwrite</code>, so the export was not the images the dataset was loaded from: a PNG lost its alpha channel, a grayscale PNG became three-channel, a 16-bit PNG was cut to 8 bits, and every JPEG was compressed again, losing a little more quality on each export. Exporting into the folder the dataset was loaded from rewrote its own images the same way. The <code>sv.DetectionDataset</code> exports (<code>as_yolo</code>, <code>as_pascal_voc</code>, <code>as_coco</code>) already copy image files; the classification export now does too. Images held in memory are still encoded with <code>cv2.imwrite</code>. <a href="https://github.com/roboflow/supervision/pull/2584">#2584</a></p>
 </li>
 <li>
@@ -6345,7 +6348,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 07:58:45 UTC">September 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 08:21:12 UTC">September 17, 2026</span>
   </span>
 
     
@@ -6397,7 +6400,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +36
+            +35
           </a>
         
       
