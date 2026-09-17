@@ -670,3 +670,33 @@ class TestSavePascalVocAnnotations:
         class_id = next(iter(annotations.values())).class_id
         assert np.issubdtype(class_id.dtype, np.integer)
         assert class_id.size == 0
+
+    def test_non_ascii_class_names_survive_save_then_load_round_trip(
+        self, tmp_path: Path
+    ) -> None:
+        """Class names outside ASCII reload unchanged on every platform."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        img_path = images_dir / "animals.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["café", "고양이"],
+            images=[str(img_path)],
+            annotations={
+                str(img_path): Detections(
+                    xyxy=np.array([[5, 5, 20, 20], [25, 25, 40, 40]], dtype=float),
+                    class_id=np.array([0, 1]),
+                )
+            },
+        )
+        out_dir = tmp_path / "annotations"
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        classes, _, _ = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(out_dir),
+        )
+
+        assert classes == ["café", "고양이"]

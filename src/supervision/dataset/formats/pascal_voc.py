@@ -435,6 +435,8 @@ def save_pascal_voc_annotations(
 ) -> None:
     """Write Pascal VOC XML annotation files for every image in *dataset*.
 
+    Files are written as UTF-8, whatever the platform's default encoding is.
+
     Args:
         dataset: Dataset whose annotations are saved.
         annotations_directory_path: Destination directory for ``.xml`` files;
@@ -494,5 +496,6 @@ def save_pascal_voc_annotations(
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
         )
-        with open(annotations_path, "w") as f:
+        # The XML declaration names no encoding, so readers decode it as UTF-8.
+        with open(annotations_path, "w", encoding="utf-8") as f:
             f.write(pascal_voc_xml)
