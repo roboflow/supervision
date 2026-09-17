@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pytest
+from PIL import Image
 
 from supervision import (
     ClassificationDataset,
@@ -821,6 +822,49 @@ class TestClassificationDatasetFolderRoundTrip:
             class_id = int(ann.class_id[0])
             assert 0 <= class_id < len(ds2.classes)
             assert ds2.classes[class_id] == Path(image_path).parent.name
+
+    @pytest.mark.parametrize(
+        ("file_name", "shape", "dtype"),
+        [
+            pytest.param("alpha.png", (8, 8, 4), np.uint8, id="png-with-alpha"),
+            pytest.param("gray.png", (8, 8), np.uint8, id="grayscale-png"),
+            pytest.param("depth.png", (8, 8), np.uint16, id="16-bit-png"),
+            pytest.param("photo.jpg", (8, 8, 3), np.uint8, id="jpeg"),
+        ],
+    )
+    def test_export_copies_image_files_unchanged(
+        self,
+        tmp_path: Path,
+        file_name: str,
+        shape: tuple[int, ...],
+        dtype: type[np.unsignedinteger],
+    ) -> None:
+        """Exported images are byte-identical to the files they were loaded from."""
+        source_path = tmp_path / "source" / "cats" / file_name
+        source_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, np.iinfo(dtype).max, shape, dtype=dtype)
+        Image.fromarray(pixels).save(source_path)
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path / "source"))
+
+        dataset.as_folder_structure(str(tmp_path / "export"))
+
+        exported_path = tmp_path / "export" / "cats" / file_name
+        assert exported_path.read_bytes() == source_path.read_bytes()
+
+    def test_export_into_source_folder_keeps_image_files(self, tmp_path: Path) -> None:
+        """Exporting into the folder the dataset was loaded from leaves files intact."""
+        image_path = tmp_path / "cats" / "photo.jpg"
+        image_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, 255, (8, 8, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(image_path)
+        original_bytes = image_path.read_bytes()
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path))
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        assert image_path.read_bytes() == original_bytes
 
     def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
         """Clutter and non-image files do not break folder loading."""
