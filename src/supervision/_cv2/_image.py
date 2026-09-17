@@ -324,7 +324,7 @@ def _imencode(
     del params
     # Pillow registers the JPEG codec as "JPEG", not the "jpg" file extension.
     image_format = ext.lstrip(".").upper()
-    if image_format == "JPG":
+    if image_format in {"JPE", "JPG"}:
         image_format = "JPEG"
     save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
