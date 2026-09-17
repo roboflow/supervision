@@ -994,7 +994,7 @@ def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
 
 
 @pytest.fixture
-def numbered_video_path(tmp_path):
+def numbered_video_path(tmp_path: Path) -> str:
     """Write a 10-frame video whose frame `i` is filled with intensity `25 * i`."""
     path = str(tmp_path / "numbered_video.mp4")
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -1015,7 +1015,12 @@ def numbered_video_path(tmp_path):
     ],
 )
 def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
-    numbered_video_path, start, end, stride, iterative_seek, expected_frame_indices
+    numbered_video_path: str,
+    start: int,
+    end: int,
+    stride: int,
+    iterative_seek: bool,
+    expected_frame_indices: list[int],
 ) -> None:
     """Frames from `start` up to `end` are yielded whichever way `start` is sought."""
     frames = get_video_frames_generator(
