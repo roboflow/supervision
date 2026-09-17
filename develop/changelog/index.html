@@ -2986,6 +2986,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0304-sep-17-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.4 Sep 17, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0303-sep-14-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3525,6 +3536,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0304-sep-17-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.4 Sep 17, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0303-sep-14-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4009,36 +4031,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Removed, as scheduled for <code>supervision-0.31.0</code>: <code>sv.ByteTrack</code> (use <code>ByteTrackTracker</code> from the <code>trackers</code> package instead); the <code>supervision.keypoint</code> module (use <code>supervision.key_points</code>); <code>create_tiles</code> and <code>overlay_image</code> in <code>supervision.utils.image</code>; <code>ensure_cv2_image_for_annotation</code>, <code>ensure_pil_image_for_annotation</code>, and <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code>; <code>validate_keypoint_confidence</code> and <code>validate_keypoints_fields</code> in <code>supervision.validators</code>; the <code>normalized_xyxy</code> argument of <code>sv.denormalize_boxes</code> (use <code>xyxy</code>); the <code>supervision.dataset.utils</code> import path for <code>sv.mask_to_rle</code>/<code>sv.rle_to_mask</code> (import from <code>supervision.detection.utils.converters</code> instead); <code>sv.LMM</code> and <code>Detections.from_lmm</code> (use <code>sv.VLM</code>/<code>Detections.from_vlm</code>); and the legacy <code>MeanAveragePrecision</code> in <code>supervision.metrics.detection</code> (use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code>, exposed as <code>sv.metrics.MeanAveragePrecision</code>). See <a href="../deprecated/">Deprecated</a> for the full list. <a href="https://github.com/roboflow/supervision/pull/2582">#2582</a></p>
 </li>
 <li>
-<p><code>sv.DetectionDataset.from_coco</code> now rounds polygon vertices to the nearest pixel before rasterising masks, as <code>from_yolo</code>, <code>from_labelme</code> and <code>from_pascal_voc</code> already do. COCO polygons commonly hold sub-pixel float coordinates, but the loader cast them straight to integers, which truncates, so every polygon mask came out shifted up and to the left by up to a pixel. The same polygon therefore loaded one pixel apart depending on the format it was stored in: a square with corners at <code>2.6</code> and <code>7.6</code> covered pixels 2 to 7 from COCO but 3 to 8 from LabelMe, an IoU of 0.53 between the two masks. A vertex that is not a finite number is now rejected with a <code>ValueError</code> that names the annotation. Integer vertices and RLE masks load as before. <a href="https://github.com/roboflow/supervision/pull/2587">#2587</a></p>
-</li>
-<li>
-<p><code>sv.TraceAnnotator.annotate</code> no longer rejects a <code>custom_color_lookup</code> when some detections belong to pending tracks. The annotator skips detections whose <code>tracker_id</code> is <code>-1</code>, which trackers report for tracks that are not confirmed yet, but it resolved colors for the remaining detections against the full lookup, which still held an entry for every detection passed in. Any frame with a pending track therefore failed with <code>ValueError: Length of color lookup 3 does not match length of detections 2</code>, although the other annotators accept the same <code>detections</code> and lookup. The lookup now drops the pending tracks along with the detections, so each confirmed track keeps its own color. Frames without pending tracks, and calls without <code>custom_color_lookup</code>, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2586">#2586</a></p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_coco</code>, <code>from_labelme</code>, <code>from_createml</code> and <code>from_yolo</code> now read their JSON and YAML files as UTF-8 on Windows, and <code>sv.DetectionDataset.as_pascal_voc</code> writes its XML files as UTF-8 there. These files were opened with the platform's default encoding, which on Windows is a legacy code page such as cp1252, but JSON and YAML files are UTF-8 and the Pascal VOC XML declares no encoding, so readers take it as UTF-8. Any class name outside ASCII therefore broke on Windows: a COCO category or YOLO <code>data.yaml</code> name such as <code>café</code> loaded as <code>cafÃ©</code>, one such as <code>고양이</code> failed with <code>UnicodeDecodeError</code>, and <code>as_pascal_voc</code> either failed with <code>UnicodeEncodeError</code> or wrote a file that <code>from_pascal_voc</code> rejected with <code>ParseError: not well-formed (invalid token)</code>. Linux and macOS, where the default encoding is already UTF-8, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2585">#2585</a></p>
-</li>
-<li>
-<p><code>sv.ClassificationDataset.as_folder_structure</code> now copies image files unchanged instead of decoding and re-encoding them. It read every image with <code>cv2.imread</code> and wrote it back with <code>cv2.imwrite</code>, so the export was not the images the dataset was loaded from: a PNG lost its alpha channel, a grayscale PNG became three-channel, a 16-bit PNG was cut to 8 bits, and every JPEG was compressed again, losing a little more quality on each export. Exporting into the folder the dataset was loaded from rewrote its own images the same way. The <code>sv.DetectionDataset</code> exports (<code>as_yolo</code>, <code>as_pascal_voc</code>, <code>as_coco</code>) already copy image files; the classification export now does too. Images held in memory are still encoded with <code>cv2.imwrite</code>. <a href="https://github.com/roboflow/supervision/pull/2584">#2584</a></p>
-</li>
-<li>
-<p><code>sv.get_video_frames_generator</code> now stops at <code>end</code> when <code>iterative_seek=True</code>. The iterative seek grabbed frames up to <code>start</code> by counting <code>start</code> itself down to zero, and the generator then measured <code>end</code> from that zero instead of from <code>start</code>. It therefore read on past <code>end</code> by <code>start</code> frames: <code>start=2, end=5</code> yielded frames 2 to 6 instead of 2 to 4, and <code>start=4, end=6</code> yielded frames 4 to 9. The seek now counts with a separate counter, so both seek modes yield the same frames. Calls without <code>iterative_seek</code>, and calls with <code>start=0</code>, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2583">#2583</a></p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_labelme</code> now finds images for LabelMe files saved on Windows when it runs on Linux or macOS. LabelMe writes <code>imagePath</code> relative to the JSON file with the separator of the system that saved it, so a file saved on Windows holds a value such as <code>..\images\a.jpg</code>. The loader keeps only the file name of <code>imagePath</code>, but took it with <code>Path(...).name</code>, which on Linux and macOS does not treat a backslash as a separator; the whole value became the file name, the dataset pointed at <code>images/..\images\a.jpg</code>, and reading the image failed with <code>ValueError: Could not read image from path</code>. The file name is now taken with either separator on every system, as LabelMe itself does when it reads its own files. Files that use forward slashes, and every file on Windows, load as before. <a href="https://github.com/roboflow/supervision/pull/2581">#2581</a></p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_yolo</code> now loads label files whose class ids are written as decimals. The loader parsed the class column with <code>int()</code>, so a single line such as <code>1.0 0.5 0.5 0.2 0.4</code> aborted the whole load with <code>ValueError: invalid literal for int() with base 10: '1.0'</code>. Label files saved with <code>np.savetxt</code> are written this way, because its default format writes every column as a float (<code>1.000000000000000000e+00</code>), and Ultralytics reads the class column as a float, so such datasets train there without complaint. Class ids that are whole numbers now load in any notation; values that are fractional, not finite, or not numbers at all still raise a <code>ValueError</code>, which now names the offending class id. Integer class ids load as before. <a href="https://github.com/roboflow/supervision/pull/2580">#2580</a></p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_yolo</code> and <code>sv.DetectionDataset.as_coco</code> now take image sizes from the image as it loads, after its EXIF orientation is applied. Photos from phones and cameras are often stored sideways with an EXIF orientation tag that says how to turn them upright. <code>cv2.imread</code>, which the dataset uses to load images, applies that tag, but both functions read the size from the file header with Pillow, which does not. For a quarter-turned photo, <code>from_yolo</code> therefore scaled normalized boxes and polygons by the swapped width and height, so they landed outside the loaded image and masks came out with a <code>(height, width)</code> that did not match it, and <code>as_coco</code> wrote the swapped <code>width</code> and <code>height</code> into <code>images</code>. The header read now swaps width and height for orientations 5 to 8. The OpenCV-free fallback backend's <code>imread</code> and <code>imdecode</code> also apply the orientation tag now, as OpenCV does for every read except <code>IMREAD_UNCHANGED</code>; before, the same file loaded with a different shape depending on whether <code>opencv-python</code> was installed. Images without an orientation tag load and export as before. <a href="https://github.com/roboflow/supervision/pull/2577">#2577</a></p>
-</li>
-<li>
-<p><code>sv.KeyPoints.from_inference</code> no longer fails, or shifts key points onto the wrong joints, when Inference leaves some key points out of a result. Inference drops every key point scored below the request's <code>keypoint_confidence</code>, and a model whose classes have different skeletons stops each object at its own class's key point count, so objects in one result can list different key points. The connector stacked those lists as they came: lists of different lengths raised <code>ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions</code>, and lists of the same length that were missing different key points loaded with later key points moved into earlier slots, so skeleton edges joined the wrong points. Each key point is now placed at the slot given by its <code>class_id</code>, which Inference sets to the key point's skeleton index; slots that were left out stay at <code>(0, 0)</code> with zero confidence, which the key point annotators and <code>KeyPoints.as_detections</code> already skip as missing. A result in which every key point was left out now loads with zero key points per object instead of failing validation. Results that list every key point load as before. <a href="https://github.com/roboflow/supervision/pull/2575">#2575</a></p>
-</li>
-<li>
-<p><code>sv.Detections.from_transformers</code> now loads Mask2Former and MaskFormer instance segmentation results produced with <code>post_process_instance_segmentation(return_binary_maps=True)</code>, the option Transformers recommends when instances can overlap. With it, <code>segmentation</code> is a <code>(num_instances, height, width)</code> stack of binary maps instead of a <code>(height, width)</code> map of segment ids, but the v5 instance path compared that stack against each segment's <code>id</code> as if it were an id map, producing a four-dimensional mask array that <code>mask_to_xyxy</code> rejected with <code>ValueError: too many values to unpack (expected 3)</code>. Each segment now takes the binary map at its <code>id</code>, which is the map's position in the stack, so overlapping instances keep their full masks. Results with a segment-id map load as before. <a href="https://github.com/roboflow/supervision/pull/2576">#2576</a></p>
-</li>
-<li>
 <p>Added <code>MetricResult</code> abstract base class as a common parent for all metric result dataclasses, with <code>to_pandas()</code>, <code>plot()</code>, and <code>_get_plot_details()</code> abstract methods (<a href="https://github.com/roboflow/supervision/pull/1731">#2498</a>).</p>
 </li>
 <li>
@@ -4046,18 +4038,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
 <li>
 <p>Added <code>plot_aggregate_metric_results()</code> to visualize multiple metric results on a single grouped bar chart (<a href="https://github.com/roboflow/supervision/pull/2498">#2498</a>).</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_pascal_voc</code> no longer fails on annotations whose coordinates are written as decimals. The loader parsed every <code>&lt;bndbox&gt;</code> and <code>&lt;polygon&gt;</code> value with <code>int()</code>, so one file carrying <code>&lt;xmin&gt;48.5&lt;/xmin&gt;</code> — or even <code>&lt;xmin&gt;48.0&lt;/xmin&gt;</code> — aborted the whole load with <code>ValueError: invalid literal for int() with base 10: '48.5'</code>. Exporters that keep sub-pixel boxes write VOC this way; Datumaro, which CVAT uses for its exports, is one of them. Box coordinates are now read as floats and keep their precision, and polygon vertices are rounded to the nearest pixel before rasterising, as the YOLO and LabelMe loaders already do. Integer coordinates load exactly as before, and values that are not finite numbers are still rejected. <a href="https://github.com/roboflow/supervision/pull/2568">#2568</a></p>
-</li>
-<li>
-<p><code>sv.Detections.from_transformers</code> no longer crashes on a Transformers v4 panoptic result that holds no segments. <code>post_process_panoptic</code> returns an empty <code>segments_info</code> whenever no query clears its <code>threshold</code> (or every kept segment is filtered out as too small), but the v4 panoptic path stacked the per-segment masks with <code>np.array([...])</code>, which turns an empty list into a 1-D <code>(0,)</code> array, and <code>mask_to_xyxy</code> then failed with <code>ValueError: not enough values to unpack (expected 3, got 1)</code>. The path now builds a <code>(0, H, W)</code> mask stack and an integer <code>class_id</code> for that case, as the v5 semantic, instance and panoptic paths already do, so such a frame yields empty <code>Detections</code>.</p>
-</li>
-<li>
-<p><code>sv.KeyPoints.from_ultralytics</code> no longer crashes on pose models whose key points carry no visibility score. Ultralytics models trained with a two-value <code>kpt_shape</code> (<code>[K, 2]</code>, coordinates only) return key points of shape <code>(N, K, 2)</code>, and for those <code>Results.keypoints.conf</code> is <code>None</code>. The connector called <code>.cpu()</code> on it unconditionally, so every non-empty frame raised <code>AttributeError: 'NoneType' object has no attribute 'cpu'</code>. Such results now load with <code>keypoint_confidence=None</code>, the same as any other <code>sv.KeyPoints</code> without scores; models that do report visibility keep their confidences.</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_pascal_voc</code> no longer skips <code>.bmp</code>, <code>.tif</code>, <code>.tiff</code> and <code>.webp</code> images. The loader only listed <code>.jpg</code>, <code>.jpeg</code> and <code>.png</code> files, so every other image was left out of the dataset without a warning — even though <code>sv.DetectionDataset.from_yolo</code> and <code>sv.ClassificationDataset.from_folder_structure</code> load those formats, and <code>DetectionDataset.as_pascal_voc</code> writes an annotation file for each of them. A dataset exported to Pascal VOC and read back therefore came back smaller than it went out. The loader now accepts the same image extensions as <code>sv.ClassificationDataset.from_folder_structure</code>.</p>
 </li>
 <li>
 <p><code>sv.match_detections</code> now exposes the metrics matcher as a public primitive: given two <code>sv.Detections</code>, it returns one-to-one greedy IoU-matched pairs (with optional per-class filtering) as index arrays, plus the unmatched indices of each side (<a href="https://github.com/roboflow/supervision/issues/2476">#2476</a>).</p>
@@ -4073,6 +4053,51 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
 <li>
 <p><code>sv.Detections.from_vlm</code> now keeps <code>class_id</code> integer-typed when a <code>classes</code> filter removes every detection. The index array was built from an empty list, so NumPy defaulted it to <code>float64</code> for <code>sv.VLM.PALIGEMMA</code>, <code>sv.VLM.DEEPSEEK_VL_2</code> and <code>sv.VLM.GOOGLE_GEMINI_2_0</code> — <code>sv.VLM.QWEN_2_5_VL</code> and <code>sv.VLM.QWEN_3_VL</code> already pinned the dtype and the rest now match them. Results with at least one surviving detection are unchanged.</p>
+</li>
+</ul>
+<h3 id="0304-sep-17-2026">0.30.4 <small>Sep 17, 2026</small><a class="headerlink" href="#0304-sep-17-2026" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><code>sv.DetectionDataset.from_coco</code> now rounds polygon vertices to the nearest pixel before rasterising masks, instead of truncating them to <code>int32</code>, as <code>from_yolo</code>/<code>from_labelme</code>/<code>from_pascal_voc</code> already do. Truncation shifted every mask up and to the left by up to a pixel — a polygon with corners at <code>2.6</code>/<code>7.6</code> covered pixels 2 to 7 from COCO but 3 to 8 from LabelMe, an IoU of 0.53 between the two masks. A non-finite vertex now raises <code>ValueError</code> naming the annotation id; integer vertices and RLE masks load as before. <a href="https://github.com/roboflow/supervision/pull/2587">#2587</a></p>
+</li>
+<li>
+<p><code>sv.TraceAnnotator.annotate</code> no longer raises <code>ValueError: Length of color lookup 3 does not match length of detections 2</code> when a <code>custom_color_lookup</code> is passed alongside pending (<code>tracker_id == -1</code>) tracks — the annotator skips those detections but still resolved colors against the full-length lookup, although the other annotators accept the same detections and lookup. The lookup is now filtered alongside the detections, so each confirmed track keeps its own color; frames without pending tracks, and calls without <code>custom_color_lookup</code>, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2586">#2586</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_coco</code>/<code>from_labelme</code>/<code>from_createml</code>/<code>from_yolo</code> now read JSON/YAML as UTF-8, and <code>as_pascal_voc</code> writes XML as UTF-8, instead of the platform default (cp1252 on Windows). A COCO category or YOLO <code>data.yaml</code> name outside ASCII broke on Windows: <code>café</code> loaded as <code>cafÃ©</code>, <code>고양이</code> failed with <code>UnicodeDecodeError</code>, and <code>as_pascal_voc</code> either failed with <code>UnicodeEncodeError</code> or wrote a file <code>from_pascal_voc</code> rejected with <code>ParseError: not well-formed (invalid token)</code> — Linux/macOS, already UTF-8 by default, are unaffected. <a href="https://github.com/roboflow/supervision/pull/2585">#2585</a></p>
+</li>
+<li>
+<p><code>sv.ClassificationDataset.as_folder_structure</code> now copies source image files unchanged instead of round-tripping them through <code>cv2.imread</code>/<code>cv2.imwrite</code>, which dropped alpha channels, downcast 16-bit PNGs to 8-bit, and recompressed JPEGs on every export — matching <code>sv.DetectionDataset</code>'s exports (<code>as_yolo</code>/<code>as_pascal_voc</code>/<code>as_coco</code>), which already copied — exporting into the folder the dataset was loaded from previously rewrote its own images the same lossy way. Images held in memory are still encoded with <code>cv2.imwrite</code>. <a href="https://github.com/roboflow/supervision/pull/2584">#2584</a></p>
+</li>
+<li>
+<p><code>sv.get_video_frames_generator</code> no longer reads <code>start</code> frames past <code>end</code> when <code>iterative_seek=True</code> — it counted <code>start</code> down to zero, then measured <code>end</code> from that zero instead of from <code>start</code> (<code>start=2, end=5</code> yielded frames 2 to 6 instead of 2 to 4; <code>start=4, end=6</code> yielded frames 4 to 9 instead of 4 to 6). A separate counter now keeps both seek modes aligned; <code>start=0</code> and non-iterative calls are unchanged. <a href="https://github.com/roboflow/supervision/pull/2583">#2583</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_labelme</code> now finds images for LabelMe files saved on Windows when loading on Linux or macOS. <code>imagePath</code> is written with <code>\</code>, but the loader took only <code>Path(...).name</code>, which doesn't split on <code>\</code> on POSIX — the whole value became the filename and reading failed with <code>ValueError: Could not read image from path</code>. The filename is now taken with either separator on every system, as LabelMe itself does when reading its own files; forward-slash paths, and every file on Windows, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2581">#2581</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_yolo</code> now loads label files whose class ids are written as decimals (e.g. <code>1.0 0.5 0.5 0.2 0.4</code>), which previously aborted the whole load with <code>ValueError: invalid literal for int()</code> — <code>np.savetxt</code> writes floats by default and Ultralytics tolerates them. Whole numbers load in any notation now; fractional, non-finite, or non-numeric ids still raise, naming the offending id. <a href="https://github.com/roboflow/supervision/pull/2580">#2580</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_yolo</code>/<code>as_coco</code> now size EXIF-oriented images the way <code>cv2.imread</code> loads them (swapping width/height for orientations 5 to 8), instead of reading the un-rotated file-header size via Pillow — quarter-turned photos previously scaled boxes/polygons by the swapped dimensions and produced mismatched mask shapes. The OpenCV-free fallback backend's <code>imread</code>/<code>imdecode</code> now apply EXIF orientation too, matching OpenCV's behavior for every read except <code>IMREAD_UNCHANGED</code> — previously the same file loaded with a different shape depending on whether <code>opencv-python</code> was installed. <a href="https://github.com/roboflow/supervision/pull/2577">#2577</a></p>
+</li>
+<li>
+<p><code>sv.Detections.from_transformers</code> now loads Transformers v5 <code>return_binary_maps=True</code> instance results (a <code>(num_instances, H, W)</code> stack), which the v5 path previously compared against each segment's <code>id</code> as if it were an id-map, producing a 4-D array that <code>mask_to_xyxy</code> rejected with <code>ValueError: too many values to unpack (expected 3)</code>. Each segment now indexes the stack at its own <code>id</code>, keeping full masks for overlapping instances; segment-id-map results are unchanged. <a href="https://github.com/roboflow/supervision/pull/2576">#2576</a></p>
+</li>
+<li>
+<p><code>sv.KeyPoints.from_inference</code> now places each key point at the slot given by its <code>class_id</code> (skeleton index) instead of appending in received order — Inference drops key points below <code>keypoint_confidence</code> and multi-skeleton models report different counts per object, so stacking as-received either raised <code>ValueError: ... inhomogeneous shape</code> or silently slid later key points into earlier slots, joining the wrong joints. Omitted slots now stay <code>(0, 0)</code> at zero confidence, already skipped by the key point annotators and <code>as_detections</code>; a result with every key point omitted now loads with zero key points instead of failing validation. <a href="https://github.com/roboflow/supervision/pull/2575">#2575</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_pascal_voc</code> no longer fails on annotations with decimal coordinates (e.g. <code>&lt;xmin&gt;48.5&lt;/xmin&gt;</code>), which aborted the whole load with <code>ValueError: invalid literal for int()</code> — Datumaro, which CVAT uses for its exports, writes VOC this way. Box coordinates are now read as floats and keep their precision; polygon vertices are rounded after the 1-index offset, as the YOLO and LabelMe loaders already do; non-finite values are still rejected. <a href="https://github.com/roboflow/supervision/pull/2568">#2568</a></p>
+</li>
+<li>
+<p><code>sv.Detections.from_transformers</code> no longer crashes on a Transformers v4 panoptic result with no segments — <code>post_process_panoptic</code>'s empty <code>segments_info</code> produced a <code>(0,)</code> mask array instead of <code>(0, H, W)</code>, and <code>mask_to_xyxy</code> raised <code>ValueError: not enough values to unpack (expected 3, got 1)</code>. The path now builds a <code>(0, H, W)</code> mask stack and an integer <code>class_id</code>, matching the v5 paths, and yields empty <code>Detections</code>. <a href="https://github.com/roboflow/supervision/pull/2571">#2571</a></p>
+</li>
+<li>
+<p><code>sv.KeyPoints.from_ultralytics</code> no longer crashes on pose models whose key points carry no visibility score (<code>kpt_shape=[K,2]</code>, where <code>Results.keypoints.conf</code> is <code>None</code>) — the connector called <code>.cpu()</code> on it unconditionally, raising <code>AttributeError: 'NoneType' object has no attribute 'cpu'</code> on every non-empty frame. Such results now load with <code>keypoint_confidence=None</code>; models that do report visibility are unaffected. <a href="https://github.com/roboflow/supervision/pull/2570">#2570</a></p>
+</li>
+<li>
+<p><code>sv.DetectionDataset.from_pascal_voc</code> no longer skips <code>.bmp</code>, <code>.tif</code>, <code>.tiff</code>, and <code>.webp</code> images without a warning — the loader only listed <code>.jpg</code>/<code>.jpeg</code>/<code>.png</code>, even though <code>from_yolo</code>/<code>from_folder_structure</code> load those formats and <code>as_pascal_voc</code> writes annotations for them, so a dataset exported to Pascal VOC and read back came back smaller than it went out. It now accepts the same extensions as <code>sv.ClassificationDataset.from_folder_structure</code>. <a href="https://github.com/roboflow/supervision/pull/2569">#2569</a></p>
 </li>
 </ul>
 <h3 id="0303-sep-14-2026">0.30.3 <small>Sep 14, 2026</small><a class="headerlink" href="#0303-sep-14-2026" title="Permanent link">&para;</a></h3>
@@ -4648,7 +4673,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="0270-nov-16-2025">0.27.0 <small>Nov 16, 2025</small><a class="headerlink" href="#0270-nov-16-2025" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/2008">#2008</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance"><code>sv.filter_segments_by_distance</code></a> to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/2008">#2008</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance"><code>sv.filter_segments_by_distance</code></a> to keep the largest connected component and nearby components within an absolute or relative distance threshold, for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2006">#2006</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_mask"><code>sv.xyxy_to_mask</code></a> to convert bounding boxes into 2D boolean masks, where each mask corresponds to a single box.</p>
@@ -4678,19 +4703,19 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2015">#2015</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_vlm</code></a> now parses Qwen 2.5 VL outputs more robustly and handles incomplete or truncated JSON responses.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/2014">#2014</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>sv.InferenceSlicer</code></a> now uses a new offset generation logic that removes redundant tiles and aligns borders cleanly. This reduces the number of processed tiles and shortens inference time without hurting detection quality.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2014">#2014</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>sv.InferenceSlicer</code></a> now uses a new offset generation logic that removes redundant tiles and aligns borders cleanly, shortening inference time without hurting detection quality.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2016">#2016</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections"><code>sv.Detections</code></a> now includes a <code>box_aspect_ratio</code> property for vectorized aspect ratio computation, useful for filtering detections based on box shape.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/2001">#2001</a>: Significantly improved the performance of <a href="https://supervision.roboflow.com/0.27.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch"><code>sv.box_iou_batch</code></a>. On internal benchmarks, processing runs approximately 2x to 5x faster.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2001">#2001</a>: Improved the performance of <a href="https://supervision.roboflow.com/0.27.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch"><code>sv.box_iou_batch</code></a>, approximately 2x to 5x faster on internal benchmarks.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1997">#1997</a>: <a href="https://supervision.roboflow.com/0.27.0/utils/video/#supervision.utils.video.process_video"><code>sv.process_video</code></a> now uses a threaded reader, processor, and writer pipeline. This removes I/O stalls and improves throughput while keeping the callback single threaded and safe for stateful models.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1997">#1997</a>: <a href="https://supervision.roboflow.com/0.27.0/utils/video/#supervision.utils.video.process_video"><code>sv.process_video</code></a> now uses a threaded reader, processor, and writer pipeline, removing I/O stalls and improving throughput while keeping the callback single threaded and safe for stateful models.</p>
 </li>
 <li>
-<p>Changed: <a href="https://supervision.roboflow.com/0.27.0/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes"><code>sv.denormalize_boxes</code></a> now supports batch conversion of bounding boxes. The function accepts arrays of shape <code>(N, 4)</code> and returns a batch of absolute pixel coordinates.</p>
+<p>Changed: <a href="https://supervision.roboflow.com/0.27.0/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes"><code>sv.denormalize_boxes</code></a> now accepts arrays of shape <code>(N, 4)</code> and returns a batch of absolute pixel coordinates.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/1917">#1917</a>: <a href="https://supervision.roboflow.com/0.27.0/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> and <a href="https://supervision.roboflow.com/0.27.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator"><code>sv.RichLabelAnnotator</code></a> now accept <code>text_offset=(x, y)</code> to shift the label relative to <code>text_position</code>. Works with smart label position and line wrapping.</p>
@@ -4903,10 +4928,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1786">#1786</a>: Significantly improved the speed of HSV color mapping in <a href="https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator"><code>sv.HeatMapAnnotator</code></a>, achieving approximately 28x faster performance on 1920x1080 frames.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1786">#1786</a>: Improved the speed of HSV color mapping in <a href="https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator"><code>sv.HeatMapAnnotator</code></a>, approximately 28x faster on 1920x1080 frames.</p>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1834">#1834</a>: Supervision’s <a href="https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision"><code>sv.MeanAveragePrecision</code></a> is now fully aligned with <a href="https://github.com/ppwwyyxx/cocoapi">pycocotools</a>, the official COCO evaluation tool, ensuring accurate and standardized metrics. This update enabled us to launch a new version of the <a href="https://leaderboard.roboflow.com/">Computer Vision Model Leaderboard</a>.</p>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1834">#1834</a>: Supervision’s <a href="https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision"><code>sv.MeanAveragePrecision</code></a> is now fully aligned with <a href="https://github.com/ppwwyyxx/cocoapi">pycocotools</a>, the official COCO evaluation tool. This update enabled us to launch a new version of the <a href="https://leaderboard.roboflow.com/">Computer Vision Model Leaderboard</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeanAveragePrecision</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
@@ -4934,10 +4959,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>No removals or deprecations in this release!</p>
 </li>
 <li>
-<p>Essential update to the <a href="https://supervision.roboflow.com/0.25.0/detection/tools/line_zone/"><code>LineZone</code></a>: when computing line crossings, detections that jitter might be counted twice (or more). This can now be solved with the <code>minimum_crossing_threshold</code> argument. If you set it to <code>2</code> or more, extra frames will be used to confirm the crossing, improving the accuracy significantly. (<a href="https://github.com/roboflow/supervision/pull/1540">#1540</a>)</p>
+<p>Added <code>minimum_crossing_threshold</code> to <a href="https://supervision.roboflow.com/0.25.0/detection/tools/line_zone/"><code>LineZone</code></a> to stop jittering detections from being counted twice or more at a crossing. Setting it to <code>2</code> or more requires extra confirmation frames, significantly improving accuracy. (<a href="https://github.com/roboflow/supervision/pull/1540">#1540</a>)</p>
 </li>
 <li>
-<p>It is now possible to track objects detected as <a href="https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>KeyPoints</code></a>. See the complete step-by-step guide in the <a href="https://supervision.roboflow.com/latest/how_to/track_objects/#keypoints">Object Tracking Guide</a>. (<a href="https://github.com/roboflow/supervision/pull/1658">#1658</a>)</p>
+<p>Objects detected as <a href="https://supervision.roboflow.com/0.25.0/keypoint/core/#supervision.keypoint.core.KeyPoints"><code>KeyPoints</code></a> can now be tracked; see the step-by-step guide in the <a href="https://supervision.roboflow.com/latest/how_to/track_objects/#keypoints">Object Tracking Guide</a>. (<a href="https://github.com/roboflow/supervision/pull/1658">#1658</a>)</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
@@ -4977,7 +5002,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Supervision can now be used with <a href="https://docs.python.org/3/whatsnew/3.13.html"><code>Python 3.13</code></a>. The most renowned update is the ability to run Python <a href="https://docs.python.org/3/whatsnew/3.13.html#whatsnew313-free-threaded-cpython">without Global Interpreter Lock (GIL)</a>. We expect support for this among our dependencies to be inconsistent, but if you do attempt it - let us know the results! (<a href="https://github.com/roboflow/supervision/pull/1595">#1595</a>)</p>
+<p>Supervision can now be used with <a href="https://docs.python.org/3/whatsnew/3.13.html"><code>Python 3.13</code></a>, most notably its ability to run <a href="https://docs.python.org/3/whatsnew/3.13.html#whatsnew313-free-threaded-cpython">without the Global Interpreter Lock (GIL)</a>. Dependency support for this is expected to be inconsistent, but if you try it, let us know the results! (<a href="https://github.com/roboflow/supervision/pull/1595">#1595</a>)</p>
 </li>
 <li>
 <p>Added <a href="https://supervision.roboflow.com/latest/metrics/mean_average_recall/"><code>Mean Average Recall</code></a> mAR metric, which returns a recall score, averaged over IoU thresholds, detected object classes, and limits imposed on maximum considered detections. (<a href="https://github.com/roboflow/supervision/pull/1661">#1661</a>)</p>
@@ -5020,7 +5045,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Introducing Smart Labels! When <code>smart_position</code> is set for <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a>, <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator"><code>RichLabelAnnotator</code></a> or <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator"><code>VertexLabelAnnotator</code></a>, the labels will move around to avoid overlapping others. (<a href="https://github.com/roboflow/supervision/pull/1625">#1625</a>)</p>
+<p>Added Smart Labels: when <code>smart_position</code> is set for <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>LabelAnnotator</code></a>, <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator"><code>RichLabelAnnotator</code></a> or <a href="https://supervision.roboflow.com/0.25.0/detection/annotators/#supervision.annotators.core.RichLabelAnnotator"><code>VertexLabelAnnotator</code></a>, labels move to avoid overlapping others. (<a href="https://github.com/roboflow/supervision/pull/1625">#1625</a>)</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
@@ -5037,7 +5062,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added the <code>metadata</code> variable to <a href="https://supervision.roboflow.com/0.25.0/detection/core/#supervision.detection.core.Detections"><code>Detections</code></a>. It allows you to store custom data per-image, rather than per-detected-object as was possible with <code>data</code> variable. For example, <code>metadata</code> could be used to store the source video path, camera model or camera parameters. (<a href="https://github.com/roboflow/supervision/pull/1589">#1589</a>)</p>
+<p>Added the <code>metadata</code> variable to <a href="https://supervision.roboflow.com/0.25.0/detection/core/#supervision.detection.core.Detections"><code>Detections</code></a>, storing custom data per-image rather than per-detected-object as <code>data</code> does, for example the source video path, camera model, or camera parameters. (<a href="https://github.com/roboflow/supervision/pull/1589">#1589</a>)</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
@@ -5055,7 +5080,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added a <code>py.typed</code> type hints metafile. It should provide a stronger signal to type annotators and IDEs that type support is available. (<a href="https://github.com/roboflow/supervision/pull/1586">#1586</a>)</p>
+<p>Added a <code>py.typed</code> type hints metafile, signaling to type annotators and IDEs that type support is available. (<a href="https://github.com/roboflow/supervision/pull/1586">#1586</a>)</p>
 </li>
 <li>
 <p><code>ByteTrack</code> no longer requires <code>detections</code> to have a <code>class_id</code> (<a href="https://github.com/roboflow/supervision/pull/1637">#1637</a>)</p>
@@ -5076,7 +5101,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Small improvements to error handling in polygons: (<a href="https://github.com/roboflow/supervision/pull/1602">#1602</a>)</p>
 </li>
 <li>
-<p>Updated <a href="https://supervision.roboflow.com/0.25.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>ByteTrack</code></a>, removing shared variables. Previously, multiple instances of <code>ByteTrack</code> would share some date, requiring liberal use of <code>tracker.reset()</code>. (<a href="https://github.com/roboflow/supervision/pull/1603">#1603</a>), (<a href="https://github.com/roboflow/supervision/pull/1528">#1528</a>)</p>
+<p>Updated <a href="https://supervision.roboflow.com/0.25.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>ByteTrack</code></a> to remove shared variables between instances, previously requiring liberal use of <code>tracker.reset()</code>. (<a href="https://github.com/roboflow/supervision/pull/1603">#1603</a>), (<a href="https://github.com/roboflow/supervision/pull/1528">#1528</a>)</p>
 </li>
 <li>
 <p>Fixed a bug where <code>class_agnostic</code> setting in <code>MeanAveragePrecision</code> would not work. (<a href="https://github.com/roboflow/supervision/pull/1577">#1577</a>) hacktoberfest</p>
@@ -5107,13 +5132,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added new cookbook: <a href="https://supervision.roboflow.com/0.24.0/notebooks/small-object-detection-with-sahi/">Small Object Detection with SAHI</a>. This cookbook provides a detailed guide on using <a href="https://supervision.roboflow.com/0.24.0/detection/tools/inference_slicer/"><code>InferenceSlicer</code></a> for small object detection. <a href="https://github.com/roboflow/supervision/pull/1483">#1483</a></p>
+<p>Added new cookbook: <a href="https://supervision.roboflow.com/0.24.0/notebooks/small-object-detection-with-sahi/">Small Object Detection with SAHI</a>, a guide to using <a href="https://supervision.roboflow.com/0.24.0/detection/tools/inference_slicer/"><code>InferenceSlicer</code></a> for small object detection. <a href="https://github.com/roboflow/supervision/pull/1483">#1483</a></p>
 </li>
 <li>
 <p>Added an <a href="https://roboflow.com/workflows">Embedded Workflow</a>, which allows you to <a href="https://supervision.roboflow.com/0.24.0/detection/annotators/">preview annotators</a>. <a href="https://github.com/roboflow/supervision/pull/1533">#1533</a></p>
 </li>
 <li>
-<p>Enhanced <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator"><code>LineZoneAnnotator</code></a>, allowing the labels to align with the line, even when it's not horizontal. Also, you can now disable text background, and choose to draw labels off-center which minimizes overlaps for multiple <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone"><code>LineZone</code></a> labels. <a href="https://github.com/roboflow/supervision/pull/854">#854</a></p>
+<p>Enhanced <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotator"><code>LineZoneAnnotator</code></a>: labels now align with the line even when it's not horizontal. You can also disable the text background and draw labels off-center to minimize overlap for multiple <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone"><code>LineZone</code></a> labels. <a href="https://github.com/roboflow/supervision/pull/854">#854</a></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
@@ -5132,7 +5157,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added per-class counting capabilities to <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone"><code>LineZone</code></a> and introduced <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass"><code>LineZoneAnnotatorMulticlass</code></a> for visualizing the counts per class. This feature allows tracking of individual classes crossing a line, enhancing the flexibility of use cases like traffic monitoring or crowd analysis. <a href="https://github.com/roboflow/supervision/pull/1555">#1555</a></p>
+<p>Added per-class counting to <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZone"><code>LineZone</code></a> and introduced <a href="https://supervision.roboflow.com/0.24.0/detection/tools/line_zone/#supervision.detection.line_zone.LineZoneAnnotatorMulticlass"><code>LineZoneAnnotatorMulticlass</code></a> to visualize per-class counts — tracks individual classes crossing a line, useful for traffic monitoring or crowd analysis. <a href="https://github.com/roboflow/supervision/pull/1555">#1555</a></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
@@ -5147,7 +5172,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added <a href="https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr"><code>from_easyocr</code></a>, allowing integration of OCR results into the supervision framework. <a href="https://github.com/JaidedAI/EasyOCR">EasyOCR</a> is an open-source optical character recognition (OCR) library that can read text from images. <a href="https://github.com/roboflow/supervision/pull/1515">#1515</a></p>
+<p>Added <a href="https://supervision.roboflow.com/0.24.0/detection/core/#supervision.detection.core.Detections.from_easyocr"><code>from_easyocr</code></a>, integrating results from <a href="https://github.com/JaidedAI/EasyOCR">EasyOCR</a>, an open-source OCR library, into the supervision framework. <a href="https://github.com/roboflow/supervision/pull/1515">#1515</a></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">easyocr</span>
 </span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
@@ -5169,7 +5194,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added <a href="https://supervision.roboflow.com/0.24.0/detection/utils/#supervision.detection.utils.oriented_box_iou_batch"><code>oriented_box_iou_batch</code></a> function to <code>detection.utils</code>. This function computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). <a href="https://github.com/roboflow/supervision/pull/1502">#1502</a></p>
+<p>Added <a href="https://supervision.roboflow.com/0.24.0/detection/utils/#supervision.detection.utils.oriented_box_iou_batch"><code>oriented_box_iou_batch</code></a> to <code>detection.utils</code> — computes Intersection over Union (IoU) for oriented or rotated bounding boxes (OBB). <a href="https://github.com/roboflow/supervision/pull/1502">#1502</a></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">boxes_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]])</span>
@@ -5179,7 +5204,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Extended <a href="https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator"><code>PolygonZoneAnnotator</code></a> to allow setting opacity when drawing zones, providing enhanced visualization by filling the zone with adjustable transparency. <a href="https://github.com/roboflow/supervision/pull/1527">#1527</a></p>
+<p>Extended <a href="https://supervision.roboflow.com/0.24.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZoneAnnotator"><code>PolygonZoneAnnotator</code></a> with an opacity option for zone fill (adjustable transparency). <a href="https://github.com/roboflow/supervision/pull/1527">#1527</a></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ncnn.model_zoo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
@@ -5211,13 +5236,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Supervision now depends on <code>opencv-python</code> rather than <code>opencv-python-headless</code>. <a href="https://github.com/roboflow/supervision/pull/1530">#1530</a></p>
 </li>
 <li>
-<p>Fixed the COCO 101 point Average Precision algorithm to correctly interpolate precision, providing a more precise calculation of average precision without averaging out intermediate values. <a href="https://github.com/roboflow/supervision/pull/1500">#1500</a></p>
+<p>Fixed the COCO 101-point Average Precision algorithm to correctly interpolate precision, avoiding averaged-out intermediate values. <a href="https://github.com/roboflow/supervision/pull/1500">#1500</a></p>
 </li>
 </ul>
 <h3 id="0230-aug-28-2024">0.23.0 <small>Aug 28, 2024</small><a class="headerlink" href="#0230-aug-28-2024" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/930">#930</a>: <code>IconAnnotator</code>, a <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator">new annotator</a> that allows drawing icons on each detection. Useful if you want to draw a specific icon for each class.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/930">#930</a>: <code>IconAnnotator</code>, a <a href="https://supervision.roboflow.com/0.23.0/detection/annotators/#supervision.annotators.core.IconAnnotator">new annotator</a> that draws an icon on each detection — useful for per-class icons.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
@@ -5312,7 +5337,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/1448">#1448</a>: Various annotator type issues have been resolved, supporting expanded error handling.</p>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1348">#1348</a>: Introduced a new method for <a href="https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator">seeking to a specific video frame</a>, addressing cases where traditional seek methods were failing. It can be enabled with <code>iterative_seek=True</code>.</p>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1348">#1348</a>: Added a new method for <a href="https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator">seeking to a specific video frame</a>, for cases where traditional seeking fails. Enable with <code>iterative_seek=True</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
 </span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span>
@@ -5379,19 +5404,19 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </div>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1296">#1296</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> now supports parsing results from the <a href="https://huggingface.co/microsoft/Florence-2-large">Florence 2</a> model, extending the capability to handle outputs from this Large Multimodal Model (LMM). This includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb">Colab notebook</a>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1296">#1296</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> now supports parsing results from the <a href="https://huggingface.co/microsoft/Florence-2-large">Florence 2</a> model, a Large Multimodal Model (LMM) — includes detailed object detection, OCR with region proposals, segmentation, and more. Find out more in our <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-florence-2-on-detection-dataset.ipynb">Colab notebook</a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1232">#1232</a> to support keypoint detection with Mediapipe. Both <a href="https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb">legacy</a> and <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python">modern</a> pipelines are supported. See <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> for more.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1232">#1232</a>: keypoint detection support with Mediapipe — both <a href="https://colab.research.google.com/github/googlesamples/mediapipe/blob/main/examples/pose_landmarker/python/%5BMediaPipe_Python_Tasks%5D_Pose_Landmarker.ipynb">legacy</a> and <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/python">modern</a> pipelines. See <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> for more.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1316">#1316</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> extended to support FaceMesh from Mediapipe. This enhancement allows for processing both face landmarks from <code>FaceLandmarker</code>, and legacy results from <code>FaceMesh</code>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1316">#1316</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe"><code>sv.KeyPoints.from_mediapipe</code></a> extended to support FaceMesh — processes face landmarks from both <code>FaceLandmarker</code> and legacy <code>FaceMesh</code>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1310">#1310</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2"><code>sv.KeyPoints.from_detectron2</code></a> is a new <code>KeyPoints</code> method, adding support for extracting keypoints from the popular <a href="https://github.com/facebookresearch/detectron2">Detectron 2</a> platform.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1310">#1310</a>: <a href="https://supervision.roboflow.com/0.22.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_detectron2"><code>sv.KeyPoints.from_detectron2</code></a>, a new <code>KeyPoints</code> method for extracting keypoints from the popular <a href="https://github.com/facebookresearch/detectron2">Detectron 2</a> platform.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1300">#1300</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>sv.Detections.from_detectron2</code></a> now supports segmentation models detectron2. The resulting masks can be used with <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a> for displaying annotations.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1300">#1300</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>sv.Detections.from_detectron2</code></a> now supports Detectron2 segmentation models — resulting masks work with <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_zoo</span>
 </span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultPredictor</span>
@@ -5419,7 +5444,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added <a href="https://github.com/roboflow/supervision/pull/1277">#1277</a>: if you provide a font that supports symbols of a language, <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.LabelAnnotator.annotate"><code>sv.RichLabelAnnotator</code></a> will draw them on your images.</p>
 <ul>
 <li>
-<p>Various other annotators have been revised to ensure proper in-place functionality when used with <code>numpy</code> arrays. Additionally, we fixed a bug where <code>sv.ColorAnnotator</code> was filling boxes with solid color when used in-place.</p>
+<p>Various annotators revised for correct in-place behavior with <code>numpy</code> arrays; fixed a bug where <code>sv.ColorAnnotator</code> filled boxes with solid color when used in-place.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
@@ -5439,7 +5464,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </ul>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1227">#1227</a>: Added support for loading Oriented Bounding Boxes dataset in YOLO format.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1227">#1227</a>: support for loading Oriented Bounding Box datasets in YOLO format.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>
 </span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="n">train_ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
@@ -5456,7 +5481,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1312">#1312</a>: Fixed <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate"><code>CropAnnotator</code></a>.</p>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/1312">#1312</a>: <a href="https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.TraceAnnotator.annotate"><code>CropAnnotator</code></a>.</p>
 </li>
 </ul>
 <div class="admonition failure">
@@ -5472,7 +5497,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added <a href="https://github.com/roboflow/supervision/pull/975">#975</a> 📝 New Cookbooks: serialize detections into <a href="https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-json.ipynb">json</a> and <a href="https://github.com/roboflow/supervision/blob/de896189b83a1f9434c0a37dd9192ee00d2a1283/docs/notebooks/serialise-detections-to-csv.ipynb">csv</a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1290">#1290</a>: Mostly an internal change, our file utility function now support both <code>str</code> and <code>pathlib</code> paths.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1290">#1290</a>: internal change — file utility functions now support both <code>str</code> and <code>pathlib</code> paths.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/1340">#1340</a>: Two new methods for converting between bounding box formats - <a href="https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xywh_to_xyxy"><code>xywh_to_xyxy</code></a> and <a href="https://supervision.roboflow.com/0.22.0/detection/utils/#supervision.detection.utils.xcycwh_to_xyxy"><code>xcycwh_to_xyxy</code></a></p>
@@ -5516,7 +5541,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added <a href="https://github.com/roboflow/supervision/pull/500">#500</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> to perform non-maximum merging on the current set of object detections.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/1221">#1221</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> allowing to parse Large Multimodal Model (LMM) text result into <a href="https://supervision.roboflow.com/0.21.0/detection/core/"><code>sv.Detections</code></a> object. For now <code>from_lmm</code> supports only <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb">PaliGemma</a> result parsing.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/1221">#1221</a>: <a href="https://supervision.roboflow.com/0.21.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> to parse Large Multimodal Model (LMM) text results into <a href="https://supervision.roboflow.com/0.21.0/detection/core/"><code>sv.Detections</code></a>. Currently supports only <a href="https://colab.research.google.com/github/roboflow-ai/notebooks/blob/main/notebooks/how-to-finetune-paligemma-on-detection-dataset.ipynb">PaliGemma</a> result parsing.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>
 </span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="n">paligemma_result</span> <span class="o">=</span> <span class="s2">&quot;&lt;loc0256&gt;&lt;loc0256&gt;&lt;loc0768&gt;&lt;loc0768&gt; cat&quot;</span>
@@ -5611,10 +5636,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1037">#1037</a>: <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> by adding an additional <code>corner_radius</code> argument that allows for rounding the corners of the bounding box.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1037">#1037</a>: <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> by adding a <code>corner_radius</code> argument to round the corners of the bounding box.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/1109">#1109</a>: <a href="https://supervision.roboflow.com/0.20.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone"><code>sv.PolygonZone</code></a> such that the <code>frame_resolution_wh</code> argument is no longer required to initialize <code>sv.PolygonZone</code>.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/1109">#1109</a>: <a href="https://supervision.roboflow.com/0.20.0/detection/tools/polygon_zone/#supervision.detection.tools.polygon_zone.PolygonZone"><code>sv.PolygonZone</code></a> so the <code>frame_resolution_wh</code> argument is no longer required to initialize it.</p>
 </li>
 </ul>
 <div class="admonition failure">
@@ -5656,7 +5681,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/787">#787</a>: <a href="https://supervision.roboflow.com/0.20.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections"><code>sv.ByteTrack.update_with_detections</code></a> which was removing segmentation masks while tracking. Now, <code>ByteTrack</code> can be used alongside segmentation models.</p>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/787">#787</a>: <a href="https://supervision.roboflow.com/0.20.0/trackers/#supervision.tracker.byte_tracker.core.ByteTrack.update_with_detections"><code>sv.ByteTrack.update_with_detections</code></a> which removed segmentation masks while tracking; <code>ByteTrack</code> now works alongside segmentation models.</p>
 </li>
 </ul>
 <h3 id="0190-march-15-2024">0.19.0 <small>March 15, 2024</small><a class="headerlink" href="#0190-march-15-2024" title="Permanent link">&para;</a></h3>
@@ -5738,7 +5763,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </div>
 <ul>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/875">#875</a>: annotators adding support for Pillow images. All supervision Annotators can now accept an image as either a numpy array or a Pillow Image. They automatically detect its type, draw annotations, and return the output in the same format as the input.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/875">#875</a>: annotators adding support for Pillow images — all supervision Annotators now accept an image as either a numpy array or a Pillow Image, auto-detect its type, and return the output in the same format as the input.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/944">#944</a>: <a href="https://supervision.roboflow.com/0.19.0/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother"><code>sv.DetectionsSmoother</code></a> removing <code>tracking_id</code> from <code>sv.Detections</code>.</p>
@@ -5795,10 +5820,10 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/770">#770</a>: <a href="https://supervision.roboflow.com/0.18.0/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> adding support for OBB (Oriented Bounding Boxes).</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> to now accept a list of specific box anchors that must cross the line for a detection to be counted. This update marks a significant improvement from the previous requirement, where all four box corners were necessary. Users can now specify a single anchor, such as <code>sv.Position.BOTTOM_CENTER</code>, or any other combination of anchors defined as <code>List[sv.Position]</code>.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> to now accept a list of specific box anchors that must cross the line for a detection to be counted — a single anchor such as <code>sv.Position.BOTTOM_CENTER</code>, or any combination defined as <code>List[sv.Position]</code>, instead of requiring all four box corners.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/756">#756</a>: <a href="https://supervision.roboflow.com/0.18.0/draw/color/#color"><code>sv.Color</code></a>'s and <a href="https://supervision.roboflow.com/0.18.0/draw/color/#colorpalette"><code>sv.ColorPalette</code></a>'s method of accessing predefined colors, transitioning from a function-based approach (<code>sv.Color.red()</code>) to a more intuitive and conventional property-based method (<code>sv.Color.RED</code>).</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/756">#756</a>: <a href="https://supervision.roboflow.com/0.18.0/draw/color/#color"><code>sv.Color</code></a>'s and <a href="https://supervision.roboflow.com/0.18.0/draw/color/#colorpalette"><code>sv.ColorPalette</code></a>'s method of accessing predefined colors, transitioning from a function-based approach (<code>sv.Color.red()</code>) to a property-based method (<code>sv.Color.RED</code>).</p>
 </li>
 </ul>
 <div class="admonition failure">
@@ -5818,7 +5843,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>Detections.from_roboflow()</code> is deprecated and will be removed in <code>supervision-0.22.0</code>. Use <code>Detections.from_inference</code> instead.</p>
 </div>
 <ul>
-<li>Fixed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> functionality to accurately update the counter when an object crosses a line from any direction, including from the side. This enhancement enables more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.</li>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/735">#735</a>: <a href="https://supervision.roboflow.com/0.18.0/detection/tools/line_zone/#linezone"><code>sv.LineZone</code></a> functionality to accurately update the counter when an object crosses a line from any direction, including from the side — enabling more precise tracking and analytics, such as calculating individual in/out counts for each lane on the road.</li>
 </ul>
 <h3 id="0170-december-06-2023">0.17.0 <small>December 06, 2023</small><a class="headerlink" href="#0170-december-06-2023" title="Permanent link">&para;</a></h3>
 <ul>
@@ -5916,7 +5941,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>Added <a href="https://github.com/roboflow/supervision/pull/454">#454</a>: 🤗 Hugging Face Annotators <a href="https://huggingface.co/spaces/Roboflow/Annotators">space</a>.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/482">#482</a>: <a href="https://supervision.roboflow.com/0.16.0/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger"><code>sv.LineZone.trigger</code></a> now return <code>Tuple[np.ndarray, np.ndarray]</code>. The first array indicates which detections have crossed the line from outside to inside. The second array indicates which detections have crossed the line from inside to outside.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/482">#482</a>: <a href="https://supervision.roboflow.com/0.16.0/detection/tools/line_zone/#supervision.detection.line_counter.LineZone.trigger"><code>sv.LineZone.trigger</code></a> now returns <code>Tuple[np.ndarray, np.ndarray]</code> — the first array indicates detections that crossed the line from outside to inside, the second from inside to outside.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/465">#465</a>: Annotator argument name from <code>color_map: str</code> to <code>color_lookup: ColorLookup</code> enum to increase type safety.</p>
@@ -6177,13 +6202,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/125">#125</a>: support for <a href="https://supervision.roboflow.com/0.10.0/dataset/core/#supervision.dataset.core.ClassificationDataset.split"><code>sv.ClassificationDataset.split</code></a> allowing to divide <code>sv.ClassificationDataset</code> into two parts.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/125">#125</a>: support for <a href="https://supervision.roboflow.com/0.10.0/dataset/core/#supervision.dataset.core.ClassificationDataset.split"><code>sv.ClassificationDataset.split</code></a>, dividing <code>sv.ClassificationDataset</code> into two parts.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/110">#110</a>: ability to extract masks from Roboflow API results using <a href="https://supervision.roboflow.com/0.10.0/detection/core/#supervision.detection.core.Detections.from_roboflow"><code>sv.Detections.from_roboflow</code></a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6">commit hash</a>: Supervision Quickstart <a href="https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb">notebook</a> where you can learn more about Detection, Dataset and Video APIs.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/commit/d000292eb2f2342544e0947b65528082e60fb8d6">commit hash</a>: Supervision Quickstart <a href="https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb">notebook</a> covering Detection, Dataset and Video APIs.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/135">#135</a>: <code>sv.get_video_frames_generator</code> documentation to better describe actual behavior.</p>
@@ -6192,7 +6217,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="090-june-7-2023">0.9.0 <small>June 7, 2023</small><a class="headerlink" href="#090-june-7-2023" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/118">#118</a>: ability to select <a href="https://supervision.roboflow.com/0.9.0/detection/core/#supervision.detection.core.Detections.__getitem__"><code>sv.Detections</code></a> by index, list of indexes or slice. Here is an example illustrating the new selection methods.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/118">#118</a>: ability to select <a href="https://supervision.roboflow.com/0.9.0/detection/core/#supervision.detection.core.Detections.__getitem__"><code>sv.Detections</code></a> by index, list of indexes or slice.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-49-2"><a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>
 </span><span id="__span-49-3"><a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -6205,13 +6230,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/101">#101</a>: ability to extract masks from YOLOv8 result using <a href="https://supervision.roboflow.com/0.8.0/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a>. Here is an example illustrating how to extract boolean masks from the result of the YOLOv8 model inference.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/101">#101</a>: ability to extract masks from YOLOv8 result using <a href="https://supervision.roboflow.com/0.8.0/detection/core/#supervision.detection.core.Detections.from_yolov8"><code>sv.Detections.from_yolov8</code></a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/122">#122</a>: ability to crop image using <a href="https://supervision.roboflow.com/0.9.0/utils/image/#crop"><code>sv.crop</code></a>. Here is an example showing how to get a separate crop for each detection in <code>sv.Detections</code>.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/122">#122</a>: ability to crop image using <a href="https://supervision.roboflow.com/0.9.0/utils/image/#crop"><code>sv.crop</code></a>.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/120">#120</a>: ability to conveniently save multiple images into directory using <a href="https://supervision.roboflow.com/0.9.0/utils/image/#imagesink"><code>sv.ImageSink</code></a>. Here is an example showing how to save every tenth video frame as a separate image.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/120">#120</a>: ability to conveniently save multiple images into directory using <a href="https://supervision.roboflow.com/0.9.0/utils/image/#imagesink"><code>sv.ImageSink</code></a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-50-2"><a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>
 </span><span id="__span-50-3"><a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">ImageSink</span><span class="p">(</span><span class="n">target_dir_path</span><span class="o">=</span><span class="s2">&quot;target/directory/path&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
@@ -6228,7 +6253,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="080-may-17-2023">0.8.0 <small>May 17, 2023</small><a class="headerlink" href="#080-may-17-2023" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: support for dataset inheritance. The current <code>Dataset</code> got renamed to <code>DetectionDataset</code>. Now <a href="https://supervision.roboflow.com/0.8.0/dataset/core/#detectiondataset"><code>DetectionDataset</code></a> inherits from <code>BaseDataset</code>. This change was made to enforce the future consistency of APIs of different types of computer vision datasets.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: support for dataset inheritance — <code>Dataset</code> renamed to <code>DetectionDataset</code>, now inheriting from <a href="https://supervision.roboflow.com/0.8.0/dataset/core/#detectiondataset"><code>BaseDataset</code></a>, to keep future computer vision dataset APIs consistent.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/100">#100</a>: ability to save datasets in YOLO format using <a href="https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.as_yolo"><code>DetectionDataset.as_yolo</code></a>.</p>
@@ -6254,7 +6279,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/103">#103</a>: support for <a href="https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.split"><code>DetectionDataset.split</code></a> allowing to divide <code>DetectionDataset</code> into two parts.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/103">#103</a>: support for <a href="https://supervision.roboflow.com/0.8.0/dataset/core/#supervision.dataset.core.DetectionDataset.split"><code>DetectionDataset.split</code></a>, dividing <code>DetectionDataset</code> into two parts.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-52-2"><a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>
 </span><span id="__span-52-3"><a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -6354,7 +6379,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 09:38:53 UTC">September 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 15:26:50 UTC">September 17, 2026</span>
   </span>
 
     
@@ -6382,14 +6407,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
-          
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
-        </a>
-      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+          
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
