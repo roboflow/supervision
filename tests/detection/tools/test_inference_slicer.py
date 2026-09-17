@@ -865,3 +865,24 @@ class TestInferenceSlicerOrdering:
         assert completion_order == list(range(slice_count - batch_size, 0, -batch_size))
         assert detections.class_id is not None
         assert detections.class_id.tolist() == list(range(slice_count))
+
+def test_inference_slicer_with_source_image_metadata() -> None:
+    # Prepare dummy image and callback returning detections with source_image metadata
+    image = np.zeros((1000, 1000, 3), dtype=np.uint8)
+
+    def callback(image_slice: np.ndarray) -> sv.Detections:
+        detections = sv.Detections.empty()
+        detections.metadata = {"source_image": image_slice}
+        return detections
+
+    slicer = sv.InferenceSlicer(
+        callback=callback,
+        slice_wh=(500, 500),
+        overlap_wh_percent=(0.1, 0.1),
+    )
+
+    result = slicer(image)
+
+    assert "source_image" in result.metadata
+    assert np.array_equal(result.metadata["source_image"], image)
+    
