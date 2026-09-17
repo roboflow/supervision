@@ -5,8 +5,8 @@ permissions:
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
+    branches: ["main", "develop", "release/*"]
+  pull_request: {}
   schedule:
     # Run once a week on Sundays
     - cron: "0 9 * * 0"
