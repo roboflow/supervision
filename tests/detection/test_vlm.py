@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
@@ -5,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -1352,6 +1355,32 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert np.allclose(confidence, [0.8, 0.9])
     assert masks is not None
     assert masks.shape == (2, 480, 640)
+
+
+def _gemini_mask_data_uri(probabilities: np.ndarray) -> str:
+    """Encode a 0-255 probability map as the PNG data URI Gemini returns as a mask."""
+    buffer = io.BytesIO()
+    Image.fromarray(probabilities).save(buffer, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability():
+    """A mask pixel is foreground only where its probability is above 127 of 255."""
+    probabilities = np.array([[255, 128], [127, 1]], dtype=np.uint8)
+    result = json.dumps(
+        [
+            {
+                "box_2d": [0, 0, 1000, 1000],
+                "label": "cat",
+                "mask": _gemini_mask_data_uri(probabilities),
+            }
+        ]
+    )
+
+    _, _, _, _, masks = from_google_gemini_2_5(result=result, resolution_wh=(2, 2))
+
+    assert masks is not None
+    np.testing.assert_array_equal(masks, [[[True, True], [False, False]]])
 
 
 def test_from_vlm_unsupported_future_enum_raises(

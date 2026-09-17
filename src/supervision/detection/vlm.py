@@ -902,7 +902,8 @@ def from_google_gemini_2_5(
             `class_name` is an array of shape `(n,)` with class labels,
             `confidence` is an optional array of shape `(n,)` with confidence
             scores, and `masks` is an optional array of shape `(n, h, w)` with
-            segmentation masks.
+            segmentation masks. Each mask PNG is a 0-255 probability map, kept
+            where it is above `127` after resizing to its box.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -973,7 +974,10 @@ def from_google_gemini_2_5(
                 resample=Image.Resampling.BILINEAR,
             )
             np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+            # The PNG is a probability map from 0 to 255, and the bilinear resize
+            # blends values along every edge. Binarize at the midpoint, as Google's
+            # segmentation guide does, so pixels scored as unlikely stay outside.
+            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 127
             masks_list.append(np_mask)
 
         # A response whose items are all filtered out still owes the caller a 3D
