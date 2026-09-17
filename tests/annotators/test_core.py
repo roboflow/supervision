@@ -1650,6 +1650,24 @@ class TestIconAnnotator:
 
         assert imread_calls == 1
 
+    def test_draws_grayscale_icon_with_alpha(self, tmp_path):
+        """A grayscale PNG icon with alpha is drawn only where it is opaque."""
+        icon = np.zeros((16, 16, 2), dtype=np.uint8)
+        icon[4:12, 4:12] = (200, 255)
+        icon_path = tmp_path / "gray_alpha.png"
+        Image.fromarray(icon).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[12:20, 20:28] = 200
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
 
 class TestBackgroundOverlayAnnotator:
     """Tests for BackgroundOverlayAnnotator class"""
