@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-08
+date_modified: 2026-09-17
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.get_video_frames_generator` now stops at `end` when `iterative_seek=True`. The iterative seek grabbed frames up to `start` by counting `start` itself down to zero, and the generator then measured `end` from that zero instead of from `start`. It therefore read on past `end` by `start` frames: `start=2, end=5` yielded frames 2 to 6 instead of 2 to 4, and `start=4, end=6` yielded frames 4 to 9. The seek now counts with a separate counter, so both seek modes yield the same frames. Calls without `iterative_seek`, and calls with `start=0`, are unchanged. [#2583](https://github.com/roboflow/supervision/pull/2583)
 
 - `sv.DetectionDataset.from_labelme` now finds images for LabelMe files saved on Windows when it runs on Linux or macOS. LabelMe writes `imagePath` relative to the JSON file with the separator of the system that saved it, so a file saved on Windows holds a value such as `..\images\a.jpg`. The loader keeps only the file name of `imagePath`, but took it with `Path(...).name`, which on Linux and macOS does not treat a backslash as a separator; the whole value became the file name, the dataset pointed at `images/..\images\a.jpg`, and reading the image failed with `ValueError: Could not read image from path`. The file name is now taken with either separator on every system, as LabelMe itself does when it reads its own files. Files that use forward slashes, and every file on Windows, load as before. [#2581](https://github.com/roboflow/supervision/pull/2581)
 
