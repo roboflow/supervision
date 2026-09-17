@@ -60,11 +60,19 @@ logger = _get_logger(__name__)
 def _load_icon_from_path(
     icon_path: str, icon_resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.uint8]:
-    """Load and resize an icon image through a cache shared by annotators."""
+    """Load and resize an icon image through a cache shared by annotators.
+
+    Icons are read unchanged to keep their alpha channel, which also keeps a grayscale
+    PNG as a 2-D array; it is expanded to BGR, the layout the icon overlay draws.
+    """
     icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
     if icon is None:
         raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
     icon_array = cast(npt.NDArray[np.uint8], icon)
+    if icon_array.ndim == 2:
+        icon_array = cast(
+            npt.NDArray[np.uint8], cv2.cvtColor(icon_array, cv2.COLOR_GRAY2BGR)
+        )
     result: npt.NDArray[np.uint8] = letterbox_image(
         image=icon_array, resolution_wh=icon_resolution_wh
     )

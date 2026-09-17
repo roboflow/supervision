@@ -1599,6 +1599,22 @@ class TestCropAnnotator:
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
+    def test_draws_grayscale_icon(self, tmp_path):
+        """A grayscale PNG icon without alpha is drawn as its gray pixels."""
+        icon_path = tmp_path / "gray.png"
+        Image.fromarray(np.full((16, 16), 200, dtype=np.uint8)).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = 200
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
     def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
         """Internal overlay must not surface any deprecation warning."""
         icon_path = str(tmp_path / "icon.png")
