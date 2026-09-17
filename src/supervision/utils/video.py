@@ -167,6 +167,7 @@ class VideoSink:
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ) -> tuple[cv2.VideoCapture, int, int]:
+    """Open a video, position it at `start`, and return it with the clamped range."""
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -177,11 +178,12 @@ def _validate_and_setup_video(
     end = min(end, total_frames) if end is not None else total_frames
 
     if iterative_seek:
-        while start > 0:
+        # Count grabs separately: `start` is returned as the position of the first
+        # frame read, and the caller measures `end` from it.
+        for _ in range(start):
             success = video.grab()
             if not success:
                 break
-            start -= 1
     elif start > 0:
         video.set(cv2.CAP_PROP_POS_FRAMES, start)
 
