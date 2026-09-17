@@ -2181,6 +2181,27 @@ class TestTraceAnnotatorEmptyDetections:
 class TestTraceAnnotatorPendingTracks:
     """Tests for TraceAnnotator on frames that carry pending (`-1`) tracks."""
 
+    def test_rejects_lookup_not_sized_to_original_detections(
+        self, test_image: np.ndarray
+    ) -> None:
+        """A lookup cannot become valid only after pending tracks are removed."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(
+            xyxy=[[0, 0, 10, 10], [40, 40, 60, 60]],
+            class_id=[0, 0],
+            tracker_id=[-1, 7],
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Length of color lookup 1 does not match length of detections 2",
+        ):
+            annotator.annotate(
+                scene=test_image.copy(),
+                detections=detections,
+                custom_color_lookup=np.array([1]),
+            )
+
     def test_custom_color_lookup_stays_aligned_when_a_track_is_pending(
         self, test_image: np.ndarray
     ) -> None:

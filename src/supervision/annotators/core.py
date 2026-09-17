@@ -2228,12 +2228,15 @@ class TraceAnnotator(BaseAnnotator):
             )
         is_confirmed = detections.tracker_id != PENDING_TRACK_ID
         filtered_detections: Detections = detections[is_confirmed]  # type: ignore
-        # A custom lookup holds one entry per detection passed in, so it must drop the
-        # pending tracks as well. A lookup of any other length is still left for
-        # `resolve_color_idx` to reject.
+        # Validate before filtering so an invalid lookup cannot happen to match only
+        # the confirmed tracks. The matching lookup then drops pending-track entries.
         if custom_color_lookup is not None:
-            if len(custom_color_lookup) == len(detections):
-                custom_color_lookup = custom_color_lookup[is_confirmed]
+            if len(custom_color_lookup) != len(detections):
+                raise ValueError(
+                    f"Length of color lookup {len(custom_color_lookup)} "
+                    f"does not match length of detections {len(detections)}"
+                )
+            custom_color_lookup = custom_color_lookup[is_confirmed]
 
         self.trace.put(filtered_detections)
         for detection_idx in range(len(filtered_detections)):
