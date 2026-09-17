@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -317,6 +318,78 @@ def test_fallback_imencode_reports_failure_for_unknown_extension() -> None:
 
     assert not success
     assert encoded is None
+
+
+def _gradient_image() -> np.ndarray:
+    """Return a small BGR image whose smooth gradients lossy codecs round off."""
+    rows, columns = np.mgrid[0:48, 0:64]
+    channels = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
+    return np.dstack(channels).astype(np.uint8)
+
+
+def _encode_with_imwrite(directory: Path, extension: str, image: np.ndarray) -> bytes:
+    """Encode `image` with the fallback `_imwrite` and return the file's bytes."""
+    path = directory / f"image{extension}"
+    assert _imwrite(str(path), image)
+    return path.read_bytes()
+
+
+def _encode_with_imencode(directory: Path, extension: str, image: np.ndarray) -> bytes:
+    """Encode `image` with the fallback `_imencode` and return the encoded bytes."""
+    success, encoded = _imencode(extension, image)
+    assert success
+    assert encoded is not None
+    return encoded.tobytes()
+
+
+def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
+    """Return the quantization tables, which a JPEG's quality setting determines."""
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        return dict(image.quantization)
+
+
+@pytest.mark.parametrize(
+    "encode",
+    [
+        pytest.param(_encode_with_imwrite, id="imwrite"),
+        pytest.param(_encode_with_imencode, id="imencode"),
+    ],
+)
+def test_fallback_encoders_match_opencv_default_jpeg_quality(
+    tmp_path: Path, encode: Callable[[Path, str, np.ndarray], bytes]
+) -> None:
+    """Encode JPEG at the quality OpenCV uses when no parameters are given."""
+    image = _gradient_image()
+    expected = cv2.imencode(".jpg", image)[1].tobytes()
+
+    actual = encode(tmp_path, ".jpg", image)
+
+    assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
+
+
+@pytest.mark.parametrize(
+    "encode",
+    [
+        pytest.param(_encode_with_imwrite, id="imwrite"),
+        pytest.param(_encode_with_imencode, id="imencode"),
+    ],
+)
+def test_fallback_encoders_write_webp_losslessly_like_opencv(
+    tmp_path: Path, encode: Callable[[Path, str, np.ndarray], bytes]
+) -> None:
+    """Encode WebP losslessly, as OpenCV does when no parameters are given."""
+    image = _gradient_image()
+    expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
+
+    actual = encode(tmp_path, ".webp", image)
+
+    decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
+    np.testing.assert_array_equal(decoded, expected)
+    np.testing.assert_array_equal(decoded, image)
 
 
 def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
