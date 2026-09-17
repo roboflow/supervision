@@ -1364,7 +1364,7 @@ def _gemini_mask_data_uri(probabilities: np.ndarray) -> str:
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
 
 
-def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability():
+def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability() -> None:
     """A mask pixel is foreground only where its probability is above 127 of 255."""
     probabilities = np.array([[255, 128], [127, 1]], dtype=np.uint8)
     result = json.dumps(
