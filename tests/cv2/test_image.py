@@ -278,6 +278,59 @@ def test_fallback_image_io_preserves_sixteen_bit_unchanged(tmp_path: Path) -> No
     )
 
 
+@pytest.mark.parametrize(
+    ("pixels", "mode", "transparency"),
+    [
+        pytest.param(
+            np.array([[[0, 0], [90, 128]], [[180, 200], [255, 255]]], dtype=np.uint8),
+            "LA",
+            None,
+            id="gray-alpha",
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "RGB",
+            (10, 20, 30),
+            id="rgb-transparent-color",
+        ),
+        pytest.param(
+            np.array([[255, 0], [0, 255]], dtype=np.uint8), "1", None, id="one-bit"
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "P",
+            None,
+            id="palette",
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "P",
+            0,
+            id="palette-transparent-color",
+        ),
+    ],
+)
+def test_fallback_imread_unchanged_matches_opencv_channels_and_depth(
+    tmp_path: Path, pixels: np.ndarray, mode: str, transparency: object
+) -> None:
+    """Read PNGs unchanged with the channels and bit depth OpenCV returns."""
+    from PIL import Image
+
+    image_path = tmp_path / "image.png"
+    image = Image.fromarray(pixels).convert(mode)
+    if transparency is None:
+        image.save(image_path)
+    else:
+        image.save(image_path, transparency=transparency)
+
+    actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+    expected = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+    assert actual is not None
+    assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_in_memory_codec_preserves_bgr() -> None:
     """Preserve BGR channel order across an encode and decode round trip."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
