@@ -825,6 +825,36 @@ def test_key_points_as_detections_mixed_valid_invalid_batch():
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
 
 
+@pytest.mark.parametrize(
+    ("selected_keypoint_indices", "expected_xyxy"),
+    [
+        pytest.param(None, [[10, 20, 30, 40]], id="all-keypoints"),
+        pytest.param([1, 2], [[30, 40, 30, 40]], id="selected-keypoints"),
+    ],
+)
+def test_key_points_as_detections_ignores_invisible_keypoints(
+    selected_keypoint_indices: list[int] | None, expected_xyxy: list[list[int]]
+) -> None:
+    """Keypoints marked not visible stay out of the box, as they do in `with_nms`."""
+    key_points = KeyPoints(
+        xy=np.array(
+            [[[10, 20], [30, 40], [300, 400]], [[50, 60], [70, 80], [90, 100]]],
+            dtype=np.float32,
+        ),
+        class_id=np.array([0, 1]),
+        visible=np.array([[True, True, False], [False, False, False]]),
+    )
+
+    detections = key_points.as_detections(
+        selected_keypoint_indices=selected_keypoint_indices
+    )
+
+    np.testing.assert_array_equal(
+        detections.xyxy, np.array(expected_xyxy, dtype=np.float32)
+    )
+    np.testing.assert_array_equal(detections.class_id, np.array([0]))
+
+
 def test_key_points_getitem_empty_list():
     """Selecting with an empty list returns an empty KeyPoints, like Detections."""
     key_points = _create_key_points(
