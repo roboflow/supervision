@@ -407,6 +407,9 @@ def draw_image(
     Args:
         scene: Background image where the new image will be drawn.
         image: Image to draw, either a file path or an already-loaded image array.
+            A 2-D grayscale image is not accepted, whether it is passed as an array
+            or read from a path; convert it to BGR first, for example with
+            `cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)`.
         opacity: Opacity of the image to be drawn.
         rect: Rectangle specifying where to draw the image.
 
@@ -416,7 +419,8 @@ def draw_image(
     Raises:
         FileNotFoundError: If the image path does not exist.
         OSError: If the image path exists but cannot be decoded.
-        ValueError: For invalid opacity or rectangle dimensions.
+        ValueError: If the image is not 3-D with 3 (BGR) or 4 (BGRA) channels, or
+            for invalid opacity or rectangle dimensions.
 
     Example:
         ```pycon
