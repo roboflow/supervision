@@ -40,6 +40,11 @@ jobs:
           - { os: "macos-latest", python-version: "3.13", cv2: "opencv-python-headless" }
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -142,6 +147,11 @@ jobs:
     needs: [run-tests, clean-wheel]
     if: always()
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
       - name: 📋 Display test result
         run: echo "tests=${{ needs.run-tests.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
       - name: ❌ Fail guardian on test failure
