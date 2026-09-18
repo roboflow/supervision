@@ -106,7 +106,8 @@ def plot_images_grid(
     # Keep pyplot lazy so importing notebook helpers does not import matplotlib.
     import matplotlib.pyplot as plt
 
-    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+    # Without `squeeze=False`, a 1x1 grid returns a lone `Axes` that has no `.flat`.
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size, squeeze=False)
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images_np):
