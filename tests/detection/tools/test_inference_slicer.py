@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision as sv
 from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
@@ -935,6 +936,34 @@ class TestInferenceSlicerMetadata:
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
                 metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+
+        detections = slicer(image)
+
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+    def test_source_image_restored_for_pil_input(self) -> None:
+        """A PIL input image is restored as source image, same as an ndarray input.
+
+        PIL is a first-class `InferenceSlicer` input, so a `source_image` key dropped
+        because slices disagree must be recovered for it too — the restore is only
+        skipped for windowed rasters, where no full in-memory image exists.
+        """
+        rng = np.random.default_rng(4)
+        array = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        image = Image.fromarray(array)
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            """Return one detection carrying its own tile as source image."""
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()},
             )
 
         slicer = sv.InferenceSlicer(

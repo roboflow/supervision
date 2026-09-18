@@ -447,7 +447,9 @@ class InferenceSlicer:
         Metadata keys that disagree across slices, or that only some slices carry,
         are dropped rather than raising — slices legitimately differ in per-tile
         metadata. The source image is the one such key worth recovering: when any
-        slice carried it, the merged result gets the full input image back. Any
+        slice carried it, the merged result gets the full input image back —
+        array or PIL alike, but not a windowed raster, which has no full
+        in-memory image to hand back. Any
         other key lost this way is reported once per slicer instance, since a key
         the user meant to be global (``video_name``, ``camera_id``, …) would
         otherwise vanish silently.
@@ -475,7 +477,7 @@ class InferenceSlicer:
             SOURCE_IMAGE_METADATA_FIELD in merged_metadata
             or SOURCE_IMAGE_METADATA_FIELD in dropped_keys
         )
-        if had_source_image and isinstance(image, np.ndarray):
+        if had_source_image and not _is_windowed_raster(image):
             merged.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
 
         # A key restored above was not actually lost, so it must not be reported.
