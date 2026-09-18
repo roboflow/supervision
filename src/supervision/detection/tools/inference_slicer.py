@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
-from supervision.detection.utils.internal import metadata_values_equal
+from supervision.detection.utils.internal import merge_metadata_lenient
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
@@ -380,18 +380,7 @@ class InferenceSlicer:
                     ):
                         detections_list.extend(batch_detections)
 
-            has_source_image = any(
-                "source_image" in d.metadata
-                for d in detections_list
-                if not d.is_empty()
-            )
-            self._drop_unmergeable_metadata(detections_list)
-
-            merged = Detections.merge(detections_list=detections_list)
-
-            if has_source_image and isinstance(image, np.ndarray):
-                merged.metadata["source_image"] = image
-
+            merged = self._merge_slice_detections(detections_list, image)
             return self._apply_overlap_filter(merged)
 
         first_offset = offsets[0]
@@ -443,42 +432,48 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-        has_source_image = any(
-            "source_image" in d.metadata for d in detections_list if not d.is_empty()
-        )
-        self._drop_unmergeable_metadata(detections_list)
-
-        merged = Detections.merge(detections_list=detections_list)
-
-        if has_source_image and isinstance(image, np.ndarray):
-            merged.metadata["source_image"] = image
-
+        merged = self._merge_slice_detections(detections_list, image)
         return self._apply_overlap_filter(merged)
 
     @staticmethod
-    def _drop_unmergeable_metadata(detections_list: list[Detections]) -> None:
-        """Drop metadata keys that differ across slices or are missing in some."""
+    def _merge_slice_detections(
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> Detections:
+        """Merge per-slice detections, reconciling their metadata leniently.
+
+        Metadata keys that disagree across slices, or that only some slices carry,
+        are dropped rather than raising — slices legitimately differ in per-tile
+        metadata. The source image is the one such key worth recovering: when any
+        slice carried it, the merged result gets the full input image back.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged detections, before overlap filtering.
+        """
         non_empty = [d for d in detections_list if not d.is_empty()]
-        if len(non_empty) <= 1:
-            return
+        merged_metadata, dropped_keys = merge_metadata_lenient(
+            [d.metadata for d in non_empty]
+        )
 
-        first_metadata = non_empty[0].metadata
-        keys_to_drop = set()
-
-        for key in list(first_metadata.keys()):
-            for d in non_empty[1:]:
-                if key not in d.metadata or not metadata_values_equal(
-                    first_metadata[key], d.metadata[key]
-                ):
-                    keys_to_drop.add(key)
-                    break
-
-        all_keys = set().union(*(d.metadata.keys() for d in non_empty))
-        keys_to_drop.update(all_keys - set(first_metadata.keys()))
-
+        # `Detections.merge` would re-compare the same metadata and raise on the
+        # conflicts just resolved, so hand it empty dicts and attach the result.
         for d in non_empty:
-            for key in keys_to_drop:
-                d.metadata.pop(key, None)
+            d.metadata = {}
+        merged = Detections.merge(detections_list=detections_list)
+        merged.metadata = merged_metadata
+
+        had_source_image = (
+            SOURCE_IMAGE_METADATA_FIELD in merged_metadata
+            or SOURCE_IMAGE_METADATA_FIELD in dropped_keys
+        )
+        if had_source_image and isinstance(image, np.ndarray):
+            merged.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
+
+        return merged
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset

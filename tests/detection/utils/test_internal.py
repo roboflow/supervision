@@ -13,6 +13,7 @@ from supervision.detection.utils.internal import (
     is_metadata_equal,
     merge_data,
     merge_metadata,
+    merge_metadata_lenient,
     metadata_values_equal,
     process_roboflow_result,
 )
@@ -1385,3 +1386,77 @@ def test_merge_metadata_preserves_nan_array_values() -> None:
     result = merge_metadata([{"calib": calibration}, {"calib": calibration.copy()}])
 
     np.testing.assert_array_equal(result["calib"], calibration)
+
+
+class TestMergeMetadataLenient:
+    def test_empty_list_merges_to_empty_result(self) -> None:
+        """An empty metadata list merges to an empty dict with nothing dropped."""
+        assert merge_metadata_lenient([]) == ({}, set())
+
+    def test_single_dictionary_survives_unchanged(self) -> None:
+        """A lone metadata dict is returned as-is, since no key can conflict."""
+        assert merge_metadata_lenient([{"key1": 1, "key2": "a"}]) == (
+            {"key1": 1, "key2": "a"},
+            set(),
+        )
+
+    def test_uniform_keys_are_merged(self) -> None:
+        """Keys whose values agree across every dict survive the merge."""
+        metadata_list: list[dict[str, Any]] = [{"key1": 1}, {"key1": 1}, {"key1": 1}]
+
+        assert merge_metadata_lenient(metadata_list) == ({"key1": 1}, set())
+
+    def test_conflicting_scalar_is_dropped(self) -> None:
+        """A key holding different scalars across dicts is dropped, not raised on."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": 1, "key2": "same"}, {"key1": 2, "key2": "same"}]
+        )
+
+        assert merged == {"key2": "same"}
+        assert dropped == {"key1"}
+
+    def test_conflicting_array_is_dropped(self) -> None:
+        """Differing ndarray values drop the key instead of raising ValueError."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": np.array([1, 2])}, {"key1": np.array([3, 4])}]
+        )
+
+        assert merged == {}
+        assert dropped == {"key1"}
+
+    def test_key_present_only_in_first_dictionary_is_dropped(self) -> None:
+        """A key missing from a later dict is dropped even though it never conflicts."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1, "only_first": True}, {"shared": 1}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_first"}
+
+    def test_key_present_only_in_later_dictionary_is_dropped(self) -> None:
+        """A key appearing first in a later dict is dropped for the same reason."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1}, {"shared": 1, "only_second": True}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_second"}
+
+    def test_identical_nan_arrays_survive(self) -> None:
+        """A float array holding NaN is uniform across slices and is not dropped."""
+        calibration = np.array([1.0, np.nan, 3.0])
+
+        merged, dropped = merge_metadata_lenient(
+            [{"calib": calibration}, {"calib": calibration.copy()}]
+        )
+
+        np.testing.assert_array_equal(merged["calib"], calibration)
+        assert dropped == set()
+
+    def test_surviving_value_comes_from_first_dictionary(self) -> None:
+        """The merged value is the first-seen one, matching the comparison anchor."""
+        first = np.array([1, 2])
+
+        merged, _ = merge_metadata_lenient([{"key1": first}, {"key1": first.copy()}])
+
+        assert merged["key1"] is first

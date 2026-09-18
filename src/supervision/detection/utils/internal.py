@@ -664,6 +664,61 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
     return merged_metadata
 
 
+def merge_metadata_lenient(
+    metadata_list: list[_MetadataType],
+) -> tuple[_MetadataType, set[str]]:
+    """Merge metadata dictionaries, dropping keys that cannot be reconciled.
+
+    Unlike :func:`merge_metadata`, which raises on any disagreement, this variant
+    applies a lenient policy: a key survives only when every dictionary carries it
+    and all of its values compare equal under
+    :func:`metadata_values_equal`. Every other key is dropped and reported back so
+    the caller can react to the loss.
+
+    A single traversal both detects conflicts and builds the merged dictionary;
+    the surviving value is the one from the first dictionary that carried the key.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata
+    to this function.
+
+    Args:
+        metadata_list: A list of metadata dictionaries to merge.
+
+    Returns:
+        A 2-tuple of the merged metadata dictionary and the set of dropped keys.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.internal import merge_metadata_lenient
+        >>> merge_metadata_lenient([{"a": 1, "b": 2}, {"a": 1, "b": 3}])
+        ({'a': 1}, {'b'})
+
+        ```
+    """
+    merged_metadata: _MetadataType = {}
+    occurrences: dict[str, int] = {}
+    conflicting: set[str] = set()
+
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            occurrences[key] = occurrences.get(key, 0) + 1
+            if key in conflicting:
+                continue
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+            elif not metadata_values_equal(merged_metadata[key], value):
+                conflicting.add(key)
+
+    dropped_keys = {
+        key
+        for key, count in occurrences.items()
+        if key in conflicting or count != len(metadata_list)
+    }
+    return {
+        key: value for key, value in merged_metadata.items() if key not in dropped_keys
+    }, dropped_keys
+
+
 def get_data_item(
     data: _DetectionDataType,
     index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],

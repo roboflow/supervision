@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import (
     InferenceSlicer,
@@ -922,6 +922,28 @@ class TestInferenceSlicerMetadata:
         assert "slice_id" not in detections.metadata
         assert "source_image" in detections.metadata
         assert np.array_equal(detections.metadata["source_image"], image)
+
+    def test_restored_source_image_is_the_caller_array(self) -> None:
+        """The restored source image is the caller's array itself, not a copy."""
+        rng = np.random.default_rng(3)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            """Return one detection carrying its own tile as source image."""
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+
+        detections = slicer(image)
+
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
 
     def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
         rng = np.random.default_rng(1)
