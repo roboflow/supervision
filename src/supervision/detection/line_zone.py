@@ -106,9 +106,12 @@ class LineZone:
                 the detection has passed the line counter or not. By default,
                 this contains the four corners of the detection's bounding box.
             minimum_crossing_threshold: Detection needs to be seen on the other
-                side of the line for this many frames to be considered as having
-                crossed the line. This is useful when dealing with unstable
-                bounding boxes or when detections may linger on the line.
+                side of the line for this many consecutive frames to be considered
+                as having crossed the line. This is useful when dealing with unstable
+                bounding boxes or when detections may linger on the line. Excursions
+                shorter than this are treated as noise: they neither count as a
+                crossing nor as a return crossing once the detection settles back on
+                the side it started from.
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
@@ -116,6 +119,11 @@ class LineZone:
         self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
+        # Last side of the line a tracker was *confirmed* on. Crossings are counted
+        # against this rather than against the oldest history entry, so a
+        # sub-threshold excursion never becomes the reference side and cannot be
+        # mistaken for a crossing back to the side the tracker never left.
+        self._confirmed_crossing_side: dict[int, bool] = {}
         # Tracks consecutive frames a tracker key has been absent; eviction
         # requires crossing_history_length absent frames so that ByteTrack
         # coasting gaps (single-frame detection drops) don't reset mid-crossing
@@ -202,13 +210,26 @@ class LineZone:
             key = int(tracker_id)
             crossing_history = self.crossing_state_history[key]
             crossing_history.append(tracker_state)
+            # The first observed side seeds the reference; there is nothing to have
+            # crossed from before it.
+            confirmed_side = self._confirmed_crossing_side.setdefault(
+                key, tracker_state
+            )
 
             if len(crossing_history) < self.crossing_history_length:
                 continue
 
-            oldest_state = crossing_history[0]
-            if crossing_history.count(oldest_state) > 1:
+            if tracker_state == confirmed_side:
                 continue
+
+            # Only promote the new side once it has been held for the full threshold,
+            # so a flicker that reverts before the threshold elapses is discarded.
+            sustained_frames_required = self.crossing_history_length - 1
+            recent_states = list(crossing_history)[-sustained_frames_required:]
+            if any(state != tracker_state for state in recent_states):
+                continue
+
+            self._confirmed_crossing_side[key] = tracker_state
 
             if tracker_state:
                 self._in_count_per_class[class_id] += 1
@@ -227,6 +248,7 @@ class LineZone:
                 absent = self._tracker_frames_absent.get(key, 0) + 1
                 if absent >= self.crossing_history_length:
                     del self.crossing_state_history[key]
+                    self._confirmed_crossing_side.pop(key, None)
                     self._tracker_frames_absent.pop(key, None)
                 else:
                     self._tracker_frames_absent[key] = absent
