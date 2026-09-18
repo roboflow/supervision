@@ -593,6 +593,28 @@ def merge_data(
     return cast(_DetectionDataType, merged_data)
 
 
+def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
+    """Check whether two metadata values for the same key can merge into one.
+
+    Defines the value compatibility rule enforced by
+    [`merge_metadata`][supervision.detection.utils.internal.merge_metadata]:
+    arrays compare element-wise via `np.array_equal`, and a mixed
+    array/non-array pair is never equal — `[] == np.array([])` would otherwise
+    compare equal.
+
+    Args:
+        value_a, value_b: Metadata values to compare.
+
+    Returns:
+        True if the values are equal and could share a single merged entry.
+    """
+    if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        return bool(np.array_equal(value_a, value_b))
+    if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+        return False
+    return bool(value_a == value_b)
+
+
 def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
     """Merge metadata from a list of metadata dictionaries.
 
@@ -627,21 +649,13 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 continue
 
             other_value = merged_metadata[key]
-            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+            if not metadata_values_equal(value, other_value):
+                if isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         f"{type(value)}, {type(other_value)}."
                     )
-            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
-                # Since [] == np.array([]).
-                raise ValueError(
-                    f"Conflicting metadata for key: '{key}': "
-                    f"{type(value)}, {type(other_value)}."
-                )
-            else:
-                if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+                raise ValueError(f"Conflicting metadata for key: '{key}'.")
 
     return merged_metadata
 

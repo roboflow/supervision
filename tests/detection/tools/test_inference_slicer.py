@@ -865,3 +865,235 @@ class TestInferenceSlicerOrdering:
         assert completion_order == list(range(slice_count - batch_size, 0, -batch_size))
         assert detections.class_id is not None
         assert detections.class_id.tolist() == list(range(slice_count))
+
+
+class TestInferenceSlicerMetadata:
+    """Metadata attached by the callback must not break the tiled merge."""
+
+    @staticmethod
+    def _striped_image(slice_count: int, slice_size: int = 64) -> np.ndarray:
+        """Build a single row of tiles, each stamped with its own slice index."""
+        image = np.zeros((slice_size, slice_size * slice_count, 3), dtype=np.uint8)
+        for index in range(slice_count):
+            image[:, index * slice_size : (index + 1) * slice_size, 0] = index
+        return image
+
+    @staticmethod
+    def _detections_with_metadata(metadata: dict[str, Any]) -> Detections:
+        """Return a single detection carrying the given collection-level metadata."""
+        return Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+            metadata=metadata,
+        )
+
+    def test_conflicting_metadata_dropped_with_warning(self) -> None:
+        """Per-slice metadata (e.g. RF-DETR's source_image) must not crash the merge.
+
+        Regression test for https://github.com/roboflow/supervision/issues/2594.
+        """
+
+        def callback(tile: np.ndarray) -> Detections:
+            index = int(tile[0, 0, 0])
+            return self._detections_with_metadata(
+                {"source_image": np.full((4, 4, 3), index, dtype=np.uint8)}
+            )
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="source_image"):
+            detections = slicer(image)
+
+        assert len(detections) == 4
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
+
+    def test_identical_metadata_preserved_without_warning(self) -> None:
+        """Metadata equal across slices is global state and must survive the merge."""
+
+        def callback(_: np.ndarray) -> Detections:
+            return self._detections_with_metadata({"video_name": "camera-1"})
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            detections = slicer(image)
+
+        assert len(detections) == 4
+        assert detections.metadata == {"video_name": "camera-1"}
+
+    def test_only_conflicting_metadata_keys_are_dropped(self) -> None:
+        """Agreeing keys survive while conflicting keys of the merge are dropped."""
+
+        def callback(tile: np.ndarray) -> Detections:
+            index = int(tile[0, 0, 0])
+            return self._detections_with_metadata(
+                {
+                    "video_name": "camera-1",
+                    "source_image": np.full((4, 4, 3), index, dtype=np.uint8),
+                }
+            )
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match=r"\['source_image'\]"):
+            detections = slicer(image)
+
+        assert detections.metadata["video_name"] == "camera-1"
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
+
+    def test_key_missing_from_first_slice_is_dropped(self) -> None:
+        """A key only later slices carry is unmergeable and must be dropped.
+
+        Regression test for the dropped-key union bug: seeding the dropped set
+        from the first slice alone left later-only keys in place, so the merge
+        still raised `All metadata dictionaries must have the same keys`.
+        """
+
+        calls = {"count": 0}
+
+        def callback(_: np.ndarray) -> Detections:
+            calls["count"] += 1
+            metadata: dict[str, Any] = {"video_name": "camera-1"}
+            if calls["count"] % 2 == 0:
+                metadata["tile_tag"] = f"tile-{calls['count']}"
+            return self._detections_with_metadata(metadata)
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="tile_tag"):
+            detections = slicer(image)
+
+        assert detections.metadata == {"video_name": "camera-1"}
+
+    def test_source_image_missing_from_first_slice_is_restored(self) -> None:
+        """`source_image` is restored even when the first slice lacked it."""
+
+        calls = {"count": 0}
+
+        def callback(_: np.ndarray) -> Detections:
+            calls["count"] += 1
+            metadata: dict[str, Any] = {"video_name": "camera-1"}
+            if calls["count"] % 2 == 0:
+                metadata["source_image"] = np.full((2, 2), calls["count"])
+            return self._detections_with_metadata(metadata)
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="source_image"):
+            detections = slicer(image)
+
+        assert detections.metadata["video_name"] == "camera-1"
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
+
+    def test_keys_missing_from_some_slices_are_dropped(self) -> None:
+        """Keys absent from some slice results cannot merge and are dropped."""
+
+        calls = {"count": 0}
+
+        def callback(_: np.ndarray) -> Detections:
+            calls["count"] += 1
+            metadata: dict[str, Any] = {"video_name": "camera-1"}
+            if calls["count"] % 2 == 1:
+                metadata["tile_tag"] = f"tile-{calls['count']}"
+            return self._detections_with_metadata(metadata)
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="tile_tag"):
+            detections = slicer(image)
+
+        assert detections.metadata == {"video_name": "camera-1"}
+
+    def test_metadata_conflict_warning_emitted_only_once(self) -> None:
+        """The drop warning fires once per slicer instance, not once per slice."""
+
+        def callback(tile: np.ndarray) -> Detections:
+            index = int(tile[0, 0, 0])
+            return self._detections_with_metadata(
+                {"source_image": np.full((2, 2), index)}
+            )
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
+            slicer(image)
+            slicer(image)
+
+        metadata_warnings = [
+            w
+            for w in recorded_warnings
+            if issubclass(w.category, SupervisionWarnings)
+            and "were dropped" in str(w.message)
+        ]
+        assert len(metadata_warnings) == 1
+
+    def test_batch_path_drops_conflicting_metadata(self) -> None:
+        """The batch_size > 1 code path drops conflicting metadata as well."""
+
+        def callback(tiles: list) -> list:
+            return [
+                self._detections_with_metadata(
+                    {"source_image": np.full((2, 2), int(tile[0, 0, 0]))}
+                )
+                for tile in tiles
+            ]
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+            batch_size=2,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="source_image"):
+            detections = slicer(image)
+
+        assert len(detections) == 4
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
