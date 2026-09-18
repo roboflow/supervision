@@ -10,8 +10,11 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
+    is_metadata_equal,
     merge_data,
     merge_metadata,
+    merge_metadata_lenient,
+    metadata_values_equal,
     process_roboflow_result,
 )
 
@@ -1277,3 +1280,183 @@ def test_cross_product_sign(
     """Verify cross_product returns correct sign for known anchor/vector pairs."""
     result = cross_product(anchors, vector)
     assert int(np.sign(result[0, 0])) == expected_sign
+
+
+class _RaisesOnCompare:
+    """Object whose equality comparison raises, mimicking strict third-party types."""
+
+    def __eq__(self, other: object) -> bool:
+        """Always raise TypeError instead of returning a verdict."""
+        raise TypeError("comparison is not supported")
+
+
+class TestMetadataValuesEqual:
+    """Contract of the total metadata-value equality predicate."""
+
+    @pytest.mark.parametrize(
+        ("value_a", "value_b", "expected"),
+        [
+            pytest.param(
+                np.array([1, 2, 3]), np.array([1, 2, 3]), True, id="ndarray-equal"
+            ),
+            pytest.param(
+                np.array([1, 2, 3]), np.array([4, 5, 6]), False, id="ndarray-differing"
+            ),
+            pytest.param(
+                np.array([1, 2]), [1, 2], False, id="ndarray-vs-list-asymmetric"
+            ),
+            pytest.param(
+                [1, 2], np.array([1, 2]), False, id="list-vs-ndarray-asymmetric"
+            ),
+            pytest.param(
+                np.array([1.0, np.nan, 3.0]),
+                np.array([1.0, np.nan, 3.0]),
+                True,
+                id="float-ndarray-with-nan-equal",
+            ),
+            pytest.param(
+                np.array([1.0, np.nan]),
+                np.array([1.0, 2.0]),
+                False,
+                id="float-ndarray-nan-vs-value",
+            ),
+            pytest.param(
+                np.array(["a", "b"]),
+                np.array(["a", "b"]),
+                True,
+                id="non-float-dtype-equal",
+            ),
+            pytest.param(
+                [np.array([1, 2])],
+                [np.array([1, 2])],
+                False,
+                id="list-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                {"k": np.array([1, 2])},
+                {"k": np.array([1, 2])},
+                False,
+                id="dict-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                (np.array([1, 2]),),
+                (np.array([1, 2]),),
+                False,
+                id="tuple-of-ndarray-ambiguous",
+            ),
+            pytest.param(
+                _RaisesOnCompare(), "anything", False, id="comparison-raises-typeerror"
+            ),
+            pytest.param("source.png", "source.png", True, id="scalar-equal"),
+            pytest.param("source.png", "other.png", False, id="scalar-differing"),
+        ],
+    )
+    def test_returns_verdict_without_raising(
+        self, value_a: Any, value_b: Any, expected: bool
+    ) -> None:
+        """Every value pair yields a boolean verdict instead of propagating an error."""
+        assert metadata_values_equal(value_a, value_b) is expected
+
+
+class TestIsMetadataEqual:
+    """Metadata-dict comparison used by `Detections.__eq__`."""
+
+    def test_mixed_list_and_ndarray_values_are_unequal(self) -> None:
+        """A list value compared against an array value returns False, never raises."""
+        assert is_metadata_equal({"key1": [1, 2]}, {"key1": np.array([1, 2])}) is False
+
+    def test_nan_arrays_compare_equal_to_themselves(self) -> None:
+        """Identical float arrays containing NaN are reported as equal metadata."""
+        calibration = np.array([1.0, np.nan, 3.0])
+
+        assert (
+            is_metadata_equal({"calib": calibration}, {"calib": calibration.copy()})
+            is True
+        )
+
+    def test_differing_key_sets_are_unequal(self) -> None:
+        """Metadata dicts with different key sets are unequal regardless of values."""
+        assert is_metadata_equal({"key1": 1}, {"key2": 1}) is False
+
+
+def test_merge_metadata_preserves_nan_array_values() -> None:
+    """A float metadata array holding NaN survives a merge across identical slices."""
+    calibration = np.array([1.0, np.nan, 3.0])
+
+    result = merge_metadata([{"calib": calibration}, {"calib": calibration.copy()}])
+
+    np.testing.assert_array_equal(result["calib"], calibration)
+
+
+class TestMergeMetadataLenient:
+    def test_empty_list_merges_to_empty_result(self) -> None:
+        """An empty metadata list merges to an empty dict with nothing dropped."""
+        assert merge_metadata_lenient([]) == ({}, set())
+
+    def test_single_dictionary_survives_unchanged(self) -> None:
+        """A lone metadata dict is returned as-is, since no key can conflict."""
+        assert merge_metadata_lenient([{"key1": 1, "key2": "a"}]) == (
+            {"key1": 1, "key2": "a"},
+            set(),
+        )
+
+    def test_uniform_keys_are_merged(self) -> None:
+        """Keys whose values agree across every dict survive the merge."""
+        metadata_list: list[dict[str, Any]] = [{"key1": 1}, {"key1": 1}, {"key1": 1}]
+
+        assert merge_metadata_lenient(metadata_list) == ({"key1": 1}, set())
+
+    def test_conflicting_scalar_is_dropped(self) -> None:
+        """A key holding different scalars across dicts is dropped, not raised on."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": 1, "key2": "same"}, {"key1": 2, "key2": "same"}]
+        )
+
+        assert merged == {"key2": "same"}
+        assert dropped == {"key1"}
+
+    def test_conflicting_array_is_dropped(self) -> None:
+        """Differing ndarray values drop the key instead of raising ValueError."""
+        merged, dropped = merge_metadata_lenient(
+            [{"key1": np.array([1, 2])}, {"key1": np.array([3, 4])}]
+        )
+
+        assert merged == {}
+        assert dropped == {"key1"}
+
+    def test_key_present_only_in_first_dictionary_is_dropped(self) -> None:
+        """A key missing from a later dict is dropped even though it never conflicts."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1, "only_first": True}, {"shared": 1}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_first"}
+
+    def test_key_present_only_in_later_dictionary_is_dropped(self) -> None:
+        """A key appearing first in a later dict is dropped for the same reason."""
+        merged, dropped = merge_metadata_lenient(
+            [{"shared": 1}, {"shared": 1, "only_second": True}]
+        )
+
+        assert merged == {"shared": 1}
+        assert dropped == {"only_second"}
+
+    def test_identical_nan_arrays_survive(self) -> None:
+        """A float array holding NaN is uniform across slices and is not dropped."""
+        calibration = np.array([1.0, np.nan, 3.0])
+
+        merged, dropped = merge_metadata_lenient(
+            [{"calib": calibration}, {"calib": calibration.copy()}]
+        )
+
+        np.testing.assert_array_equal(merged["calib"], calibration)
+        assert dropped == set()
+
+    def test_surviving_value_comes_from_first_dictionary(self) -> None:
+        """The merged value is the first-seen one, matching the comparison anchor."""
+        first = np.array([1, 2])
+
+        merged, _ = merge_metadata_lenient([{"key1": first}, {"key1": first.copy()}])
+
+        assert merged["key1"] is first
