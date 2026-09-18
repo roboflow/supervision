@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 from PIL import Image
 
-import supervision as sv
 from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import (
@@ -897,12 +896,16 @@ def test_inference_slicer_with_source_image_metadata() -> None:
 
 
 class TestInferenceSlicerMetadata:
+    """Tests for lenient per-slice metadata merging and source-image restoration."""
+
     def test_conflicting_metadata_dropped_and_source_image_restored(self) -> None:
+        """A key that conflicts across slices is dropped while shared keys survive."""
         rng = np.random.default_rng(0)
         image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
-            return sv.Detections(
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return a detection carrying a conflicting and a shared metadata key."""
+            return Detections(
                 xyxy=np.array([[10, 10, 50, 50]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
@@ -913,7 +916,7 @@ class TestInferenceSlicerMetadata:
                 },
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
         )
         detections = slicer(image)
@@ -929,16 +932,16 @@ class TestInferenceSlicerMetadata:
         rng = np.random.default_rng(3)
         image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return one detection carrying its own tile as source image."""
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 50, 50]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
                 metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
         )
 
@@ -957,16 +960,16 @@ class TestInferenceSlicerMetadata:
         array = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
         image = Image.fromarray(array)
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return one detection carrying its own tile as source image."""
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 50, 50]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
                 metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()},
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
         )
 
@@ -975,27 +978,41 @@ class TestInferenceSlicerMetadata:
         assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
 
     def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
-        rng = np.random.default_rng(1)
-        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
-        counter = {"count": 0}
+        """A metadata key present in only some slices is dropped from the merge.
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
-            counter["count"] += 1
+        Each slice is stamped with its own index so the callback keys its
+        per-slice-only metadata off the physical slice content, matching the
+        content-keyed pattern used by ``TestInferenceSlicerDroppedMetadataWarning``
+        — never off callback invocation order, which threaded execution does not
+        guarantee.
+        """
+        slice_wh = (100, 100)
+        overlap_wh = (20, 20)
+        offsets = InferenceSlicer._generate_offset(
+            resolution_wh=(200, 200), slice_wh=slice_wh, overlap_wh=overlap_wh
+        )
+        image = np.zeros((200, 200, 3), dtype=np.uint8)
+        for index, (x0, y0, _, _) in enumerate(offsets):
+            image[y0, x0, 0] = index
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return metadata whose per-slice-only key depends on slice content."""
+            index = int(slice_img[0, 0, 0])
             meta = {"shared": 123}
-            if counter["count"] == 1:
+            if index == 0:
                 meta["only_in_first"] = True
-            elif counter["count"] == 2:
+            elif index == len(offsets) - 1:
                 meta["only_in_second"] = True
 
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[5, 5, 20, 20]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.8]),
                 metadata=meta,
             )
 
-        slicer = sv.InferenceSlicer(
-            callback=callback, slice_wh=(100, 100), overlap_wh=(20, 20)
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=slice_wh, overlap_wh=overlap_wh
         )
         detections = slicer(image)
 
@@ -1004,14 +1021,16 @@ class TestInferenceSlicerMetadata:
         assert "only_in_second" not in detections.metadata
 
     def test_batch_mode_handles_metadata_correctly(self) -> None:
+        """Batch-mode callbacks merge metadata the same way as single-slice ones."""
         rng = np.random.default_rng(2)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
 
-        def batch_callback(tiles: list[np.ndarray]) -> list[sv.Detections]:
+        def batch_callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Return one detection per tile, each carrying a per-tile-only key."""
             results = []
             for tile in tiles:
                 results.append(
-                    sv.Detections(
+                    Detections(
                         xyxy=np.array([[10, 10, 30, 30]]),
                         confidence=np.array([0.9]),
                         class_id=np.array([0]),
@@ -1023,7 +1042,7 @@ class TestInferenceSlicerMetadata:
                 )
             return results
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=batch_callback,
             slice_wh=(100, 100),
             overlap_wh=(20, 20),
@@ -1042,27 +1061,25 @@ class TestInferenceSlicerMetadata:
         rng = np.random.default_rng(5)
         image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
         seen_during_filter: list[bool] = []
-        real_with_nmm = sv.Detections.with_nmm
+        real_with_nmm = Detections.with_nmm
 
-        def spying_with_nmm(
-            self: sv.Detections, *args: Any, **kwargs: Any
-        ) -> sv.Detections:
+        def spying_with_nmm(self: Detections, *args: Any, **kwargs: Any) -> Detections:
             """Record whether the source image is present when NMM starts."""
             seen_during_filter.append(SOURCE_IMAGE_METADATA_FIELD in self.metadata)
             return real_with_nmm(self, *args, **kwargs)
 
-        monkeypatch.setattr(sv.Detections, "with_nmm", spying_with_nmm)
+        monkeypatch.setattr(Detections, "with_nmm", spying_with_nmm)
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return overlapping detections carrying their own tile."""
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
                 class_id=np.array([0, 0]),
                 confidence=np.array([0.9, 0.8]),
                 metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback,
             slice_wh=(150, 150),
             overlap_wh=(20, 20),
@@ -1079,10 +1096,10 @@ class TestInferenceSlicerMetadata:
         image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
         counter = {"count": 0}
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return overlapping detections with a per-tile source and tile id."""
             counter["count"] += 1
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
                 class_id=np.array([0, 0]),
                 confidence=np.array([0.9, 0.8]),
@@ -1092,7 +1109,7 @@ class TestInferenceSlicerMetadata:
                 },
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback,
             slice_wh=(150, 150),
             overlap_wh=(20, 20),
@@ -1118,13 +1135,13 @@ class TestInferenceSlicerMetadata:
         rng = np.random.default_rng(9)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
 
-        def empty_callback(slice_img: np.ndarray) -> sv.Detections:
+        def empty_callback(slice_img: np.ndarray) -> Detections:
             """Return zero detections carrying a per-tile source image."""
-            detections = sv.Detections.empty()
+            detections = Detections.empty()
             detections.metadata = {SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()}
             return detections
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=empty_callback, slice_wh=(100, 100), overlap_wh=(20, 20)
         )
 
@@ -1152,16 +1169,16 @@ class TestInferenceSlicerMetadata:
         array = rng.integers(0, 255, (100, 100, 3), dtype=np.uint8)
         image: np.ndarray | Image.Image = Image.fromarray(array) if as_pil else array
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return one detection carrying its own tile as source image."""
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 50, 50]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
                 metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()},
             )
 
-        slicer = sv.InferenceSlicer(callback=callback, slice_wh=(200, 200))
+        slicer = InferenceSlicer(callback=callback, slice_wh=(200, 200))
         with warnings.catch_warnings(record=True) as recorded_warnings:
             warnings.simplefilter("always")
             detections = slicer(image)
@@ -1189,12 +1206,12 @@ class TestInferenceSlicerMetadata:
         counter_lock = threading.Lock()
         counter = {"count": 0}
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return overlapping detections with a per-tile id and source image."""
             with counter_lock:
                 counter["count"] += 1
                 tile_id = counter["count"]
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
                 class_id=np.array([0, 0]),
                 confidence=np.array([0.9, 0.8]),
@@ -1204,7 +1221,7 @@ class TestInferenceSlicerMetadata:
                 },
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback,
             slice_wh=64,
             overlap_wh=0,
@@ -1230,9 +1247,9 @@ class TestInferenceSlicerDroppedMetadataWarning:
     """Dropped per-slice metadata keys are reported once per slicer instance."""
 
     @staticmethod
-    def _non_uniform_callback(slice_img: np.ndarray) -> sv.Detections:
+    def _non_uniform_callback(slice_img: np.ndarray) -> Detections:
         """Return one detection whose metadata differs from tile to tile."""
-        return sv.Detections(
+        return Detections(
             xyxy=np.array([[10, 10, 30, 30]]),
             class_id=np.array([0]),
             confidence=np.array([0.9]),
@@ -1251,7 +1268,7 @@ class TestInferenceSlicerDroppedMetadataWarning:
         """
         rng = np.random.default_rng(10)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=self._non_uniform_callback,
             slice_wh=(100, 100),
             overlap_wh=(20, 20),
@@ -1276,16 +1293,16 @@ class TestInferenceSlicerDroppedMetadataWarning:
         rng = np.random.default_rng(11)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
 
-        def callback(slice_img: np.ndarray) -> sv.Detections:
+        def callback(slice_img: np.ndarray) -> Detections:
             """Return one detection carrying identical metadata on every tile."""
-            return sv.Detections(
+            return Detections(
                 xyxy=np.array([[10, 10, 30, 30]]),
                 class_id=np.array([0]),
                 confidence=np.array([0.9]),
                 metadata={"camera_id": 7},
             )
 
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=callback, slice_wh=(100, 100), overlap_wh=(20, 20)
         )
 
@@ -1304,7 +1321,7 @@ class TestInferenceSlicerDroppedMetadataWarning:
         """
         rng = np.random.default_rng(12)
         image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
-        slicer = sv.InferenceSlicer(
+        slicer = InferenceSlicer(
             callback=self._non_uniform_callback,
             slice_wh=(100, 100),
             overlap_wh=(20, 20),
