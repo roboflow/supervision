@@ -50,6 +50,30 @@ def test_draw_image_valid_image(tmp_path) -> None:
     assert isinstance(result, np.ndarray)
 
 
+@pytest.mark.parametrize("channels", [3, 4])
+def test_draw_image_16_bit_file_draws_its_colors(
+    monkeypatch: pytest.MonkeyPatch, tmp_path, channels: int
+) -> None:
+    """A 16-bit image file is scaled down to 8 bits, not saturated to white."""
+    image_path = tmp_path / "image16.png"
+    image_path.touch()
+    image = np.zeros((10, 10, channels), dtype=np.uint16)
+    image[...] = (100 * 256, 50 * 256, 200 * 256, 65535)[:channels]
+    monkeypatch.setattr(cv2, "imread", lambda path, flags: image)
+    scene = np.zeros((20, 20, 3), dtype=np.uint8)
+    expected = scene.copy()
+    expected[5:15, 5:15] = (100, 50, 200)
+
+    result = draw_image(
+        scene=scene,
+        image=str(image_path),
+        opacity=1.0,
+        rect=Rect(x=5, y=5, width=10, height=10),
+    )
+
+    np.testing.assert_array_equal(result, expected)
+
+
 def test_draw_image_grayscale_file_raises_value_error(tmp_path) -> None:
     """Grayscale image files raise ValueError before channel access."""
     image = np.zeros((100, 100), dtype=np.uint8)
