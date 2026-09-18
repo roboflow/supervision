@@ -405,10 +405,7 @@ def test_fallback_imencode_supports_every_extension_pillow_registers(
     assert _encoded_image_format(encoded.tobytes()) == image_format
 
 
-@pytest.mark.parametrize(
-    "image_format",
-    ["PNG","BMP","TIFF"]
-)
+@pytest.mark.parametrize("image_format", ["PNG", "BMP", "TIFF"])
 def test_opencv_default_save_options_are_empty_for_already_lossless_formats(
     image_format: str,
 ) -> None:
@@ -539,10 +536,7 @@ def test_fallback_encoders_write_webp_losslessly_like_opencv(
     np.testing.assert_array_equal(decoded, _as_bgr(image))
 
 
-@pytest.mark.parametrize(
-    "extension",
-    [".JPG", ".WEBP"]
-)
+@pytest.mark.parametrize("extension", [".JPG", ".WEBP"])
 def test_fallback_imwrite_resolves_uppercase_extension_like_lowercase(
     tmp_path: Path, extension: str
 ) -> None:
