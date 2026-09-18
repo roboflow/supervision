@@ -776,6 +776,27 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     assert result.mAR_at_1 < result.mAR_at_10
 
 
+def test_mar_at_k_ignores_predictions_ranked_below_k() -> None:
+    """A prediction outside the top K cannot take a target from one inside it."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0]),
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 10, 14], [0, 0, 10, 10]], dtype=np.float32),
+        confidence=np.array([0.9, 0.1]),
+        class_id=np.array([0, 0]),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    # Only the top prediction counts at K=1, and its IoU of 100/140 matches the
+    # target at the thresholds 0.5 to 0.7, which are 5 of the 10.
+    assert result.mAR_at_1 == pytest.approx(0.5)
+    assert result.mAR_at_10 == pytest.approx(1.0)
+    assert result.mAR_at_100 == pytest.approx(1.0)
+
+
 def test_greedy_matching_two_valid_pairs():
     """Greedy matching finds both TPs; np.unique style missed the second pair.
 
