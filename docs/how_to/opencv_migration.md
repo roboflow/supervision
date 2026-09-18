@@ -1,7 +1,7 @@
 ---
 comments: true
 description: Migrate Supervision installations after OpenCV becomes an ambient optional backend: use the included fallback by default or select one compatible OpenCV wheel for your application.
-date_modified: 2026-07-17
+date_modified: 2026-09-18
 ---
 
 # Migrate to Supervision Without an OpenCV Dependency
@@ -16,7 +16,7 @@ Install Supervision normally when your application does not otherwise require Op
 pip install supervision
 ```
 
-The fallback keeps Supervision's documented APIs operational. Some text and anti-aliased drawing pixels can differ from OpenCV, so use the same backend while validating image-level baselines.
+The fallback keeps Supervision's documented APIs operational. Some text and anti-aliased drawing pixels can differ from OpenCV, so use the same backend while validating image-level baselines. JPEG and WebP files written by either backend now use the same default quality settings (JPEG quality 95, lossless WebP); PNG and TIFF stay lossless in both backends, but their encoded bytes are not guaranteed to be identical between backends.
 
 ## Prefer OpenCV behavior
 
