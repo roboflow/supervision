@@ -17,6 +17,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
+from supervision.detection.utils.internal import metadata_values_equal
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
@@ -302,6 +303,8 @@ class InferenceSlicer:
         self.batch_size = batch_size
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
+        self._metadata_conflict_warned: bool = False
+        self._metadata_conflict_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
         self._raster_read_lock = threading.Lock()
@@ -315,7 +318,10 @@ class InferenceSlicer:
         followed by any probe slices, then the remaining slices in source order.
         If oriented bounding boxes are detected, all remaining slices are
         processed sequentially and a ``SupervisionWarnings`` warning is emitted
-        once per slicer instance.
+        once per slicer instance. Metadata keys attached by the callback that
+        differ between slices (or are missing from some slices) cannot be
+        merged into a single tiled result and are dropped, with a
+        ``SupervisionWarnings`` warning emitted once per slicer instance.
 
         Args:
             image: The full image to run inference on. In addition to in-memory
@@ -378,6 +384,7 @@ class InferenceSlicer:
                         partial(self._run_callback_batch, image), remaining_batches
                     ):
                         detections_list.extend(batch_detections)
+            self._drop_unmergeable_metadata(detections_list)
             merged = Detections.merge(detections_list=detections_list)
             return self._apply_overlap_filter(merged)
 
@@ -430,8 +437,62 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
+        self._drop_unmergeable_metadata(detections_list)
         merged = Detections.merge(detections_list=detections_list)
         return self._apply_overlap_filter(merged)
+
+    def _drop_unmergeable_metadata(self, detections_list: list[Detections]) -> None:
+        """Drop slice metadata that cannot be merged into the tiled result.
+
+        `Detections.metadata` is collection-level state, so `Detections.merge`
+        requires every slice to carry identical metadata. Callbacks routinely
+        attach per-slice metadata instead (e.g. RF-DETR stores the source image
+        of each call), which used to make the merge raise. This method keeps
+        only keys present in every non-empty slice result with equal values and
+        removes the rest, warning once per slicer instance. The dictionaries are
+        fresh copies produced by `move_detections`, so the callback's own
+        `Detections` objects are never modified.
+
+        Args:
+            detections_list: Detections returned by the callback for all slices.
+        """
+        non_empty = [d for d in detections_list if not d.is_empty()]
+        if len(non_empty) < 2:
+            return
+
+        common_keys = set(non_empty[0].metadata.keys())
+        for detections in non_empty[1:]:
+            common_keys &= detections.metadata.keys()
+
+        dropped_keys = set(non_empty[0].metadata.keys()) - common_keys
+        for key in sorted(common_keys):
+            first_value = non_empty[0].metadata[key]
+            if any(
+                not metadata_values_equal(first_value, detections.metadata[key])
+                for detections in non_empty[1:]
+            ):
+                dropped_keys.add(key)
+
+        if not dropped_keys:
+            return
+
+        with self._metadata_conflict_lock:
+            if not self._metadata_conflict_warned:
+                self._metadata_conflict_warned = True
+                warnings.warn(
+                    "Callback returned Detections with metadata keys that differ "
+                    f"between slices or are missing from some slices: "
+                    f"{sorted(dropped_keys)}. Such keys cannot be merged into a "
+                    "single value for the tiled result and were dropped. Attach "
+                    "per-slice information to `Detections.data` instead if you "
+                    "need it per detection.",
+                    category=SupervisionWarnings,
+                    stacklevel=2,
+                )
+
+        for detections in non_empty:
+            for key in dropped_keys:
+                detections.metadata.pop(key, None)
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset
