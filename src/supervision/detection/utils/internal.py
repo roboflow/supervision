@@ -593,6 +593,15 @@ def merge_data(
     return cast(_DetectionDataType, merged_data)
 
 
+def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
+    """Check whether two metadata values can merge into one."""
+    if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        return bool(np.array_equal(value_a, value_b))
+    if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+        return False
+    return bool(value_a == value_b)
+
+
 def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
     """Merge metadata from a list of metadata dictionaries.
 
@@ -610,7 +619,7 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
 
     Raises:
         ValueError: If there are conflicting values for the same key or if
-        dictionaries have different keys.
+            dictionaries have different keys.
     """
     if not metadata_list:
         return {}
@@ -627,21 +636,13 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 continue
 
             other_value = merged_metadata[key]
-            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+            if not metadata_values_equal(value, other_value):
+                if isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         f"{type(value)}, {type(other_value)}."
                     )
-            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
-                # Since [] == np.array([]).
-                raise ValueError(
-                    f"Conflicting metadata for key: '{key}': "
-                    f"{type(value)}, {type(other_value)}."
-                )
-            else:
-                if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+                raise ValueError(f"Conflicting metadata for key: '{key}'.")
 
     return merged_metadata
 

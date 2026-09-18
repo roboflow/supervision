@@ -17,6 +17,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
+from supervision.detection.utils.internal import metadata_values_equal
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
@@ -379,11 +380,10 @@ class InferenceSlicer:
                     ):
                         detections_list.extend(batch_detections)
 
-            has_source_image = False
-            for detection in detections_list:
-                if "source_image" in detection.metadata:
-                    has_source_image = True
-                    detection.metadata.pop("source_image", None)
+            has_source_image = any(
+                "source_image" in d.metadata for d in detections_list
+            )
+            self._drop_unmergeable_metadata(detections_list)
 
             merged = Detections.merge(detections_list=detections_list)
 
@@ -441,11 +441,8 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-        has_source_image = False
-        for d in detections_list:
-            if "source_image" in d.metadata:
-                has_source_image = True
-                d.metadata.pop("source_image", None)
+        has_source_image = any("source_image" in d.metadata for d in detections_list)
+        self._drop_unmergeable_metadata(detections_list)
 
         merged = Detections.merge(detections_list=detections_list)
 
@@ -453,6 +450,31 @@ class InferenceSlicer:
             merged.metadata["source_image"] = image
 
         return self._apply_overlap_filter(merged)
+
+    @staticmethod
+    def _drop_unmergeable_metadata(detections_list: list[Detections]) -> None:
+        """Drop metadata keys that differ across slices or are missing in some."""
+        non_empty = [d for d in detections_list if not d.is_empty()]
+        if len(non_empty) <= 1:
+            return
+
+        first_metadata = non_empty[0].metadata
+        keys_to_drop = set()
+
+        for key in list(first_metadata.keys()):
+            for d in non_empty[1:]:
+                if key not in d.metadata or not metadata_values_equal(
+                    first_metadata[key], d.metadata[key]
+                ):
+                    keys_to_drop.add(key)
+                    break
+
+        all_keys = set().union(*(d.metadata.keys() for d in non_empty))
+        keys_to_drop.update(all_keys - set(first_metadata.keys()))
+
+        for d in non_empty:
+            for key in keys_to_drop:
+                d.metadata.pop(key, None)
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset
