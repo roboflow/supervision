@@ -2,6 +2,7 @@
 
 import warnings
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
@@ -1599,6 +1600,95 @@ class TestCropAnnotator:
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
+    @pytest.mark.parametrize(
+        ("icon_shape_hw", "expected_slice"),
+        [
+            pytest.param(
+                (16, 16),
+                (slice(8, 24), slice(16, 32)),
+                id="matches-resolution-pad-only",
+            ),
+            pytest.param(
+                (4, 8),
+                (slice(12, 20), slice(16, 32)),
+                id="smaller-than-resolution-resize-and-pad",
+            ),
+        ],
+    )
+    def test_draws_grayscale_icon(
+        self,
+        tmp_path: Path,
+        icon_shape_hw: tuple[int, int],
+        expected_slice: tuple[slice, slice],
+    ) -> None:
+        """A grayscale PNG icon without alpha is drawn as its gray pixels.
+
+        When the icon's own shape does not match `icon_resolution_wh`, the
+        post-GRAY2BGR-conversion array must still go through the letterbox
+        resize and padding correctly, not just an already-matching pad-only case.
+        """
+        icon_path = tmp_path / "gray.png"
+        Image.fromarray(np.full(icon_shape_hw, 200, dtype=np.uint8)).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[expected_slice] = 200
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_draws_16_bit_grayscale_icon(self, tmp_path) -> None:
+        """A 16-bit grayscale PNG icon is scaled down to 8 bits, not wrapped."""
+        icon_path = tmp_path / "gray16.png"
+        Image.fromarray(np.full((16, 16), 60000, dtype=np.uint16)).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = 234
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_draws_16_bit_color_icon(self, monkeypatch, tmp_path) -> None:
+        """A 16-bit color icon is scaled down to 8 bits, not wrapped."""
+        icon = np.full((16, 16, 3), 60000, dtype=np.uint16)
+        monkeypatch.setattr(cv2, "imread", lambda path, flags: icon)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = 234
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(tmp_path / "color16.png"),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_rejects_icon_of_unsupported_pixel_type(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        """An icon that is neither 8-bit nor 16-bit is rejected by path and type."""
+        icon = np.zeros((16, 16, 3), dtype=np.float32)
+        monkeypatch.setattr(cv2, "imread", lambda path, flags: icon)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        icon_path = str(tmp_path / "float32.tiff")
+
+        with pytest.raises(ValueError, match="unsupported pixel type"):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=np.zeros((48, 48, 3), dtype=np.uint8),
+                detections=detections,
+                icon_path=icon_path,
+            )
+
     def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
         """Internal overlay must not surface any deprecation warning."""
         icon_path = str(tmp_path / "icon.png")
@@ -1660,6 +1750,32 @@ class TestIconAnnotator:
         )
 
         np.testing.assert_array_equal(result, expected)
+
+    def test_icon_cache_converts_grayscale_icon_only_once(
+        self, test_image: np.ndarray, tmp_path: Path
+    ) -> None:
+        """The GRAY2BGR conversion for a cached grayscale icon runs once per
+        path+resolution.
+
+        `_load_icon_from_path` is `@lru_cache`-wrapped, so its own `cache_info()`
+        hit/miss counters prove the `cv2.cvtColor(GRAY2BGR)` conversion — which
+        only executes on a cache miss — runs exactly once across repeated
+        `annotate()` calls sharing the same icon path and resolution.
+        """
+        icon_path = str(tmp_path / "gray_icon.png")
+        Image.fromarray(np.full((20, 20), 128, dtype=np.uint8)).save(icon_path)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        load_icon = annotators_core._load_icon_from_path
+        info_before = load_icon.cache_info()
+
+        for _ in range(2):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+
+        info_after = load_icon.cache_info()
+        assert info_after.misses - info_before.misses == 1
+        assert info_after.hits - info_before.hits == 1
 
 
 class TestBackgroundOverlayAnnotator:
