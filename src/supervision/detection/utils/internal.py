@@ -523,13 +523,7 @@ def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> b
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
-        )
-        else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
+        metadata_values_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
     )
 
 
@@ -594,12 +588,35 @@ def merge_data(
 
 
 def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
-    """Check whether two metadata values can merge into one."""
+    """Check whether two metadata values can merge into one.
+
+    The predicate is total: any value type may be passed, and comparisons that a
+    type does not support resolve to `False` rather than propagating an exception.
+
+    Args:
+        value_a, value_b: The metadata values to compare.
+
+    Returns:
+        True if both values are considered equal, False otherwise.
+    """
     if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        # `equal_nan` makes an array holding NaN equal to itself, but NumPy rejects
+        # the argument for non-floating dtypes, so it is only passed when both
+        # operands are float arrays.
+        both_floating = np.issubdtype(value_a.dtype, np.floating) and np.issubdtype(
+            value_b.dtype, np.floating
+        )
+        if both_floating:
+            return bool(np.array_equal(value_a, value_b, equal_nan=True))
         return bool(np.array_equal(value_a, value_b))
     if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
         return False
-    return bool(value_a == value_b)
+    try:
+        return bool(value_a == value_b)
+    except (ValueError, RuntimeError, TypeError):
+        # Containers of arrays (list/dict/tuple of ndarray) and tensor types return
+        # an elementwise result whose truth value is ambiguous; treat as unequal.
+        return False
 
 
 def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
