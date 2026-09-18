@@ -317,7 +317,13 @@ def _opencv_default_save_options(image_format: str | None) -> dict[str, Any]:
 def _imwrite(
     filename: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> bool:
-    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status."""
+    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status.
+
+    `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
+    ignored: the file is encoded with the OpenCV defaults that
+    `_opencv_default_save_options` returns, not with the quality or compression the
+    caller asked for.
+    """
     from PIL import Image
 
     del params
@@ -334,16 +340,23 @@ def _imwrite(
 def _imencode(
     ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> tuple[bool, npt.NDArray[np.uint8] | None]:
-    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return."""
+    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return.
+
+    `params` is accepted for compatibility with `cv2.imencode`'s signature and is
+    ignored: the image is encoded with the OpenCV defaults that
+    `_opencv_default_save_options` returns, not with the quality or compression the
+    caller asked for.
+    """
     import io
 
     from PIL import Image
 
     del params
-    # Pillow registers the JPEG codec as "JPEG", not the "jpg" file extension.
-    image_format = ext.lstrip(".").upper()
-    if image_format in {"JPE", "JPG"}:
-        image_format = "JPEG"
+    # A suffix is not its codec's name, so resolve it through the same registry
+    # `_imwrite` and `Image.save` consult for a file path. An unregistered suffix
+    # resolves to None, which `Image.save` rejects for a buffer with no file name.
+    extension = f".{ext.lstrip('.').lower()}"
+    image_format = Image.registered_extensions().get(extension)
     save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
     try:

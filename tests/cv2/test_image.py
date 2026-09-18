@@ -373,6 +373,37 @@ def test_fallback_imencode_reports_failure_for_unknown_extension() -> None:
     assert encoded is None
 
 
+def _encoded_image_format(data: bytes) -> str | None:
+    """Return the image format Pillow identifies in the encoded `data`."""
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        return image.format
+
+
+@pytest.mark.parametrize(
+    ("extension", "image_format"),
+    [
+        pytest.param(".tif", "TIFF", id="tiff"),
+        pytest.param(".jp2", "JPEG2000", id="jpeg-2000"),
+        pytest.param(".pgm", "PPM", id="ppm"),
+    ],
+)
+def test_fallback_imencode_supports_every_extension_pillow_registers(
+    extension: str, image_format: str
+) -> None:
+    """Encode to any extension Pillow registers, not only the JPEG aliases."""
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    success, encoded = _imencode(extension, image)
+
+    assert success
+    assert encoded is not None
+    assert _encoded_image_format(encoded.tobytes()) == image_format
+
+
 def _gradient_image() -> np.ndarray:
     """Return a small BGR image whose smooth gradients lossy codecs round off."""
     rows, columns = np.mgrid[0:48, 0:64]
