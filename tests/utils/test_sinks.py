@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision as sv
 import supervision.utils.video as video_utils
@@ -45,6 +46,22 @@ class TestImageSink:
 
         names = [f.name for f in tmp_path.iterdir()]
         assert names == ["frame_000.jpg"]
+
+    def test_saves_webp_images_losslessly(self, tmp_path: Path) -> None:
+        """A WebP name pattern stores the frame's exact pixels, as OpenCV does."""
+        rows, columns = np.mgrid[0:48, 0:64]
+        channels = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
+        image = np.dstack(channels).astype(np.uint8)
+        with sv.ImageSink(
+            target_dir_path=str(tmp_path),
+            overwrite=True,
+            image_name_pattern="frame_{:03d}.webp",
+        ) as sink:
+            sink.save_image(image=image)
+
+        with Image.open(tmp_path / "frame_000.webp") as saved:
+            saved_bgr = np.asarray(saved.convert("RGB"))[..., ::-1]
+        np.testing.assert_array_equal(saved_bgr, image)
 
     def test_overwrite_false_reuses_existing_dir(self, tmp_path: Path) -> None:
         """overwrite=False keeps existing directory contents intact."""
