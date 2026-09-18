@@ -631,6 +631,88 @@ def test_line_zone_one_detection_long_horizon(
     )
 
 
+_ABOVE_LINE_BOX = [2.0, -6.0, 3.0, -4.0]
+_BELOW_LINE_BOX = [2.0, 4.0, 3.0, 6.0]
+
+
+def _boxes_from_sides(sides: str) -> list[list[float]]:
+    """Map a side string like `"AABAA"` to TOP_LEFT anchor boxes either side of `y=0`.
+
+    `"A"` is above the line and `"B"` below it, so one character encodes a single frame
+    of a tracker's trajectory and the whole string encodes the sequence.
+    """
+    return [_ABOVE_LINE_BOX if side == "A" else _BELOW_LINE_BOX for side in sides]
+
+
+class TestLineZoneSubThresholdFlicker:
+    """Sub-threshold side changes must not be counted as crossings (#2598)."""
+
+    @staticmethod
+    def _line_zone(minimum_crossing_threshold: int) -> LineZone:
+        """Build a horizontal line zone driven by the TOP_LEFT anchor alone."""
+        return LineZone(
+            start=Point(0, 0),
+            end=Point(10, 0),
+            triggering_anchors=[Position.TOP_LEFT],
+            minimum_crossing_threshold=minimum_crossing_threshold,
+        )
+
+    @pytest.mark.parametrize(
+        ("sides", "minimum_crossing_threshold", "expected_counts"),
+        [
+            pytest.param("AAAAAA", 2, (0, 0), id="never-leaves-side"),
+            pytest.param("AAABAAA", 2, (0, 0), id="one-frame-flicker"),
+            pytest.param("AAABAAABAAABAAA", 2, (0, 0), id="three-separated-flickers"),
+            pytest.param("AAABBAAA", 3, (0, 0), id="two-frame-flicker-under-threshold"),
+            pytest.param("AAABBB", 2, (0, 1), id="sustained-crossing"),
+            pytest.param("AAABBBAAA", 2, (1, 1), id="crossing-then-return"),
+            pytest.param("AAABAAABBB", 2, (0, 1), id="crossing-after-flicker"),
+            pytest.param("AB", 1, (0, 1), id="threshold-one-unchanged"),
+        ],
+    )
+    def test_counts_only_sustained_side_changes(
+        self,
+        sides: str,
+        minimum_crossing_threshold: int,
+        expected_counts: tuple[int, int],
+    ) -> None:
+        """An excursion shorter than the threshold is noise, not a crossing."""
+        line_zone = self._line_zone(minimum_crossing_threshold)
+
+        for box in _boxes_from_sides(sides):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    def test_flicker_does_not_leak_between_trackers(self) -> None:
+        """One tracker's flicker must not disturb another tracker's real crossing."""
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        flickering_boxes = _boxes_from_sides("AAABAAA")
+        crossing_boxes = _boxes_from_sides("AAABBBB")
+
+        for flickering_box, crossing_box in zip(flickering_boxes, crossing_boxes):
+            line_zone.trigger(
+                _create_detections(
+                    xyxy=[flickering_box, crossing_box], tracker_id=[1, 2]
+                )
+            )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
+        """Eviction clears the reference side, so a reused tracker ID starts fresh."""
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        for box in _boxes_from_sides("BBB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+        for _ in range(line_zone.crossing_history_length):
+            line_zone.trigger(Detections.empty())
+
+        for box in _boxes_from_sides("AAA"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+
 @pytest.mark.parametrize(
     (
         "vector",
