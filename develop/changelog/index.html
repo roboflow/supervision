@@ -4028,6 +4028,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.InferenceSlicer</code> no longer raises when slices disagree on <code>metadata</code> (e.g. a <code>source_image</code> NumPy array attached per-slice by RF-DETR/<code>inference</code>-package connectors), which previously crashed the merge outright. Any metadata key that isn't identical across every slice is now dropped from the merged result, with a <code>SupervisionWarnings</code> warning naming the dropped keys, emitted once per slicer instance — a key meant to be global (<code>video_name</code>, <code>camera_id</code>, …) no longer vanishes silently. <code>source_image</code> is a special case: it is removed from each slice before the lenient merge, so the comparison never touches whole image arrays, then reattached afterward as the full input image — array or PIL image alike, but not a windowed raster, which has no full in-memory image to give back. Fixing this also closed two related <code>Detections.__eq__</code> bugs in the metadata comparison it shares: metadata holding <code>NaN</code> in a float array now compares equal to itself instead of always reading unequal, and comparing a list-valued metadata value against an ndarray-valued one now returns <code>False</code> instead of raising <code>ValueError</code> from NumPy's ambiguous truth value check. (<a href="https://github.com/roboflow/supervision/pull/2596">#2596</a>)</p>
+</li>
+<li>
 <p>Removed, as scheduled for <code>supervision-0.31.0</code>: <code>sv.ByteTrack</code> (use <code>ByteTrackTracker</code> from the <code>trackers</code> package instead); the <code>supervision.keypoint</code> module (use <code>supervision.key_points</code>); <code>create_tiles</code> and <code>overlay_image</code> in <code>supervision.utils.image</code>; <code>ensure_cv2_image_for_annotation</code>, <code>ensure_pil_image_for_annotation</code>, and <code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code>; <code>validate_keypoint_confidence</code> and <code>validate_keypoints_fields</code> in <code>supervision.validators</code>; the <code>normalized_xyxy</code> argument of <code>sv.denormalize_boxes</code> (use <code>xyxy</code>); the <code>supervision.dataset.utils</code> import path for <code>sv.mask_to_rle</code>/<code>sv.rle_to_mask</code> (import from <code>supervision.detection.utils.converters</code> instead); <code>sv.LMM</code> and <code>Detections.from_lmm</code> (use <code>sv.VLM</code>/<code>Detections.from_vlm</code>); and the legacy <code>MeanAveragePrecision</code> in <code>supervision.metrics.detection</code> (use <code>supervision.metrics.mean_average_precision.MeanAveragePrecision</code>, exposed as <code>sv.metrics.MeanAveragePrecision</code>). See <a href="../deprecated/">Deprecated</a> for the full list. <a href="https://github.com/roboflow/supervision/pull/2582">#2582</a></p>
 </li>
 <li>
@@ -6394,7 +6397,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 18, 2026 12:05:41 UTC">September 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 18, 2026 13:59:49 UTC">September 18, 2026</span>
   </span>
 
     
@@ -6422,9 +6425,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/vardhans07" class="md-author" title="@vardhans07">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/95933896?v=4&size=72" alt="vardhans07">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6432,21 +6435,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+          
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
-        <a href="https://github.com/shaoming11" class="md-author" title="@shaoming11">
-          
-          <img src="https://avatars.githubusercontent.com/u/68085490?v=4&size=72" alt="shaoming11">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +34
+            +35
           </a>
         
       
