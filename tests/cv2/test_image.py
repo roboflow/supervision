@@ -331,6 +331,26 @@ def test_fallback_imread_unchanged_matches_opencv_channels_and_depth(
     np.testing.assert_array_equal(actual, expected)
 
 
+@pytest.mark.parametrize("suffix", [".jpg", ".tif"])
+def test_fallback_imread_unchanged_converts_cmyk_like_opencv(
+    tmp_path: Path, suffix: str
+) -> None:
+    """Read CMYK images unchanged as the color pixels OpenCV returns, not as ink."""
+    from PIL import Image
+
+    image_path = tmp_path / f"image{suffix}"
+    rng = np.random.default_rng(0)
+    cmyk = rng.integers(0, 256, size=(8, 8, 4), dtype=np.uint8)
+    Image.fromarray(cmyk, mode="CMYK").save(image_path)
+
+    actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+    expected = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+    assert actual is not None
+    assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+    np.testing.assert_allclose(actual.astype(np.int16), expected, atol=2)
+
+
 def test_fallback_in_memory_codec_preserves_bgr() -> None:
     """Preserve BGR channel order across an encode and decode round trip."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
