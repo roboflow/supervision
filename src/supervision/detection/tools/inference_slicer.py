@@ -377,20 +377,20 @@ class InferenceSlicer:
                     for batch_detections in executor.map(
                         partial(self._run_callback_batch, image), remaining_batches
                     ):
-                    detections_list.extend(batch_detections)
-                    has_source_image = False
-                    for d in detections_list:
-                        if "source_image" in d.metadata:
-                            has_source_image = True
-                            d.metadata.pop("source_image", None)
+                        detections_list.extend(batch_detections)
 
+            has_source_image = False
+            for detection in detections_list:
+                if "source_image" in detection.metadata:
+                    has_source_image = True
+                    detection.metadata.pop("source_image", None)
 
-                    merged = Detections.merge(detections_list=detections_list)
+            merged = Detections.merge(detections_list=detections_list)
 
-                    if has_source_image and isinstance(image, np.ndarray):
-                       merged.metadata["source_image"] = image
+            if has_source_image and isinstance(image, np.ndarray):
+                merged.metadata["source_image"] = image
 
-                     return self._apply_overlap_filter(merged)
+            return self._apply_overlap_filter(merged)
 
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
