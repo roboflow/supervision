@@ -381,7 +381,9 @@ class InferenceSlicer:
                         detections_list.extend(batch_detections)
 
             has_source_image = any(
-                "source_image" in d.metadata for d in detections_list
+                "source_image" in d.metadata
+                for d in detections_list
+                if not d.is_empty()
             )
             self._drop_unmergeable_metadata(detections_list)
 
@@ -441,7 +443,9 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-        has_source_image = any("source_image" in d.metadata for d in detections_list)
+        has_source_image = any(
+            "source_image" in d.metadata for d in detections_list if not d.is_empty()
+        )
         self._drop_unmergeable_metadata(detections_list)
 
         merged = Detections.merge(detections_list=detections_list)

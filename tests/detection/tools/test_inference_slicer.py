@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 import pytest
 
+import supervision as sv
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import (
@@ -892,3 +893,93 @@ def test_inference_slicer_with_source_image_metadata() -> None:
 
     assert "source_image" in result.metadata
     assert np.array_equal(result.metadata["source_image"], image)
+
+
+class TestInferenceSlicerMetadata:
+    def test_conflicting_metadata_dropped_and_source_image_restored(self) -> None:
+        rng = np.random.default_rng(0)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={
+                    "source_image": slice_img.copy(),
+                    "slice_id": int(slice_img[0, 0, 0]),
+                    "shared_key": "constant_value",
+                },
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+        detections = slicer(image)
+
+        assert "shared_key" in detections.metadata
+        assert detections.metadata["shared_key"] == "constant_value"
+        assert "slice_id" not in detections.metadata
+        assert "source_image" in detections.metadata
+        assert np.array_equal(detections.metadata["source_image"], image)
+
+    def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
+        rng = np.random.default_rng(1)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+        counter = {"count": 0}
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            counter["count"] += 1
+            meta = {"shared": 123}
+            if counter["count"] == 1:
+                meta["only_in_first"] = True
+            elif counter["count"] == 2:
+                meta["only_in_second"] = True
+
+            return sv.Detections(
+                xyxy=np.array([[5, 5, 20, 20]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.8]),
+                metadata=meta,
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback, slice_wh=(100, 100), overlap_wh=(20, 20)
+        )
+        detections = slicer(image)
+
+        assert detections.metadata.get("shared") == 123
+        assert "only_in_first" not in detections.metadata
+        assert "only_in_second" not in detections.metadata
+
+    def test_batch_mode_handles_metadata_correctly(self) -> None:
+        rng = np.random.default_rng(2)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+
+        def batch_callback(tiles: list[np.ndarray]) -> list[sv.Detections]:
+            results = []
+            for tile in tiles:
+                results.append(
+                    sv.Detections(
+                        xyxy=np.array([[10, 10, 30, 30]]),
+                        confidence=np.array([0.9]),
+                        class_id=np.array([0]),
+                        metadata={
+                            "source_image": tile.copy(),
+                            "tile_val": int(tile[0, 0, 0]),
+                        },
+                    )
+                )
+            return results
+
+        slicer = sv.InferenceSlicer(
+            callback=batch_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+            batch_size=2,
+        )
+        detections = slicer(image)
+
+        assert "tile_val" not in detections.metadata
+        assert "source_image" in detections.metadata
+        assert np.array_equal(detections.metadata["source_image"], image)
