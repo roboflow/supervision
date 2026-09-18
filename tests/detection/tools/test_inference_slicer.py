@@ -912,7 +912,7 @@ class TestInferenceSlicerMetadata:
             detections = slicer(image)
 
         assert len(detections) == 4
-        assert "source_image" not in detections.metadata
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
 
     def test_identical_metadata_preserved_without_warning(self) -> None:
         """Metadata equal across slices is global state and must survive the merge."""
@@ -958,17 +958,48 @@ class TestInferenceSlicerMetadata:
         with pytest.warns(SupervisionWarnings, match=r"\['source_image'\]"):
             detections = slicer(image)
 
-        assert detections.metadata == {"video_name": "camera-1"}
+        assert detections.metadata["video_name"] == "camera-1"
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
 
-    def test_keys_missing_from_some_slices_are_dropped(self) -> None:
-        """Keys absent from some slice results cannot merge and are dropped."""
+    def test_key_missing_from_first_slice_is_dropped(self) -> None:
+        """A key only later slices carry is unmergeable and must be dropped.
+
+        Regression test for the dropped-key union bug: seeding the dropped set
+        from the first slice alone left later-only keys in place, so the merge
+        still raised `All metadata dictionaries must have the same keys`.
+        """
 
         calls = {"count": 0}
 
         def callback(_: np.ndarray) -> Detections:
             calls["count"] += 1
             metadata: dict[str, Any] = {"video_name": "camera-1"}
-            if calls["count"] % 2 == 1:
+            if calls["count"] % 2 == 0:
+                metadata["tile_tag"] = f"tile-{calls['count']}"
+            return self._detections_with_metadata(metadata)
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="tile_tag"):
+            detections = slicer(image)
+
+        assert detections.metadata == {"video_name": "camera-1"}
+
+    def test_source_image_missing_from_first_slice_is_restored(self) -> None:
+        """`source_image` is restored even when the first slice lacked it."""
+
+        calls = {"count": 0}
+
+        def callback(_: np.ndarray) -> Detections:
+            calls["count"] += 1
+            metadata: dict[str, Any] = {"video_name": "camera-1"}
+            if calls["count"] % 2 == 0:
                 metadata["source_image"] = np.full((2, 2), calls["count"])
             return self._detections_with_metadata(metadata)
 
@@ -981,6 +1012,32 @@ class TestInferenceSlicerMetadata:
         )
 
         with pytest.warns(SupervisionWarnings, match="source_image"):
+            detections = slicer(image)
+
+        assert detections.metadata["video_name"] == "camera-1"
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)
+
+    def test_keys_missing_from_some_slices_are_dropped(self) -> None:
+        """Keys absent from some slice results cannot merge and are dropped."""
+
+        calls = {"count": 0}
+
+        def callback(_: np.ndarray) -> Detections:
+            calls["count"] += 1
+            metadata: dict[str, Any] = {"video_name": "camera-1"}
+            if calls["count"] % 2 == 1:
+                metadata["tile_tag"] = f"tile-{calls['count']}"
+            return self._detections_with_metadata(metadata)
+
+        image = self._striped_image(slice_count=4)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="tile_tag"):
             detections = slicer(image)
 
         assert detections.metadata == {"video_name": "camera-1"}
@@ -1039,4 +1096,4 @@ class TestInferenceSlicerMetadata:
             detections = slicer(image)
 
         assert len(detections) == 4
-        assert "source_image" not in detections.metadata
+        np.testing.assert_array_equal(detections.metadata["source_image"], image)

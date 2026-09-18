@@ -321,7 +321,10 @@ class InferenceSlicer:
         once per slicer instance. Metadata keys attached by the callback that
         differ between slices (or are missing from some slices) cannot be
         merged into a single tiled result and are dropped, with a
-        ``SupervisionWarnings`` warning emitted once per slicer instance.
+        ``SupervisionWarnings`` warning emitted once per slicer instance; a
+        dropped ``source_image`` key is restored to the full input image, so
+        detectors and annotators that follow the source-image metadata
+        convention still find a parent image reference on the tiled result.
 
         Args:
             image: The full image to run inference on. In addition to in-memory
@@ -384,8 +387,9 @@ class InferenceSlicer:
                         partial(self._run_callback_batch, image), remaining_batches
                     ):
                         detections_list.extend(batch_detections)
-            self._drop_unmergeable_metadata(detections_list)
-            merged = Detections.merge(detections_list=detections_list)
+            merged = self._merge_detections(
+                detections_list=detections_list, image=image
+            )
             return self._apply_overlap_filter(merged)
 
         first_offset = offsets[0]
@@ -437,11 +441,41 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-        self._drop_unmergeable_metadata(detections_list)
-        merged = Detections.merge(detections_list=detections_list)
+        merged = self._merge_detections(detections_list=detections_list, image=image)
         return self._apply_overlap_filter(merged)
 
-    def _drop_unmergeable_metadata(self, detections_list: list[Detections]) -> None:
+    def _merge_detections(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> Detections:
+        """Merge slice results, reconciling metadata that cannot merge.
+
+        Args:
+            detections_list: Detections returned by the callback for all slices.
+            image: The full image (or raster dataset) passed to `__call__`.
+
+        Returns:
+            Merged detections across all slices.
+        """
+        dropped_keys = self._drop_unmergeable_metadata(detections_list)
+        merged = Detections.merge(detections_list=detections_list)
+        restored_source_image = "source_image" in dropped_keys and isinstance(
+            image, np.ndarray
+        )
+        if restored_source_image:
+            # Detectors and annotators that follow the source-image metadata
+            # convention (e.g. RF-DETR) expect the key on the final result; the
+            # tiled detections describe the full input image.
+            merged.metadata["source_image"] = image
+        if dropped_keys:
+            self._warn_metadata_conflict(
+                dropped_keys=dropped_keys,
+                restored_source_image=restored_source_image,
+            )
+        return merged
+
+    def _drop_unmergeable_metadata(self, detections_list: list[Detections]) -> set[str]:
         """Drop slice metadata that cannot be merged into the tiled result.
 
         `Detections.metadata` is collection-level state, so `Detections.merge`
@@ -449,22 +483,29 @@ class InferenceSlicer:
         attach per-slice metadata instead (e.g. RF-DETR stores the source image
         of each call), which used to make the merge raise. This method keeps
         only keys present in every non-empty slice result with equal values and
-        removes the rest, warning once per slicer instance. The dictionaries are
-        fresh copies produced by `move_detections`, so the callback's own
-        `Detections` objects are never modified.
+        removes the rest. The dictionaries are fresh copies produced by
+        `move_detections`, so the callback's own `Detections` objects are never
+        modified.
 
         Args:
             detections_list: Detections returned by the callback for all slices.
+
+        Returns:
+            The set of metadata keys that were dropped.
         """
         non_empty = [d for d in detections_list if not d.is_empty()]
         if len(non_empty) < 2:
-            return
+            return set()
 
+        all_keys: set[str] = set()
         common_keys = set(non_empty[0].metadata.keys())
-        for detections in non_empty[1:]:
+        for detections in non_empty:
+            all_keys |= detections.metadata.keys()
             common_keys &= detections.metadata.keys()
 
-        dropped_keys = set(non_empty[0].metadata.keys()) - common_keys
+        # A key that only some slices carry is as unmergeable as one whose
+        # values conflict, so seed the dropped set from the union of all keys.
+        dropped_keys = all_keys - common_keys
         for key in sorted(common_keys):
             first_value = non_empty[0].metadata[key]
             if any(
@@ -473,26 +514,41 @@ class InferenceSlicer:
             ):
                 dropped_keys.add(key)
 
-        if not dropped_keys:
-            return
-
-        with self._metadata_conflict_lock:
-            if not self._metadata_conflict_warned:
-                self._metadata_conflict_warned = True
-                warnings.warn(
-                    "Callback returned Detections with metadata keys that differ "
-                    f"between slices or are missing from some slices: "
-                    f"{sorted(dropped_keys)}. Such keys cannot be merged into a "
-                    "single value for the tiled result and were dropped. Attach "
-                    "per-slice information to `Detections.data` instead if you "
-                    "need it per detection.",
-                    category=SupervisionWarnings,
-                    stacklevel=2,
-                )
-
         for detections in non_empty:
             for key in dropped_keys:
                 detections.metadata.pop(key, None)
+
+        return dropped_keys
+
+    def _warn_metadata_conflict(
+        self, dropped_keys: set[str], restored_source_image: bool
+    ) -> None:
+        """Warn once per slicer instance about dropped per-slice metadata.
+
+        Args:
+            dropped_keys: Metadata keys removed from the slice results.
+            restored_source_image: Whether `source_image` was restored to the
+                full input image after the merge.
+        """
+        with self._metadata_conflict_lock:
+            if self._metadata_conflict_warned:
+                return
+            self._metadata_conflict_warned = True
+            message = (
+                "Callback returned Detections with metadata keys that differ "
+                f"between slices or are missing from some slices: "
+                f"{sorted(dropped_keys)}. Such keys cannot be merged into a "
+                "single value for the tiled result and were dropped from the "
+                "merged metadata."
+            )
+            if restored_source_image:
+                message += " The tiled `source_image` is restored to the full "
+                "input image."
+            message += (
+                " Attach other per-slice information to `Detections.data` "
+                "instead if you need it per detection."
+            )
+            warnings.warn(message, category=SupervisionWarnings, stacklevel=3)
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset

@@ -1,13 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-17
+date_modified: 2026-09-18
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.InferenceSlicer` no longer raises `ValueError: Conflicting metadata for key: 'source_image'` (or `All metadata dictionaries must have the same keys to merge.`) when the callback returns `sv.Detections` whose `metadata` differs between slices — e.g. RF-DETR's `predict()`, which stores each call's source image as collection-level metadata, so the code from the Detect Small Objects tutorial crashed at the merge. Metadata keys equal across all non-empty slice results still merge as before; keys that differ between slices, or are missing from some slices, are now dropped from the tiled result with a `SupervisionWarnings` warning (emitted once per slicer instance) advising that per-slice information belongs in `Detections.data`. [#2594](https://github.com/roboflow/supervision/issues/2594)
+- `sv.InferenceSlicer` no longer raises `ValueError: Conflicting metadata for key: 'source_image'` (or `All metadata dictionaries must have the same keys to merge.`) when the callback returns `sv.Detections` whose `metadata` differs between slices — e.g. RF-DETR's `predict()`, which stores each call's source image as collection-level metadata, so the code from the Detect Small Objects tutorial crashed at the merge. Metadata keys equal across all non-empty slice results still merge as before; keys that differ between slices, or are missing from some slices, are now dropped from the tiled result with a `SupervisionWarnings` warning (emitted once per slicer instance) advising that per-slice information belongs in `Detections.data` — except `source_image`, which is restored to the full input image, so detectors and annotators that follow the source-image metadata convention keep their parent image reference. [#2599](https://github.com/roboflow/supervision/pull/2599)
 
 - Removed, as scheduled for `supervision-0.31.0`: `sv.ByteTrack` (use `ByteTrackTracker` from the `trackers` package instead); the `supervision.keypoint` module (use `supervision.key_points`); `create_tiles` and `overlay_image` in `supervision.utils.image`; `ensure_cv2_image_for_annotation`, `ensure_pil_image_for_annotation`, and `ensure_cv2_image_for_processing` in `supervision.utils.conversion`; `validate_keypoint_confidence` and `validate_keypoints_fields` in `supervision.validators`; the `normalized_xyxy` argument of `sv.denormalize_boxes` (use `xyxy`); the `supervision.dataset.utils` import path for `sv.mask_to_rle`/`sv.rle_to_mask` (import from `supervision.detection.utils.converters` instead); `sv.LMM` and `Detections.from_lmm` (use `sv.VLM`/`Detections.from_vlm`); and the legacy `MeanAveragePrecision` in `supervision.metrics.detection` (use `supervision.metrics.mean_average_precision.MeanAveragePrecision`, exposed as `sv.metrics.MeanAveragePrecision`). See [Deprecated](deprecated.md) for the full list. [#2582](https://github.com/roboflow/supervision/pull/2582)
 
