@@ -320,6 +320,26 @@ class InferenceSlicer:
         processed sequentially and a ``SupervisionWarnings`` warning is emitted
         once per slicer instance.
 
+        Per-slice ``metadata`` is merged leniently: a key survives only when
+        every slice carries it with an equal value; otherwise it is dropped and
+        a ``SupervisionWarnings`` warning is emitted once per slicer instance,
+        naming the dropped keys — a key meant to be global (``video_name``,
+        ``camera_id``, …) would otherwise vanish silently. The merged
+        ``metadata`` dict returned is always freshly built, never the same
+        dict object as any slice's own metadata.
+
+        ``source_image`` is the one metadata key handled specially: it is
+        removed from every slice before the lenient merge, then reattached
+        afterward as a reference to ``image`` itself — not a copy, and not the
+        per-slice tile — for in-memory input (array or PIL image); a windowed
+        raster dataset has no full in-memory image to give back, so its result
+        carries no ``source_image``. Because the stored value is a reference,
+        mutating the returned ``metadata["source_image"]`` mutates the caller's
+        own ``image``, and every ``Detections`` derived from the result via
+        ``select()``, ``__getitem__``, or ``with_nms()`` shares that same
+        reference — a long-lived derived result (e.g. held across a video
+        processing loop) keeps the full input frame alive.
+
         Args:
             image: The full image to run inference on. In addition to in-memory
                 images (NumPy arrays or PIL images), this also accepts an open
