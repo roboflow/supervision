@@ -1624,7 +1624,9 @@ class KeyPoints:
     ) -> Detections:
         """Convert a KeyPoints object to a Detections object. This approximates the
         bounding box of the detected object by taking the bounding box that fits all key
-        points.
+        points. Key points that are missing (`[0, 0]`), not finite, or marked not
+        visible via `visible` are left out, as in `with_nms`, and a skeleton with no
+        other key point is dropped.
 
         Args:
             selected_keypoint_indices: The
@@ -1667,6 +1669,10 @@ class KeyPoints:
         # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
         # coordinates cannot form a valid detection box, so both cases are excluded.
         valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
+        # Callers hide unreliable keypoints through `visible` instead of removing
+        # them; `with_nms` already builds its boxes from visible keypoints only.
+        if self.visible is not None:
+            valid &= self.visible if indices is None else self.visible[:, indices]
         has_valid = valid.any(axis=1)  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]
