@@ -868,15 +868,22 @@ class TestInferenceSlicerOrdering:
 
 
 def test_inference_slicer_with_source_image_metadata() -> None:
-    # Prepare dummy image and callback returning detections with source_image metadata
-    image = np.zeros((1000, 1000, 3), dtype=np.uint8)
+    """Restore full-image metadata after merging per-slice source images."""
+    image = np.random.default_rng(0).integers(
+        0, 256, size=(1000, 1000, 3), dtype=np.uint8
+    )
 
-    def callback(image_slice: np.ndarray) -> sv.Detections:
-        detections = sv.Detections.empty()
+    def callback(image_slice: np.ndarray) -> Detections:
+        """Return a detection carrying the current slice as metadata."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            confidence=np.array([1.0]),
+            class_id=np.array([0]),
+        )
         detections.metadata = {"source_image": image_slice}
         return detections
 
-    slicer = sv.InferenceSlicer(
+    slicer = InferenceSlicer(
         callback=callback,
         slice_wh=(500, 500),
         overlap_wh_percent=(0.1, 0.1),
