@@ -13,10 +13,11 @@ if TYPE_CHECKING:
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
+from supervision.detection.utils.internal import merge_metadata_lenient
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
@@ -304,6 +305,8 @@ class InferenceSlicer:
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
+        self._dropped_metadata_warned: bool = False
+        self._dropped_metadata_lock = threading.Lock()
         self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
@@ -316,6 +319,26 @@ class InferenceSlicer:
         If oriented bounding boxes are detected, all remaining slices are
         processed sequentially and a ``SupervisionWarnings`` warning is emitted
         once per slicer instance.
+
+        Per-slice ``metadata`` is merged leniently: a key survives only when
+        every slice carries it with an equal value; otherwise it is dropped and
+        a ``SupervisionWarnings`` warning is emitted once per slicer instance,
+        naming the dropped keys — a key meant to be global (``video_name``,
+        ``camera_id``, …) would otherwise vanish silently. The merged
+        ``metadata`` dict returned is always freshly built, never the same
+        dict object as any slice's own metadata.
+
+        ``source_image`` is the one metadata key handled specially: it is
+        removed from every slice before the lenient merge, then reattached
+        afterward as a reference to ``image`` itself — not a copy, and not the
+        per-slice tile — for in-memory input (array or PIL image); a windowed
+        raster dataset has no full in-memory image to give back, so its result
+        carries no ``source_image``. Because the stored value is a reference,
+        mutating the returned ``metadata["source_image"]`` mutates the caller's
+        own ``image``, and every ``Detections`` derived from the result via
+        ``select()``, ``__getitem__``, or ``with_nms()`` shares that same
+        reference — a long-lived derived result (e.g. held across a video
+        processing loop) keeps the full input frame alive.
 
         Args:
             image: The full image to run inference on. In addition to in-memory
@@ -378,8 +401,8 @@ class InferenceSlicer:
                         partial(self._run_callback_batch, image), remaining_batches
                     ):
                         detections_list.extend(batch_detections)
-            merged = Detections.merge(detections_list=detections_list)
-            return self._apply_overlap_filter(merged)
+
+            return self._merge_and_filter(detections_list, image)
 
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
@@ -430,8 +453,106 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
+        return self._merge_and_filter(detections_list, image)
+
+    def _merge_and_filter(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> Detections:
+        """Merge per-slice detections, apply the overlap filter, restore the source.
+
+        The source image is attached only after filtering. Overlap filters propagate
+        ``metadata`` forward untouched, so the output is identical either way — but
+        ``NON_MAX_MERGE`` compares metadata values per merge group, and a whole
+        ``(H, W, C)`` array compared once per group dominates the filter's runtime.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged, overlap-filtered detections.
+        """
+        merged, had_source_image = self._merge_slice_detections(detections_list, image)
+        filtered = self._apply_overlap_filter(merged)
+        if had_source_image:
+            filtered.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
+        return filtered
+
+    def _merge_slice_detections(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> tuple[Detections, bool]:
+        """Merge per-slice detections, reconciling their metadata leniently.
+
+        Metadata keys that disagree across slices, or that only some slices carry,
+        are dropped rather than raising — slices legitimately differ in per-tile
+        metadata. The source image is the one such key worth recovering: when any
+        slice carried it, the caller restores the full input image — array or PIL
+        alike, but not a windowed raster, which has no full in-memory image to hand
+        back. Any other key lost this way is reported once per slicer instance,
+        since a key the user meant to be global (``video_name``, ``camera_id``, …)
+        would otherwise vanish silently.
+
+        Because the source image is restored wholesale, it is removed from every
+        slice up front: leaving it in would make the lenient merge — and every
+        downstream merge group of ``NON_MAX_MERGE`` — compare whole image arrays
+        only to overwrite the result afterwards. Slices of a windowed raster keep
+        the key, since nothing restores it for them.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged detections before overlap filtering, and whether any slice
+            carried a source image that the caller should restore.
+        """
+        non_empty = [d for d in detections_list if not d.is_empty()]
+
+        restorable = not _is_windowed_raster(image)
+        had_source_image = False
+        if restorable:
+            for d in non_empty:
+                if SOURCE_IMAGE_METADATA_FIELD in d.metadata:
+                    del d.metadata[SOURCE_IMAGE_METADATA_FIELD]
+                    had_source_image = True
+
+        merged_metadata, dropped_keys = merge_metadata_lenient(
+            [d.metadata for d in non_empty]
+        )
+
+        # `Detections.merge` would re-compare the same metadata and raise on the
+        # conflicts just resolved, so hand it empty dicts and attach the result.
+        for d in non_empty:
+            d.metadata = {}
         merged = Detections.merge(detections_list=detections_list)
-        return self._apply_overlap_filter(merged)
+        merged.metadata = merged_metadata
+
+        self._warn_dropped_metadata(dropped_keys)
+
+        return merged, had_source_image
+
+    def _warn_dropped_metadata(self, dropped_keys: set[str]) -> None:
+        """Warn once per slicer instance about metadata keys lost while merging."""
+        if not dropped_keys or self._dropped_metadata_warned:
+            return
+        with self._dropped_metadata_lock:
+            # Re-check under the lock so concurrent calls warn exactly once.
+            if self._dropped_metadata_warned:
+                return
+            self._dropped_metadata_warned = True
+            keys = ", ".join(sorted(dropped_keys))
+            warnings.warn(
+                "InferenceSlicer dropped metadata keys that were not identical "
+                f"across all slices: {keys}. Metadata must agree on every slice to "
+                "survive merging. If the value is genuinely per-detection, store it "
+                "in `Detections.data` instead, which is merged per detection.",
+                category=SupervisionWarnings,
+                stacklevel=2,
+            )
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset
