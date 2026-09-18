@@ -382,8 +382,7 @@ class InferenceSlicer:
                     ):
                         detections_list.extend(batch_detections)
 
-            merged = self._merge_slice_detections(detections_list, image)
-            return self._apply_overlap_filter(merged)
+            return self._merge_and_filter(detections_list, image)
 
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
@@ -434,34 +433,73 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-        merged = self._merge_slice_detections(detections_list, image)
-        return self._apply_overlap_filter(merged)
+        return self._merge_and_filter(detections_list, image)
 
-    def _merge_slice_detections(
+    def _merge_and_filter(
         self,
         detections_list: list[Detections],
         image: ImageType | WindowedRasterDataset,
     ) -> Detections:
-        """Merge per-slice detections, reconciling their metadata leniently.
+        """Merge per-slice detections, apply the overlap filter, restore the source.
 
-        Metadata keys that disagree across slices, or that only some slices carry,
-        are dropped rather than raising — slices legitimately differ in per-tile
-        metadata. The source image is the one such key worth recovering: when any
-        slice carried it, the merged result gets the full input image back —
-        array or PIL alike, but not a windowed raster, which has no full
-        in-memory image to hand back. Any
-        other key lost this way is reported once per slicer instance, since a key
-        the user meant to be global (``video_name``, ``camera_id``, …) would
-        otherwise vanish silently.
+        The source image is attached only after filtering. Overlap filters propagate
+        ``metadata`` forward untouched, so the output is identical either way — but
+        ``NON_MAX_MERGE`` compares metadata values per merge group, and a whole
+        ``(H, W, C)`` array compared once per group dominates the filter's runtime.
 
         Args:
             detections_list: Per-slice detections in full-image coordinates.
             image: The full image the slices were cut from.
 
         Returns:
-            The merged detections, before overlap filtering.
+            The merged, overlap-filtered detections.
+        """
+        merged, had_source_image = self._merge_slice_detections(detections_list, image)
+        filtered = self._apply_overlap_filter(merged)
+        if had_source_image:
+            filtered.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
+        return filtered
+
+    def _merge_slice_detections(
+        self,
+        detections_list: list[Detections],
+        image: ImageType | WindowedRasterDataset,
+    ) -> tuple[Detections, bool]:
+        """Merge per-slice detections, reconciling their metadata leniently.
+
+        Metadata keys that disagree across slices, or that only some slices carry,
+        are dropped rather than raising — slices legitimately differ in per-tile
+        metadata. The source image is the one such key worth recovering: when any
+        slice carried it, the caller restores the full input image — array or PIL
+        alike, but not a windowed raster, which has no full in-memory image to hand
+        back. Any other key lost this way is reported once per slicer instance,
+        since a key the user meant to be global (``video_name``, ``camera_id``, …)
+        would otherwise vanish silently.
+
+        Because the source image is restored wholesale, it is removed from every
+        slice up front: leaving it in would make the lenient merge — and every
+        downstream merge group of ``NON_MAX_MERGE`` — compare whole image arrays
+        only to overwrite the result afterwards. Slices of a windowed raster keep
+        the key, since nothing restores it for them.
+
+        Args:
+            detections_list: Per-slice detections in full-image coordinates.
+            image: The full image the slices were cut from.
+
+        Returns:
+            The merged detections before overlap filtering, and whether any slice
+            carried a source image that the caller should restore.
         """
         non_empty = [d for d in detections_list if not d.is_empty()]
+
+        restorable = not _is_windowed_raster(image)
+        had_source_image = False
+        if restorable:
+            for d in non_empty:
+                if SOURCE_IMAGE_METADATA_FIELD in d.metadata:
+                    del d.metadata[SOURCE_IMAGE_METADATA_FIELD]
+                    had_source_image = True
+
         merged_metadata, dropped_keys = merge_metadata_lenient(
             [d.metadata for d in non_empty]
         )
@@ -473,17 +511,9 @@ class InferenceSlicer:
         merged = Detections.merge(detections_list=detections_list)
         merged.metadata = merged_metadata
 
-        had_source_image = (
-            SOURCE_IMAGE_METADATA_FIELD in merged_metadata
-            or SOURCE_IMAGE_METADATA_FIELD in dropped_keys
-        )
-        if had_source_image and not _is_windowed_raster(image):
-            merged.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
+        self._warn_dropped_metadata(dropped_keys)
 
-        # A key restored above was not actually lost, so it must not be reported.
-        self._warn_dropped_metadata(dropped_keys - merged.metadata.keys())
-
-        return merged
+        return merged, had_source_image
 
     def _warn_dropped_metadata(self, dropped_keys: set[str]) -> None:
         """Warn once per slicer instance about metadata keys lost while merging."""

@@ -1035,6 +1035,77 @@ class TestInferenceSlicerMetadata:
         assert "source_image" in detections.metadata
         assert np.array_equal(detections.metadata["source_image"], image)
 
+    def test_source_image_absent_while_overlap_filter_runs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`source_image` is attached after filtering, not before it."""
+        rng = np.random.default_rng(5)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        seen_during_filter: list[bool] = []
+        real_with_nmm = sv.Detections.with_nmm
+
+        def spying_with_nmm(
+            self: sv.Detections, *args: Any, **kwargs: Any
+        ) -> sv.Detections:
+            """Record whether the source image is present when NMM starts."""
+            seen_during_filter.append(SOURCE_IMAGE_METADATA_FIELD in self.metadata)
+            return real_with_nmm(self, *args, **kwargs)
+
+        monkeypatch.setattr(sv.Detections, "with_nmm", spying_with_nmm)
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            """Return overlapping detections carrying their own tile."""
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
+                class_id=np.array([0, 0]),
+                confidence=np.array([0.9, 0.8]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=(150, 150),
+            overlap_wh=(20, 20),
+            overlap_filter=OverlapFilter.NON_MAX_MERGE,
+        )
+        detections = slicer(image)
+
+        assert seen_during_filter == [False]
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+    def test_non_max_merge_restores_source_and_warns_only_for_other_keys(self) -> None:
+        """Under NMM the source image survives while other conflicts still warn."""
+        rng = np.random.default_rng(6)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        counter = {"count": 0}
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            """Return overlapping detections with a per-tile source and tile id."""
+            counter["count"] += 1
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
+                class_id=np.array([0, 0]),
+                confidence=np.array([0.9, 0.8]),
+                metadata={
+                    SOURCE_IMAGE_METADATA_FIELD: slice_img,
+                    "slice_id": counter["count"],
+                },
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=(150, 150),
+            overlap_wh=(20, 20),
+            overlap_filter=OverlapFilter.NON_MAX_MERGE,
+        )
+        with pytest.warns(SupervisionWarnings) as records:
+            detections = slicer(image)
+
+        messages = " ".join(str(record.message) for record in records)
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+        assert "slice_id" in messages
+        assert SOURCE_IMAGE_METADATA_FIELD not in messages
+
 
 class TestInferenceSlicerDroppedMetadataWarning:
     """Dropped per-slice metadata keys are reported once per slicer instance."""
