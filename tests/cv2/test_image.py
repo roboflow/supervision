@@ -19,6 +19,7 @@ from supervision._cv2._image import (
     _imread,
     _imwrite,
     _mean,
+    _opencv_default_save_options,
     _resize,
 )
 from supervision._cv2.constants import (
@@ -404,11 +405,37 @@ def test_fallback_imencode_supports_every_extension_pillow_registers(
     assert _encoded_image_format(encoded.tobytes()) == image_format
 
 
-def _gradient_image() -> np.ndarray:
-    """Return a small BGR image whose smooth gradients lossy codecs round off."""
+@pytest.mark.parametrize(
+    "image_format",
+    [
+        pytest.param("PNG", id="png"),
+        pytest.param("BMP", id="bmp"),
+        pytest.param("TIFF", id="tiff"),
+    ],
+)
+def test_opencv_default_save_options_are_empty_for_already_lossless_formats(
+    image_format: str,
+) -> None:
+    """Skip writer options for formats OpenCV and Pillow both save losslessly."""
+    assert _opencv_default_save_options(image_format) == {}
+
+
+def _gradient_image(channels: int = 3) -> np.ndarray:
+    """Return a small gradient image whose smooth gradients lossy codecs round off.
+
+    `channels=3` returns a BGR image; `channels=1` returns a 2D grayscale image,
+    exercising the single-channel path through the same encoders.
+    """
     rows, columns = np.mgrid[0:48, 0:64]
-    channels = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
-    return np.dstack(channels).astype(np.uint8)
+    if channels == 1:
+        return ((rows + columns) * 3 % 256).astype(np.uint8)
+    channel_values = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
+    return np.dstack(channel_values).astype(np.uint8)
+
+
+def _as_bgr(image: np.ndarray) -> np.ndarray:
+    """Return a BGR view, broadcasting a 2D grayscale image across 3 channels."""
+    return image if image.ndim == 3 else cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
 
 def _encode_with_imwrite(directory: Path, extension: str, image: np.ndarray) -> bytes:
@@ -436,6 +463,23 @@ def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
         return dict(image.quantization)
 
 
+def _jpeg_chroma_subsampling(data: bytes) -> int:
+    """Return the chroma subsampling factor, which a JPEG's quality also determines."""
+    import io
+
+    from PIL import Image, JpegImagePlugin
+
+    with Image.open(io.BytesIO(data)) as image:
+        return JpegImagePlugin.get_sampling(image)
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(_gradient_image(), id="color"),
+        pytest.param(_gradient_image(channels=1), id="grayscale"),
+    ],
+)
 @pytest.mark.parametrize(
     "encode",
     [
@@ -444,17 +488,39 @@ def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
     ],
 )
 def test_fallback_encoders_match_opencv_default_jpeg_quality(
-    tmp_path: Path, encode: Callable[[Path, str, np.ndarray], bytes]
+    tmp_path: Path,
+    encode: Callable[[Path, str, np.ndarray], bytes],
+    image: np.ndarray,
 ) -> None:
     """Encode JPEG at the quality OpenCV uses when no parameters are given."""
-    image = _gradient_image()
     expected = cv2.imencode(".jpg", image)[1].tobytes()
 
     actual = encode(tmp_path, ".jpg", image)
 
     assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
+    assert _jpeg_chroma_subsampling(actual) == _jpeg_chroma_subsampling(expected)
 
 
+def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
+    """Encode `.jpe` byte-for-byte like `.jpg`, the alias `_imencode` maps manually."""
+    image = _gradient_image()
+
+    success_jpe, encoded_jpe = _imencode(".jpe", image)
+    success_jpg, encoded_jpg = _imencode(".jpg", image)
+
+    assert success_jpe
+    assert success_jpg
+    assert encoded_jpe is not None
+    np.testing.assert_array_equal(encoded_jpe, encoded_jpg)
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(_gradient_image(), id="color"),
+        pytest.param(_gradient_image(channels=1), id="grayscale"),
+    ],
+)
 @pytest.mark.parametrize(
     "encode",
     [
@@ -463,17 +529,44 @@ def test_fallback_encoders_match_opencv_default_jpeg_quality(
     ],
 )
 def test_fallback_encoders_write_webp_losslessly_like_opencv(
-    tmp_path: Path, encode: Callable[[Path, str, np.ndarray], bytes]
+    tmp_path: Path,
+    encode: Callable[[Path, str, np.ndarray], bytes],
+    image: np.ndarray,
 ) -> None:
     """Encode WebP losslessly, as OpenCV does when no parameters are given."""
-    image = _gradient_image()
     expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
 
     actual = encode(tmp_path, ".webp", image)
 
     decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
     np.testing.assert_array_equal(decoded, expected)
-    np.testing.assert_array_equal(decoded, image)
+    np.testing.assert_array_equal(decoded, _as_bgr(image))
+
+
+@pytest.mark.parametrize(
+    "extension",
+    [
+        pytest.param(".JPG", id="jpg-uppercase"),
+        pytest.param(".WEBP", id="webp-uppercase"),
+    ],
+)
+def test_fallback_imwrite_resolves_uppercase_extension_like_lowercase(
+    tmp_path: Path, extension: str
+) -> None:
+    """Look up an uppercase file extension the same way `_imwrite` looks up lowercase.
+
+    `_imwrite` lowercases the extension before checking Pillow's format registry;
+    a caller passing an uppercase extension (e.g. `image.JPG`) must still resolve to
+    the same writer options and produce identical bytes to the lowercase form.
+    """
+    image = _gradient_image()
+    uppercase_path = tmp_path / f"image{extension}"
+    lowercase_path = tmp_path / f"image{extension.lower()}"
+
+    assert _imwrite(str(uppercase_path), image)
+    assert _imwrite(str(lowercase_path), image)
+
+    assert uppercase_path.read_bytes() == lowercase_path.read_bytes()
 
 
 def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
