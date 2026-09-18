@@ -6,8 +6,9 @@ from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import (
     InferenceSlicer,
@@ -867,3 +868,473 @@ class TestInferenceSlicerOrdering:
         assert completion_order == list(range(slice_count - batch_size, 0, -batch_size))
         assert detections.class_id is not None
         assert detections.class_id.tolist() == list(range(slice_count))
+
+
+def test_inference_slicer_with_source_image_metadata() -> None:
+    """Restore full-image metadata after merging per-slice source images."""
+    image = np.random.default_rng(0).integers(
+        0, 256, size=(1000, 1000, 3), dtype=np.uint8
+    )
+
+    def callback(image_slice: np.ndarray) -> Detections:
+        """Return a detection carrying the current slice as metadata."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            confidence=np.array([1.0]),
+            class_id=np.array([0]),
+        )
+        detections.metadata = {"source_image": image_slice}
+        return detections
+
+    slicer = InferenceSlicer(
+        callback=callback,
+        slice_wh=(500, 500),
+    )
+
+    result = slicer(image)
+
+    assert "source_image" in result.metadata
+    assert np.array_equal(result.metadata["source_image"], image)
+
+
+class TestInferenceSlicerMetadata:
+    """Tests for lenient per-slice metadata merging and source-image restoration."""
+
+    def test_conflicting_metadata_dropped_and_source_image_restored(self) -> None:
+        """A key that conflicts across slices is dropped while shared keys survive."""
+        rng = np.random.default_rng(0)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return a detection carrying a conflicting and a shared metadata key."""
+            return Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={
+                    "source_image": slice_img.copy(),
+                    "slice_id": int(slice_img[0, 0, 0]),
+                    "shared_key": "constant_value",
+                },
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+        detections = slicer(image)
+
+        assert "shared_key" in detections.metadata
+        assert detections.metadata["shared_key"] == "constant_value"
+        assert "slice_id" not in detections.metadata
+        assert "source_image" in detections.metadata
+        assert np.array_equal(detections.metadata["source_image"], image)
+
+    def test_restored_source_image_is_the_caller_array(self) -> None:
+        """The restored source image is the caller's array itself, not a copy."""
+        rng = np.random.default_rng(3)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return one detection carrying its own tile as source image."""
+            return Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+
+        detections = slicer(image)
+
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+    def test_source_image_restored_for_pil_input(self) -> None:
+        """A PIL input image is restored as source image, same as an ndarray input.
+
+        PIL is a first-class `InferenceSlicer` input, so a `source_image` key dropped
+        because slices disagree must be recovered for it too — the restore is only
+        skipped for windowed rasters, where no full in-memory image exists.
+        """
+        rng = np.random.default_rng(4)
+        array = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        image = Image.fromarray(array)
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return one detection carrying its own tile as source image."""
+            return Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()},
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=(150, 150), overlap_wh=(20, 20)
+        )
+
+        detections = slicer(image)
+
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+    def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
+        """A metadata key present in only some slices is dropped from the merge.
+
+        Each slice is stamped with its own index so the callback keys its
+        per-slice-only metadata off the physical slice content, matching the
+        content-keyed pattern used by ``TestInferenceSlicerDroppedMetadataWarning``
+        — never off callback invocation order, which threaded execution does not
+        guarantee.
+        """
+        slice_wh = (100, 100)
+        overlap_wh = (20, 20)
+        offsets = InferenceSlicer._generate_offset(
+            resolution_wh=(200, 200), slice_wh=slice_wh, overlap_wh=overlap_wh
+        )
+        image = np.zeros((200, 200, 3), dtype=np.uint8)
+        for index, (x0, y0, _, _) in enumerate(offsets):
+            image[y0, x0, 0] = index
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return metadata whose per-slice-only key depends on slice content."""
+            index = int(slice_img[0, 0, 0])
+            meta = {"shared": 123}
+            if index == 0:
+                meta["only_in_first"] = True
+            elif index == len(offsets) - 1:
+                meta["only_in_second"] = True
+
+            return Detections(
+                xyxy=np.array([[5, 5, 20, 20]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.8]),
+                metadata=meta,
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=slice_wh, overlap_wh=overlap_wh
+        )
+        detections = slicer(image)
+
+        assert detections.metadata.get("shared") == 123
+        assert "only_in_first" not in detections.metadata
+        assert "only_in_second" not in detections.metadata
+
+    def test_batch_mode_handles_metadata_correctly(self) -> None:
+        """Batch-mode callbacks merge metadata the same way as single-slice ones."""
+        rng = np.random.default_rng(2)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+
+        def batch_callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Return one detection per tile, each carrying a per-tile-only key."""
+            results = []
+            for tile in tiles:
+                results.append(
+                    Detections(
+                        xyxy=np.array([[10, 10, 30, 30]]),
+                        confidence=np.array([0.9]),
+                        class_id=np.array([0]),
+                        metadata={
+                            "source_image": tile.copy(),
+                            "tile_val": int(tile[0, 0, 0]),
+                        },
+                    )
+                )
+            return results
+
+        slicer = InferenceSlicer(
+            callback=batch_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+            batch_size=2,
+        )
+        detections = slicer(image)
+
+        assert "tile_val" not in detections.metadata
+        assert "source_image" in detections.metadata
+        assert np.array_equal(detections.metadata["source_image"], image)
+
+    def test_source_image_absent_while_overlap_filter_runs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`source_image` is attached after filtering, not before it."""
+        rng = np.random.default_rng(5)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        seen_during_filter: list[bool] = []
+        real_with_nmm = Detections.with_nmm
+
+        def spying_with_nmm(self: Detections, *args: Any, **kwargs: Any) -> Detections:
+            """Record whether the source image is present when NMM starts."""
+            seen_during_filter.append(SOURCE_IMAGE_METADATA_FIELD in self.metadata)
+            return real_with_nmm(self, *args, **kwargs)
+
+        monkeypatch.setattr(Detections, "with_nmm", spying_with_nmm)
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return overlapping detections carrying their own tile."""
+            return Detections(
+                xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
+                class_id=np.array([0, 0]),
+                confidence=np.array([0.9, 0.8]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img},
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=(150, 150),
+            overlap_wh=(20, 20),
+            overlap_filter=OverlapFilter.NON_MAX_MERGE,
+        )
+        detections = slicer(image)
+
+        assert seen_during_filter == [False]
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+    def test_non_max_merge_restores_source_and_warns_only_for_other_keys(self) -> None:
+        """Under NMM the source image survives while other conflicts still warn."""
+        rng = np.random.default_rng(6)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        counter = {"count": 0}
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return overlapping detections with a per-tile source and tile id."""
+            counter["count"] += 1
+            return Detections(
+                xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
+                class_id=np.array([0, 0]),
+                confidence=np.array([0.9, 0.8]),
+                metadata={
+                    SOURCE_IMAGE_METADATA_FIELD: slice_img,
+                    "slice_id": counter["count"],
+                },
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=(150, 150),
+            overlap_wh=(20, 20),
+            overlap_filter=OverlapFilter.NON_MAX_MERGE,
+        )
+        with pytest.warns(SupervisionWarnings) as records:
+            detections = slicer(image)
+
+        messages = " ".join(str(record.message) for record in records)
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+        assert "slice_id" in messages
+        assert SOURCE_IMAGE_METADATA_FIELD not in messages
+
+    def test_all_slices_empty_source_image_absent_without_crash(self) -> None:
+        """All-empty per-slice results merge to an empty `Detections`, cleanly.
+
+        Every slice's callback returns zero detections, so the `non_empty` filter in
+        `_merge_slice_detections` collapses to an empty list before any
+        `source_image` recovery or `merge_metadata_lenient` call runs. This must not
+        crash, and `source_image` must be genuinely absent from the merged result
+        rather than silently expected but missing.
+        """
+        rng = np.random.default_rng(9)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+
+        def empty_callback(slice_img: np.ndarray) -> Detections:
+            """Return zero detections carrying a per-tile source image."""
+            detections = Detections.empty()
+            detections.metadata = {SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()}
+            return detections
+
+        slicer = InferenceSlicer(
+            callback=empty_callback, slice_wh=(100, 100), overlap_wh=(20, 20)
+        )
+
+        detections = slicer(image)
+
+        assert detections.is_empty()
+        assert SOURCE_IMAGE_METADATA_FIELD not in detections.metadata
+
+    @pytest.mark.parametrize(
+        "as_pil",
+        [
+            pytest.param(False, id="ndarray-input"),
+            pytest.param(True, id="pil-input"),
+        ],
+    )
+    def test_single_non_empty_slice_restores_source_image(self, as_pil: bool) -> None:
+        """A single-slice grid still restores `source_image`, for both input types.
+
+        `slice_wh` at least as large as the image produces exactly one slice, so
+        `_merge_slice_detections` sees a single-element `non_empty` list — the path
+        `merge_metadata_lenient` handles via its single-dictionary case. ndarray and
+        PIL inputs must behave identically here.
+        """
+        rng = np.random.default_rng(8)
+        array = rng.integers(0, 255, (100, 100, 3), dtype=np.uint8)
+        image: np.ndarray | Image.Image = Image.fromarray(array) if as_pil else array
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return one detection carrying its own tile as source image."""
+            return Detections(
+                xyxy=np.array([[10, 10, 50, 50]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={SOURCE_IMAGE_METADATA_FIELD: slice_img.copy()},
+            )
+
+        slicer = InferenceSlicer(callback=callback, slice_wh=(200, 200))
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
+            detections = slicer(image)
+
+        dropped_warnings = [
+            w
+            for w in recorded_warnings
+            if issubclass(w.category, SupervisionWarnings)
+            and "dropped metadata keys" in str(w.message)
+        ]
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+        assert dropped_warnings == []
+
+    def test_dropped_metadata_warning_fires_once_with_threads_and_nmm(self) -> None:
+        """Metadata reconciliation still works with real threads and NMM combined.
+
+        Combines `thread_workers > 1` (concurrent slice execution) with
+        `OverlapFilter.NON_MAX_MERGE` and metadata that conflicts across slices — a
+        combination no existing test exercises. `source_image` must still be
+        restored, and the dropped-key warning must still fire exactly once, despite
+        detections arriving from multiple worker threads.
+        """
+        rng = np.random.default_rng(11)
+        image = rng.integers(0, 255, (512, 512, 3), dtype=np.uint8)
+        counter_lock = threading.Lock()
+        counter = {"count": 0}
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return overlapping detections with a per-tile id and source image."""
+            with counter_lock:
+                counter["count"] += 1
+                tile_id = counter["count"]
+            return Detections(
+                xyxy=np.array([[10, 10, 60, 60], [12, 12, 62, 62]]),
+                class_id=np.array([0, 0]),
+                confidence=np.array([0.9, 0.8]),
+                metadata={
+                    SOURCE_IMAGE_METADATA_FIELD: slice_img,
+                    "slice_id": tile_id,
+                },
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NON_MAX_MERGE,
+        )
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
+            detections = slicer(image)
+
+        dropped_warnings = [
+            w
+            for w in recorded_warnings
+            if issubclass(w.category, SupervisionWarnings)
+            and "dropped metadata keys" in str(w.message)
+        ]
+        assert len(dropped_warnings) == 1
+        assert "slice_id" in str(dropped_warnings[0].message)
+        assert detections.metadata[SOURCE_IMAGE_METADATA_FIELD] is image
+
+
+class TestInferenceSlicerDroppedMetadataWarning:
+    """Dropped per-slice metadata keys are reported once per slicer instance."""
+
+    @staticmethod
+    def _non_uniform_callback(slice_img: np.ndarray) -> Detections:
+        """Return one detection whose metadata differs from tile to tile."""
+        return Detections(
+            xyxy=np.array([[10, 10, 30, 30]]),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            metadata={
+                "camera_id": int(slice_img[0, 0, 0]),
+                "video_name": str(slice_img[0, 0, 1]),
+                "shared": "constant",
+            },
+        )
+
+    def test_warns_once_naming_every_dropped_key(self) -> None:
+        """Non-uniform metadata across slices warns once, naming all lost keys.
+
+        Pre-PR this scenario raised a `ValueError` naming the conflicting key; the
+        lenient merge must not turn that into silent data loss.
+        """
+        rng = np.random.default_rng(10)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=self._non_uniform_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+        )
+
+        with pytest.warns(SupervisionWarnings, match="dropped metadata keys") as record:
+            detections = slicer(image)
+
+        assert len(record) == 1
+        message = str(record[0].message)
+        assert "camera_id" in message
+        assert "video_name" in message
+        assert "shared" not in message
+        assert detections.metadata["shared"] == "constant"
+
+    def test_no_warning_when_metadata_is_uniform(self) -> None:
+        """Slices agreeing on every metadata key merge without any warning.
+
+        Guards against a warning that fires on the common case, which would train users
+        to ignore it.
+        """
+        rng = np.random.default_rng(11)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> Detections:
+            """Return one detection carrying identical metadata on every tile."""
+            return Detections(
+                xyxy=np.array([[10, 10, 30, 30]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={"camera_id": 7},
+            )
+
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=(100, 100), overlap_wh=(20, 20)
+        )
+
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            detections = slicer(image)
+
+        assert [w for w in record if issubclass(w.category, SupervisionWarnings)] == []
+        assert detections.metadata["camera_id"] == 7
+
+    def test_warns_once_across_repeated_calls_with_threads(self) -> None:
+        """One instance warns a single time even across threaded repeated calls.
+
+        `thread_workers > 1` plus a second `__call__` is the case that would emit
+        duplicates or race on the flag if the warn-once guard were unlocked.
+        """
+        rng = np.random.default_rng(12)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=self._non_uniform_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+            thread_workers=4,
+        )
+
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            slicer(image)
+            slicer(image)
+
+        dropped = [w for w in record if "dropped metadata keys" in str(w.message)]
+        assert len(dropped) == 1
+        assert issubclass(dropped[0].category, SupervisionWarnings)
