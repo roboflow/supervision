@@ -441,18 +441,18 @@ class InferenceSlicer:
                     executor.map(partial(self._run_callback, image), remaining_offsets)
                 )
 
-       has_source_image = False
-       for d in detections_list:
-           if "source_image" in d.metadata:
-               has_source_image = True
-               d.metadata.pop("source_image", None)
+        has_source_image = False
+        for d in detections_list:
+            if "source_image" in d.metadata:
+                has_source_image = True
+                d.metadata.pop("source_image", None)
 
-       merged = Detections.merge(detections_list=detections_list)
+        merged = Detections.merge(detections_list=detections_list)
 
-       if has_source_image and isinstance(image, np.ndarray):
-           merged.metadata["source_image"] = image
+        if has_source_image and isinstance(image, np.ndarray):
+            merged.metadata["source_image"] = image
 
-       return self._apply_overlap_filter(merged)
+        return self._apply_overlap_filter(merged)
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset

@@ -886,7 +886,6 @@ def test_inference_slicer_with_source_image_metadata() -> None:
     slicer = InferenceSlicer(
         callback=callback,
         slice_wh=(500, 500),
-        overlap_wh_percent=(0.1, 0.1),
     )
 
     result = slicer(image)
