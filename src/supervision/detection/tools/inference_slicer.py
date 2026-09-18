@@ -305,6 +305,8 @@ class InferenceSlicer:
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
+        self._dropped_metadata_warned: bool = False
+        self._dropped_metadata_lock = threading.Lock()
         self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
@@ -435,8 +437,8 @@ class InferenceSlicer:
         merged = self._merge_slice_detections(detections_list, image)
         return self._apply_overlap_filter(merged)
 
-    @staticmethod
     def _merge_slice_detections(
+        self,
         detections_list: list[Detections],
         image: ImageType | WindowedRasterDataset,
     ) -> Detections:
@@ -445,7 +447,10 @@ class InferenceSlicer:
         Metadata keys that disagree across slices, or that only some slices carry,
         are dropped rather than raising — slices legitimately differ in per-tile
         metadata. The source image is the one such key worth recovering: when any
-        slice carried it, the merged result gets the full input image back.
+        slice carried it, the merged result gets the full input image back. Any
+        other key lost this way is reported once per slicer instance, since a key
+        the user meant to be global (``video_name``, ``camera_id``, …) would
+        otherwise vanish silently.
 
         Args:
             detections_list: Per-slice detections in full-image coordinates.
@@ -473,7 +478,29 @@ class InferenceSlicer:
         if had_source_image and isinstance(image, np.ndarray):
             merged.metadata[SOURCE_IMAGE_METADATA_FIELD] = image
 
+        # A key restored above was not actually lost, so it must not be reported.
+        self._warn_dropped_metadata(dropped_keys - merged.metadata.keys())
+
         return merged
+
+    def _warn_dropped_metadata(self, dropped_keys: set[str]) -> None:
+        """Warn once per slicer instance about metadata keys lost while merging."""
+        if not dropped_keys or self._dropped_metadata_warned:
+            return
+        with self._dropped_metadata_lock:
+            # Re-check under the lock so concurrent calls warn exactly once.
+            if self._dropped_metadata_warned:
+                return
+            self._dropped_metadata_warned = True
+            keys = ", ".join(sorted(dropped_keys))
+            warnings.warn(
+                "InferenceSlicer dropped metadata keys that were not identical "
+                f"across all slices: {keys}. Metadata must agree on every slice to "
+                "survive merging. If the value is genuinely per-detection, store it "
+                "in `Detections.data` instead, which is merged per detection.",
+                category=SupervisionWarnings,
+                stacklevel=2,
+            )
 
     def _get_resolution_wh(
         self, image: ImageType | WindowedRasterDataset

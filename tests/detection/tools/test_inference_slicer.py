@@ -1005,3 +1005,98 @@ class TestInferenceSlicerMetadata:
         assert "tile_val" not in detections.metadata
         assert "source_image" in detections.metadata
         assert np.array_equal(detections.metadata["source_image"], image)
+
+
+class TestInferenceSlicerDroppedMetadataWarning:
+    """Dropped per-slice metadata keys are reported once per slicer instance."""
+
+    @staticmethod
+    def _non_uniform_callback(slice_img: np.ndarray) -> sv.Detections:
+        """Return one detection whose metadata differs from tile to tile."""
+        return sv.Detections(
+            xyxy=np.array([[10, 10, 30, 30]]),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            metadata={
+                "camera_id": int(slice_img[0, 0, 0]),
+                "video_name": str(slice_img[0, 0, 1]),
+                "shared": "constant",
+            },
+        )
+
+    def test_warns_once_naming_every_dropped_key(self) -> None:
+        """Non-uniform metadata across slices warns once, naming all lost keys.
+
+        Pre-PR this scenario raised a `ValueError` naming the conflicting key; the
+        lenient merge must not turn that into silent data loss.
+        """
+        rng = np.random.default_rng(10)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+        slicer = sv.InferenceSlicer(
+            callback=self._non_uniform_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+        )
+
+        with pytest.warns(SupervisionWarnings, match="dropped metadata keys") as record:
+            detections = slicer(image)
+
+        assert len(record) == 1
+        message = str(record[0].message)
+        assert "camera_id" in message
+        assert "video_name" in message
+        assert "shared" not in message
+        assert detections.metadata["shared"] == "constant"
+
+    def test_no_warning_when_metadata_is_uniform(self) -> None:
+        """Slices agreeing on every metadata key merge without any warning.
+
+        Guards against a warning that fires on the common case, which would train users
+        to ignore it.
+        """
+        rng = np.random.default_rng(11)
+        image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
+
+        def callback(slice_img: np.ndarray) -> sv.Detections:
+            """Return one detection carrying identical metadata on every tile."""
+            return sv.Detections(
+                xyxy=np.array([[10, 10, 30, 30]]),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+                metadata={"camera_id": 7},
+            )
+
+        slicer = sv.InferenceSlicer(
+            callback=callback, slice_wh=(100, 100), overlap_wh=(20, 20)
+        )
+
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            detections = slicer(image)
+
+        assert [w for w in record if issubclass(w.category, SupervisionWarnings)] == []
+        assert detections.metadata["camera_id"] == 7
+
+    def test_warns_once_across_repeated_calls_with_threads(self) -> None:
+        """One instance warns a single time even across threaded repeated calls.
+
+        `thread_workers > 1` plus a second `__call__` is the case that would emit
+        duplicates or race on the flag if the warn-once guard were unlocked.
+        """
+        rng = np.random.default_rng(12)
+        image = rng.integers(0, 255, (300, 300, 3), dtype=np.uint8)
+        slicer = sv.InferenceSlicer(
+            callback=self._non_uniform_callback,
+            slice_wh=(100, 100),
+            overlap_wh=(20, 20),
+            thread_workers=4,
+        )
+
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            slicer(image)
+            slicer(image)
+
+        dropped = [w for w in record if "dropped metadata keys" in str(w.message)]
+        assert len(dropped) == 1
+        assert issubclass(dropped[0].category, SupervisionWarnings)
