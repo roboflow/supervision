@@ -58,11 +58,32 @@ logger = _get_logger(__name__)
 def _load_icon_from_path(
     icon_path: str, icon_resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.uint8]:
-    """Load and resize an icon image through a cache shared by annotators."""
+    """Load and resize an icon image through a cache shared by annotators.
+
+    Icons are read unchanged to keep their alpha channel, which also keeps a grayscale
+    PNG as a 2-D array and a 16-bit PNG at 16 bits. A 16-bit icon is scaled down to 8
+    bits and a grayscale icon is expanded to BGR, the depth and layout the icon overlay
+    draws; an icon of any other pixel type is rejected.
+    """
     icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
     if icon is None:
         raise FileNotFoundError(f"Error: Couldn't load the icon image from {icon_path}")
-    icon_array = cast(npt.NDArray[np.uint8], icon)
+    icon_array: npt.NDArray[np.uint8]
+    if icon.dtype == np.uint8:
+        icon_array = cast(npt.NDArray[np.uint8], icon)
+    elif icon.dtype == np.uint16:
+        # The overlay writes the icon into an 8-bit scene, where a 16-bit value wraps
+        # modulo 256 and redraws a bright icon as a dark one; keep the high byte.
+        icon_array = np.clip(np.rint(icon / 256), 0, 255).astype(np.uint8)
+    else:
+        raise ValueError(
+            f"Icon image ('{icon_path}') has an unsupported pixel type "
+            f"('{icon.dtype}'); an icon must be 8-bit or 16-bit."
+        )
+    if icon_array.ndim == 2:
+        icon_array = cast(
+            npt.NDArray[np.uint8], cv2.cvtColor(icon_array, cv2.COLOR_GRAY2BGR)
+        )
     result: npt.NDArray[np.uint8] = letterbox_image(
         image=icon_array, resolution_wh=icon_resolution_wh
     )
