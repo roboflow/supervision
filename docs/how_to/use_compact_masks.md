@@ -16,12 +16,13 @@ date_modified: 2026-07-01
 
     `sv.mask_to_xyxy` keeps supervision's inclusive max-coordinate convention for compatibility with `CompactMask` and current box-based adapters. Use `sv.mask_to_roi` when you need exclusive slice bounds for NumPy indexing or crop extraction.
 
-This guide covers the four main integration points:
+This guide covers the main integration points:
 
 1. [Ingesting COCO RLE payloads directly as CompactMask](#ingest-coco-rle-payloads)
 2. [Parsing Roboflow Inference results without a dense stack](#parse-inference-results)
 3. [Skipping mask materialisation for box/label annotators](#skip-unnecessary-materialisation)
 4. [Merging mixed dense and compact detections](#merge-mixed-detections)
+5. [Merging overlapping segmentation predictions](#merge-overlapping-predictions)
 
 ---
 
@@ -164,6 +165,40 @@ Merge rules:
 | All dense `ndarray`                   | `ndarray` (backward compatible) |
 
 All `CompactMask` inputs must share the same `image_shape`; mismatches raise `ValueError`.
+
+---
+
+## Merge Overlapping Predictions
+
+`Detections.with_nmm` and `mask_non_max_merge` keep compact masks compressed while forming mask unions. This applies to both the candidate updated during greedy matching and the final merged detection. They combine foreground run intervals, without allocating a full `(N, H, W)` mask stack or a dense union image.
+
+```python
+import numpy as np
+import supervision as sv
+from supervision.detection.compact_mask import CompactMask
+
+# Encode model output in tile coordinates, then relocate it to a large image.
+tile_masks = np.ones((2, 32, 32), dtype=bool)
+tile_boxes = np.array([[0, 0, 31, 31], [0, 0, 31, 31]])
+masks = CompactMask.from_dense(tile_masks, tile_boxes, (32, 32))
+masks = masks.with_offset(50000, 60000, new_image_shape=(100000, 100000))
+detections = sv.Detections(
+    xyxy=masks.bbox_xyxy.astype(float),
+    mask=masks,
+    confidence=np.array([0.9, 0.8]),
+    class_id=np.array([0, 0]),
+)
+merged = detections.with_nmm(threshold=0.5)
+assert len(merged) == 1
+assert isinstance(merged.mask, CompactMask)
+assert merged.mask.area.tolist() == [1024]
+```
+
+The same path is used by `InferenceSlicer(compact_masks=True, overlap_filter=sv.OverlapFilter.NON_MAX_MERGE)`. The mask union preserves all stored foreground, including pixels outside the detection boxes. Matching thresholds, class grouping, confidence aggregation and winner metadata behave as with dense masks.
+
+Union cost depends on foreground run fragmentation and the columns those runs cross, not on the logical image area. Highly fragmented masks can take more time and temporary memory than a dense union on small images. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.
+
+A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096`.
 
 ---
 

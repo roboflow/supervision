@@ -2833,6 +2833,10 @@ class Detections:
         oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
         oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
+        Compact masks remain compressed while forming candidate and output unions;
+        no full-image mask stack is allocated for merging. Overlap evaluation still
+        decodes overlapping mask crops.
+
         Args:
             threshold: The intersection-over-union threshold
                 to use for non-maximum merging. Defaults to 0.5.
@@ -3043,20 +3047,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     if masks:
         if all(isinstance(m, CompactMask) for m in masks):
             compact_masks = cast(list[CompactMask], masks)
-            image_shape = compact_masks[0].image_shape
-            if any(m.image_shape != image_shape for m in compact_masks):
-                raise ValueError(
-                    "Cannot merge CompactMask objects with different image shapes."
-                )
-            union_mask = np.zeros(image_shape, dtype=bool)
-            for compact_mask in compact_masks:
-                union_mask |= compact_mask.to_dense()[0]
-            union_xyxy = mask_to_xyxy(union_mask[np.newaxis]).astype(np.float32)
-            mask = CompactMask.from_dense(
-                masks=union_mask[np.newaxis],
-                xyxy=union_xyxy,
-                image_shape=image_shape,
-            )
+            mask = CompactMask.merge(compact_masks)._union()
         else:
             dense_masks = [
                 m.to_dense() if isinstance(m, CompactMask) else m for m in masks
