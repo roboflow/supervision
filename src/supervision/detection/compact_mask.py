@@ -56,6 +56,61 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     return int(np.sum(rle[1::2]))
 
 
+def _rle_to_column_intervals(
+    rle: npt.NDArray[np.int32],
+    crop_height: int,
+    offset: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int64]:
+    """Extract foreground `(x, y_start, y_stop)` intervals in image coordinates.
+
+    Split foreground runs only at column boundaries. Background runs, including entire
+    empty columns, are skipped without allocating pixels or per-column lists. Work and
+    storage scale with foreground runs plus the columns they cross.
+    """
+    ends = np.cumsum(rle, dtype=np.int64)
+    starts, stops = ends[:-1:2], ends[1::2]
+    nonempty = stops > starts
+    starts, stops = starts[nonempty], stops[nonempty]
+    if len(starts) == 0:
+        return np.empty((0, 3), dtype=np.int64)
+
+    first_columns = starts // crop_height
+    counts = (stops - 1) // crop_height - first_columns + 1
+    run_indices = np.repeat(np.arange(len(starts)), counts)
+    within_run = np.arange(int(counts.sum())) - np.repeat(
+        np.cumsum(counts) - counts, counts
+    )
+    columns = first_columns[run_indices] + within_run
+    column_origins = columns * crop_height
+    row_starts = np.maximum(starts[run_indices] - column_origins, 0)
+    row_stops = np.minimum(stops[run_indices] - column_origins, crop_height)
+    return np.column_stack(
+        (
+            columns + int(offset[0]),
+            row_starts + int(offset[1]),
+            row_stops + int(offset[1]),
+        )
+    )
+
+
+def _rle_counts_int32(counts: npt.NDArray[np.int64]) -> npt.NDArray[np.int32]:
+    """Split oversized runs with zero opposite runs to preserve int32 RLE storage.
+
+    A sparse union crop can exceed 2**31 pixels even when its input crops are tiny.
+    Zero-length runs keep the foreground/background parity across each split.
+    """
+    limit = np.iinfo(np.int32).max
+    if np.all(counts <= limit):
+        return counts.astype(np.int32)
+    split_counts: list[int] = []
+    for count in counts.tolist():
+        while count > limit:
+            split_counts.extend((limit, 0))
+            count -= limit
+        split_counts.append(count)
+    return np.array(split_counts, dtype=np.int32)
+
+
 def _rle_split_cols(
     rle: npt.NDArray[np.int32],
     crop_h: int,
@@ -1380,6 +1435,61 @@ class CompactMask:
         )
 
         return CompactMask(new_rles, new_crop_shapes, new_offsets, image_shape)
+
+    def _union(self) -> CompactMask:
+        """Reduce the collection to one tight mask using foreground run intervals.
+
+        Used by NMM for both its evolving candidate and its final output. No mask pixels
+        are decoded, even when the union's bounding rectangle is much larger than the
+        input crops. All stored foreground is retained regardless of the detection
+        boxes. An empty collection or all-background inputs produce one all-background
+        mask with a 1x1 crop at the image origin.
+
+        Memory scales with the number of foreground column intervals, rather than the
+        image or union crop area. Sorting these intervals costs O(K log K); fragmented
+        masks can therefore be slower than a dense NumPy union.
+        """
+        intervals = [
+            _rle_to_column_intervals(rle, int(shape[0]), offset)
+            for rle, shape, offset in zip(self._rles, self._crop_shapes, self._offsets)
+        ]
+        intervals = [part for part in intervals if len(part)]
+        if not intervals:
+            return CompactMask(
+                [np.array([1], dtype=np.int32)],
+                np.ones((1, 2), dtype=np.int32),
+                np.zeros((1, 2), dtype=np.int32),
+                self._image_shape,
+            )
+
+        foreground = np.concatenate(intervals)
+        x_min, y_min = foreground[:, :2].min(axis=0)
+        crop_width = int(foreground[:, 0].max() - x_min + 1)
+        crop_height = int(foreground[:, 2].max() - y_min)
+        column_origins = (foreground[:, 0] - x_min) * crop_height
+        starts = column_origins + foreground[:, 1] - y_min
+        stops = column_origins + foreground[:, 2] - y_min
+        order = np.argsort(starts)
+        starts = starts[order]
+        stops = np.maximum.accumulate(stops[order])
+        # Merge both overlapping and touching intervals, including across columns.
+        boundaries = np.concatenate(([True], starts[1:] > stops[:-1]))
+        starts = starts[boundaries]
+        stops = stops[np.concatenate((boundaries[1:], [True]))]
+
+        counts: npt.NDArray[np.int64] = np.empty(2 * len(starts) + 1, dtype=np.int64)
+        counts[::2] = np.concatenate(
+            (starts, [crop_height * crop_width])
+        ) - np.concatenate(([0], stops))
+        counts[1::2] = stops - starts
+        if counts[-1] == 0:
+            counts = counts[:-1]
+        return CompactMask(
+            [_rle_counts_int32(counts)],
+            np.array([[crop_height, crop_width]], dtype=np.int32),
+            np.array([[x_min, y_min]], dtype=np.int32),
+            self._image_shape,
+        )
 
     def repack(self) -> CompactMask:
         """Re-encode all masks using tight bounding boxes.

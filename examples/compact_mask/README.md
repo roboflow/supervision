@@ -646,10 +646,21 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Non-Maximum Merging Benchmark
+
+Run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096` on each revision to compare compact `Detections.with_nmm`. It holds twelve 64×64 mask crops fixed while varying the logical canvas. Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. No model, image download or GPU is required.
+
+JSON output includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size` and `--repeats` control mask complexity and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
+
+The RLE union sorts foreground intervals; fragmented masks on small canvases can be slower and use more temporary memory than a dense union. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+
+______________________________________________________________________
+
 ## Files
 
-| File                     | Description                                         |
-| ------------------------ | --------------------------------------------------- |
-| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers    |
-| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark |
-| `README.md`              | This file                                           |
+| File                     | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers         |
+| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark      |
+| `benchmark_nmm.py`       | Compact NMM canvas size and mask fragmentation benchmark |
+| `README.md`              | This file                                                |
