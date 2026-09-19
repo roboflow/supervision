@@ -198,7 +198,7 @@ The same path is used by `InferenceSlicer(compact_masks=True, overlap_filter=sv.
 
 Union cost depends on foreground run fragmentation and the columns those runs cross, not on the logical image area. Highly fragmented masks can take more time and temporary memory than a dense union on small images. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.
 
-A reproducible benchmark varying canvas size and mask fragmentation is available at [`examples/compact_mask/benchmark_nmm.py`](https://github.com/roboflow/supervision/blob/develop/examples/compact_mask/benchmark_nmm.py).
+A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096`.
 
 ---
 
