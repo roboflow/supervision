@@ -189,9 +189,7 @@ class LineZone:
         has_confirmed_track = detections.tracker_id >= 0
         current_keys = {
             int(tracker_id)
-            for tracker_id, confirmed in zip(
-                detections.tracker_id, has_confirmed_track
-            )
+            for tracker_id, confirmed in zip(detections.tracker_id, has_confirmed_track)
             if confirmed
         }
         self._evict_stale_crossing_history(current_keys)
