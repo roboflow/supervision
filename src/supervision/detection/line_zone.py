@@ -106,12 +106,16 @@ class LineZone:
                 the detection has passed the line counter or not. By default,
                 this contains the four corners of the detection's bounding box.
             minimum_crossing_threshold: Detection needs to be seen on the other
-                side of the line for this many consecutive frames to be considered
-                as having crossed the line. This is useful when dealing with unstable
-                bounding boxes or when detections may linger on the line. Excursions
-                shorter than this are treated as noise: they neither count as a
-                crossing nor as a return crossing once the detection settles back on
-                the side it started from.
+                side of the line for this many consecutive observations to be
+                considered as having crossed the line. Only frames that place the
+                detection on one side of the line count: a frame in which it is
+                temporarily missing, falls outside the line's limits, or straddles
+                the line is skipped, and neither extends the run nor resets it.
+                This is useful when dealing with unstable bounding boxes or when
+                detections may linger on the line. Excursions shorter than this
+                are treated as noise: they neither count as a crossing nor as a
+                return crossing once the detection settles back on the side it
+                started from.
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
