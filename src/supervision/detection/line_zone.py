@@ -218,7 +218,7 @@ class LineZone:
             if has_any_left_trigger[i] and has_any_right_trigger[i]:
                 continue
 
-            tracker_state: bool = has_any_left_trigger[i]
+            tracker_state = bool(has_any_left_trigger[i])
             key = int(tracker_id)
             crossing_history = self.crossing_state_history[key]
             crossing_history.append(tracker_state)
