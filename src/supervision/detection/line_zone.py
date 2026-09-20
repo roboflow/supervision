@@ -115,7 +115,11 @@ class LineZone:
                 detections may linger on the line. Excursions shorter than this
                 are treated as noise: they neither count as a crossing nor as a
                 return crossing once the detection settles back on the side it
-                started from.
+                started from. This holds only for excursions from a side the
+                detection is already established on — the first side it is seen
+                on, at the start of its life and again after it has been absent
+                long enough for its state to be dropped, becomes its reference
+                immediately, with no confirmation.
         """
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
@@ -125,8 +129,11 @@ class LineZone:
         )
         # Last side of the line a tracker was *confirmed* on. Crossings are counted
         # against this rather than against the oldest history entry, so a
-        # sub-threshold excursion never becomes the reference side and cannot be
-        # mistaken for a crossing back to the side the tracker never left.
+        # sub-threshold excursion never becomes the reference side once a reference
+        # exists, and cannot be mistaken for a crossing back to the side the tracker
+        # never left. The reference itself is seeded by the first observation with no
+        # confirmation, so a noisy first frame — at the start of a tracker's life or
+        # on its first frame back after eviction — still decides where it starts.
         self._confirmed_crossing_side: dict[int, bool] = {}
         # Tracks consecutive frames a tracker key has been absent; eviction
         # requires crossing_history_length absent frames so that ByteTrack
