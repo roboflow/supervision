@@ -712,7 +712,9 @@ class TestLineZoneSubThresholdFlicker:
         flickering_boxes = _boxes_from_sides("AAABAAA")
         crossing_boxes = _boxes_from_sides("AAABBBB")
 
-        for flickering_box, crossing_box in zip(flickering_boxes, crossing_boxes):
+        for flickering_box, crossing_box in zip(
+            flickering_boxes, crossing_boxes, strict=True
+        ):
             line_zone.trigger(
                 _create_detections(
                     xyxy=[flickering_box, crossing_box], tracker_id=[1, 2]
