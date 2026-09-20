@@ -3,6 +3,7 @@ import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
+from itertools import islice
 from typing import Literal
 
 import numpy as np
@@ -240,9 +241,11 @@ class LineZone:
 
             # Only promote the new side once it has been held for the full threshold,
             # so a flicker that reverts before the threshold elapses is discarded.
-            sustained_frames_required = self.crossing_history_length - 1
-            recent_states = list(crossing_history)[-sustained_frames_required:]
-            if any(state != tracker_state for state in recent_states):
+            # The gate above leaves exactly crossing_history_length entries, so
+            # skipping the oldest one leaves precisely the minimum_crossing_threshold
+            # frames that must all be on the new side.
+            sustained_run = islice(crossing_history, 1, None)
+            if any(state != tracker_state for state in sustained_run):
                 continue
 
             self._confirmed_crossing_side[key] = tracker_state
