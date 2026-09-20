@@ -671,6 +671,8 @@ class TestLineZoneSubThresholdFlicker:
             pytest.param("AAABBBAAA", 2, (1, 1), id="crossing-then-return"),
             pytest.param("AAABAAABBB", 2, (0, 1), id="crossing-after-flicker"),
             pytest.param("AB", 1, (0, 1), id="threshold-one-unchanged"),
+            pytest.param("BBBABBB", 2, (0, 0), id="one-frame-flicker-from-other-side"),
+            pytest.param("AAABBB", 3, (0, 1), id="sustained-crossing-threshold-three"),
         ],
     )
     def test_counts_only_sustained_side_changes(
@@ -722,6 +724,49 @@ class TestLineZoneSubThresholdFlicker:
             )
 
         assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    def test_dropped_frame_inside_excursion_is_coasted_through(self) -> None:
+        """A single dropped frame mid-excursion is coasted through, not reset.
+
+        The sustain-window deque records only observed sides, with no notion of a gap,
+        so a flicker excursion that straddles one dropped frame (the tracker entirely
+        absent from that frame's detections, per the coasting-tolerance eviction design)
+        is judged purely on the sides recorded either side of the gap. This documents
+        the resulting current behavior — one still-spurious crossing from the flicker,
+        plus the eventual genuine crossing — rather than asserting it is the intended
+        fix.
+        """
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+
+        for box in _boxes_from_sides("AAAB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+        line_zone.trigger(Detections.empty())
+        for box in _boxes_from_sides("BAAA"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (1, 1)
+
+    def test_concurrent_flicker_does_not_leak_between_trackers(self) -> None:
+        """Two independently flickering trackers must not cross-contaminate counts.
+
+        Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
+        flicker with a real crossing; here both trackers are noisy at once, with
+        different flicker shapes (one single-frame excursion vs. two), to confirm
+        per-tracker isolation holds under concurrent noise, not only under a
+        concurrent real crossing.
+        """
+        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        single_flicker_boxes = _boxes_from_sides("AAABAAA")
+        double_flicker_boxes = _boxes_from_sides("AABAABA")
+
+        for single_box, double_box in zip(
+            single_flicker_boxes, double_flicker_boxes, strict=True
+        ):
+            line_zone.trigger(
+                _create_detections(xyxy=[single_box, double_box], tracker_id=[1, 2])
+            )
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
 
     def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
         """Eviction clears the reference side, so a reused tracker ID starts fresh."""
