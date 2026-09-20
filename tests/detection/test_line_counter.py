@@ -633,15 +633,18 @@ def test_line_zone_one_detection_long_horizon(
 
 _ABOVE_LINE_BOX = [2.0, -6.0, 3.0, -4.0]
 _BELOW_LINE_BOX = [2.0, 4.0, 3.0, 6.0]
+_STRADDLING_LINE_BOX = [2.0, -1.0, 3.0, 1.0]
+_SIDE_TO_BOX = {"A": _ABOVE_LINE_BOX, "B": _BELOW_LINE_BOX, "S": _STRADDLING_LINE_BOX}
 
 
 def _boxes_from_sides(sides: str) -> list[list[float]]:
-    """Map a side string like `"AABAA"` to TOP_LEFT anchor boxes either side of `y=0`.
+    """Map a side string like `"AABSAA"` to boxes above, below, or straddling `y=0`.
 
-    `"A"` is above the line and `"B"` below it, so one character encodes a single frame
-    of a tracker's trajectory and the whole string encodes the sequence.
+    `"A"` is above the line, `"B"` is below it, and `"S"` straddles both sides at once
+    (top corners above, bottom corners below) — one character encodes a single frame of
+    a tracker's trajectory and the whole string encodes the sequence.
     """
-    return [_ABOVE_LINE_BOX if side == "A" else _BELOW_LINE_BOX for side in sides]
+    return [_SIDE_TO_BOX[side] for side in sides]
 
 
 class TestLineZoneSubThresholdFlicker:
@@ -683,6 +686,25 @@ class TestLineZoneSubThresholdFlicker:
             line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
 
         assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    def test_straddling_frame_is_skipped_with_default_anchors(self) -> None:
+        """A straddling box is invisible to the sustain-window gate, not a flicker.
+
+        With the default four-corner anchors, a box that straddles the line makes
+        `_compute_anchor_sides` report both `has_any_left_trigger` and
+        `has_any_right_trigger` as True for that frame, so it is skipped before ever
+        reaching the crossing history (the ambiguous-straddle guard). A straddle
+        sandwiched inside a sustained crossing must therefore count exactly as if
+        that frame were omitted from the sequence.
+        """
+        line_zone = LineZone(
+            start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
+        )
+
+        for box in _boxes_from_sides("AAASBBB"):
+            line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
+
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
 
     def test_flicker_does_not_leak_between_trackers(self) -> None:
         """One tracker's flicker must not disturb another tracker's real crossing."""
