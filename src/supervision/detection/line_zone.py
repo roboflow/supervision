@@ -227,6 +227,11 @@ class LineZone:
                 key, tracker_state
             )
 
+            # Subsumed by the confirmed-side check that follows, but not removable:
+            # this is what guarantees the deque is full — exactly
+            # crossing_history_length entries — by the time the sustained-run check
+            # below reads it. Without it a partial window would satisfy that check
+            # after a single frame on the new side.
             if len(crossing_history) < self.crossing_history_length:
                 continue
 
