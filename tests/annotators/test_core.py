@@ -1680,6 +1680,23 @@ class TestIconAnnotator:
 
         np.testing.assert_array_equal(result, expected)
 
+    def test_draws_cmyk_jpeg_icon(self, tmp_path: Path) -> None:
+        """A CMYK JPEG icon is drawn in its colors, not with its black ink as alpha."""
+        icon_path = tmp_path / "cmyk.jpg"
+        icon_rgb = np.full((16, 16, 3), (200, 30, 90), dtype=np.uint8)
+        Image.fromarray(icon_rgb).convert("CMYK").save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = (90, 30, 200)
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_allclose(result.astype(np.int16), expected, atol=2)
+
     def test_rejects_icon_of_unsupported_pixel_type(
         self, monkeypatch, tmp_path
     ) -> None:
