@@ -171,6 +171,11 @@ class LineZone:
         """Update the `in_count` and `out_count` based on the objects that cross the
         line.
 
+        Detections with a negative `tracker_id` (e.g. `-1` for tracks a tracker
+        has not confirmed yet) are ignored: they do not identify a real track,
+        so counting them would collapse unrelated objects into one phantom
+        track and inflate the counts.
+
         Args:
             detections: A Detections object for which to update the counts.
 
@@ -201,7 +206,12 @@ class LineZone:
             if detections.class_id is not None
             else [None] * len(detections)
         )
-        current_keys = {int(tracker_id) for tracker_id in detections.tracker_id}
+        has_confirmed_track = detections.tracker_id >= 0
+        current_keys = {
+            int(tracker_id)
+            for tracker_id, confirmed in zip(detections.tracker_id, has_confirmed_track)
+            if confirmed
+        }
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
@@ -209,9 +219,12 @@ class LineZone:
             self._compute_anchor_sides(detections)
         )
 
-        for i, (class_id, tracker_id) in enumerate(
-            zip(class_ids, detections.tracker_id)
+        for i, (class_id, tracker_id, confirmed) in enumerate(
+            zip(class_ids, detections.tracker_id, has_confirmed_track)
         ):
+            if not confirmed:
+                continue
+
             if not in_limits[i]:
                 continue
 

@@ -1183,6 +1183,48 @@ def test_line_zone_class_flicker_keeps_crossing_counts_continuous() -> None:
     assert set(line_zone.crossing_state_history) == {0}
 
 
+def test_line_zone_ignores_detections_with_negative_tracker_id() -> None:
+    """Unconfirmed tracks (tracker_id=-1) must not inflate crossing counts."""
+    line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+    above = _create_detections(xyxy=[[80, 20, 120, 60]], tracker_id=[-1], class_id=[0])
+    below = _create_detections(
+        xyxy=[[80, 160, 120, 200]], tracker_id=[-1], class_id=[0]
+    )
+
+    for detections in [above, below, above, below, above, below]:
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        assert not crossed_in[0]
+        assert not crossed_out[0]
+
+    assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+    assert -1 not in line_zone.crossing_state_history
+
+
+def test_line_zone_ignores_negative_tracker_id_among_confirmed_tracks() -> None:
+    """Skipping a negative tracker_id must not disturb confirmed tracks."""
+    line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+    above = _create_detections(
+        xyxy=[[80, 20, 120, 60], [80, 20, 120, 60]],
+        tracker_id=[-1, 1],
+        class_id=[0, 0],
+    )
+    below = _create_detections(
+        xyxy=[[80, 160, 120, 200], [80, 160, 120, 200]],
+        tracker_id=[-1, 1],
+        class_id=[0, 0],
+    )
+
+    crossed_in, crossed_out = line_zone.trigger(above)
+    assert not crossed_in.any() and not crossed_out.any()
+
+    crossed_in, crossed_out = line_zone.trigger(below)
+    assert not crossed_in[0] and not crossed_out[0]
+    assert not crossed_in[1] and crossed_out[1]
+
+    assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+    assert set(line_zone.crossing_state_history) == {1}
+
+
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
     for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:

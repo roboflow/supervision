@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-17
+date_modified: 2026-09-20
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.LineZone.trigger` now ignores detections with a negative `tracker_id` instead of counting them as one shared track. Trackers such as `roboflow/trackers`' `ByteTrackTracker` return `-1` for tracks they have not confirmed yet, so on a busy frame many distinct unconfirmed objects collapsed into a single phantom track whose independent motion crossed the line repeatedly, inflating `in_count`/`out_count` silently. Skipped detections report `False` in the returned `crossed_in`/`crossed_out` arrays, and confirmed tracks count exactly as before. ([#2608](https://github.com/roboflow/supervision/pull/2608))
 
 - `sv.InferenceSlicer` no longer raises when slices disagree on `metadata` (e.g. a `source_image` NumPy array attached per-slice by RF-DETR/`inference`-package connectors), which previously crashed the merge outright. Any metadata key that isn't identical across every slice is now dropped from the merged result, with a `SupervisionWarnings` warning naming the dropped keys, emitted once per slicer instance — a key meant to be global (`video_name`, `camera_id`, …) no longer vanishes silently. `source_image` is a special case: it is removed from each slice before the lenient merge, so the comparison never touches whole image arrays, then reattached afterward as the full input image — array or PIL image alike, but not a windowed raster, which has no full in-memory image to give back. Fixing this also closed two related `Detections.__eq__` bugs in the metadata comparison it shares: metadata holding `NaN` in a float array now compares equal to itself instead of always reading unequal, and comparing a list-valued metadata value against an ndarray-valued one now returns `False` instead of raising `ValueError` from NumPy's ambiguous truth value check. ([#2596](https://github.com/roboflow/supervision/pull/2596))
 
