@@ -117,17 +117,35 @@ def images_to_cv2(
     return result
 
 
+# Pillow modes whose pixels are wider than 8 bits: 32-bit signed integer and the
+# 16-bit unsigned variants (native, little- and big-endian).
+_DEEP_GRAYSCALE_MODES = frozenset({"I", "I;16", "I;16L", "I;16B", "I;16N"})
+
+# Pillow modes that carry one luminance channel, plus modes that reduce to one:
+# 1-bit, grayscale with alpha, and 32-bit float.
+_SINGLE_CHANNEL_MODES = frozenset({"L", "1", "LA", "La", "F"})
+
+
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
-    """Converts Pillow image into OpenCV image, handling RGB -> BGR conversion. Palette
-    images are first expanded to RGB so palette indices are resolved to their actual
-    colors. RGBA images are converted to BGR, matching OpenCV by dropping the alpha
-    channel.
+    """Converts Pillow image into OpenCV image, handling RGB -> BGR conversion.
+
+    Every Pillow mode is reduced to the 8-bit layout OpenCV would hand back for the
+    same picture: an `(H, W)` grayscale array for single-channel modes and an
+    `(H, W, 3)` BGR array for everything else. Palette images are expanded to RGB so
+    palette indices are resolved to their actual colors, and CMYK ink values are
+    converted to color instead of being read as RGB plus an extra channel. Alpha is
+    dropped, matching `cv2.imread` with its default flags, so RGBA becomes BGR and
+    LA becomes grayscale. A 1-bit image becomes `0` and `255`. A 16-bit image keeps
+    its high byte, as `cv2.imread` does when it reads a 16-bit PNG as 8-bit, and a
+    32-bit integer image is clipped to the 16-bit range first. A 32-bit float image
+    is clipped to `0`-`255` the way Pillow's own `convert("L")` clips it.
 
     Args:
-        image: Pillow image in RGB, RGBA, grayscale, or palette mode.
+        image: Pillow image in any mode.
 
     Returns:
-        Input image converted to OpenCV format.
+        Input image converted to OpenCV format: `uint8` of shape `(H, W)` for
+        single-channel modes or `(H, W, 3)` BGR otherwise.
 
     Examples:
         ```pycon
@@ -139,16 +157,28 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
         (10, 10, 3)
         >>> scene[0, 0].tolist()
         [0, 0, 255]
+        >>> pillow_to_cv2(Image.new("1", (2, 2), color=1)).tolist()
+        [[255, 255], [255, 255]]
 
         ```
     """
-    if image.mode == "P":
+    if image.mode in _DEEP_GRAYSCALE_MODES:
+        # Keep the high byte: a 16-bit value cast to uint8 wraps modulo 256 and
+        # redraws a bright pixel as a dark one.
+        values = np.asarray(image)
+        if values.dtype.kind == "i":
+            values = np.clip(values, 0, np.iinfo(np.uint16).max)
+        return (values.astype(np.uint16) >> 8).astype(np.uint8)
+
+    if image.mode in _SINGLE_CHANNEL_MODES:
+        if image.mode != "L":
+            image = image.convert("L")
+        return np.array(image, dtype=np.uint8)
+
+    if image.mode != "RGB":
         image = image.convert("RGB")
 
-    scene = np.array(image)
-    if scene.ndim == 2:
-        return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))
-    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+    scene = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.
     return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))
