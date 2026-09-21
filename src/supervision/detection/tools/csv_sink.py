@@ -98,12 +98,12 @@ class CSVSink:
         self.close()
 
     def open(self) -> None:
-        """Open the CSV file for writing."""
+        """Open the CSV file for writing as UTF-8, independent of the system locale."""
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
             os.makedirs(parent_directory)
 
-        self.file = open(self.file_name, "w", newline="")
+        self.file = open(self.file_name, "w", encoding="utf-8", newline="")
         self.writer = csv.writer(self.file)
         self.header_written = False
         self.field_names = []
