@@ -70,6 +70,28 @@ def _write_video_with_audio(path: Path, frame_count: int = 5, fps: int = 5) -> N
         container.close()
 
 
+def _write_rotated_video(path: Path, rotation: int) -> np.ndarray:
+    """Write a landscape clip tagged with a display rotation and return its frame."""
+    frame = np.zeros((16, 32, 3), dtype=np.uint8)
+    frame[:8, :16] = 255
+    container = av.open(str(path), mode="w")
+    stream = container.add_stream("mpeg4", rate=5)
+    stream.width = 32
+    stream.height = 16
+    stream.pix_fmt = "yuv420p"
+    stream.set_display_rotation(rotation)
+    try:
+        for _ in range(3):
+            video_frame = av.VideoFrame.from_ndarray(frame, format="bgr24")
+            for packet in stream.encode(video_frame):
+                container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)
+    finally:
+        container.close()
+    return frame
+
+
 def _run_without_opencv(source: str) -> None:
     """Run a Python snippet with cv2 imports blocked."""
     env = os.environ.copy()
@@ -137,6 +159,71 @@ def test_fallback_capture_reports_metadata_and_supports_exact_seek(
     assert frame.shape == (16, 16, 3)
     assert float(frame.mean()) == pytest.approx(120.0, abs=20.0)
     assert not capture.isOpened()
+
+
+@pytest.mark.parametrize(
+    ("rotation", "quarter_turns"),
+    [
+        pytest.param(90, 1, id="counterclockwise-quarter-turn"),
+        pytest.param(-90, 3, id="clockwise-quarter-turn"),
+        pytest.param(180, 2, id="half-turn"),
+        pytest.param(0, 0, id="no-rotation"),
+        pytest.param(45, 0, id="non-quarter-turn"),
+    ],
+)
+def test_fallback_capture_turns_rotated_video_upright(
+    tmp_path: Path, rotation: int, quarter_turns: int
+) -> None:
+    """Fallback capture applies a display rotation to its frames and frame size."""
+    source_path = tmp_path / "rotated.mp4"
+    stored_frame = _write_rotated_video(source_path, rotation)
+    expected = np.rot90(stored_frame, quarter_turns)
+
+    capture = _VideoCapture(str(source_path))
+    size = (
+        capture.get(_cv2.CAP_PROP_FRAME_WIDTH),
+        capture.get(_cv2.CAP_PROP_FRAME_HEIGHT),
+    )
+    success, frame = capture.read()
+    capture.release()
+
+    assert success
+    assert frame is not None
+    assert size == (expected.shape[1], expected.shape[0])
+    assert frame.shape == expected.shape
+    np.testing.assert_allclose(frame.astype(np.int16), expected, atol=16)
+
+
+@pytest.mark.parametrize("rotation", [90, -90, 180])
+def test_fallback_capture_matches_opencv_display_rotation(
+    tmp_path: Path, rotation: int
+) -> None:
+    """Fallback capture turns rotated videos upright the way OpenCV does."""
+    cv2 = pytest.importorskip("cv2")
+    source_path = tmp_path / "rotated.mp4"
+    _write_rotated_video(source_path, rotation)
+
+    reference = cv2.VideoCapture(str(source_path))
+    expected_size = (
+        reference.get(cv2.CAP_PROP_FRAME_WIDTH),
+        reference.get(cv2.CAP_PROP_FRAME_HEIGHT),
+    )
+    _, expected_frame = reference.read()
+    reference.release()
+    capture = _VideoCapture(str(source_path))
+    size = (
+        capture.get(_cv2.CAP_PROP_FRAME_WIDTH),
+        capture.get(_cv2.CAP_PROP_FRAME_HEIGHT),
+    )
+    _, frame = capture.read()
+    capture.release()
+
+    assert size == expected_size
+    assert frame is not None
+    assert frame.shape == expected_frame.shape
+    np.testing.assert_allclose(
+        frame.astype(np.int16), expected_frame.astype(np.int16), atol=16
+    )
 
 
 def test_fallback_writer_default_codec_round_trips(tmp_path: Path) -> None:

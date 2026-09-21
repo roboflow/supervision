@@ -409,7 +409,10 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         continue
                     stats.append(
                         (
-                            np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros(
+                                (0, iou_thresholds.size, self.max_detections.size),
+                                dtype=bool,
+                            ),
                             np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=int),
                             np.zeros((0,), dtype=int),
@@ -449,19 +452,21 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches, _ = _match_detection_batch_with_target_indices(
-                        prediction_class_ids,
+                    sorted_indices = np.argsort(-prediction_confidence)
+                    matches = self._match_top_predictions(
+                        prediction_class_ids[sorted_indices],
                         target_class_ids,
-                        iou,
+                        iou[:, sorted_indices],
                         iou_thresholds,
                     )
-                    ignored_matches = np.zeros_like(matches, dtype=bool)
+                    ignored_matches = np.zeros(
+                        (len(sorted_indices), iou_thresholds.size), dtype=bool
+                    )
 
-                    sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
-                            matches[sorted_indices],
-                            ignored_matches[sorted_indices],
+                            matches,
+                            ignored_matches,
                             np.arange(len(prediction_confidence)),
                             prediction_class_ids[sorted_indices],
                             target_class_ids,
@@ -501,6 +506,48 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             large_objects=None,
         )
 
+    def _match_top_predictions(
+        self,
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        target_class_ids: npt.NDArray[np.int32],
+        sorted_iou: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
+        """Match one image's predictions separately for each detection limit.
+
+        The matcher pairs by highest IoU rather than by confidence, so matching every
+        prediction and then keeping the top K would let a prediction ranked below K
+        take a target from one ranked within it. Each limit therefore matches only its
+        own top K predictions.
+
+        Args:
+            sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
+                descending confidence.
+            target_class_ids: shape (T,), target class ids.
+            sorted_iou: shape (T, P), IoU with prediction columns in the same order.
+            iou_thresholds: shape (Th,), IoU thresholds.
+
+        Returns:
+            shape (P, Th, K), whether each prediction is a true positive when only
+                the top `max_detections[k]` predictions are matched; predictions
+                ranked below that limit are `False`.
+        """
+        prediction_count = sorted_prediction_class_ids.shape[0]
+        matches = np.zeros(
+            (prediction_count, iou_thresholds.size, self.max_detections.size),
+            dtype=bool,
+        )
+        for limit_index, max_detections in enumerate(self.max_detections):
+            top_count = min(int(max_detections), prediction_count)
+            limit_matches, _ = _match_detection_batch_with_target_indices(
+                sorted_prediction_class_ids[:top_count],
+                target_class_ids,
+                sorted_iou[:, :top_count],
+                iou_thresholds,
+            )
+            matches[:top_count, :, limit_index] = limit_matches
+        return matches
+
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
@@ -513,6 +560,12 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute recall per detection limit and class from all images' matches.
+
+        `matches` has shape (P, Th, K) and holds, for each detection limit, the
+        matches of that limit's own top predictions; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`.
+        """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
         if unique_classes.size == 0:
@@ -525,11 +578,11 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             )
 
         recalls_at_k: list[npt.NDArray[np.float64]] = []
-        for max_detections in self.max_detections:
-            # Shape: PxTh,P,C,C -> CxThx3
+        for limit_index, max_detections in enumerate(self.max_detections):
+            # Shape: PxThxK,P,C,C -> CxThx3
             is_within_limit = prediction_indices < max_detections
             confusion_matrix = self._compute_confusion_matrix(
-                matches[is_within_limit],
+                matches[is_within_limit, :, limit_index],
                 ignored_matches[is_within_limit],
                 prediction_class_ids[is_within_limit],
                 unique_classes,
