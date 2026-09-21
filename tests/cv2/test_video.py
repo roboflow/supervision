@@ -168,6 +168,7 @@ def test_fallback_capture_reports_metadata_and_supports_exact_seek(
         pytest.param(-90, 3, id="clockwise-quarter-turn"),
         pytest.param(180, 2, id="half-turn"),
         pytest.param(0, 0, id="no-rotation"),
+        pytest.param(45, 0, id="non-quarter-turn"),
     ],
 )
 def test_fallback_capture_turns_rotated_video_upright(
