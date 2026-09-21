@@ -4043,6 +4043,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.IconAnnotator</code> and <code>sv.draw_image</code> now draw CMYK JPEG and TIFF images in their colors when OpenCV is not installed. Both read images with <code>cv2.IMREAD_UNCHANGED</code>, for which OpenCV converts CMYK to color, returning BGR for a JPEG and BGRA with an opaque alpha channel for a TIFF. The OpenCV-free fallback instead returned the four ink channels, cyan, magenta, yellow and black, as if they were blue, green, red and alpha, so an icon was drawn in the wrong colors and only where it had black ink: a CMYK image with no black ink was not drawn at all. The fallback now returns the same arrays as <code>cv2.imread</code> for CMYK images. Other images, and every read with OpenCV installed, are unchanged. <a href="https://github.com/roboflow/supervision/pull/2602">#2602</a></p>
 </li>
 <li>
+<p><code>sv.draw_image</code> now draws a 16-bit PNG in its own colors. It reads an image path with <code>cv2.IMREAD_UNCHANGED</code> to keep the alpha channel, and with OpenCV installed that also keeps a 16-bit PNG at 16 bits, so the blend into the 8-bit scene clipped channel values above <code>255</code>: a dark gray logo was drawn white, and a red of <code>200</code> drew as <code>255</code>. A 16-bit image read from a path is now scaled down to 8 bits as it is loaded, as <code>sv.IconAnnotator</code> already does for its icons. Eight-bit images, and images passed as arrays, are drawn as before. <a href="https://github.com/roboflow/supervision/pull/2603">#2603</a></p>
+</li>
+<li>
 <p><code>sv.IconAnnotator</code> now draws grayscale PNG icons. It reads icons with <code>cv2.IMREAD_UNCHANGED</code> so that their alpha channel survives, but for a grayscale PNG without alpha that returns a 2-D array, and the icon overlay only handles BGR and BGRA arrays, so <code>annotate</code> failed with <code>IndexError: tuple index out of range</code>. Single-color icons and logos are often stored as grayscale, and PNG optimizers such as <code>optipng</code> and <code>oxipng</code> convert an RGB image to grayscale whenever all its pixels are gray. A grayscale icon is now expanded to BGR when it is loaded, as <code>cv2.imread</code> does by default. The same read also keeps a 16-bit PNG at 16 bits, which the 8-bit scene wraps modulo 256: a 16-bit color icon of value <code>60000</code> drew as <code>96</code>, near black. A 16-bit icon, grayscale or color, is now scaled down to 8 bits as it is loaded, and an icon that is neither 8-bit nor 16-bit is rejected with a <code>ValueError</code> naming the file and its pixel type. Eight-bit color icons, with or without alpha, are drawn as before. <a href="https://github.com/roboflow/supervision/pull/2591">#2591</a></p>
 </li>
 <li>
@@ -6406,7 +6409,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 21, 2026 10:30:43 UTC">September 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 21, 2026 12:30:42 UTC">September 21, 2026</span>
   </span>
 
     
