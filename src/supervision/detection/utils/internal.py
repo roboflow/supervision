@@ -523,13 +523,7 @@ def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> b
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
-        )
-        else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
+        metadata_values_equal(metadata_a[key], metadata_b[key]) for key in metadata_a
     )
 
 
@@ -593,6 +587,38 @@ def merge_data(
     return cast(_DetectionDataType, merged_data)
 
 
+def metadata_values_equal(value_a: Any, value_b: Any) -> bool:
+    """Check whether two metadata values can merge into one.
+
+    The predicate is total: any value type may be passed, and comparisons that a
+    type does not support resolve to `False` rather than propagating an exception.
+
+    Args:
+        value_a, value_b: The metadata values to compare.
+
+    Returns:
+        True if both values are considered equal, False otherwise.
+    """
+    if isinstance(value_a, np.ndarray) and isinstance(value_b, np.ndarray):
+        # `equal_nan` makes an array holding NaN equal to itself, but NumPy rejects
+        # the argument for non-floating dtypes, so it is only passed when both
+        # operands are float arrays.
+        both_floating = np.issubdtype(value_a.dtype, np.floating) and np.issubdtype(
+            value_b.dtype, np.floating
+        )
+        if both_floating:
+            return bool(np.array_equal(value_a, value_b, equal_nan=True))
+        return bool(np.array_equal(value_a, value_b))
+    if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+        return False
+    try:
+        return bool(value_a == value_b)
+    except (ValueError, RuntimeError, TypeError):
+        # Containers of arrays (list/dict/tuple of ndarray) and tensor types return
+        # an elementwise result whose truth value is ambiguous; treat as unequal.
+        return False
+
+
 def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
     """Merge metadata from a list of metadata dictionaries.
 
@@ -610,7 +636,7 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
 
     Raises:
         ValueError: If there are conflicting values for the same key or if
-        dictionaries have different keys.
+            dictionaries have different keys.
     """
     if not metadata_list:
         return {}
@@ -627,23 +653,70 @@ def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
                 continue
 
             other_value = merged_metadata[key]
-            if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+            if not metadata_values_equal(value, other_value):
+                if isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         f"{type(value)}, {type(other_value)}."
                     )
-            elif isinstance(value, np.ndarray) or isinstance(other_value, np.ndarray):
-                # Since [] == np.array([]).
-                raise ValueError(
-                    f"Conflicting metadata for key: '{key}': "
-                    f"{type(value)}, {type(other_value)}."
-                )
-            else:
-                if merged_metadata[key] != value:
-                    raise ValueError(f"Conflicting metadata for key: '{key}'.")
+                raise ValueError(f"Conflicting metadata for key: '{key}'.")
 
     return merged_metadata
+
+
+def merge_metadata_lenient(
+    metadata_list: list[_MetadataType],
+) -> tuple[_MetadataType, set[str]]:
+    """Merge metadata dictionaries, dropping keys that cannot be reconciled.
+
+    Unlike :func:`merge_metadata`, which raises on any disagreement, this variant
+    applies a lenient policy: a key survives only when every dictionary carries it
+    and all of its values compare equal under
+    :func:`metadata_values_equal`. Every other key is dropped and reported back so
+    the caller can react to the loss.
+
+    A single traversal both detects conflicts and builds the merged dictionary;
+    the surviving value is the one from the first dictionary that carried the key.
+
+    Warning: Assumes that empty detections were filtered-out before passing metadata
+    to this function.
+
+    Args:
+        metadata_list: A list of metadata dictionaries to merge.
+
+    Returns:
+        A 2-tuple of the merged metadata dictionary and the set of dropped keys.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.internal import merge_metadata_lenient
+        >>> merge_metadata_lenient([{"a": 1, "b": 2}, {"a": 1, "b": 3}])
+        ({'a': 1}, {'b'})
+
+        ```
+    """
+    merged_metadata: _MetadataType = {}
+    occurrences: dict[str, int] = {}
+    conflicting: set[str] = set()
+
+    for metadata in metadata_list:
+        for key, value in metadata.items():
+            occurrences[key] = occurrences.get(key, 0) + 1
+            if key in conflicting:
+                continue
+            if key not in merged_metadata:
+                merged_metadata[key] = value
+            elif not metadata_values_equal(merged_metadata[key], value):
+                conflicting.add(key)
+
+    dropped_keys = {
+        key
+        for key, count in occurrences.items()
+        if key in conflicting or count != len(metadata_list)
+    }
+    return {
+        key: value for key, value in merged_metadata.items() if key not in dropped_keys
+    }, dropped_keys
 
 
 def get_data_item(

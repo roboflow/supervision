@@ -10,6 +10,17 @@ AREA_DATA_FIELD: str = "area"
 #: this score at ``0.5`` — it rates confidence in the ``Left``/``Right`` label, not
 #: the quality of the detection, so it is kept out of ``detection_confidence``.
 HANDEDNESS_SCORE_DATA_FIELD: str = "handedness_score"
+#: Key for the source image in ``Detections.metadata``.
+#:
+#: An RF-DETR / ``inference``-package convention rather than a field supervision
+#: itself populates: model connectors from those packages attach the image the
+#: predictions were produced from under this key.
+#: :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer` drops it
+#: while merging slices (each slice carries a different tile) and restores the full
+#: input image afterwards.
+#: The stored value is a reference to the caller's image, not a copy — mutating
+#: ``metadata[SOURCE_IMAGE_METADATA_FIELD]`` mutates the original array.
+SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel
