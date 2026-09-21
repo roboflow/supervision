@@ -58,11 +58,11 @@ def test_draw_image_16_bit_file_draws_its_colors(
     image_path = tmp_path / "image16.png"
     image_path.touch()
     image = np.zeros((10, 10, channels), dtype=np.uint16)
-    image[...] = (100 * 256, 50 * 256, 200 * 256, 128 * 256)[:channels]
+    image[...] = (51400, 50 * 256, 200 * 256, 128 * 256)[:channels]
     monkeypatch.setattr(cv2, "imread", lambda path, flags: image)
     scene = np.zeros((20, 20, 3), dtype=np.uint8)
     expected = scene.copy()
-    expected[5:15, 5:15] = (50, 25, 100) if channels == 4 else (100, 50, 200)
+    expected[5:15, 5:15] = (101, 25, 100) if channels == 4 else (201, 50, 200)
 
     result = draw_image(
         scene=scene,
