@@ -231,8 +231,10 @@ def _opencv_unchanged_mode(image: Any) -> str | None:
     OpenCV keeps an image's bit depth and alpha, but never returns a two-channel or
     boolean array the way Pillow's own modes do: it expands palettes to BGR, adds an
     alpha channel for grayscale with alpha and for a palette or RGB image with a
-    transparent color, and reads 1-bit images as 8-bit `0` and `255`. `None` means
-    the image's own mode already matches.
+    transparent color, and reads 1-bit images as 8-bit `0` and `255`. It also never
+    returns CMYK ink values, whose black channel would pass for alpha: a CMYK JPEG
+    is converted to BGR, and a CMYK TIFF to BGRA with an opaque alpha channel. `None`
+    means the image's own mode already matches.
     """
     has_transparency = "transparency" in image.info
     if image.mode == "P":
@@ -241,6 +243,8 @@ def _opencv_unchanged_mode(image: Any) -> str | None:
         return "RGBA"
     if image.mode == "1":
         return "L"
+    if image.mode == "CMYK":
+        return "RGBA" if image.format == "TIFF" else "RGB"
     return None
 
 
