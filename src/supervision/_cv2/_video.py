@@ -62,6 +62,17 @@ def _codec_details(fourcc: int) -> tuple[str, str]:
         raise ValueError(f"Unsupported video codec: {code!r}") from exc
 
 
+def _quarter_turns(rotation: int) -> int:
+    """Return the counterclockwise quarter turns OpenCV applies for a display rotation.
+
+    Phones store a portrait video as landscape frames plus a display matrix, and
+    OpenCV's FFmpeg backend turns every frame upright by that matrix, but only for
+    multiples of 90 degrees; any other angle is left alone.
+    """
+    quarter_turns, remainder = divmod(rotation, 90)
+    return 0 if remainder else quarter_turns % 4
+
+
 class _VideoCapture:
     """Expose OpenCV-shaped file capture backed by PyAV decoding."""
 
@@ -73,6 +84,7 @@ class _VideoCapture:
         self._source = source
         self._position = 0
         self._frame_count_cache: int | None = None
+        self._rotation_cache: int | None = None
         self._opened = False
         self._error: Exception | None = None
 
@@ -115,14 +127,39 @@ class _VideoCapture:
         self._frame_count_cache = count
         return count
 
+    def _rotation(self) -> int:
+        """Return the stream's display rotation, decoding one frame on a second handle.
+
+        PyAV only exposes the display matrix on decoded frames, so the first frame is
+        decoded from a separate container to leave this capture's position untouched.
+        """
+        if self._rotation_cache is not None:
+            return self._rotation_cache
+
+        import av
+
+        container = av.open(str(self._source), mode="r")
+        try:
+            frames = container.decode(video=self._stream.index)
+            rotation = next((int(frame.rotation) for frame in frames), 0)
+        finally:
+            container.close()
+        self._rotation_cache = rotation
+        return rotation
+
     def get(self, property_id: int) -> float:
-        """Return the supported OpenCV capture property as a float."""
+        """Return the supported OpenCV capture property as a float.
+
+        Width and height are those of the upright frames `read` returns, so they swap
+        for a video whose display matrix turns it by a quarter, as in OpenCV.
+        """
         if not self._opened:
             return 0.0
-        if property_id == _CAP_PROP_FRAME_WIDTH:
-            return float(self._stream.width)
-        if property_id == _CAP_PROP_FRAME_HEIGHT:
-            return float(self._stream.height)
+        if property_id in (_CAP_PROP_FRAME_WIDTH, _CAP_PROP_FRAME_HEIGHT):
+            width, height = self._stream.width, self._stream.height
+            if _quarter_turns(self._rotation()) % 2:
+                width, height = height, width
+            return float(width if property_id == _CAP_PROP_FRAME_WIDTH else height)
         if property_id == _CAP_PROP_FPS:
             rate = getattr(self._stream, "average_rate", None) or getattr(
                 self._stream, "base_rate", None
@@ -156,7 +193,7 @@ class _VideoCapture:
         return True
 
     def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
-        """Decode and return the next frame in OpenCV's BGR array format."""
+        """Decode and return the next frame upright in OpenCV's BGR array format."""
         if not self._opened or self._frames is None:
             return False, None
         try:
@@ -168,7 +205,11 @@ class _VideoCapture:
             return False, None
 
         self._position += 1
-        return True, frame.to_ndarray(format="bgr24")
+        image = frame.to_ndarray(format="bgr24")
+        quarter_turns = _quarter_turns(int(frame.rotation))
+        if quarter_turns:
+            image = np.ascontiguousarray(np.rot90(image, quarter_turns))
+        return True, image
 
     def grab(self) -> bool:
         """Decode and discard one frame."""

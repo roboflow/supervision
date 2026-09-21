@@ -7,6 +7,7 @@ from queue import Queue as StdQueue
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import av
 import numpy as np
 import pytest
 
@@ -578,6 +579,31 @@ def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
     assert isinstance(video_info.fps, float)
     assert video_info.fps == pytest.approx(23.976)
     assert video_info.fps != int(video_info.fps)
+
+
+def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
+    """Report and yield a phone-style portrait clip upright, not as it is stored."""
+    video_path = str(tmp_path / "portrait.mp4")
+    container = av.open(video_path, mode="w")
+    stream = container.add_stream("mpeg4", rate=5)
+    stream.width = 32
+    stream.height = 16
+    stream.pix_fmt = "yuv420p"
+    stream.set_display_rotation(90)
+    stored_frame = np.zeros((16, 32, 3), dtype=np.uint8)
+    for _ in range(3):
+        for packet in stream.encode(av.VideoFrame.from_ndarray(stored_frame)):
+            container.mux(packet)
+    for packet in stream.encode():
+        container.mux(packet)
+    container.close()
+
+    video_info = VideoInfo.from_video_path(video_path)
+    frames = list(get_video_frames_generator(video_path))
+
+    assert video_info.resolution_wh == (16, 32)
+    assert len(frames) == 3
+    assert all(frame.shape == (32, 16, 3) for frame in frames)
 
 
 def test_get_video_frames_generator(dummy_video_path) -> None:
