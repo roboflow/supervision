@@ -9,6 +9,7 @@ from supervision import _cv2 as cv2
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
+    _rle_counts_int32,
 )
 from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
@@ -22,6 +23,8 @@ from supervision.detection.utils.masks import (
     contains_multiple_segments,
     move_masks,
 )
+
+_INT32_LIMIT = np.iinfo(np.int32).max
 
 
 def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
@@ -141,6 +144,71 @@ class TestRleHelpers:
     def test_encode_agrees_with_mask_to_rle(self, mask_2d: np.ndarray) -> None:
         """_mask_to_rle_counts output matches the public mask_to_rle encoder."""
         assert _mask_to_rle_counts(mask_2d).tolist() == mask_to_rle(mask_2d)
+
+
+class TestRleCountsInt32:
+    """Tests for _rle_counts_int32's oversized-run splitting.
+
+    Verifies that runs within the int32 limit pass through as a plain cast, that a
+    single oversized run splits into limit/zero pairs plus a remainder wherever it sits
+    in the array, that an exact multiple of the limit leaves a full-limit remainder
+    rather than a zero one, that a run needing more than one split produces the right
+    number of limit/zero pairs, and that multiple oversized runs each split
+    independently while the runs between and around them survive untouched.
+    """
+
+    def test_returns_unchanged_when_no_run_exceeds_limit(self) -> None:
+        """Runs within the limit round-trip through a plain int32 cast."""
+        counts = np.array([1, _INT32_LIMIT, 3, _INT32_LIMIT - 1], dtype=np.int64)
+
+        result = _rle_counts_int32(counts)
+
+        np.testing.assert_array_equal(result, counts.astype(np.int32))
+        assert result.dtype == np.int32
+
+    @pytest.mark.parametrize(
+        ("counts", "expected"),
+        [
+            pytest.param(
+                [1, _INT32_LIMIT + 5, 3],
+                [1, _INT32_LIMIT, 0, 5, 3],
+                id="oversized-run-in-middle",
+            ),
+            pytest.param(
+                [_INT32_LIMIT + 5, 3],
+                [_INT32_LIMIT, 0, 5, 3],
+                id="oversized-run-first",
+            ),
+            pytest.param(
+                [3, _INT32_LIMIT + 5],
+                [3, _INT32_LIMIT, 0, 5],
+                id="oversized-run-last",
+            ),
+            pytest.param(
+                [2, 2 * _INT32_LIMIT, 4],
+                [2, _INT32_LIMIT, 0, _INT32_LIMIT, 4],
+                id="exact-multiple-of-limit-keeps-full-remainder",
+            ),
+            pytest.param(
+                [3 * _INT32_LIMIT + 7],
+                [_INT32_LIMIT, 0, _INT32_LIMIT, 0, _INT32_LIMIT, 0, 7],
+                id="run-needs-two-splits",
+            ),
+            pytest.param(
+                [1, _INT32_LIMIT + 1, 2, _INT32_LIMIT + 2, 3],
+                [1, _INT32_LIMIT, 0, 1, 2, _INT32_LIMIT, 0, 2, 3],
+                id="multiple-oversized-runs-preserve-runs-between",
+            ),
+        ],
+    )
+    def test_splits_oversized_runs_with_zero_parity(
+        self, counts: list[int], expected: list[int]
+    ) -> None:
+        """Oversized runs split into limit/zero pairs plus a remainder in place."""
+        result = _rle_counts_int32(np.array(counts, dtype=np.int64))
+
+        assert result.tolist() == expected
+        assert result.dtype == np.int32
 
 
 class TestFromDenseToDense:

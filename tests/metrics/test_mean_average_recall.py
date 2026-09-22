@@ -776,6 +776,39 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     assert result.mAR_at_1 < result.mAR_at_10
 
 
+def test_mar_at_k_ignores_predictions_ranked_below_each_limit() -> None:
+    """A prediction outside each top-K cutoff cannot take a target inside it."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0]),
+    )
+    intermediate_predictions = np.tile(
+        np.array([[20, 20, 30, 30]], dtype=np.float32), (9, 1)
+    )
+    predictions = Detections(
+        xyxy=np.vstack(
+            [
+                np.array([[0, 0, 10, 14]], dtype=np.float32),
+                intermediate_predictions,
+                np.array([[0, 0, 10, 10]], dtype=np.float32),
+            ]
+        ),
+        confidence=np.array(
+            [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.25, 0.2, 0.1],
+            dtype=np.float32,
+        ),
+        class_id=np.zeros(11, dtype=int),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    # The tighter duplicate ranks 11th, so it must not displace the top prediction
+    # at K=1 or K=10. Its IoU of 100/140 matches five of ten thresholds.
+    assert result.mAR_at_1 == pytest.approx(0.5)
+    assert result.mAR_at_10 == pytest.approx(0.5)
+    assert result.mAR_at_100 == pytest.approx(1.0)
+
+
 def test_greedy_matching_two_valid_pairs():
     """Greedy matching finds both TPs; np.unique style missed the second pair.
 
