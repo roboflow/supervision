@@ -50,15 +50,24 @@ def _detections_masks(
     return detections.mask
 
 
-def _mask_iou_batch_for_matching(
-    targets: Detections, predictions: Detections
-) -> npt.NDArray[np.floating]:
-    """Pairwise mask IoU between non-empty `targets` (rows) and `predictions` (columns),
-    validating that both carry masks of one resolution."""
-    target_masks = _detections_masks(targets, "targets")
-    prediction_masks = _detections_masks(predictions, "predictions")
-    target_resolution = tuple(target_masks.shape[1:])
+def _validate_masks(predictions: Detections, targets: Detections) -> None:
+    """Raise unless every non-empty side carries masks of one resolution.
+
+    Runs on the unfiltered inputs of an image, so a prediction that the confidence
+    threshold later drops, or an empty other side, cannot hide missing masks or a
+    resolution mismatch.
+    """
+    prediction_masks = None
+    target_masks = None
+    if len(predictions) > 0:
+        prediction_masks = _detections_masks(predictions, "predictions")
+    if len(targets) > 0:
+        target_masks = _detections_masks(targets, "targets")
+    if prediction_masks is None or target_masks is None:
+        return
+
     prediction_resolution = tuple(prediction_masks.shape[1:])
+    target_resolution = tuple(target_masks.shape[1:])
     if target_resolution != prediction_resolution:
         raise ValueError(
             "ConfusionMatrix with `MetricTarget.MASKS` requires predictions and "
@@ -66,7 +75,17 @@ def _mask_iou_batch_for_matching(
             f"{prediction_resolution} and target masks of shape "
             f"{target_resolution}."
         )
-    return mask_iou_batch(target_masks, prediction_masks)
+
+
+def _mask_iou_batch_for_matching(
+    targets: Detections, predictions: Detections
+) -> npt.NDArray[np.floating]:
+    """Pairwise mask IoU between non-empty `targets` (rows) and `predictions`
+    (columns) that `_validate_masks` has already accepted."""
+    return mask_iou_batch(
+        _detections_masks(targets, "targets"),
+        _detections_masks(predictions, "predictions"),
+    )
 
 
 def _validated_class_ids(
@@ -220,6 +239,7 @@ def _evaluate_mask_batch(
         raise ValueError(
             "ConfusionMatrix can only be calculated for Detections with confidence"
         )
+    _validate_masks(predictions, targets)
 
     keep = np.asarray(predictions.confidence, dtype=np.float32) >= conf_threshold
     filtered_predictions = predictions.select(keep)
@@ -449,6 +469,9 @@ def _split_detections_by_outcome(
 
     if targets.class_id is None:
         raise ValueError("Targets must contain class_id values.")
+
+    if metric_target == MetricTarget.MASKS:
+        _validate_masks(predictions, targets)
 
     target_class_ids = targets.class_id
 

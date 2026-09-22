@@ -1,4 +1,6 @@
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
@@ -42,6 +44,7 @@ def _call_confusion_matrix_evaluate_detection_batch_masks() -> None:
 
 
 def _call_detections_to_tensor_masks() -> None:
+    """Ask ``detections_to_tensor`` for a mask tensor, which does not exist."""
     detections_to_tensor(
         Detections(
             xyxy=np.zeros((1, 4), dtype=np.float32),
@@ -1515,7 +1518,9 @@ class TestDetectionMetrics:
             ),
         ],
     )
-    def test_confusion_matrix_masks_rejected_by_tensor_entry_points(self, call):
+    def test_confusion_matrix_masks_rejected_by_tensor_entry_points(
+        self, call: Callable[[], None]
+    ) -> None:
         """Masks have no tensor layout: the tensor entry points raise and point
         the caller at ``from_detections``."""
         with pytest.raises(ValueError, match=r"MetricTarget\.MASKS.*from_detections"):
@@ -1771,6 +1776,8 @@ class TestConfusionMatrixMasks:
 
     @staticmethod
     def _shared_box_pair() -> tuple[Detections, Detections]:
+        """Predictions and targets with identical boxes; only the first mask
+        overlaps its target."""
         targets = _mask_detections(
             TestConfusionMatrixMasks.TARGET_BOXES, class_id=[0, 0]
         )
@@ -1972,17 +1979,64 @@ class TestConfusionMatrixMasks:
                 r"share one mask resolution.*\(64, 64\).*\(32, 32\)",
                 id="resolution-mismatch",
             ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    confidence=np.array([0.1]),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                "requires predictions to include masks",
+                id="predictions-without-masks-below-threshold",
+            ),
+            pytest.param(
+                _mask_detections(
+                    [[2, 2, 12, 12]],
+                    class_id=[0],
+                    confidence=[0.1],
+                    resolution=(64, 64),
+                ),
+                _mask_detections([[2, 2, 12, 12]], class_id=[0]),
+                r"share one mask resolution",
+                id="resolution-mismatch-below-threshold",
+            ),
+            pytest.param(
+                Detections.empty(),
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                "requires targets to include masks",
+                id="targets-without-masks-no-predictions",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    confidence=np.array([0.9]),
+                ),
+                Detections.empty(),
+                "requires predictions to include masks",
+                id="predictions-without-masks-no-targets",
+            ),
         ],
     )
     def test_invalid_masks_raise(
         self, predictions: Detections, targets: Detections, message: str
     ) -> None:
+        """A non-empty side without masks, or masks of two resolutions, is
+        rejected by both entry points even when the offending predictions fall
+        below the confidence threshold or the other side is empty."""
         with pytest.raises(ValueError, match=message):
             ConfusionMatrix.from_detections(
                 predictions=[predictions],
                 targets=[targets],
                 classes=["cell"],
                 metric_target=MetricTarget.MASKS,
+            )
+        with pytest.raises(ValueError, match=message):
+            _split_detections_by_outcome(
+                predictions, targets, 0.3, 0.5, metric_target=MetricTarget.MASKS
             )
 
     @pytest.mark.parametrize(
@@ -1991,6 +2045,7 @@ class TestConfusionMatrixMasks:
         ids=["boxes", "masks"],
     )
     def test_length_mismatch_raises(self, metric_target: MetricTarget) -> None:
+        """More predictions than targets is an error, not a truncated score."""
         detections = _mask_detections([[2, 2, 12, 12]], class_id=[0], confidence=[0.9])
 
         with pytest.raises(ValueError, match="must be equal"):
@@ -2041,6 +2096,8 @@ class TestConfusionMatrixMasks:
         np.testing.assert_array_equal(cm.matrix, [[1, 1], [1, 0]])
 
     def test_split_detections_by_outcome_uses_mask_iou(self) -> None:
+        """The benchmark grid split follows mask IoU: the strip prediction is an FP
+        and its target an FN, where boxes would call both TPs."""
         predictions, targets = self._shared_box_pair()
 
         tp, fp, fn = _split_detections_by_outcome(
@@ -2056,7 +2113,7 @@ class TestConfusionMatrixMasks:
         np.testing.assert_array_equal(fn.xyxy, [[18, 18, 28, 28]])
         assert (len(tp_boxes), len(fp_boxes), len(fn_boxes)) == (2, 0, 0)
 
-    def test_benchmark_masks_fills_validation_panels(self, tmp_path) -> None:
+    def test_benchmark_masks_fills_validation_panels(self, tmp_path: Path) -> None:
         """``benchmark`` scores masks and the saved grid fills each mask, so the
         interior of a region is painted, not just its box outline."""
         image = np.zeros((96, 96, 3), dtype=np.uint8)
@@ -2077,12 +2134,16 @@ class TestConfusionMatrixMasks:
         predictions.mask[1, 40:80, 56:65] = True
 
         class Dataset:
+            """One-image dataset shaped like ``DetectionDataset`` for ``benchmark``."""
+
             classes: ClassVar[list[str]] = ["cell"]
 
-            def __iter__(self):
+            def __iter__(self) -> Iterator[tuple[str, np.ndarray, Detections]]:
+                """Yield the single ``(name, image, annotation)`` entry."""
                 yield "sample.jpg", image, targets
 
         def callback(_: np.ndarray) -> Detections:
+            """Stand in for a model: return the prepared predictions."""
             return predictions
 
         cm = ConfusionMatrix.benchmark(
@@ -2102,7 +2163,8 @@ class TestConfusionMatrixMasks:
         fp_panel = saved_image[96:, :96]
 
         def painted(panel: np.ndarray) -> np.ndarray:
-            # Mask fill reads >= 120 on a black scene; JPEG ringing stays < 10.
+            """Pixels the mask fill touched: fills read >= 120 on a black scene,
+            JPEG ringing stays below 10."""
             return panel.max(axis=-1) > 32
 
         # The interior of the first target is filled in the Ground Truth panel.
