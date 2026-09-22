@@ -658,14 +658,14 @@ Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (d
 
 | Crop / canvas       | Objects | Pattern      | Dense-only mem. peak (MiB) | Current mem. peak (MiB) | Dense-only time (ms) | Current time (ms) |
 | ------------------- | ------- | ------------ | -------------------------- | ----------------------- | -------------------- | ----------------- |
-| 32×32 / 512×512     | 200     | checkerboard | 25.83                 | **1.69** (0.07×)         | 12.69           | **9.87** (0.78×)   |
-| 32×32 / 512×512     | 200     | solid        | 25.07                 | **0.27** (0.01×)         | **11.06**       | 11.10 (1.00×)      |
-| 400×400 / 1024×1024 | 12      | checkerboard | 17.37                 | 17.37 (1.00×)            | 18.38           | **18.12** (0.99×)  |
-| 400×400 / 1024×1024 | 12      | solid        | 6.01                  | **0.69** (0.11×)         | 5.64            | **2.35** (0.42×)   |
-| 400×400 / 2048×2048 | 12      | checkerboard | 31.93                 | **17.37** (0.54×)        | 20.75           | **17.16** (0.83×)  |
-| 400×400 / 2048×2048 | 12      | solid        | 24.01                 | **0.69** (0.03×)         | 8.62            | **2.28** (0.26×)   |
-| 400×400 / 4096×4096 | 12      | checkerboard | 103.93                | **17.37** (0.17×)        | 33.85           | **17.20** (0.51×)  |
-| 400×400 / 4096×4096 | 12      | solid        | 96.01                 | **0.69** (0.01×)         | 21.67           | **2.32** (0.11×)   |
+| 32×32 / 512×512     | 200     | checkerboard | 25.83                      | **1.69** (0.07×)        | 12.69                | **9.87** (0.78×)  |
+| 32×32 / 512×512     | 200     | solid        | 25.07                      | **0.27** (0.01×)        | **11.06**            | 11.10 (1.00×)     |
+| 400×400 / 1024×1024 | 12      | checkerboard | 17.37                      | 17.37 (1.00×)           | 18.38                | **18.12** (0.99×) |
+| 400×400 / 1024×1024 | 12      | solid        | 6.01                       | **0.69** (0.11×)        | 5.64                 | **2.35** (0.42×)  |
+| 400×400 / 2048×2048 | 12      | checkerboard | 31.93                      | **17.37** (0.54×)       | 20.75                | **17.16** (0.83×) |
+| 400×400 / 2048×2048 | 12      | solid        | 24.01                      | **0.69** (0.03×)        | 8.62                 | **2.28** (0.26×)  |
+| 400×400 / 4096×4096 | 12      | checkerboard | 103.93                     | **17.37** (0.17×)       | 33.85                | **17.20** (0.51×) |
+| 400×400 / 4096×4096 | 12      | solid        | 96.01                      | **0.69** (0.01×)        | 21.67                | **2.32** (0.11×)  |
 
 Ratios in parentheses are interval/dense; under 1× means the interval path wins. The 32×32/512×512 row uses `--duplicates 50` (200 small objects total, instead of the default three per group) — many small fragmented crops on a small canvas. The 400×400 rows previously showed a genuine weak side: at 1024×1024, a single large checkerboard crop cost the old interval-only union 1.79× the dense implementation's memory and 4.5× its time, since sorting `K` ≈ 1.9M foreground intervals cost more than the dense array's single `O(area)` pass. The fragmentation-aware dispatch above closes that gap: every checkerboard row now flags as fragmented (run count ≈ crop area, since checkerboard flips every pixel) and unions via a bbox-local dense OR — matching or beating the dense-only baseline on both memory and time at every measured scale, while keeping peak memory flat (~17.37 MiB) as canvas grows from 1024×1024 to 4096×4096, unlike the dense-only baseline, which scales with canvas area. Solid rows are unaffected (their run count is one column per instance, far under the fragmentation threshold), so they still take the interval path and keep the same numbers as before. A single mask right at the dense fallback's 16 Mi-pixel bbox cap (a 4000×4000 checkerboard-fragmented crop, three duplicates) still favors dense decisively: 488 MiB / 136 ms with the fallback versus 2,197 MiB / 1,258 ms on the pure interval path, forced for comparison. The fallback's own encode step is not free on a maximally-fragmented result — several bytes of transient array per pixel, not one bit — but far cheaper than sorting the same fragmentation.
 
