@@ -10,7 +10,7 @@ Run from the checkout being measured (NumPy and supervision are sufficient)::
 
 Compare the same command on the base and proposed revisions. Input construction is
 excluded from measurements. Python and NumPy allocations are measured by tracemalloc;
-this is peak traced allocation during NMM, not process RSS or GPU memory. Each JSON line
+this is peak traced allocation during NMM, not process RSS or GPU memory. Each table row
 reports median uninstrumented wall time and maximum traced peak from separate calls over
 the requested repeats, so tracing overhead is excluded from the timing.
 
@@ -21,15 +21,19 @@ measures a large, clean mask with the same crop and canvas dimensions.
 
 import argparse
 import gc
-import json
 import statistics
 import time
 import tracemalloc
 
 import numpy as np
+from rich import box
+from rich.console import Console
+from rich.table import Table
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask
+
+console = Console(width=140, force_terminal=True)
 
 GROUP_COUNT = 4
 
@@ -99,8 +103,41 @@ def measure(
     }
 
 
+def build_table(rows: list[dict[str, int | float | str]]) -> Table:
+    """Format benchmark rows as a rich table matching the sibling scripts' style."""
+    table = Table(
+        title="Compact NMM union benchmark",
+        box=box.ROUNDED,
+        header_style="bold",
+    )
+    table.add_column("Canvas", justify="right")
+    table.add_column("Crop", justify="right")
+    table.add_column("Pattern")
+    table.add_column("Dup.", justify="right")
+    table.add_column("Instances", justify="right")
+    table.add_column("Input\nRLE runs", justify="right")
+    table.add_column("Output\ncount", justify="right", style="green")
+    table.add_column("Output\narea", justify="right", style="green")
+    table.add_column("Time\n(median, ms)", justify="right", style="yellow")
+    table.add_column("Peak traced\n(MiB)", justify="right", style="cyan")
+    for row in rows:
+        table.add_row(
+            str(row["canvas"]),
+            str(row["crop_size"]),
+            str(row["pattern"]),
+            str(row["duplicates"]),
+            str(row["instances"]),
+            str(row["input_rle_counts"]),
+            str(row["output_count"]),
+            str(row["output_area"]),
+            f"{row['seconds_median'] * 1e3:.3f}",
+            f"{row['peak_traced_mib']:.3f}",
+        )
+    return table
+
+
 def main() -> None:
-    """Print reproducible JSON rows for each canvas and mask complexity."""
+    """Print a reproducible rich table row for each canvas and mask complexity."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--canvas", type=int, nargs="+", default=[512, 2048, 4096])
     parser.add_argument("--crop-size", type=int, default=64)
@@ -122,6 +159,7 @@ def main() -> None:
         parser.error("crop-size, repeats, and duplicates must be positive")
     if min(args.canvas) < 2 * args.crop_size + 8:
         parser.error("each canvas must fit four disjoint crops in a 2x2 grid")
+    rows = []
     for canvas in args.canvas:
         for pattern in args.pattern:
             detections = make_detections(
@@ -130,17 +168,19 @@ def main() -> None:
             if not isinstance(detections.mask, CompactMask):
                 raise RuntimeError("Benchmark inputs must have compact masks")
             expected_output_area = int(detections.mask.area.sum() // args.duplicates)
-            row = {
-                "canvas": canvas,
-                "crop_size": args.crop_size,
-                "pattern": pattern,
-                "duplicates": args.duplicates,
-                "instances": len(detections),
-                "input_rle_counts": sum(len(rle) for rle in detections.mask._rles),
-                "expected_output_area": expected_output_area,
-                **measure(detections, args.repeats, expected_output_area),
-            }
-            print(json.dumps(row), flush=True)
+            rows.append(
+                {
+                    "canvas": canvas,
+                    "crop_size": args.crop_size,
+                    "pattern": pattern,
+                    "duplicates": args.duplicates,
+                    "instances": len(detections),
+                    "input_rle_counts": sum(len(rle) for rle in detections.mask._rles),
+                    "expected_output_area": expected_output_area,
+                    **measure(detections, args.repeats, expected_output_area),
+                }
+            )
+    console.print(build_table(rows))
 
 
 if __name__ == "__main__":
