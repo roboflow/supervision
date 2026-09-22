@@ -403,7 +403,8 @@ def draw_image(
         image: Image to draw, either a file path or an already-loaded image array.
             A 2-D grayscale image is not accepted, whether it is passed as an array
             or read from a path; convert it to BGR first, for example with
-            `cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)`.
+            `cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)`. A 16-bit image read from a
+            path is scaled down to the 8 bits of the scene.
         opacity: Opacity of the image to be drawn.
         rect: Rectangle specifying where to draw the image.
 
@@ -438,6 +439,10 @@ def draw_image(
         loaded_image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
         if loaded_image is None:
             raise OSError(f"Could not decode image path ('{image}').")
+        if loaded_image.dtype == np.uint16:
+            # IMREAD_UNCHANGED keeps a 16-bit PNG at 16 bits, which the blend into
+            # the 8-bit scene saturates to 255; keep the high byte instead.
+            loaded_image = np.clip(np.rint(loaded_image / 256), 0, 255).astype(np.uint8)
         image_np = cast(npt.NDArray[np.uint8], loaded_image)
     else:
         image_np = image
