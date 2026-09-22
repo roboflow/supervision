@@ -165,8 +165,8 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
         # Any integer mode deeper than 8 bits, signed or not. Keep the high byte: a
         # 16-bit value cast to uint8 wraps modulo 256 and redraws a bright pixel as
         # a dark one, and a signed or 32-bit value must be clipped before the cast.
-        clipped = np.clip(values, 0, np.iinfo(np.uint16).max)
-        return (clipped.astype(np.uint16) >> 8).astype(np.uint8)
+        clipped = np.clip(values, 0, np.iinfo(np.uint16).max).astype(np.uint16)
+        return cast(npt.NDArray[np.uint8], (clipped >> 8).astype(np.uint8))
 
     if image.mode in _SINGLE_CHANNEL_MODES:
         # Annotators draw into the returned array, so hand back a writable copy
