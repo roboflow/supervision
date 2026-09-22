@@ -15,9 +15,11 @@ from deprecate import (  # type: ignore[import-untyped,unused-ignore]
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
+    mask_iou_batch,
     oriented_box_iou_batch,
 )
 from supervision.metrics.core import MetricTarget
@@ -26,15 +28,68 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 
-def _assert_supported_target(metric_target: MetricTarget) -> None:
+def _assert_tensor_target(metric_target: MetricTarget) -> None:
+    """Reject metric targets that cannot be laid out as detection tensor rows."""
     if metric_target == MetricTarget.MASKS:
         raise ValueError(
-            "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
+            "MetricTarget.MASKS cannot be represented as a detection tensor. Use "
+            "`ConfusionMatrix.from_detections` or `ConfusionMatrix.benchmark`, "
+            "which compute mask IoU directly from `Detections.mask`."
         )
 
 
+def _detections_masks(
+    detections: Detections, role: str
+) -> npt.NDArray[np.bool_] | CompactMask:
+    """Return the masks of `detections`, raising if they are missing."""
+    if detections.mask is None:
+        raise ValueError(
+            f"ConfusionMatrix with `MetricTarget.MASKS` requires {role} to include "
+            "masks."
+        )
+    return detections.mask
+
+
+def _validate_masks(predictions: Detections, targets: Detections) -> None:
+    """Raise unless every non-empty side carries masks of one resolution.
+
+    Runs on the unfiltered inputs of an image, so a prediction that the confidence
+    threshold later drops, or an empty other side, cannot hide missing masks or a
+    resolution mismatch.
+    """
+    prediction_masks = None
+    target_masks = None
+    if len(predictions) > 0:
+        prediction_masks = _detections_masks(predictions, "predictions")
+    if len(targets) > 0:
+        target_masks = _detections_masks(targets, "targets")
+    if prediction_masks is None or target_masks is None:
+        return
+
+    prediction_resolution = tuple(prediction_masks.shape[1:])
+    target_resolution = tuple(target_masks.shape[1:])
+    if target_resolution != prediction_resolution:
+        raise ValueError(
+            "ConfusionMatrix with `MetricTarget.MASKS` requires predictions and "
+            "targets to share one mask resolution, got prediction masks of shape "
+            f"{prediction_resolution} and target masks of shape "
+            f"{target_resolution}."
+        )
+
+
+def _mask_iou_batch_for_matching(
+    targets: Detections, predictions: Detections
+) -> npt.NDArray[np.floating]:
+    """Pairwise mask IoU between non-empty `targets` (rows) and `predictions` (columns)
+    that `_validate_masks` has already accepted."""
+    return mask_iou_batch(
+        _detections_masks(targets, "targets"),
+        _detections_masks(predictions, "predictions"),
+    )
+
+
 def _validated_class_ids(
-    values: npt.NDArray[np.float32],
+    values: npt.NDArray[np.number],
     num_classes: int,
     role: str,
 ) -> npt.NDArray[np.int64]:
@@ -57,6 +112,165 @@ def _validated_class_ids(
     return class_ids
 
 
+def _confusion_matrix_from_iou(
+    iou_batch: npt.NDArray[np.floating],
+    true_classes: npt.NDArray[np.int64],
+    detection_classes: npt.NDArray[np.int64],
+    num_classes: int,
+    iou_threshold: float,
+) -> npt.NDArray[np.int32]:
+    """Build one image's confusion matrix from a target x detection IoU matrix.
+
+    Matching is greedy: candidate pairs above `iou_threshold` are visited
+    same-class first, then by descending IoU, and each target and detection is
+    matched at most once. A cross-class match counts as a misclassification,
+    unmatched targets as `FN`, and unmatched detections as `FP`.
+
+    Args:
+        iou_batch: IoU matrix of shape `(N, M)` for `N` targets and `M`
+            detections.
+        true_classes: Validated class id of each target, shape `(N,)`.
+        detection_classes: Validated class id of each detection, shape `(M,)`.
+        num_classes: Number of classes.
+        iou_threshold: Candidate pairs at or below this IoU are not matched.
+
+    Returns:
+        Confusion matrix of shape `(num_classes + 1, num_classes + 1)`.
+    """
+    result_matrix: npt.NDArray[np.int32] = np.zeros(
+        (num_classes + 1, num_classes + 1), dtype=np.int32
+    )
+
+    # Find all valid matches (IoU > threshold, regardless of class)
+    # Use vectorized operations to avoid nested Python loops
+    iou_mask = iou_batch > iou_threshold
+    gt_indices, det_indices = np.nonzero(iou_mask)
+
+    # If no pairs exceed the IoU threshold, skip matching
+    if gt_indices.size == 0:
+        valid_matches = []
+    else:
+        ious = iou_batch[gt_indices, det_indices]
+        gt_match_classes = true_classes[gt_indices]
+        det_match_classes = detection_classes[det_indices]
+        class_matches = gt_match_classes == det_match_classes
+
+        # Sort matches by class match first (True before False),
+        # then by IoU descending.
+        # np.lexsort sorts by the last key first, in ascending order.
+        # We use ~class_matches so that True becomes 0
+        # and False becomes 1 (True first),
+        # and -ious so that larger IoUs come first.
+        sort_indices = np.lexsort((-ious, ~class_matches))
+
+        # Build list of matches in the same format as before:
+        # (gt_idx, det_idx, iou, class_match)
+        valid_matches = [
+            (
+                int(gt_indices[idx]),
+                int(det_indices[idx]),
+                float(ious[idx]),
+                bool(class_matches[idx]),
+            )
+            for idx in sort_indices
+        ]
+    # Greedily assign matches, ensuring each GT
+    # and detection is matched at most once
+    matched_gt_idx = set()
+    matched_det_idx = set()
+
+    for gt_idx, det_idx, iou, class_match in valid_matches:
+        if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
+            # Valid spatial match - record the class prediction
+            gt_class = true_classes[gt_idx]
+            det_class = detection_classes[det_idx]
+
+            # This handles both correct classification (TP) and misclassification
+            result_matrix[gt_class, det_class] += 1
+            matched_gt_idx.add(gt_idx)
+            matched_det_idx.add(det_idx)
+
+    # Count unmatched ground truth as FN
+    for gt_idx, gt_class in enumerate(true_classes):
+        if gt_idx not in matched_gt_idx:
+            result_matrix[gt_class, num_classes] += 1
+
+    # Count unmatched detections as FP
+    for det_idx, det_class in enumerate(detection_classes):
+        if det_idx not in matched_det_idx:
+            result_matrix[num_classes, det_class] += 1
+
+    return result_matrix
+
+
+def _evaluate_mask_batch(
+    predictions: Detections,
+    targets: Detections,
+    num_classes: int,
+    conf_threshold: float,
+    iou_threshold: float,
+) -> npt.NDArray[np.int32]:
+    """Calculate the confusion matrix of a single image from mask IoU.
+
+    Counterpart of `ConfusionMatrix.evaluate_detection_batch` for
+    `MetricTarget.MASKS`: masks cannot be laid out as tensor rows, so the
+    matching reads `Detections.mask` directly. Dense `(N, H, W)` arrays and
+    `CompactMask` are both accepted.
+
+    Args:
+        predictions: Predicted detections for a single image. Must carry
+            `class_id`, `confidence` and, unless empty, `mask`.
+        targets: Ground-truth detections for a single image. Must carry
+            `class_id` and, unless empty, `mask`.
+        num_classes: Number of classes.
+        conf_threshold: Detection confidence threshold between `0` and `1`.
+            Detections with lower confidence will be excluded.
+        iou_threshold: Detection IoU threshold between `0` and `1`.
+            Detections with lower IoU will be classified as `FP`.
+
+    Returns:
+        Confusion matrix based on a single image.
+    """
+    if predictions.class_id is None or targets.class_id is None:
+        raise ValueError(
+            "ConfusionMatrix can only be calculated for Detections with class_id"
+        )
+    if predictions.confidence is None:
+        raise ValueError(
+            "ConfusionMatrix can only be calculated for Detections with confidence"
+        )
+    _validate_masks(predictions, targets)
+
+    keep = np.asarray(predictions.confidence, dtype=np.float32) >= conf_threshold
+    filtered_predictions = predictions.select(keep)
+
+    true_classes = _validated_class_ids(targets.class_id, num_classes, "Target")
+    detection_classes = _validated_class_ids(
+        predictions.class_id[keep], num_classes, "Prediction"
+    )
+
+    result_matrix: npt.NDArray[np.int32] = np.zeros(
+        (num_classes + 1, num_classes + 1), dtype=np.int32
+    )
+    if len(filtered_predictions) == 0:
+        for gt_class in true_classes:
+            result_matrix[gt_class, num_classes] += 1
+        return result_matrix
+    if len(targets) == 0:
+        for det_class in detection_classes:
+            result_matrix[num_classes, det_class] += 1
+        return result_matrix
+
+    iou_batch = _mask_iou_batch_for_matching(targets, filtered_predictions)
+    return _confusion_matrix_from_iou(
+        iou_batch=iou_batch,
+        true_classes=true_classes,
+        detection_classes=detection_classes,
+        num_classes=num_classes,
+        iou_threshold=iou_threshold,
+    )
+
+
 def detections_to_tensor(
     detections: Detections,
     with_confidence: bool = False,
@@ -69,7 +283,9 @@ def detections_to_tensor(
         with_confidence: Whether to include confidence as the last column.
         metric_target: The type of detection data to use.
             Supports `MetricTarget.BOXES` and
-            `MetricTarget.ORIENTED_BOUNDING_BOXES`.
+            `MetricTarget.ORIENTED_BOUNDING_BOXES`. Masks have no tensor row
+            layout, so `MetricTarget.MASKS` is rejected here; use
+            `ConfusionMatrix.from_detections` for masks.
 
     Returns:
         Detections as a float32 numpy array. Shape depends on `metric_target`
@@ -89,7 +305,8 @@ def detections_to_tensor(
           ``[x1, y1, x2, y2, x3, y3, x4, y4, class_id [, confidence]]``
 
     Raises:
-        ValueError: If `metric_target` is `MetricTarget.MASKS`.
+        ValueError: If `metric_target` is `MetricTarget.MASKS`, which has no
+            tensor representation.
         ValueError: If `detections.class_id` is `None`.
         ValueError: If `with_confidence=True` and `detections.confidence` is `None`.
         ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
@@ -124,7 +341,7 @@ def detections_to_tensor(
 
         ```
     """
-    _assert_supported_target(metric_target)
+    _assert_tensor_target(metric_target)
 
     if detections.class_id is None:
         raise ValueError(
@@ -238,8 +455,10 @@ def _split_detections_by_outcome(
         targets: Ground-truth detections for a single image.
         conf_threshold: Confidence threshold; predictions below this are excluded.
         iou_threshold: IoU threshold; candidate pairs below this are not matched.
-        metric_target: Coordinate representation to use for IoU computation.
-            Use ``MetricTarget.ORIENTED_BOUNDING_BOXES`` for rotated-box datasets.
+        metric_target: Detection data to use for IoU computation.
+            Use ``MetricTarget.ORIENTED_BOUNDING_BOXES`` for rotated-box datasets
+            and ``MetricTarget.MASKS`` for instance segmentation, where both
+            ``predictions`` and ``targets`` must carry ``mask``.
 
     Returns:
         A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
@@ -250,6 +469,9 @@ def _split_detections_by_outcome(
 
     if targets.class_id is None:
         raise ValueError("Targets must contain class_id values.")
+
+    if metric_target == MetricTarget.MASKS:
+        _validate_masks(predictions, targets)
 
     target_class_ids = targets.class_id
 
@@ -288,8 +510,12 @@ def _split_detections_by_outcome(
             targets.select(fn_indices),
         )
 
-    # IoU computation mirrors evaluate_detection_batch — keep in sync if either changes.
-    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+    # IoU computation mirrors evaluate_detection_batch / _evaluate_mask_batch —
+    # keep in sync if either changes.
+    iou_matrix: npt.NDArray[np.floating]
+    if metric_target == MetricTarget.MASKS:
+        iou_matrix = _mask_iou_batch_for_matching(targets, filtered_predictions)
+    elif metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         iou_matrix = oriented_box_iou_batch(
             boxes_true=np.asarray(
                 targets.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
@@ -431,6 +657,7 @@ def _annotate_detection_panel(
     title: str,
     class_names: list[str] | None,
     annotation_parameters: tuple[int, float, int, int, int],
+    metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> npt.NDArray[np.uint8]:
     """Render detections onto a copy of ``scene`` with a title overlay.
 
@@ -441,6 +668,9 @@ def _annotate_detection_panel(
         class_names: Optional list mapping class integer ids to name strings.
         annotation_parameters: Pre-computed parameters from
             ``_get_annotation_parameters``.
+        metric_target: Detection data the matrix was matched on. With
+            ``MetricTarget.MASKS`` the masks are filled under the boxes, so the
+            panel shows the geometry the outcome was decided on.
 
     Returns:
         Annotated copy of ``scene`` as a ``np.uint8`` array.
@@ -448,7 +678,11 @@ def _annotate_detection_panel(
     from supervision import (
         _cv2 as cv2,  # lazy: only needed when save_directory_path is set
     )
-    from supervision.annotators.core import BoxAnnotator, LabelAnnotator
+    from supervision.annotators.core import (
+        BoxAnnotator,
+        LabelAnnotator,
+        MaskAnnotator,
+    )
     from supervision.annotators.utils import ColorLookup
     from supervision.draw.color import ColorPalette
 
@@ -459,6 +693,12 @@ def _annotate_detection_panel(
     )
 
     if len(detections) > 0:
+        if metric_target == MetricTarget.MASKS and detections.mask is not None:
+            mask_annotator = MaskAnnotator(
+                color=ColorPalette.DEFAULT,
+                color_lookup=ColorLookup.CLASS,
+            )
+            panel = mask_annotator.annotate(panel, detections)
         box_annotator = BoxAnnotator(
             color=ColorPalette.DEFAULT,
             color_lookup=ColorLookup.CLASS,
@@ -534,7 +774,8 @@ def _save_detection_validation_visualization(
             ``_split_detections_by_outcome``.
         iou_threshold: IoU threshold forwarded to ``_split_detections_by_outcome``.
         class_names: Optional list mapping class integer ids to name strings.
-        metric_target: Coordinate representation used for IoU matching.
+        metric_target: Detection data used for IoU matching; with
+            ``MetricTarget.MASKS`` the panels also fill each mask.
     """
     from supervision import (
         _cv2 as cv2,  # lazy: only needed when save_directory_path is set
@@ -556,6 +797,7 @@ def _save_detection_validation_visualization(
         title="Ground Truth",
         class_names=class_names,
         annotation_parameters=annotation_parameters,
+        metric_target=metric_target,
     )
     tp_panel = _annotate_detection_panel(
         scene=scene,
@@ -563,6 +805,7 @@ def _save_detection_validation_visualization(
         title="True Positives",
         class_names=class_names,
         annotation_parameters=annotation_parameters,
+        metric_target=metric_target,
     )
     fp_panel = _annotate_detection_panel(
         scene=scene,
@@ -570,6 +813,7 @@ def _save_detection_validation_visualization(
         title="False Positives",
         class_names=class_names,
         annotation_parameters=annotation_parameters,
+        metric_target=metric_target,
     )
     fn_panel = _annotate_detection_panel(
         scene=scene,
@@ -577,6 +821,7 @@ def _save_detection_validation_visualization(
         title="False Negatives",
         class_names=class_names,
         annotation_parameters=annotation_parameters,
+        metric_target=metric_target,
     )
 
     top_row = np.concatenate((gt_panel, tp_panel), axis=1)
@@ -635,7 +880,7 @@ def validate_input_tensors(
 
 @dataclass
 class ConfusionMatrix:
-    """Confusion matrix for object detection tasks.
+    """Confusion matrix for object detection and instance segmentation tasks.
 
     Attributes:
         matrix: An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)`
@@ -645,8 +890,10 @@ class ConfusionMatrix:
             Detections with lower confidence will be excluded from the matrix.
         iou_threshold: Detection IoU threshold between `0` and `1`.
             Detections with lower IoU will be classified as `FP`.
-        metric_target: The type of detection data used for IoU computation.
-            Informational metadata set by `from_detections` and `from_tensors`.
+        metric_target: The type of detection data used for IoU computation:
+            `MetricTarget.BOXES`, `MetricTarget.ORIENTED_BOUNDING_BOXES` or
+            `MetricTarget.MASKS`. Informational metadata set by
+            `from_detections`, `from_tensors` and `benchmark`.
             Excluded from `__eq__` comparisons — two `ConfusionMatrix` instances
             with identical `matrix`, `classes`, `conf_threshold`, and
             `iou_threshold` compare as equal regardless of `metric_target`.
@@ -691,17 +938,29 @@ class ConfusionMatrix:
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
             metric_target: The type of detection data to use.
-                Supports `MetricTarget.BOXES` (default) and
-                `MetricTarget.ORIENTED_BOUNDING_BOXES`. When using
-                `MetricTarget.ORIENTED_BOUNDING_BOXES`, each `Detections`
-                object must include OBB coordinates in
+                Supports `MetricTarget.BOXES` (default),
+                `MetricTarget.ORIENTED_BOUNDING_BOXES` and `MetricTarget.MASKS`.
+                When using `MetricTarget.ORIENTED_BOUNDING_BOXES`, each
+                `Detections` object must include OBB coordinates in
                 `detections.data[ORIENTED_BOX_COORDINATES]` as a float32
                 array of shape `(N, 8)` (flat) or `(N, 4, 2)` (as stored by
                 `from_ultralytics`); both are normalised to `(N, 8)` internally.
-                `MetricTarget.MASKS` is not supported.
+                When using `MetricTarget.MASKS`, every non-empty `Detections`
+                object must carry `mask`, either a dense `(N, H, W)` boolean
+                array or a `CompactMask`, and predictions and targets of one
+                image must share the mask resolution. IoU is then computed on
+                the masks, so two instances that share a box but not a shape
+                are not matched.
 
         Returns:
             New instance of ConfusionMatrix.
+
+        Raises:
+            ValueError: If `predictions` and `targets` differ in length, if any
+                `Detections` lacks `class_id`, if a prediction lacks
+                `confidence`, or if `MetricTarget.MASKS` is requested and a
+                non-empty `Detections` lacks `mask` or the masks of one image
+                differ in resolution.
 
         Examples:
             ```pycon
@@ -730,7 +989,71 @@ class ConfusionMatrix:
                    [1, 0]], dtype=int32)
 
             ```
+
+            Instance segmentation is scored on the masks. Both instances below
+            share a box; only the first exceeds the default mask IoU threshold:
+
+            ```pycon
+            >>> from supervision.metrics import MetricTarget
+            >>> target_masks = np.zeros((2, 20, 20), dtype=bool)
+            >>> target_masks[0, 2:8, 2:8] = True
+            >>> target_masks[1, 12:18, 12:18] = True
+            >>> predicted_masks = np.zeros((2, 20, 20), dtype=bool)
+            >>> predicted_masks[0, 2:8, 2:8] = True
+            >>> predicted_masks[1, 12:18, 12:14] = True
+            >>> targets = [
+            ...     sv.Detections(
+            ...         xyxy=sv.mask_to_xyxy(target_masks),
+            ...         mask=target_masks,
+            ...         class_id=np.array([0, 0]),
+            ...     )
+            ... ]
+            >>> predictions = [
+            ...     sv.Detections(
+            ...         xyxy=sv.mask_to_xyxy(target_masks),
+            ...         mask=predicted_masks,
+            ...         class_id=np.array([0, 0]),
+            ...         confidence=np.array([0.9, 0.8]),
+            ...     )
+            ... ]
+            >>> sv.ConfusionMatrix.from_detections(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ...     classes=['cell'],
+            ...     metric_target=MetricTarget.MASKS,
+            ... ).matrix
+            array([[1, 1],
+                   [1, 0]], dtype=int32)
+
+            ```
         """
+        if len(predictions) != len(targets):
+            raise ValueError(
+                f"Number of predictions ({len(predictions)}) and "
+                f"targets ({len(targets)}) must be equal."
+            )
+
+        if metric_target == MetricTarget.MASKS:
+            num_classes = len(classes)
+            matrix: npt.NDArray[np.int32] = np.zeros(
+                (num_classes + 1, num_classes + 1), dtype=np.int32
+            )
+            for prediction, target in zip(predictions, targets):
+                matrix += _evaluate_mask_batch(
+                    predictions=prediction,
+                    targets=target,
+                    num_classes=num_classes,
+                    conf_threshold=conf_threshold,
+                    iou_threshold=iou_threshold,
+                )
+            return cls(
+                matrix=matrix,
+                classes=classes,
+                conf_threshold=conf_threshold,
+                iou_threshold=iou_threshold,
+                metric_target=metric_target,
+            )
+
         prediction_tensors = []
         target_tensors = []
         for prediction, target in zip(predictions, targets):
@@ -787,7 +1110,9 @@ class ConfusionMatrix:
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
                 Determines expected tensor shapes (see Args above for column
-                layouts). `MetricTarget.MASKS` is not supported.
+                layouts). Masks have no tensor row layout, so
+                `MetricTarget.MASKS` is rejected here; use `from_detections`
+                for masks.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -822,7 +1147,7 @@ class ConfusionMatrix:
 
             ```
         """
-        _assert_supported_target(metric_target)
+        _assert_tensor_target(metric_target)
         _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
@@ -879,13 +1204,14 @@ class ConfusionMatrix:
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
                 Determines IoU function (`box_iou_batch` vs
-                `oriented_box_iou_batch`) and coordinate column count.
-                `MetricTarget.MASKS` is not supported.
+                `oriented_box_iou_batch`) and coordinate column count. Masks
+                have no tensor row layout, so `MetricTarget.MASKS` is rejected
+                here; use `from_detections` for masks.
 
         Returns:
             Confusion matrix based on a single image.
         """
-        _assert_supported_target(metric_target)
+        _assert_tensor_target(metric_target)
 
         expected_pred_cols = (
             10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
@@ -951,66 +1277,13 @@ class ConfusionMatrix:
                 boxes_true=true_boxes, boxes_detection=detection_boxes
             )
 
-        # Find all valid matches (IoU > threshold, regardless of class)
-        # Use vectorized operations to avoid nested Python loops
-        iou_mask = iou_batch > iou_threshold
-        gt_indices, det_indices = np.nonzero(iou_mask)
-
-        # If no pairs exceed the IoU threshold, skip matching
-        if gt_indices.size == 0:
-            valid_matches = []
-        else:
-            ious = iou_batch[gt_indices, det_indices]
-            gt_match_classes = true_classes[gt_indices]
-            det_match_classes = detection_classes[det_indices]
-            class_matches = gt_match_classes == det_match_classes
-
-            # Sort matches by class match first (True before False),
-            # then by IoU descending.
-            # np.lexsort sorts by the last key first, in ascending order.
-            # We use ~class_matches so that True becomes 0
-            # and False becomes 1 (True first),
-            # and -ious so that larger IoUs come first.
-            sort_indices = np.lexsort((-ious, ~class_matches))
-
-            # Build list of matches in the same format as before:
-            # (gt_idx, det_idx, iou, class_match)
-            valid_matches = [
-                (
-                    int(gt_indices[idx]),
-                    int(det_indices[idx]),
-                    float(ious[idx]),
-                    bool(class_matches[idx]),
-                )
-                for idx in sort_indices
-            ]
-        # Greedily assign matches, ensuring each GT
-        # and detection is matched at most once
-        matched_gt_idx = set()
-        matched_det_idx = set()
-
-        for gt_idx, det_idx, iou, class_match in valid_matches:
-            if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
-                # Valid spatial match - record the class prediction
-                gt_class = true_classes[gt_idx]
-                det_class = detection_classes[det_idx]
-
-                # This handles both correct classification (TP) and misclassification
-                result_matrix[gt_class, det_class] += 1
-                matched_gt_idx.add(gt_idx)
-                matched_det_idx.add(det_idx)
-
-        # Count unmatched ground truth as FN
-        for gt_idx, gt_class in enumerate(true_classes):
-            if gt_idx not in matched_gt_idx:
-                result_matrix[gt_class, num_classes] += 1
-
-        # Count unmatched detections as FP
-        for det_idx, det_class in enumerate(detection_classes):
-            if det_idx not in matched_det_idx:
-                result_matrix[num_classes, det_class] += 1
-
-        return result_matrix
+        return _confusion_matrix_from_iou(
+            iou_batch=iou_batch,
+            true_classes=true_classes,
+            detection_classes=detection_classes,
+            num_classes=num_classes,
+            iou_threshold=iou_threshold,
+        )
 
     @staticmethod
     def _drop_extra_matches(
@@ -1043,7 +1316,8 @@ class ConfusionMatrix:
         """Calculate confusion matrix from dataset and callback function.
 
         Args:
-            dataset: Object detection dataset used for evaluation.
+            dataset: Detection or instance segmentation dataset used for
+                evaluation.
             callback: Function that takes an image as input and returns a
                 Detections object.
             conf_threshold: Detection confidence threshold between `0` and `1`.
@@ -1055,9 +1329,11 @@ class ConfusionMatrix:
                 are written directly to this directory (no subdirectory is added).
                 When ``None`` (default), no images are saved.
             metric_target: The type of detection data to use.
-                Supports `MetricTarget.BOXES` and
-                `MetricTarget.ORIENTED_BOUNDING_BOXES`. Passed through to
-                `from_detections`. `MetricTarget.MASKS` is not supported.
+                Supports `MetricTarget.BOXES`,
+                `MetricTarget.ORIENTED_BOUNDING_BOXES` and `MetricTarget.MASKS`.
+                Passed through to `from_detections`. With `MetricTarget.MASKS`
+                the dataset annotations and the callback's detections must
+                carry `mask`, and the saved validation grids fill each mask.
 
         Returns:
             New instance of ConfusionMatrix.
