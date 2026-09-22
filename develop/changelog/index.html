@@ -4050,6 +4050,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.pillow_to_cv2</code>, and with it every annotator, <code>sv.crop_image</code>, <code>sv.resize_image</code>, <code>sv.letterbox_image</code>, <code>sv.scale_image</code>, <code>sv.tint_image</code>, <code>sv.grayscale_image</code> and <code>sv.plot_image</code> handed a Pillow image, now converts every Pillow mode to the 8-bit grayscale or BGR array <code>cv2.imread</code> would produce for the same picture. It used to pass the raw mode bytes through: a 1-bit image came back as <code>0</code> and <code>1</code> instead of <code>0</code> and <code>255</code>, a 16-bit (<code>I;16</code>) or 32-bit integer (<code>I</code>) image wrapped modulo 256 so a bright depth map drew as noise, a grayscale image with alpha (<code>LA</code>, <code>PA</code>) crashed in <code>cvtColor</code> with a two-channel array, and a CMYK JPEG had its cyan, magenta and yellow ink values drawn as red, green and blue. Alpha is dropped as <code>cv2.imread</code> drops it, 1-bit becomes <code>0</code>/<code>255</code>, a 16-bit image keeps its high byte as OpenCV does when it reads a 16-bit PNG as 8-bit (a 32-bit integer image is clipped to the 16-bit range first), and CMYK, YCbCr, HSV and padded RGB images are converted to color through Pillow. RGB, RGBA, grayscale and palette images convert exactly as before. <code>sv.tint_image</code> and <code>sv.grayscale_image</code> also accept a single-channel <code>(H, W)</code> array or grayscale <code>Image</code>, which <code>sv.letterbox_image</code> already did; <code>tint_image</code> returns the tinted scene in color. (<a href="https://github.com/roboflow/supervision/pull/2614">#2614</a>)</p>
+</li>
+<li>
 <p><code>sv.Detections.with_nmm</code> and <code>sv.mask_non_max_merge</code> now form <code>CompactMask</code> unions directly from run-length encoded foreground intervals. Both greedy candidate updates and final output merging avoid full-image mask allocations, including when used by <code>InferenceSlicer(compact_masks=True)</code>. Stored foreground, exact overlap matching and detection metadata are preserved. Merging compact masks with different image shapes still raises <code>ValueError</code>, but the message now includes both shapes: <code>Cannot merge CompactMask objects with different image shapes: {a} vs {b}</code> (previously <code>Cannot merge CompactMask objects with different image shapes.</code>). Union cost depends on foreground column interval count (mask fragmentation and crossed columns), not logical canvas area; highly fragmented masks (a cheap O(masks) run-count check flags them, no decode needed) now union via a bbox-local dense OR instead of sorting intervals, bounded to a 16 Mi-pixel bbox so it never re-introduces a full-canvas allocation. For twelve 200×200 checkerboard masks on a 512×512 canvas (four groups of three duplicates), measured peak traced NMM allocation is 4.34 MiB (maximum of three repeats, input construction excluded), matching the pre-#2606 dense-union baseline rather than the 7.79 MiB (1.79×) a pure interval union costs there. A single mask larger than the 16 Mi-pixel bbox cap still takes the interval path regardless of fragmentation, and can still cost more time and temporary memory than a dense union would. Overlap evaluation still decodes overlapping crops. (<a href="https://github.com/roboflow/supervision/pull/2606">#2606</a>, <a href="https://github.com/roboflow/supervision/pull/2616">#2616</a>)</p>
 </li>
 <li>
@@ -6443,7 +6446,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 10:55:24 UTC">September 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 13:21:56 UTC">September 22, 2026</span>
   </span>
 
     
@@ -6471,9 +6474,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/raghav-rathi" class="md-author" title="@raghav-rathi">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/44058192?v=4&size=72" alt="raghav-rathi">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6481,21 +6484,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
           
           <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
-        </a>
-      
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
-          
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +36
+            +37
           </a>
         
       
