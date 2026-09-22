@@ -6,13 +6,22 @@ import numpy as np
 import pytest
 
 from supervision import Detections, InferenceSlicer, OverlapFilter, OverlapMetric
-from supervision.detection.compact_mask import CompactMask, _compact_mask_union
+from supervision.detection.compact_mask import (
+    CompactMask,
+    _compact_mask_union,
+    _should_union_densely,
+)
 from supervision.detection.core import _merge_detection_group
-from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.detection.utils.converters import _rle_counts_to_mask, mask_to_xyxy
 
 
 class TestCompactMaskUnion:
-    """Union crop RLEs without decoding either crops or image-sized arrays."""
+    """Union sparse crop RLEs without decoding, matching a dense reference.
+
+    Fragmented (checkerboard) cases in this class exercise the dense fallback, which
+    does decode crop-local buffers by design; the guards below only assert that a *full-
+    image-sized* array is never decoded.
+    """
 
     @pytest.mark.parametrize("count", [0, 1, 7])
     @pytest.mark.parametrize(
@@ -228,7 +237,13 @@ class TestCompactMaskUnion:
     def test_canonicalizes_interval_boundaries(
         self, second_offset_y: int, expected_rle: list[int]
     ) -> None:
-        """Merge touching intervals while retaining a real one-pixel background gap."""
+        """Merge touching intervals while retaining a real one-pixel background gap.
+
+        Two 1x1 crops give a run-count ratio of 2.0 (four runs over two pixels), which
+        would otherwise dispatch to the dense fallback and never exercise this
+        function's interval boundary-merge logic at all. Pin the interval path
+        explicitly so the test still means what it says.
+        """
         compact = CompactMask(
             rles=[np.array([0, 1], dtype=np.int32)] * 2,
             crop_shapes=np.ones((2, 2), dtype=np.int32),
@@ -236,10 +251,113 @@ class TestCompactMaskUnion:
             image_shape=(3, 1),
         )
 
-        result = _compact_mask_union([compact])
+        with patch(
+            "supervision.detection.compact_mask._should_union_densely",
+            return_value=False,
+        ):
+            result = _compact_mask_union([compact])
 
         assert result._rles[0].tolist() == expected_rle
         assert result._crop_shapes.tolist() == [[second_offset_y + 1, 1]]
+
+
+class TestUnionDenseFallback:
+    """Fragmented masks dispatch to a bbox-local dense union, sparse ones to RLE."""
+
+    @staticmethod
+    def _make_compact(pattern: str, size: int) -> CompactMask:
+        """Build a single (size, size) mask, either fully solid or checkerboard."""
+        crop = np.ones((size, size), dtype=bool)
+        if pattern == "checkerboard":
+            crop = np.indices(crop.shape).sum(axis=0) % 2 == 0
+        return CompactMask.from_dense(
+            crop[None], np.array([[0, 0, size - 1, size - 1]]), (size, size)
+        )
+
+    @pytest.mark.parametrize(
+        ("pattern", "expected"),
+        [
+            pytest.param("solid", False, id="solid-stays-interval"),
+            pytest.param("checkerboard", True, id="checkerboard-goes-dense"),
+        ],
+    )
+    def test_should_union_densely_reads_fragmentation(
+        self, pattern: str, expected: bool
+    ) -> None:
+        """`_should_union_densely` flags checkerboard fragmentation, not solid fill.
+
+        Both masks fit well under the memory cap, so the run-count ratio alone
+        must decide: one run for a solid crop, near one run per pixel for the
+        checkerboard, at the same bbox size.
+        """
+        compact = self._make_compact(pattern, size=40)
+
+        result = _should_union_densely([compact], bbox_width=40, bbox_height=40)
+
+        assert result is expected
+
+    def test_should_union_densely_respects_memory_cap(self) -> None:
+        """A huge bbox skips the dense fallback even when fully fragmented.
+
+        Two single-pixel masks at opposite corners of a 100000x100000 image have a run-
+        count ratio of 1.0 (maximally "fragmented" by that metric alone), but the bbox
+        they span is far past the memory cap, so falling back to a dense array would
+        reintroduce the full-canvas materialization this union function exists to avoid.
+        """
+        compact = CompactMask(
+            rles=[np.array([0, 1], dtype=np.int32)] * 2,
+            crop_shapes=np.ones((2, 2), dtype=np.int32),
+            offsets=np.array([[0, 0], [99_999, 99_999]], dtype=np.int32),
+            image_shape=(100_000, 100_000),
+        )
+
+        result = _should_union_densely(
+            [compact], bbox_width=100_000, bbox_height=100_000
+        )
+
+        assert result is False
+
+    def test_dense_fallback_matches_interval_result(self) -> None:
+        """Dense and interval paths agree on a checkerboard union's pixels and crop.
+
+        Forces each path in turn via monkeypatching so a future change to the dispatch
+        threshold cannot silently make both paths run the same way without anyone
+        noticing the comparison stopped being meaningful. A spy on the dense path's own
+        decode call proves each branch actually ran as forced, rather than both patches
+        being inert and the comparison passing vacuously.
+        """
+        compact = self._make_compact("checkerboard", size=20)
+        expected_dense = compact.to_dense()
+
+        with (
+            patch(
+                "supervision.detection.compact_mask._should_union_densely",
+                return_value=True,
+            ),
+            patch(
+                "supervision.detection.compact_mask._rle_counts_to_mask",
+                wraps=_rle_counts_to_mask,
+            ) as decode_spy,
+        ):
+            via_dense = _compact_mask_union([compact])
+            decode_spy.assert_called_once()
+        with (
+            patch(
+                "supervision.detection.compact_mask._should_union_densely",
+                return_value=False,
+            ),
+            patch(
+                "supervision.detection.compact_mask._rle_counts_to_mask",
+                wraps=_rle_counts_to_mask,
+            ) as decode_spy,
+        ):
+            via_interval = _compact_mask_union([compact])
+            decode_spy.assert_not_called()
+
+        np.testing.assert_array_equal(via_dense.to_dense(), expected_dense)
+        np.testing.assert_array_equal(via_interval.to_dense(), expected_dense)
+        np.testing.assert_array_equal(via_dense.bbox_xyxy, via_interval.bbox_xyxy)
+        assert via_dense._crop_shapes.tolist() == via_interval._crop_shapes.tolist()
 
 
 class TestCompactMaskNmmUnion:

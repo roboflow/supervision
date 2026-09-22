@@ -177,22 +177,153 @@ def _validate_uniform_image_shape(
     return image_shape
 
 
+#: Above this foreground-runs / crop-area ratio, runs average under two
+#: pixels each: the interval union's O(K log K) sort is costing more than a
+#: single O(area) dense pass would, so the dense path wins from here up.
+_DENSE_FALLBACK_RUN_RATIO = 0.5
+
+#: Cap on the union's bounding-box area (pixels) for the dense fallback. Keeps
+#: the fallback from decoding a full-image-sized canvas regardless of
+#: fragmentation; above this, the interval path runs instead, since its
+#: memory stays bounded by the foreground it stores, not the union extent.
+_DENSE_FALLBACK_MAX_PIXELS = 16 * 1024 * 1024
+
+
+def _union_bbox(masks_list: list[CompactMask]) -> tuple[int, int, int, int]:
+    """Return the loose ``(x_min, y_min, width, height)`` spanning every input crop.
+
+    Reads only ``_offsets`` and ``_crop_shapes`` — no RLE decode, no interval
+    extraction — so it is cheap enough to call before choosing a union
+    strategy. Unlike the tight foreground bbox the union itself produces,
+    this may include background padding from loose input boxes.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import CompactMask, _union_bbox
+        >>> masks = np.ones((1, 4, 4), dtype=bool)
+        >>> xyxy = np.array([[2, 3, 5, 6]], dtype=np.float32)
+        >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+        >>> _union_bbox([cm])
+        (2, 3, 4, 4)
+
+        ```
+    """
+    nonempty = [cm for cm in masks_list if len(cm._rles) > 0]
+    if not nonempty:
+        return 0, 0, 1, 1
+    x1 = np.concatenate([cm._offsets[:, 0] for cm in nonempty])
+    y1 = np.concatenate([cm._offsets[:, 1] for cm in nonempty])
+    widths = np.concatenate([cm._crop_shapes[:, 1] for cm in nonempty])
+    heights = np.concatenate([cm._crop_shapes[:, 0] for cm in nonempty])
+    x_min, y_min = int(x1.min()), int(y1.min())
+    width = int((x1 + widths).max()) - x_min
+    height = int((y1 + heights).max()) - y_min
+    return x_min, y_min, width, height
+
+
+def _should_union_densely(
+    masks_list: list[CompactMask], bbox_width: int, bbox_height: int
+) -> bool:
+    """Flag mask sets fragmented enough that dense union beats interval union.
+
+    Reads only RLE array lengths and crop shapes — no decode — so the check
+    costs O(number of masks), independent of resolution or fragmentation.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import (
+        ...     CompactMask, _should_union_densely)
+        >>> solid = np.ones((1, 20, 20), dtype=bool)
+        >>> xyxy = np.array([[0, 0, 19, 19]], dtype=np.float32)
+        >>> cm = CompactMask.from_dense(solid, xyxy, image_shape=(20, 20))
+        >>> _should_union_densely([cm], 20, 20)
+        False
+        >>> checkerboard = np.indices((20, 20)).sum(axis=0) % 2 == 0
+        >>> cm = CompactMask.from_dense(checkerboard[None], xyxy, image_shape=(20, 20))
+        >>> _should_union_densely([cm], 20, 20)
+        True
+
+        ```
+    """
+    bbox_area = bbox_width * bbox_height
+    if bbox_area > _DENSE_FALLBACK_MAX_PIXELS:
+        return False
+    total_runs = sum(len(rle) for cm in masks_list for rle in cm._rles)
+    total_pixels = sum(
+        int(shape[0]) * int(shape[1]) for cm in masks_list for shape in cm._crop_shapes
+    )
+    return total_pixels > 0 and total_runs > _DENSE_FALLBACK_RUN_RATIO * total_pixels
+
+
+def _empty_union(image_shape: tuple[int, int]) -> CompactMask:
+    """Return the canonical all-background union: a 1x1 crop at the image origin."""
+    return CompactMask(
+        [np.array([1], dtype=np.int32)],
+        np.ones((1, 2), dtype=np.int32),
+        np.zeros((1, 2), dtype=np.int32),
+        image_shape,
+    )
+
+
+def _dense_union(
+    masks_list: list[CompactMask],
+    x_min: int,
+    y_min: int,
+    bbox_width: int,
+    bbox_height: int,
+    image_shape: tuple[int, int],
+) -> CompactMask:
+    """Union fragmented masks via a bbox-local dense OR, retightened afterward.
+
+    Decodes each input crop and ORs it into a canvas sized to the loose union
+    bbox (bounded by :data:`_DENSE_FALLBACK_MAX_PIXELS`, never the full
+    image), then trims to the actual foreground extent so the result has the
+    same tight-crop convention as the interval path.
+    """
+    canvas = np.zeros((bbox_height, bbox_width), dtype=np.bool_)
+    for cm in masks_list:
+        for rle, shape, offset in zip(cm._rles, cm._crop_shapes, cm._offsets):
+            crop_h, crop_w = int(shape[0]), int(shape[1])
+            local = _rle_counts_to_mask(rle, crop_h, crop_w)
+            ox, oy = int(offset[0]) - x_min, int(offset[1]) - y_min
+            canvas[oy : oy + crop_h, ox : ox + crop_w] |= local
+
+    rows = np.flatnonzero(canvas.any(axis=1))
+    if len(rows) == 0:
+        return _empty_union(image_shape)
+    cols = np.flatnonzero(canvas.any(axis=0))
+    y0, y1 = int(rows[0]), int(rows[-1])
+    x0, x1 = int(cols[0]), int(cols[-1])
+    tight = canvas[y0 : y1 + 1, x0 : x1 + 1]
+    return CompactMask(
+        [_mask_to_rle_counts(tight)],
+        np.array([[tight.shape[0], tight.shape[1]]], dtype=np.int32),
+        np.array([[x_min + x0, y_min + y0]], dtype=np.int32),
+        image_shape,
+    )
+
+
 def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     """Reduce a list of :class:`CompactMask` objects to one tight union mask.
 
     Used by NMM for both its evolving candidate and its final output, and by
     detection-group merging for the final per-group mask. Works directly on
     ``masks_list`` instead of first allocating an intermediate merged
-    :class:`CompactMask`, since only the union is ever needed. No mask pixels
-    are decoded, even when the union's bounding rectangle is much larger than
-    the input crops. All stored foreground is retained regardless of the
-    detection boxes. An empty list, or a list whose masks are all
-    all-background, produces one all-background mask with a 1x1 crop at the
-    image origin.
+    :class:`CompactMask`, since only the union is ever needed. All stored
+    foreground is retained regardless of the detection boxes. An empty list,
+    or a list whose masks are all all-background, produces one all-background
+    mask with a 1x1 crop at the image origin.
 
-    Memory scales with the number of foreground column intervals, rather than
-    the image or union crop area. Sorting these intervals costs O(K log K);
-    fragmented masks can therefore be slower than a dense NumPy union.
+    Interval union scales with the number of foreground column intervals
+    (O(K log K) to sort them), rather than the image or union crop area, so it
+    wins for the sparse, mostly-contiguous masks real segmentation models
+    produce. When the input is fragmented enough that a dense pass would be
+    cheaper — a cheap O(masks) run-count check decides this without decoding
+    anything — the union instead ORs bbox-local dense crops (bounded by
+    :data:`_DENSE_FALLBACK_MAX_PIXELS`, never the full image), preserving the
+    memory guarantee this function exists for.
 
     Args:
         masks_list: Non-empty list of :class:`CompactMask` objects. All must
@@ -206,6 +337,12 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     """
     image_shape = _validate_uniform_image_shape(masks_list, action="union")
 
+    bbox_x_min, bbox_y_min, bbox_width, bbox_height = _union_bbox(masks_list)
+    if _should_union_densely(masks_list, bbox_width, bbox_height):
+        return _dense_union(
+            masks_list, bbox_x_min, bbox_y_min, bbox_width, bbox_height, image_shape
+        )
+
     intervals = [
         _rle_to_column_intervals(rle, int(shape[0]), offset)
         for cm in masks_list
@@ -213,12 +350,7 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     ]
     intervals = [part for part in intervals if len(part)]
     if not intervals:
-        return CompactMask(
-            [np.array([1], dtype=np.int32)],
-            np.ones((1, 2), dtype=np.int32),
-            np.zeros((1, 2), dtype=np.int32),
-            image_shape,
-        )
+        return _empty_union(image_shape)
 
     foreground = np.concatenate(intervals)
     x_min, y_min = foreground[:, :2].min(axis=0)
