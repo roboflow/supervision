@@ -1312,6 +1312,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#merge-overlapping-predictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge Overlapping Predictions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#performance-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3217,6 +3228,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#merge-overlapping-predictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge Overlapping Predictions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#performance-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3271,12 +3293,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p class="admonition-title">Note</p>
 <p><code>sv.mask_to_xyxy</code> keeps supervision's inclusive max-coordinate convention for compatibility with <code>CompactMask</code> and current box-based adapters. Use <code>sv.mask_to_roi</code> when you need exclusive slice bounds for NumPy indexing or crop extraction.</p>
 </div>
-<p>This guide covers the four main integration points:</p>
+<p>This guide covers the main integration points:</p>
 <ol>
 <li><a href="#ingest-coco-rle-payloads">Ingesting COCO RLE payloads directly as CompactMask</a></li>
 <li><a href="#parse-inference-results">Parsing Roboflow Inference results without a dense stack</a></li>
 <li><a href="#skip-unnecessary-materialisation">Skipping mask materialisation for box/label annotators</a></li>
 <li><a href="#merge-mixed-detections">Merging mixed dense and compact detections</a></li>
+<li><a href="#merge-overlapping-predictions">Merging overlapping segmentation predictions</a></li>
 </ol>
 <hr />
 <h2 id="ingest-coco-rle-payloads">Ingest COCO RLE Payloads<a class="headerlink" href="#ingest-coco-rle-payloads" title="Permanent link">&para;</a></h2>
@@ -3409,6 +3432,36 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </table>
 <p>All <code>CompactMask</code> inputs must share the same <code>image_shape</code>; mismatches raise <code>ValueError</code>.</p>
 <hr />
+<h2 id="merge-overlapping-predictions">Merge Overlapping Predictions<a class="headerlink" href="#merge-overlapping-predictions" title="Permanent link">&para;</a></h2>
+<p><code>Detections.with_nmm</code> and <code>mask_non_max_merge</code> keep compact masks compressed while forming mask unions. This applies to both the candidate updated during greedy matching and the final merged detection. They combine foreground run intervals, without allocating a full <code>(N, H, W)</code> mask stack or a dense union image.</p>
+<div class="admonition warning">
+<p class="admonition-title">Version requirement</p>
+<p>This large-canvas example requires <code>supervision&gt;=0.31.0</code>. Earlier versions materialize full-image dense union arrays while running CompactMask NMM, which can exhaust memory for a canvas this large.</p>
+</div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.detection.compact_mask</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompactMask</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Encode model output in tile coordinates, then relocate it to a large image.</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">tile_masks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">tile_boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">31</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">31</span><span class="p">]])</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">masks</span> <span class="o">=</span> <span class="n">CompactMask</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">tile_masks</span><span class="p">,</span> <span class="n">tile_boxes</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">with_offset</span><span class="p">(</span><span class="mi">50000</span><span class="p">,</span> <span class="mi">60000</span><span class="p">,</span> <span class="n">new_image_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">100000</span><span class="p">,</span> <span class="mi">100000</span><span class="p">))</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">(</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">xyxy</span><span class="o">=</span><span class="n">masks</span><span class="o">.</span><span class="n">bbox_xyxy</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">mask</span><span class="o">=</span><span class="n">masks</span><span class="p">,</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">confidence</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">]),</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">class_id</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="p">)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="n">merged</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">with_nmm</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">merged</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">CompactMask</span><span class="p">)</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="k">assert</span> <span class="n">merged</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">area</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1024</span><span class="p">]</span>
+</span></code></pre></div>
+<p>The same path is used by <code>InferenceSlicer(compact_masks=True, overlap_filter=sv.OverlapFilter.NON_MAX_MERGE)</code>. The mask union preserves all stored foreground, including pixels outside the detection boxes. Matching thresholds, class grouping, confidence aggregation and winner metadata behave as with dense masks.</p>
+<p>Union cost depends on the number of foreground column intervals (<code>K</code>), determined by mask fragmentation and the columns foreground runs cross, not by the logical canvas area. Highly fragmented masks can take more time and temporary memory than a dense union, including with large crops. Holding the encoded crops fixed keeps this interval cost independent of canvas size. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.</p>
+<p>A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run <code>python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096</code>. To expose fragmentation overhead, run <code>python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard</code>: twelve masks in four groups of three duplicates increased peak traced NMM allocation from <strong>4.34 MiB to 7.79 MiB (1.79×)</strong> when comparing the pre-change dense-union implementation with the interval implementation (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; see the <a href="https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark">benchmark results</a> for the matching solid-mask case.</p>
+<hr />
 <h2 id="performance-notes">Performance Notes<a class="headerlink" href="#performance-notes" title="Permanent link">&para;</a></h2>
 <p>These estimates apply to the <strong>parsing and annotation stage</strong>, not end-to-end pipeline FPS. Model inference typically dominates total runtime.</p>
 <table>
@@ -3492,7 +3545,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 8, 2026 21:00:32 UTC">July 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 08:19:39 UTC">September 22, 2026</span>
   </span>
 
     
@@ -3520,9 +3573,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3530,21 +3583,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/codex" class="md-author" title="@codex">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
-        <a href="https://github.com/pre-commit-ci%5Bbot%5D" class="md-author" title="@pre-commit-ci[bot]">
+        <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
           
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/in/1236702?v=4&size=72" alt="GitHub user">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/use_compact_masks.md" class="md-author md-author--more">
-            +2
+            +4
           </a>
         
       
