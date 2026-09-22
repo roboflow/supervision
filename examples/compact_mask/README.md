@@ -650,9 +650,18 @@ ______________________________________________________________________
 
 Run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096` on each revision to compare compact `Detections.with_nmm`. It holds twelve 64×64 mask crops fixed while varying the logical canvas. Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. No model, image download or GPU is required.
 
-JSON output includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size` and `--repeats` control mask complexity and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
+JSON output includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size`, `--duplicates` (default: three per group) and `--repeats` control crop size, group size and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
 
-The RLE union sorts foreground intervals; fragmented masks on small canvases can be slower and use more temporary memory than a dense union. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+The RLE union sorts `K` foreground column intervals. Mask fragmentation and the columns foreground runs cross determine `K`; enlarging the canvas with fixed encoded crops does not. Highly fragmented masks can be slower and use more temporary memory than a dense union, including with large crops. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+
+Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the interval implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid and three duplicates per group. Values are maximum traced allocation over three complete NMM calls, excluding input construction; they are not isolated union storage or process RSS.
+
+| Crop / canvas | Pattern | Dense-union NMM peak | Interval-union NMM peak | New / old |
+| --- | --- | --- | --- | --- |
+| 200×200 / 512×512 | checkerboard | 4.34 MiB | 7.79 MiB | 1.79× |
+| 200×200 / 512×512 | solid | 1.51 MiB | 0.24 MiB | 0.16× |
+
+Reproduce each row with `python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard --repeats 3`, replacing `checkerboard` with `solid` for the clean-mask control. Both revisions returned four masks with total foreground area 80,000 for checkerboard and 160,000 for solid. Absolute measurements depend on the Python/NumPy environment.
 
 ______________________________________________________________________
 

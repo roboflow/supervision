@@ -172,6 +172,10 @@ All `CompactMask` inputs must share the same `image_shape`; mismatches raise `Va
 
 `Detections.with_nmm` and `mask_non_max_merge` keep compact masks compressed while forming mask unions. This applies to both the candidate updated during greedy matching and the final merged detection. They combine foreground run intervals, without allocating a full `(N, H, W)` mask stack or a dense union image.
 
+!!! Warning "Version requirement"
+
+    This large-canvas example requires `supervision>=0.31.0`. Earlier versions materialize full-image dense union arrays while running CompactMask NMM, which can exhaust memory for a canvas this large.
+
 ```python
 import numpy as np
 import supervision as sv
@@ -196,9 +200,9 @@ assert merged.mask.area.tolist() == [1024]
 
 The same path is used by `InferenceSlicer(compact_masks=True, overlap_filter=sv.OverlapFilter.NON_MAX_MERGE)`. The mask union preserves all stored foreground, including pixels outside the detection boxes. Matching thresholds, class grouping, confidence aggregation and winner metadata behave as with dense masks.
 
-Union cost depends on foreground run fragmentation and the columns those runs cross, not on the logical image area. Highly fragmented masks can take more time and temporary memory than a dense union on small images. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.
+Union cost depends on the number of foreground column intervals (`K`), determined by mask fragmentation and the columns foreground runs cross, not by the logical canvas area. Highly fragmented masks can take more time and temporary memory than a dense union, including with large crops. Holding the encoded crops fixed keeps this interval cost independent of canvas size. Overlap evaluation still decodes overlapping crops and allocates pairwise overlap arrays, so a very large or loose crop can still be expensive. This change removes the additional full-image union allocations.
 
-A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096`.
+A reproducible benchmark varying canvas size and mask fragmentation is included in the repository. From a checkout, run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096`. To expose fragmentation overhead, run `python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard`: twelve masks in four groups of three duplicates increased peak traced NMM allocation from **4.34 MiB to 7.79 MiB (1.79×)** when comparing the pre-change dense-union implementation with the interval implementation (maximum of three repeats; input construction excluded). This measures the complete NMM call, not just union storage; see the [benchmark results](https://github.com/roboflow/supervision/tree/develop/examples/compact_mask#non-maximum-merging-benchmark) for the matching solid-mask case.
 
 ---
 
