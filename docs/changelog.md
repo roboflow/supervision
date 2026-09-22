@@ -5,6 +5,11 @@ date_modified: 2026-09-22
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.pillow_to_cv2`, and with it every annotator, `sv.crop_image`, `sv.resize_image`, `sv.letterbox_image`, `sv.scale_image`, `sv.tint_image`, `sv.grayscale_image` and `sv.plot_image` handed a Pillow image, now converts every Pillow mode to the 8-bit grayscale or BGR array `cv2.imread` would produce for the same picture. It used to pass the raw mode bytes through: a 1-bit image came back as `0` and `1` instead of `0` and `255`, a 16-bit (`I;16`) or 32-bit integer (`I`) image wrapped modulo 256 so a bright depth map drew as noise, a grayscale image with alpha (`LA`, `PA`) crashed in `cvtColor` with a two-channel array, and a CMYK JPEG had its cyan, magenta and yellow ink values drawn as red, green and blue. Alpha is dropped as `cv2.imread` drops it, 1-bit becomes `0`/`255`, a 16-bit image keeps its high byte as OpenCV does when it reads a 16-bit PNG as 8-bit (a 32-bit integer image is clipped to the 16-bit range first), and CMYK, YCbCr, HSV and padded RGB images are converted to color through Pillow. RGB, RGBA, grayscale and palette images convert exactly as before. `sv.tint_image` and `sv.grayscale_image` also accept a single-channel `(H, W)` array or grayscale `Image`, which `sv.letterbox_image` already did; `tint_image` returns the tinted scene in color. ([#2614](https://github.com/roboflow/supervision/pull/2614))
+
+
 ### 0.30.5 <small>Sep 22, 2026</small>
 
 - `sv.InferenceSlicer` no longer raises when slices disagree on `metadata` (e.g. a `source_image` NumPy array attached per-slice by RF-DETR/`inference`-package connectors), which previously crashed the merge outright. A mismatched key is now dropped from the merged result with a `SupervisionWarnings` warning naming it; `source_image` is a special case, reattached afterward as the full input image rather than a single slice's tile. Also fixes two related `Detections.__eq__` bugs: metadata holding `NaN` in a float array now compares equal to itself instead of always reading unequal, and comparing a list-valued value against an ndarray-valued one now returns `False` instead of raising `ValueError`. ([#2596](https://github.com/roboflow/supervision/pull/2596))
