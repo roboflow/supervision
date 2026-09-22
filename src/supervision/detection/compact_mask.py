@@ -56,6 +56,200 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     return int(np.sum(rle[1::2]))
 
 
+def _rle_to_column_intervals(
+    rle: npt.NDArray[np.int32],
+    crop_height: int,
+    offset: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int64]:
+    """Extract foreground `(x, y_start, y_stop)` intervals in image coordinates.
+
+    Split foreground runs only at column boundaries. Background runs, including entire
+    empty columns, are skipped without allocating pixels or per-column lists. Work and
+    storage scale with foreground runs plus the columns they cross.
+
+    Use :func:`_rle_split_cols` for resize or crop work that needs per-column run
+    lists; use this helper when vectorized ``(K, 3)`` foreground intervals are needed.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_to_column_intervals
+        >>> rle = np.array([1, 2, 2, 1], dtype=np.int32)
+        >>> offset = np.array([10, 20], dtype=np.int32)
+        >>> _rle_to_column_intervals(rle, crop_height=3, offset=offset)
+        array([[10, 21, 23],
+               [11, 22, 23]])
+
+        ```
+    """
+    ends = np.cumsum(rle, dtype=np.int64)
+    starts, stops = ends[:-1:2], ends[1::2]
+    nonempty = stops > starts
+    starts, stops = starts[nonempty], stops[nonempty]
+    if len(starts) == 0:
+        return np.empty((0, 3), dtype=np.int64)
+
+    first_columns = starts // crop_height
+    counts = (stops - 1) // crop_height - first_columns + 1
+    run_indices = np.repeat(np.arange(len(starts)), counts)
+    within_run = np.arange(int(counts.sum())) - np.repeat(
+        np.cumsum(counts) - counts, counts
+    )
+    columns = first_columns[run_indices] + within_run
+    column_origins = columns * crop_height
+    row_starts = np.maximum(starts[run_indices] - column_origins, 0)
+    row_stops = np.minimum(stops[run_indices] - column_origins, crop_height)
+    return np.column_stack(
+        (
+            columns + int(offset[0]),
+            row_starts + int(offset[1]),
+            row_stops + int(offset[1]),
+        )
+    )
+
+
+def _rle_counts_int32(counts: npt.NDArray[np.int64]) -> npt.NDArray[np.int32]:
+    """Split oversized runs with zero opposite runs to preserve int32 RLE storage.
+
+    A sparse union crop can exceed 2**31 pixels even when its input crops are tiny.
+    Zero-length runs keep the foreground/background parity across each split. Only
+    the (typically zero or one) oversized runs are visited in Python; the runs
+    between them are copied in bulk through NumPy slicing.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_counts_int32
+        >>> limit = np.iinfo(np.int32).max
+        >>> _rle_counts_int32(np.array([1, limit + 5], dtype=np.int64)).tolist()
+        [1, 2147483647, 0, 5]
+
+        ```
+    """
+    limit = np.iinfo(np.int32).max
+    oversized = np.flatnonzero(counts > limit)
+    if len(oversized) == 0:
+        return counts.astype(np.int32)
+
+    split_counts: list[int] = []
+    previous_end = 0
+    for index in oversized.tolist():
+        split_counts.extend(counts[previous_end:index].tolist())
+        count = int(counts[index])
+        while count > limit:
+            split_counts.extend((limit, 0))
+            count -= limit
+        split_counts.append(count)
+        previous_end = index + 1
+    split_counts.extend(counts[previous_end:].tolist())
+    return np.array(split_counts, dtype=np.int32)
+
+
+def _validate_uniform_image_shape(
+    masks_list: list[CompactMask], action: str
+) -> tuple[int, int]:
+    """Ensure every mask in a list shares one image shape before a collection op.
+
+    Shared by :meth:`CompactMask.merge` and :func:`_compact_mask_union` so both
+    raise the same error for an empty list or mismatched shapes.
+
+    Args:
+        masks_list: List of :class:`CompactMask` objects to validate.
+        action: Present-tense verb naming the caller's operation, used in the
+            raised error message (e.g. ``"merge"`` or ``"union"``).
+
+    Returns:
+        The ``image_shape`` shared by every mask in ``masks_list``.
+
+    Raises:
+        ValueError: If ``masks_list`` is empty or image shapes differ.
+    """
+    if not masks_list:
+        raise ValueError(f"Cannot {action} an empty list of CompactMask objects.")
+
+    image_shape = masks_list[0]._image_shape
+    for cm in masks_list[1:]:
+        if cm._image_shape != image_shape:
+            raise ValueError(
+                f"Cannot {action} CompactMask objects with different image "
+                f"shapes: {image_shape} vs {cm._image_shape}"
+            )
+    return image_shape
+
+
+def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
+    """Reduce a list of :class:`CompactMask` objects to one tight union mask.
+
+    Used by NMM for both its evolving candidate and its final output, and by
+    detection-group merging for the final per-group mask. Works directly on
+    ``masks_list`` instead of first allocating an intermediate merged
+    :class:`CompactMask`, since only the union is ever needed. No mask pixels
+    are decoded, even when the union's bounding rectangle is much larger than
+    the input crops. All stored foreground is retained regardless of the
+    detection boxes. An empty list, or a list whose masks are all
+    all-background, produces one all-background mask with a 1x1 crop at the
+    image origin.
+
+    Memory scales with the number of foreground column intervals, rather than
+    the image or union crop area. Sorting these intervals costs O(K log K);
+    fragmented masks can therefore be slower than a dense NumPy union.
+
+    Args:
+        masks_list: Non-empty list of :class:`CompactMask` objects. All must
+            share the same ``image_shape``.
+
+    Returns:
+        A new :class:`CompactMask` containing a single tight union mask.
+
+    Raises:
+        ValueError: If ``masks_list`` is empty or image shapes differ.
+    """
+    image_shape = _validate_uniform_image_shape(masks_list, action="union")
+
+    intervals = [
+        _rle_to_column_intervals(rle, int(shape[0]), offset)
+        for cm in masks_list
+        for rle, shape, offset in zip(cm._rles, cm._crop_shapes, cm._offsets)
+    ]
+    intervals = [part for part in intervals if len(part)]
+    if not intervals:
+        return CompactMask(
+            [np.array([1], dtype=np.int32)],
+            np.ones((1, 2), dtype=np.int32),
+            np.zeros((1, 2), dtype=np.int32),
+            image_shape,
+        )
+
+    foreground = np.concatenate(intervals)
+    x_min, y_min = foreground[:, :2].min(axis=0)
+    crop_width = int(foreground[:, 0].max() - x_min + 1)
+    crop_height = int(foreground[:, 2].max() - y_min)
+    column_origins = (foreground[:, 0] - x_min) * crop_height
+    starts = column_origins + foreground[:, 1] - y_min
+    stops = column_origins + foreground[:, 2] - y_min
+    order = np.argsort(starts)
+    starts = starts[order]
+    stops = np.maximum.accumulate(stops[order])
+    # Merge both overlapping and touching intervals, including across columns.
+    boundaries = np.concatenate(([True], starts[1:] > stops[:-1]))
+    starts = starts[boundaries]
+    stops = stops[np.concatenate((boundaries[1:], [True]))]
+
+    counts: npt.NDArray[np.int64] = np.empty(2 * len(starts) + 1, dtype=np.int64)
+    counts[::2] = np.concatenate((starts, [crop_height * crop_width])) - np.concatenate(
+        ([0], stops)
+    )
+    counts[1::2] = stops - starts
+    if counts[-1] == 0:
+        counts = counts[:-1]
+    return CompactMask(
+        [_rle_counts_int32(counts)],
+        np.array([[crop_height, crop_width]], dtype=np.int32),
+        np.array([[x_min, y_min]], dtype=np.int32),
+        image_shape,
+    )
+
+
 def _rle_split_cols(
     rle: npt.NDArray[np.int32],
     crop_h: int,
@@ -77,6 +271,9 @@ def _rle_split_cols(
     range ``[x_start, x_stop]`` are collected.  Pixels in skipped columns
     are consumed without being stored, which avoids O(W) allocation when
     only a small crop of a wide image is needed.
+
+    Use :func:`_rle_to_column_intervals` when vectorized ``(K, 3)`` foreground
+    intervals are sufficient; use this helper for resize or crop work on run lists.
 
     Note:
         ``x_start`` uses ``np.cumsum`` + ``np.searchsorted`` to jump directly
@@ -1352,16 +1549,7 @@ class CompactMask:
 
             ```
         """
-        if not masks_list:
-            raise ValueError("Cannot merge an empty list of CompactMask objects.")
-
-        image_shape = masks_list[0]._image_shape
-        for cm in masks_list[1:]:
-            if cm._image_shape != image_shape:
-                raise ValueError(
-                    f"Cannot merge CompactMask objects with different image shapes: "
-                    f"{image_shape} vs {cm._image_shape}"
-                )
+        image_shape = _validate_uniform_image_shape(masks_list, action="merge")
 
         # list.extend is a C-level call and avoids the per-element Python
         # bytecode overhead of a flat list comprehension.  This matters under

@@ -43,45 +43,45 @@ Assumptions used throughout the PR design analysis:
 
 #### Space comparison
 
-| Format              | Per object     | N=100  | N=1 000    | vs Dense  |
-| ------------------- | -------------- | ------ | ---------- | --------- |
-| **Dense** (current) | 8.29 MB        | 829 MB | **8.3 GB** | 1x        |
-| Local Crop + Offset | 6.4 KB         | 640 KB | 6.4 MB     | 1 300x    |
-| **Crop-RLE** ✓      | ~2 KB          | 200 KB | **2 MB**   | 4 000x    |
-| Polygon ⚠ lossy     | ~3.2 KB        | 320 KB | 3.2 MB     | 2 600x    |
-| memmap              | 8.29 MB (disk) | 829 MB | 8.3 GB     | 1x (disk) |
+| Format              | Per object     | N=100      | N=1 000  | vs Dense   |
+| ------------------- | -------------- | ---------- | -------- | ---------- |
+| **Dense** (current) | 8.29 MB        | 829 MB     | 8.3 GB   | 1x         |
+| Local Crop + Offset | 6.4 KB         | 640 KB     | 6.4 MB   | 1 300x     |
+| **Crop-RLE** ✓      | **~2 KB**      | **200 KB** | **2 MB** | **4 000x** |
+| Polygon ⚠ lossy     | ~3.2 KB        | 320 KB     | 3.2 MB   | 2 600x     |
+| memmap              | 8.29 MB (disk) | 829 MB     | 8.3 GB   | 1x (disk)  |
 
 Crop-RLE beats Local Crop because it only encodes actual pixel runs, skipping the ~35% background pixels within each bounding box.
 
 #### Encode time: dense array → format
 
-| Format              | Complexity                        | N=10    | N=100   | N=1 000   |
-| ------------------- | --------------------------------- | ------- | ------- | --------- |
-| Local Crop + Offset | O(A) — strided slice from xyxy    | ~0.1 ms | ~1 ms   | ~10 ms    |
-| **Crop RLE**        | O(A) — scan crop rows for runs    | ~0.2 ms | ~2 ms   | ~20 ms    |
-| Polygon             | O(P) — `cv2.findContours` on crop | ~2 ms   | ~20 ms  | ~200 ms   |
-| memmap              | O(I) — write 8.29 MB to disk      | ~80 ms  | ~800 ms | ~8 000 ms |
+| Format              | Complexity                        | N=10        | N=100     | N=1 000    |
+| ------------------- | --------------------------------- | ----------- | --------- | ---------- |
+| Local Crop + Offset | O(A) — strided slice from xyxy    | **~0.1 ms** | **~1 ms** | **~10 ms** |
+| **Crop RLE**        | O(A) — scan crop rows for runs    | ~0.2 ms     | ~2 ms     | ~20 ms     |
+| Polygon             | O(P) — `cv2.findContours` on crop | ~2 ms       | ~20 ms    | ~200 ms    |
+| memmap              | O(I) — write 8.29 MB to disk      | ~80 ms      | ~800 ms   | ~8 000 ms  |
 
 #### Decode time: format → full (H, W) mask
 
 Required by `MaskAnnotator`, `mask_iou_batch`, `merge()`, etc. Dominant cost at 4K is **allocating and zeroing a 8.29 MB array**, which is identical across all in-memory formats once full materialisation is needed.
 
-| Format                | N=10   | N=100   | N=1 000   |
-| --------------------- | ------ | ------- | --------- |
-| Local Crop / Crop RLE | ~3 ms  | ~30 ms  | ~300 ms   |
-| Polygon               | ~5 ms  | ~50 ms  | ~500 ms   |
-| memmap                | ~80 ms | ~800 ms | ~8 000 ms |
+| Format                | N=10      | N=100      | N=1 000     |
+| --------------------- | --------- | ---------- | ----------- |
+| Local Crop / Crop RLE | **~3 ms** | **~30 ms** | **~300 ms** |
+| Polygon               | ~5 ms     | ~50 ms     | ~500 ms     |
+| memmap                | ~80 ms    | ~800 ms    | ~8 000 ms   |
 
 #### Decode time: crop-only path (optimised)
 
 When callers need only the bounding-box region — `MaskAnnotator` crop-paint path, `.area`, `contains_holes`, `filter_segments_by_distance`:
 
-| Format              | Complexity                       | N=10     | N=100   | N=1 000   |
-| ------------------- | -------------------------------- | -------- | ------- | --------- |
-| Local Crop + Offset | O(1) — already stored            | ~0 ms    | ~0 ms   | ~0 ms     |
-| **Crop RLE** ✓      | O(A) — expand ~240 runs          | ~0.02 ms | ~0.2 ms | ~2 ms     |
-| Polygon             | O(A) — `fillPoly` on crop canvas | ~2 ms    | ~20 ms  | ~200 ms   |
-| memmap              | N/A — always full-size           | ~80 ms   | ~800 ms | ~8 000 ms |
+| Format              | Complexity                       | N=10      | N=100     | N=1 000   |
+| ------------------- | -------------------------------- | --------- | --------- | --------- |
+| Local Crop + Offset | O(1) — already stored            | **~0 ms** | **~0 ms** | **~0 ms** |
+| **Crop RLE** ✓      | O(A) — expand ~240 runs          | ~0.02 ms  | ~0.2 ms   | ~2 ms     |
+| Polygon             | O(A) — `fillPoly` on crop canvas | ~2 ms     | ~20 ms    | ~200 ms   |
+| memmap              | N/A — always full-size           | ~80 ms    | ~800 ms   | ~8 000 ms |
 
 Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never allocates the full image canvas, which is the entire source of the annotation speedup.
 
@@ -91,7 +91,7 @@ Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never
 | ------------------- | ------------------------------------- | ---------- |
 | Dense (current)     | All pairs, 640² pixel AND             | ~10 000 ms |
 | Local Crop + Offset | Bbox pre-filter → pixel IoU           | **~5 ms**  |
-| Crop RLE            | Bbox pre-filter → expand intersection | **~15 ms** |
+| Crop RLE            | Bbox pre-filter → expand intersection | ~15 ms     |
 
 At N=1 000 with 1 % overlap, bbox pre-filter reduces 499 500 candidate pairs to ~5 000 overlapping pairs — a ~2 000x reduction in pixel-level work.
 
@@ -138,11 +138,11 @@ Per-mask RLE size at 50% fill with 600-vertex polygons: ~4.7 KB (933 KB / 200). 
 
 Scaled to N=200: 200 x 4.7 KB = ~933 KB of RLE data, plus `_crop_shapes` (1.6 KB) and `_offsets` (1.6 KB). Python list + array object overhead roughly doubles the footprint for small N.
 
-| Component       | Dense      | Compact     | Ratio     |
-| --------------- | ---------- | ----------- | --------- |
-| Mask data       | 414 MB     | ~933 KB     | ~445x     |
-| Python overhead | negligible | ~933 KB     | --        |
-| **Total**       | **414 MB** | **~1.9 MB** | **~392x** |
+| Component       | Dense          | Compact     | Ratio     |
+| --------------- | -------------- | ----------- | --------- |
+| Mask data       | 414 MB         | **~933 KB** | ~445x     |
+| Python overhead | **negligible** | ~933 KB     | --        |
+| **Total**       | **414 MB**     | **~1.9 MB** | **~392x** |
 
 At 5% fill with 8-vertex polygons, the ratio reaches 10 000x–20 000x because crops are tiny and RLEs are extremely short. The benchmark's 4K-200-5%-v8 scenario measures 21 786x (theory) / ~6 000x (malloc). The SAT-200-5%-v8 scenario reaches 62 968x theoretical.
 
@@ -468,15 +468,15 @@ Measured speedups at the **FHD-200-50%-v600** operating point (dense fill, compl
 
 | Operation        | Dense cost  | Compact cost | Speedup |
 | ---------------- | ----------- | ------------ | ------- |
-| Memory           | 414 MB      | ~1.9 MB      | ~392x   |
-| `.area`          | 84.66 ms    | 0.48 ms      | 71x     |
-| `filter`         | 14.56 ms    | 0.03 ms      | 500x    |
-| `annotate`       | 848.95 ms   | 32.67 ms     | 22x     |
-| `mask_iou_batch` | 23 915 ms   | 51.58 ms     | 446x    |
-| NMS              | 5 231 ms    | 48.15 ms     | 481x    |
-| `merge`          | 29.71 ms    | 0.03 ms      | 929x    |
-| `with_offset`    | 42.30 ms    | 0.02 ms      | 2 016x  |
-| `centroids`      | 1 133.68 ms | 60.39 ms     | 13x     |
+| Memory           | 414 MB      | **~1.9 MB**  | ~392x   |
+| `.area`          | 84.66 ms    | **0.48 ms**  | 71x     |
+| `filter`         | 14.56 ms    | **0.03 ms**  | 500x    |
+| `annotate`       | 848.95 ms   | **32.67 ms** | 22x     |
+| `mask_iou_batch` | 23 915 ms   | **51.58 ms** | 446x    |
+| NMS              | 5 231 ms    | **48.15 ms** | 481x    |
+| `merge`          | 29.71 ms    | **0.03 ms**  | 929x    |
+| `with_offset`    | 42.30 ms    | **0.02 ms**  | 2 016x  |
+| `centroids`      | 1 133.68 ms | **60.39 ms** | 13x     |
 
 All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 1 204x and `merge` reaches 89 046x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
 
@@ -567,21 +567,21 @@ The default run includes a `synthetic-dense-64` row (64×64 image, 4 fully-fille
 
 Measured on macOS Apple M4 Max, 50 reps after 3 warmups, using `rfdetr-seg-large` via Roboflow Inference.
 
-| src                        | res       | seg | dense ms | CM ms | speedup | peak MB (dense/compact) | mask MB (dense/compact) | ok  |
-| -------------------------- | --------- | --- | -------- | ----- | ------- | ----------------------- | ----------------------- | --- |
-| synthetic-dense-64         | 64×64     | 4   | 0.03     | 0.11  | 0.31×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
-| people-walking.jpg         | 1920×1080 | 53  | 85.56    | 12.55 | 6.82×   | 219.86 / 0.11           | 109.90 / 0.02           | ✓   |
-| soccer.jpg                 | 398×224   | 21  | 1.36     | 1.07  | 1.27×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
-| vehicles.mp4#269           | 3840×2160 | 7   | 46.03    | 2.60  | 18×     | 116.13 / 0.07           | 58.06 / 0.00            | ✓   |
-| milk-bottling-plant.mp4#94 | 1920×1080 | 9   | 15.61    | 11.57 | 1.35×   | 37.34 / 0.53            | 18.66 / 0.03            | ✓   |
-| vehicles-2.mp4#637         | 1920×1080 | 47  | 76.87    | 13.59 | 5.66×   | 194.97 / 0.13           | 97.46 / 0.03            | ✓   |
-| grocery-store.mp4#501      | 3840×2160 | 4   | 27.20    | 4.36  | 6.24×   | 66.36 / 0.22            | 33.18 / 0.01            | ✓   |
-| subway.mp4#649             | 2160×3840 | 42  | 325.71   | 32.21 | 10×     | 696.78 / 0.80           | 348.36 / 0.09           | ✓   |
-| market-square.mp4#237      | 2160×3840 | 96  | 732.98   | 27.24 | 27×     | 1592.61 / 0.22          | 796.26 / 0.05           | ✓   |
-| people-walking.mp4#170     | 1920×1080 | 60  | 100.99   | 12.69 | 7.96×   | 248.89 / 0.12           | 124.42 / 0.02           | ✓   |
-| beach-1.mp4#223            | 3840×2160 | 33  | 223.50   | 13.39 | 17×     | 547.47 / 0.12           | 273.72 / 0.02           | ✓   |
-| basketball-1.mp4#238       | 1920×1080 | 2   | 3.61     | 2.05  | 1.76×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
-| skiing.mp4#176             | 1920×1080 | 11  | 16.47    | 3.07  | 5.37×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
+| src                        | res       | seg | dense ms | CM ms     | speedup | peak MB (dense/compact) | mask MB (dense/compact) | ok  |
+| -------------------------- | --------- | --- | -------- | --------- | ------- | ----------------------- | ----------------------- | --- |
+| synthetic-dense-64         | 64×64     | 4   | **0.03** | 0.11      | 0.31×   | 0.04 / 0.05             | 0.02 / 0.00             | ✓   |
+| people-walking.jpg         | 1920×1080 | 53  | 85.56    | **12.55** | 6.82×   | 219.86 / 0.11           | 109.90 / 0.02           | ✓   |
+| soccer.jpg                 | 398×224   | 21  | 1.36     | **1.07**  | 1.27×   | 3.77 / 0.05             | 1.87 / 0.00             | ✓   |
+| vehicles.mp4#269           | 3840×2160 | 7   | 46.03    | **2.60**  | 18×     | 116.13 / 0.07           | 58.06 / 0.00            | ✓   |
+| milk-bottling-plant.mp4#94 | 1920×1080 | 9   | 15.61    | **11.57** | 1.35×   | 37.34 / 0.53            | 18.66 / 0.03            | ✓   |
+| vehicles-2.mp4#637         | 1920×1080 | 47  | 76.87    | **13.59** | 5.66×   | 194.97 / 0.13           | 97.46 / 0.03            | ✓   |
+| grocery-store.mp4#501      | 3840×2160 | 4   | 27.20    | **4.36**  | 6.24×   | 66.36 / 0.22            | 33.18 / 0.01            | ✓   |
+| subway.mp4#649             | 2160×3840 | 42  | 325.71   | **32.21** | 10×     | 696.78 / 0.80           | 348.36 / 0.09           | ✓   |
+| market-square.mp4#237      | 2160×3840 | 96  | 732.98   | **27.24** | 27×     | 1592.61 / 0.22          | 796.26 / 0.05           | ✓   |
+| people-walking.mp4#170     | 1920×1080 | 60  | 100.99   | **12.69** | 7.96×   | 248.89 / 0.12           | 124.42 / 0.02           | ✓   |
+| beach-1.mp4#223            | 3840×2160 | 33  | 223.50   | **13.39** | 17×     | 547.47 / 0.12           | 273.72 / 0.02           | ✓   |
+| basketball-1.mp4#238       | 1920×1080 | 2   | 3.61     | **2.05**  | 1.76×   | 8.30 / 0.15             | 4.15 / 0.01             | ✓   |
+| skiing.mp4#176             | 1920×1080 | 11  | 16.47    | **3.07**  | 5.37×   | 45.63 / 0.08            | 22.81 / 0.01            | ✓   |
 
 - **seg** — number of instance segmentations returned by the model
 - **dense ms / CM ms** — median parse time for `from_inference()` vs `from_inference(compact_masks=True)`
@@ -646,10 +646,40 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Non-Maximum Merging Benchmark
+
+Run `python examples/compact_mask/benchmark_nmm.py --canvas 512 2048 4096` on each revision to compare compact `Detections.with_nmm`. It holds twelve 64×64 mask crops fixed while varying the logical canvas. Solid, checkerboard and seeded random masks expose the effect of RLE fragmentation. No model, image download or GPU is required.
+
+The output table includes input RLE count, median uninstrumented wall time, peak traced allocation measured in separate calls, and output count/area. The memory number is Python/NumPy allocation tracked by `tracemalloc`, not process RSS. Input construction is excluded. `--crop-size`, `--duplicates` (default: three per group) and `--repeats` control crop size, group size and repetitions. After the compact NMM union change, `--canvas 100000` can demonstrate that increasing canvas dimensions alone no longer allocates full image unions. Avoid that size when benchmarking the old implementation, which materializes several complete images.
+
+The RLE union sorts `K` foreground column intervals. Mask fragmentation and the columns foreground runs cross determine `K`; enlarging the canvas with fixed encoded crops does not. Highly fragmented masks can be slower and use more temporary memory than a dense union, including with large crops. NMM overlap evaluation still decodes overlapping crops, and large or loose crops remain expensive.
+
+Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the interval implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
+
+| Crop / canvas       | Objects | Pattern      | Dense peak (MiB) | Interval peak (MiB) | Peak new/old | Dense time (ms) | Interval time (ms) |
+| ------------------- | ------- | ------------ | ---------------- | ------------------- | ------------ | --------------- | ------------------ |
+| 32×32 / 512×512     | 200     | checkerboard | 25.83            | **3.38**            | 0.13×        | **12.69**       | 20.02              |
+| 32×32 / 512×512     | 200     | solid        | 25.07            | **0.27**            | 0.01×        | 11.06           | **10.09**          |
+| 400×400 / 1024×1024 | 12      | checkerboard | **17.37**        | 31.13               | 1.79×        | **18.38**       | 83.02              |
+| 400×400 / 1024×1024 | 12      | solid        | 6.01             | **0.69**            | 0.12×        | 5.64            | **2.31**           |
+| 400×400 / 2048×2048 | 12      | checkerboard | 31.93            | **31.12**           | 0.97×        | **20.75**       | 81.18              |
+| 400×400 / 2048×2048 | 12      | solid        | 24.01            | **0.69**            | 0.03×        | 8.62            | **2.12**           |
+| 400×400 / 4096×4096 | 12      | checkerboard | 103.93           | **31.12**           | 0.30×        | **33.85**       | 80.61              |
+| 400×400 / 4096×4096 | 12      | solid        | 96.01            | **0.69**            | 0.01×        | 21.67           | **2.29**           |
+
+The 32×32/512×512 row uses `--duplicates 50` (200 small objects total, instead of the default three per group) — many small fragmented crops on a small canvas. On peak memory the interval implementation wins there on both patterns, since each dense union still decodes to a full 512×512 array per merge regardless of crop size. The 400×400 rows show the honest counter-case on memory: at 1024×1024 the interval implementation is 1.79× worse — one large, heavily fragmented crop unioned against a still-small canvas costs more interval-sort overhead than the dense array-OR does. That gap closes and reverses as canvas grows: the interval implementation's peak stays flat (~31.12 MiB checkerboard, ~0.69 MiB solid) from 1024×1024 to 4096×4096, while the dense-union baseline scales with canvas area. At canvas 100000×100000 with the same 400×400 crops, the interval implementation's peak was still 31.12 MiB / 0.69 MiB (checkerboard / solid) — unchanged from 1024×1024; the dense baseline was not run at that size, since it would materialize several complete 100000×100000-pixel boolean images, well beyond practical memory.
+
+Time tells a different story than memory: dense-union is faster on every checkerboard row, interval-union is faster on every solid row — regardless of canvas or object count. Interval-sort cost scales with `K` (foreground column intervals), which checkerboard fragmentation drives up independent of canvas size; solid masks keep `K` tiny, so the sort is cheap and the flat memory profile comes at no time cost. Neither the PR description nor the changelog documents this time trade-off on fragmented masks — only the memory win is reported there.
+
+Reproduce the small-object row with `python examples/compact_mask/benchmark_nmm.py --crop-size 32 --canvas 512 --duplicates 50 --pattern checkerboard solid --repeats 3`, and the large-crop rows with `python examples/compact_mask/benchmark_nmm.py --crop-size 400 --canvas 1024 2048 4096 --pattern checkerboard solid --repeats 3`, on the interval implementation; check out the parent of `035079270` for the dense-union baseline. Foreground area matched between revisions per row: 2,048 (32×32 checkerboard) / 4,096 (32×32 solid) / 320,000 (400×400 checkerboard) / 640,000 (400×400 solid). Absolute measurements depend on the Python/NumPy environment.
+
+______________________________________________________________________
+
 ## Files
 
-| File                     | Description                                         |
-| ------------------------ | --------------------------------------------------- |
-| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers    |
-| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark |
-| `README.md`              | This file                                           |
+| File                     | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `benchmark.py`           | Full benchmark across FHD / 4K / satellite tiers         |
+| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark      |
+| `benchmark_nmm.py`       | Compact NMM canvas size and mask fragmentation benchmark |
+| `README.md`              | This file                                                |
