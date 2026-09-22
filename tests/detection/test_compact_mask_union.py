@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from supervision import Detections, InferenceSlicer, OverlapFilter, OverlapMetric
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.core import _merge_detection_group
 from supervision.detection.utils.converters import mask_to_xyxy
 
@@ -15,17 +15,37 @@ class TestCompactMaskUnion:
     """Union crop RLEs without decoding either crops or image-sized arrays."""
 
     @pytest.mark.parametrize("count", [0, 1, 7])
-    @pytest.mark.parametrize("density", [0.0, 0.1, 0.5, 1.0])
+    @pytest.mark.parametrize(
+        "density", [0.0, 0.1, 0.5, 1.0, pytest.param(None, id="checkerboard")]
+    )
     @pytest.mark.parametrize("loose_crops", [False, True])
+    @pytest.mark.parametrize(
+        "block_offset",
+        [
+            pytest.param(None, id="random-position"),
+            pytest.param((0, 0), id="top-left-edge"),
+            pytest.param((0, 26), id="top-right-edge"),
+            pytest.param((20, 0), id="bottom-left-edge"),
+            pytest.param((20, 26), id="bottom-right-edge"),
+        ],
+    )
     def test_matches_dense_reference(
-        self, count: int, density: float, loose_crops: bool
+        self,
+        count: int,
+        density: float | None,
+        loose_crops: bool,
+        block_offset: tuple[int, int] | None,
     ) -> None:
-        """Empty, solid and fragmented masks agree with the NumPy union."""
+        """Match NumPy unions for random and edge-pinned blocks in tight/loose crops."""
         rng = np.random.default_rng(104)
         dense = np.zeros((count, 31, 43), dtype=bool)
         for index in range(count):
-            y, x = rng.integers(0, 20, size=2)
-            dense[index, y : y + 11, x : x + 17] = rng.random((11, 17)) < density
+            y, x = rng.integers(0, 20, size=2) if block_offset is None else block_offset
+            if density is None:
+                crop = (np.indices((11, 17)).sum(axis=0) + index) % 2 == 0
+            else:
+                crop = rng.random((11, 17)) < density
+            dense[index, y : y + 11, x : x + 17] = crop
         boxes = mask_to_xyxy(dense)
         if loose_crops:
             boxes = np.tile([0, 0, 42, 30], (count, 1))
@@ -41,7 +61,7 @@ class TestCompactMaskUnion:
                 CompactMask, "crop", side_effect=AssertionError("crop decode")
             ),
         ):
-            result = compact._union()
+            result = _compact_mask_union([compact])
 
         np.testing.assert_array_equal(result.to_dense(), expected)
         assert result.image_shape == (31, 43)
@@ -51,6 +71,55 @@ class TestCompactMaskUnion:
             np.testing.assert_array_equal(current, original)
         if expected.any():
             np.testing.assert_array_equal(result.bbox_xyxy, mask_to_xyxy(expected))
+
+    @pytest.mark.parametrize(
+        ("rectangles", "expected_crop_shapes"),
+        [
+            pytest.param(
+                [(2, 3, 3, 4), (8, 6, 9, 7)],
+                [[1, 1], [1, 1]],
+                id="single-pixel-crops",
+            ),
+            pytest.param(
+                [(2, 1, 5, 3), (4, 2, 7, 7), (1, 6, 4, 9)],
+                [[2, 3], [5, 3], [3, 3]],
+                id="different-crop-heights",
+            ),
+            pytest.param(
+                [(2, 1, 5, 3), None, (4, 2, 7, 7)],
+                [[2, 3], [1, 1], [5, 3]],
+                id="foreground-with-all-background-mask",
+            ),
+        ],
+    )
+    def test_matches_dense_reference_for_explicit_crops(
+        self,
+        rectangles: list[tuple[int, int, int, int] | None],
+        expected_crop_shapes: list[list[int]],
+    ) -> None:
+        """Match NumPy unions for single pixels, unequal heights and empty masks."""
+        dense = np.zeros((len(rectangles), 10, 12), dtype=bool)
+        for index, rectangle in enumerate(rectangles):
+            if rectangle is not None:
+                x1, y1, x2, y2 = rectangle
+                dense[index, y1:y2, x1:x2] = True
+        compact = CompactMask.from_dense(dense, mask_to_xyxy(dense), (10, 12))
+        np.testing.assert_array_equal(compact._crop_shapes, expected_crop_shapes)
+        expected = np.any(dense, axis=0, keepdims=True)
+
+        with (
+            patch.object(
+                CompactMask, "to_dense", side_effect=AssertionError("full image")
+            ),
+            patch.object(
+                CompactMask, "crop", side_effect=AssertionError("crop decode")
+            ),
+        ):
+            result = compact._union()
+
+        np.testing.assert_array_equal(result.to_dense(), expected)
+        np.testing.assert_array_equal(result.bbox_xyxy, mask_to_xyxy(expected))
+        np.testing.assert_array_equal(result.area, expected.sum(axis=(1, 2)))
 
     def test_encodes_distant_pixels_with_long_background_runs(self) -> None:
         """A union crop larger than int32 stays sparse and preserves RLE parity."""
@@ -69,7 +138,7 @@ class TestCompactMaskUnion:
                 CompactMask, "crop", side_effect=AssertionError("crop decode")
             ),
         ):
-            result = compact._union()
+            result = _compact_mask_union([compact])
 
         rle = result._rles[0]
         assert rle.dtype == np.int32
@@ -98,11 +167,79 @@ class TestCompactMaskUnion:
                 CompactMask, "crop", side_effect=AssertionError("crop decode")
             ),
         ):
-            result = compact._union()
+            result = _compact_mask_union([compact])
 
         assert result.area.tolist() == [2_500_000_000]
         assert result._rles[0].tolist() == [0, 2_147_483_647, 0, 352_516_353]
         assert result._crop_shapes.tolist() == [[50_000, 50_000]]
+
+    @pytest.mark.parametrize("operation", ["to_dense", "crop", "repack"])
+    @pytest.mark.parametrize(
+        ("rle", "expected_crop"),
+        [
+            pytest.param(
+                [0, 5, 0, 5, 0, 2],
+                [[True] * 4] * 3,
+                id="split-foreground",
+            ),
+            pytest.param(
+                [0, 1, 5, 0, 5, 1],
+                [
+                    [True, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                id="split-background",
+            ),
+        ],
+    )
+    def test_preserves_split_run_pixels(
+        self, operation: str, rle: list[int], expected_crop: list[list[bool]]
+    ) -> None:
+        """Zero-length separators preserve pixels across decoding and repacking."""
+        compact = CompactMask(
+            rles=[np.array(rle, dtype=np.int32)],
+            crop_shapes=np.array([[3, 4]], dtype=np.int32),
+            offsets=np.array([[2, 1]], dtype=np.int32),
+            image_shape=(6, 8),
+        )
+        expected = np.zeros((1, 6, 8), dtype=bool)
+        expected[0, 1:4, 2:6] = expected_crop
+        if operation == "crop":
+            expected = np.array(expected_crop, dtype=bool)
+
+        if operation == "crop":
+            result = compact.crop(0)
+        elif operation == "repack":
+            result = compact.repack().to_dense()
+        else:
+            result = compact.to_dense()
+
+        np.testing.assert_array_equal(result, expected)
+        assert result.dtype == np.bool_
+
+    @pytest.mark.parametrize(
+        ("second_offset_y", "expected_rle"),
+        [
+            pytest.param(1, [0, 2], id="exact-touch"),
+            pytest.param(2, [0, 1, 1, 1], id="one-pixel-gap"),
+        ],
+    )
+    def test_canonicalizes_interval_boundaries(
+        self, second_offset_y: int, expected_rle: list[int]
+    ) -> None:
+        """Merge touching intervals while retaining a real one-pixel background gap."""
+        compact = CompactMask(
+            rles=[np.array([0, 1], dtype=np.int32)] * 2,
+            crop_shapes=np.ones((2, 2), dtype=np.int32),
+            offsets=np.array([[0, 0], [0, second_offset_y]], dtype=np.int32),
+            image_shape=(3, 1),
+        )
+
+        result = compact._union()
+
+        assert result._rles[0].tolist() == expected_rle
+        assert result._crop_shapes.tolist() == [[second_offset_y + 1, 1]]
 
 
 class TestCompactMaskNmmUnion:
@@ -114,7 +251,7 @@ class TestCompactMaskNmmUnion:
     def test_matches_dense_public_output(
         self, overlap_metric: OverlapMetric, class_agnostic: bool, threshold: float
     ) -> None:
-        """Iterative unions preserve threshold, class, score and winner semantics."""
+        """NMM preserves groups and metadata, including an all-background mask."""
         dense = np.zeros((6, 14, 25), dtype=bool)
         dense[0, 2:8, 2:8] = True
         dense[1, 2:8, 5:11] = True
@@ -128,7 +265,7 @@ class TestCompactMaskNmmUnion:
             class_id=np.array([0, 0, 0, 1, 1, 0]),
             tracker_id=np.arange(6),
             mask=dense,
-            data={"label": np.array(["a", "b", "c", "d", "e", "f"])},
+            data={"label": np.array(["a", "b", "c", "d", "e", "all-background"])},
             metadata={"camera": "north"},
         )
         expected = detections.with_nmm(

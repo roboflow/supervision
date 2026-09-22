@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.utils.internal import warn_deprecated
 
 
@@ -1427,7 +1427,7 @@ def _update_mask_candidate(
     """Union newly matched masks into the candidate, retaining compact storage."""
     if isinstance(masks, CompactMask):
         compact_candidate = cast(CompactMask, candidate)
-        return CompactMask.merge([masks[above_idx], compact_candidate])._union()
+        return _compact_mask_union([masks[above_idx], compact_candidate])
     dense_candidate = cast(npt.NDArray[Any], candidate)
     dense_union: npt.NDArray[Any] = np.logical_or.reduce(
         np.concatenate([masks[above_idx], dense_candidate]),

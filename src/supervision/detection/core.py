@@ -15,7 +15,7 @@ from supervision.config import (
     ORIENTED_BOX_COORDINATES,
 )
 from supervision.detection._geometry_dispatch import detection_area, detection_iou
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
@@ -3047,7 +3047,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     if masks:
         if all(isinstance(m, CompactMask) for m in masks):
             compact_masks = cast(list[CompactMask], masks)
-            mask = CompactMask.merge(compact_masks)._union()
+            mask = _compact_mask_union(compact_masks)
         else:
             dense_masks = [
                 m.to_dense() if isinstance(m, CompactMask) else m for m in masks
