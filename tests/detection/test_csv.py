@@ -1,5 +1,7 @@
 import csv
 import os
+from functools import partial
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
 
@@ -10,6 +12,31 @@ import supervision as sv
 from supervision.detection.tools import csv_sink as csv_sink_module
 from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
+
+
+class TestCSVSinkEncoding:
+    @pytest.mark.parametrize("label", ["café", "猫"])
+    def test_preserves_unicode_with_non_utf8_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, label: str
+    ) -> None:
+        """CSV labels and custom fields round-trip even under a legacy locale."""
+        path = tmp_path / "detections.csv"
+        monkeypatch.setattr(
+            csv_sink_module, "open", partial(open, encoding="cp1252"), raising=False
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            data={"class_name": np.array([label])},
+        )
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"note": f'{label}, "quoted"\nline'})
+
+        with path.open(encoding="utf-8", newline="") as file:
+            rows = list(csv.DictReader(file))
+        assert len(rows) == 1
+        assert rows[0]["class_name"] == label
+        assert rows[0]["note"] == f'{label}, "quoted"\nline'
 
 
 @pytest.mark.parametrize(
