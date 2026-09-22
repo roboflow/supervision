@@ -306,11 +306,14 @@ def _dense_union(
     same tight-crop convention as the interval path.
 
     Example:
+        ```pycon
         >>> mask = np.ones((1, 2, 2), dtype=bool)
         >>> xyxy = np.array([[0, 0, 1, 1]], dtype=np.float32)
         >>> compact = CompactMask.from_dense(mask, xyxy, image_shape=(4, 4))
         >>> _dense_union([compact], 0, 0, 2, 2, (4, 4))._crop_shapes.tolist()
         [[2, 2]]
+
+        ```
     """
     canvas = np.zeros((bbox_height, bbox_width), dtype=np.bool_)
     for cm in masks_list:
