@@ -4028,7 +4028,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p><code>sv.Detections.with_nmm</code> and <code>sv.mask_non_max_merge</code> now form <code>CompactMask</code> unions directly from run-length encoded foreground intervals. Both greedy candidate updates and final output merging avoid full-image mask allocations, including when used by <code>InferenceSlicer(compact_masks=True)</code>. Stored foreground, exact overlap matching and detection metadata are preserved. Merging compact masks with different image shapes still raises <code>ValueError</code>, but the message now includes both shapes: <code>Cannot merge CompactMask objects with different image shapes: {a} vs {b}</code> (previously <code>Cannot merge CompactMask objects with different image shapes.</code>). Union cost depends on foreground column interval count (mask fragmentation and crossed columns), not logical canvas area; highly fragmented masks can use more time and temporary memory than dense unions, including with large crops. For twelve 200×200 checkerboard masks on a 512×512 canvas (four groups of three duplicates), measured peak traced NMM allocation increased from 4.34 MiB to 7.79 MiB (1.79×; maximum of three repeats, input construction excluded). Overlap evaluation still decodes overlapping crops. (<a href="https://github.com/roboflow/supervision/pull/2606">#2606</a>)</p>
+<p><code>sv.Detections.with_nmm</code> and <code>sv.mask_non_max_merge</code> now form <code>CompactMask</code> unions directly from run-length encoded foreground intervals. Both greedy candidate updates and final output merging avoid full-image mask allocations, including when used by <code>InferenceSlicer(compact_masks=True)</code>. Stored foreground, exact overlap matching and detection metadata are preserved. Merging compact masks with different image shapes still raises <code>ValueError</code>, but the message now includes both shapes: <code>Cannot merge CompactMask objects with different image shapes: {a} vs {b}</code> (previously <code>Cannot merge CompactMask objects with different image shapes.</code>). Union cost depends on foreground column interval count (mask fragmentation and crossed columns), not logical canvas area; highly fragmented masks (a cheap O(masks) run-count check flags them, no decode needed) now union via a bbox-local dense OR instead of sorting intervals, bounded to a 16 Mi-pixel bbox so it never re-introduces a full-canvas allocation. For twelve 200×200 checkerboard masks on a 512×512 canvas (four groups of three duplicates), measured peak traced NMM allocation is 4.34 MiB (maximum of three repeats, input construction excluded), matching the pre-#2606 dense-union baseline rather than the 7.79 MiB (1.79×) a pure interval union costs there. A single mask larger than the 16 Mi-pixel bbox cap still takes the interval path regardless of fragmentation, and can still cost more time and temporary memory than a dense union would. Overlap evaluation still decodes overlapping crops. (<a href="https://github.com/roboflow/supervision/pull/2606">#2606</a>, <a href="https://github.com/roboflow/supervision/pull/2616">#2616</a>)</p>
 </li>
 <li>
 <p><code>sv.InferenceSlicer</code> no longer raises when slices disagree on <code>metadata</code> (e.g. a <code>source_image</code> NumPy array attached per-slice by RF-DETR/<code>inference</code>-package connectors), which previously crashed the merge outright. Any metadata key that isn't identical across every slice is now dropped from the merged result, with a <code>SupervisionWarnings</code> warning naming the dropped keys, emitted once per slicer instance — a key meant to be global (<code>video_name</code>, <code>camera_id</code>, …) no longer vanishes silently. <code>source_image</code> is a special case: it is removed from each slice before the lenient merge, so the comparison never touches whole image arrays, then reattached afterward as the full input image — array or PIL image alike, but not a windowed raster, which has no full in-memory image to give back. Fixing this also closed two related <code>Detections.__eq__</code> bugs in the metadata comparison it shares: metadata holding <code>NaN</code> in a float array now compares equal to itself instead of always reading unequal, and comparing a list-valued metadata value against an ndarray-valued one now returns <code>False</code> instead of raising <code>ValueError</code> from NumPy's ambiguous truth value check. (<a href="https://github.com/roboflow/supervision/pull/2596">#2596</a>)</p>
@@ -6418,7 +6418,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 08:19:39 UTC">September 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 10:34:31 UTC">September 22, 2026</span>
   </span>
 
     
@@ -6446,9 +6446,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6456,14 +6456,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
+          
+          <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
+        </a>
+      
         <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
           <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
-        </a>
-      
-        <a href="https://github.com/Souptik96" class="md-author" title="@Souptik96">
-          
-          <img src="https://avatars.githubusercontent.com/u/62941615?v=4&size=72" alt="Souptik96">
         </a>
       
       
