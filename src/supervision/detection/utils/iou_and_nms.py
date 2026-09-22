@@ -9,8 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
-from supervision.detection.compact_mask import CompactMask
-from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.utils.internal import warn_deprecated
 
 
@@ -1425,18 +1424,10 @@ def _update_mask_candidate(
     candidate: npt.NDArray[Any] | CompactMask,
     above_idx: npt.NDArray[np.int_],
 ) -> npt.NDArray[Any] | CompactMask:
+    """Union newly matched masks into the candidate, retaining compact storage."""
     if isinstance(masks, CompactMask):
         compact_candidate = cast(CompactMask, candidate)
-        union_mask = np.logical_or.reduce(
-            np.concatenate([masks[above_idx].to_dense(), compact_candidate.to_dense()]),
-            axis=0,
-            keepdims=True,
-        )
-        return CompactMask.from_dense(
-            masks=union_mask,
-            xyxy=mask_to_xyxy(union_mask),
-            image_shape=masks.image_shape,
-        )
+        return _compact_mask_union([masks[above_idx], compact_candidate])
     dense_candidate = cast(npt.NDArray[Any], candidate)
     dense_union: npt.NDArray[Any] = np.logical_or.reduce(
         np.concatenate([masks[above_idx], dense_candidate]),
