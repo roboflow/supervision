@@ -80,8 +80,8 @@ def _validate_masks(predictions: Detections, targets: Detections) -> None:
 def _mask_iou_batch_for_matching(
     targets: Detections, predictions: Detections
 ) -> npt.NDArray[np.floating]:
-    """Pairwise mask IoU between non-empty `targets` (rows) and `predictions`
-    (columns) that `_validate_masks` has already accepted."""
+    """Pairwise mask IoU between non-empty `targets` (rows) and `predictions` (columns)
+    that `_validate_masks` has already accepted."""
     return mask_iou_batch(
         _detections_masks(targets, "targets"),
         _detections_masks(predictions, "predictions"),

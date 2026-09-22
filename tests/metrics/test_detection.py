@@ -1776,8 +1776,8 @@ class TestConfusionMatrixMasks:
 
     @staticmethod
     def _shared_box_pair() -> tuple[Detections, Detections]:
-        """Predictions and targets with identical boxes; only the first mask
-        overlaps its target."""
+        """Predictions and targets with identical boxes; only the first mask overlaps
+        its target."""
         targets = _mask_detections(
             TestConfusionMatrixMasks.TARGET_BOXES, class_id=[0, 0]
         )
@@ -2024,9 +2024,9 @@ class TestConfusionMatrixMasks:
     def test_invalid_masks_raise(
         self, predictions: Detections, targets: Detections, message: str
     ) -> None:
-        """A non-empty side without masks, or masks of two resolutions, is
-        rejected by both entry points even when the offending predictions fall
-        below the confidence threshold or the other side is empty."""
+        """A non-empty side without masks, or masks of two resolutions, is rejected by
+        both entry points even when the offending predictions fall below the confidence
+        threshold or the other side is empty."""
         with pytest.raises(ValueError, match=message):
             ConfusionMatrix.from_detections(
                 predictions=[predictions],
