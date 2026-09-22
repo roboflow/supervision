@@ -656,10 +656,10 @@ The RLE union sorts `K` foreground column intervals. Mask fragmentation and the 
 
 Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the interval implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid and three duplicates per group. Values are maximum traced allocation over three complete NMM calls, excluding input construction; they are not isolated union storage or process RSS.
 
-| Crop / canvas | Pattern | Dense-union NMM peak | Interval-union NMM peak | New / old |
-| --- | --- | --- | --- | --- |
-| 200×200 / 512×512 | checkerboard | 4.34 MiB | 7.79 MiB | 1.79× |
-| 200×200 / 512×512 | solid | 1.51 MiB | 0.24 MiB | 0.16× |
+| Crop / canvas     | Pattern      | Dense-union NMM peak | Interval-union NMM peak | New / old |
+| ----------------- | ------------ | -------------------- | ----------------------- | --------- |
+| 200×200 / 512×512 | checkerboard | 4.34 MiB             | 7.79 MiB                | 1.79×     |
+| 200×200 / 512×512 | solid        | 1.51 MiB             | 0.24 MiB                | 0.16×     |
 
 Reproduce each row with `python examples/compact_mask/benchmark_nmm.py --crop-size 200 --canvas 512 --pattern checkerboard --repeats 3`, replacing `checkerboard` with `solid` for the clean-mask control. Both revisions returned four masks with total foreground area 80,000 for checkerboard and 160,000 for solid. Absolute measurements depend on the Python/NumPy environment.
 
