@@ -265,13 +265,16 @@ class TestUnionDenseFallback:
     """Fragmented masks dispatch to a bbox-local dense union, sparse ones to RLE."""
 
     @staticmethod
-    def _make_compact(pattern: str, size: int) -> CompactMask:
+    def _make_compact(
+        pattern: str, size: int, image_size: int | None = None
+    ) -> CompactMask:
         """Build a single (size, size) mask, either fully solid or checkerboard."""
         crop = np.ones((size, size), dtype=bool)
         if pattern == "checkerboard":
             crop = np.indices(crop.shape).sum(axis=0) % 2 == 0
+        image_size = image_size or size
         return CompactMask.from_dense(
-            crop[None], np.array([[0, 0, size - 1, size - 1]]), (size, size)
+            crop[None], np.array([[0, 0, size - 1, size - 1]]), (image_size, image_size)
         )
 
     @pytest.mark.parametrize(
@@ -290,9 +293,11 @@ class TestUnionDenseFallback:
         must decide: one run for a solid crop, near one run per pixel for the
         checkerboard, at the same bbox size.
         """
-        compact = self._make_compact(pattern, size=40)
+        compact = self._make_compact(pattern, size=40, image_size=42)
 
-        result = _should_union_densely([compact], bbox_width=40, bbox_height=40)
+        result = _should_union_densely(
+            [compact], bbox_width=40, bbox_height=40, image_shape=(42, 42)
+        )
 
         assert result is expected
 
@@ -312,10 +317,35 @@ class TestUnionDenseFallback:
         )
 
         result = _should_union_densely(
-            [compact], bbox_width=100_000, bbox_height=100_000
+            [compact],
+            bbox_width=100_000,
+            bbox_height=100_000,
+            image_shape=(100_000, 100_000),
         )
 
         assert result is False
+
+    def test_should_union_densely_skips_full_image_bbox(self) -> None:
+        """A fragmented bbox matching the image stays on the interval path."""
+        compact = self._make_compact("checkerboard", size=40)
+
+        result = _should_union_densely(
+            [compact], bbox_width=40, bbox_height=40, image_shape=(40, 40)
+        )
+
+        assert result is False
+
+    def test_full_image_bbox_skips_dense_union_decode(self) -> None:
+        """An image-sized fragmented union never decodes into a dense canvas."""
+        compact = self._make_compact("checkerboard", size=40)
+
+        with patch(
+            "supervision.detection.compact_mask._rle_counts_to_mask",
+            wraps=_rle_counts_to_mask,
+        ) as decode_spy:
+            _compact_mask_union([compact])
+
+        decode_spy.assert_not_called()
 
     def test_dense_fallback_matches_interval_result(self) -> None:
         """Dense and interval paths agree on a checkerboard union's pixels and crop.

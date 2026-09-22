@@ -231,7 +231,10 @@ def _union_bbox(masks_list: list[CompactMask]) -> tuple[int, int, int, int]:
 
 
 def _should_union_densely(
-    masks_list: list[CompactMask], bbox_width: int, bbox_height: int
+    masks_list: list[CompactMask],
+    bbox_width: int,
+    bbox_height: int,
+    image_shape: tuple[int, int],
 ) -> bool:
     """Flag mask sets fragmented enough that dense union beats interval union.
 
@@ -245,18 +248,21 @@ def _should_union_densely(
         ...     CompactMask, _should_union_densely)
         >>> solid = np.ones((1, 20, 20), dtype=bool)
         >>> xyxy = np.array([[0, 0, 19, 19]], dtype=np.float32)
-        >>> cm = CompactMask.from_dense(solid, xyxy, image_shape=(20, 20))
-        >>> _should_union_densely([cm], 20, 20)
+        >>> cm = CompactMask.from_dense(solid, xyxy, image_shape=(22, 22))
+        >>> _should_union_densely([cm], 20, 20, (22, 22))
         False
         >>> checkerboard = np.indices((20, 20)).sum(axis=0) % 2 == 0
-        >>> cm = CompactMask.from_dense(checkerboard[None], xyxy, image_shape=(20, 20))
-        >>> _should_union_densely([cm], 20, 20)
+        >>> cm = CompactMask.from_dense(checkerboard[None], xyxy, image_shape=(22, 22))
+        >>> _should_union_densely([cm], 20, 20, (22, 22))
         True
 
         ```
     """
     bbox_area = bbox_width * bbox_height
-    if bbox_area > _DENSE_FALLBACK_MAX_PIXELS:
+    if (
+        bbox_area > _DENSE_FALLBACK_MAX_PIXELS
+        or (bbox_height, bbox_width) == image_shape
+    ):
         return False
     total_runs = sum(len(rle) for cm in masks_list for rle in cm._rles)
     total_pixels = sum(
@@ -298,6 +304,13 @@ def _dense_union(
     bbox (bounded by :data:`_DENSE_FALLBACK_MAX_PIXELS`, never the full
     image), then trims to the actual foreground extent so the result has the
     same tight-crop convention as the interval path.
+
+    Example:
+        >>> mask = np.ones((1, 2, 2), dtype=bool)
+        >>> xyxy = np.array([[0, 0, 1, 1]], dtype=np.float32)
+        >>> compact = CompactMask.from_dense(mask, xyxy, image_shape=(4, 4))
+        >>> _dense_union([compact], 0, 0, 2, 2, (4, 4))._crop_shapes.tolist()
+        [[2, 2]]
     """
     canvas = np.zeros((bbox_height, bbox_width), dtype=np.bool_)
     for cm in masks_list:
@@ -355,7 +368,7 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     image_shape = _validate_uniform_image_shape(masks_list, action="union")
 
     bbox_x_min, bbox_y_min, bbox_width, bbox_height = _union_bbox(masks_list)
-    if _should_union_densely(masks_list, bbox_width, bbox_height):
+    if _should_union_densely(masks_list, bbox_width, bbox_height, image_shape):
         return _dense_union(
             masks_list, bbox_x_min, bbox_y_min, bbox_width, bbox_height, image_shape
         )
