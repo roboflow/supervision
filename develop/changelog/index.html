@@ -4056,6 +4056,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.DetectionDataset.split</code>, <code>sv.ClassificationDataset.split</code> and the <code>train_test_split</code> helper now raise <code>ValueError</code> for a split ratio outside the inclusive range <code>[0, 1]</code>, including <code>NaN</code> and <code>±inf</code>. The ratio was never validated: the helper computed <code>int(len(data) * ratio)</code> and sliced with it, so a finite out-of-range value looked like a successful split — for a 10-image dataset <code>split_ratio=-0.2</code> returned an 8/2 partition (Python's negative slicing), and <code>split_ratio=1.2</code> or an accidental percentage such as <code>80</code> returned 10/0, leaving no held-out data without any warning. <code>NaN</code> and <code>±inf</code> already failed, but with <code>int()</code> conversion errors rather than a message naming the problem. The check runs before any shuffling or slicing, so an invalid ratio is rejected on an empty dataset too. <code>0</code> and <code>1</code> remain valid and keep their meaning: <code>0</code> sends every image to the test set, <code>1</code> sends every image to the train set. Splits with a ratio inside <code>[0, 1]</code> are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2611">#2611</a>)</p>
 </li>
 <li>
+<p><code>sv.CSVSink</code> now writes UTF-8 on every platform, preserving non-English detection labels and custom fields on Windows systems using a legacy default encoding. (<a href="https://github.com/roboflow/supervision/pull/2615">#2615</a>)</p>
+</li>
+<li>
 <p><code>sv.Detections.with_nmm</code> and <code>sv.mask_non_max_merge</code> now form <code>CompactMask</code> unions directly from run-length encoded foreground intervals. Both greedy candidate updates and final output merging avoid full-image mask allocations, including when used by <code>InferenceSlicer(compact_masks=True)</code>. Stored foreground, exact overlap matching and detection metadata are preserved. Merging compact masks with different image shapes still raises <code>ValueError</code>, but the message now includes both shapes: <code>Cannot merge CompactMask objects with different image shapes: {a} vs {b}</code> (previously <code>Cannot merge CompactMask objects with different image shapes.</code>). Union cost depends on foreground column interval count (mask fragmentation and crossed columns), not logical canvas area; highly fragmented masks (a cheap O(masks) run-count check flags them, no decode needed) now union via a bbox-local dense OR instead of sorting intervals, bounded to a 16 Mi-pixel bbox so it never re-introduces a full-canvas allocation. For twelve 200×200 checkerboard masks on a 512×512 canvas (four groups of three duplicates), measured peak traced NMM allocation is 4.34 MiB (maximum of three repeats, input construction excluded), matching the pre-#2606 dense-union baseline rather than the 7.79 MiB (1.79×) a pure interval union costs there. A single mask larger than the 16 Mi-pixel bbox cap still takes the interval path regardless of fragmentation, and can still cost more time and temporary memory than a dense union would. Overlap evaluation still decodes overlapping crops. (<a href="https://github.com/roboflow/supervision/pull/2606">#2606</a>, <a href="https://github.com/roboflow/supervision/pull/2616">#2616</a>)</p>
 </li>
 <li>
@@ -6449,7 +6452,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 13:39:24 UTC">September 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 15:19:47 UTC">September 22, 2026</span>
   </span>
 
     
@@ -6477,9 +6480,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/archie0732" class="md-author" title="@archie0732">
+        <a href="https://github.com/Bortlesboat" class="md-author" title="@Bortlesboat">
           
-          <img src="https://avatars.githubusercontent.com/u/121162902?v=4&size=72" alt="archie0732">
+          <img src="https://avatars.githubusercontent.com/u/169967362?v=4&size=72" alt="Bortlesboat">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6487,21 +6490,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/archie0732" class="md-author" title="@archie0732">
+          
+          <img src="https://avatars.githubusercontent.com/u/121162902?v=4&size=72" alt="archie0732">
+        </a>
+      
         <a href="https://github.com/raghav-rathi" class="md-author" title="@raghav-rathi">
           
           <img src="https://avatars.githubusercontent.com/u/44058192?v=4&size=72" alt="raghav-rathi">
-        </a>
-      
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +38
+            +37
           </a>
         
       
