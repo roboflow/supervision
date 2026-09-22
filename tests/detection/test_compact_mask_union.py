@@ -115,7 +115,7 @@ class TestCompactMaskUnion:
                 CompactMask, "crop", side_effect=AssertionError("crop decode")
             ),
         ):
-            result = compact._union()
+            result = _compact_mask_union([compact])
 
         np.testing.assert_array_equal(result.to_dense(), expected)
         np.testing.assert_array_equal(result.bbox_xyxy, mask_to_xyxy(expected))
@@ -236,7 +236,7 @@ class TestCompactMaskUnion:
             image_shape=(3, 1),
         )
 
-        result = compact._union()
+        result = _compact_mask_union([compact])
 
         assert result._rles[0].tolist() == expected_rle
         assert result._crop_shapes.tolist() == [[second_offset_y + 1, 1]]
