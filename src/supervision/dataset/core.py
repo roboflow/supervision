@@ -213,8 +213,10 @@ class DetectionDataset(BaseDataset):
         split_ratio. The input dataset is not mutated.
 
         Args:
-            split_ratio: The ratio of the training
-                set to the entire dataset.
+            split_ratio: The ratio of the training set to the entire dataset,
+                within the inclusive range `[0, 1]`. `0` sends every image to
+                the testing dataset and `1` sends every image to the training
+                dataset.
             random_state: The seed for the random number generator.
                 This is used for reproducibility.
             shuffle: Whether to shuffle the data before splitting.
@@ -222,6 +224,10 @@ class DetectionDataset(BaseDataset):
         Returns:
             A tuple containing
                 the training and testing datasets.
+
+        Raises:
+            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
+                number.
 
         Examples:
             ```pycon
@@ -1132,8 +1138,10 @@ class ClassificationDataset(BaseDataset):
         split_ratio.
 
         Args:
-            split_ratio: The ratio of the training
-                set to the entire dataset.
+            split_ratio: The ratio of the training set to the entire dataset,
+                within the inclusive range `[0, 1]`. `0` sends every image to
+                the testing dataset and `1` sends every image to the training
+                dataset.
             random_state: The seed for the
                 random number generator. This is used for reproducibility.
             shuffle: Whether to shuffle the data before splitting.
@@ -1141,6 +1149,10 @@ class ClassificationDataset(BaseDataset):
         Returns:
             A tuple containing
             the training and testing datasets.
+
+        Raises:
+            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
+                number.
 
         Examples:
             ```pycon

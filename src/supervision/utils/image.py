@@ -477,14 +477,16 @@ def tint_image(
     """Tint image with solid color overlay at specified opacity.
 
     Args:
-        image: The image to tint.
+        image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
+            grayscale arrays of shape ``(H, W)``, or a PIL ``Image``.
         color: Overlay tint color. Defaults to `Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
 
     Returns:
         Tinted image matching input
-            type. The input image is left unchanged.
+            type. The input image is left unchanged. A grayscale input comes back
+            as a BGR array (or an RGB ``Image``), since the tint has a color.
 
     Raises:
         TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
@@ -510,6 +512,10 @@ def tint_image(
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
+    assert isinstance(image, np.ndarray)
+    if image.ndim == 2:
+        # A three-channel overlay cannot be blended into a single-channel image.
+        image = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     # No `dst`: let the blend allocate its own buffer. Passing `image` there wrote
     # the tint back into the caller's array for a NumPy input, while a Pillow input
@@ -528,8 +534,9 @@ def grayscale_image(image: ImageType) -> ImageType:
     channels for compatibility with color-based drawing helpers.
 
     Args:
-        image: The image to convert to
-            grayscale.
+        image: The image to convert to grayscale. Accepts BGR arrays of shape
+            ``(H, W, 3)``, grayscale arrays of shape ``(H, W)``, or a PIL
+            ``Image``.
 
     Returns:
         3-channel grayscale image
@@ -549,6 +556,8 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
+    if image.ndim == 2:
+        return cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_GRAY2BGR))
     grayscaled = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     return cast(npt.NDArray[np.uint8], cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR))
 

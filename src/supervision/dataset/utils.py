@@ -234,12 +234,17 @@ def train_test_split(
 
     Args:
         data: The data to split.
-        train_ratio: The ratio of the training set to the entire dataset.
+        train_ratio: The ratio of the training set to the entire dataset, within
+            the inclusive range `[0, 1]`. `0` sends everything to the second part
+            and `1` sends everything to the first.
         random_state: The seed for the random number generator.
         shuffle: Whether to shuffle the data before splitting.
 
     Returns:
         The split data. The input list is copied and never mutated.
+
+    Raises:
+        ValueError: If `train_ratio` is outside `[0, 1]` or is not a finite number.
 
     Examples:
         ```pycon
@@ -251,6 +256,14 @@ def train_test_split(
 
         ```
     """
+    # NaN fails both comparisons, so it is rejected here together with ±inf and
+    # out-of-range values, before any shuffling or slicing happens.
+    if not 0.0 <= train_ratio <= 1.0:
+        raise ValueError(
+            "Expected a split ratio within the inclusive range [0, 1], "
+            f"got {train_ratio!r}."
+        )
+
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
     if shuffle:
         data = list(data)
