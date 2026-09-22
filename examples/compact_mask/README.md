@@ -656,8 +656,8 @@ The RLE union sorts `K` foreground column intervals. Mask fragmentation and the 
 
 Measured on Python 3.13.15 / NumPy 2.3.1, comparing the parent of `035079270` (dense unions) with the current fragmentation-aware implementation. Both revisions used the same benchmark script, with four disjoint groups in a 2×2 grid. Peak columns are maximum traced allocation over three complete NMM calls, excluding input construction; time columns are median wall time of the same calls, uninstrumented.
 
-| Crop / canvas       | Objects | Pattern      | Dense mem. peak (MiB) | Interval mem. peak (MiB) | Dense time (ms) | Interval time (ms) |
-| ------------------- | ------- | ------------ | --------------------- | ------------------------ | --------------- | ------------------ |
+| Crop / canvas       | Objects | Pattern      | Dense-only mem. peak (MiB) | Current mem. peak (MiB) | Dense-only time (ms) | Current time (ms) |
+| ------------------- | ------- | ------------ | -------------------------- | ----------------------- | -------------------- | ----------------- |
 | 32×32 / 512×512     | 200     | checkerboard | 25.83                 | **1.69** (0.07×)         | 12.69           | **9.87** (0.78×)   |
 | 32×32 / 512×512     | 200     | solid        | 25.07                 | **0.27** (0.01×)         | **11.06**       | 11.10 (1.00×)      |
 | 400×400 / 1024×1024 | 12      | checkerboard | 17.37                 | 17.37 (1.00×)            | 18.38           | **18.12** (0.99×)  |

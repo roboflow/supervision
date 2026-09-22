@@ -212,10 +212,18 @@ def _union_bbox(masks_list: list[CompactMask]) -> tuple[int, int, int, int]:
     nonempty = [cm for cm in masks_list if len(cm._rles) > 0]
     if not nonempty:
         return 0, 0, 1, 1
-    x1 = np.concatenate([cm._offsets[:, 0] for cm in nonempty])
-    y1 = np.concatenate([cm._offsets[:, 1] for cm in nonempty])
-    widths = np.concatenate([cm._crop_shapes[:, 1] for cm in nonempty])
-    heights = np.concatenate([cm._crop_shapes[:, 0] for cm in nonempty])
+    x1 = np.concatenate([cm._offsets[:, 0] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    y1 = np.concatenate([cm._offsets[:, 1] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    widths = np.concatenate([cm._crop_shapes[:, 1] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
+    heights = np.concatenate([cm._crop_shapes[:, 0] for cm in nonempty]).astype(
+        np.int64, copy=False
+    )
     x_min, y_min = int(x1.min()), int(y1.min())
     width = int((x1 + widths).max()) - x_min
     height = int((y1 + heights).max()) - y_min
@@ -258,7 +266,16 @@ def _should_union_densely(
 
 
 def _empty_union(image_shape: tuple[int, int]) -> CompactMask:
-    """Return the canonical all-background union: a 1x1 crop at the image origin."""
+    """Return the canonical all-background union: a 1x1 crop at the image origin.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.compact_mask import _empty_union
+        >>> _empty_union((10, 20)).shape
+        (1, 10, 20)
+
+        ```
+    """
     return CompactMask(
         [np.array([1], dtype=np.int32)],
         np.ones((1, 2), dtype=np.int32),
