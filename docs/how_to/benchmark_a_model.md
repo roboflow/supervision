@@ -151,6 +151,8 @@ At this stage, you should have:
 
 With these ready, we can now run the model and obtain predictions. We'll use `supervision` to create a dataset iterator, and then run the model on each image.
 
+If you already use a PyTorch DataLoader with Hugging Face DETR, see [Evaluate targets from a PyTorch DataLoader](../metrics/mean_average_precision.md#evaluate-targets-from-a-pytorch-dataloader) for converting ground-truth labels and predictions into paired `Detections` objects.
+
 === "RF-DETR"
 
     ```python

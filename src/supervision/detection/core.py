@@ -598,6 +598,11 @@ class Detections:
         and instance segmentation
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
+        For object detection, pass post-processed predictions with pixel `xyxy`
+        boxes, `labels`, and `scores`. Training targets containing `class_labels`
+        need a separate conversion; see
+        [Evaluate targets from a PyTorch DataLoader](https://supervision.roboflow.com/latest/metrics/mean_average_precision/#evaluate-targets-from-a-pytorch-dataloader).
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
