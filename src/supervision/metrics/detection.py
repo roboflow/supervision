@@ -991,7 +991,7 @@ class ConfusionMatrix:
             ```
 
             Instance segmentation is scored on the masks. Both instances below
-            share a box; only the one whose shape overlaps counts as a match:
+            share a box; only the first exceeds the default mask IoU threshold:
 
             ```pycon
             >>> from supervision.metrics import MetricTarget
