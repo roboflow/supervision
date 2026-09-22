@@ -705,6 +705,90 @@ class TestDetectionDatasetSplit:
         assert train.classes == ["cat", "dog"]
         assert test.classes == ["cat", "dog"]
 
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_detection_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_detection_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=1.2, shuffle=False)
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - ClassificationDataset.split()
+# ---------------------------------------------------------------------------
+
+
+def _make_classification_dataset(n: int) -> ClassificationDataset:
+    """Build a ClassificationDataset with n images using list[str] path API."""
+    image_paths = [f"img{i}.jpg" for i in range(n)]
+    annotations = {
+        path: Classifications(class_id=np.array([0])) for path in image_paths
+    }
+    return ClassificationDataset(
+        classes=["cat"], images=image_paths, annotations=annotations
+    )
+
+
+class TestClassificationDatasetSplit:
+    """ClassificationDataset.split() partitions images correctly."""
+
+    def test_split_ratio_zero_empties_train(self) -> None:
+        """split_ratio=0.0 sends all images to the test set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=0.0, shuffle=False)
+        assert len(train) == 0
+        assert len(test) == 6
+
+    def test_split_ratio_one_empties_test(self) -> None:
+        """split_ratio=1.0 sends all images to the train set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=1.0, shuffle=False)
+        assert len(train) == 6
+        assert len(test) == 0
+
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_classification_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_classification_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=-0.2, shuffle=False)
+
 
 # ---------------------------------------------------------------------------
 # TST-03 - ClassificationDataset folder-structure round-trip
