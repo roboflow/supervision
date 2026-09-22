@@ -72,7 +72,7 @@ with torch.no_grad():
             pixel_values=batch["pixel_values"].to(device),
             pixel_mask=batch["pixel_mask"].to(device),
         )
-        target_sizes = torch.stack([label["orig_size"] for label in labels])
+        target_sizes = torch.stack([label["orig_size"] for label in labels]).to(device)
         results = image_processor.post_process_object_detection(
             outputs,
             target_sizes=target_sizes,
