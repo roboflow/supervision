@@ -14,6 +14,7 @@ from supervision.utils.image import (
     _overlay_image,
     crop_image,
     get_image_resolution_wh,
+    grayscale_image,
     letterbox_image,
     load_image_from_url,
     resize_image,
@@ -451,6 +452,52 @@ def test_tint_image_blends_towards_color() -> None:
 
     # then
     assert np.array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((2, 2), dtype=np.uint8), id="grayscale-array"),
+        pytest.param(Image.new("L", (2, 2), color=0), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(0, 255)), id="LA-image"),
+    ],
+)
+def test_tint_image_accepts_grayscale_input(image: np.ndarray | Image.Image) -> None:
+    """A single-channel scene is tinted in color instead of failing to broadcast the
+    BGR overlay."""
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    if isinstance(result, Image.Image):
+        assert result.mode == "RGB"
+        assert result.getpixel((0, 0)) == (128, 128, 128)
+    else:
+        np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.full((2, 2), 77, dtype=np.uint8), id="grayscale-array"),
+        pytest.param(Image.new("L", (2, 2), color=77), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(77, 255)), id="LA-image"),
+    ],
+)
+def test_grayscale_image_accepts_grayscale_input(
+    image: np.ndarray | Image.Image,
+) -> None:
+    """A single-channel scene is broadcast to three channels instead of being fed
+    to ``COLOR_BGR2GRAY``."""
+    # when
+    result = grayscale_image(image=image)
+
+    # then
+    if isinstance(result, Image.Image):
+        assert result.mode == "RGB"
+        assert result.getpixel((0, 0)) == (77, 77, 77)
+    else:
+        np.testing.assert_array_equal(result, np.full((2, 2, 3), 77, dtype=np.uint8))
 
 
 def test_overlay_image_blends_rgba_with_float32_rounding() -> None:

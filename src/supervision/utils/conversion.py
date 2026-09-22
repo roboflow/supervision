@@ -117,12 +117,9 @@ def images_to_cv2(
     return result
 
 
-# Pillow modes whose pixels are wider than 8 bits: 32-bit signed integer and the
-# 16-bit unsigned variants (native, little- and big-endian).
-_DEEP_GRAYSCALE_MODES = frozenset({"I", "I;16", "I;16L", "I;16B", "I;16N"})
-
 # Pillow modes that carry one luminance channel, plus modes that reduce to one:
-# 1-bit, grayscale with alpha, and 32-bit float.
+# 1-bit, grayscale with alpha, and 32-bit float. Integer modes deeper than 8 bits
+# (`I`, `I;16`, `I;16L`, `I;16B`, `I;16N`) are recognised by their array dtype.
 _SINGLE_CHANNEL_MODES = frozenset({"L", "1", "LA", "La", "F"})
 
 
@@ -135,10 +132,11 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     palette indices are resolved to their actual colors, and CMYK ink values are
     converted to color instead of being read as RGB plus an extra channel. Alpha is
     dropped, matching `cv2.imread` with its default flags, so RGBA becomes BGR and
-    LA becomes grayscale. A 1-bit image becomes `0` and `255`. A 16-bit image keeps
-    its high byte, as `cv2.imread` does when it reads a 16-bit PNG as 8-bit, and a
-    32-bit integer image is clipped to the 16-bit range first. A 32-bit float image
-    is clipped to `0`-`255` the way Pillow's own `convert("L")` clips it.
+    LA becomes grayscale. A 1-bit image becomes `0` and `255`. An integer image
+    deeper than 8 bits (`I;16` and its endian variants, or the signed 32-bit `I`) is
+    clipped to the 16-bit range and keeps its high byte, as `cv2.imread` does when
+    it reads a 16-bit PNG as 8-bit. A 32-bit float image is clipped to `0`-`255`
+    the way Pillow's own `convert("L")` clips it.
 
     Args:
         image: Pillow image in any mode.
@@ -162,23 +160,25 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
 
         ```
     """
-    if image.mode in _DEEP_GRAYSCALE_MODES:
-        # Keep the high byte: a 16-bit value cast to uint8 wraps modulo 256 and
-        # redraws a bright pixel as a dark one.
-        values = np.asarray(image)
-        if values.dtype.kind == "i":
-            values = np.clip(values, 0, np.iinfo(np.uint16).max)
-        return (values.astype(np.uint16) >> 8).astype(np.uint8)
+    values = np.asarray(image)
+    if values.dtype.kind in "iu" and values.dtype.itemsize > 1:
+        # Any integer mode deeper than 8 bits, signed or not. Keep the high byte: a
+        # 16-bit value cast to uint8 wraps modulo 256 and redraws a bright pixel as
+        # a dark one, and a signed or 32-bit value must be clipped before the cast.
+        clipped = np.clip(values, 0, np.iinfo(np.uint16).max)
+        return (clipped.astype(np.uint16) >> 8).astype(np.uint8)
 
     if image.mode in _SINGLE_CHANNEL_MODES:
+        # Annotators draw into the returned array, so hand back a writable copy
+        # rather than the read-only view `np.asarray` makes of a Pillow buffer.
         if image.mode != "L":
-            image = image.convert("L")
-        return np.array(image, dtype=np.uint8)
+            return np.array(image.convert("L"), dtype=np.uint8)
+        return np.array(values, dtype=np.uint8)
 
     if image.mode != "RGB":
-        image = image.convert("RGB")
+        values = np.asarray(image.convert("RGB"))
 
-    scene = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+    scene = cv2.cvtColor(values, cv2.COLOR_RGB2BGR)
     # cvtColor already returns uint8 here, so astype is a no-op other than the
     # full-image copy it forces; copy=False keeps the dtype guard without it.
     return cast(npt.NDArray[np.uint8], scene.astype(np.uint8, copy=False))

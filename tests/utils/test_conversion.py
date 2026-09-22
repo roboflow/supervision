@@ -209,6 +209,15 @@ def test_pillow_to_cv2_handles_rgba_images() -> None:
             id="16-bit-high-byte-not-wrapped",
         ),
         pytest.param(
+            Image.frombytes(
+                "I;16B",
+                (5, 1),
+                np.array([[0, 255, 256, 30000, 65535]], dtype=">u2").tobytes(),
+            ),
+            np.array([[0, 0, 1, 117, 255]], dtype=np.uint8),
+            id="16-bit-big-endian-high-byte",
+        ),
+        pytest.param(
             Image.fromarray(np.array([[-5, 0, 300, 70000, 2**31 - 1]], dtype=np.int32)),
             np.array([[0, 0, 1, 255, 255]], dtype=np.uint8),
             id="32-bit-int-scaled-and-clipped",
