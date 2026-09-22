@@ -463,8 +463,8 @@ def test_tint_image_blends_towards_color() -> None:
     ],
 )
 def test_tint_image_accepts_grayscale_input(image: np.ndarray | Image.Image) -> None:
-    """A single-channel scene is tinted in color instead of failing to broadcast the
-    BGR overlay."""
+    """A single-channel scene is tinted in color instead of failing to broadcast the BGR
+    overlay."""
     # when
     result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
 
@@ -487,8 +487,8 @@ def test_tint_image_accepts_grayscale_input(image: np.ndarray | Image.Image) -> 
 def test_grayscale_image_accepts_grayscale_input(
     image: np.ndarray | Image.Image,
 ) -> None:
-    """A single-channel scene is broadcast to three channels instead of being fed
-    to ``COLOR_BGR2GRAY``."""
+    """A single-channel scene is broadcast to three channels instead of being fed to
+    ``COLOR_BGR2GRAY``."""
     # when
     result = grayscale_image(image=image)
 
