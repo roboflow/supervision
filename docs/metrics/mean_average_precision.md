@@ -52,7 +52,7 @@ An image without objects should still have one target entry: pass boxes with sha
 
 ### Run evaluation
 
-This example assumes you already have a DETR `model`, its `image_processor`, and `TEST_DATALOADER`. Each batch contains `pixel_values`, `pixel_mask`, and a list of per-image `labels` dictionaries. `classes` must list your class names in class-ID order, with both predictions and targets using IDs from `0` to `len(classes) - 1`. Remap both sides first if your dataset uses sparse category IDs.
+This example assumes you already have a DETR `model`, its `image_processor`, and `TEST_DATALOADER`. Each batch contains `pixel_values`, `pixel_mask`, and a list of per-image `labels` dictionaries. `classes` lists class names in class-ID order, read here from the model's `id2label` mapping; both predictions and targets must use IDs from `0` to `len(classes) - 1`. Remap both sides first if your dataset uses sparse category IDs.
 
 **Coordinate assumptions:** the targets below are normalized relative to each image before batch padding, and evaluation preprocessing only resizes images. Under these assumptions, `orig_size` restores original-image pixel coordinates, as in the [Hugging Face evaluation example](https://huggingface.co/docs/transformers/tasks/object_detection#preparing-function-to-compute-map). Check your processor and collate function: processing multiple images together can update annotations to the padded canvas. Such targets need padding and resize transforms reversed before using `orig_size`; multiplying by `orig_size` alone does not undo padding. Likewise, crops or other geometric augmentations require their transforms to be accounted for. Keep validation preprocessing deterministic.
 
@@ -61,6 +61,9 @@ import torch
 from supervision.metrics import MeanAveragePrecision
 
 device = next(model.parameters()).device
+classes = [
+    model.config.id2label[class_id] for class_id in sorted(model.config.id2label)
+]
 model.eval()
 predictions: list[sv.Detections] = []
 targets: list[sv.Detections] = []
