@@ -1059,9 +1059,9 @@ def test_line_zone_trigger_does_not_call_np_cross(
 def test_line_zone_skips_unconfirmed_tracks() -> None:
     """Detections with a negative tracker_id (unconfirmed tracks) are ignored.
 
-    Regression guard for #2578: ByteTrack-style trackers return -1 for tracks
-    that have not yet been confirmed, and every -1 was previously collapsed into
-    one shared track, silently inflating crossing counts.
+    Regression guard for #2578: ByteTrack-style trackers return -1 for tracks that have
+    not yet been confirmed, and every -1 was previously collapsed into one shared track,
+    silently inflating crossing counts.
     """
     line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
 
