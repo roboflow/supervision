@@ -1025,6 +1025,22 @@ def test_polygon_to_mask_full_canvas() -> None:
     assert mask.sum() == w * h
 
 
+def test_polygon_to_mask_accepts_list_of_vertices() -> None:
+    """Docstring says list of vertices; that used to AttributeError on .astype."""
+    mask = polygon_to_mask([[2, 2], [6, 2], [6, 6], [2, 6]], resolution_wh=(10, 10))
+    assert mask.shape == (10, 10)
+    assert mask.dtype == np.uint8
+    assert int(mask.sum()) == 25
+
+
+def test_polygon_to_mask_empty_vertices_returns_zeros() -> None:
+    """An empty vertex list used to fail inside OpenCV fillPoly."""
+    mask = polygon_to_mask([], resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.dtype == np.uint8
+    assert mask.sum() == 0
+
+
 # ---------------------------------------------------------------------------
 # mask_to_polygons
 # ---------------------------------------------------------------------------

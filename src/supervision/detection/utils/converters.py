@@ -67,8 +67,14 @@ def polygon_to_mask(
 
         ```
     """
+    # Docstring accepts a list of vertices; without asarray, polygon.astype
+    # raised AttributeError. An empty vertex list used to fail inside OpenCV
+    # fillPoly; return an all-zero mask instead.
+    polygon = np.asarray(polygon)
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
+    if len(polygon) == 0:
+        return mask
     cv2.fillPoly(mask, [polygon.astype(np.int32)], color=(1,))
     return mask
 
