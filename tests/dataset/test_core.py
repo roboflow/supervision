@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pytest
+from PIL import Image
 
 from supervision import (
     ClassificationDataset,
@@ -704,6 +705,90 @@ class TestDetectionDatasetSplit:
         assert train.classes == ["cat", "dog"]
         assert test.classes == ["cat", "dog"]
 
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_detection_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_detection_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=1.2, shuffle=False)
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - ClassificationDataset.split()
+# ---------------------------------------------------------------------------
+
+
+def _make_classification_dataset(n: int) -> ClassificationDataset:
+    """Build a ClassificationDataset with n images using list[str] path API."""
+    image_paths = [f"img{i}.jpg" for i in range(n)]
+    annotations = {
+        path: Classifications(class_id=np.array([0])) for path in image_paths
+    }
+    return ClassificationDataset(
+        classes=["cat"], images=image_paths, annotations=annotations
+    )
+
+
+class TestClassificationDatasetSplit:
+    """ClassificationDataset.split() partitions images correctly."""
+
+    def test_split_ratio_zero_empties_train(self) -> None:
+        """split_ratio=0.0 sends all images to the test set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=0.0, shuffle=False)
+        assert len(train) == 0
+        assert len(test) == 6
+
+    def test_split_ratio_one_empties_test(self) -> None:
+        """split_ratio=1.0 sends all images to the train set."""
+        ds = _make_classification_dataset(6)
+        train, test = ds.split(split_ratio=1.0, shuffle=False)
+        assert len(train) == 6
+        assert len(test) == 0
+
+    @pytest.mark.parametrize(
+        "split_ratio",
+        [
+            -0.2,
+            1.2,
+            pytest.param(80.0, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_split_raises_for_out_of_range_ratio(
+        self, split_ratio: float, shuffle: bool
+    ) -> None:
+        """A ratio outside [0, 1] raises instead of returning a plausible split."""
+        ds = _make_classification_dataset(10)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=split_ratio, shuffle=shuffle)
+
+    def test_split_raises_for_out_of_range_ratio_on_empty_dataset(self) -> None:
+        """An invalid ratio is rejected even when the dataset has no images."""
+        ds = _make_classification_dataset(0)
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            ds.split(split_ratio=-0.2, shuffle=False)
+
 
 # ---------------------------------------------------------------------------
 # TST-03 - ClassificationDataset folder-structure round-trip
@@ -821,6 +906,49 @@ class TestClassificationDatasetFolderRoundTrip:
             class_id = int(ann.class_id[0])
             assert 0 <= class_id < len(ds2.classes)
             assert ds2.classes[class_id] == Path(image_path).parent.name
+
+    @pytest.mark.parametrize(
+        ("file_name", "shape", "dtype"),
+        [
+            pytest.param("alpha.png", (8, 8, 4), np.uint8, id="png-with-alpha"),
+            pytest.param("gray.png", (8, 8), np.uint8, id="grayscale-png"),
+            pytest.param("depth.png", (8, 8), np.uint16, id="16-bit-png"),
+            pytest.param("photo.jpg", (8, 8, 3), np.uint8, id="jpeg"),
+        ],
+    )
+    def test_export_copies_image_files_unchanged(
+        self,
+        tmp_path: Path,
+        file_name: str,
+        shape: tuple[int, ...],
+        dtype: type[np.unsignedinteger],
+    ) -> None:
+        """Exported images are byte-identical to the files they were loaded from."""
+        source_path = tmp_path / "source" / "cats" / file_name
+        source_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, np.iinfo(dtype).max, shape, dtype=dtype)
+        Image.fromarray(pixels).save(source_path)
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path / "source"))
+
+        dataset.as_folder_structure(str(tmp_path / "export"))
+
+        exported_path = tmp_path / "export" / "cats" / file_name
+        assert exported_path.read_bytes() == source_path.read_bytes()
+
+    def test_export_into_source_folder_keeps_image_files(self, tmp_path: Path) -> None:
+        """Exporting into the folder the dataset was loaded from leaves files intact."""
+        image_path = tmp_path / "cats" / "photo.jpg"
+        image_path.parent.mkdir(parents=True)
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, 255, (8, 8, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(image_path)
+        original_bytes = image_path.read_bytes()
+        dataset = ClassificationDataset.from_folder_structure(str(tmp_path))
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        assert image_path.read_bytes() == original_bytes
 
     def test_root_clutter_is_ignored(self, tmp_path: Path) -> None:
         """Clutter and non-image files do not break folder loading."""

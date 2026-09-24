@@ -12,12 +12,6 @@ status: new
 :::supervision.detection.vlm.VLM
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.vlm.LMM">LMM</a></h2>
-</div>
-
-:::supervision.detection.vlm.LMM
-
-<div class="md-typeset">
   <h2><a href="#supervision.detection.vlm.validate_vlm_parameters">validate_vlm_parameters</a></h2>
 </div>
 

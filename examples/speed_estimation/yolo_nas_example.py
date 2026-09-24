@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
+from trackers import ByteTrackTracker
 
 import supervision as sv
 
@@ -54,7 +55,7 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
-    byte_track = sv.ByteTrack(
+    byte_track = ByteTrackTracker(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
@@ -89,7 +90,8 @@ def main(
             ]
             detections = sv.Detections.from_yolo_nas(result)
             detections = detections[polygon_zone.trigger(detections)]
-            detections = byte_track.update_with_detections(detections=detections)
+            detections = byte_track.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             points = detections.get_anchors_coordinates(
                 anchor=sv.Position.BOTTOM_CENTER

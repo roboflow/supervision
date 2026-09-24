@@ -7,6 +7,7 @@ import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
 from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, load_zones_config
 from utils.timers import ClockBasedTimer
 
@@ -79,9 +80,16 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: list[int]) -> None:
+    def __init__(
+        self,
+        zone_configuration_path: str,
+        classes: list[int],
+        confidence_threshold: float,
+    ) -> None:
         self.classes = classes
-        self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
+        self.tracker = ByteTrackTracker(
+            minimum_iou_threshold=0.2, track_activation_threshold=confidence_threshold
+        )
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
         self.timers = [ClockBasedTimer() for _ in self.polygons]
@@ -97,7 +105,8 @@ class CustomSink:
         self.fps_monitor.tick()
         fps = self.fps_monitor.fps
         detections = detections[find_in_list(detections.class_id, self.classes)]
-        detections = self.tracker.update_with_detections(detections)
+        detections = self.tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
         annotated_frame = frame.image.copy()
         annotated_frame = sv.draw_text(
             scene=annotated_frame,
@@ -163,7 +172,11 @@ def main(
         dets = model.predict(frames[0].image, threshold=confidence_threshold)
         return [dets.with_nms(threshold=iou_threshold)]
 
-    sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
+    sink = CustomSink(
+        zone_configuration_path=zone_configuration_path,
+        classes=classes,
+        confidence_threshold=confidence_threshold,
+    )
     pipeline = InferencePipeline.init_with_custom_logic(
         video_reference=rtsp_url,
         on_video_frame=inference_callback,

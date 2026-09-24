@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,7 @@ from supervision._cv2._image import (
     _imread,
     _imwrite,
     _mean,
+    _opencv_default_save_options,
     _resize,
 )
 from supervision._cv2.constants import (
@@ -278,6 +280,79 @@ def test_fallback_image_io_preserves_sixteen_bit_unchanged(tmp_path: Path) -> No
     )
 
 
+@pytest.mark.parametrize(
+    ("pixels", "mode", "transparency"),
+    [
+        pytest.param(
+            np.array([[[0, 0], [90, 128]], [[180, 200], [255, 255]]], dtype=np.uint8),
+            "LA",
+            None,
+            id="gray-alpha",
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "RGB",
+            (10, 20, 30),
+            id="rgb-transparent-color",
+        ),
+        pytest.param(
+            np.array([[255, 0], [0, 255]], dtype=np.uint8), "1", None, id="one-bit"
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "P",
+            None,
+            id="palette",
+        ),
+        pytest.param(
+            np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8),
+            "P",
+            0,
+            id="palette-transparent-color",
+        ),
+    ],
+)
+def test_fallback_imread_unchanged_matches_opencv_channels_and_depth(
+    tmp_path: Path, pixels: np.ndarray, mode: str, transparency: object
+) -> None:
+    """Read PNGs unchanged with the channels and bit depth OpenCV returns."""
+    from PIL import Image
+
+    image_path = tmp_path / "image.png"
+    image = Image.fromarray(pixels).convert(mode)
+    if transparency is None:
+        image.save(image_path)
+    else:
+        image.save(image_path, transparency=transparency)
+
+    actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+    expected = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+    assert actual is not None
+    assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("suffix", [".jpg", ".tif"])
+def test_fallback_imread_unchanged_converts_cmyk_like_opencv(
+    tmp_path: Path, suffix: str
+) -> None:
+    """Read CMYK images unchanged as the color pixels OpenCV returns, not as ink."""
+    from PIL import Image
+
+    image_path = tmp_path / f"image{suffix}"
+    rng = np.random.default_rng(0)
+    cmyk = rng.integers(0, 256, size=(8, 8, 4), dtype=np.uint8)
+    Image.fromarray(cmyk, mode="CMYK").save(image_path)
+
+    actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+    expected = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+    assert actual is not None
+    assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+    np.testing.assert_allclose(actual.astype(np.int16), expected, atol=2)
+
+
 def test_fallback_in_memory_codec_preserves_bgr() -> None:
     """Preserve BGR channel order across an encode and decode round trip."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
@@ -319,6 +394,188 @@ def test_fallback_imencode_reports_failure_for_unknown_extension() -> None:
     assert encoded is None
 
 
+def _encoded_image_format(data: bytes) -> str | None:
+    """Return the image format Pillow identifies in the encoded `data`."""
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        return image.format
+
+
+@pytest.mark.parametrize(
+    ("extension", "image_format"),
+    [
+        pytest.param(".tif", "TIFF", id="tiff"),
+        pytest.param(".jp2", "JPEG2000", id="jpeg-2000"),
+        pytest.param(".pgm", "PPM", id="ppm"),
+    ],
+)
+def test_fallback_imencode_supports_every_extension_pillow_registers(
+    extension: str, image_format: str
+) -> None:
+    """Encode to any extension Pillow registers, not only the JPEG aliases."""
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    success, encoded = _imencode(extension, image)
+
+    assert success
+    assert encoded is not None
+    assert _encoded_image_format(encoded.tobytes()) == image_format
+
+
+@pytest.mark.parametrize("image_format", ["PNG", "BMP", "TIFF"])
+def test_opencv_default_save_options_are_empty_for_already_lossless_formats(
+    image_format: str,
+) -> None:
+    """Skip writer options for formats OpenCV and Pillow both save losslessly."""
+    assert _opencv_default_save_options(image_format) == {}
+
+
+def _gradient_image(channels: int = 3) -> np.ndarray:
+    """Return a small gradient image whose smooth gradients lossy codecs round off.
+
+    `channels=3` returns a BGR image; `channels=1` returns a 2D grayscale image,
+    exercising the single-channel path through the same encoders.
+    """
+    rows, columns = np.mgrid[0:48, 0:64]
+    if channels == 1:
+        return ((rows + columns) * 3 % 256).astype(np.uint8)
+    channel_values = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
+    return np.dstack(channel_values).astype(np.uint8)
+
+
+def _as_bgr(image: np.ndarray) -> np.ndarray:
+    """Return a BGR view, broadcasting a 2D grayscale image across 3 channels."""
+    return image if image.ndim == 3 else cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+
+def _encode_with_imwrite(directory: Path, extension: str, image: np.ndarray) -> bytes:
+    """Encode `image` with the fallback `_imwrite` and return the file's bytes."""
+    path = directory / f"image{extension}"
+    assert _imwrite(str(path), image)
+    return path.read_bytes()
+
+
+def _encode_with_imencode(directory: Path, extension: str, image: np.ndarray) -> bytes:
+    """Encode `image` with the fallback `_imencode` and return the encoded bytes."""
+    success, encoded = _imencode(extension, image)
+    assert success
+    assert encoded is not None
+    return encoded.tobytes()
+
+
+def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
+    """Return the quantization tables, which a JPEG's quality setting determines."""
+    import io
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        return dict(image.quantization)
+
+
+def _jpeg_chroma_subsampling(data: bytes) -> int:
+    """Return the chroma subsampling factor, which a JPEG's quality also determines."""
+    import io
+
+    from PIL import Image, JpegImagePlugin
+
+    with Image.open(io.BytesIO(data)) as image:
+        return JpegImagePlugin.get_sampling(image)
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(_gradient_image(), id="color"),
+        pytest.param(_gradient_image(channels=1), id="grayscale"),
+    ],
+)
+@pytest.mark.parametrize(
+    "encode",
+    [
+        pytest.param(_encode_with_imwrite, id="imwrite"),
+        pytest.param(_encode_with_imencode, id="imencode"),
+    ],
+)
+def test_fallback_encoders_match_opencv_default_jpeg_quality(
+    tmp_path: Path,
+    encode: Callable[[Path, str, np.ndarray], bytes],
+    image: np.ndarray,
+) -> None:
+    """Encode JPEG at the quality OpenCV uses when no parameters are given."""
+    expected = cv2.imencode(".jpg", image)[1].tobytes()
+
+    actual = encode(tmp_path, ".jpg", image)
+
+    assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
+    assert _jpeg_chroma_subsampling(actual) == _jpeg_chroma_subsampling(expected)
+
+
+def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
+    """Encode `.jpe` byte-for-byte like `.jpg`, the alias `_imencode` maps manually."""
+    image = _gradient_image()
+
+    success_jpe, encoded_jpe = _imencode(".jpe", image)
+    success_jpg, encoded_jpg = _imencode(".jpg", image)
+
+    assert success_jpe
+    assert success_jpg
+    assert encoded_jpe is not None
+    np.testing.assert_array_equal(encoded_jpe, encoded_jpg)
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(_gradient_image(), id="color"),
+        pytest.param(_gradient_image(channels=1), id="grayscale"),
+    ],
+)
+@pytest.mark.parametrize(
+    "encode",
+    [
+        pytest.param(_encode_with_imwrite, id="imwrite"),
+        pytest.param(_encode_with_imencode, id="imencode"),
+    ],
+)
+def test_fallback_encoders_write_webp_losslessly_like_opencv(
+    tmp_path: Path,
+    encode: Callable[[Path, str, np.ndarray], bytes],
+    image: np.ndarray,
+) -> None:
+    """Encode WebP losslessly, as OpenCV does when no parameters are given."""
+    expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
+
+    actual = encode(tmp_path, ".webp", image)
+
+    decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
+    np.testing.assert_array_equal(decoded, expected)
+    np.testing.assert_array_equal(decoded, _as_bgr(image))
+
+
+@pytest.mark.parametrize("extension", [".JPG", ".WEBP"])
+def test_fallback_imwrite_resolves_uppercase_extension_like_lowercase(
+    tmp_path: Path, extension: str
+) -> None:
+    """Look up an uppercase file extension the same way `_imwrite` looks up lowercase.
+
+    `_imwrite` lowercases the extension before checking Pillow's format registry;
+    a caller passing an uppercase extension (e.g. `image.JPG`) must still resolve to
+    the same writer options and produce identical bytes to the lowercase form.
+    """
+    image = _gradient_image()
+    uppercase_path = tmp_path / f"image{extension}"
+    lowercase_path = tmp_path / f"image{extension.lower()}"
+
+    assert _imwrite(str(uppercase_path), image)
+    assert _imwrite(str(lowercase_path), image)
+
+    assert uppercase_path.read_bytes() == lowercase_path.read_bytes()
+
+
 def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
     tmp_path: Path,
 ) -> None:
@@ -330,4 +587,48 @@ def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
     np.testing.assert_array_equal(
         _imread(str(sixteen_bit_path), _IMREAD_COLOR),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_COLOR),
+    )
+
+
+def _write_png_with_exif_orientation(path: Path, orientation: int) -> None:
+    """Write a small asymmetric PNG whose EXIF orientation tag is `orientation`."""
+    from PIL import Image
+
+    pixels = np.arange(2 * 3 * 3, dtype=np.uint8).reshape(2, 3, 3) * 10
+    exif = Image.Exif()
+    exif[0x0112] = orientation
+    Image.fromarray(pixels).save(path, exif=exif.tobytes())
+
+
+@pytest.mark.parametrize("orientation", [1, 2, 3, 4, 5, 6, 7, 8])
+@pytest.mark.parametrize(
+    "flags",
+    [
+        pytest.param(_IMREAD_COLOR, id="color"),
+        pytest.param(_IMREAD_UNCHANGED, id="unchanged"),
+    ],
+)
+def test_fallback_imread_matches_opencv_exif_orientation(
+    tmp_path: Path, orientation: int, flags: int
+) -> None:
+    """Apply an image's EXIF orientation exactly when OpenCV applies it."""
+    image_path = tmp_path / "oriented.png"
+    _write_png_with_exif_orientation(image_path, orientation)
+
+    np.testing.assert_array_equal(
+        _imread(str(image_path), flags), cv2.imread(str(image_path), flags)
+    )
+
+
+@pytest.mark.parametrize("orientation", [3, 6, 8])
+def test_fallback_imdecode_matches_opencv_exif_orientation(
+    tmp_path: Path, orientation: int
+) -> None:
+    """Orient decoded image bytes the same way cv2.imdecode orients them."""
+    image_path = tmp_path / "oriented.png"
+    _write_png_with_exif_orientation(image_path, orientation)
+    encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+
+    np.testing.assert_array_equal(
+        _imdecode(encoded, _IMREAD_COLOR), cv2.imdecode(encoded, cv2.IMREAD_COLOR)
     )

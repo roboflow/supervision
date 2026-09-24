@@ -3,16 +3,17 @@ from __future__ import annotations
 import os
 import warnings
 from collections.abc import Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import (
+    _image_file_resolution_wh,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
 )
@@ -142,6 +143,30 @@ def _image_name_to_annotation_name(image_name: str) -> str:
     return base_name + ".txt"
 
 
+def _parse_class_id(value: str) -> int:
+    """Parse a YOLO class id written as an integer or as a whole decimal number.
+
+    Label files saved with ``np.savetxt`` write every column as a float, such as
+    ``1.000000000000000000e+00``, and Ultralytics reads the class column as a float, so
+    such datasets train there. Values that are not finite whole numbers still raise.
+    """
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        class_id = Decimal(value)
+    except InvalidOperation:
+        raise ValueError(
+            f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
+        ) from None
+    if not class_id.is_finite() or class_id != class_id.to_integral_value():
+        raise ValueError(
+            f"Invalid class id {value!r} in YOLO annotation; expected a whole number."
+        )
+    return int(class_id)
+
+
 def yolo_annotations_to_detections(
     lines: list[str],
     resolution_wh: tuple[int, int],
@@ -158,7 +183,7 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
-        class_id_list.append(int(values[0]))
+        class_id_list.append(_parse_class_id(values[0]))
         if len(values) == 5:
             box = _parse_box(values=values[1:])
             relative_xyxy_list.append(box)
@@ -265,9 +290,7 @@ def load_yolo_annotations(
             annotations[image_path] = Detections.empty()
             continue
 
-        # PIL is much faster than cv2 for checking image shape: https://github.com/roboflow/supervision/issues/1554
-        with Image.open(image_path) as image:
-            w, h = image.size
+        w, h = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
         resolution_wh = (w, h)
 

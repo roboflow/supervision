@@ -2,10 +2,6 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import (  # type: ignore[import-untyped,unused-ignore]
-    TargetMode,
-    deprecated,
-)
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
@@ -72,7 +68,9 @@ def pad_boxes(
     Returns:
         A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
-            values.
+            values. Integer inputs produce `int64` output, or `float64` if a padded
+            coordinate exceeds the `int64` range. Floating-point inputs preserve
+            their dtype.
 
     Examples:
         ```pycon
@@ -91,24 +89,38 @@ def pad_boxes(
     if py is None:
         py = px
 
-    result = cast(npt.NDArray[Any], xyxy.copy())
-    result[:, [0, 1]] -= [px, py]
-    result[:, [2, 3]] += [px, py]
+    integer_input = np.issubdtype(xyxy.dtype, np.integer)
+    padding: list[int] | npt.NDArray[Any] = [px, py]
+    if integer_input:
+        px, py = int(px), int(py)
+        exact_integer_limit = np.iinfo(np.int64).max // 2
+        is_safe_to_cast = max(abs(px), abs(py)) <= exact_integer_limit and np.all(
+            xyxy <= exact_integer_limit
+            if np.issubdtype(xyxy.dtype, np.unsignedinteger)
+            else (xyxy >= -exact_integer_limit) & (xyxy <= exact_integer_limit)
+        )
+        # Use exact Python integers only when int64 intermediates could overflow.
+        result = xyxy.astype(np.int64 if is_safe_to_cast else object)
+        padding = np.asarray([px, py], dtype=result.dtype)
+    else:
+        result = cast(npt.NDArray[Any], xyxy.copy())
+    result[:, [0, 1]] -= padding
+    result[:, [2, 3]] += padding
 
+    if integer_input and result.dtype == object:
+        limits = np.iinfo(np.int64)
+        fits_int64 = np.all((result >= limits.min) & (result <= limits.max))
+        return cast(
+            npt.NDArray[np.number],
+            np.asarray(result, dtype=np.int64 if fits_int64 else np.float64),
+        )
     return cast(npt.NDArray[np.number], result)
 
 
-@deprecated(  # type: ignore[untyped-decorator]
-    target=TargetMode.ARGS_REMAP,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-    args_mapping={"normalized_xyxy": "xyxy"},
-)
 def denormalize_boxes(
     xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
-    normalized_xyxy: npt.NDArray[np.number] | None = None,
 ) -> npt.NDArray[np.number]:
     """Convert normalized bounding box coordinates to absolute pixel coordinates.
 

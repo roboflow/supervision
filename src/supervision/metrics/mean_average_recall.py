@@ -15,10 +15,16 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import LEGACY_COLOR_PALETTE
-from supervision.metrics.core import Metric, MetricTarget
-from supervision.metrics.utils.matching import (
+from supervision.detection.utils.matching import (
     _match_detection_batch_with_target_indices,
+)
+from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.metrics.core import (
+    Metric,
+    MetricResult,
+    MetricTarget,
+    PlotDetails,
+    _append_object_size_plot_details,
 )
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
@@ -31,7 +37,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class MeanAverageRecallResult:
+class MeanAverageRecallResult(MetricResult):
     """The results of the Mean Average Recall metric calculation.
 
     Defaults to `0` if no detections or targets were provided.
@@ -190,6 +196,38 @@ class MeanAverageRecallResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
+    def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
+        """Return bar-chart data for mAR scores.
+
+        Args:
+            include_object_sizes: When ``True``, include bars for
+                small / medium / large object-size categories.
+        """
+        labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
+        values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 3
+        _append_object_size_plot_details(
+            labels,
+            values,
+            colors,
+            include_object_sizes=include_object_sizes,
+            metric_labels=["mAR @ 1", "mAR @ 10", "mAR @ 100"],
+            small_objects=self.small_objects,
+            medium_objects=self.medium_objects,
+            large_objects=self.large_objects,
+            value_getter=lambda result: [
+                result.mAR_at_1,
+                result.mAR_at_10,
+                result.mAR_at_100,
+            ],
+        )
+
+        size_suffix = ", by Object Size" if include_object_sizes else ""
+        title = (
+            f"Mean Average Recall{size_suffix}\n(target: {self.metric_target.value})"
+        )
+        return PlotDetails(labels=labels, values=values, colors=colors, title=title)
+
     def plot(self) -> None:
         """Plot the Mean Average Recall results.
 
@@ -199,55 +237,20 @@ class MeanAverageRecallResult:
         """
         from matplotlib import pyplot as plt
 
-        labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
-        values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 3
-
-        if self.small_objects is not None:
-            small_objects = self.small_objects
-            labels += ["Small: mAR @ 1", "Small: mAR @ 10", "Small: mAR @ 100"]
-            values += [
-                small_objects.mAR_at_1,
-                small_objects.mAR_at_10,
-                small_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 3
-
-        if self.medium_objects is not None:
-            medium_objects = self.medium_objects
-            labels += ["Medium: mAR @ 1", "Medium: mAR @ 10", "Medium: mAR @ 100"]
-            values += [
-                medium_objects.mAR_at_1,
-                medium_objects.mAR_at_10,
-                medium_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 3
-
-        if self.large_objects is not None:
-            large_objects = self.large_objects
-            labels += ["Large: mAR @ 1", "Large: mAR @ 10", "Large: mAR @ 100"]
-            values += [
-                large_objects.mAR_at_1,
-                large_objects.mAR_at_10,
-                large_objects.mAR_at_100,
-            ]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 3
+        details = self._get_plot_details()
 
         plt.rcParams["font.family"] = "monospace"
 
         _, ax = plt.subplots(figsize=(10, 6))
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Mean Average Recall, by Object Size\n(target: {self.metric_target.value})"
-        )
-        ax.set_title(title, fontweight="bold")
+        ax.set_title(details.title, fontweight="bold")
 
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
+        x_positions = range(len(details.labels))
+        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
 
         ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
+        ax.set_xticklabels(details.labels, rotation=45, ha="right")
 
         for bar in bars:
             y_value = bar.get_height()
@@ -406,7 +409,10 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         continue
                     stats.append(
                         (
-                            np.zeros((0, iou_thresholds.size), dtype=bool),
+                            np.zeros(
+                                (0, iou_thresholds.size, self.max_detections.size),
+                                dtype=bool,
+                            ),
                             np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=int),
                             np.zeros((0,), dtype=int),
@@ -446,19 +452,21 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    matches, _ = _match_detection_batch_with_target_indices(
-                        prediction_class_ids,
+                    sorted_indices = np.argsort(-prediction_confidence)
+                    matches = self._match_top_predictions(
+                        prediction_class_ids[sorted_indices],
                         target_class_ids,
-                        iou,
+                        iou[:, sorted_indices],
                         iou_thresholds,
                     )
-                    ignored_matches = np.zeros_like(matches, dtype=bool)
+                    ignored_matches = np.zeros(
+                        (len(sorted_indices), iou_thresholds.size), dtype=bool
+                    )
 
-                    sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
-                            matches[sorted_indices],
-                            ignored_matches[sorted_indices],
+                            matches,
+                            ignored_matches,
                             np.arange(len(prediction_confidence)),
                             prediction_class_ids[sorted_indices],
                             target_class_ids,
@@ -498,6 +506,48 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             large_objects=None,
         )
 
+    def _match_top_predictions(
+        self,
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        target_class_ids: npt.NDArray[np.int32],
+        sorted_iou: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
+        """Match one image's predictions separately for each detection limit.
+
+        The matcher pairs by highest IoU rather than by confidence, so matching every
+        prediction and then keeping the top K would let a prediction ranked below K
+        take a target from one ranked within it. Each limit therefore matches only its
+        own top K predictions.
+
+        Args:
+            sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
+                descending confidence.
+            target_class_ids: shape (T,), target class ids.
+            sorted_iou: shape (T, P), IoU with prediction columns in the same order.
+            iou_thresholds: shape (Th,), IoU thresholds.
+
+        Returns:
+            shape (P, Th, K), whether each prediction is a true positive when only
+                the top `max_detections[k]` predictions are matched; predictions
+                ranked below that limit are `False`.
+        """
+        prediction_count = sorted_prediction_class_ids.shape[0]
+        matches = np.zeros(
+            (prediction_count, iou_thresholds.size, self.max_detections.size),
+            dtype=bool,
+        )
+        for limit_index, max_detections in enumerate(self.max_detections):
+            top_count = min(int(max_detections), prediction_count)
+            limit_matches, _ = _match_detection_batch_with_target_indices(
+                sorted_prediction_class_ids[:top_count],
+                target_class_ids,
+                sorted_iou[:, :top_count],
+                iou_thresholds,
+            )
+            matches[:top_count, :, limit_index] = limit_matches
+        return matches
+
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
@@ -510,6 +560,12 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute recall per detection limit and class from all images' matches.
+
+        `matches` has shape (P, Th, K) and holds, for each detection limit, the
+        matches of that limit's own top predictions; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`.
+        """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
         if unique_classes.size == 0:
@@ -522,11 +578,11 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             )
 
         recalls_at_k: list[npt.NDArray[np.float64]] = []
-        for max_detections in self.max_detections:
-            # Shape: PxTh,P,C,C -> CxThx3
+        for limit_index, max_detections in enumerate(self.max_detections):
+            # Shape: PxThxK,P,C,C -> CxThx3
             is_within_limit = prediction_indices < max_detections
             confusion_matrix = self._compute_confusion_matrix(
-                matches[is_within_limit],
+                matches[is_within_limit, :, limit_index],
                 ignored_matches[is_within_limit],
                 prediction_class_ids[is_within_limit],
                 unique_classes,

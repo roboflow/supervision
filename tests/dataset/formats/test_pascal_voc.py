@@ -392,6 +392,200 @@ class TestLoadPascalVocBackgroundImages:
         assert detections.mask.shape == (0, 20, 30)
 
 
+class TestLoadPascalVocImageFormats:
+    """Every image format the other dataset loaders accept is loaded from VOC."""
+
+    @pytest.mark.parametrize(
+        "extension", ["jpg", "jpeg", "png", "bmp", "tif", "tiff", "webp"]
+    )
+    def test_image_with_annotation_is_loaded(
+        self, tmp_path: Path, extension: str
+    ) -> None:
+        """An annotated image is loaded regardless of its file extension."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        image_path = images_dir / f"img.{extension}"
+        cv2.imwrite(str(image_path), np.zeros((20, 20, 3), dtype=np.uint8))
+        (annotations_dir / "img.xml").write_text(
+            "<annotation><object><name>cat</name><bndbox><xmin>1</xmin>"
+            "<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>"
+            "</annotation>"
+        )
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert [Path(path).name for path in dataset.image_paths] == [image_path.name]
+        assert len(dataset.annotations[dataset.image_paths[0]]) == 1
+
+    def test_save_then_load_keeps_every_image(self, tmp_path: Path) -> None:
+        """A dataset exported to VOC reloads with all of its images."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        image_paths = [str(images_dir / f"img_{ext}.{ext}") for ext in ("jpg", "bmp")]
+        for image_path in image_paths:
+            cv2.imwrite(image_path, np.zeros((20, 20, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=image_paths,
+            annotations={
+                image_path: Detections(
+                    xyxy=np.array([[1, 1, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                )
+                for image_path in image_paths
+            },
+        )
+        annotations_dir = tmp_path / "annotations"
+        dataset.as_pascal_voc(annotations_directory_path=str(annotations_dir))
+
+        reloaded = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        assert sorted(Path(path).name for path in reloaded.image_paths) == [
+            "img_bmp.bmp",
+            "img_jpg.jpg",
+        ]
+
+
+def _single_object_xml(
+    bndbox: tuple[str, str, str, str], polygon: tuple[str, ...] = ()
+) -> str:
+    """Build a one-object VOC annotation from raw coordinate text."""
+    xmin, ymin, xmax, ymax = bndbox
+    polygon_xml = "".join(
+        f"<{'x' if index % 2 == 0 else 'y'}{index // 2 + 1}>{value}"
+        f"</{'x' if index % 2 == 0 else 'y'}{index // 2 + 1}>"
+        for index, value in enumerate(polygon)
+    )
+    if polygon_xml:
+        polygon_xml = f"<polygon>{polygon_xml}</polygon>"
+    return (
+        f"<annotation><object><name>dog</name><bndbox><xmin>{xmin}</xmin>"
+        f"<ymin>{ymin}</ymin><xmax>{xmax}</xmax><ymax>{ymax}</ymax></bndbox>"
+        f"{polygon_xml}</object></annotation>"
+    )
+
+
+class TestLoadPascalVocDecimalCoordinates:
+    """VOC coordinates written as decimals load instead of raising."""
+
+    @pytest.mark.parametrize(
+        ("bndbox", "expected_xyxy"),
+        [
+            pytest.param(
+                ("48.5", "24.25", "95.75", "71.5"),
+                [47.5, 23.25, 94.75, 70.5],
+                id="fractional",
+            ),
+            pytest.param(
+                ("48.0", "24.0", "95.0", "71.0"),
+                [47.0, 23.0, 94.0, 70.0],
+                id="whole-number-written-as-decimal",
+            ),
+        ],
+    )
+    def test_bndbox_keeps_decimal_precision(
+        self, bndbox: tuple[str, str, str, str], expected_xyxy: list[float]
+    ) -> None:
+        """Decimal bndbox values are read as-is before the 1-index offset."""
+        root = ElementTree.fromstring(_single_object_xml(bndbox=bndbox))
+
+        detections, classes = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(100, 100)
+        )
+
+        assert classes == ["dog"]
+        np.testing.assert_allclose(detections.xyxy, [expected_xyxy])
+
+    @pytest.mark.parametrize(
+        ("decimal_polygon", "integer_polygon"),
+        [
+            pytest.param(
+                ("2.4", "2.6", "11.6", "2.6", "11.6", "11.4", "2.4", "11.4"),
+                ("2", "3", "12", "3", "12", "11", "2", "11"),
+                id="fractional",
+            ),
+            pytest.param(
+                ("2.5", "2.5", "11.5", "2.5", "11.5", "11.5", "2.5", "11.5"),
+                ("3", "3", "11", "3", "11", "11", "3", "11"),
+                id="half-pixel-rounded-after-offset",
+            ),
+        ],
+    )
+    def test_polygon_rasterises_like_rounded_polygon(
+        self, decimal_polygon: tuple[str, ...], integer_polygon: tuple[str, ...]
+    ) -> None:
+        """A decimal polygon rasterises like its zero-indexed vertices rounded."""
+        bndbox = ("3", "3", "12", "12")
+        decimal_root = ElementTree.fromstring(
+            _single_object_xml(bndbox=bndbox, polygon=decimal_polygon)
+        )
+        rounded_root = ElementTree.fromstring(
+            _single_object_xml(bndbox=bndbox, polygon=integer_polygon)
+        )
+
+        decimal, _ = detections_from_xml_obj(
+            decimal_root, classes=[], resolution_wh=(20, 20)
+        )
+        rounded, _ = detections_from_xml_obj(
+            rounded_root, classes=[], resolution_wh=(20, 20)
+        )
+
+        assert decimal.mask is not None
+        assert rounded.mask is not None
+        assert rounded.mask.any()
+        np.testing.assert_array_equal(decimal.mask, rounded.mask)
+
+    @pytest.mark.parametrize("value", ["nan", "inf", "-inf", "12px"])
+    @pytest.mark.parametrize("location", ["bndbox", "polygon"])
+    def test_non_numeric_coordinate_is_rejected(
+        self, value: str, location: str
+    ) -> None:
+        """A coordinate that is not a finite number still raises ValueError."""
+        if location == "bndbox":
+            xml = _single_object_xml(bndbox=(value, "1", "10", "10"))
+        else:
+            xml = _single_object_xml(
+                bndbox=("1", "1", "10", "10"),
+                polygon=(value, "1", "10", "1", "10", "10"),
+            )
+        root = ElementTree.fromstring(xml)
+
+        with pytest.raises(ValueError, match=value):
+            detections_from_xml_obj(root, classes=[], resolution_wh=(20, 20))
+
+    def test_from_pascal_voc_loads_decimal_annotation_file(
+        self, tmp_path: Path
+    ) -> None:
+        """DetectionDataset.from_pascal_voc reads a file with decimal coordinates."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        annotations_dir = tmp_path / "annotations"
+        annotations_dir.mkdir()
+        cv2.imwrite(str(images_dir / "img.jpg"), np.zeros((100, 100, 3), np.uint8))
+        (annotations_dir / "img.xml").write_text(
+            _single_object_xml(bndbox=("48.5", "24.25", "95.75", "71.5"))
+        )
+
+        dataset = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        _, _, detections = dataset[0]
+        assert dataset.classes == ["dog"]
+        np.testing.assert_allclose(detections.xyxy, [[47.5, 23.25, 94.75, 70.5]])
+
+
 class TestSavePascalVocAnnotations:
     """save_pascal_voc_annotations: filesystem output contract."""
 
@@ -474,3 +668,33 @@ class TestSavePascalVocAnnotations:
         class_id = next(iter(annotations.values())).class_id
         assert np.issubdtype(class_id.dtype, np.integer)
         assert class_id.size == 0
+
+    def test_non_ascii_class_names_survive_save_then_load_round_trip(
+        self, tmp_path: Path
+    ) -> None:
+        """Class names outside ASCII reload unchanged on every platform."""
+        from supervision.detection.core import Detections
+
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        img_path = images_dir / "animals.jpg"
+        cv2.imwrite(str(img_path), np.zeros((50, 50, 3), dtype=np.uint8))
+        dataset = DetectionDataset(
+            classes=["café", "고양이"],
+            images=[str(img_path)],
+            annotations={
+                str(img_path): Detections(
+                    xyxy=np.array([[5, 5, 20, 20], [25, 25, 40, 40]], dtype=float),
+                    class_id=np.array([0, 1]),
+                )
+            },
+        )
+        out_dir = tmp_path / "annotations"
+        save_pascal_voc_annotations(dataset, str(out_dir))
+
+        classes, _, _ = load_pascal_voc_annotations(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(out_dir),
+        )
+
+        assert classes == ["café", "고양이"]

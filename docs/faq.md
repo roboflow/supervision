@@ -37,7 +37,7 @@ You can annotate images and video, filter detections, track objects, count objec
 
 ## How do I track objects across video frames?
 
-Assign persistent tracker IDs before visualization. The built-in `sv.ByteTrack` wrapper accepts `Detections` through `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
+Assign persistent tracker IDs before visualization. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`), which accepts `Detections` through `update()`; the built-in `sv.ByteTrack` wrapper, which used `update_with_detections()`, was removed as of `supervision-0.31.0`. After tracking, combine the output with annotators such as `sv.TraceAnnotator`, `sv.BoxAnnotator`, and `sv.LabelAnnotator`.
 
 ## What dataset formats does Supervision support?
 

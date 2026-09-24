@@ -3,8 +3,7 @@ import pytest
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
-from supervision.detection.core import LMM, Detections
-from supervision.detection.vlm import VLM
+from supervision.detection.core import Detections
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import (
     _FakeDeepSparseResults,
@@ -62,10 +61,11 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], expected_names)
 
 
-def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
+def test_from_ultralytics_segmentation_only_keeps_class_zero_for_every_mask(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    results = _FakeUltralyticsResults(boxes=None, names={}, length=3)
+    """One image with three masks yields three class-zero detections."""
+    results = _FakeUltralyticsResults(boxes=None, names={}, length=1)
 
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
@@ -79,7 +79,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
 
     np.testing.assert_allclose(det.xyxy, fake_xyxy)
     np.testing.assert_array_equal(det.mask, fake_masks)
-    np.testing.assert_array_equal(det.class_id, np.arange(len(results)))
+    np.testing.assert_array_equal(det.class_id, np.zeros(len(fake_masks), dtype=int))
 
 
 def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> None:
@@ -167,35 +167,6 @@ def test_from_tensorflow_does_not_mutate_source_boxes() -> None:
 
     np.testing.assert_array_equal(source_boxes, original)
     np.testing.assert_allclose(det.xyxy, [[200.0, 50.0, 600.0, 250.0]])
-
-
-class TestFromLMMMapping:
-    """`from_lmm` must map every LMM member to a VLM without raising KeyError."""
-
-    @pytest.mark.parametrize(
-        "lmm_member",
-        [pytest.param(member, id=member.name.lower()) for member in LMM],
-    )
-    def test_from_lmm_maps_every_member_to_vlm(
-        self, lmm_member: LMM, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Each LMM member dispatches to the VLM sharing its value with args intact."""
-        captured: dict[str, object] = {}
-
-        def fake_from_vlm(vlm: VLM, result: str, **kwargs: object) -> Detections:
-            captured["vlm"] = vlm
-            captured["result"] = result
-            captured["kwargs"] = kwargs
-            return Detections.empty()
-
-        monkeypatch.setattr(Detections, "from_vlm", staticmethod(fake_from_vlm))
-
-        Detections.from_lmm(lmm_member, result="sentinel", resolution_wh=(10, 10))
-
-        assert isinstance(captured["vlm"], VLM)
-        assert captured["vlm"].value == lmm_member.value  # type: ignore[union-attr]
-        assert captured["result"] == "sentinel"
-        assert captured["kwargs"]["resolution_wh"] == (10, 10)  # type: ignore[index]
 
 
 # ---------------------------------------------------------------------------
@@ -750,44 +721,3 @@ class TestFromNCNN:
         np.testing.assert_allclose(det.xyxy[0, 3], expected_y2)
         assert float(det.confidence[0]) == pytest.approx(first.prob)
         assert int(det.class_id[0]) == first.label
-
-
-# ---------------------------------------------------------------------------
-# from_lmm end-to-end
-# ---------------------------------------------------------------------------
-
-
-class TestFromLMMEndToEnd:
-    """from_lmm end-to-end: deprecated dispatcher produces correct Detections."""
-
-    def test_paligemma_result_produces_correct_xyxy(self) -> None:
-        """PaliGemma loc-token string is correctly parsed through the legacy API."""
-        result = "<loc0256><loc0256><loc0768><loc0768> cat"
-
-        with pytest.warns(SupervisionWarnings):
-            det = Detections.from_lmm(
-                LMM.PALIGEMMA,
-                result,
-                resolution_wh=(1000, 1000),
-                classes=["cat"],
-            )
-
-        assert len(det) == 1
-        np.testing.assert_allclose(det.xyxy, [[250.0, 250.0, 750.0, 750.0]])
-        assert int(det.class_id[0]) == 0
-
-    def test_string_lmm_name_is_accepted_and_dispatches(self) -> None:
-        """Passing LMM name as lowercase string works identically to the enum."""
-        with pytest.warns(SupervisionWarnings):
-            det = Detections.from_lmm(
-                "paligemma",
-                "",
-                resolution_wh=(1000, 1000),
-            )
-
-        assert len(det) == 0
-
-
-def test_lmm_values_are_subset_of_vlm_values() -> None:
-    """Every LMM value exists in VLM — required for VLM(lmm.value) to succeed."""
-    assert {m.value for m in LMM} <= {m.value for m in VLM}

@@ -2,6 +2,7 @@
 
 import warnings
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
@@ -41,7 +42,7 @@ from supervision.annotators.core import (
 from supervision.annotators.utils import ColorLookup
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
-from supervision.draw.color import Color
+from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
 
@@ -1466,7 +1467,7 @@ class TestCropAnnotator:
         assert not np.array_equal(gradient_image, result)
 
     def test_annotate_emits_no_deprecation_warning(self, gradient_image):
-        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        """Internal overlay must not surface any deprecation warning."""
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         with warnings.catch_warnings(record=True) as caught:
@@ -1486,6 +1487,16 @@ class TestCropAnnotator:
             position=Position.CENTER, border_color_lookup=ColorLookup.INDEX
         )
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        assert result.shape == gradient_image.shape
+        assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_with_box_too_small_for_scale_factor(self, gradient_image):
+        """A box whose scaled crop rounds below one pixel is rendered, not fatal."""
+        detections = _create_detections(xyxy=[[30, 30, 33, 33]], class_id=[0])
+        annotator = CropAnnotator(scale_factor=0.3)
+
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+
         assert result.shape == gradient_image.shape
         assert not np.array_equal(gradient_image, result)
 
@@ -1589,8 +1600,114 @@ class TestCropAnnotator:
 class TestIconAnnotator:
     """Tests for IconAnnotator class."""
 
+    @pytest.mark.parametrize(
+        ("icon_shape_hw", "expected_slice"),
+        [
+            pytest.param(
+                (16, 16),
+                (slice(8, 24), slice(16, 32)),
+                id="matches-resolution-pad-only",
+            ),
+            pytest.param(
+                (4, 8),
+                (slice(12, 20), slice(16, 32)),
+                id="smaller-than-resolution-resize-and-pad",
+            ),
+        ],
+    )
+    def test_draws_grayscale_icon(
+        self,
+        tmp_path: Path,
+        icon_shape_hw: tuple[int, int],
+        expected_slice: tuple[slice, slice],
+    ) -> None:
+        """A grayscale PNG icon without alpha is drawn as its gray pixels.
+
+        When the icon's own shape does not match `icon_resolution_wh`, the
+        post-GRAY2BGR-conversion array must still go through the letterbox
+        resize and padding correctly, not just an already-matching pad-only case.
+        """
+        icon_path = tmp_path / "gray.png"
+        Image.fromarray(np.full(icon_shape_hw, 200, dtype=np.uint8)).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[expected_slice] = 200
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_draws_16_bit_grayscale_icon(self, tmp_path) -> None:
+        """A 16-bit grayscale PNG icon is scaled down to 8 bits, not wrapped."""
+        icon_path = tmp_path / "gray16.png"
+        Image.fromarray(np.full((16, 16), 60000, dtype=np.uint16)).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = 234
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_draws_16_bit_color_icon(self, monkeypatch, tmp_path) -> None:
+        """A 16-bit color icon is scaled down to 8 bits, not wrapped."""
+        icon = np.full((16, 16, 3), 60000, dtype=np.uint16)
+        monkeypatch.setattr(cv2, "imread", lambda path, flags: icon)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = 234
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(tmp_path / "color16.png"),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_draws_cmyk_jpeg_icon(self, tmp_path: Path) -> None:
+        """A CMYK JPEG icon is drawn in its colors, not with its black ink as alpha."""
+        icon_path = tmp_path / "cmyk.jpg"
+        icon_rgb = np.full((16, 16, 3), (200, 30, 90), dtype=np.uint8)
+        Image.fromarray(icon_rgb).convert("CMYK").save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[8:24, 16:32] = (90, 30, 200)
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_allclose(result.astype(np.int16), expected, atol=2)
+
+    def test_rejects_icon_of_unsupported_pixel_type(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        """An icon that is neither 8-bit nor 16-bit is rejected by path and type."""
+        icon = np.zeros((16, 16, 3), dtype=np.float32)
+        monkeypatch.setattr(cv2, "imread", lambda path, flags: icon)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        icon_path = str(tmp_path / "float32.tiff")
+
+        with pytest.raises(ValueError, match="unsupported pixel type"):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=np.zeros((48, 48, 3), dtype=np.uint8),
+                detections=detections,
+                icon_path=icon_path,
+            )
+
     def test_annotate_emits_no_deprecation_warning(self, test_image, tmp_path):
-        """Internal overlay must not surface the deprecated `overlay_image` warning."""
+        """Internal overlay must not surface any deprecation warning."""
         icon_path = str(tmp_path / "icon.png")
         icon = np.full((20, 20, 4), (0, 255, 0, 255), dtype=np.uint8)
         cv2.imwrite(icon_path, icon)
@@ -1632,6 +1749,50 @@ class TestIconAnnotator:
             )
 
         assert imread_calls == 1
+
+    def test_draws_grayscale_icon_with_alpha(self, tmp_path):
+        """A grayscale PNG icon with alpha is drawn only where it is opaque."""
+        icon = np.zeros((16, 16, 2), dtype=np.uint8)
+        icon[4:12, 4:12] = (200, 255)
+        icon_path = tmp_path / "gray_alpha.png"
+        Image.fromarray(icon).save(icon_path)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+        expected = np.zeros((48, 48, 3), dtype=np.uint8)
+        expected[12:20, 20:28] = 200
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=np.zeros((48, 48, 3), dtype=np.uint8),
+            detections=detections,
+            icon_path=str(icon_path),
+        )
+
+        np.testing.assert_array_equal(result, expected)
+
+    def test_icon_cache_converts_grayscale_icon_only_once(
+        self, test_image: np.ndarray, tmp_path: Path
+    ) -> None:
+        """The GRAY2BGR conversion for a cached grayscale icon runs once per
+        path+resolution.
+
+        `_load_icon_from_path` is `@lru_cache`-wrapped, so its own `cache_info()`
+        hit/miss counters prove the `cv2.cvtColor(GRAY2BGR)` conversion — which
+        only executes on a cache miss — runs exactly once across repeated
+        `annotate()` calls sharing the same icon path and resolution.
+        """
+        icon_path = str(tmp_path / "gray_icon.png")
+        Image.fromarray(np.full((20, 20), 128, dtype=np.uint8)).save(icon_path)
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]], class_id=[0])
+        load_icon = annotators_core._load_icon_from_path
+        info_before = load_icon.cache_info()
+
+        for _ in range(2):
+            IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+                scene=test_image.copy(), detections=detections, icon_path=icon_path
+            )
+
+        info_after = load_icon.cache_info()
+        assert info_after.misses - info_before.misses == 1
+        assert info_after.hits - info_before.hits == 1
 
 
 class TestBackgroundOverlayAnnotator:
@@ -2166,3 +2327,57 @@ class TestTraceAnnotatorEmptyDetections:
         assert np.array_equal(
             annotator.trace.get(tracker_id=1), np.array([[92.5, 2.5]])
         )
+
+
+class TestTraceAnnotatorPendingTracks:
+    """Tests for TraceAnnotator on frames that carry pending (`-1`) tracks."""
+
+    def test_rejects_lookup_not_sized_to_original_detections(
+        self, test_image: np.ndarray
+    ) -> None:
+        """A lookup cannot become valid only after pending tracks are removed."""
+        annotator = TraceAnnotator()
+        detections = _create_detections(
+            xyxy=[[0, 0, 10, 10], [40, 40, 60, 60]],
+            class_id=[0, 0],
+            tracker_id=[-1, 7],
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Length of color lookup 1 does not match length of detections 2",
+        ):
+            annotator.annotate(
+                scene=test_image.copy(),
+                detections=detections,
+                custom_color_lookup=np.array([1]),
+            )
+
+    def test_custom_color_lookup_stays_aligned_when_a_track_is_pending(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Each confirmed track takes its own entry of a per-detection lookup."""
+        palette = ColorPalette.from_hex(["#ff0000", "#00ff00", "#0000ff"])
+        annotator = TraceAnnotator(color=palette, thickness=1)
+        custom_color_lookup = np.array([1, 2])
+        annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[0, 0, 10, 10], [40, 40, 60, 60]],
+                class_id=[0, 0],
+                tracker_id=[-1, 7],
+            ),
+            custom_color_lookup=custom_color_lookup,
+        )
+
+        scene = annotator.annotate(
+            scene=test_image.copy(),
+            detections=_create_detections(
+                xyxy=[[0, 0, 10, 10], [60, 40, 80, 60]],
+                class_id=[0, 0],
+                tracker_id=[-1, 7],
+            ),
+            custom_color_lookup=custom_color_lookup,
+        )
+
+        assert tuple(scene[50, 60]) == Color.BLUE.as_bgr()

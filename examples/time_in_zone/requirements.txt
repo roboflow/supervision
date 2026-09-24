@@ -6,4 +6,5 @@ inference
 pytubefix
 jsonargparse[signatures]
 rfdetr
+trackers
 yt_dlp

@@ -1,5 +1,6 @@
 import numpy as np
 from inference import get_model
+from trackers import ByteTrackTracker
 from utils.general import find_in_list, load_zones_config
 from utils.timers import FPSBasedTimer
 
@@ -33,7 +34,9 @@ def main(
         roboflow_api_key: Roboflow API key for accessing private models
     """
     model = get_model(model_id=model_id, api_key=roboflow_api_key)
-    tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
+    tracker = ByteTrackTracker(
+        minimum_iou_threshold=0.5, track_activation_threshold=confidence_threshold
+    )
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     frames_generator = sv.get_video_frames_generator(source_video_path)
 
@@ -54,7 +57,8 @@ def main(
         )[0]
         detections = sv.Detections.from_inference(results)
         detections = detections[find_in_list(detections.class_id, classes)]
-        detections = tracker.update_with_detections(detections)
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         annotated_frame = frame.copy()
 

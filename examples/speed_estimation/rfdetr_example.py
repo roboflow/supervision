@@ -1,6 +1,7 @@
 from collections import defaultdict, deque
 
 import numpy as np
+from trackers import ByteTrackTracker
 
 import supervision as sv
 from supervision import _cv2 as cv2
@@ -68,7 +69,7 @@ def main(
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = RFDETRMedium(device=device)
 
-    byte_track = sv.ByteTrack(
+    byte_track = ByteTrackTracker(
         frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
@@ -102,7 +103,8 @@ def main(
         detections = detections[np.isin(detections.class_id, VEHICLE_CLASS_IDS)]
         detections = detections.with_nms(threshold=iou_threshold)
         detections = detections[polygon_zone.trigger(detections)]
-        detections = byte_track.update_with_detections(detections=detections)
+        detections = byte_track.update(detections)
+        detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
         points = view_transformer.transform_points(points=points).astype(int)

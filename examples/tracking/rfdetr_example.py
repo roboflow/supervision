@@ -1,5 +1,6 @@
 from rfdetr import RFDETRMedium
 from tqdm import tqdm
+from trackers import ByteTrackTracker
 
 import supervision as sv
 from supervision import _cv2 as cv2
@@ -12,7 +13,7 @@ def main(
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
-    """Video Processing with RF-DETR and ByteTrack.
+    """Video Processing with RF-DETR and ByteTrackTracker.
 
     Args:
         source_video_path: Path to the source video file
@@ -23,7 +24,7 @@ def main(
     """
     model = RFDETRMedium(device=device)
 
-    tracker = sv.ByteTrack()
+    tracker = ByteTrackTracker(track_activation_threshold=confidence_threshold)
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
@@ -34,7 +35,8 @@ def main(
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             detections = model.predict(frame_rgb, threshold=confidence_threshold)
             detections = detections.with_nms(threshold=iou_threshold)
-            detections = tracker.update_with_detections(detections)
+            detections = tracker.update(detections)
+            detections = detections[detections.tracker_id != -1]  # -1 = pending track
 
             annotated_frame = box_annotator.annotate(
                 scene=frame.copy(), detections=detections

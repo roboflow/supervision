@@ -7,6 +7,7 @@ from queue import Queue as StdQueue
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import av
 import numpy as np
 import pytest
 
@@ -573,6 +574,31 @@ def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
     assert video_info.fps != int(video_info.fps)
 
 
+def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
+    """Report and yield a phone-style portrait clip upright, not as it is stored."""
+    video_path = str(tmp_path / "portrait.mp4")
+    container = av.open(video_path, mode="w")
+    stream = container.add_stream("mpeg4", rate=5)
+    stream.width = 32
+    stream.height = 16
+    stream.pix_fmt = "yuv420p"
+    stream.set_display_rotation(90)
+    stored_frame = np.zeros((16, 32, 3), dtype=np.uint8)
+    for _ in range(3):
+        for packet in stream.encode(av.VideoFrame.from_ndarray(stored_frame)):
+            container.mux(packet)
+    for packet in stream.encode():
+        container.mux(packet)
+    container.close()
+
+    video_info = VideoInfo.from_video_path(video_path)
+    frames = list(get_video_frames_generator(video_path))
+
+    assert video_info.resolution_wh == (16, 32)
+    assert len(frames) == 3
+    assert all(frame.shape == (32, 16, 3) for frame in frames)
+
+
 def test_get_video_frames_generator(dummy_video_path) -> None:
     """Verify that get_video_frames_generator yields frames with correct shapes.
 
@@ -991,3 +1017,46 @@ def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
     generator = get_video_frames_generator(dummy_video_path, start=2, end=5)
     frames = list(generator)
     assert len(frames) == 3
+
+
+@pytest.fixture
+def numbered_video_path(tmp_path: Path) -> str:
+    """Write a 10-frame video whose frame `i` is filled with intensity `25 * i`."""
+    path = str(tmp_path / "numbered_video.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(path, fourcc, 25, (64, 48))
+    for frame_index in range(10):
+        out.write(np.full((48, 64, 3), 25 * frame_index, dtype=np.uint8))
+    out.release()
+    return path
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+@pytest.mark.parametrize(
+    ("start", "end", "stride", "expected_frame_indices"),
+    [
+        pytest.param(2, 5, 1, [2, 3, 4], id="range-longer-than-start"),
+        pytest.param(4, 6, 1, [4, 5], id="range-shorter-than-start"),
+        pytest.param(2, 8, 2, [2, 4, 6], id="with-stride"),
+    ],
+)
+def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
+    numbered_video_path: str,
+    start: int,
+    end: int,
+    stride: int,
+    iterative_seek: bool,
+    expected_frame_indices: list[int],
+) -> None:
+    """Frames from `start` up to `end` are yielded whichever way `start` is sought."""
+    frames = get_video_frames_generator(
+        numbered_video_path,
+        stride=stride,
+        start=start,
+        end=end,
+        iterative_seek=iterative_seek,
+    )
+
+    frame_indices = [round(float(frame.mean()) / 25) for frame in frames]
+
+    assert frame_indices == expected_frame_indices

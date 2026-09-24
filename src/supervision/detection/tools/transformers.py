@@ -114,7 +114,10 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
 
     Args:
         segmentation_result: Dictionary containing segmentation results with keys
-            `segments_info` and `segmentation`.
+            `segments_info` and `segmentation`. `segmentation` is either a
+            `(height, width)` map of segment ids or, for
+            `post_process_instance_segmentation(return_binary_maps=True)`, a
+            `(num_segments, height, width)` stack of binary maps.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -129,6 +132,12 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
     class_ids = np.array([segment["label_id"] for segment in segments_info], dtype=int)
     if len(segments_info) == 0:
         masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    elif segmentation_array.ndim == 3:
+        # Binary maps are stacked in the order segment ids were assigned, so each
+        # segment's `id` indexes its own map. Reading the maps directly also keeps
+        # pixels shared by overlapping instances, which a segment-id map drops.
+        segment_ids = [segment["id"] for segment in segments_info]
+        masks = segmentation_array[segment_ids].astype(bool)
     else:
         masks = np.array(
             [segmentation_array == segment["id"] for segment in segments_info]
@@ -162,11 +171,16 @@ def process_transformers_v4_panoptic_segmentation_result(
     """
     segments_info = segmentation_result["segments_info"]
     png_string = segmentation_result["png_string"]
-    class_ids = np.array([segment["category_id"] for segment in segments_info])
+    class_ids = np.array(
+        [segment["category_id"] for segment in segments_info], dtype=int
+    )
     segmentation_array = png_string_to_segmentation_array(png_string=png_string)
-    masks = np.array(
-        [segmentation_array == segment["id"] for segment in segments_info]
-    ).astype(bool)
+    if len(segments_info) == 0:
+        masks = np.empty((0, *segmentation_array.shape), dtype=bool)
+    else:
+        masks = np.array(
+            [segmentation_array == segment["id"] for segment in segments_info]
+        ).astype(bool)
     data = append_class_names_to_data(class_ids, id2label, {})
 
     return dict(

@@ -7,21 +7,26 @@ status: deprecated
 
 These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.
 
-- [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in `supervision-0.28.0` in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal is planned for `supervision-0.31.0`.
-- `supervision.keypoint` module is deprecated in `supervision-0.27.0`; use `supervision.key_points` instead. It will be removed in `supervision-0.31.0`.
-- `create_tiles` in `supervision.utils.image` is deprecated in `supervision-0.27.0`. It will be removed in `supervision-0.31.0`.
-- `ensure_cv2_image_for_processing` in `supervision.utils.conversion` is deprecated in `supervision-0.27.0`. It will be removed in `supervision-0.31.0`.
-- Keypoint validation utilities in `supervision.validators` are deprecated in `supervision-0.27.0`. They will be removed in `supervision-0.31.0`.
-- `normalized_xyxy` argument in [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) is deprecated in `supervision-0.27.0` and renamed to `xyxy`. Passing `normalized_xyxy=` emits a `FutureWarning`; support will be removed in `supervision-0.31.0`.
-- `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated in `supervision-0.28.0`. These functions moved to `supervision.detection.utils.converters` and will be removed from `supervision.dataset.utils` in `supervision-0.31.0`.
-- `sv.LMM` enum is deprecated in `supervision-0.27.0` and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
-- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) classmethod is deprecated in `supervision-0.26.0` and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
 - `KeyPoints.confidence` is deprecated in `supervision-0.29.0`. Use `KeyPoints.keypoint_confidence` instead. It will be removed in `supervision-0.32.0`.
 - Public `validate_*` helper functions are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`. Supervision internals now use private `_validate_*` helpers.
 - `merge_inner_detection_object_pair`, `merge_inner_detections_objects`, and `merge_inner_detections_objects_without_iou` in `supervision.detection.core` are deprecated in `supervision-0.29.0` and will be removed in `supervision-0.32.0`.
 - Passing `overlap_metric` or `mask_dimension` positionally to [`sv.mask_non_max_merge`](https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_non_max_merge) is deprecated in `supervision-0.30.0` and will be removed in `supervision-0.33.0`. Pass both by keyword instead.
 
 # Removed
+
+### 0.31.0
+
+- `sv.ByteTrack` was removed as of `supervision-0.31.0`. Use `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`) instead; its update method is `update()`, not `update_with_detections()`.
+- The `supervision.keypoint` module was removed as of `supervision-0.31.0`. Import from `supervision.key_points` instead.
+- `create_tiles` in `supervision.utils.image` was removed as of `supervision-0.31.0`.
+- `overlay_image` in `supervision.utils.image` was removed as of `supervision-0.31.0`.
+- `ensure_cv2_image_for_annotation`, `ensure_pil_image_for_annotation`, and `ensure_cv2_image_for_processing` in `supervision.utils.conversion` were removed as of `supervision-0.31.0`.
+- The keypoint validation utilities `validate_keypoint_confidence` and `validate_keypoints_fields` in `supervision.validators` were removed as of `supervision-0.31.0`.
+- The `normalized_xyxy` argument of [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) was removed as of `supervision-0.31.0`. Use `xyxy` instead.
+- The `supervision.dataset.utils` import path for `sv.rle_to_mask` and `sv.mask_to_rle` was removed as of `supervision-0.31.0`. Import from `supervision.detection.utils.converters` (or top-level `sv.rle_to_mask`/`sv.mask_to_rle`) instead.
+- `sv.LMM` was removed as of `supervision-0.31.0`. Use `sv.VLM` instead.
+- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) was removed as of `supervision-0.31.0`. Use `sv.Detections.from_vlm` instead.
+- The legacy `MeanAveragePrecision` class in `supervision.metrics.detection` was removed as of `supervision-0.31.0`. Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` (`sv.metrics.MeanAveragePrecision`) instead, which matches `pycocotools`.
 
 ### 0.27.0
 
@@ -40,7 +45,7 @@ These features are phased out due to better alternatives or potential issues in 
 
 ### 0.23.0
 
-- The `track_buffer`, `track_thresh`, and `match_thresh` parameters in [`ByteTrack`](trackers.md/#supervision.tracker.byte_tracker.core.ByteTrack) are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
+- The `track_buffer`, `track_thresh`, and `match_thresh` parameters in `ByteTrack` are deprecated and were removed as of `supervision-0.23.0`. Use `lost_track_buffer,` `track_activation_threshold`, and `minimum_matching_threshold` instead.
 - The `triggering_position ` parameter in [`sv.PolygonZone`](detection/tools/polygon_zone.md/#supervision.detection.tools.polygon_zone.PolygonZone) was removed as of `supervision-0.23.0`. Use `triggering_anchors` instead.
 
 ### 0.22.0

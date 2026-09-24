@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -9,14 +8,15 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
+from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
     _overlay_image,
     crop_image,
     get_image_resolution_wh,
+    grayscale_image,
     letterbox_image,
     load_image_from_url,
-    overlay_image,
     resize_image,
     scale_image,
     tint_image,
@@ -255,6 +255,76 @@ def test_resize_image_for_pillow_image() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("image_hw", "resolution_wh", "expected_hw"),
+    [
+        pytest.param((480, 640), (1024, 1024), (768, 1024), id="landscape"),
+        pytest.param((640, 480), (1024, 1024), (1024, 768), id="portrait"),
+        pytest.param(
+            (1080, 1920), (1000, 1000), (562, 1000), id="positive-fraction-truncates"
+        ),
+        pytest.param((8, 1200), (100, 100), (1, 100), id="height-would-round-to-zero"),
+        pytest.param((1200, 8), (100, 100), (100, 1), id="width-would-round-to-zero"),
+    ],
+)
+def test_resize_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    expected_hw: tuple[int, int],
+) -> None:
+    """Aspect-ratio fitting never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = resize_image(
+        image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
+    )
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+@pytest.mark.parametrize(
+    ("image_hw", "scale_factor", "expected_hw"),
+    [
+        pytest.param((100, 100), 0.5, (50, 50), id="shrink"),
+        pytest.param((100, 100), 2.0, (200, 200), id="enlarge"),
+        pytest.param((3, 3), 0.3, (1, 1), id="both-axes-would-round-to-zero"),
+        pytest.param((40, 2), 0.25, (10, 1), id="one-axis-would-round-to-zero"),
+    ],
+)
+def test_scale_image_keeps_at_least_one_pixel_per_axis(
+    image_hw: tuple[int, int], scale_factor: float, expected_hw: tuple[int, int]
+) -> None:
+    """Scaling down never derives a zero-sized target."""
+    # given
+    image = np.zeros((*image_hw, 3), dtype=np.uint8)
+
+    # when
+    result = scale_image(image=image, scale_factor=scale_factor)
+
+    # then
+    assert result.shape == (*expected_hw, 3)
+
+
+def test_letterbox_image_for_extreme_aspect_ratio() -> None:
+    """A strip too thin to scale into the target still fills the target resolution."""
+    # given
+    image = np.zeros((8, 1200, 3), dtype=np.uint8)
+
+    # when
+    result = letterbox_image(
+        image=image, resolution_wh=(100, 100), color=(255, 255, 255)
+    )
+
+    # then
+    assert result.shape == (100, 100, 3)
+    assert np.array_equal(result[49], np.zeros((100, 3), dtype=np.uint8))
+    assert np.all(result[:49] == 255)
+    assert np.all(result[50:] == 255)
+
+
 def test_letterbox_image_for_opencv_image() -> None:
     # given
     image = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -344,6 +414,92 @@ def test_letterbox_image_for_pillow_image() -> None:
     )
 
 
+def test_tint_image_leaves_numpy_input_unchanged() -> None:
+    """Tinting a NumPy image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = np.full((4, 4, 3), 200, dtype=np.uint8)
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert np.array_equal(image, original)
+    assert not np.array_equal(result, original)
+
+
+def test_tint_image_leaves_pillow_input_unchanged() -> None:
+    """Tinting a Pillow image returns a tinted copy and leaves the input untouched."""
+    # given
+    image = Image.new(mode="RGB", size=(4, 4), color=(200, 200, 200))
+    original = image.copy()
+
+    # when
+    result = tint_image(image=image, color=Color.RED, opacity=0.5)
+
+    # then
+    assert ImageChops.difference(image, original).getbbox() is None
+    assert ImageChops.difference(result, original).getbbox() is not None
+
+
+def test_tint_image_blends_towards_color() -> None:
+    """Tinting at 0.5 opacity averages the image with the tint colour."""
+    # given
+    image = np.zeros((2, 2, 3), dtype=np.uint8)
+
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    assert np.array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.zeros((2, 2), dtype=np.uint8), id="grayscale-array"),
+        pytest.param(Image.new("L", (2, 2), color=0), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(0, 255)), id="LA-image"),
+    ],
+)
+def test_tint_image_accepts_grayscale_input(image: np.ndarray | Image.Image) -> None:
+    """A single-channel scene is tinted in color instead of failing to broadcast the BGR
+    overlay."""
+    # when
+    result = tint_image(image=image, color=Color.WHITE, opacity=0.5)
+
+    # then
+    if isinstance(result, Image.Image):
+        assert result.mode == "RGB"
+        assert result.getpixel((0, 0)) == (128, 128, 128)
+    else:
+        np.testing.assert_array_equal(result, np.full((2, 2, 3), 128, dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        pytest.param(np.full((2, 2), 77, dtype=np.uint8), id="grayscale-array"),
+        pytest.param(Image.new("L", (2, 2), color=77), id="L-image"),
+        pytest.param(Image.new("LA", (2, 2), color=(77, 255)), id="LA-image"),
+    ],
+)
+def test_grayscale_image_accepts_grayscale_input(
+    image: np.ndarray | Image.Image,
+) -> None:
+    """A single-channel scene is broadcast to three channels instead of being fed to
+    ``COLOR_BGR2GRAY``."""
+    # when
+    result = grayscale_image(image=image)
+
+    # then
+    if isinstance(result, Image.Image):
+        assert result.mode == "RGB"
+        assert result.getpixel((0, 0)) == (77, 77, 77)
+    else:
+        np.testing.assert_array_equal(result, np.full((2, 2, 3), 77, dtype=np.uint8))
+
+
 def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
     """RGBA overlay uses current float32 blend semantics."""
     # given
@@ -352,44 +508,10 @@ def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
     expected = np.full((1, 1, 3), 26, dtype=np.uint8)
 
     # when
-    result = overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
 
     # then
     np.testing.assert_array_equal(result, expected)
-
-
-def test_overlay_image_public_wrapper_delegates_to_internal() -> None:
-    """Public `overlay_image` still produces the internal `_overlay_image` result."""
-    # given
-    image = np.full((1, 1, 3), 22, dtype=np.uint8)
-    overlay = np.array([[[39, 39, 39, 60]]], dtype=np.uint8)
-    expected = _overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
-
-    # when
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        result = overlay_image(image=image.copy(), overlay=overlay, anchor=(0, 0))
-
-    # then
-    np.testing.assert_array_equal(result, expected)
-
-
-def test_overlay_image_emits_future_warning() -> None:
-    """Public overlay_image must still emit FutureWarning after internal refactor."""
-    # given
-    image = np.zeros((2, 2, 3), dtype=np.uint8)
-    overlay = np.full((1, 1, 3), 255, dtype=np.uint8)
-    # pyDeprecate tracks per-function warned_calls (default num_warns=1) so the
-    # warning fires only once per process. Reset to make this test order-independent.
-    overlay_image._state.warned_calls = 0
-
-    # when
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        overlay_image(image=image, overlay=overlay, anchor=(0, 0))
-
-    # then
-    assert any(issubclass(w.category, FutureWarning) for w in caught)
 
 
 def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
@@ -408,7 +530,7 @@ def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
     expected[:2, :2] = overlay[1:, 1:, :3]
 
     # when
-    result = overlay_image(image=image, overlay=overlay, anchor=(-1, -1))
+    result = _overlay_image(image=image, overlay=overlay, anchor=(-1, -1))
 
     # then
     np.testing.assert_array_equal(result, expected)

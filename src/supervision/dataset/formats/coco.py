@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import AREA_DATA_FIELD, COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
+    _image_file_resolution_wh,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
     map_detections_class_id,
@@ -99,6 +99,7 @@ def group_coco_annotations_by_image_id(
 def coco_annotations_to_masks(
     image_annotations: list[CocoDict], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
+    """Rasterise each annotation's RLE or polygon segmentation into one bool mask."""
     height, width = resolution_wh[1], resolution_wh[0]
     empty_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
     masks = []
@@ -133,16 +134,24 @@ def coco_annotations_to_masks(
 
         object_mask = empty_mask.copy()
         for polygon in polygons:
-            polygon_array: npt.NDArray[np.int32] = np.reshape(
-                np.asarray(polygon, dtype=np.int32), (-1, 2)
-            )
-            if polygon_array.size == 0:
+            vertices = np.reshape(np.asarray(polygon, dtype=np.float64), (-1, 2))
+            if vertices.size == 0:
                 warnings.warn(
                     "Skipping empty polygon while loading COCO segmentation for "
                     f"annotation id={image_annotation.get('id')}.",
                     stacklevel=2,
                 )
                 continue
+            if not np.isfinite(vertices).all():
+                raise ValueError(
+                    "COCO polygon segmentation for annotation "
+                    f"id={image_annotation.get('id')} has a vertex that is not a "
+                    "finite number."
+                )
+            # COCO vertices are sub-pixel floats. Round them to the nearest pixel, as
+            # the YOLO, LabelMe and Pascal VOC loaders do; casting straight to int
+            # truncates and shifts the mask up and to the left.
+            polygon_array: npt.NDArray[np.int32] = np.round(vertices).astype(np.int32)
             # COCO polygon segmentation can contain multiple disjoint parts.
             # Merge all parts into a single per-object mask.
             object_mask |= polygon_to_mask(
@@ -583,14 +592,13 @@ def _image_resolution_hw(dataset: DetectionDataset, image_path: str) -> tuple[in
     """Return ``(height, width)`` for ``image_path`` without decoding pixels.
 
     Uses the in-memory array when the dataset holds one; otherwise reads the size from
-    the file header via lazy ``PIL.Image.open``, which parses only image metadata — the
+    the file header, following its EXIF orientation the way loading the image does — the
     same optimization the YOLO loader uses (#1636).
     """
     if dataset._images_in_memory:
         image_height, image_width = dataset._images_in_memory[image_path].shape[:2]
         return image_height, image_width
-    with Image.open(image_path) as image:
-        image_width, image_height = image.size
+    image_width, image_height = _image_file_resolution_wh(image_path)
     return image_height, image_width
 
 

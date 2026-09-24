@@ -286,6 +286,60 @@ class TestTrainTestSplitRngIsolation:
         assert first == second
 
 
+class TestTrainTestSplitRatioValidation:
+    """train_test_split() rejects ratios outside the inclusive range [0, 1]."""
+
+    @pytest.mark.parametrize(
+        "train_ratio",
+        [
+            -2,
+            -0.2,
+            -0.01,
+            1.01,
+            1.2,
+            pytest.param(80, id="percentage-instead-of-fraction"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+            pytest.param(float("-inf"), id="-inf"),
+        ],
+    )
+    @pytest.mark.parametrize("shuffle", [False, True])
+    def test_raises_for_out_of_range_ratio(
+        self, train_ratio: float, shuffle: bool
+    ) -> None:
+        """Out-of-range or non-finite ratios raise instead of slicing silently."""
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            train_test_split(
+                data=list(range(10)), train_ratio=train_ratio, shuffle=shuffle
+            )
+
+    @pytest.mark.parametrize("train_ratio", [-0.2, 1.2, float("nan")])
+    def test_raises_for_out_of_range_ratio_on_empty_data(
+        self, train_ratio: float
+    ) -> None:
+        """An invalid ratio is rejected even when there is nothing to split."""
+        with pytest.raises(ValueError, match=r"inclusive range \[0, 1\]"):
+            train_test_split(data=[], train_ratio=train_ratio, shuffle=False)
+
+    @pytest.mark.parametrize(
+        ("train_ratio", "expected_result"),
+        [
+            pytest.param(0, ([], [0, 1, 2]), id="zero-int"),
+            pytest.param(0.0, ([], [0, 1, 2]), id="zero-float"),
+            pytest.param(1, ([0, 1, 2], []), id="one-int"),
+            pytest.param(1.0, ([0, 1, 2], []), id="one-float"),
+        ],
+    )
+    def test_accepts_boundary_ratios(
+        self, train_ratio: float, expected_result: tuple[list[int], list[int]]
+    ) -> None:
+        """The boundaries 0 and 1 remain valid and keep their existing meaning."""
+        result = train_test_split(
+            data=[0, 1, 2], train_ratio=train_ratio, shuffle=False
+        )
+        assert result == expected_result
+
+
 class TestCheckNoBasenameCollisions:
     """Regression tests for export basename collision detection (DAT-04)."""
 

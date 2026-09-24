@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import os
+import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from copy import deepcopy
@@ -211,8 +213,10 @@ class DetectionDataset(BaseDataset):
         split_ratio. The input dataset is not mutated.
 
         Args:
-            split_ratio: The ratio of the training
-                set to the entire dataset.
+            split_ratio: The ratio of the training set to the entire dataset,
+                within the inclusive range `[0, 1]`. `0` sends every image to
+                the testing dataset and `1` sends every image to the training
+                dataset.
             random_state: The seed for the random number generator.
                 This is used for reproducibility.
             shuffle: Whether to shuffle the data before splitting.
@@ -220,6 +224,10 @@ class DetectionDataset(BaseDataset):
         Returns:
             A tuple containing
                 the training and testing datasets.
+
+        Raises:
+            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
+                number.
 
         Examples:
             ```pycon
@@ -1130,8 +1138,10 @@ class ClassificationDataset(BaseDataset):
         split_ratio.
 
         Args:
-            split_ratio: The ratio of the training
-                set to the entire dataset.
+            split_ratio: The ratio of the training set to the entire dataset,
+                within the inclusive range `[0, 1]`. `0` sends every image to
+                the testing dataset and `1` sends every image to the training
+                dataset.
             random_state: The seed for the
                 random number generator. This is used for reproducibility.
             shuffle: Whether to shuffle the data before splitting.
@@ -1139,6 +1149,10 @@ class ClassificationDataset(BaseDataset):
         Returns:
             A tuple containing
             the training and testing datasets.
+
+        Raises:
+            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
+                number.
 
         Examples:
             ```pycon
@@ -1199,6 +1213,8 @@ class ClassificationDataset(BaseDataset):
 
         Images assigned to the same class must have unique basenames
         (case-insensitive). Conflicts are rejected before any files are written.
+        Image files are copied unchanged; images held in memory are encoded to the
+        format their name's extension selects.
 
         Args:
             root_directory_path: The path to the directory
@@ -1230,16 +1246,22 @@ class ClassificationDataset(BaseDataset):
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_path, image, _ in tqdm(
-            self,
-            total=len(self),
+        for image_path in tqdm(
+            self.image_paths,
             desc="Saving classification images",
             disable=not show_progress,
         ):
             image_save_path = os.path.join(
                 root_directory_path, output_paths[image_path]
             )
-            cv2.imwrite(image_save_path, image)
+            if image_path in self._images_in_memory:
+                cv2.imwrite(image_save_path, self._images_in_memory[image_path])
+                continue
+            # Copy the file as `save_dataset_images` does: decoding and re-encoding it
+            # would drop alpha and bit depth and recompress lossy formats. Exporting
+            # into the folder the image was loaded from leaves it where it is.
+            with contextlib.suppress(shutil.SameFileError):
+                shutil.copyfile(image_path, image_save_path)
 
     @classmethod
     def from_folder_structure(

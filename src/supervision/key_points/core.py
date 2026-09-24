@@ -451,7 +451,8 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, and per-keypoint confidences when supplied by the
+                source result. Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -494,29 +495,43 @@ class KeyPoints:
         if not inference_result.get("predictions"):
             return cls.empty()
 
-        xy = []
-        confidence = []
-        class_id = []
-        class_names = []
+        predictions = inference_result["predictions"]
 
-        for prediction in inference_result["predictions"]:
-            prediction_xy = []
-            prediction_confidence = []
-            for keypoint in prediction["keypoints"]:
-                prediction_xy.append([keypoint["x"], keypoint["y"]])
-                prediction_confidence.append(keypoint["confidence"])
-            xy.append(prediction_xy)
-            confidence.append(prediction_confidence)
+        # Inference omits every key point scored below the request's
+        # `keypoint_confidence`, so objects can list different key points. Each key
+        # point's `class_id` is its index in the skeleton; placing it there keeps
+        # skeleton edges on the right joints. Results without that field fall back
+        # to list order. Omitted slots stay at (0, 0) with zero confidence, the
+        # missing-key-point marker that the annotators and `as_detections` skip.
+        slots = [
+            [
+                keypoint.get("class_id", position)
+                for position, keypoint in enumerate(prediction["keypoints"])
+            ]
+            for prediction in predictions
+        ]
+        keypoint_count = max(
+            (max(object_slots) + 1 for object_slots in slots if object_slots),
+            default=0,
+        )
 
-            class_id.append(prediction["class_id"])
-            class_names.append(prediction["class"])
+        xy = np.zeros((len(predictions), keypoint_count, 2), dtype=np.float32)
+        confidence = np.zeros((len(predictions), keypoint_count), dtype=np.float32)
+        for object_index, (prediction, object_slots) in enumerate(
+            zip(predictions, slots)
+        ):
+            for slot, keypoint in zip(object_slots, prediction["keypoints"]):
+                xy[object_index, slot] = (keypoint["x"], keypoint["y"])
+                confidence[object_index, slot] = keypoint["confidence"]
 
-        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+        class_id = np.array([prediction["class_id"] for prediction in predictions])
+        class_names = np.array([prediction["class"] for prediction in predictions])
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
 
         return cls(
-            xy=np.array(xy, dtype=np.float32),
-            keypoint_confidence=np.array(confidence, dtype=np.float32),
-            class_id=np.array(class_id, dtype=int),
+            xy=xy,
+            keypoint_confidence=confidence,
+            class_id=class_id.astype(int),
             data=data,
         )
 
@@ -769,7 +784,10 @@ class KeyPoints:
         class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
-        confidence = ultralytics_results.keypoints.conf.cpu().numpy()
+        # Models trained with a two-value `kpt_shape` report no per-keypoint
+        # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
+        keypoints_conf = ultralytics_results.keypoints.conf
+        confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
@@ -1220,28 +1238,58 @@ class KeyPoints:
             A subset of the KeyPoints object or an item from the data field.
 
         Examples:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ...     keypoint_confidence=np.array(
+            ...         [[0.9, 0.9, 0.2], [0.8, 0.8, 0.1], [0.7, 0.7, 0.2]]
+            ...     ),
+            ...     data={'class_name': np.array(['person', 'person', 'dog'])},
+            ... )
 
-            key_points = sv.KeyPoints(...)
+            Detection-level filtering returns a `KeyPoints` subset:
 
-            # detection-level filtering (returns KeyPoints)
-            high_conf = key_points[key_points.detection_confidence > 0.5]
-            class_0 = key_points[key_points.class_id == 0]
+            >>> key_points[key_points.detection_confidence > 0.7].class_id
+            array([0, 1])
+            >>> key_points[key_points.class_id == 0].detection_confidence
+            array([0.9, 0.6])
 
-            # keypoint-level filtering (returns KeyPoints)
-            visible = key_points[key_points.keypoint_confidence > 0.3]
+            Keypoint-level filtering with a 2D boolean mask keeps only the
+            selected anchors. Every skeleton must keep the same number of
+            anchors, otherwise a `ValueError` is raised:
 
-            # indexing
-            first = key_points[0]
-            first_two = key_points[0:2]
-            subset = key_points[[0, 2]]
+            >>> key_points[key_points.keypoint_confidence > 0.3].xy.shape
+            (3, 2, 2)
 
-            # anchor selection (uniform across all skeletons)
-            nose_and_eyes = key_points[:, [0, 1, 2]]
+            Integer, slice, and list indexing:
 
-            # data field access
-            class_names = key_points['class_name']
+            >>> key_points[0].xy
+            array([[[10., 10.],
+                    [20., 10.],
+                    [15., 20.]]])
+            >>> key_points[0:2].xy.shape
+            (2, 3, 2)
+            >>> key_points[[0, 2]].class_id
+            array([0, 1])
+
+            Anchor selection, uniform across all skeletons:
+
+            >>> key_points[:, [0, 1]].xy.shape
+            (3, 2, 2)
+
+            Data field access:
+
+            >>> key_points['class_name']
+            array(['person', 'person', 'dog'], dtype='<U6')
+
             ```
         """
         if isinstance(index, str):
@@ -1272,6 +1320,20 @@ class KeyPoints:
                  for class_id
                  in key_points.class_id
              ]
+            ```
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[10, 10], [20, 10]], [[100, 100], [110, 100]]]),
+            ...     class_id=np.array([0, 1]),
+            ... )
+            >>> names = {0: 'person', 1: 'dog'}
+            >>> key_points['class_name'] = [names[c] for c in key_points.class_id]
+            >>> key_points['class_name']
+            array(['person', 'dog'], dtype='<U6')
+
             ```
         """
         if not isinstance(value, (np.ndarray, list)):
@@ -1444,8 +1506,10 @@ class KeyPoints:
     ) -> KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
-        A keypoint is considered valid when its coordinates are not all-zero and its
-        `visible` flag is `True` (if `visible` is set).
+        A keypoint is considered valid when its coordinates are finite and not all-zero,
+        and its `visible` flag is `True` (if `visible` is set). A skeleton left without
+        a valid keypoint keeps a zero-area box, so it overlaps nothing and passes
+        through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1477,6 +1541,29 @@ class KeyPoints:
             key_points = model.predict(image)
             key_points = key_points.with_nms(threshold=0.5)
             ```
+
+            Two overlapping skeletons of the same class collapse to the more
+            confident one:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([
+            ...         [[10, 10], [20, 10], [15, 20]],
+            ...         [[12, 11], [22, 11], [17, 21]],
+            ...         [[100, 100], [110, 100], [105, 110]],
+            ...     ], dtype=float),
+            ...     class_id=np.array([0, 0, 1]),
+            ...     detection_confidence=np.array([0.9, 0.6, 0.8]),
+            ... )
+            >>> suppressed = key_points.with_nms(threshold=0.5)
+            >>> suppressed.detection_confidence
+            array([0.9, 0.8])
+            >>> suppressed.class_id
+            array([0, 1])
+
+            ```
         """
         if len(self) == 0:
             return self
@@ -1494,14 +1581,23 @@ class KeyPoints:
             )
 
         xy = self.xy
-        valid = ~np.all(xy == 0, axis=-1)
+        # A non-finite keypoint marks an undetected joint, so it must not reach the
+        # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
+        # every corner, leaving an all-`NaN` box that compares False against every
+        # IoU threshold and therefore suppresses nothing. `as_detections` applies
+        # the same rule.
+        valid = ~np.all(xy == 0, axis=-1) & np.isfinite(xy).all(axis=-1)
         if self.visible is not None:
             valid = valid & self.visible
+        has_valid = valid.any(axis=1)
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
         x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
         y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
         xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
+        # Skeletons left without a single valid keypoint would otherwise carry the
+        # `inf` sentinels above; a zero-area box keeps them out of every overlap.
+        xyxy[~has_valid] = 0.0
 
         if class_agnostic:
             predictions = np.hstack([xyxy, self.detection_confidence.reshape(-1, 1)])
@@ -1528,7 +1624,9 @@ class KeyPoints:
     ) -> Detections:
         """Convert a KeyPoints object to a Detections object. This approximates the
         bounding box of the detected object by taking the bounding box that fits all key
-        points.
+        points. Key points that are missing (`[0, 0]`), not finite, or marked not
+        visible via `visible` are left out, as in `with_nms`, and a skeleton with no
+        other key point is dropped.
 
         Args:
             selected_keypoint_indices: The
@@ -1554,7 +1652,9 @@ class KeyPoints:
 
             ```
         """
-        if self.is_empty():
+        # Inference can retain objects after every keypoint is omitted; an empty
+        # keypoint axis has no coordinates from which to construct a detection box.
+        if self.is_empty() or self.xy.shape[1] == 0:
             return Detections.empty()
 
         xy = self.xy
@@ -1569,6 +1669,10 @@ class KeyPoints:
         # [0, 0] is used by some frameworks to indicate a missing keypoint. Non-finite
         # coordinates cannot form a valid detection box, so both cases are excluded.
         valid = ~np.all(xy == 0, axis=2) & np.isfinite(xy).all(axis=2)  # (N, M)
+        # Callers hide unreliable keypoints through `visible` instead of removing
+        # them; `with_nms` already builds its boxes from visible keypoints only.
+        if self.visible is not None:
+            valid &= self.visible if indices is None else self.visible[:, indices]
         has_valid = valid.any(axis=1)  # (N,)
 
         x, y = xy[:, :, 0], xy[:, :, 1]

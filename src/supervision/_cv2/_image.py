@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -207,6 +208,46 @@ def _resize(
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
 
 
+_EXIF_ORIENTATION_TAG = 0x0112
+
+
+def _exif_oriented(image: Any) -> Any:
+    """Rotate and flip a Pillow image by its EXIF orientation tag, as OpenCV does.
+
+    `cv2.imread` and `cv2.imdecode` apply the tag on every read except
+    `IMREAD_UNCHANGED`. An image without the tag, or with the identity orientation
+    `1`, is returned as it is rather than copied.
+    """
+    from PIL import ImageOps
+
+    if image.getexif().get(_EXIF_ORIENTATION_TAG, 1) == 1:
+        return image
+    return ImageOps.exif_transpose(image)
+
+
+def _opencv_unchanged_mode(image: Any) -> str | None:
+    """Return the Pillow mode whose pixels match `cv2.imread(IMREAD_UNCHANGED)`.
+
+    OpenCV keeps an image's bit depth and alpha, but never returns a two-channel or
+    boolean array the way Pillow's own modes do: it expands palettes to BGR, adds an
+    alpha channel for grayscale with alpha and for a palette or RGB image with a
+    transparent color, and reads 1-bit images as 8-bit `0` and `255`. It also never
+    returns CMYK ink values, whose black channel would pass for alpha: a CMYK JPEG
+    is converted to BGR, and a CMYK TIFF to BGRA with an opaque alpha channel. `None`
+    means the image's own mode already matches.
+    """
+    has_transparency = "transparency" in image.info
+    if image.mode == "P":
+        return "RGBA" if has_transparency else "RGB"
+    if image.mode == "LA" or (image.mode == "RGB" and has_transparency):
+        return "RGBA"
+    if image.mode == "1":
+        return "L"
+    if image.mode == "CMYK":
+        return "RGBA" if image.format == "TIFF" else "RGB"
+    return None
+
+
 def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
     """Decode any source Pillow can open into BGR or BGRA arrays."""
     from PIL import Image
@@ -214,21 +255,20 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
     try:
         with Image.open(source) as image:
             if flags == _IMREAD_UNCHANGED:
-                if image.mode == "P":
-                    converted = image.convert(
-                        "RGBA" if "transparency" in image.info else "RGB"
-                    )
+                unchanged_mode = _opencv_unchanged_mode(image)
+                if unchanged_mode is not None:
+                    converted = image.convert(unchanged_mode)
                     values = np.asarray(converted)
                     converted.close()
                 else:
                     values = np.asarray(image)
             elif image.mode in {"I", "I;16", "I;16B", "I;16L"}:
-                values = np.asarray(image).astype(np.float64)
+                values = np.asarray(_exif_oriented(image)).astype(np.float64)
                 values = np.clip(np.rint(values / 256), 0, 255).astype(np.uint8)
                 if values.ndim == 2:
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
-                values = np.asarray(image.convert("RGB"))
+                values = np.asarray(_exif_oriented(image).convert("RGB"))
     except (FileNotFoundError, OSError, ValueError):
         return None
 
@@ -264,15 +304,38 @@ def _bgr_to_pil_values(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return np.ascontiguousarray(values)
 
 
+def _opencv_default_save_options(image_format: str | None) -> dict[str, Any]:
+    """Return the Pillow save options that encode like OpenCV's default writers.
+
+    Given no parameters, `cv2.imwrite` and `cv2.imencode` write JPEG at quality 95 and
+    WebP losslessly, while Pillow's defaults are JPEG at quality 75 and lossy WebP at
+    quality 80. Formats such as PNG, BMP and TIFF are lossless in both libraries.
+    """
+    if image_format == "JPEG":
+        return {"quality": 95}
+    if image_format == "WEBP":
+        return {"lossless": True}
+    return {}
+
+
 def _imwrite(
     filename: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> bool:
-    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status."""
+    """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status.
+
+    `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
+    ignored: the file is encoded with the OpenCV defaults that
+    `_opencv_default_save_options` returns, not with the quality or compression the
+    caller asked for.
+    """
     from PIL import Image
 
     del params
+    extension = os.path.splitext(filename)[1].lower()
+    image_format = Image.registered_extensions().get(extension)
+    save_options = _opencv_default_save_options(image_format)
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(filename)
+        Image.fromarray(_bgr_to_pil_values(image)).save(filename, **save_options)
     except (OSError, ValueError):
         return False
     return True
@@ -281,19 +344,29 @@ def _imwrite(
 def _imencode(
     ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> tuple[bool, npt.NDArray[np.uint8] | None]:
-    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return."""
+    """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return.
+
+    `params` is accepted for compatibility with `cv2.imencode`'s signature and is
+    ignored: the image is encoded with the OpenCV defaults that
+    `_opencv_default_save_options` returns, not with the quality or compression the
+    caller asked for.
+    """
     import io
 
     from PIL import Image
 
     del params
-    # Pillow registers the JPEG codec as "JPEG", not the "jpg" file extension.
-    image_format = ext.lstrip(".").upper()
-    if image_format == "JPG":
-        image_format = "JPEG"
+    # A suffix is not its codec's name, so resolve it through the same registry
+    # `_imwrite` and `Image.save` consult for a file path. An unregistered suffix
+    # resolves to None, which `Image.save` rejects for a buffer with no file name.
+    extension = f".{ext.lstrip('.').lower()}"
+    image_format = Image.registered_extensions().get(extension)
+    save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(buffer, format=image_format)
+        Image.fromarray(_bgr_to_pil_values(image)).save(
+            buffer, format=image_format, **save_options
+        )
     except (KeyError, OSError, ValueError):
         return False, None
     return True, np.frombuffer(buffer.getvalue(), dtype=np.uint8)

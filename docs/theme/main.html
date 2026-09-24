@@ -190,7 +190,7 @@ APIs described here may have changed or been removed, so use the <a href="{{ lat
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use a tracker to assign persistent IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections with update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package, whose update method is named update(). Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
+        "text": "Use ByteTrackTracker from the external trackers package, which accepts Detections through update(); the built-in sv.ByteTrack wrapper, which used update_with_detections(), was removed as of supervision-0.31.0. Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
       }
     },
     {
@@ -281,7 +281,7 @@ APIs described here may have changed or been removed, so use the <a href="{{ lat
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections through update_with_detections(). After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
+        "text": "Assign persistent tracker IDs before visualization using ByteTrackTracker from the external trackers package; the built-in sv.ByteTrack wrapper was removed as of supervision-0.31.0. After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
       }
     },
     {
@@ -503,7 +503,7 @@ APIs described here may have changed or been removed, so use the <a href="{{ lat
       "name": "How do I track objects in video with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Assign persistent tracker IDs before visualizing trajectories. The built-in sv.ByteTrack wrapper supports update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package. Combine tracked Detections with sv.TraceAnnotator. See the Object Tracking cookbook."
+        "text": "Assign persistent tracker IDs before visualizing trajectories using ByteTrackTracker from the external trackers package; the built-in sv.ByteTrack wrapper was removed as of supervision-0.31.0. Combine tracked Detections with sv.TraceAnnotator. See the Object Tracking cookbook."
       }
     }
   ]

@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
@@ -5,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -1354,6 +1357,32 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert masks.shape == (2, 480, 640)
 
 
+def _gemini_mask_data_uri(probabilities: np.ndarray) -> str:
+    """Encode a 0-255 probability map as the PNG data URI Gemini returns as a mask."""
+    buffer = io.BytesIO()
+    Image.fromarray(probabilities).save(buffer, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability() -> None:
+    """A mask pixel is foreground only where its probability is above 127 of 255."""
+    probabilities = np.array([[255, 128], [127, 1]], dtype=np.uint8)
+    result = json.dumps(
+        [
+            {
+                "box_2d": [0, 0, 1000, 1000],
+                "label": "cat",
+                "mask": _gemini_mask_data_uri(probabilities),
+            }
+        ]
+    )
+
+    _, _, _, _, masks = from_google_gemini_2_5(result=result, resolution_wh=(2, 2))
+
+    assert masks is not None
+    np.testing.assert_array_equal(masks, [[[True, True], [False, False]]])
+
+
 def test_from_vlm_unsupported_future_enum_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1371,6 +1400,7 @@ def test_from_vlm_unsupported_future_enum_raises(
         GOOGLE_GEMINI_3_6 = object()
         GOOGLE_GEMINI_3_7 = object()
         MOONDREAM = object()
+        KOSMOS_2 = object()
         FUTURE = object()
 
     monkeypatch.setattr(detection_core, "VLM", FakeVLM)
@@ -1848,3 +1878,194 @@ class TestFromVlmCornerOrdering:
 
         assert np.array_equal(detections.xyxy, np.array([[10.0, 20.0, 30.0, 40.0]]))
         assert detections.xyxy.dtype == np.float32
+
+
+class TestFromKosmos2:
+    """`Detections.from_vlm(VLM.KOSMOS_2, ...)` over grounded caption results."""
+
+    @pytest.mark.parametrize(
+        ("result", "resolution_wh", "expected_xyxy", "expected_class_name"),
+        [
+            pytest.param(
+                ("", []),
+                (1000, 1000),
+                np.empty((0, 4)),
+                np.array([], dtype=object),
+                id="empty-result",
+            ),
+            pytest.param(
+                ("An image of a cat and a dog.", []),
+                (1000, 1000),
+                np.empty((0, 4)),
+                np.array([], dtype=object),
+                id="caption-without-entities",
+            ),
+            pytest.param(
+                ("An image of a cat.", [("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)])]),
+                (1000, 1000),
+                np.array([[200.0, 300.0, 600.0, 700.0]]),
+                np.array(["a cat"]),
+                id="single-entity",
+            ),
+            pytest.param(
+                (
+                    "An image of a cat and a dog.",
+                    [
+                        ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+                        ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+                    ],
+                ),
+                (500, 500),
+                np.array([[100.0, 150.0, 300.0, 350.0], [250.0, 300.0, 400.0, 450.0]]),
+                np.array(["a cat", "a dog"]),
+                id="two-entities-scaled-to-smaller-resolution",
+            ),
+        ],
+    )
+    def test_parses_entities(
+        self,
+        result: tuple[str, list[Any]],
+        resolution_wh: tuple[int, int],
+        expected_xyxy: np.ndarray,
+        expected_class_name: np.ndarray,
+    ) -> None:
+        """Each grounded entity becomes a detection scaled to the target resolution."""
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2, result=result, resolution_wh=resolution_wh
+        )
+
+        assert np.allclose(detections.xyxy, expected_xyxy)
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], expected_class_name
+        )
+
+    def test_entity_with_several_boxes_yields_one_detection_per_box(self) -> None:
+        """A phrase grounding several regions must not collapse to its first box."""
+        result = (
+            "Two cats.",
+            [("a cat", (4, 8), [(0.1, 0.1, 0.3, 0.3), (0.5, 0.5, 0.7, 0.7)])],
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2, result=result, resolution_wh=(100, 100)
+        )
+
+        assert np.allclose(
+            detections.xyxy,
+            np.array([[10.0, 10.0, 30.0, 30.0], [50.0, 50.0, 70.0, 70.0]]),
+        )
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], np.array(["a cat", "a cat"])
+        )
+
+    def test_repeated_phrase_shares_one_class_id(self) -> None:
+        """Two entities naming the same phrase must map to the same class id."""
+        result = (
+            "A cat and another cat.",
+            [
+                ("a cat", (0, 5), [(0.1, 0.1, 0.2, 0.2)]),
+                ("a dog", (10, 15), [(0.3, 0.3, 0.4, 0.4)]),
+                ("a cat", (20, 25), [(0.5, 0.5, 0.6, 0.6)]),
+            ],
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2, result=result, resolution_wh=(100, 100)
+        )
+
+        np.testing.assert_array_equal(detections.class_id, np.array([0, 1, 0]))
+
+    def test_classes_filter_assigns_index_into_classes(self) -> None:
+        """`class_id` must index into `classes`, not into the surviving detections."""
+        result = (
+            "An image of a cat and a dog.",
+            [
+                ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+                ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+            ],
+        )
+
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2,
+            result=result,
+            resolution_wh=(1000, 1000),
+            classes=["a bird", "a dog"],
+        )
+
+        assert np.allclose(detections.xyxy, np.array([[500.0, 600.0, 800.0, 900.0]]))
+        np.testing.assert_array_equal(detections.class_id, np.array([1]))
+        np.testing.assert_array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD], np.array(["a dog"])
+        )
+
+    @pytest.mark.parametrize(
+        ("result", "classes"),
+        [
+            pytest.param(("", []), None, id="no-entities"),
+            pytest.param(
+                ("A cat.", [("a cat", (0, 5), [(0.1, 0.1, 0.2, 0.2)])]),
+                ["a dog"],
+                id="every-entity-filtered-out",
+            ),
+        ],
+    )
+    def test_empty_outcome_keeps_class_id_integer(
+        self, result: tuple[str, list[Any]], classes: list[str] | None
+    ) -> None:
+        """An empty result must not leave `class_id` as a float array."""
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2,
+            result=result,
+            resolution_wh=(100, 100),
+            classes=classes,
+        )
+
+        assert len(detections) == 0
+        assert detections.class_id is not None
+        assert detections.class_id.dtype == int
+
+    def test_transposed_box_corners_are_ordered(self) -> None:
+        """A box whose corner pairs arrive swapped must come back ordered."""
+        result = ("A cat.", [("a cat", (0, 5), [(0.6, 0.7, 0.2, 0.3)])])
+
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2, result=result, resolution_wh=(1000, 1000)
+        )
+
+        assert np.allclose(detections.xyxy, np.array([[200.0, 300.0, 600.0, 700.0]]))
+
+    @pytest.mark.parametrize(
+        ("result", "kwargs", "exception"),
+        [
+            pytest.param(
+                "not a tuple",
+                {"resolution_wh": (100, 100)},
+                pytest.raises(ValueError, match="Invalid VLM result type"),
+                id="result-is-not-a-tuple",
+            ),
+            pytest.param(
+                ("caption", [], "extra"),
+                {"resolution_wh": (100, 100)},
+                pytest.raises(ValueError, match="caption, entities"),
+                id="result-is-not-a-pair",
+            ),
+            pytest.param(
+                ("A cat.", [("a cat", (0, 5), [(0.1, 0.1, 0.2, 0.2)])]),
+                {"resolution_wh": (0, 100)},
+                pytest.raises(ValueError, match="must be positive"),
+                id="non-positive-resolution",
+            ),
+            pytest.param(
+                ("A cat.", [("a cat", (0, 5), [(0.1, 0.1, 0.2, 0.2)])]),
+                {},
+                pytest.raises(ValueError, match="Missing required argument"),
+                id="missing-resolution",
+            ),
+        ],
+    )
+    def test_invalid_input_raises(
+        self, result: Any, kwargs: dict[str, Any], exception: Any
+    ) -> None:
+        """Malformed results and resolutions must fail loudly, not silently."""
+        with exception:
+            Detections.from_vlm(vlm=VLM.KOSMOS_2, result=result, **kwargs)

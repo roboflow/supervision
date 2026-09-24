@@ -12,45 +12,34 @@ from typing import TYPE_CHECKING, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
+from supervision._cv2._image import _EXIF_ORIENTATION_TAG
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
-from supervision.detection.utils.converters import (
-    mask_to_rle as _mask_to_rle,
-)
-from supervision.detection.utils.converters import (
-    rle_to_mask as _rle_to_mask,
-)
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
 
+_QUARTER_TURN_EXIF_ORIENTATIONS = frozenset({5, 6, 7, 8})
 
-@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
-def mask_to_rle(
-    mask: npt.NDArray[np.bool_], compressed: bool = False
-) -> list[int] | str:
-    """Deprecated since 0.28.0.
 
-    Use `supervision.detection.utils.converters.mask_to_rle`.
+def _image_file_resolution_wh(image_path: str) -> tuple[int, int]:
+    """Return the `(width, height)` at which `cv2.imread` loads an image file.
+
+    Only the file header is read, which is much faster than decoding the image (#1554).
+    Loading applies the EXIF orientation tag, and orientations 5 to 8 turn the image a
+    quarter turn, so for those the header's width and height are swapped.
     """
-    return cast(list[int] | str, void(mask, compressed))
-
-
-@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.31.0")  # type: ignore[untyped-decorator]
-def rle_to_mask(
-    rle: npt.NDArray[np.integer] | list[int] | str | bytes,
-    resolution_wh: tuple[int, int],
-) -> npt.NDArray[np.bool_]:
-    """Deprecated since 0.28.0.
-
-    Use `supervision.detection.utils.converters.rle_to_mask`.
-    """
-    return cast(npt.NDArray[np.bool_], void(rle, resolution_wh))
+    with Image.open(image_path) as image:
+        width, height = image.size
+        orientation = image.getexif().get(_EXIF_ORIENTATION_TAG)
+    if orientation in _QUARTER_TURN_EXIF_ORIENTATIONS:
+        return height, width
+    return width, height
 
 
 if TYPE_CHECKING:
@@ -245,12 +234,17 @@ def train_test_split(
 
     Args:
         data: The data to split.
-        train_ratio: The ratio of the training set to the entire dataset.
+        train_ratio: The ratio of the training set to the entire dataset, within
+            the inclusive range `[0, 1]`. `0` sends everything to the second part
+            and `1` sends everything to the first.
         random_state: The seed for the random number generator.
         shuffle: Whether to shuffle the data before splitting.
 
     Returns:
         The split data. The input list is copied and never mutated.
+
+    Raises:
+        ValueError: If `train_ratio` is outside `[0, 1]` or is not a finite number.
 
     Examples:
         ```pycon
@@ -262,6 +256,14 @@ def train_test_split(
 
         ```
     """
+    # NaN fails both comparisons, so it is rejected here together with ±inf and
+    # out-of-range values, before any shuffling or slicing happens.
+    if not 0.0 <= train_ratio <= 1.0:
+        raise ValueError(
+            "Expected a split ratio within the inclusive range [0, 1], "
+            f"got {train_ratio!r}."
+        )
+
     rng = random.Random(random_state)  # noqa: S311 — dataset split, not cryptographic
     if shuffle:
         data = list(data)

@@ -1,3 +1,4 @@
+import math
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -198,6 +199,8 @@ def load_pascal_voc_annotations(
 
     Args:
         images_directory_path: The path to the directory containing the images.
+            Files with a ``.bmp``, ``.jpeg``, ``.jpg``, ``.png``, ``.tif``,
+            ``.tiff`` or ``.webp`` extension are loaded.
         annotations_directory_path: The path to the directory containing the
             PASCAL VOC annotation files.
         force_masks: If True, forces masks to be loaded for all
@@ -212,7 +215,8 @@ def load_pascal_voc_annotations(
     image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
-            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+            directory=images_directory_path,
+            extensions=["bmp", "jpeg", "jpg", "png", "tif", "tiff", "webp"],
         )
     )
 
@@ -295,7 +299,7 @@ def detections_from_xml_obj(
             integer-dtype array, including the zero-``<object>`` (background)
             case where it is empty.
     """
-    xyxy: list[list[int]] = []
+    xyxy: list[list[float]] = []
     class_names: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
     with_masks = force_masks or any(
@@ -309,10 +313,10 @@ def detections_from_xml_obj(
         bbox = obj.find("bndbox")
         if bbox is None:
             raise ValueError("Missing bndbox in Pascal VOC annotation.")
-        x1 = int(_get_required_text(bbox, "xmin"))
-        y1 = int(_get_required_text(bbox, "ymin"))
-        x2 = int(_get_required_text(bbox, "xmax"))
-        y2 = int(_get_required_text(bbox, "ymax"))
+        x1 = _parse_coordinate(_get_required_text(bbox, "xmin"), "xmin")
+        y1 = _parse_coordinate(_get_required_text(bbox, "ymin"), "ymin")
+        x2 = _parse_coordinate(_get_required_text(bbox, "xmax"), "xmax")
+        y2 = _parse_coordinate(_get_required_text(bbox, "ymax"), "ymax")
 
         xyxy.append([x1, y1, x2, y2])
 
@@ -324,8 +328,10 @@ def detections_from_xml_obj(
             # https://github.com/roboflow/supervision/issues/144
             polygon -= 1
 
+            # Round only after the 1-index offset, as the YOLO and LabelMe loaders
+            # round zero-indexed vertices; rounding first would move `.5` values.
             mask_from_polygon = polygon_to_mask(
-                polygon=polygon,
+                polygon=np.round(polygon).astype(np.int32),
                 resolution_wh=resolution_wh,
             )
             object_mask |= mask_from_polygon.astype(bool)
@@ -377,15 +383,35 @@ def _with_poly_mask(obj: Element) -> bool:
     return obj.find("polygon") is not None
 
 
-def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
-    coordinates: list[int] = []
+def _parse_coordinate(text: str, tag: str) -> float:
+    """Parse one Pascal VOC coordinate written as an integer or a decimal.
+
+    Exporters that keep sub-pixel boxes write values such as ``48.5`` or ``48.0``,
+    which ``int()`` rejects. Anything that is not a finite number still raises.
+    """
+    try:
+        value = float(text)
+    except ValueError:
+        value = math.nan
+    if not math.isfinite(value):
+        raise ValueError(f"Invalid '{tag}' value {text!r} in Pascal VOC annotation.")
+    return value
+
+
+def parse_polygon_points(polygon: Element) -> npt.NDArray[np.float64]:
+    """Parse ``<polygon>`` vertices, keeping decimal values as written.
+
+    Vertices stay floats so the caller can apply the 1-index offset before rounding them
+    to pixels for rasterisation.
+    """
+    coordinates: list[float] = []
     for coord in polygon.findall(".//*"):
         if coord.text is None:
             raise ValueError("Missing polygon coordinate value in Pascal VOC.")
-        coordinates.append(int(coord.text))
+        coordinates.append(_parse_coordinate(coord.text, coord.tag))
     return np.array(
         [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)],
-        dtype=int,
+        dtype=np.float64,
     )
 
 
@@ -405,6 +431,8 @@ def save_pascal_voc_annotations(
     show_progress: bool = False,
 ) -> None:
     """Write Pascal VOC XML annotation files for every image in *dataset*.
+
+    Files are written as UTF-8, whatever the platform's default encoding is.
 
     Args:
         dataset: Dataset whose annotations are saved.
@@ -465,5 +493,6 @@ def save_pascal_voc_annotations(
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
         )
-        with open(annotations_path, "w") as f:
+        # The XML declaration names no encoding, so readers decode it as UTF-8.
+        with open(annotations_path, "w", encoding="utf-8") as f:
             f.write(pascal_voc_xml)

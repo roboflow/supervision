@@ -22,13 +22,13 @@ class PolygonZone:
     !!! warning
 
         PolygonZone uses the `tracker_id`. Read
-        [here](/latest/trackers/) to learn how to plug
+        [here](https://trackers.roboflow.com/latest/) to learn how to plug
         tracking into your inference pipeline.
 
     Attributes:
         polygon: A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        triggering_anchors: A list of positions specifying
+        triggering_anchors: Any iterable of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).

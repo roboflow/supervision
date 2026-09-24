@@ -81,7 +81,6 @@ nav:
           - Inference Slicer: detection/tools/inference_slicer.md
           - Detection Smoother: detection/tools/smoother.md
           - Save Detections: detection/tools/save_detections.md
-      - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
       - Metrics:
@@ -90,6 +89,8 @@ nav:
           - Precision: metrics/precision.md
           - Recall: metrics/recall.md
           - F1 Score: metrics/f1_score.md
+          - Aggregate Comparison: metrics/aggregate.md
+          - Match Detections: metrics/match_detections.md
           - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:

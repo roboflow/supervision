@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import re
+from collections.abc import Callable
 from enum import Enum
 from typing import Any, cast
 
@@ -15,59 +16,7 @@ from PIL import Image
 
 from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
-from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_resolution
-
-
-class LMM(Enum):
-    """Enum specifying supported Large Multimodal Models (LMMs).
-
-    !!! deprecated "Deprecated"
-
-        `LMM` is deprecated and will be removed in `supervision-0.31.0`.
-        Use `VLM` instead.
-
-    Attributes:
-        PALIGEMMA: Google's PaliGemma vision-language model.
-        FLORENCE_2: Microsoft's Florence-2 vision-language model.
-        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.\
-        QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
-        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
-        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
-        MOONDREAM: The Moondream vision-language model.
-    """
-
-    PALIGEMMA = "paligemma"
-    FLORENCE_2 = "florence_2"
-    QWEN_2_5_VL = "qwen_2_5_vl"
-    QWEN_3_VL = "qwen_3_vl"
-    DEEPSEEK_VL_2 = "deepseek_vl_2"
-    GOOGLE_GEMINI_2_0 = "gemini_2_0"
-    GOOGLE_GEMINI_2_5 = "gemini_2_5"
-    MOONDREAM = "moondream"
-
-    @classmethod
-    def list(cls) -> list[str]:
-        return [c.value for c in cls]
-
-    @classmethod
-    def from_value(cls, value: LMM | str) -> LMM:
-        warn_deprecated(
-            "`LMM` is deprecated since `supervision-0.27.0` and will be removed in "
-            "`supervision-0.31.0`. Use `VLM` instead."
-        )
-        if isinstance(value, cls):
-            return value
-        if isinstance(value, str):
-            value = value.lower()
-            try:
-                return cls(value)
-            except ValueError:
-                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
-        raise ValueError(
-            f"Invalid value type: {type(value)}. Must be an instance of "
-            f"{cls.__name__} or str."
-        )
 
 
 class VLM(Enum):
@@ -84,6 +33,7 @@ class VLM(Enum):
         GOOGLE_GEMINI_3_6: Google Gemini 3.6 vision-language model.
         GOOGLE_GEMINI_3_7: Google Gemini 3.7 vision-language model.
         MOONDREAM: The Moondream vision-language model.
+        KOSMOS_2: Microsoft's Kosmos-2 grounded vision-language model.
     """
 
     PALIGEMMA = "paligemma"
@@ -97,6 +47,7 @@ class VLM(Enum):
     GOOGLE_GEMINI_3_6 = "gemini_3_6"
     GOOGLE_GEMINI_3_7 = "gemini_3_7"
     MOONDREAM = "moondream"
+    KOSMOS_2 = "kosmos_2"
 
     @classmethod
     def list(cls) -> list[str]:
@@ -130,6 +81,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.GOOGLE_GEMINI_3_6: str,
     VLM.GOOGLE_GEMINI_3_7: str,
     VLM.MOONDREAM: dict,
+    VLM.KOSMOS_2: tuple,
 }
 
 REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -144,6 +96,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_3_6: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_3_7: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -158,6 +111,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_3_6: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_3_7: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -225,6 +179,40 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
     return void(vlm, result, kwargs)  # type: ignore[no-any-return]
 
 
+def _filter_by_classes(
+    xyxy: npt.NDArray[Any],
+    class_name: npt.NDArray[Any],
+    classes: list[str],
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+    """Keep detections whose class name is in `classes` and assign `class_id`.
+
+    Shared by the VLM parsers (`from_paligemma`, `from_qwen_2_5_vl`,
+    `from_deepseek_vl_2`, `from_google_gemini_2_0`) that all filter detections with
+    an identical `name in classes` mask and then derive `class_id` from
+    `classes.index(name)` - extracting it once keeps that mask/index pairing from
+    drifting between callers.
+
+    Args:
+        xyxy: Array of shape `(n, 4)` with box coordinates, aligned with
+            `class_name`.
+        class_name: Array of shape `(n,)` with class labels.
+        classes: List of valid class names to keep; also used to assign
+            `class_id` via `classes.index(name)`.
+
+    Returns:
+        A tuple of `(xyxy, class_name, class_id)` narrowed to the detections
+            whose class name is in `classes`, where `class_id` is an array of
+            shape `(n,)` with indices into `classes`.
+    """
+    mask = np.array([name in classes for name in class_name], dtype=bool)
+    xyxy = xyxy[mask]
+    class_name = class_name[mask]
+    # `dtype=int` matters only when every detection is filtered out: an empty list
+    # would otherwise make NumPy pick `float64` for an array of class indices.
+    class_id = np.array([classes.index(name) for name in class_name], dtype=int)
+    return xyxy, class_name, class_id
+
+
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
@@ -260,10 +248,9 @@ def from_paligemma(
     class_id: npt.NDArray[Any] | None = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy_arr = xyxy_arr[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy_arr, class_name, class_id = _filter_by_classes(
+            xyxy_arr, class_name, classes
+        )
 
     return xyxy_arr, class_id, class_name
 
@@ -394,10 +381,7 @@ def from_qwen_2_5_vl(
     class_id = None
 
     if classes is not None:
-        mask = np.array([label in classes for label in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
 
     return xyxy, class_id, class_name
 
@@ -494,10 +478,7 @@ def from_deepseek_vl_2(
     )
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
     else:
         unique_classes = sorted(list(set(class_name)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
@@ -688,6 +669,30 @@ def _recover_gemini_boxes_payload(text: str) -> dict[str, Any] | None:
     return {"boxes": _recover_gemini_json_objects(text[array_index:])}
 
 
+def _parse_gemini_json(result: str, recover: Callable[[str], Any]) -> Any:
+    """Strip a Gemini response's markdown fence and decode its JSON payload.
+
+    Shared by the Gemini parsers (`from_google_gemini_2_0`, `from_google_gemini_2_5`,
+    `from_google_gemini_3_6`) that all fence-strip then `json.loads`, falling back to
+    a recovery function on `JSONDecodeError` - extracting it once keeps that
+    strip/decode/recover sequence from drifting between callers as each targets a
+    different malformed-response shape.
+
+    Args:
+        result: Raw response text, which may wrap its JSON in a ```json fence.
+        recover: Called with the fence-stripped text when `json.loads` fails;
+            returns the best-effort recovered payload.
+
+    Returns:
+        The decoded JSON value, or whatever `recover` returns when decoding fails.
+    """
+    stripped = _strip_gemini_json_fence(result)
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return recover(stripped)
+
+
 def _parse_gemini_boxes(
     items: list[dict[str, Any]],
     resolution_wh: tuple[int, int],
@@ -823,18 +828,13 @@ def from_google_gemini_2_0(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        data = _recover_gemini_json_objects(result)
+    data = _parse_gemini_json(result, _recover_gemini_json_objects)
 
     if not isinstance(data, list):
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     labels = []
-    xyxy = []
+    xyxy_list = []
 
     for item in data:
         if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
@@ -842,13 +842,13 @@ def from_google_gemini_2_0(
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        xyxy.append([box[1], box[0], box[3], box[2]])
+        xyxy_list.append([box[1], box[0], box[3], box[2]])
 
-    if len(xyxy) == 0:
+    if len(xyxy_list) == 0:
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     xyxy = denormalize_boxes(
-        np.array(xyxy, dtype=np.float64),
+        np.array(xyxy_list, dtype=np.float64),
         resolution_wh=(w, h),
         normalization_factor=1000,
     )
@@ -856,10 +856,7 @@ def from_google_gemini_2_0(
     class_id = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
 
     return xyxy, class_id, class_name
 
@@ -905,16 +902,12 @@ def from_google_gemini_2_5(
             `class_name` is an array of shape `(n,)` with class labels,
             `confidence` is an optional array of shape `(n,)` with confidence
             scores, and `masks` is an optional array of shape `(n, h, w)` with
-            segmentation masks.
+            segmentation masks. Each mask PNG is a 0-255 probability map, kept
+            where it is above `127` after resizing to its box.
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        data = _recover_gemini_json_objects(result)
+    data = _parse_gemini_json(result, _recover_gemini_json_objects)
 
     empty_result = (
         np.empty((0, 4)),
@@ -981,7 +974,10 @@ def from_google_gemini_2_5(
                 resample=Image.Resampling.BILINEAR,
             )
             np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+            # The PNG is a probability map from 0 to 255, and the bilinear resize
+            # blends values along every edge. Binarize at the midpoint, as Google's
+            # segmentation guide does, so pixels scored as unlikely stay outside.
+            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 127
             masks_list.append(np_mask)
 
         # A response whose items are all filtered out still owes the caller a 3D
@@ -1070,12 +1066,7 @@ def from_google_gemini_3_6(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    result = _strip_gemini_json_fence(result)
-
-    try:
-        payload = json.loads(result)
-    except json.JSONDecodeError:
-        payload = _recover_gemini_boxes_payload(result)
+    payload = _parse_gemini_json(result, _recover_gemini_boxes_payload)
 
     if not isinstance(payload, dict) or not isinstance(payload.get("boxes"), list):
         return (
@@ -1217,3 +1208,90 @@ def from_moondream(
             resolution_wh=(w, h),
         ),
     )
+
+
+def from_kosmos_2(
+    result: tuple[str, list[Any]],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+    """Parse and scale bounding boxes from a Kosmos-2 grounding result.
+
+    Kosmos-2 returns the pair its `AutoProcessor.post_process_generation` produces: the
+    generated caption, and one entity per grounded phrase. Each entity is
+    `(phrase, (start, end), boxes)`, where `(start, end)` locates the phrase in the
+    caption and `boxes` holds every region that phrase grounds to, normalized to
+    `[0, 1]`:
+
+    ```python
+    result = (
+        "An image of a cat and a dog.",
+        [
+            ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+            ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+        ],
+    )
+    ```
+
+    Args:
+        result: The `(caption, entities)` pair returned by the model's post-processor.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here, and `class_id` indexes into
+            this list.
+
+    Returns:
+        A tuple of `(xyxy, class_id, class_name)`, where `xyxy` has shape `(n, 4)` in
+            `[x1, y1, x2, y2]` format, and `class_id` and `class_name` have shape
+            `(n,)`.
+
+    Examples:
+        ```pycon
+        >>> import supervision as sv
+        >>> from supervision.detection.vlm import from_kosmos_2
+        >>> result = (
+        ...     "An image of a cat.",
+        ...     [("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)])],
+        ... )
+        >>> from_kosmos_2(result, resolution_wh=(1000, 1000))
+        (array([[200., 300., 600., 700.]]), array([0]), array(['a cat'], dtype='<U5'))
+
+        ```
+    """
+    w, h = _validate_resolution(resolution_wh)
+
+    if len(result) != 2:
+        raise ValueError(
+            f"Invalid Kosmos-2 result: expected a (caption, entities) pair, "
+            f"got {len(result)} elements."
+        )
+    _, entities = result
+
+    normalized_xyxy: list[Any] = []
+    class_name_list: list[str] = []
+    for phrase, _span, boxes in entities:
+        # One phrase grounds to every region it matches, so an entity carries a list
+        # of boxes; each becomes its own detection under the shared phrase.
+        for box in boxes:
+            normalized_xyxy.append(box)
+            class_name_list.append(phrase)
+
+    if normalized_xyxy:
+        xyxy = denormalize_boxes(
+            np.array(normalized_xyxy, dtype=np.float64), resolution_wh=(w, h)
+        )
+        class_name = np.array(class_name_list)
+    else:
+        xyxy = np.empty((0, 4), dtype=np.float64)
+        class_name = np.array([], dtype=object)
+
+    if classes is not None:
+        xyxy, class_name, class_id = _filter_by_classes(xyxy, class_name, classes)
+    else:
+        unique_classes = sorted(set(class_name_list))
+        class_to_id = {name: i for i, name in enumerate(unique_classes)}
+        # `dtype=int` matters only when there are no detections: an empty list would
+        # otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([class_to_id[name] for name in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
