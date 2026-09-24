@@ -36,7 +36,9 @@ class LineZone:
 
         LineZone uses the `tracker_id`. Read
         [here](https://trackers.roboflow.com/latest/) to learn how to plug
-        tracking into your inference pipeline.
+        tracking into your inference pipeline. Detections with a negative
+        `tracker_id`, which trackers report for tracks they have not confirmed
+        yet, are ignored and never counted.
 
     Attributes:
         in_count: The number of objects that have crossed the line from outside
@@ -171,6 +173,10 @@ class LineZone:
         """Update the `in_count` and `out_count` based on the objects that cross the
         line.
 
+        Detections whose `tracker_id` is negative are treated as unconfirmed
+        tracks and ignored: they are never counted, leave no crossing state
+        behind, and their entries in both returned arrays are always `False`.
+
         Args:
             detections: A Detections object for which to update the counts.
 
@@ -201,7 +207,14 @@ class LineZone:
             if detections.class_id is not None
             else [None] * len(detections)
         )
-        current_keys = {int(tracker_id) for tracker_id in detections.tracker_id}
+        # Trackers report a negative id for tracks they have not confirmed yet, so
+        # several distinct objects can share it. Such detections get no crossing
+        # state at all: they are left out of the eviction keys here and skipped in
+        # the loop below, otherwise they would collapse into one phantom track.
+        unconfirmed = detections.tracker_id < 0
+        current_keys = {
+            int(tracker_id) for tracker_id in detections.tracker_id[~unconfirmed]
+        }
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
@@ -212,6 +225,9 @@ class LineZone:
         for i, (class_id, tracker_id) in enumerate(
             zip(class_ids, detections.tracker_id)
         ):
+            if unconfirmed[i]:
+                continue
+
             if not in_limits[i]:
                 continue
 
