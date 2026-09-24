@@ -1056,6 +1056,24 @@ def test_line_zone_trigger_does_not_call_np_cross(
     assert line_zone.out_count == 1
 
 
+def test_line_zone_skips_unconfirmed_tracks() -> None:
+    """Detections with a negative tracker_id (unconfirmed tracks) are ignored.
+
+    Regression guard for #2578: ByteTrack-style trackers return -1 for tracks
+    that have not yet been confirmed, and every -1 was previously collapsed into
+    one shared track, silently inflating crossing counts.
+    """
+    line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+
+    for y in (20, 160, 20, 160, 20, 160):
+        detections = _create_detections(
+            xyxy=[[80.0, y, 120.0, y + 40]], tracker_id=[-1]
+        )
+        line_zone.trigger(detections)
+
+    assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+
 @pytest.mark.parametrize(
     "make_anchors",
     [

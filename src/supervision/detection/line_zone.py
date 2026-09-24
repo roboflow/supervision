@@ -201,7 +201,9 @@ class LineZone:
             if detections.class_id is not None
             else [None] * len(detections)
         )
-        current_keys = {int(tracker_id) for tracker_id in detections.tracker_id}
+        current_keys = {
+            int(tracker_id) for tracker_id in detections.tracker_id if tracker_id >= 0
+        }
         self._evict_stale_crossing_history(current_keys)
         self._update_class_id_to_name(detections)
 
@@ -212,6 +214,9 @@ class LineZone:
         for i, (class_id, tracker_id) in enumerate(
             zip(class_ids, detections.tracker_id)
         ):
+            if tracker_id is None or tracker_id < 0:
+                continue
+
             if not in_limits[i]:
                 continue
 
