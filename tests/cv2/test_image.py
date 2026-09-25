@@ -353,6 +353,26 @@ def test_fallback_imread_unchanged_converts_cmyk_like_opencv(
     np.testing.assert_allclose(actual.astype(np.int16), expected, atol=2)
 
 
+def test_fallback_imread_unchanged_expands_palette_with_alpha_like_opencv(
+    tmp_path: Path,
+) -> None:
+    """Read a palette image carrying alpha as color, not as index and alpha."""
+    from PIL import Image
+
+    image_path = tmp_path / "image.tif"
+    rgba = np.zeros((4, 4, 4), dtype=np.uint8)
+    rgba[..., :3] = (200, 30, 90)
+    rgba[:2, :, 3] = 255
+    Image.fromarray(rgba, mode="RGBA").convert("PA").save(image_path)
+
+    actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+    expected = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+    assert actual is not None
+    assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_in_memory_codec_preserves_bgr() -> None:
     """Preserve BGR channel order across an encode and decode round trip."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
