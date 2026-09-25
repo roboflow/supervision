@@ -4050,6 +4050,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.polygon_to_mask</code> now accepts a Python list, tuple, or array-like of <code>[x, y]</code> vertices, returning an all-zero mask for a polygon with no vertices or fewer than <code>MIN_POLYGON_POINT_COUNT</code> (3). List inputs used to raise <code>AttributeError</code> on <code>.astype</code>, empty polygons failed inside OpenCV <code>fillPoly</code>, and a 1- or 2-vertex polygon silently drew a stray pixel or a bare line instead of an empty mask. A malformed polygon (wrong shape, non-numeric dtype, or ragged nested sequence) now raises a <code>ValueError</code> naming the problem instead of an opaque OpenCV or NumPy error. <code>sv.Detections.from_sam3</code> draws its 2-vertex PVS fragment lines directly with OpenCV instead of through <code>polygon_to_mask</code>, so that behavior (see the <code>#2625</code> entry below) is unaffected by the new all-zero guard. (<a href="https://github.com/roboflow/supervision/pull/2622">#2622</a>)</p>
+</li>
+<li>
 <p><code>sv.Detections.from_sam3</code> no longer drops SAM 3's PVS-format contour fragments that have fewer than 3 vertices (a single point or a 2-point edge). <code>from_sam3</code> now preserves single points directly and rasterizes 2-point edges as lines so all such fragment pixels contribute to the mask and the bounding box. Polygons with 3 or more vertices are unaffected. (<a href="https://github.com/roboflow/supervision/pull/2625">#2625</a>)</p>
 </li>
 <li>
@@ -6461,7 +6464,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 25, 2026 20:07:25 UTC">September 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 25, 2026 20:52:18 UTC">September 25, 2026</span>
   </span>
 
     
@@ -6489,9 +6492,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6499,21 +6502,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
           <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
-        </a>
-      
-        <a href="https://github.com/raghav-rathi" class="md-author" title="@raghav-rathi">
-          
-          <img src="https://avatars.githubusercontent.com/u/44058192?v=4&size=72" alt="raghav-rathi">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +37
+            +38
           </a>
         
       
