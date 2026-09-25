@@ -292,6 +292,15 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
         np.testing.assert_allclose(result.xyxy, [[40.0, 24.0, 60.0, 56.0]])
         assert result.mask is None
 
+    def test_rejects_a_nonnumeric_trailing_token(self) -> None:
+        """Reject malformed trailing fields instead of accepting corrupt labels."""
+        lines = ["0 0.5 0.5 0.2 0.4 garbage"]
+
+        with pytest.raises(ValueError, match="garbage"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 80), with_masks=False
+            )
+
     def test_three_point_polygon_still_loads_as_a_mask(self) -> None:
         """Seven tokens remain a polygon: class id plus three xy pairs."""
         lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9"]
