@@ -7,7 +7,7 @@ date_modified: 2026-09-22
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.polygon_to_mask` now accepts a Python list of vertices and an empty polygon, returning an all-zero mask for the empty case. List inputs used to raise `AttributeError` on `.astype`, and empty polygons failed inside OpenCV `fillPoly`. ([#2622](https://github.com/roboflow/supervision/pull/2622))
+- `sv.polygon_to_mask` now accepts a Python list, tuple, or array-like of `[x, y]` vertices, returning an all-zero mask for a polygon with no vertices or fewer than `MIN_POLYGON_POINT_COUNT` (3). List inputs used to raise `AttributeError` on `.astype`, empty polygons failed inside OpenCV `fillPoly`, and a 1- or 2-vertex polygon silently drew a stray pixel or a bare line instead of an empty mask. A malformed polygon (wrong shape, non-numeric dtype, or ragged nested sequence) now raises a `ValueError` naming the problem instead of an opaque OpenCV or NumPy error. ([#2622](https://github.com/roboflow/supervision/pull/2622))
 
 - `sv.DetectionDataset.from_yolo` now loads label files whose rows carry a trailing confidence or tracker id (e.g. `1 0.5 0.5 0.2 0.4 0.87`), which previously aborted the whole load with `ValueError: cannot reshape array of size 5 into shape (2)`. Ultralytics `save_txt` writes that sixth column when `save_conf=True` or when tracking is enabled. The extra token is ignored; the box is the same as the five-column form. Segmentation lines (class id plus at least three xy pairs) and OBB four-corner lines are unchanged. ([#2619](https://github.com/roboflow/supervision/pull/2619))
 

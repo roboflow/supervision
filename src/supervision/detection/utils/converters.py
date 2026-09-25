@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -9,6 +10,7 @@ from supervision import _cv2 as cv2
 
 MIN_POLYGON_POINT_COUNT = 3
 CoordinateConvention = Literal["inclusive", "exclusive"]
+_NUMERIC_DTYPE_KINDS = "iuf"
 
 
 def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -42,19 +44,25 @@ def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
 
 def polygon_to_mask(
-    polygon: npt.ArrayLike,
+    polygon: npt.NDArray[np.number] | Sequence[Sequence[float]],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
     """Generate a mask from a polygon.
 
     Args:
-        polygon: The polygon for which the mask should be generated,
-            given as a list of vertices.
+        polygon: The polygon for which the mask should be generated, given as
+            an `(N, 2)` array or a list of `[x, y]` numeric vertices. An empty
+            polygon, or one with fewer than `MIN_POLYGON_POINT_COUNT` vertices,
+            produces an all-zero mask.
         resolution_wh: The width and height of the desired resolution.
 
     Returns:
         The generated 2D mask, where the polygon is marked with
             `1`s and the rest is filled with `0`s.
+
+    Raises:
+        ValueError: If `polygon` does not have shape `(N, 2)` with numeric
+            coordinates.
 
     Examples:
         ```pycon
@@ -65,12 +73,30 @@ def polygon_to_mask(
         >>> int(mask.sum())
         25
 
+        >>> vertices = [[2, 2], [6, 2], [6, 6], [2, 6]]
+        >>> int(sv.polygon_to_mask(vertices, resolution_wh=(10, 10)).sum())
+        25
+
+        >>> int(sv.polygon_to_mask([], resolution_wh=(4, 4)).sum())
+        0
+
         ```
     """
     polygon_arr = np.asarray(polygon)
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
-    if len(polygon_arr) == 0:
+    if polygon_arr.size == 0:
+        return mask
+    if (
+        polygon_arr.ndim != 2
+        or polygon_arr.shape[1] != 2
+        or polygon_arr.dtype.kind not in _NUMERIC_DTYPE_KINDS
+    ):
+        raise ValueError(
+            "Polygon must have shape (N, 2) with numeric coordinates; got "
+            f"shape {polygon_arr.shape} and dtype {polygon_arr.dtype}."
+        )
+    if len(polygon_arr) < MIN_POLYGON_POINT_COUNT:
         return mask
     cv2.fillPoly(mask, [polygon_arr.astype(np.int32)], color=(1,))
     return mask
