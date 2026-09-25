@@ -1025,6 +1025,106 @@ def test_polygon_to_mask_full_canvas() -> None:
     assert mask.sum() == w * h
 
 
+def test_polygon_to_mask_accepts_list_of_vertices() -> None:
+    """A Python list of [x, y] vertices produces the same mask as an ndarray.
+
+    Uses an asymmetric polygon on a non-square canvas so a mask with the right pixel
+    count but wrong placement (or a swapped x/y axis) would fail.
+    """
+    vertices = [[1, 2], [7, 2], [7, 5], [1, 5]]
+    list_mask = polygon_to_mask(vertices, resolution_wh=(9, 6))
+    ndarray_mask = polygon_to_mask(np.array(vertices), resolution_wh=(9, 6))
+    assert list_mask.shape == (6, 9)
+    assert list_mask.dtype == np.uint8
+    np.testing.assert_array_equal(list_mask, ndarray_mask)
+
+
+def test_polygon_to_mask_empty_vertices_returns_zeros() -> None:
+    """An empty vertex list returns an all-zero mask of the requested size."""
+    mask = polygon_to_mask([], resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.dtype == np.uint8
+    assert mask.sum() == 0
+
+
+def test_polygon_to_mask_empty_ndarray_returns_zeros() -> None:
+    """An empty (0, 2) ndarray returns an all-zero mask, not just an empty list.
+
+    Every internal caller passes ndarrays, so this pins the shape the literal `[]` test
+    above does not cover.
+    """
+    mask = polygon_to_mask(np.empty((0, 2)), resolution_wh=(8, 8))
+    assert mask.shape == (8, 8)
+    assert mask.sum() == 0
+
+
+@pytest.mark.parametrize(
+    "polygon",
+    [
+        pytest.param(np.array([[3, 3]]), id="single-vertex"),
+        pytest.param(np.array([[3, 3], [5, 5]]), id="two-vertices"),
+    ],
+)
+def test_polygon_to_mask_degenerate_polygon_returns_zeros(
+    polygon: npt.NDArray[np.number],
+) -> None:
+    """Fewer than MIN_POLYGON_POINT_COUNT vertices return an all-zero mask.
+
+    A 1- or 2-vertex "polygon" encloses no area; without this guard it drew a stray
+    pixel or a bare line instead of the documented empty result.
+    """
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.sum() == 0
+
+
+@pytest.mark.parametrize(
+    "polygon",
+    [
+        pytest.param(((1, 1), (5, 1), (5, 5), (1, 5)), id="tuple-of-tuples"),
+        pytest.param(
+            np.array([[1, 1], [5, 1], [5, 5], [1, 5]], dtype=np.float64),
+            id="float-dtype-ndarray",
+        ),
+    ],
+)
+def test_polygon_to_mask_accepts_non_list_array_like(
+    polygon: npt.NDArray[np.number],
+) -> None:
+    """Tuple input and non-default numeric dtypes are accepted, not just plain list.
+
+    The widened type hint's whole purpose is non-ndarray, non-int input; a regression
+    narrowing back to list-only or int-only would leave CI green if only list input were
+    tested.
+    """
+    mask = polygon_to_mask(polygon, resolution_wh=(8, 8))
+    assert mask.sum() == 25
+
+
+@pytest.mark.parametrize(
+    ("polygon", "match"),
+    [
+        pytest.param(5, "Polygon must have shape", id="scalar"),
+        pytest.param([1, 2, 3, 4], "Polygon must have shape", id="flat-1d-list"),
+        pytest.param(np.zeros((3, 3)), "Polygon must have shape", id="n-by-3-array"),
+        pytest.param([[1, 2], [3]], "inhomogeneous shape", id="ragged-nested-list"),
+        pytest.param(
+            [["a", "b"], ["c", "d"]],
+            "Polygon must have shape",
+            id="non-numeric-strings",
+        ),
+    ],
+)
+def test_polygon_to_mask_rejects_malformed_input(polygon: object, match: str) -> None:
+    """Malformed polygon input raises ValueError instead of a raw OpenCV/NumPy error.
+
+    A scalar, flat 1-D list, wrong-width array, ragged nested list, or non-numeric dtype
+    is not a valid (N, 2) polygon and must fail loud with a clear message rather than an
+    opaque assertion or crash.
+    """
+    with pytest.raises(ValueError, match=match):
+        polygon_to_mask(polygon, resolution_wh=(8, 8))
+
+
 # ---------------------------------------------------------------------------
 # mask_to_polygons
 # ---------------------------------------------------------------------------
