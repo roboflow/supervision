@@ -1009,7 +1009,9 @@ class Detections:
                                 & (polygon[:, 1] >= 0)
                                 & (polygon[:, 1] < height)
                             )
-                            full_mask[polygon[in_bounds, 1], polygon[in_bounds, 0]] = True
+                            full_mask[polygon[in_bounds, 1], polygon[in_bounds, 0]] = (
+                                True
+                            )
                         continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
