@@ -1002,10 +1002,14 @@ class Detections:
                         # edge) that polygon_to_mask deliberately drops as
                         # unfillable; mark their pixels directly so they
                         # still contribute to the mask and bounding box.
-                        mask = polygon_to_mask(
-                            polygon=polygon, resolution_wh=(width, height)
-                        ).astype(bool, copy=False)
-                        np.logical_or(full_mask, mask, out=full_mask)
+                        if polygon.ndim == 2 and polygon.shape[1] == 2:
+                            in_bounds = (
+                                (polygon[:, 0] >= 0)
+                                & (polygon[:, 0] < width)
+                                & (polygon[:, 1] >= 0)
+                                & (polygon[:, 1] < height)
+                            )
+                            full_mask[polygon[in_bounds, 1], polygon[in_bounds, 0]] = True
                         continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
