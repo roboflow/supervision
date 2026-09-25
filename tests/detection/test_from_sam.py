@@ -229,6 +229,38 @@ def test_from_sam3(
     np.testing.assert_array_equal(detections.class_id, expected_class_id)
 
 
+def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
+    """Preserve single-point pixels and complete two-point edges in SAM3 masks.
+
+    SAM3's PVS polygon format can emit a fragment with only one or two
+    vertices alongside regular fillable polygons. A single vertex must be
+    written directly, while a two-vertex contour must retain the line pixels
+    produced by `fillPoly` so neither mask pixels nor the resulting box shrink.
+    """
+    sam3_result = {
+        "prompt_results": [
+            {
+                "prompt_index": 0,
+                "predictions": [
+                    {
+                        "format": "polygon",
+                        "masks": [[[5, 5]], [[8, 2], [8, 6]]],
+                        "confidence": 0.5,
+                    }
+                ],
+            }
+        ]
+    }
+
+    detections = Detections.from_sam3(sam3_result=sam3_result, resolution_wh=(10, 10))
+
+    np.testing.assert_allclose(
+        detections.xyxy, np.array([[5.0, 2.0, 8.0, 6.0]], dtype=np.float32), atol=1e-5
+    )
+    assert detections.mask[0, 5, 5]
+    np.testing.assert_array_equal(detections.mask[0, 2:7, 8], np.ones(5, dtype=bool))
+
+
 def test_from_sam3_invalid_resolution() -> None:
     sam3_result = {"prompt_results": []}
     with pytest.raises(
