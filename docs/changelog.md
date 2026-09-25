@@ -37,6 +37,8 @@ date_modified: 2026-09-22
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The index array was built from an empty list, so NumPy defaulted it to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0` — `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype and the rest now match them. Results with at least one surviving detection are unchanged.
 
+- Added new cookbook: **Pose Augmentation with Left/Right Keypoint Remapping**, showing how a horizontal flip on `sv.KeyPoints` mirrors coordinates without relabeling left/right landmarks, and how to fix the row order after flipping with `albumentations`. ([#2537](https://github.com/roboflow/supervision/pull/2537))
+
 ### 0.30.5 <small>Sep 22, 2026</small>
 
 - `sv.InferenceSlicer` no longer raises when slices disagree on `metadata` (e.g. a `source_image` NumPy array attached per-slice by RF-DETR/`inference`-package connectors), which previously crashed the merge outright. A mismatched key is now dropped from the merged result with a `SupervisionWarnings` warning naming it; `source_image` is a special case, reattached afterward as the full input image rather than a single slice's tile. Also fixes two related `Detections.__eq__` bugs: metadata holding `NaN` in a float array now compares equal to itself instead of always reading unequal, and comparing a list-valued value against an ndarray-valued one now returns `False` instead of raising `ValueError`. ([#2596](https://github.com/roboflow/supervision/pull/2596))
