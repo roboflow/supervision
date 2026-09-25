@@ -946,6 +946,8 @@ class Detections:
             )
             ```
         """
+        from supervision import _cv2 as cv2
+
         width, height = _validate_resolution(resolution_wh)
 
         masks = []
@@ -1003,11 +1005,19 @@ class Detections:
                                 if 0 <= x < width and 0 <= y < height:
                                     full_mask[y, x] = True
                             elif polygon.shape[0] == 2:
-                                # fillPoly rasterizes a two-point contour as a line.
-                                mask = polygon_to_mask(
-                                    polygon=polygon, resolution_wh=(width, height)
+                                # polygon_to_mask blanks < MIN_POLYGON_POINT_COUNT
+                                # vertices; draw the two-point line directly instead.
+                                line_mask = np.zeros((height, width), dtype=np.uint8)
+                                cv2.line(
+                                    line_mask,
+                                    tuple(polygon[0]),
+                                    tuple(polygon[1]),
+                                    color=(1,),
+                                    thickness=1,
                                 )
-                                np.logical_or(full_mask, mask, out=full_mask)
+                                np.logical_or(
+                                    full_mask, line_mask.astype(bool), out=full_mask
+                                )
                         continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
