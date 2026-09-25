@@ -194,10 +194,10 @@ def yolo_annotations_to_detections(
 ) -> Detections:
     """Convert YOLO annotation lines into ``Detections``.
 
-    A five-token line is an axis-aligned box. A six-token line is the same box
-    plus a trailing confidence or tracker id, as written by Ultralytics
-    ``save_txt``; the extra token is ignored. Seven or more tokens are a
-    polygon (or OBB corners when ``is_obb=True``).
+    When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
+    lines add a trailing confidence or tracker id, which is ignored. Lines with
+    seven or more tokens are polygons. When ``is_obb=True``, annotations must
+    use the nine-token four-corner OBB format.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -211,6 +211,8 @@ def yolo_annotations_to_detections(
         values = line.split()
         class_id_list.append(_parse_class_id(values[0]))
         if _is_axis_aligned_box_line(values, is_obb):
+            if len(values) == 6:
+                _ = float(values[5])
             box = _parse_box(values=values[1:5])
             relative_xyxy_list.append(box)
             if with_masks:

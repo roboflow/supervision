@@ -59,16 +59,18 @@ def _arrays_almost_equal(
             True,
             DoesNotRaise(),
         ),  # yolo annotation file with two lines - one box and one polygon
-        (
+        pytest.param(
             ["0 0.5 0.5 0.2 0.4 0.95"],
             False,
             DoesNotRaise(),
-        ),  # box plus trailing confidence is not a polygon
-        (
+            id="box-with-trailing-confidence",
+        ),
+        pytest.param(
             ["0 0.5 0.5 0.2 0.4 3"],
             False,
             DoesNotRaise(),
-        ),  # box plus trailing tracker id is not a polygon
+            id="box-with-trailing-tracker-id",
+        ),
     ],
 )
 def test_with_mask(
