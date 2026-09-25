@@ -59,11 +59,24 @@ def _arrays_almost_equal(
             True,
             DoesNotRaise(),
         ),  # yolo annotation file with two lines - one box and one polygon
+        pytest.param(
+            ["0 0.5 0.5 0.2 0.4 0.95"],
+            False,
+            DoesNotRaise(),
+            id="box-with-trailing-confidence",
+        ),
+        pytest.param(
+            ["0 0.5 0.5 0.2 0.4 3"],
+            False,
+            DoesNotRaise(),
+            id="box-with-trailing-tracker-id",
+        ),
     ],
 )
 def test_with_mask(
     lines: list[str], expected_result: bool | None, exception: Exception
 ) -> None:
+    """Detect polygon lines; a sixth box token is not a mask."""
     with exception:
         result = _with_seg_mask(lines=lines)
         assert result == expected_result
@@ -254,6 +267,77 @@ class TestYoloAnnotationsToDetectionsClassId:
             yolo_annotations_to_detections(
                 lines=lines, resolution_wh=(100, 100), with_masks=False
             )
+
+
+class TestYoloAnnotationsToDetectionsTrailingToken:
+    """Tests for YOLO box lines that carry a sixth confidence or tracker-id token."""
+
+    @pytest.mark.parametrize(
+        "extra_token",
+        [
+            "0.95",
+            "3",
+            pytest.param("9.500000000000000000e-01", id="numpy-savetxt-confidence"),
+        ],
+    )
+    def test_loads_box_that_has_a_trailing_token(self, extra_token: str) -> None:
+        """A sixth token is ignored so Ultralytics save_txt labels load as boxes."""
+        lines = [f"0 0.5 0.5 0.2 0.4 {extra_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 80), with_masks=False
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([0]))
+        np.testing.assert_allclose(result.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+        assert result.mask is None
+
+    def test_rejects_a_nonnumeric_trailing_token(self) -> None:
+        """Reject malformed trailing fields instead of accepting corrupt labels."""
+        lines = ["0 0.5 0.5 0.2 0.4 garbage"]
+
+        with pytest.raises(ValueError, match="garbage"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 80), with_masks=False
+            )
+
+    def test_three_point_polygon_still_loads_as_a_mask(self) -> None:
+        """Seven tokens remain a polygon: class id plus three xy pairs."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(10, 10), with_masks=True
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([1]))
+        np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+        assert result.mask is not None
+        assert result.mask.shape == (1, 10, 10)
+        assert bool(result.mask[0, 5, 5])
+
+
+def test_from_yolo_loads_labels_saved_with_ultralytics_save_conf(
+    tmp_path: Path,
+) -> None:
+    """Label files written by Ultralytics ``save_txt(..., save_conf=True)`` load."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text("1 0.5 0.5 0.2 0.4 0.87\n")
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+    assert detections.mask is None
 
 
 def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None:

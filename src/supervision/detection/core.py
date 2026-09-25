@@ -32,6 +32,7 @@ from supervision.detection.utils.boxes import (
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
     mask_to_xyxy,
     polygon_to_mask,
     rle_to_mask,
@@ -598,6 +599,11 @@ class Detections:
         and instance segmentation
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
+        For object detection, pass post-processed predictions with pixel `xyxy`
+        boxes, `labels`, and `scores`. Training targets containing `class_labels`
+        need a separate conversion; see
+        [Evaluate targets from a PyTorch DataLoader](https://supervision.roboflow.com/latest/metrics/mean_average_precision/#evaluate-targets-from-a-pytorch-dataloader).
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
@@ -940,6 +946,8 @@ class Detections:
             )
             ```
         """
+        from supervision import _cv2 as cv2
+
         width, height = _validate_resolution(resolution_wh)
 
         masks = []
@@ -990,6 +998,27 @@ class Detections:
                 full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
+                    if polygon.ndim != 2 or polygon.shape[0] < MIN_POLYGON_POINT_COUNT:
+                        if polygon.ndim == 2 and polygon.shape[1] == 2:
+                            if polygon.shape[0] == 1:
+                                x, y = polygon[0]
+                                if 0 <= x < width and 0 <= y < height:
+                                    full_mask[y, x] = True
+                            elif polygon.shape[0] == 2:
+                                # polygon_to_mask blanks < MIN_POLYGON_POINT_COUNT
+                                # vertices; draw the two-point line directly instead.
+                                line_mask = np.zeros((height, width), dtype=np.uint8)
+                                cv2.line(
+                                    line_mask,
+                                    tuple(polygon[0]),
+                                    tuple(polygon[1]),
+                                    color=(1,),
+                                    thickness=1,
+                                )
+                                np.logical_or(
+                                    full_mask, line_mask.astype(bool), out=full_mask
+                                )
+                        continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
                     )
