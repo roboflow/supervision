@@ -32,6 +32,7 @@ from supervision.detection.utils.boxes import (
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
     mask_to_xyxy,
     polygon_to_mask,
     rle_to_mask,
@@ -995,6 +996,19 @@ class Detections:
                 full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
+                    if polygon.ndim != 2 or polygon.shape[0] < MIN_POLYGON_POINT_COUNT:
+                        if polygon.ndim == 2 and polygon.shape[1] == 2:
+                            if polygon.shape[0] == 1:
+                                x, y = polygon[0]
+                                if 0 <= x < width and 0 <= y < height:
+                                    full_mask[y, x] = True
+                            elif polygon.shape[0] == 2:
+                                # fillPoly rasterizes a two-point contour as a line.
+                                mask = polygon_to_mask(
+                                    polygon=polygon, resolution_wh=(width, height)
+                                )
+                                np.logical_or(full_mask, mask, out=full_mask)
+                        continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
                     )
