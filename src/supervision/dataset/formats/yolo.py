@@ -71,8 +71,27 @@ def _polygons_to_masks(
     )
 
 
+def _is_axis_aligned_box_line(values: list[str], is_obb: bool) -> bool:
+    """Return True when a YOLO line is an axis-aligned box, possibly with extras.
+
+    Five tokens are ``class x y w h``. Six tokens add a trailing confidence or
+    tracker id from Ultralytics ``save_txt``. Those six values cannot be a
+    polygon: three xy pairs need seven tokens. OBB four-corner lines stay on
+    the polygon path.
+    """
+    if len(values) == 5:
+        return True
+    return len(values) == 6 and not is_obb
+
+
 def _with_seg_mask(lines: list[str]) -> bool:
-    return any([len(line.split()) > 5 for line in lines])
+    """Return True when any annotation line encodes a polygon rather than a box.
+
+    A YOLO polygon has a class id plus at least three xy pairs, so seven or
+    more tokens. Six tokens are a box with a trailing confidence or tracker
+    id, which Ultralytics writes from ``save_txt``.
+    """
+    return any(len(line.split()) > 6 for line in lines)
 
 
 def _extract_class_names(file_path: str) -> list[str]:
@@ -173,6 +192,13 @@ def yolo_annotations_to_detections(
     with_masks: bool,
     is_obb: bool = False,
 ) -> Detections:
+    """Convert YOLO annotation lines into ``Detections``.
+
+    When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
+    lines add a trailing confidence or tracker id, which is ignored. Lines with
+    seven or more tokens are polygons. When ``is_obb=True``, annotations must
+    use the nine-token four-corner OBB format.
+    """
     if len(lines) == 0:
         return Detections.empty()
 
@@ -184,8 +210,10 @@ def yolo_annotations_to_detections(
     for line in lines:
         values = line.split()
         class_id_list.append(_parse_class_id(values[0]))
-        if len(values) == 5:
-            box = _parse_box(values=values[1:])
+        if _is_axis_aligned_box_line(values, is_obb):
+            if len(values) == 6:
+                _ = float(values[5])
+            box = _parse_box(values=values[1:5])
             relative_xyxy_list.append(box)
             if with_masks:
                 relative_polygon_list.append(_box_to_polygon(box=box))
