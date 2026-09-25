@@ -229,6 +229,41 @@ def test_from_sam3(
     np.testing.assert_array_equal(detections.class_id, expected_class_id)
 
 
+def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
+    """Sub-3-point SAM3 polygon fragments still contribute to mask and xyxy.
+
+    SAM3's PVS polygon format can emit a fragment with only one or two
+    vertices (a single point or a short edge) alongside regular fillable
+    polygons. `polygon_to_mask` correctly returns an all-zero mask for such
+    a fragment, since `cv2.fillPoly` cannot fill fewer than 3 points, but
+    `from_sam3` must still mark those pixels itself so they are not silently
+    dropped from the union mask and the resulting bounding box.
+    """
+    sam3_result = {
+        "prompt_results": [
+            {
+                "prompt_index": 0,
+                "predictions": [
+                    {
+                        "format": "polygon",
+                        "masks": [[[5, 5]], [[8, 2], [8, 6]]],
+                        "confidence": 0.5,
+                    }
+                ],
+            }
+        ]
+    }
+
+    detections = Detections.from_sam3(sam3_result=sam3_result, resolution_wh=(10, 10))
+
+    np.testing.assert_allclose(
+        detections.xyxy, np.array([[5.0, 2.0, 8.0, 6.0]], dtype=np.float32), atol=1e-5
+    )
+    assert detections.mask[0, 5, 5]
+    assert detections.mask[0, 2, 8]
+    assert detections.mask[0, 6, 8]
+
+
 def test_from_sam3_invalid_resolution() -> None:
     sam3_result = {"prompt_results": []}
     with pytest.raises(
