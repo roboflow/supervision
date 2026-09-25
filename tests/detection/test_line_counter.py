@@ -1259,3 +1259,84 @@ def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
     assert label.shape[2] == 4
     assert np.any(label[..., 3])
     assert not np.array_equal(label[..., 3], upright[..., 3])
+
+
+class TestLineZoneUnconfirmedTracks:
+    """Detections with a negative `tracker_id` are unconfirmed and must not count.
+
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is
+    confirmed, so several distinct objects can share that placeholder id in the
+    same frame. Regression tests for #2578.
+    """
+
+    def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:
+        """Two -1 objects swapping sides every frame produce no crossings."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[above, below], tracker_id=[-1, -1]),
+        ] * 3
+
+        results = [line_zone.trigger(detections) for detections in detections_sequence]
+
+        assert not any(crossed_in.any() for crossed_in, _ in results)
+        assert not any(crossed_out.any() for _, crossed_out in results)
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+    def test_counts_confirmed_track_despite_unconfirmed_flicker(self) -> None:
+        """A confirmed track crossing once is counted once beside a -1 flicker."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, below], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, above], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, below], tracker_id=[7, -1]),
+            _create_detections(xyxy=[above, above], tracker_id=[7, -1]),
+        ]
+
+        results = [line_zone.trigger(detections) for detections in detections_sequence]
+
+        crossed_in = [list(frame_in) for frame_in, _ in results]
+        assert crossed_in == [
+            [False, False],
+            [True, False],
+            [False, False],
+            [False, False],
+        ]
+        assert not any(crossed_out.any() for _, crossed_out in results)
+        assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+    def test_keeps_no_crossing_state_for_unconfirmed_ids(self) -> None:
+        """Only confirmed ids get a crossing history; -1 never does."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        detections = _create_detections(
+            xyxy=[[4, 4, 6, 6], [4, -6, 6, -4]], tracker_id=[3, -1]
+        )
+
+        for _ in range(line_zone.crossing_history_length):
+            line_zone.trigger(detections)
+
+        assert set(line_zone.crossing_state_history) == {3}
+
+    def test_counts_once_when_object_is_confirmed_after_unconfirmed_frames(
+        self,
+    ) -> None:
+        """An object tracked as -1 before it gets an id counts once, when it crosses."""
+        line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+        below, above = [4, 4, 6, 6], [4, -6, 6, -4]
+        detections_sequence = [
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[below, above], tracker_id=[-1, -1]),
+            _create_detections(xyxy=[below], tracker_id=[5]),
+            _create_detections(xyxy=[above], tracker_id=[5]),
+            _create_detections(xyxy=[above], tracker_id=[5]),
+        ]
+
+        crossed_in = [
+            bool(line_zone.trigger(detections)[0][0])
+            for detections in detections_sequence
+        ]
+
+        assert crossed_in == [False, False, False, True, False]
+        assert (line_zone.in_count, line_zone.out_count) == (1, 0)
