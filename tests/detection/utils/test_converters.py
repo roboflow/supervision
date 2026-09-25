@@ -1026,7 +1026,7 @@ def test_polygon_to_mask_full_canvas() -> None:
 
 
 def test_polygon_to_mask_accepts_list_of_vertices() -> None:
-    """Docstring says list of vertices; that used to AttributeError on .astype."""
+    """A Python list of [x, y] vertices produces the same mask as an ndarray."""
     mask = polygon_to_mask([[2, 2], [6, 2], [6, 6], [2, 6]], resolution_wh=(10, 10))
     assert mask.shape == (10, 10)
     assert mask.dtype == np.uint8
@@ -1034,7 +1034,7 @@ def test_polygon_to_mask_accepts_list_of_vertices() -> None:
 
 
 def test_polygon_to_mask_empty_vertices_returns_zeros() -> None:
-    """An empty vertex list used to fail inside OpenCV fillPoly."""
+    """An empty vertex list returns an all-zero mask of the requested size."""
     mask = polygon_to_mask([], resolution_wh=(8, 8))
     assert mask.shape == (8, 8)
     assert mask.dtype == np.uint8

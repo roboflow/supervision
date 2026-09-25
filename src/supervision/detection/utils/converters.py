@@ -42,7 +42,7 @@ def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
 
 def polygon_to_mask(
-    polygon: npt.NDArray[np.number],
+    polygon: npt.ArrayLike,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
     """Generate a mask from a polygon.
@@ -67,15 +67,12 @@ def polygon_to_mask(
 
         ```
     """
-    # Docstring accepts a list of vertices; without asarray, polygon.astype
-    # raised AttributeError. An empty vertex list used to fail inside OpenCV
-    # fillPoly; return an all-zero mask instead.
-    polygon = np.asarray(polygon)
+    polygon_arr = np.asarray(polygon)
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
-    if len(polygon) == 0:
+    if len(polygon_arr) == 0:
         return mask
-    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=(1,))
+    cv2.fillPoly(mask, [polygon_arr.astype(np.int32)], color=(1,))
     return mask
 
 
