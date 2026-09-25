@@ -32,6 +32,7 @@ from supervision.detection.utils.boxes import (
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
     mask_to_xyxy,
     polygon_to_mask,
     rle_to_mask,
@@ -995,6 +996,16 @@ class Detections:
                 full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
+                    if polygon.ndim != 2 or polygon.shape[0] < MIN_POLYGON_POINT_COUNT:
+                        # SAM3's polygon mask format can emit degenerate
+                        # contour fragments (a single point or a 2-point
+                        # edge) that polygon_to_mask deliberately drops as
+                        # unfillable; mark their pixels directly so they
+                        # still contribute to the mask and bounding box.
+                        for x, y in np.atleast_2d(polygon):
+                            if 0 <= x < width and 0 <= y < height:
+                                full_mask[y, x] = True
+                        continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
                     )
