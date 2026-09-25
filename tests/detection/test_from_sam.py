@@ -230,14 +230,12 @@ def test_from_sam3(
 
 
 def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
-    """Sub-3-point SAM3 polygon fragments still contribute to mask and xyxy.
+    """Preserve single-point pixels and complete two-point edges in SAM3 masks.
 
     SAM3's PVS polygon format can emit a fragment with only one or two
-    vertices (a single point or a short edge) alongside regular fillable
-    polygons. `polygon_to_mask` correctly returns an all-zero mask for such
-    a fragment, since `cv2.fillPoly` cannot fill fewer than 3 points, but
-    `from_sam3` must still mark those pixels itself so they are not silently
-    dropped from the union mask and the resulting bounding box.
+    vertices alongside regular fillable polygons. A single vertex must be
+    written directly, while a two-vertex contour must retain the line pixels
+    produced by `fillPoly` so neither mask pixels nor the resulting box shrink.
     """
     sam3_result = {
         "prompt_results": [
@@ -260,8 +258,7 @@ def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
         detections.xyxy, np.array([[5.0, 2.0, 8.0, 6.0]], dtype=np.float32), atol=1e-5
     )
     assert detections.mask[0, 5, 5]
-    assert detections.mask[0, 2, 8]
-    assert detections.mask[0, 6, 8]
+    np.testing.assert_array_equal(detections.mask[0, 2:7, 8], np.ones(5, dtype=bool))
 
 
 def test_from_sam3_invalid_resolution() -> None:

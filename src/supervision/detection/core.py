@@ -997,21 +997,17 @@ class Detections:
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
                     if polygon.ndim != 2 or polygon.shape[0] < MIN_POLYGON_POINT_COUNT:
-                        # SAM3's polygon mask format can emit degenerate
-                        # contour fragments (a single point or a 2-point
-                        # edge) that polygon_to_mask deliberately drops as
-                        # unfillable; mark their pixels directly so they
-                        # still contribute to the mask and bounding box.
                         if polygon.ndim == 2 and polygon.shape[1] == 2:
-                            in_bounds = (
-                                (polygon[:, 0] >= 0)
-                                & (polygon[:, 0] < width)
-                                & (polygon[:, 1] >= 0)
-                                & (polygon[:, 1] < height)
-                            )
-                            full_mask[polygon[in_bounds, 1], polygon[in_bounds, 0]] = (
-                                True
-                            )
+                            if polygon.shape[0] == 1:
+                                x, y = polygon[0]
+                                if 0 <= x < width and 0 <= y < height:
+                                    full_mask[y, x] = True
+                            elif polygon.shape[0] == 2:
+                                # fillPoly rasterizes a two-point contour as a line.
+                                mask = polygon_to_mask(
+                                    polygon=polygon, resolution_wh=(width, height)
+                                )
+                                np.logical_or(full_mask, mask, out=full_mask)
                         continue
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)

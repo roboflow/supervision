@@ -7,7 +7,7 @@ date_modified: 2026-09-22
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_sam3` no longer drops SAM 3's PVS-format contour fragments that have fewer than 3 vertices (a single point or a 2-point edge). `polygon_to_mask` correctly leaves such a fragment unfilled, but `from_sam3` relied solely on the filled mask to compute each detection's bounding box, so those fragments' pixels were silently excluded from both the mask and `xyxy`. Fragments with fewer than 3 vertices now mark their own pixels directly so they still contribute to the mask and the bounding box. Polygons with 3 or more vertices are unaffected.
+- `sv.Detections.from_sam3` no longer drops SAM 3's PVS-format contour fragments that have fewer than 3 vertices (a single point or a 2-point edge). `from_sam3` now preserves single points directly and rasterizes 2-point edges as lines so all such fragment pixels contribute to the mask and the bounding box. Polygons with 3 or more vertices are unaffected. ([#2625](https://github.com/roboflow/supervision/pull/2625))
 
 - `sv.DetectionDataset.from_yolo` now loads label files whose rows carry a trailing confidence or tracker id (e.g. `1 0.5 0.5 0.2 0.4 0.87`), which previously aborted the whole load with `ValueError: cannot reshape array of size 5 into shape (2)`. Ultralytics `save_txt` writes that sixth column when `save_conf=True` or when tracking is enabled. The extra token is ignored; the box is the same as the five-column form. Segmentation lines (class id plus at least three xy pairs) and OBB four-corner lines are unchanged. ([#2619](https://github.com/roboflow/supervision/pull/2619))
 
