@@ -196,7 +196,9 @@ def yolo_annotations_to_detections(
 
     When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
     lines add a trailing confidence or tracker id, which is ignored. Lines with
-    seven or more tokens are polygons. When ``is_obb=True``, annotations must
+    seven or more tokens are polygons; an even token count means a polygon
+    followed by one confidence or tracker id, which is also ignored. When
+    ``is_obb=True``, annotations must
     use the nine-token four-corner OBB format.
     """
     if len(lines) == 0:
@@ -218,7 +220,10 @@ def yolo_annotations_to_detections(
             if with_masks:
                 relative_polygon_list.append(_box_to_polygon(box=box))
         elif len(values) > 5:
-            polygon = _parse_polygon(values=values[1:])
+            polygon_values = values[1:]
+            if not is_obb and len(polygon_values) % 2:
+                _ = float(polygon_values.pop())
+            polygon = _parse_polygon(values=polygon_values)
             relative_xyxy_list.append(polygon_to_xyxy(polygon=polygon))
             if is_obb:
                 relative_xyxyxyxy_list.append(np.array(values[1:], dtype=np.float32))
