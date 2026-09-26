@@ -567,6 +567,10 @@ def test_backfill_triggers_on_pull_request_touching_its_own_files(
         script.name == "inject_outdated_banner.py" for script in scripts_dir.iterdir()
     )
     assert ".github/scripts/inject_outdated_banner.py" in paths
+    assert any(
+        script.name == "inject_tracking_carrier.py" for script in scripts_dir.iterdir()
+    )
+    assert ".github/scripts/inject_tracking_carrier.py" in paths
 
 
 def test_backfill_only_commits_on_a_real_dispatch(workflow_step: StepLookup) -> None:
@@ -654,3 +658,180 @@ def test_main_without_banner_only_duplicates_genuine_css(
     module.main()
 
     assert css_file.read_text().count("background-color: rgb(243, 238, 255)") == 2
+
+
+TRACKING_STEP = "\U0001f4e1 Inject tracking carrier (utm.js) into published trees"
+
+
+def test_backfill_wires_the_tracking_carrier_script(workflow_step: StepLookup) -> None:
+    """Ensure the backfill job runs the carrier script against the checkout root."""
+    tracking_step = workflow_step(BACKFILL_WORKFLOW, "backfill", TRACKING_STEP)["run"]
+
+    assert "inject_tracking_carrier.py" in tracking_step
+    assert (
+        '"$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_tracking_carrier.py" .'
+        in tracking_step
+    )
+
+
+def test_backfill_runs_the_tracking_carrier_step_after_the_banner_step(
+    workflows_dir: Path,
+) -> None:
+    """Patch the carrier in after the banner, matching the two scripts' file order."""
+    workflow = yaml.safe_load(
+        (workflows_dir / BACKFILL_WORKFLOW).read_text(encoding="utf-8")
+    )
+    names = [step["name"] for step in workflow["jobs"]["backfill"]["steps"]]
+
+    assert names.index(BANNER_STEP) < names.index(TRACKING_STEP)
+
+
+@pytest.mark.parametrize(
+    ("segment_src", "case_id"),
+    [
+        pytest.param("javascripts/segment.js", "root", id="root"),
+        pytest.param("../javascripts/segment.js", "one-level-deep", id="one-level"),
+        pytest.param("../../javascripts/segment.js", "two-levels-deep", id="two-level"),
+    ],
+)
+def test_inject_tracking_carrier_inserts_before_segment_at_any_depth(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    segment_src: str,
+    case_id: str,
+) -> None:
+    """Match `segment.js` regardless of the "../" chain a page's depth gives it."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(
+        "<html><body>\n"
+        f'        <script src="{segment_src}"></script>\n'
+        "      </body></html>"
+    )
+
+    changed, skipped_no_segment = module.patch_directory(page.parent)
+
+    assert changed == [page]
+    assert skipped_no_segment == 0
+    patched = page.read_text()
+    assert (
+        '        <script src="https://app.roboflow.com/scripts/utm.js"></script>\n'
+        f'        <script src="{segment_src}"></script>' in patched
+    ), case_id
+
+
+def test_inject_tracking_carrier_is_idempotent(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A second run is a no-op once the page already carries the carrier tag.
+
+    That is what makes it safe to run this script against a tree `mike` has since
+    rebuilt off the `mkdocs.yml` that already includes `utm.js`.
+    """
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text('<script src="javascripts/segment.js"></script>')
+
+    first_changed, _ = module.patch_directory(page.parent)
+    second_changed, second_skipped = module.patch_directory(page.parent)
+
+    assert first_changed == [page]
+    assert second_changed == []
+    assert second_skipped == 0
+    assert page.read_text().count(module.TRACKING_MARKER) == 1
+
+
+def test_inject_tracking_carrier_leaves_a_genuinely_built_page_untouched(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A page rebuilt off the updated mkdocs.yml already carries the tag; skip it."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = (
+        '<script src="https://app.roboflow.com/scripts/utm.js"></script>\n'
+        '<script src="javascripts/segment.js"></script>'
+    )
+    page.write_text(original)
+
+    changed, _ = module.patch_directory(page.parent)
+
+    assert changed == []
+    assert page.read_text() == original
+
+
+def test_inject_tracking_carrier_counts_pages_without_a_segment_tag(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave a page with no `segment.js` tag alone, but count it rather than ignore
+    it."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "404.html"
+    page.parent.mkdir(parents=True)
+    original = "<html><body>no tracking scripts here</body></html>"
+    page.write_text(original)
+
+    changed, skipped_no_segment = module.patch_directory(page.parent)
+
+    assert changed == []
+    assert skipped_no_segment == 1
+    assert page.read_text() == original
+
+
+def test_inject_tracking_carrier_patches_latest_develop_and_every_numeric_version(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Every in-scope tree is patched, unlike the banner script's narrower scope.
+
+    `inject_outdated_banner.py` deliberately skips `latest/` and the highest-numbered
+    version directory (see its module docstring): neither is outdated. The tracking
+    carrier belongs on those pages just as much as on an archived one, so this script
+    has no such exclusion — every numeric version, plus `latest/` and `develop/`, is in
+    scope.
+    """
+    module = load_script("inject_tracking_carrier")
+    for version_dir in ("latest", "develop", "0.30.5", "0.10.0"):
+        page = tmp_path / version_dir / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text('<script src="javascripts/segment.js"></script>')
+    # A top-level file starting with a digit, like the real site's 404.html, is not a
+    # version directory and must be left alone.
+    not_a_version = tmp_path / "404.html"
+    not_a_version.write_text('<script src="javascripts/segment.js"></script>')
+
+    results = module.patch_tree(tmp_path)
+
+    assert set(results) == {"latest", "develop", "0.30.5", "0.10.0"}
+    for changed, _ in results.values():
+        assert len(changed) == 1
+    assert module.TRACKING_MARKER not in not_a_version.read_text()
+
+
+def test_main_reports_per_directory_and_total_counts(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`main` prints a patched/skipped breakdown per directory, then a total."""
+    module = load_script("inject_tracking_carrier")
+    latest_dir = tmp_path / "latest"
+    latest_dir.mkdir()
+    (latest_dir / "index.html").write_text(
+        '<script src="javascripts/segment.js"></script>'
+    )
+    (latest_dir / "404.html").write_text("<html><body>no scripts</body></html>")
+    monkeypatch.setattr(
+        module.sys, "argv", ["inject_tracking_carrier.py", str(tmp_path)]
+    )
+
+    exit_code = module.main()
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert (
+        "latest: patched 1 page(s), skipped 1 page(s) without a segment.js tag" in out
+    )
+    assert "total: patched 1 page(s), skipped 1 page(s) without a segment.js tag" in out
