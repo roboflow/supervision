@@ -413,12 +413,14 @@ def test_coco_box_only_annotation_survives_yolo_and_pascal_voc_export(
     assert len(objects) == 2
     assert objects[1].findtext("name") == "object"
     box = objects[1].find("bndbox")
-    assert [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")] == [
+    actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
+    expected = [
         "7",
         "7",
         "10",
         "10",
     ]
+    assert actual == expected
 
 
 def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(
