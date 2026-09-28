@@ -19,7 +19,11 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import (
+    mask_to_polygons,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -393,7 +397,9 @@ def detections_to_yolo_annotations(
 
     Returns:
         A list of YOLO annotation strings, one per detection (or one per
-        polygon for instance-segmentation annotations).
+        polygon for instance-segmentation annotations). A detection whose mask
+        is empty or has no valid contour is written as its bounding box.
+        Contours excluded by the area filters remain omitted.
 
     Raises:
         ValueError: If any detection has ``class_id=None`` or a non-integer
@@ -466,13 +472,23 @@ def detections_to_yolo_annotations(
             annotation.append(next_object)
             continue
 
-        if mask is not None:
+        # An empty mask (e.g. a box-only COCO annotation) has no polygon to
+        # write, so fall back to the bounding box instead of dropping it.
+        if mask is not None and mask.any():
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
+            if not polygons and not mask_to_polygons(mask=mask):
+                # Preserve area-filtered omissions; only invalid contours fall back.
+                annotation.append(
+                    object_to_yolo(
+                        xyxy=xyxy, class_id=class_id_int, image_shape=image_shape
+                    )
+                )
+                continue
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_yolo(

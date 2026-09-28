@@ -19,7 +19,11 @@ from supervision.dataset.utils import (
     check_no_basename_collisions,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import (
+    mask_to_polygons,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.utils.file import list_files_with_extensions
 
 
@@ -123,7 +127,9 @@ def detections_to_pascal_voc(
     Note:
         ``detections`` is never mutated by this function; the source ``xyxy``
         array is unchanged after the call. The function is therefore safe to
-        call multiple times on the same ``Detections`` object.
+        call multiple times on the same ``Detections`` object. Empty masks and
+        masks with no valid contour are written as bounding boxes; contours
+        excluded by the area filters remain omitted.
     """
     height, width, depth = image_shape
 
@@ -166,13 +172,19 @@ def detections_to_pascal_voc(
                 f"got {type(class_id)!r}."
             )
         name = classes[class_id]
-        if mask is not None:
+        # An empty mask (e.g. a box-only COCO annotation) has no polygon to
+        # write, so fall back to the bounding box instead of dropping it.
+        if mask is not None and mask.any():
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
+            if not polygons and not mask_to_polygons(mask=mask):
+                # Preserve area-filtered omissions; only invalid contours fall back.
+                annotation.append(object_to_pascal_voc(xyxy=xyxy, name=name))
+                continue
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_pascal_voc(
