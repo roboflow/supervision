@@ -387,7 +387,8 @@ def detections_to_yolo_annotations(
 
     Returns:
         A list of YOLO annotation strings, one per detection (or one per
-        polygon for instance-segmentation annotations).
+        polygon for instance-segmentation annotations). A detection whose mask
+        is empty is written as its bounding box.
 
     Raises:
         ValueError: If any detection has ``class_id=None`` or a non-integer
@@ -460,7 +461,9 @@ def detections_to_yolo_annotations(
             annotation.append(next_object)
             continue
 
-        if mask is not None:
+        # An empty mask (e.g. a box-only COCO annotation) has no polygon to
+        # write, so fall back to the bounding box instead of dropping it.
+        if mask is not None and mask.any():
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,

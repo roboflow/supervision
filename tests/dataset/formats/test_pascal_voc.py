@@ -698,3 +698,33 @@ class TestSavePascalVocAnnotations:
         )
 
         assert classes == ["café", "고양이"]
+
+
+class TestDetectionsToPascalVocEmptyMask:
+    """detections_to_pascal_voc: detections whose mask has no pixels."""
+
+    def test_writes_bounding_box_for_empty_mask(self) -> None:
+        """A detection with an empty mask is written as a bndbox object."""
+        mask = np.zeros((2, 100, 100), dtype=bool)
+        mask[0, 10:50, 10:50] = True
+        detections = _create_detections(
+            xyxy=[[10, 10, 49, 49], [60, 60, 90, 90]], mask=list(mask), class_id=[0, 1]
+        )
+
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["cat", "dog"],
+            filename="image.jpg",
+            image_shape=(100, 100, 3),
+        )
+
+        objects = ElementTree.fromstring(xml_string).findall("object")
+        assert [obj.findtext("name") for obj in objects] == ["cat", "dog"]
+        assert [obj.find("polygon") is not None for obj in objects] == [True, False]
+        dog_box = objects[1].find("bndbox")
+        assert [dog_box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")] == [
+            "61",
+            "61",
+            "91",
+            "91",
+        ]

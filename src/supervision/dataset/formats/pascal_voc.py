@@ -165,7 +165,9 @@ def detections_to_pascal_voc(
                 f"got {type(class_id)!r}."
             )
         name = classes[class_id]
-        if mask is not None:
+        # An empty mask (e.g. a box-only COCO annotation) has no polygon to
+        # write, so fall back to the bounding box instead of dropping it.
+        if mask is not None and mask.any():
             polygons = approximate_mask_with_polygons(
                 mask=mask,
                 min_image_area_percentage=min_image_area_percentage,
