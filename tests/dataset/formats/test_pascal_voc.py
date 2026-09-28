@@ -723,12 +723,7 @@ class TestDetectionsToPascalVocEmptyMask:
         assert [obj.find("polygon") is not None for obj in objects] == [True, False]
         dog_box = objects[1].find("bndbox")
         actual = [dog_box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
-        expected = [
-            "61",
-            "61",
-            "91",
-            "91",
-        ]
+        expected = ["61", "61", "91", "91"]
         assert actual == expected
 
     def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
@@ -751,12 +746,7 @@ class TestDetectionsToPascalVocEmptyMask:
         assert objects[0].find("polygon") is None
         box = objects[0].find("bndbox")
         actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
-        expected = [
-            "31",
-            "21",
-            "51",
-            "41",
-        ]
+        expected = ["31", "21", "51", "41"]
         assert actual == expected
 
     def test_keeps_area_filter_for_masks_with_contours(self) -> None:
