@@ -804,7 +804,7 @@ def test_inject_tracking_carrier_body_close_fallback_is_idempotent(
     page.parent.mkdir(parents=True)
     page.write_text("<html><body>not found</body></html>")
 
-    first_before_segment, first_before_body, _ = module.patch_directory(page.parent)
+    _, first_before_body, _ = module.patch_directory(page.parent)
     second_before_segment, second_before_body, second_skipped = module.patch_directory(
         page.parent
     )
@@ -908,33 +908,46 @@ def test_main_reports_per_directory_and_total_counts(
 def _load_mkdocs_extra_javascript(path: Path) -> list[str]:
     """Return `mkdocs.yml`'s `extra_javascript` list via a tag-tolerant YAML parse.
 
-    `mkdocs.yml` uses custom tags `yaml.safe_load` has no constructor for: `!!python/
-    name:...` (its `pymdownx.emoji` and `pymdownx.superfences` config, to reference
-    importable Python objects) and `!ENV [...]` (`mkdocs-git-committers-plugin-2`'s
-    config, resolved from an environment variable at build time). PyYAML is available
-    here (it is a transitive dependency of the `docs` group's `mike` and
+    `mkdocs.yml` uses two custom tags `yaml.safe_load` has no constructor for:
+    `!!python/name:...` (its `pymdownx.emoji` and `pymdownx.superfences` config, to
+    reference importable Python objects) and `!ENV [...]` (its git-committers and
+    GitHub-token config, resolved from an environment variable at build time). PyYAML
+    is available here (it is a transitive dependency of the `docs` group's `mike` and
     `mkdocs-material`, both installed alongside these tests — see
     `ci-github-tests.yml`), so rather than falling back to a line-based reader this
-    loader just tolerates any tag it doesn't otherwise recognize, resolving it to its
-    plain scalar/sequence/mapping node instead of raising: what those tags resolve to
-    is irrelevant to `extra_javascript`.
+    loader just resolves those two tags to their plain scalar/sequence value instead
+    of raising: what they resolve to is irrelevant to `extra_javascript`. `SafeLoader`
+    is subclassed rather than replaced, so nothing beyond those two tags gains a
+    constructor.
     """
 
     class _TolerantLoader(yaml.SafeLoader):
         pass
 
-    def _construct_undefined(loader: yaml.SafeLoader, node: yaml.Node) -> object:
+    def _construct_python_name(
+        loader: yaml.SafeLoader, suffix: str, node: yaml.Node
+    ) -> str:
+        assert isinstance(node, yaml.ScalarNode)
+        return loader.construct_scalar(node)
+
+    def _construct_env(loader: yaml.SafeLoader, node: yaml.Node) -> object:
         if isinstance(node, yaml.ScalarNode):
             return loader.construct_scalar(node)
-        if isinstance(node, yaml.SequenceNode):
-            return loader.construct_sequence(node)
-        return loader.construct_mapping(node)
+        assert isinstance(node, yaml.SequenceNode)
+        return loader.construct_sequence(node)
 
-    _TolerantLoader.add_constructor(None, _construct_undefined)
+    _TolerantLoader.add_multi_constructor(
+        "tag:yaml.org,2002:python/name:", _construct_python_name
+    )
+    _TolerantLoader.add_constructor("!ENV", _construct_env)
 
     with path.open(encoding="utf-8") as handle:
-        config = yaml.load(handle, Loader=_TolerantLoader)
-    return config["extra_javascript"]
+        # _TolerantLoader subclasses SafeLoader; the two constructors added above
+        # only ever return a plain scalar or sequence value.
+        config = yaml.load(handle, Loader=_TolerantLoader)  # noqa: S506
+    extra_javascript = config["extra_javascript"]
+    assert isinstance(extra_javascript, list)
+    return extra_javascript
 
 
 def test_mkdocs_config_loads_utm_js_immediately_before_segment_js(
