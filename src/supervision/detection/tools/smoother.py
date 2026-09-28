@@ -182,6 +182,8 @@ class DetectionsSmoother:
         oriented-box corners, those corners are aligned and averaged too, and
         `xyxy` is derived from their resulting envelope. Mixed or incompatible
         oriented-box metadata is dropped to keep the returned geometry consistent.
+        Every other field, such as `class_id`, `data` and `metadata`, is taken from
+        the track's most recent frame.
         Returns `None` when the track is unknown or its entire window is empty.
 
         Args:
@@ -199,7 +201,11 @@ class DetectionsSmoother:
         if len(valid) == 0:
             return None
 
-        ret = deepcopy(valid[0])
+        # Build on the newest frame: for a track active in the current frame that is
+        # the current detection, so its class and data are up to date, and every
+        # emitted track carries the same frame's metadata, which `Detections.merge`
+        # requires to agree.
+        ret = deepcopy(valid[-1])
         ret.xyxy = np.mean(np.stack([d.xyxy for d in valid], axis=0), axis=0)
         # Average confidence only over frames that carry it; frames with
         # confidence=None contribute nothing to the mean. Retain None when

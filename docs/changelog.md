@@ -7,6 +7,8 @@ date_modified: 2026-09-22
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionsSmoother` no longer raises `ValueError: Conflicting metadata` once a track appears after an earlier one while detections carry per-frame `metadata`, such as the `source_image` that RF-DETR and `inference` connectors attach. Each smoothed track was built on a copy of the oldest frame in its window, so tracks first seen on different frames carried different frames' metadata and `Detections.merge` rejected them; the class docstring's RF-DETR, tracker and smoother pipeline crashed as soon as a second object entered the video. Smoothed tracks are now built on their current-frame detection, so `metadata` is the current frame's, and `class_id` and `data` fields such as `class_name` follow the current frame instead of lagging behind for up to `length - 1` frames after a track's class changes. `xyxy`, `confidence` and oriented-box corners are averaged exactly as before. ([#2628](https://github.com/roboflow/supervision/pull/2628))
+
 - The published-docs tracking backfill now adds `utm.js` before `</body>` on legacy pages that predate `segment.js`. Pages with `segment.js` keep the existing placement; pages lacking both anchors remain counted as skipped. ([#2627](https://github.com/roboflow/supervision/pull/2627))
 
 - `sv.DetectionDataset.from_yolo` now loads segmentation labels saved by Ultralytics with one trailing confidence or tracker id. Such rows previously raised `ValueError` when the extra value was reshaped as a polygon coordinate. The extra value is ignored, as it is for box labels; polygon geometry and masks are unchanged. ([#2626](https://github.com/roboflow/supervision/pull/2626))
