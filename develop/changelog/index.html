@@ -4050,6 +4050,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.from_yolo</code> now loads segmentation labels saved by Ultralytics with one trailing confidence or tracker id. Such rows previously raised <code>ValueError</code> when the extra value was reshaped as a polygon coordinate. The extra value is ignored, as it is for box labels; polygon geometry and masks are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2626">#2626</a>)</p>
+</li>
+<li>
 <p><code>sv.IconAnnotator</code> now draws a palette icon that carries its own alpha channel (Pillow's <code>PA</code> mode, which a TIFF can store) instead of failing with <code>ValueError: could not broadcast input array from shape (16,16,2) into shape (16,16,3)</code>. It reads icons with <code>cv2.IMREAD_UNCHANGED</code>, for which OpenCV expands any palette to BGR, but the OpenCV-free fallback backend mapped only <code>P</code> to color and left <code>PA</code> alone, returning Pillow's raw two-channel array of palette index and alpha as if it were an image. Its first channel is a lookup index rather than a color, so nothing downstream could use it; <code>sv.draw_image</code> rejected the same array with <code>ValueError: Image must have 3 or 4 channels.</code>. <a href="https://github.com/roboflow/supervision/pull/2614">#2614</a> fixed the same two-channel <code>PA</code> array in <code>sv.pillow_to_cv2</code>, which converts an in-memory Pillow image; this is the file-reading path beside it. A palette image with alpha is now expanded to color like any other palette, matching <code>cv2.imread</code>. Palette images without alpha, every other mode, and every read with OpenCV installed are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2624">#2624</a>)</p>
 </li>
 <li>
@@ -6470,7 +6473,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 25, 2026 22:29:16 UTC">September 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 28, 2026 18:32:25 UTC">September 28, 2026</span>
   </span>
 
     
@@ -6498,9 +6501,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/iammanoj807" class="md-author" title="@iammanoj807">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/207680204?v=4&size=72" alt="iammanoj807">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6508,14 +6511,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/iammanoj807" class="md-author" title="@iammanoj807">
+          
+          <img src="https://avatars.githubusercontent.com/u/207680204?v=4&size=72" alt="iammanoj807">
+        </a>
+      
         <a href="https://github.com/zachsplat" class="md-author" title="@zachsplat">
           
           <img src="https://avatars.githubusercontent.com/u/86435089?v=4&size=72" alt="zachsplat">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
