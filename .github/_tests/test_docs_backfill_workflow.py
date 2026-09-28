@@ -762,21 +762,63 @@ def test_inject_tracking_carrier_leaves_a_genuinely_built_page_untouched(
     assert page.read_text() == original
 
 
-def test_inject_tracking_carrier_counts_pages_without_a_segment_tag(
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_inject_tracking_carrier_falls_back_to_body_and_is_idempotent(
+    tmp_path: Path, load_script: Callable[[str], ModuleType], newline: str
+) -> None:
+    """Patch a legacy page before `</body>` and leave it unchanged on rerun."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    original = f"<html>{newline}  <body>legacy page{newline}  </body>{newline}</html>"
+    page.write_text(original)
+
+    changed, skipped_no_anchor = module.patch_directory(page.parent)
+    patched = page.read_text()
+    second_changed, second_skipped = module.patch_directory(page.parent)
+
+    assert changed == [page]
+    assert skipped_no_anchor == 0
+    assert patched.index(module.TRACKING_SCRIPT_TAG) < patched.index("</body>")
+    assert f"  {module.TRACKING_SCRIPT_TAG}\n  </body>" in patched
+    assert second_changed == []
+    assert second_skipped == 0
+    assert page.read_text() == patched
+    assert patched.count(module.TRACKING_MARKER) == 1
+
+
+def test_inject_tracking_carrier_matches_inline_uppercase_body_close(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """Leave a page with no `segment.js` tag alone, but count it rather than ignore
-    it."""
+    """Insert before an inline closing body tag regardless of its case."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body>legacy page</BODY></html>")
+
+    changed, skipped_no_anchor = module.patch_directory(page.parent)
+
+    assert changed == [page]
+    assert skipped_no_anchor == 0
+    assert page.read_text() == (
+        f"<html><body>legacy page\n{module.TRACKING_SCRIPT_TAG}\n</BODY></html>"
+    )
+
+
+def test_inject_tracking_carrier_counts_pages_without_safe_anchor(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Count pages missing both `segment.js` and a closing body tag."""
     module = load_script("inject_tracking_carrier")
     page = tmp_path / "latest" / "404.html"
     page.parent.mkdir(parents=True)
-    original = "<html><body>no tracking scripts here</body></html>"
+    original = "<html><body>no tracking scripts here"
     page.write_text(original)
 
-    changed, skipped_no_segment = module.patch_directory(page.parent)
+    changed, skipped_no_anchor = module.patch_directory(page.parent)
 
     assert changed == []
-    assert skipped_no_segment == 1
+    assert skipped_no_anchor == 1
     assert page.read_text() == original
 
 
@@ -822,7 +864,7 @@ def test_main_reports_per_directory_and_total_counts(
     (latest_dir / "index.html").write_text(
         '<script src="javascripts/segment.js"></script>'
     )
-    (latest_dir / "404.html").write_text("<html><body>no scripts</body></html>")
+    (latest_dir / "404.html").write_text("<html><body>no scripts")
     monkeypatch.setattr(
         module.sys, "argv", ["inject_tracking_carrier.py", str(tmp_path)]
     )
@@ -832,6 +874,10 @@ def test_main_reports_per_directory_and_total_counts(
     out = capsys.readouterr().out
     assert exit_code == 0
     assert (
-        "latest: patched 1 page(s), skipped 1 page(s) without a segment.js tag" in out
+        "latest: patched 1 page(s), skipped 1 page(s) without a safe insertion anchor"
+        in out
     )
-    assert "total: patched 1 page(s), skipped 1 page(s) without a segment.js tag" in out
+    assert (
+        "total: patched 1 page(s), skipped 1 page(s) without a safe insertion anchor"
+        in out
+    )
