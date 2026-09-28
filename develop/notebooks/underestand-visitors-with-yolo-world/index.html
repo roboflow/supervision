@@ -4358,7 +4358,7 @@ detections = sv.Detections.from_inference(results).with_nms(threshold=0.1)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>The results we've obtained can be easily visualized with <a href="https://supervision.roboflow.com/latest/annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>. We can adjust parameters such as line thickness, text scale, line and text color allowing for a highly tailored visualization experience.</p>
+<p>The results we've obtained can be easily visualized with <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>. We can adjust parameters such as line thickness, text scale, line and text color allowing for a highly tailored visualization experience.</p>
 </div>
 </div>
 </div>
@@ -4381,10 +4381,10 @@ detections = sv.Detections.from_inference(results).with_nms(threshold=0.1)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="n">LABEL_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">(</span><span class="n">text_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-11">BOUNDING_BOX_ANNOTATOR = sv.BoundingBoxAnnotator(thickness=2)
+<div class="clipboard-copy-txt" id="cell-11">BOUNDING_BOX_ANNOTATOR = sv.BoxAnnotator(thickness=2)
 LABEL_ANNOTATOR = sv.LabelAnnotator(text_thickness=2, text_scale=1, text_color=sv.Color.BLACK)</div>
 </div>
 </div>
@@ -4523,7 +4523,7 @@ model.set_classes(classes)</div>
 <span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.003</span><span class="p">)</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">.</span><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
 
-<span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="n">LABEL_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">(</span><span class="n">text_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span>
 
 <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
@@ -4541,7 +4541,7 @@ model.set_classes(classes)</div>
 results = model.infer(image, confidence=0.003)
 detections = sv.Detections.from_inference(results).with_nms(threshold=0.1)
 
-BOUNDING_BOX_ANNOTATOR = sv.BoundingBoxAnnotator(thickness=2)
+BOUNDING_BOX_ANNOTATOR = sv.BoxAnnotator(thickness=2)
 LABEL_ANNOTATOR = sv.LabelAnnotator(text_thickness=2, text_scale=1, text_color=sv.Color.BLACK)
 
 labels = [
@@ -4632,7 +4632,7 @@ sv.plot_image(annotated_image, (10, 10))
 <span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.003</span><span class="p">)</span>
 <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">.</span><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
 
-<span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">BOUNDING_BOX_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">(</span><span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="n">LABEL_ANNOTATOR</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">(</span><span class="n">text_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span>
 
 <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
@@ -4648,7 +4648,7 @@ image = cv2.imread(SOURCE_IMAGE_PATH)
 results = model.infer(image, confidence=0.003)
 detections = sv.Detections.from_inference(results).with_nms(threshold=0.1)
 
-BOUNDING_BOX_ANNOTATOR = sv.BoundingBoxAnnotator(thickness=2)
+BOUNDING_BOX_ANNOTATOR = sv.BoxAnnotator(thickness=2)
 LABEL_ANNOTATOR = sv.LabelAnnotator(text_thickness=2, text_scale=1, text_color=sv.Color.BLACK)
 
 labels = [
@@ -5078,7 +5078,7 @@ with sv.VideoSink(target_path=TARGET_VIDEO_PATH, video_info=video_info) as sink,
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 24, 2026 21:39:22 UTC">April 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 28, 2026 20:40:03 UTC">September 28, 2026</span>
   </span>
 
     
@@ -5106,9 +5106,9 @@ with sv.VideoSink(target_path=TARGET_VIDEO_PATH, video_info=video_info) as sink,
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/pratikgx" class="md-author" title="@pratikgx">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/191299?v=4&size=72" alt="pratikgx">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5116,21 +5116,21 @@ with sv.VideoSink(target_path=TARGET_VIDEO_PATH, video_info=video_info) as sink,
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/AdonaiVera" class="md-author" title="@AdonaiVera">
           
           <img src="https://avatars.githubusercontent.com/u/45982251?v=4&size=72" alt="AdonaiVera">
-        </a>
-      
-        <a href="https://github.com/codex" class="md-author" title="@codex">
-          
-          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/notebooks/underestand-visitors-with-yolo-world.ipynb" class="md-author md-author--more">
-            +3
+            +4
           </a>
         
       

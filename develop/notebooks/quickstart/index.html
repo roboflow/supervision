@@ -4123,7 +4123,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <a href="https://badge.fury.io/py/supervision"><img alt="python-version" src="https://img.shields.io/pypi/pyversions/supervision"/></a>
 <a href="https://github.com/roboflow/supervision"><img alt="GitHub" src="https://badges.aleen42.com/src/github.svg"/></a></p>
 <p>We write your reusable computer vision tools. Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝</p>
-<p>We hope that the resources in this notebook will help you get the most out of Supervision. Please browse the Supervision <a href="https://roboflow.github.io/supervision/">docs</a> for details, raise an <a href="https://github.com/roboflow/supervision/issues">issue</a> on GitHub for support, and join our <a href="https://github.com/roboflow/supervision/discussions">discussions</a> section for questions!</p>
+<p>We hope that the resources in this notebook will help you get the most out of Supervision. Please browse the Supervision <a href="https://supervision.roboflow.com/latest/">docs</a> for details, raise an <a href="https://github.com/roboflow/supervision/issues">issue</a> on GitHub for support, and join our <a href="https://github.com/roboflow/supervision/discussions">discussions</a> section for questions!</p>
 <h2 id="table-of-contents">Table of contents<a class="anchor-link" href="#table-of-contents">¶</a></h2><ul>
 <li>Before you start</li>
 <li>Install</li>
@@ -4631,7 +4631,7 @@ detections = model.predict(image[:, :, ::-1])</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="ultralytics">Ultralytics <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_ultralytics">📚</a><a class="anchor-link" href="#ultralytics">¶</a></h3>
+<h3 id="ultralytics">Ultralytics <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics">📚</a><a class="anchor-link" href="#ultralytics">¶</a></h3>
 </div>
 </div>
 </div>
@@ -4743,7 +4743,7 @@ detections = sv.Detections.from_ultralytics(result)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="inference">Inference <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_inference">📚</a><a class="anchor-link" href="#inference">¶</a></h3>
+<h3 id="inference">Inference <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference">📚</a><a class="anchor-link" href="#inference">¶</a></h3>
 </div>
 </div>
 </div>
@@ -4855,7 +4855,7 @@ detections = sv.Detections.from_inference(result)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="yolo-nas">YOLO-NAS <a href="https://roboflow.github.io/supervision/detection/core/#supervision.detection.core.Detections.from_yolo_nas">📚</a><a class="anchor-link" href="#yolo-nas">¶</a></h3>
+<h3 id="yolo-nas">YOLO-NAS <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas">📚</a><a class="anchor-link" href="#yolo-nas">¶</a></h3>
 </div>
 </div>
 </div>
@@ -5155,7 +5155,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="maskannotator">MaskAnnotator <a href="https://roboflow.github.io/supervision/detection/annotate/#maskannotator">📚</a><a class="anchor-link" href="#maskannotator">¶</a></h3>
+<h3 id="maskannotator">MaskAnnotator <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator">📚</a><a class="anchor-link" href="#maskannotator">¶</a></h3>
 </div>
 </div>
 </div>
@@ -5250,7 +5250,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="filter">🗑 Filter <a href="https://roboflow.github.io/supervision/quickstart/detections/">📚</a><a class="anchor-link" href="#filter">¶</a></h2>
+<h2 id="filter">🗑 Filter <a href="https://supervision.roboflow.com/latest/detection/core/">📚</a><a class="anchor-link" href="#filter">¶</a></h2>
 </div>
 </div>
 </div>
@@ -5824,7 +5824,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="videoinfo">VideoInfo <a href="https://roboflow.github.io/supervision/utils/video/#videoinfo">📚</a><a class="anchor-link" href="#videoinfo">¶</a></h3><p><strong>NOTE:</strong> <code>VideoInfo</code> allows us to easily retrieve information about video files, such as resolution, FPS and total number of frames.</p>
+<h3 id="videoinfo">VideoInfo <a href="https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoInfo">📚</a><a class="anchor-link" href="#videoinfo">¶</a></h3><p><strong>NOTE:</strong> <code>VideoInfo</code> allows us to easily retrieve information about video files, such as resolution, FPS and total number of frames.</p>
 </div>
 </div>
 </div>
@@ -5874,7 +5874,7 @@ VIDEO_PATH = VideoAssets.VEHICLES.value</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="get_video_frames_generator">get_video_frames_generator <a href="https://roboflow.github.io/supervision/utils/video/#get_video_frames_generator">📚</a><a class="anchor-link" href="#get_video_frames_generator">¶</a></h3>
+<h3 id="get_video_frames_generator">get_video_frames_generator <a href="https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.get_video_frames_generator">📚</a><a class="anchor-link" href="#get_video_frames_generator">¶</a></h3>
 </div>
 </div>
 </div>
@@ -5953,7 +5953,7 @@ sv.plot_image(image=frame, size=(8, 8))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="videosink">VideoSink <a href="https://roboflow.github.io/supervision/utils/video/#videosink">📚</a><a class="anchor-link" href="#videosink">¶</a></h3>
+<h3 id="videosink">VideoSink <a href="https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoSink">📚</a><a class="anchor-link" href="#videosink">¶</a></h3>
 </div>
 </div>
 </div>
@@ -6212,7 +6212,7 @@ Extracting Dataset Version Zip to fashion-assistant-segmentation-5 in yolov8::  
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="detectiondatasetfrom_yolo">DetectionDataset.from_yolo <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.from_yolo">📚</a><a class="anchor-link" href="#detectiondatasetfrom_yolo">¶</a></h3><p><strong>NOTE:</strong> Currently Dataset API always loads loads images from hard drive. In the future, we plan to add lazy loading.</p>
+<h3 id="detectiondatasetfrom_yolo">DetectionDataset.from_yolo <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_yolo">📚</a><a class="anchor-link" href="#detectiondatasetfrom_yolo">¶</a></h3><p><strong>NOTE:</strong> Currently Dataset API always loads loads images from hard drive. In the future, we plan to add lazy loading.</p>
 </div>
 </div>
 </div>
@@ -6442,7 +6442,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="split">split <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.split">📚</a><a class="anchor-link" href="#split">¶</a></h3>
+<h3 id="split">split <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split">📚</a><a class="anchor-link" href="#split">¶</a></h3>
 </div>
 </div>
 </div>
@@ -6519,7 +6519,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="detectiondatasetas_pascal_voc">DetectionDataset.as_pascal_voc <a href="https://roboflow.github.io/supervision/dataset/core/#supervision.dataset.core.DetectionDataset.as_pascal_voc">📚</a><a class="anchor-link" href="#detectiondatasetas_pascal_voc">¶</a></h3>
+<h3 id="detectiondatasetas_pascal_voc">DetectionDataset.as_pascal_voc <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_pascal_voc">📚</a><a class="anchor-link" href="#detectiondatasetas_pascal_voc">¶</a></h3>
 </div>
 </div>
 </div>
@@ -6564,7 +6564,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h2 id="congratulations">🏆 Congratulations<a class="anchor-link" href="#congratulations">¶</a></h2><h3 id="learning-resources">Learning Resources<a class="anchor-link" href="#learning-resources">¶</a></h3><ul>
-<li><a href="https://roboflow.github.io/supervision/">Documentation</a></li>
+<li><a href="https://supervision.roboflow.com/latest/">Documentation</a></li>
 <li><a href="https://github.com/roboflow/supervision">GitHub</a></li>
 <li><a href="https://www.youtube.com/playlist?list=PLZCA39VpuaZaoGIohe9aXVMm24MRvfu1E">YouTube Supervision Playlist</a></li>
 </ul>
@@ -6601,7 +6601,7 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 21, 2026 12:33:50 UTC">August 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 28, 2026 20:40:03 UTC">September 28, 2026</span>
   </span>
 
     
@@ -6629,9 +6629,9 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/pratikgx" class="md-author" title="@pratikgx">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/191299?v=4&size=72" alt="pratikgx">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6639,21 +6639,21 @@ sv.plot_image(image=annotated_image, size=(8, 8))</div>
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
-        </a>
-      
-        <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
-          
-          <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/notebooks/quickstart.ipynb" class="md-author md-author--more">
-            +4
+            +5
           </a>
         
       
