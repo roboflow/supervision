@@ -18,18 +18,23 @@ Scope:
     ``<script src="https://app.roboflow.com/scripts/utm.js"></script>`` immediately
     before that page's existing ``javascripts/segment.js`` script tag, matched by
     regex on the ``segment.js`` src since the tag is site-relative (``segment.js`` at
-    the root, ``../javascripts/segment.js`` one level down, and so on). A page already
-    referencing ``app.roboflow.com/scripts/utm.js`` is left untouched, which makes a
-    re-run a no-op and makes this safe to run against a tree ``mike`` has since
-    rebuilt from a ``mkdocs.yml`` that already carries the include. A page without
-    ``segment.js`` uses its closing ``</body>`` tag; pages missing both anchors are
-    counted and reported rather than silently skipped.
+    the root, ``../javascripts/segment.js`` one level down, and so on). A page with no
+    ``segment.js`` tag falls back to inserting the same carrier tag immediately before
+    the page's last ``</body>`` tag (matched case-insensitively, with optional space
+    before ``>``), so a page that never
+    got the anchor - a custom error page, say - still ends up tracked. A page already
+    referencing ``app.roboflow.com/scripts/utm.js`` is left untouched regardless of
+    which anchor it was patched against, which makes a re-run a no-op and makes this
+    safe to run against a tree ``mike`` has since rebuilt from a ``mkdocs.yml`` that
+    already carries the include. A page with neither anchor at all is left alone; those
+    are counted and reported rather than silently skipped.
 Usage:
     Run ``python .github/scripts/inject_tracking_carrier.py <gh-pages checkout root>``
     (no third-party dependencies). Safe to re-run.
 Outputs:
-    Prints how many pages were patched, and how many were skipped for lacking a safe
-    insertion anchor, per directory, and exits 0. Exits nonzero only on an
+    Prints, per directory and in total, how many pages were patched before
+    ``segment.js``, how many were patched before ``</body>`` (the fallback), and how
+    many had neither anchor and were skipped, then exits 0. Exits nonzero only on an
     unexpected filesystem error; finding nothing to patch is not a failure.
 Used by:
     ``.github/workflows/docs-backfill.yml``.
@@ -56,6 +61,9 @@ TRACKING_MARKER = "app.roboflow.com/scripts/utm.js"
 SEGMENT_SCRIPT_RE = re.compile(
     r'^([ \t]*)(<script src="[^"]*javascripts/segment\.js"></script>)', re.MULTILINE
 )
+
+# Fallback anchor for a page with no `segment.js` tag (a custom 404 page, say).
+# HTML closing tags are case-insensitive and may have space before `>`.
 BODY_CLOSE_RE = re.compile(r"</body\s*>", re.IGNORECASE)
 
 
@@ -79,54 +87,79 @@ def _version_dirs(root: Path) -> list[Path]:
     return dirs
 
 
-def patch_directory(version_dir: Path) -> tuple[list[Path], int]:
-    """Insert the tracking carrier before `segment.js` or `</body>` in each page.
+def _insert_before_segment(html: str) -> str | None:
+    """Insert the carrier tag immediately before the page's `segment.js` tag.
 
-    Returns changed files and pages missing both safe insertion anchors.
+    Returns the patched HTML, or `None` if the page has no `segment.js` tag.
     """
-    changed: list[Path] = []
-    skipped_no_anchor = 0
+    if not SEGMENT_SCRIPT_RE.search(html):
+        return None
+    return SEGMENT_SCRIPT_RE.sub(
+        lambda m: f"{m.group(1)}{TRACKING_SCRIPT_TAG}\n{m.group(1)}{m.group(2)}",
+        html,
+        count=1,
+    )
+
+
+def _insert_before_body_close(html: str) -> str | None:
+    """Insert the carrier tag immediately before the page's last `</body>` tag.
+
+    The fallback for a page with no `segment.js` tag to anchor on. Matches the last
+    `</body>` occurrence (case-insensitive) so a page with more than one - inline
+    documentation examples embed a full HTML snippet from time to time - is still
+    patched against its real closing tag rather than an example's. Preserves the
+    closing tag's indentation or separates the script from inline content. Returns
+    `None` if the page has no `</body>` tag at all.
+    """
+    matches = list(BODY_CLOSE_RE.finditer(html))
+    if not matches:
+        return None
+    match = matches[-1]
+    line_start = html.rfind("\n", 0, match.start()) + 1
+    line_prefix = html[line_start : match.start()]
+    # Reuse only indentation; inline content needs a newline before the script.
+    if not line_prefix.strip():
+        insertion = f"{line_prefix}{TRACKING_SCRIPT_TAG}\n"
+        return html[:line_start] + insertion + html[line_start:]
+    return html[: match.start()] + f"\n{TRACKING_SCRIPT_TAG}\n" + html[match.start() :]
+
+
+def patch_directory(version_dir: Path) -> tuple[list[Path], list[Path], int]:
+    """Insert the tracking carrier into every eligible page under `version_dir`.
+
+    Prefers anchoring immediately before `segment.js`; a page with no `segment.js` tag
+    falls back to anchoring immediately before its last `</body>` tag. A page with
+    neither anchor is left untouched.
+
+    Returns the pages patched before `segment.js`, the pages patched before `</body>`
+    (the fallback), and how many pages had neither anchor, for the caller to report
+    against.
+    """
+    patched_before_segment: list[Path] = []
+    patched_at_body_end: list[Path] = []
+    skipped = 0
     for html_file in version_dir.rglob("*.html"):
         original = html_file.read_text(encoding="utf-8")
         if TRACKING_MARKER in original:
             continue
-        if SEGMENT_SCRIPT_RE.search(original):
-            patched = SEGMENT_SCRIPT_RE.sub(
-                lambda m: (
-                    f"{m.group(1)}{TRACKING_SCRIPT_TAG}\n{m.group(1)}{m.group(2)}"
-                ),
-                original,
-                count=1,
-            )
-        else:
-            body_match = BODY_CLOSE_RE.search(original)
-            if not body_match:
-                skipped_no_anchor += 1
-                continue
-            line_start = original.rfind("\n", 0, body_match.start()) + 1
-            line_prefix = original[line_start : body_match.start()]
-            if not line_prefix.strip():
-                insertion = (
-                    f"{line_prefix}{TRACKING_SCRIPT_TAG}\n"
-                    f"{line_prefix}{body_match.group(0)}"
-                )
-                patched = (
-                    original[:line_start] + insertion + original[body_match.end() :]
-                )
-            else:
-                patched = (
-                    original[: body_match.start()]
-                    + "\n"
-                    + TRACKING_SCRIPT_TAG
-                    + "\n"
-                    + original[body_match.start() :]
-                )
-        html_file.write_text(patched, encoding="utf-8")
-        changed.append(html_file)
-    return changed, skipped_no_anchor
+
+        patched = _insert_before_segment(original)
+        if patched is not None:
+            html_file.write_text(patched, encoding="utf-8")
+            patched_before_segment.append(html_file)
+            continue
+
+        patched = _insert_before_body_close(original)
+        if patched is not None:
+            html_file.write_text(patched, encoding="utf-8")
+            patched_at_body_end.append(html_file)
+            continue
+
+        skipped += 1
+    return patched_before_segment, patched_at_body_end, skipped
 
 
-def patch_tree(root: Path) -> dict[str, tuple[list[Path], int]]:
+def patch_tree(root: Path) -> dict[str, tuple[list[Path], list[Path], int]]:
     """Patch every in-scope directory under `root`, keyed by directory name.
 
     Directory order matches `_version_dirs`: `latest`, `develop`, then numeric versions
@@ -144,18 +177,22 @@ def main() -> int:
     root = Path(args[0]) if args else Path()
 
     results = patch_tree(root)
-    total_patched = 0
+    total_before_segment = 0
+    total_at_body_end = 0
     total_skipped = 0
-    for name, (changed, skipped_no_anchor) in results.items():
+    for name, (patched_before_segment, patched_at_body_end, skipped) in results.items():
         print(
-            f"{name}: patched {len(changed)} page(s), "
-            f"skipped {skipped_no_anchor} page(s) without a safe insertion anchor"
+            f"{name}: patched {len(patched_before_segment)} page(s) before "
+            f"segment.js, patched {len(patched_at_body_end)} page(s) before "
+            f"</body>, skipped {skipped} page(s) without either anchor"
         )
-        total_patched += len(changed)
-        total_skipped += skipped_no_anchor
+        total_before_segment += len(patched_before_segment)
+        total_at_body_end += len(patched_at_body_end)
+        total_skipped += skipped
     print(
-        f"total: patched {total_patched} page(s), "
-        f"skipped {total_skipped} page(s) without a safe insertion anchor"
+        f"total: patched {total_before_segment} page(s) before segment.js, "
+        f"patched {total_at_body_end} page(s) before </body>, "
+        f"skipped {total_skipped} page(s) without either anchor"
     )
     return 0
 

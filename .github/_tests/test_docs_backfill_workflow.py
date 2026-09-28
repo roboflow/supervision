@@ -710,10 +710,11 @@ def test_inject_tracking_carrier_inserts_before_segment_at_any_depth(
         "      </body></html>"
     )
 
-    changed, skipped_no_segment = module.patch_directory(page.parent)
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
 
-    assert changed == [page]
-    assert skipped_no_segment == 0
+    assert before_segment == [page]
+    assert before_body == []
+    assert skipped == 0
     patched = page.read_text()
     assert (
         '        <script src="https://app.roboflow.com/scripts/utm.js"></script>\n'
@@ -734,11 +735,14 @@ def test_inject_tracking_carrier_is_idempotent(
     page.parent.mkdir(parents=True)
     page.write_text('<script src="javascripts/segment.js"></script>')
 
-    first_changed, _ = module.patch_directory(page.parent)
-    second_changed, second_skipped = module.patch_directory(page.parent)
+    first_before_segment, _, _ = module.patch_directory(page.parent)
+    second_before_segment, second_before_body, second_skipped = module.patch_directory(
+        page.parent
+    )
 
-    assert first_changed == [page]
-    assert second_changed == []
+    assert first_before_segment == [page]
+    assert second_before_segment == []
+    assert second_before_body == []
     assert second_skipped == 0
     assert page.read_text().count(module.TRACKING_MARKER) == 1
 
@@ -756,69 +760,136 @@ def test_inject_tracking_carrier_leaves_a_genuinely_built_page_untouched(
     )
     page.write_text(original)
 
-    changed, _ = module.patch_directory(page.parent)
+    before_segment, before_body, _ = module.patch_directory(page.parent)
 
-    assert changed == []
+    assert before_segment == []
+    assert before_body == []
     assert page.read_text() == original
 
 
-@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
-def test_inject_tracking_carrier_falls_back_to_body_and_is_idempotent(
-    tmp_path: Path, load_script: Callable[[str], ModuleType], newline: str
-) -> None:
-    """Patch a legacy page before `</body>` and leave it unchanged on rerun."""
-    module = load_script("inject_tracking_carrier")
-    page = tmp_path / "latest" / "index.html"
-    page.parent.mkdir(parents=True)
-    original = f"<html>{newline}  <body>legacy page{newline}  </body>{newline}</html>"
-    page.write_text(original)
-
-    changed, skipped_no_anchor = module.patch_directory(page.parent)
-    patched = page.read_text()
-    second_changed, second_skipped = module.patch_directory(page.parent)
-
-    assert changed == [page]
-    assert skipped_no_anchor == 0
-    assert patched.index(module.TRACKING_SCRIPT_TAG) < patched.index("</body>")
-    assert f"  {module.TRACKING_SCRIPT_TAG}\n  </body>" in patched
-    assert second_changed == []
-    assert second_skipped == 0
-    assert page.read_text() == patched
-    assert patched.count(module.TRACKING_MARKER) == 1
-
-
-def test_inject_tracking_carrier_matches_inline_uppercase_body_close(
+def test_inject_tracking_carrier_falls_back_to_body_close_without_segment_tag(
     tmp_path: Path, load_script: Callable[[str], ModuleType]
 ) -> None:
-    """Insert before an inline closing body tag regardless of its case."""
-    module = load_script("inject_tracking_carrier")
-    page = tmp_path / "latest" / "index.html"
-    page.parent.mkdir(parents=True)
-    page.write_text("<html><body>legacy page</BODY></html>")
+    """Insert the carrier before `</body>` when a page has no `segment.js` tag.
 
-    changed, skipped_no_anchor = module.patch_directory(page.parent)
-
-    assert changed == [page]
-    assert skipped_no_anchor == 0
-    assert page.read_text() == (
-        f"<html><body>legacy page\n{module.TRACKING_SCRIPT_TAG}\n</BODY></html>"
-    )
-
-
-def test_inject_tracking_carrier_counts_pages_without_safe_anchor(
-    tmp_path: Path, load_script: Callable[[str], ModuleType]
-) -> None:
-    """Count pages missing both `segment.js` and a closing body tag."""
+    A custom error page, for example, may never have picked up the `segment.js`
+    include at all; it still deserves the tracking carrier rather than being skipped
+    outright.
+    """
     module = load_script("inject_tracking_carrier")
     page = tmp_path / "latest" / "404.html"
     page.parent.mkdir(parents=True)
-    original = "<html><body>no tracking scripts here"
+    original = "<html><body>\n  <p>not found</p>\n</body></html>"
     page.write_text(original)
 
-    changed, skipped_no_anchor = module.patch_directory(page.parent)
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
 
-    assert changed == []
-    assert skipped_no_anchor == 1
+    assert before_segment == []
+    assert before_body == [page]
+    assert skipped == 0
+    patched = page.read_text()
+    assert patched.count(module.TRACKING_MARKER) == 1
+    assert f"{module.TRACKING_SCRIPT_TAG}\n</body></html>" in patched
+    # The carrier lands immediately before </body>, not anywhere else in the page.
+    assert patched.index(module.TRACKING_SCRIPT_TAG) < patched.index("</body>")
+    assert "<p>not found</p>" in patched
+
+
+def test_inject_tracking_carrier_preserves_indented_body_close(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Keep the carrier aligned with an indented closing body tag."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html>\n  <body>legacy page\n  </body>\n</html>")
+
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
+
+    assert before_segment == []
+    assert before_body == [page]
+    assert skipped == 0
+    assert page.read_text() == (
+        "<html>\n  <body>legacy page\n"
+        f"  {module.TRACKING_SCRIPT_TAG}\n  </body>\n</html>"
+    )
+
+
+def test_inject_tracking_carrier_handles_inline_uppercase_body_close(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Separate an inline carrier from content before a case-insensitive body tag."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body>legacy page</BODY ></html>")
+
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
+
+    assert before_segment == []
+    assert before_body == [page]
+    assert skipped == 0
+    assert page.read_text() == (
+        f"<html><body>legacy page\n{module.TRACKING_SCRIPT_TAG}\n</BODY ></html>"
+    )
+
+
+def test_inject_tracking_carrier_uses_last_body_close(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Anchor after an inline example that contains an earlier closing body tag."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body><code></body></code>content</body></html>")
+
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
+
+    assert before_segment == []
+    assert before_body == [page]
+    assert skipped == 0
+    assert page.read_text() == (
+        "<html><body><code></body></code>content\n"
+        f"{module.TRACKING_SCRIPT_TAG}\n</body></html>"
+    )
+
+
+def test_inject_tracking_carrier_body_close_fallback_is_idempotent(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """A second run against a body-end-patched page is a no-op."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "404.html"
+    page.parent.mkdir(parents=True)
+    page.write_text("<html><body>not found</body></html>")
+
+    _, first_before_body, _ = module.patch_directory(page.parent)
+    second_before_segment, second_before_body, second_skipped = module.patch_directory(
+        page.parent
+    )
+
+    assert first_before_body == [page]
+    assert second_before_segment == []
+    assert second_before_body == []
+    assert second_skipped == 0
+    assert page.read_text().count(module.TRACKING_MARKER) == 1
+
+
+def test_inject_tracking_carrier_counts_pages_with_neither_anchor(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Leave a page with neither anchor alone, but count it rather than ignore it."""
+    module = load_script("inject_tracking_carrier")
+    page = tmp_path / "latest" / "fragment.html"
+    page.parent.mkdir(parents=True)
+    original = "<html>no tracking scripts, and no closing body tag, here</html>"
+    page.write_text(original)
+
+    before_segment, before_body, skipped = module.patch_directory(page.parent)
+
+    assert before_segment == []
+    assert before_body == []
+    assert skipped == 1
     assert page.read_text() == original
 
 
@@ -846,8 +917,10 @@ def test_inject_tracking_carrier_patches_latest_develop_and_every_numeric_versio
     results = module.patch_tree(tmp_path)
 
     assert set(results) == {"latest", "develop", "0.30.5", "0.10.0"}
-    for changed, _ in results.values():
-        assert len(changed) == 1
+    for before_segment, before_body, skipped in results.values():
+        assert len(before_segment) == 1
+        assert before_body == []
+        assert skipped == 0
     assert module.TRACKING_MARKER not in not_a_version.read_text()
 
 
@@ -857,14 +930,22 @@ def test_main_reports_per_directory_and_total_counts(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """`main` prints a patched/skipped breakdown per directory, then a total."""
+    """`main` prints a patched/patched/skipped breakdown per directory, then a total.
+
+    A single directory carries all three outcomes at once, so the per-directory line and
+    the total line are each exercised against a genuine mix rather than a single-outcome
+    directory that would leave the other two counts untested at zero.
+    """
     module = load_script("inject_tracking_carrier")
     latest_dir = tmp_path / "latest"
     latest_dir.mkdir()
     (latest_dir / "index.html").write_text(
         '<script src="javascripts/segment.js"></script>'
     )
-    (latest_dir / "404.html").write_text("<html><body>no scripts")
+    (latest_dir / "404.html").write_text(
+        "<html><body>no segment tag here</body></html>"
+    )
+    (latest_dir / "fragment.html").write_text("<html>no anchors at all</html>")
     monkeypatch.setattr(
         module.sys, "argv", ["inject_tracking_carrier.py", str(tmp_path)]
     )
@@ -874,10 +955,74 @@ def test_main_reports_per_directory_and_total_counts(
     out = capsys.readouterr().out
     assert exit_code == 0
     assert (
-        "latest: patched 1 page(s), skipped 1 page(s) without a safe insertion anchor"
-        in out
+        "latest: patched 1 page(s) before segment.js, patched 1 page(s) before "
+        "</body>, skipped 1 page(s) without either anchor" in out
     )
     assert (
-        "total: patched 1 page(s), skipped 1 page(s) without a safe insertion anchor"
-        in out
+        "total: patched 1 page(s) before segment.js, patched 1 page(s) before "
+        "</body>, skipped 1 page(s) without either anchor" in out
     )
+
+
+def _load_mkdocs_extra_javascript(path: Path) -> list[str]:
+    """Return `mkdocs.yml`'s `extra_javascript` list via a tag-tolerant YAML parse.
+
+    `mkdocs.yml` uses two custom tags `yaml.safe_load` has no constructor for:
+    `!!python/name:...` (its `pymdownx.emoji` and `pymdownx.superfences` config, to
+    reference importable Python objects) and `!ENV [...]` (its git-committers and
+    GitHub-token config, resolved from an environment variable at build time). PyYAML
+    is available here (it is a transitive dependency of the `docs` group's `mike` and
+    `mkdocs-material`, both installed alongside these tests — see
+    `ci-github-tests.yml`), so rather than falling back to a line-based reader this
+    loader just resolves those two tags to their plain scalar/sequence value instead
+    of raising: what they resolve to is irrelevant to `extra_javascript`. `SafeLoader`
+    is subclassed rather than replaced, so nothing beyond those two tags gains a
+    constructor.
+    """
+
+    class _TolerantLoader(yaml.SafeLoader):
+        pass
+
+    def _construct_python_name(
+        loader: yaml.SafeLoader, suffix: str, node: yaml.Node
+    ) -> str:
+        assert isinstance(node, yaml.ScalarNode)
+        return loader.construct_scalar(node)
+
+    def _construct_env(loader: yaml.SafeLoader, node: yaml.Node) -> object:
+        if isinstance(node, yaml.ScalarNode):
+            return loader.construct_scalar(node)
+        assert isinstance(node, yaml.SequenceNode)
+        return loader.construct_sequence(node)
+
+    _TolerantLoader.add_multi_constructor(
+        "tag:yaml.org,2002:python/name:", _construct_python_name
+    )
+    _TolerantLoader.add_constructor("!ENV", _construct_env)
+
+    with path.open(encoding="utf-8") as handle:
+        # _TolerantLoader subclasses SafeLoader; the two constructors added above
+        # only ever return a plain scalar or sequence value.
+        config = yaml.load(handle, Loader=_TolerantLoader)  # noqa: S506
+    extra_javascript = config["extra_javascript"]
+    assert isinstance(extra_javascript, list)
+    return extra_javascript
+
+
+def test_mkdocs_config_loads_utm_js_immediately_before_segment_js(
+    repo_root: Path,
+) -> None:
+    """Assert `utm.js` is present exactly once and sits right before `segment.js`.
+
+    This is the adjacency `inject_tracking_carrier.py` replicates on already-published
+    static HTML (see its module docstring and `TRACKING_STEP` above): a genuine
+    `mkdocs` build only puts the carrier ahead of Segment because `extra_javascript`
+    orders them that way, so if this list ever drifts, the backfill script's output and
+    a real rebuild's output would silently diverge.
+    """
+    extra_javascript = _load_mkdocs_extra_javascript(repo_root / "mkdocs.yml")
+    utm_url = "https://app.roboflow.com/scripts/utm.js"
+
+    assert extra_javascript.count(utm_url) == 1
+    utm_index = extra_javascript.index(utm_url)
+    assert extra_javascript[utm_index + 1] == "javascripts/segment.js"
