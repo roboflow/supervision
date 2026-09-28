@@ -722,3 +722,35 @@ class TestMeanAveragePrecisionPycocotoolsParity:
 
         # IoU is prediction_width / 100; pycocotools 2.0.11 gives the same stats[0].
         assert result.map50_95 == pytest.approx(expected_map50_95)
+
+    @pytest.mark.parametrize(
+        ("prediction_width", "expected_map50_95"),
+        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
+    )
+    def test_mask_iou_landing_on_an_iou_threshold_matches_pycocotools(
+        self, prediction_width: int, expected_map50_95: float
+    ) -> None:
+        """A mask IoU equal to a threshold matches at it, as in pycocotools."""
+        target_mask = np.zeros((1, 20, 120), dtype=bool)
+        target_mask[0, :10, :100] = True
+        prediction_mask = np.zeros((1, 20, 120), dtype=bool)
+        prediction_mask[0, :10, :prediction_width] = True
+        targets = Detections(
+            xyxy=np.array([[0, 0, 100, 10]]), mask=target_mask, class_id=np.array([0])
+        )
+        predictions = Detections(
+            xyxy=np.array([[0, 0, prediction_width, 10]]),
+            mask=prediction_mask,
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        # Mask IoU is prediction_width / 100; pycocotools 2.0.11 ("segm") gives the
+        # same stats[0].
+        assert result.map50_95 == pytest.approx(expected_map50_95)

@@ -16,7 +16,6 @@ from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch_with_jaccard,
-    mask_iou_batch,
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
@@ -603,10 +602,20 @@ def _mask_iou_with_jaccard(
     dt_masks = np.stack(masks_detection).astype(bool)
     crowd = np.asarray(is_crowd, dtype=bool)
 
-    # Compute base IoU via the optimised path (float32 + memory-chunked).
-    # mask_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
-    iou: npt.NDArray[np.float64] = mask_iou_batch(gt_masks, dt_masks).T.astype(
-        np.float64
+    # pycocotools divides the pixel counts in float64 and compares the IoUs with
+    # float64 thresholds. `mask_iou_batch` divides float32 counts, which rounds an
+    # exact IoU such as 65/100 just below the 0.65 threshold, so count the pixels
+    # here and divide in float64. float32 counts pixels exactly up to 2**24.
+    pixels = int(np.prod(gt_masks.shape[1:]))
+    count_dtype = np.float32 if pixels <= 2**24 else np.float64
+    gt_flat = gt_masks.reshape(len(gt_masks), pixels).astype(count_dtype)
+    dt_flat = dt_masks.reshape(len(dt_masks), pixels).astype(count_dtype)
+    area_inter = (dt_flat @ gt_flat.T).astype(np.float64)  # (dt, gt)
+    area_dt = dt_flat.sum(axis=1, dtype=np.float64)  # (dt,)
+    area_gt = gt_flat.sum(axis=1, dtype=np.float64)  # (gt,)
+    union = area_dt[:, None] + area_gt[None, :] - area_inter
+    iou: npt.NDArray[np.float64] = np.divide(
+        area_inter, union, out=np.zeros_like(area_inter), where=union != 0
     )
 
     if not np.any(crowd):
@@ -614,14 +623,9 @@ def _mask_iou_with_jaccard(
 
     # Override crowd columns: COCO convention collapses the union to the
     # detection area, so a small detection inside a large crowd region scores
-    # IoU ≈ 1.  Recompute only the crowd columns to avoid a full float64 matmul.
+    # IoU ≈ 1.
     eps = np.spacing(1)
-    crowd_idx = np.where(crowd)[0]
-    gt_flat = gt_masks[crowd_idx].reshape(len(crowd_idx), -1).astype(np.float32)
-    dt_flat = dt_masks.reshape(dt_masks.shape[0], -1).astype(np.float32)
-    area_inter = (dt_flat @ gt_flat.T).astype(np.float64)  # (dt, N_crowd)
-    area_dt = dt_flat.sum(axis=1).astype(np.float64)  # (dt,)
-    iou[:, crowd_idx] = area_inter / (area_dt[:, None] + eps)
+    iou[:, crowd] = area_inter[:, crowd] / (area_dt[:, None] + eps)
     return iou
 
 
