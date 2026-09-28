@@ -873,9 +873,9 @@ def test_main_reports_per_directory_and_total_counts(
 ) -> None:
     """`main` prints a patched/patched/skipped breakdown per directory, then a total.
 
-    A single directory carries all three outcomes at once, so the per-directory line
-    and the total line are each exercised against a genuine mix rather than a
-    single-outcome directory that would leave the other two counts untested at zero.
+    A single directory carries all three outcomes at once, so the per-directory line and
+    the total line are each exercised against a genuine mix rather than a single-outcome
+    directory that would leave the other two counts untested at zero.
     """
     module = load_script("inject_tracking_carrier")
     latest_dir = tmp_path / "latest"
