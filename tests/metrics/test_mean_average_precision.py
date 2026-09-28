@@ -675,3 +675,50 @@ class TestEvaluationDatasetLoadPredictions:
         assert loaded_annotations[0]["image_id"] == 1
         assert loaded_annotations[0]["category_id"] == 1
         assert loaded_annotations[0]["bbox"] == [0, 0, 1, 1]
+
+
+class TestMeanAveragePrecisionPycocotoolsParity:
+    """Scores match pycocotools where float32 rounding would move a threshold."""
+
+    def test_recall_landing_on_a_recall_threshold_matches_pycocotools(self) -> None:
+        """Recall 0.7 of 10 targets samples precision where pycocotools does."""
+        targets_xyxy = np.array([[i * 20, 0, i * 20 + 10, 10] for i in range(10)])
+        false_positives_xyxy = np.array(
+            [[i * 20, 100, i * 20 + 10, 110] for i in range(10)]
+        )
+        # Seven hits, ten misses, then an eighth hit: recall reaches exactly 0.7
+        # before the precision drops.
+        predictions_xyxy = np.vstack(
+            [targets_xyxy[:7], false_positives_xyxy, targets_xyxy[7:8]]
+        )
+        targets = Detections(xyxy=targets_xyxy, class_id=np.zeros(10, dtype=int))
+        predictions = Detections(
+            xyxy=predictions_xyxy,
+            class_id=np.zeros(len(predictions_xyxy), dtype=int),
+            confidence=np.linspace(0.99, 0.5, len(predictions_xyxy)),
+        )
+
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # pycocotools 2.0.11 `COCOeval(..., "bbox")` stats[1] for the same data.
+        assert result.map50 == pytest.approx(0.7414741474147416, abs=1e-6)
+
+    @pytest.mark.parametrize(
+        ("prediction_width", "expected_map50_95"),
+        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
+    )
+    def test_iou_landing_on_an_iou_threshold_matches_pycocotools(
+        self, prediction_width: int, expected_map50_95: float
+    ) -> None:
+        """An IoU equal to a threshold counts as a match at it, as in pycocotools."""
+        targets = Detections(xyxy=np.array([[0, 0, 100, 10]]), class_id=np.array([0]))
+        predictions = Detections(
+            xyxy=np.array([[0, 0, prediction_width, 10]]),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # IoU is prediction_width / 100; pycocotools 2.0.11 gives the same stats[0].
+        assert result.map50_95 == pytest.approx(expected_map50_95)

@@ -642,13 +642,17 @@ class COCOEvaluatorParameters:
         self.img_ids: list[int] = []
         self.cat_ids: list[int] = []
 
+        # Thresholds are float64 as in pycocotools. IoUs and recalls are compared
+        # against them, and float32 rounds some of them (e.g. 0.7) to the other side
+        # of the float64 value pycocotools compares, which moves the precision
+        # sampled at that recall, or the match made at that IoU, by one detection.
         # IoU thresholds [0.5, 0.55, 0.6, 0.65, ..., 0.95]
         self.iou_thrs = np.linspace(
             0.5,
             0.95,
             int(np.round((0.95 - 0.5) / 0.05)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 101 recall thresholds [0.0, 0.01, 0.02, ..., 1.00]
         self.rec_thrs = np.linspace(
@@ -656,7 +660,7 @@ class COCOEvaluatorParameters:
             1.00,
             int(np.round((1.00 - 0.0) / 0.01)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
@@ -712,7 +716,7 @@ class COCOEvaluator:
         # List of results summarization
         self.stats: list[object] = []
         # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], npt.NDArray[np.float32]] = {}
+        self.ious: dict[tuple[int, int], npt.NDArray[np.float64]] = {}
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
@@ -750,7 +754,7 @@ class COCOEvaluator:
         self.eval_imgs = []
         self.results = {}
 
-    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
+    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float64]:
         """Compute the IoU between the targets and predictions for a given image and
         category, using boxes, masks or oriented bounding boxes depending on the
         configured metric target.
@@ -767,7 +771,7 @@ class COCOEvaluator:
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
-            empty_result: npt.NDArray[np.float32] = np.array([], dtype=np.float32)
+            empty_result: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
             return empty_result
 
         # Sort predictions by highest score first
@@ -802,7 +806,7 @@ class COCOEvaluator:
             gt_boxes = [g["bbox"] for g in gt]
             dt_boxes = [d["bbox"] for d in dt]
             iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd)
-        return iou.astype(np.float32)
+        return iou.astype(np.float64)
 
     def _evaluate_image(
         self,
@@ -1049,8 +1053,8 @@ class COCOEvaluator:
                         np.logical_not(dt_matches), np.logical_not(dt_ignored)
                     )
 
-                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float32)
-                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float32)
+                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float64)
+                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float64)
 
                     # Loop through thresholds
                     for iou_thresh_idx, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
@@ -1058,7 +1062,7 @@ class COCOEvaluator:
                         fp = np.array(fp)
                         num_tps = len(tp)
                         # Recall: TP / Total number of ground truth objects
-                        rc = tp / np.float32(num_non_ignored_gt)
+                        rc = tp / num_non_ignored_gt
                         # Precision: TP / (FP + TP)
                         pr = (tp / (fp + tp + EPS)).tolist()
                         # List to compute the precision at each recall threshold
