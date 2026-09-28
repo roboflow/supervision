@@ -986,6 +986,7 @@ def _load_mkdocs_extra_javascript(path: Path) -> list[str]:
     def _construct_python_name(
         loader: yaml.SafeLoader, suffix: str, node: yaml.Node
     ) -> str:
+        """Resolve a Python-name tag to its inert scalar value."""
         assert isinstance(node, yaml.ScalarNode)
         return loader.construct_scalar(node)
 
