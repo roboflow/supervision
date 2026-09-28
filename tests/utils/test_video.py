@@ -15,6 +15,7 @@ from supervision import _cv2 as cv2
 from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,
+    VideoSink,
     get_video_frames_generator,
     process_video,
 )
@@ -518,7 +519,7 @@ def test_process_video_propagates_writer_thread_errors(
     """A failing frame write raises RuntimeError instead of hanging forever."""
     target_path = str(tmp_path / "target_writer_error.mp4")
 
-    def failing_write_frame(self, frame) -> None:
+    def failing_write_frame(self: VideoSink, frame: np.ndarray) -> None:
         """Stand in for a sink that cannot write, e.g. on a full disk."""
         raise OSError("write failed")
 
