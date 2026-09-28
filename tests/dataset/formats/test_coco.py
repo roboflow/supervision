@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from defusedxml import ElementTree
 
 from supervision import DetectionDataset, Detections
 from supervision import _cv2 as cv2
@@ -349,6 +350,75 @@ def test_detection_dataset_from_coco_accepts_use_iscrowd_false(tmp_path: Path) -
 
     assert "iscrowd" not in dataset.annotations[str(image_path)].data
     assert "area" not in dataset.annotations[str(image_path)].data
+
+
+def test_coco_box_only_annotation_survives_yolo_and_pascal_voc_export(
+    tmp_path: Path,
+) -> None:
+    """A box-only COCO annotation survives both public dataset exporters."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    image_path = images_directory / "image.jpg"
+    assert cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [1, 1, 7, 7],
+                        "area": 49,
+                        "segmentation": [[1, 1, 8, 1, 8, 8, 1, 8]],
+                    },
+                    {
+                        "id": 2,
+                        "image_id": 1,
+                        "category_id": 1,
+                        "bbox": [6, 6, 3, 3],
+                        "area": 9,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_directory),
+        annotations_path=str(annotations_path),
+    )
+    detections = dataset.annotations[str(image_path)]
+    assert detections.mask is not None
+    assert len(detections) == 2
+    assert detections.mask[0].any()
+    assert not detections.mask[1].any()
+
+    yolo_directory = tmp_path / "yolo"
+    dataset.as_yolo(annotations_directory_path=str(yolo_directory))
+    yolo_lines = (yolo_directory / "image.txt").read_text().splitlines()
+    assert len(yolo_lines) == 2
+    assert yolo_lines[1] == "0 0.75000 0.75000 0.30000 0.30000"
+
+    pascal_voc_directory = tmp_path / "pascal_voc"
+    dataset.as_pascal_voc(annotations_directory_path=str(pascal_voc_directory))
+    xml_string = (pascal_voc_directory / "image.xml").read_text()
+    objects = ElementTree.fromstring(xml_string).findall("object")
+    assert len(objects) == 2
+    assert objects[1].findtext("name") == "object"
+    box = objects[1].find("bndbox")
+    assert [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")] == [
+        "7",
+        "7",
+        "10",
+        "10",
+    ]
 
 
 def test_detection_dataset_from_coco_preserves_show_progress_positional_arg(

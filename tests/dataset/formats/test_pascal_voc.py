@@ -728,3 +728,48 @@ class TestDetectionsToPascalVocEmptyMask:
             "91",
             "91",
         ]
+
+    def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
+        """A nonempty mask without a valid contour is written as a box."""
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[30, 40] = True
+        detections = _create_detections(
+            xyxy=[[30, 20, 50, 40]], mask=[mask], class_id=[0]
+        )
+
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["cat"],
+            filename="image.jpg",
+            image_shape=(100, 100, 3),
+        )
+
+        objects = ElementTree.fromstring(xml_string).findall("object")
+        assert len(objects) == 1
+        assert objects[0].find("polygon") is None
+        box = objects[0].find("bndbox")
+        assert [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")] == [
+            "31",
+            "21",
+            "51",
+            "41",
+        ]
+
+    def test_keeps_area_filter_for_masks_with_contours(self) -> None:
+        """A valid contour filtered by maximum area remains omitted."""
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[10:90, 10:90] = True
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[mask], class_id=[0]
+        )
+
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["cat"],
+            filename="image.jpg",
+            image_shape=(100, 100, 3),
+            max_image_area_percentage=0.5,
+        )
+
+        objects = ElementTree.fromstring(xml_string).findall("object")
+        assert objects == []
