@@ -1011,3 +1011,84 @@ def test_dataset_as_yolo_obb_round_trip_with_background_image(
     assert bg_label.read_text().strip() == "", (
         "Background image label file must be empty"
     )
+
+
+_EMPTY_MASK = np.zeros((100, 100), dtype=bool)
+
+
+class TestDetectionsToYoloAnnotationsEmptyMask:
+    """detections_to_yolo_annotations: detections whose mask has no pixels."""
+
+    @pytest.mark.parametrize(
+        ("detections", "expected_lines"),
+        [
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[60, 60, 90, 90]], dtype=np.float32),
+                    class_id=np.array([1]),
+                    mask=_EMPTY_MASK[np.newaxis],
+                ),
+                ["1 0.75000 0.75000 0.30000 0.30000"],
+                id="only-empty-mask",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array(
+                        [[10, 10, 50, 50], [60, 60, 90, 90]], dtype=np.float32
+                    ),
+                    class_id=np.array([0, 1]),
+                    mask=np.stack(
+                        [_mock_simple_mask((100, 100), [10, 10, 50, 50]), _EMPTY_MASK]
+                    ),
+                ),
+                [
+                    "0 0.10000 0.10000 0.10000 0.49000 0.49000 0.49000 0.49000 0.10000",
+                    "1 0.75000 0.75000 0.30000 0.30000",
+                ],
+                id="empty-mask-beside-polygon",
+            ),
+        ],
+    )
+    def test_writes_bounding_box_for_empty_mask(
+        self, detections: Detections, expected_lines: list[str]
+    ) -> None:
+        """A detection with an empty mask is written as its bounding box line."""
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == expected_lines
+
+    def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
+        """A nonempty mask without a valid contour is written as a box."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 30, 40] = True
+        detections = Detections(
+            xyxy=np.array([[30, 20, 50, 40]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == ["0 0.40000 0.30000 0.20000 0.20000"]
+
+    def test_keeps_area_filter_for_masks_with_contours(self) -> None:
+        """A valid contour filtered by maximum area remains omitted."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 10:90, 10:90] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections,
+            image_shape=(100, 100, 3),
+            max_image_area_percentage=0.5,
+        )
+
+        assert lines == []
