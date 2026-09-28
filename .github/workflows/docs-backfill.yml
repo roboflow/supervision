@@ -1,16 +1,19 @@
-# One-shot backfill: point the canonical tag of already-published doc versions at /latest/.
+# One-shot backfill: canonicals, the outdated-version banner, and the tracking carrier.
 #
 # `canonical_version: latest` in mkdocs.yml only takes effect on builds made after it
 # landed. The version trees already on gh-pages were built with a self-referential
 # canonical and are never rebuilt — archived tags will not resolve against current
 # dependencies — so they keep competing with /latest/ in search and AI answer engines
-# until their published HTML is rewritten in place. This job does that rewrite.
+# until their published HTML is rewritten in place. This job does that rewrite, and
+# also patches in the outdated-version banner and the Roboflow tracking carrier
+# (utm.js) that a genuine rebuild of those trees would carry natively but a rebuild
+# is not an option for.
 #
 # Two trigger modes:
 #   workflow_dispatch — the real run: rewrites, commits, and pushes gh-pages.
-#   pull_request (only when this workflow or the banner script itself changes) — a dry
-#     run that does everything except the final commit/push, so the diff is visible on
-#     the PR before the logic that produces it merges.
+#   pull_request (only when this workflow or one of the backfill scripts itself
+#     changes) — a dry run that does everything except the final commit/push, so the
+#     diff is visible on the PR before the logic that produces it merges.
 #
 # Safe to re-run: rewriting an already-correct file is a no-op. Every dispatch run that
 # changes something first pushes the pre-rewrite gh-pages tip to a
@@ -30,6 +33,7 @@ on:
     paths:
       - .github/workflows/docs-backfill.yml
       - .github/scripts/inject_outdated_banner.py
+      - .github/scripts/inject_tracking_carrier.py
 
 permissions:
   contents: write
@@ -103,6 +107,17 @@ jobs:
           "$RUNNER_TEMP/backfill-venv/bin/pip" install --quiet packaging
           "$RUNNER_TEMP/backfill-venv/bin/python" \
             "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_outdated_banner.py" .
+          git diff --stat | tail -5
+
+      - name: 📡 Inject tracking carrier (utm.js) into published trees
+        run: |
+          # mkdocs.yml's extra_javascript now loads utm.js immediately before
+          # javascripts/segment.js on every build, ahead of Segment's 2026-09-30
+          # retirement, but that only reaches latest/ and develop/ on their next
+          # rebuild — a numbered version tree is never rebuilt at all (see header).
+          # No third-party dependencies needed, unlike the banner step above.
+          python3 \
+            "$GITHUB_WORKSPACE/_scripts/.github/scripts/inject_tracking_carrier.py" .
           git diff --stat | tail -5
 
       - name: 🔎 Report canonicals with no page under latest/

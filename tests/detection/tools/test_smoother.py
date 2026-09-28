@@ -160,6 +160,47 @@ class TestDetectionsSmoother:
         assert smoothed_returned.confidence is not None
         assert_allclose(smoothed_returned.xyxy, np.array([[1, 1, 11, 11]]), atol=1e-5)
 
+    def test_smoother_keeps_current_frame_metadata_across_tracks(self) -> None:
+        """Tracks first seen on different frames merge with this frame's metadata."""
+        smoother = DetectionsSmoother(length=3)
+        smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                tracker_id=np.array([1]),
+                metadata={"frame_index": 0},
+            )
+        )
+
+        smoothed = smoother.update_with_detections(
+            Detections(
+                xyxy=np.array([[2, 2, 12, 12], [30, 30, 40, 40]], dtype=np.float32),
+                tracker_id=np.array([1, 2]),
+                metadata={"frame_index": 1},
+            )
+        )
+
+        assert smoothed.metadata == {"frame_index": 1}
+        assert_allclose(
+            smoothed.xyxy, np.array([[1, 1, 11, 11], [30, 30, 40, 40]]), atol=1e-5
+        )
+
+    def test_smoother_reports_current_frame_class(self) -> None:
+        """A track that changes class reports its latest class, not the oldest."""
+        smoother = DetectionsSmoother(length=3)
+        for class_id, class_name in ((0, "car"), (1, "truck")):
+            smoothed = smoother.update_with_detections(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([class_id]),
+                    tracker_id=np.array([1]),
+                    data={"class_name": np.array([class_name])},
+                )
+            )
+
+        assert smoothed.class_id is not None
+        assert smoothed.class_id.tolist() == [1]
+        assert smoothed["class_name"].tolist() == ["truck"]
+
     def test_reset_clears_track_history(self) -> None:
         """Reset() must drop cached frames so post-reset output ignores prior boxes."""
         smoother = DetectionsSmoother(length=3)
