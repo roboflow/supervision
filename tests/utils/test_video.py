@@ -512,6 +512,48 @@ def test_process_video_propagates_reader_thread_errors(
     assert isinstance(exc_info.value.__cause__, OSError)
 
 
+def test_process_video_propagates_writer_thread_errors(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A failing frame write raises RuntimeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_writer_error.mp4")
+
+    def failing_write_frame(self, frame) -> None:
+        """Stand in for a sink that cannot write, e.g. on a full disk."""
+        raise OSError("write failed")
+
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoSink.write_frame", failing_write_frame
+    )
+
+    with pytest.raises(RuntimeError, match="Writer thread raised") as exc_info:
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: frame,
+            writer_buffer=1,
+        )
+
+    assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_process_video_rejects_callback_returning_none(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
+    """A callback returning None raises TypeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_callback_none.mp4")
+
+    with pytest.raises(TypeError, match="returned None for frame 0"):
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: None,
+            writer_buffer=1,
+        )
+
+
 def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
     """Verify that process_video works correctly with custom performance parameters.
 
