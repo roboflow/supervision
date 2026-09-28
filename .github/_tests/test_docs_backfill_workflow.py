@@ -903,3 +903,54 @@ def test_main_reports_per_directory_and_total_counts(
         "total: patched 1 page(s) before segment.js, patched 1 page(s) before "
         "</body>, skipped 1 page(s) without either anchor" in out
     )
+
+
+def _load_mkdocs_extra_javascript(path: Path) -> list[str]:
+    """Return `mkdocs.yml`'s `extra_javascript` list via a tag-tolerant YAML parse.
+
+    `mkdocs.yml` uses custom tags `yaml.safe_load` has no constructor for: `!!python/
+    name:...` (its `pymdownx.emoji` and `pymdownx.superfences` config, to reference
+    importable Python objects) and `!ENV [...]` (`mkdocs-git-committers-plugin-2`'s
+    config, resolved from an environment variable at build time). PyYAML is available
+    here (it is a transitive dependency of the `docs` group's `mike` and
+    `mkdocs-material`, both installed alongside these tests — see
+    `ci-github-tests.yml`), so rather than falling back to a line-based reader this
+    loader just tolerates any tag it doesn't otherwise recognize, resolving it to its
+    plain scalar/sequence/mapping node instead of raising: what those tags resolve to
+    is irrelevant to `extra_javascript`.
+    """
+
+    class _TolerantLoader(yaml.SafeLoader):
+        pass
+
+    def _construct_undefined(loader: yaml.SafeLoader, node: yaml.Node) -> object:
+        if isinstance(node, yaml.ScalarNode):
+            return loader.construct_scalar(node)
+        if isinstance(node, yaml.SequenceNode):
+            return loader.construct_sequence(node)
+        return loader.construct_mapping(node)
+
+    _TolerantLoader.add_constructor(None, _construct_undefined)
+
+    with path.open(encoding="utf-8") as handle:
+        config = yaml.load(handle, Loader=_TolerantLoader)
+    return config["extra_javascript"]
+
+
+def test_mkdocs_config_loads_utm_js_immediately_before_segment_js(
+    repo_root: Path,
+) -> None:
+    """Assert `utm.js` is present exactly once and sits right before `segment.js`.
+
+    This is the adjacency `inject_tracking_carrier.py` replicates on already-published
+    static HTML (see its module docstring and `TRACKING_STEP` above): a genuine
+    `mkdocs` build only puts the carrier ahead of Segment because `extra_javascript`
+    orders them that way, so if this list ever drifts, the backfill script's output and
+    a real rebuild's output would silently diverge.
+    """
+    extra_javascript = _load_mkdocs_extra_javascript(repo_root / "mkdocs.yml")
+    utm_url = "https://app.roboflow.com/scripts/utm.js"
+
+    assert extra_javascript.count(utm_url) == 1
+    utm_index = extra_javascript.index(utm_url)
+    assert extra_javascript[utm_index + 1] == "javascripts/segment.js"
