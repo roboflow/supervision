@@ -726,7 +726,7 @@ class TestDetectionsToPascalVocEmptyMask:
             "61",
             "61",
             "91",
-            "91"
+            "91",
         ]
 
     def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
@@ -752,7 +752,7 @@ class TestDetectionsToPascalVocEmptyMask:
             "31",
             "21",
             "51",
-            "41"
+            "41",
         ]
 
     def test_keeps_area_filter_for_masks_with_contours(self) -> None:
