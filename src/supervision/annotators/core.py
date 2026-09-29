@@ -1509,6 +1509,14 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     fontScale=self.text_scale,
                     thickness=self.text_thickness,
                 )[0]
+                if not line:
+                    # Reserve the same height `_draw_labels` skips for a blank line
+                    text_h = cv2.getTextSize(
+                        text="Tg",
+                        fontFace=CV2_FONT,
+                        fontScale=self.text_scale,
+                        thickness=self.text_thickness,
+                    )[0][1]
                 line_heights.append(text_h)
                 line_widths.append(text_w)
 

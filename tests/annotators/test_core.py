@@ -1216,6 +1216,31 @@ class TestLabelAnnotator:
 
         assert calls == 1
 
+    @pytest.mark.parametrize(
+        "label",
+        [
+            pytest.param("car\n\n0.95", id="blank-middle-line"),
+            pytest.param("car\n\n\n0.95", id="two-blank-lines"),
+            pytest.param("\ncar", id="blank-first-line"),
+        ],
+    )
+    def test_background_covers_label_with_blank_line(self, label: str) -> None:
+        """Label text with a blank line is drawn inside its background box."""
+        scene = np.zeros((200, 200, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 100, 120, 140]], class_id=[0])
+        annotator = LabelAnnotator(
+            color=Color.BLUE, text_color=Color.WHITE, text_padding=10
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        background_rows = np.where(
+            np.all(result == Color.BLUE.as_bgr(), axis=-1).any(axis=1)
+        )[0]
+        text_rows = np.where((result[..., 2] > 128).any(axis=1))[0]
+        assert background_rows.min() < text_rows.min()
+        assert text_rows.max() < background_rows.max()
+
 
 class TestRichLabelAnnotator:
     """Tests for RichLabelAnnotator class"""
