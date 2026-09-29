@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-28
+date_modified: 2026-09-29
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
 
 - `sv.DetectionDataset.as_yolo` and `sv.DetectionDataset.as_pascal_voc` now write a detection whose mask is empty or has no valid contour as its bounding box instead of silently leaving it out of the label file. `sv.DetectionDataset.from_coco` gives an all-zero mask to every annotation without a `segmentation` when another annotation of the same image has one, and to every annotation when `force_masks=True`, so exporting a COCO dataset that mixes polygons and boxes lost its box-only objects, and exporting a box-only COCO dataset loaded with `force_masks=True` wrote empty YOLO label files and Pascal VOC files with no objects. The exporters only wrote the polygons traced from a mask, and an empty mask or a one-pixel mask has no valid polygon. `sv.DetectionDataset.as_labelme` already fell back to the box. Masks with valid contours remain polygons unless `min_image_area_percentage` / `max_image_area_percentage` filters them out; area-filtered contours remain omitted. ([#2631](https://github.com/roboflow/supervision/pull/2631))
 
