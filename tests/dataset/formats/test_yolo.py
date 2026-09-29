@@ -270,7 +270,7 @@ class TestYoloAnnotationsToDetectionsClassId:
 
 
 class TestYoloAnnotationsToDetectionsTrailingToken:
-    """Tests for YOLO box lines that carry a sixth confidence or tracker-id token."""
+    """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
 
     @pytest.mark.parametrize(
         "extra_token",
@@ -315,8 +315,6 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
         assert result.mask.shape == (1, 10, 10)
         assert bool(result.mask[0, 5, 5])
 
-
-class TestYoloSegmentationTrailingToken:
     @pytest.mark.parametrize(
         "extra_token",
         [
@@ -324,12 +322,12 @@ class TestYoloSegmentationTrailingToken:
             pytest.param("3", id="tracker-id"),
         ],
     )
-    def test_loads_polygon_with_trailing_token(self, extra_token: str) -> None:
+    def test_loads_a_polygon_that_has_a_trailing_token(self, extra_token: str) -> None:
         """A saved confidence or track id does not change polygon geometry."""
-        line = f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"
+        lines = [f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"]
 
         result = yolo_annotations_to_detections(
-            lines=[line], resolution_wh=(10, 10), with_masks=True
+            lines=lines, resolution_wh=(10, 10), with_masks=True
         )
 
         np.testing.assert_array_equal(result.class_id, np.array([1]))
@@ -337,13 +335,13 @@ class TestYoloSegmentationTrailingToken:
         assert result.mask is not None
         assert bool(result.mask[0, 5, 5])
 
-    def test_rejects_nonnumeric_trailing_token(self) -> None:
-        """A malformed extra field is rejected instead of silently discarded."""
-        line = "1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"
+    def test_rejects_a_nonnumeric_trailing_token_after_a_polygon(self) -> None:
+        """Guard that the token dropped from a polygon line is parsed, not discarded."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"]
 
         with pytest.raises(ValueError, match="garbage"):
             yolo_annotations_to_detections(
-                lines=[line], resolution_wh=(10, 10), with_masks=True
+                lines=lines, resolution_wh=(10, 10), with_masks=True
             )
 
 
