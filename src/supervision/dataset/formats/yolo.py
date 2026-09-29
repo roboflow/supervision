@@ -201,9 +201,11 @@ def yolo_annotations_to_detections(
     When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
     lines add a trailing confidence or tracker id, which is ignored. Lines with
     seven or more tokens are polygons; an even token count means a polygon
-    followed by one confidence or tracker id, which is also ignored. When
-    ``is_obb=True``, annotations must
-    use the nine-token four-corner OBB format.
+    followed by one confidence or tracker id, which is also ignored. A polygon
+    line that is malformed rather than annotated, with an odd coordinate count
+    and no extra field, is indistinguishable from the latter and is read the
+    same way. When ``is_obb=True``, annotations must use the nine-token
+    four-corner OBB format.
     """
     if len(lines) == 0:
         return Detections.empty()
