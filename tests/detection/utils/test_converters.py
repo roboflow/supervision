@@ -337,6 +337,26 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     np.testing.assert_array_equal(result, expected)
 
 
+class TestXyxyToMaskOffFrame:
+    @pytest.mark.parametrize("coordinate_convention", ["inclusive", "exclusive"])
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([-2, 1, -0.2, 2], id="left-of-frame"),
+            pytest.param([1, -2, 2, -0.2], id="above-frame"),
+        ],
+    )
+    def test_fully_outside_fractional_box_has_empty_mask(
+        self, box: list[float], coordinate_convention: str
+    ) -> None:
+        """A box wholly outside the image must not fill an edge pixel."""
+        boxes = np.array([box], dtype=float)
+
+        result = xyxy_to_mask(boxes, (5, 5), coordinate_convention)
+
+        assert not result.any()
+
+
 def _mask_to_xyxy_reference(
     masks: np.ndarray, coordinate_convention: str = "inclusive"
 ) -> np.ndarray:
