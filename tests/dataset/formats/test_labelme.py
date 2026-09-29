@@ -775,3 +775,50 @@ class TestSaveLabelmeAnnotations:
                 dataset=dataset,
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
+
+
+class TestDetectionDatasetLabelmeImageShapes:
+    """LabelMe exports preserve dimensions and geometry for each image shape."""
+
+    @pytest.mark.parametrize(
+        "image_shape",
+        [
+            pytest.param((16, 24), id="grayscale"),
+            pytest.param((16, 24, 3), id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_dimensions_geometry_and_source_image(
+        self, tmp_path: Path, image_shape: tuple[int, ...], with_mask: bool
+    ) -> None:
+        """Grayscale and color images export boxes and masks without pixel changes."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_labelme(annotations_directory_path=str(tmp_path))
+
+        output = json.loads((tmp_path / "image.json").read_text())
+        assert output["imageWidth"] == 24
+        assert output["imageHeight"] == 16
+        assert len(output["shapes"]) == 1
+        shape = output["shapes"][0]
+        assert shape["label"] == "object"
+        if with_mask:
+            assert shape["shape_type"] == "polygon"
+            assert sorted(shape["points"]) == [[3, 2], [3, 10], [15, 2], [15, 10]]
+        else:
+            assert shape["shape_type"] == "rectangle"
+            assert shape["points"] == [[3, 2], [15, 10]]
+        np.testing.assert_array_equal(image, original_image)

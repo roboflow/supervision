@@ -1092,3 +1092,52 @@ class TestDetectionsToYoloAnnotationsEmptyMask:
         )
 
         assert lines == []
+
+
+class TestDetectionDatasetYoloImageShapes:
+    """YOLO exports normalize coordinates for grayscale and color images."""
+
+    @pytest.mark.parametrize(
+        "image_shape",
+        [
+            pytest.param((16, 24), id="grayscale"),
+            pytest.param((16, 24, 3), id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_normalized_geometry_and_source_image(
+        self, tmp_path: Path, image_shape: tuple[int, ...], with_mask: bool
+    ) -> None:
+        """Grayscale and color boxes and masks use the same width and height."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path))
+
+        lines = (tmp_path / "image.txt").read_text().splitlines()
+        assert len(lines) == 1
+        if with_mask:
+            tokens = lines[0].split()
+            assert tokens[0] == "0"
+            points = np.array(tokens[1:], dtype=float).reshape(-1, 2)
+            assert sorted(points.tolist()) == [
+                [0.125, 0.125],
+                [0.125, 0.625],
+                [0.625, 0.125],
+                [0.625, 0.625],
+            ]
+        else:
+            assert lines == ["0 0.37500 0.37500 0.50000 0.50000"]
+        np.testing.assert_array_equal(image, original_image)
