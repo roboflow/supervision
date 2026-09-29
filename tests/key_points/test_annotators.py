@@ -560,6 +560,34 @@ class TestVertexEllipseHaloAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert np.array_equal(result, scene)
 
+    @pytest.mark.parametrize(
+        ("covariance", "probe_xy"),
+        [
+            pytest.param([[400.0, 0.0], [0.0, 1.0]], (65, 50), id="horizontal"),
+            pytest.param([[1.0, 0.0], [0.0, 400.0]], (50, 65), id="vertical"),
+            pytest.param([[200.5, 199.5], [199.5, 200.5]], (57, 57), id="diagonal"),
+        ],
+    )
+    def test_halo_reaches_along_the_major_axis(
+        self,
+        scene: np.ndarray,
+        covariance: list[list[float]],
+        probe_xy: tuple[int, int],
+    ) -> None:
+        """A thin 20 x 1 px halo is drawn along its major axis whatever its angle."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+            data={"covariance": np.array([[covariance]], dtype=np.float32)},
+        )
+        annotator = sv.VertexEllipseHaloAnnotator(
+            sigma=1.0, color=sv.Color.WHITE, opacity=1.0
+        )
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        probe_x, probe_y = probe_xy
+        assert result[probe_y, probe_x].any()
+
 
 class TestVertexLabelAnnotator:
     def test_smart_position_draws_overlapping_labels(self) -> None:
