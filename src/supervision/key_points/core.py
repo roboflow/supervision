@@ -394,7 +394,12 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                class names, and confidences of each keypoint.
+                class names, and per-keypoint confidences when supplied by the
+                source result. `detection_confidence` is populated only when every
+                prediction has a non-`None` object confidence; if any prediction
+                omits it or sets it to `None`, the field is `None` for the batch and
+                `as_detections()` uses keypoint-confidence means for all predictions.
+                Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -470,9 +475,18 @@ class KeyPoints:
         class_names = np.array([prediction["class"] for prediction in predictions])
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
 
+        # This batch-wide field cannot represent a partially missing score vector.
+        detection_confidence = None
+        if all(prediction.get("confidence") is not None for prediction in predictions):
+            detection_confidence = np.array(
+                [prediction["confidence"] for prediction in predictions],
+                dtype=np.float32,
+            )
+
         return cls(
             xy=xy,
             keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
             class_id=class_id.astype(int),
             data=data,
         )
@@ -620,7 +634,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -646,8 +660,15 @@ class KeyPoints:
         # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
         keypoints_conf = ultralytics_results.keypoints.conf
         confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
+        detection_confidence = ultralytics_results.boxes.conf.cpu().numpy()
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
-        return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
+        return cls(
+            xy=xy,
+            class_id=class_id,
+            keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
+            data=data,
+        )
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
@@ -719,7 +740,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -750,6 +771,9 @@ class KeyPoints:
                 keypoint_confidence=detectron2_results["instances"]
                 .pred_keypoints.cpu()
                 .numpy()[:, :, 2],
+                detection_confidence=detectron2_results["instances"]
+                .scores.cpu()
+                .numpy(),
                 class_id=detectron2_results["instances"]
                 .pred_classes.cpu()
                 .numpy()
