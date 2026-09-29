@@ -1507,9 +1507,9 @@ class KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
         A keypoint is considered valid when its coordinates are finite and not all-zero,
-        and its `visible` flag is `True` (if `visible` is set). A skeleton left without
-        a valid keypoint keeps a zero-area box, so it overlaps nothing and passes
-        through.
+        and its `visible` flag is `True` (if `visible` is set). A skeleton without any
+        valid keypoints, including an empty keypoint axis, keeps a zero-area box, so it
+        overlaps nothing and passes through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1590,10 +1590,10 @@ class KeyPoints:
         if self.visible is not None:
             valid = valid & self.visible
         has_valid = valid.any(axis=1)
-        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
-        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
-        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
-        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
+        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1, initial=np.inf)
+        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1, initial=np.inf)
+        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1, initial=-np.inf)
+        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1, initial=-np.inf)
         xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
         # Skeletons left without a single valid keypoint would otherwise carry the
         # `inf` sentinels above; a zero-area box keeps them out of every overlap.
