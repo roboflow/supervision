@@ -4050,6 +4050,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.VertexEllipseHaloAnnotator</code> now draws the whole halo of a key point whose covariance ellipse is not horizontal. It computed the fade only inside a box sized from the ellipse's semi-axes as if the major axis always ran along the image x axis, so an ellipse whose major axis was vertical or diagonal was clipped to a thin band: a 20 x 1 px ellipse at 90° was drawn 6 px tall instead of 39 px, and the covariances in its own docstring example were cut short too. The box now covers the rotated ellipse, matching what <code>sv.VertexEllipseOutlineAnnotator</code> and <code>sv.VertexEllipseAreaAnnotator</code> draw for the same covariance. Horizontal ellipses are drawn exactly as before. (<a href="https://github.com/roboflow/supervision/pull/2634">#2634</a>)</p>
+</li>
+<li>
 <p><code>sv.KeyPoints.from_ultralytics</code>, <code>sv.KeyPoints.from_inference</code> and <code>sv.KeyPoints.from_detectron2</code> now keep each object's detection score as <code>detection_confidence</code>. They used to drop it and only keep the per-keypoint scores, so <code>sv.KeyPoints.with_nms</code> raised <code>ValueError: KeyPoints detection_confidence must be given for NMS to be executed.</code> on their output, and <code>sv.KeyPoints.as_detections</code> reported the mean key point confidence instead of the model's score, so its <code>confidence</code> differed from <code>sv.Detections.from_ultralytics</code> / <code>sv.Detections.from_inference</code> on the same result. For Inference, whose key points below the request's <code>keypoint_confidence</code> are left out and loaded as zero-confidence slots, that mean was pulled down further by every omitted key point. A hand-built Inference-style dict without a non-<code>None</code> prediction <code>confidence</code> still loads with <code>detection_confidence=None</code>; in a mixed batch, one missing or null prediction score leaves the field unset for all predictions, so <code>as_detections()</code> uses keypoint-confidence means for all rows. (<a href="https://github.com/roboflow/supervision/pull/2633">#2633</a>)</p>
 </li>
 <li>
@@ -6488,7 +6491,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 29, 2026 08:04:15 UTC">September 29, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 29, 2026 08:10:44 UTC">September 29, 2026</span>
   </span>
 
     
@@ -6516,9 +6519,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6526,21 +6529,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+          
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+        </a>
+      
         <a href="https://github.com/franklin-robo" class="md-author" title="@franklin-robo">
           
           <img src="https://avatars.githubusercontent.com/u/231090758?v=4&size=72" alt="franklin-robo">
-        </a>
-      
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
-          
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +38
+            +35
           </a>
         
       
