@@ -4065,6 +4065,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.IconAnnotator</code> now draws a palette icon that carries its own alpha channel (Pillow's <code>PA</code> mode, which a TIFF can store) instead of failing with <code>ValueError: could not broadcast input array from shape (16,16,2) into shape (16,16,3)</code>. It reads icons with <code>cv2.IMREAD_UNCHANGED</code>, for which OpenCV expands any palette to BGR, but the OpenCV-free fallback backend mapped only <code>P</code> to color and left <code>PA</code> alone, returning Pillow's raw two-channel array of palette index and alpha as if it were an image. Its first channel is a lookup index rather than a color, so nothing downstream could use it; <code>sv.draw_image</code> rejected the same array with <code>ValueError: Image must have 3 or 4 channels.</code>. <a href="https://github.com/roboflow/supervision/pull/2614">#2614</a> fixed the same two-channel <code>PA</code> array in <code>sv.pillow_to_cv2</code>, which converts an in-memory Pillow image; this is the file-reading path beside it. A palette image with alpha is now expanded to color like any other palette, matching <code>cv2.imread</code>. Palette images without alpha, every other mode, and every read with OpenCV installed are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2624">#2624</a>)</p>
 </li>
 <li>
+<p><code>sv.LabelAnnotator</code> now sizes the label background to fit a label that contains a blank line, such as <code>"car\n\n0.95"</code> or a label starting with <code>"\n"</code>. The text was drawn with each blank line taking the height of a line of text, but the background was measured with that line as zero pixels tall, so every blank line pushed the text one line height further down than the background reached: with the default <code>text_scale</code> and <code>text_padding=10</code>, the last line of <code>"car\n\n0.95"</code> ran 3 pixels past the bottom of its background instead of sitting about 10 pixels inside it, and each further blank line moved it another 14 pixels out. The background now reserves the same height for a blank line that the text uses. Labels without blank lines are drawn exactly as before. (<a href="https://github.com/roboflow/supervision/pull/2632">#2632</a>)</p>
+</li>
+<li>
 <p><code>sv.LineZone.trigger</code> now ignores detections whose <code>tracker_id</code> is negative, the value trackers such as <code>ByteTrackTracker</code> from the <code>trackers</code> package report for tracks they have not confirmed yet. Those detections are neither counted nor given crossing state, and their entries in the returned <code>crossed_in</code> and <code>crossed_out</code> arrays are always <code>False</code>. Previously every unconfirmed detection was keyed under the same shared id, so several distinct unconfirmed objects on opposite sides of the line read as one track moving back and forth and silently inflated <code>in_count</code> and <code>out_count</code>: two <code>-1</code> objects swapping sides each frame produced crossings without any confirmed track ever crossing. Confirmed tracks are counted exactly as before. (<a href="https://github.com/roboflow/supervision/pull/2623">#2623</a>)</p>
 </li>
 <li>
@@ -6482,7 +6485,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 28, 2026 22:45:23 UTC">September 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 29, 2026 05:57:55 UTC">September 29, 2026</span>
   </span>
 
     
@@ -6534,7 +6537,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +40
+            +39
           </a>
         
       
