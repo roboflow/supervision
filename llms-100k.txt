@@ -68,7 +68,7 @@ Supervision includes annotators for drawing boxes, masks, labels, traces, zones,
 
 ### Tracking
 
-The built-in `sv.ByteTrack` wrapper, which assigned persistent IDs across video frames through `update_with_detections()`, was removed in `supervision-0.31.0`. Use `ByteTrackTracker` from the external `trackers` package instead, whose method is `update()`. Tracked detections can be passed to label, trace, zone, and line-counting annotators.
+The built-in `sv.ByteTrack` wrapper assigns persistent IDs across video frames through `update_with_detections()`. The docs also note the migration path toward `ByteTrackTracker` from the external `trackers` package. Tracked detections can be passed to label, trace, zone, and line-counting annotators.
 
 ### Zones and Counting
 
@@ -107,6 +107,7 @@ Supervision includes detection metrics including mean average precision, mean av
 - Keypoint core: https://supervision.roboflow.com/latest/keypoint/core/
 - Keypoint annotators: https://supervision.roboflow.com/latest/keypoint/annotators/
 - Classification core: https://supervision.roboflow.com/latest/classification/core/
+- Trackers: https://supervision.roboflow.com/latest/trackers/
 - Dataset core: https://supervision.roboflow.com/latest/datasets/core/
 - Mean average precision: https://supervision.roboflow.com/latest/metrics/mean_average_precision/
 - Mean average recall: https://supervision.roboflow.com/latest/metrics/mean_average_recall/
