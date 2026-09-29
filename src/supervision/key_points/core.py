@@ -451,9 +451,12 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                class names, each object's detection confidence, and per-keypoint
-                confidences when supplied by the source result. Two-value keypoints
-                have `keypoint_confidence=None`.
+                class names, and per-keypoint confidences when supplied by the
+                source result. `detection_confidence` is populated only when every
+                prediction has a non-`None` object confidence; if any prediction
+                omits it or sets it to `None`, the field is `None` for the batch and
+                `as_detections()` uses keypoint-confidence means for all predictions.
+                Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -529,9 +532,9 @@ class KeyPoints:
         class_names = np.array([prediction["class"] for prediction in predictions])
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
 
-        # Hand-built results may leave out the object score; keep the field unset.
+        # This batch-wide field cannot represent a partially missing score vector.
         detection_confidence = None
-        if all("confidence" in prediction for prediction in predictions):
+        if all(prediction.get("confidence") is not None for prediction in predictions):
             detection_confidence = np.array(
                 [prediction["confidence"] for prediction in predictions],
                 dtype=np.float32,

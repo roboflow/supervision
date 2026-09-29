@@ -1457,6 +1457,52 @@ class TestFromInferenceOmittedKeypoints:
             key_points.as_detections().confidence, [0.9], rtol=1e-6
         )
 
+    def test_mixed_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
+        """One missing object score makes the batch use keypoint means throughout."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (10, 11), 0.6),
+                    _inference_keypoint(1, (20, 21), 0.4),
+                ],
+                [
+                    _inference_keypoint(0, (30, 31), 0.8),
+                    _inference_keypoint(1, (40, 41), 0.6),
+                ],
+            ]
+        )
+        result["predictions"][1].pop("confidence")
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.detection_confidence is None
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
+        )
+
+    def test_null_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
+        """A null object score is treated as missing across the prediction batch."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (10, 11), 0.6),
+                    _inference_keypoint(1, (20, 21), 0.4),
+                ],
+                [
+                    _inference_keypoint(0, (30, 31), 0.8),
+                    _inference_keypoint(1, (40, 41), 0.6),
+                ],
+            ]
+        )
+        result["predictions"][1]["confidence"] = None
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.detection_confidence is None
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
+        )
+
     def test_objects_without_keypoints_keep_their_class(self) -> None:
         """Objects whose key points were all omitted still load, with no key points."""
         result = _inference_pose_result([[], []])
