@@ -694,9 +694,13 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
                 if ax == 0 or ay == 0:
                     continue
 
+                # `ax` runs along `angle`, not along the image x axis, so the region
+                # must cover the rotated ellipse's bounding box or a vertical or
+                # diagonal ellipse is cut off.
                 pad = 2
-                roi_half_w = ax + pad
-                roi_half_h = ay + pad
+                cos_t, sin_t = np.cos(np.radians(angle)), np.sin(np.radians(angle))
+                roi_half_w = int(np.ceil(np.hypot(ax * cos_t, ay * sin_t))) + pad
+                roi_half_h = int(np.ceil(np.hypot(ax * sin_t, ay * cos_t))) + pad
                 cx, cy = center
 
                 x_min = max(cx - roi_half_w, 0)
