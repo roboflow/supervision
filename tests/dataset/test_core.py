@@ -464,6 +464,53 @@ class TestDetectionDatasetInMemoryImages:
         assert ds_a != ds_b
 
 
+class TestDetectionDatasetExportIntoSourceFolder:
+    """Exporting into the folder the images were loaded from keeps them intact."""
+
+    @pytest.mark.parametrize(
+        ("export_format", "annotation_file"),
+        [
+            pytest.param("yolo", "labels/photo.txt", id="yolo"),
+            pytest.param("pascal_voc", "photo.xml", id="pascal-voc"),
+            pytest.param("coco", "_annotations.coco.json", id="coco"),
+            pytest.param("createml", "_annotations.createml.json", id="createml"),
+            pytest.param("labelme", "photo.json", id="labelme"),
+        ],
+    )
+    def test_export_into_image_folder_keeps_image_files(
+        self, tmp_path: Path, export_format: str, annotation_file: str
+    ) -> None:
+        """Each exporter writes its annotations next to the unchanged image file."""
+        image_path = tmp_path / "photo.jpg"
+        rng = np.random.default_rng(0)
+        pixels = rng.integers(0, 255, (8, 8, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(image_path)
+        original_bytes = image_path.read_bytes()
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=[str(image_path)],
+            annotations={
+                str(image_path): _create_detections(xyxy=[[1, 1, 6, 6]], class_id=[0])
+            },
+        )
+        export_kwargs = {
+            "yolo": {"annotations_directory_path": str(tmp_path / "labels")},
+            "pascal_voc": {"annotations_directory_path": str(tmp_path)},
+            "coco": {"annotations_path": str(tmp_path / "_annotations.coco.json")},
+            "createml": {
+                "annotations_path": str(tmp_path / "_annotations.createml.json")
+            },
+            "labelme": {"annotations_directory_path": str(tmp_path)},
+        }[export_format]
+
+        getattr(dataset, f"as_{export_format}")(
+            images_directory_path=str(tmp_path), **export_kwargs
+        )
+
+        assert image_path.read_bytes() == original_bytes
+        assert (tmp_path / annotation_file).is_file()
+
+
 class TestDatasetEqualityContracts:
     """Dataset equality must respect class order and NumPy-backed annotations."""
 
