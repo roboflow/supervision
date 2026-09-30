@@ -270,7 +270,7 @@ class TestYoloAnnotationsToDetectionsClassId:
 
 
 class TestYoloAnnotationsToDetectionsTrailingToken:
-    """Tests for YOLO box lines that carry a sixth confidence or tracker-id token."""
+    """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
 
     @pytest.mark.parametrize(
         "extra_token",
@@ -314,6 +314,58 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
         assert result.mask is not None
         assert result.mask.shape == (1, 10, 10)
         assert bool(result.mask[0, 5, 5])
+
+    @pytest.mark.parametrize(
+        "extra_token",
+        [
+            pytest.param("0.87", id="confidence"),
+            pytest.param("3", id="tracker-id"),
+        ],
+    )
+    def test_loads_a_polygon_that_has_a_trailing_token(self, extra_token: str) -> None:
+        """A saved confidence or track id does not change polygon geometry."""
+        lines = [f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(10, 10), with_masks=True
+        )
+
+        np.testing.assert_array_equal(result.class_id, np.array([1]))
+        np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+        assert result.mask is not None
+        assert bool(result.mask[0, 5, 5])
+
+    def test_rejects_a_nonnumeric_trailing_token_after_a_polygon(self) -> None:
+        """Guard that the token dropped from a polygon line is parsed, not discarded."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"]
+
+        with pytest.raises(ValueError, match="garbage"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(10, 10), with_masks=True
+            )
+
+
+def test_from_yolo_loads_segmentation_saved_with_confidence(tmp_path: Path) -> None:
+    """Dataset import accepts an Ultralytics polygon with saved confidence."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (10, 10)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text("1 0.1 0.1 0.9 0.1 0.5 0.9 0.87\n")
+    (tmp_path / "data.yaml").write_text("names: ['cat', 'dog']\n")
+
+    dataset = DetectionDataset.from_yolo(
+        images_directory_path=str(images_dir),
+        annotations_directory_path=str(labels_dir),
+        data_yaml_path=str(tmp_path / "data.yaml"),
+    )
+    _, _, detections = dataset[0]
+
+    np.testing.assert_array_equal(detections.class_id, np.array([1]))
+    np.testing.assert_allclose(detections.xyxy, [[1.0, 1.0, 9.0, 9.0]])
+    assert detections.mask is not None
+    assert bool(detections.mask[0, 5, 5])
 
 
 def test_from_yolo_loads_labels_saved_with_ultralytics_save_conf(
@@ -957,3 +1009,84 @@ def test_dataset_as_yolo_obb_round_trip_with_background_image(
     assert bg_label.read_text().strip() == "", (
         "Background image label file must be empty"
     )
+
+
+_EMPTY_MASK = np.zeros((100, 100), dtype=bool)
+
+
+class TestDetectionsToYoloAnnotationsEmptyMask:
+    """detections_to_yolo_annotations: detections whose mask has no pixels."""
+
+    @pytest.mark.parametrize(
+        ("detections", "expected_lines"),
+        [
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[60, 60, 90, 90]], dtype=np.float32),
+                    class_id=np.array([1]),
+                    mask=_EMPTY_MASK[np.newaxis],
+                ),
+                ["1 0.75000 0.75000 0.30000 0.30000"],
+                id="only-empty-mask",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array(
+                        [[10, 10, 50, 50], [60, 60, 90, 90]], dtype=np.float32
+                    ),
+                    class_id=np.array([0, 1]),
+                    mask=np.stack(
+                        [_mock_simple_mask((100, 100), [10, 10, 50, 50]), _EMPTY_MASK]
+                    ),
+                ),
+                [
+                    "0 0.10000 0.10000 0.10000 0.49000 0.49000 0.49000 0.49000 0.10000",
+                    "1 0.75000 0.75000 0.30000 0.30000",
+                ],
+                id="empty-mask-beside-polygon",
+            ),
+        ],
+    )
+    def test_writes_bounding_box_for_empty_mask(
+        self, detections: Detections, expected_lines: list[str]
+    ) -> None:
+        """A detection with an empty mask is written as its bounding box line."""
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == expected_lines
+
+    def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
+        """A nonempty mask without a valid contour is written as a box."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 30, 40] = True
+        detections = Detections(
+            xyxy=np.array([[30, 20, 50, 40]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3)
+        )
+
+        assert lines == ["0 0.40000 0.30000 0.20000 0.20000"]
+
+    def test_keeps_area_filter_for_masks_with_contours(self) -> None:
+        """A valid contour filtered by maximum area remains omitted."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 10:90, 10:90] = True
+        detections = Detections(
+            xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+
+        lines = detections_to_yolo_annotations(
+            detections=detections,
+            image_shape=(100, 100, 3),
+            max_image_area_percentage=0.5,
+        )
+
+        assert lines == []
