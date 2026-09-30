@@ -348,10 +348,29 @@ def load_yolo_annotations(
 def object_to_yolo(
     xyxy: npt.NDArray[np.number],
     class_id: int,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, int] | tuple[int, int, int],
     polygon: npt.NDArray[np.number] | None = None,
 ) -> str:
-    h, w, _ = image_shape
+    """Serialize one box or polygon using the source image's width and height.
+
+    Args:
+        xyxy: Bounding box in pixel coordinates ``[x1, y1, x2, y2]``.
+        class_id: Class ID written before the normalized coordinates.
+        image_shape: Image shape as ``(height, width)`` or
+            ``(height, width, channels)``.
+        polygon: Optional polygon vertices in pixel coordinates, shape ``(N, 2)``.
+
+    Returns:
+        A YOLO annotation line with coordinates normalized by the image dimensions.
+
+    Examples:
+        ```pycon
+        >>> object_to_yolo(np.array([3, 2, 15, 10]), 0, (16, 24))
+        '0 0.37500 0.37500 0.50000 0.50000'
+
+        ```
+    """
+    h, w = image_shape[:2]
     if polygon is None:
         xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
         x_min, y_min, x_max, y_max = xyxy_relative
@@ -369,7 +388,7 @@ def object_to_yolo(
 
 def detections_to_yolo_annotations(
     detections: Detections,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, int] | tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
@@ -382,8 +401,8 @@ def detections_to_yolo_annotations(
             valid integer ``class_id``. When ``is_obb=True``, each non-empty
             detection must also carry ``detections.data['xyxyxyxy']`` with
             shape ``(N, 4, 2)``.
-        image_shape: The ``(height, width, channels)`` shape of the source
-            image, used to normalize coordinates to ``[0, 1]``.
+        image_shape: The ``(height, width)`` or ``(height, width, channels)``
+            shape of the source image, used to normalize coordinates to ``[0, 1]``.
         min_image_area_percentage: Minimum detection area as a fraction of the
             image area; smaller detections are omitted. Ignored when
             ``is_obb=True``.

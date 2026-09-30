@@ -15,6 +15,7 @@ from supervision.dataset.formats.pascal_voc import (
     parse_polygon_points,
     save_pascal_voc_annotations,
 )
+from supervision.detection.core import Detections
 from tests.helpers import _create_detections
 
 
@@ -769,3 +770,63 @@ class TestDetectionsToPascalVocEmptyMask:
 
         objects = ElementTree.fromstring(xml_string).findall("object")
         assert objects == []
+
+
+class TestDetectionDatasetPascalVocImageShapes:
+    """Pascal VOC exports record grayscale depth and preserve geometry."""
+
+    @pytest.mark.parametrize(
+        ("image_shape", "expected_depth"),
+        [
+            pytest.param((16, 24), 1, id="grayscale"),
+            pytest.param((16, 24, 3), 3, id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_dimensions_geometry_and_source_image(
+        self,
+        tmp_path: Path,
+        image_shape: tuple[int, ...],
+        expected_depth: int,
+        with_mask: bool,
+    ) -> None:
+        """Grayscale and color images retain dimensions, depth, boxes, and masks."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_pascal_voc(annotations_directory_path=str(tmp_path))
+
+        annotation = ElementTree.parse(str(tmp_path / "image.xml"))
+        assert annotation.findtext("size/width") == "24"
+        assert annotation.findtext("size/height") == "16"
+        assert annotation.findtext("size/depth") == str(expected_depth)
+        objects = annotation.findall("object")
+        assert len(objects) == 1
+        obj = objects[0]
+        assert obj.findtext("name") == "object"
+        assert [
+            obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
+        ] == ["4", "3", "16", "11"]
+        polygon = obj.find("polygon")
+        if with_mask:
+            assert polygon is not None
+            points = [
+                [float(polygon.findtext(f"x{i}")), float(polygon.findtext(f"y{i}"))]
+                for i in range(1, len(polygon) // 2 + 1)
+            ]
+            assert sorted(points) == [[4, 3], [4, 11], [16, 3], [16, 11]]
+        else:
+            assert polygon is None
+        np.testing.assert_array_equal(image, original_image)
