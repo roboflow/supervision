@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["check_no_basename_collisions", "train_test_split"]
 
+import contextlib
 import copy
 import os
 import random
@@ -187,7 +188,9 @@ def save_dataset_images(
     """Save all images from a dataset to a directory.
 
     Images already in memory are written with ``cv2.imwrite``; images stored
-    only as file paths are copied with ``shutil.copyfile``.
+    only as file paths are copied with ``shutil.copyfile``. An image file that is
+    already at its destination, because the images are exported into the folder
+    they were loaded from, is left where it is.
 
     Args:
         dataset: The dataset whose images are saved.
@@ -221,7 +224,10 @@ def save_dataset_images(
             image = dataset._images_in_memory[image_path]
             cv2.imwrite(final_path, image)
         else:
-            shutil.copyfile(image_path, final_path)
+            # Exporting into the folder the image was loaded from leaves it where it
+            # is, as `ClassificationDataset.as_folder_structure` does.
+            with contextlib.suppress(shutil.SameFileError):
+                shutil.copyfile(image_path, final_path)
 
 
 def train_test_split(

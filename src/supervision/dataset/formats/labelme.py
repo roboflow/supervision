@@ -70,6 +70,8 @@ def labelme_shapes_to_detections(
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
     When ``with_masks`` is ``True``, both ``rectangle`` and ``polygon`` shapes
     produce masks: rectangles via a four-corner polygon fill.
+    Shapes sharing a label and non-null ``group_id`` become one detection with
+    an enclosing box and union mask. Missing or null group IDs remain independent.
 
     Args:
         shapes: List of LabelMe shape dicts for one image.
@@ -91,7 +93,8 @@ def labelme_shapes_to_detections(
     """
     xyxy_list: list[npt.NDArray[np.float32]] = []
     class_ids: list[int] = []
-    polygons: list[npt.NDArray[np.float32]] = []
+    masks: list[npt.NDArray[np.uint8]] = []
+    group_indices: dict[tuple[str, int], int] = {}
     skipped_types: set[str] = set()
 
     for shape in shapes:
@@ -130,10 +133,28 @@ def labelme_shapes_to_detections(
                 )
             xyxy = polygon_to_xyxy(polygon=points).astype(np.float32)
             polygon = points
-        xyxy_list.append(xyxy)
-        class_ids.append(class_to_index[label])
         if with_masks:
-            polygons.append(polygon)
+            mask = polygon_to_mask(
+                polygon=np.round(polygon).astype(np.int32),
+                resolution_wh=resolution_wh,
+            )
+        group_id = shape.get("group_id")
+        index = None
+        if group_id is not None:
+            group_key = (label, group_id)
+            index = group_indices.get(group_key)
+        if index is not None:
+            xyxy_list[index][:2] = np.minimum(xyxy_list[index][:2], xyxy[:2])
+            xyxy_list[index][2:] = np.maximum(xyxy_list[index][2:], xyxy[2:])
+            if with_masks:
+                masks[index] |= mask
+        else:
+            if group_id is not None:
+                group_indices[group_key] = len(xyxy_list)
+            xyxy_list.append(xyxy)
+            class_ids.append(class_to_index[label])
+            if with_masks:
+                masks.append(mask)
 
     if skipped_types:
         warnings.warn(
@@ -151,17 +172,7 @@ def labelme_shapes_to_detections(
     if not with_masks:
         return Detections(xyxy=xyxy, class_id=class_id)
 
-    mask = np.array(
-        [
-            polygon_to_mask(
-                polygon=np.round(polygon).astype(np.int32),
-                resolution_wh=resolution_wh,
-            )
-            for polygon in polygons
-        ],
-        dtype=bool,
-    )
-    return Detections(xyxy=xyxy, class_id=class_id, mask=mask)
+    return Detections(xyxy=xyxy, class_id=class_id, mask=np.array(masks, dtype=bool))
 
 
 def load_labelme_annotations(
@@ -290,11 +301,17 @@ def load_labelme_annotations(
     return classes, image_paths, annotations
 
 
-def _build_shape(label: str, points: list[list[float]], shape_type: str) -> LabelMeDict:
+def _build_shape(
+    label: str,
+    points: list[list[float]],
+    shape_type: str,
+    group_id: int | None = None,
+) -> LabelMeDict:
+    """Build a LabelMe shape with optional instance grouping."""
     return {
         "label": label,
         "points": points,
-        "group_id": None,
+        "group_id": group_id,
         "description": "",
         "shape_type": shape_type,
         "flags": {},
@@ -310,6 +327,8 @@ def detections_to_labelme_shapes(
     component); box-only detections — and masked detections whose mask yields no
     polygon contour (e.g. an empty or sub-pixel mask) — are exported as
     ``rectangle`` shapes, so no detection is silently dropped.
+    Disconnected components of one mask share a ``group_id`` unique to that
+    detection within the image.
 
     Args:
         detections: The detections to export.
@@ -344,9 +363,10 @@ def detections_to_labelme_shapes(
         else:
             polygons = []
         if polygons:
+            group_id = index if len(polygons) > 1 else None
             for polygon in polygons:
                 points = [[float(x), float(y)] for x, y in polygon]
-                shapes.append(_build_shape(label, points, "polygon"))
+                shapes.append(_build_shape(label, points, "polygon", group_id))
         else:
             x_min, y_min, x_max, y_max = (
                 float(value) for value in detections.xyxy[index]
@@ -361,6 +381,8 @@ def save_labelme_annotations(
     annotations_directory_path: str,
 ) -> None:
     """Export a ``DetectionDataset`` to per-image LabelMe ``.json`` files.
+
+    Image dimensions are read from grayscale or color arrays without changing pixels.
 
     Args:
         dataset: The ``DetectionDataset`` to write.
@@ -390,7 +412,7 @@ def save_labelme_annotations(
     )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, detections in dataset:
-        image_height, image_width, _ = image.shape
+        image_height, image_width = image.shape[:2]
         labelme_dict: LabelMeDict = {
             "version": _LABELME_EXPORT_VERSION,
             "flags": {},

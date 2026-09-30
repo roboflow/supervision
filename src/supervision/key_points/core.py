@@ -452,7 +452,11 @@ class KeyPoints:
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 class names, and per-keypoint confidences when supplied by the
-                source result. Two-value keypoints have `keypoint_confidence=None`.
+                source result. `detection_confidence` is populated only when every
+                prediction has a non-`None` object confidence; if any prediction
+                omits it or sets it to `None`, the field is `None` for the batch and
+                `as_detections()` uses keypoint-confidence means for all predictions.
+                Two-value keypoints have `keypoint_confidence=None`.
 
         Examples:
             ```python
@@ -528,9 +532,18 @@ class KeyPoints:
         class_names = np.array([prediction["class"] for prediction in predictions])
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
 
+        # This batch-wide field cannot represent a partially missing score vector.
+        detection_confidence = None
+        if all(prediction.get("confidence") is not None for prediction in predictions):
+            detection_confidence = np.array(
+                [prediction["confidence"] for prediction in predictions],
+                dtype=np.float32,
+            )
+
         return cls(
             xy=xy,
             keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
             class_id=class_id.astype(int),
             data=data,
         )
@@ -762,7 +775,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -788,8 +801,15 @@ class KeyPoints:
         # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
         keypoints_conf = ultralytics_results.keypoints.conf
         confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
+        detection_confidence = ultralytics_results.boxes.conf.cpu().numpy()
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
-        return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
+        return cls(
+            xy=xy,
+            class_id=class_id,
+            keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
+            data=data,
+        )
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
@@ -861,7 +881,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -892,6 +912,9 @@ class KeyPoints:
                 keypoint_confidence=detectron2_results["instances"]
                 .pred_keypoints.cpu()
                 .numpy()[:, :, 2],
+                detection_confidence=detectron2_results["instances"]
+                .scores.cpu()
+                .numpy(),
                 class_id=detectron2_results["instances"]
                 .pred_classes.cpu()
                 .numpy()
@@ -1507,9 +1530,9 @@ class KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
         A keypoint is considered valid when its coordinates are finite and not all-zero,
-        and its `visible` flag is `True` (if `visible` is set). A skeleton left without
-        a valid keypoint keeps a zero-area box, so it overlaps nothing and passes
-        through.
+        and its `visible` flag is `True` (if `visible` is set). A skeleton without any
+        valid keypoints, including an empty keypoint axis, keeps a zero-area box, so it
+        overlaps nothing and passes through.
 
         Args:
             threshold: The intersection-over-union threshold to use for
@@ -1590,10 +1613,10 @@ class KeyPoints:
         if self.visible is not None:
             valid = valid & self.visible
         has_valid = valid.any(axis=1)
-        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
-        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
-        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
-        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
+        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1, initial=np.inf)
+        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1, initial=np.inf)
+        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1, initial=-np.inf)
+        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1, initial=-np.inf)
         xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
         # Skeletons left without a single valid keypoint would otherwise carry the
         # `inf` sentinels above; a zero-area box keeps them out of every overlap.

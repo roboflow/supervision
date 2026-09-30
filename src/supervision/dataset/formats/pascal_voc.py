@@ -445,6 +445,7 @@ def save_pascal_voc_annotations(
     """Write Pascal VOC XML annotation files for every image in *dataset*.
 
     Files are written as UTF-8, whatever the platform's default encoding is.
+    Two-dimensional grayscale images are recorded with depth 1 without conversion.
 
     Args:
         dataset: Dataset whose annotations are saved.
@@ -496,11 +497,12 @@ def save_pascal_voc_annotations(
             annotations_directory_path, f"{annotation_name}.xml"
         )
         image_name = Path(image_path).name
+        image_depth = 1 if image.ndim == 2 else image.shape[2]
         pascal_voc_xml = detections_to_pascal_voc(
             detections=annotations,
             classes=dataset.classes,
             filename=image_name,
-            image_shape=(image.shape[0], image.shape[1], image.shape[2]),
+            image_shape=(image.shape[0], image.shape[1], image_depth),
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,

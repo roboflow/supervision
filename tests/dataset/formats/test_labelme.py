@@ -98,6 +98,140 @@ class TestLabelmeShapesToDetections:
         assert result.mask.shape == (1, 48, 64)
         assert result.mask[0, 15:25, 15:25].all()
 
+    @pytest.mark.parametrize("group_id", [0, 7])
+    @pytest.mark.parametrize("with_masks", [False, True])
+    @pytest.mark.parametrize(
+        "shapes",
+        [
+            pytest.param(
+                [
+                    _polygon("dog", [[5, 5], [15, 5], [15, 15], [5, 15]]),
+                    _polygon("dog", [[30, 30], [40, 30], [40, 40], [30, 40]]),
+                ],
+                id="polygons",
+            ),
+            pytest.param(
+                [_rectangle("dog", 5, 5, 15, 15), _rectangle("dog", 30, 30, 40, 40)],
+                id="rectangles",
+            ),
+            pytest.param(
+                [
+                    _rectangle("dog", 5, 5, 15, 15),
+                    _polygon("dog", [[30, 30], [40, 30], [40, 40], [30, 40]]),
+                ],
+                id="mixed-shapes",
+            ),
+        ],
+    )
+    def test_explicit_group_combines_shapes(
+        self, shapes: list[dict], with_masks: bool, group_id: int
+    ) -> None:
+        """Shapes sharing a label and group form one box and a union mask."""
+        shapes = [dict(shape, group_id=group_id) for shape in shapes]
+        expected_mask = np.zeros((1, 48, 64), dtype=bool)
+        expected_mask[0, 5:16, 5:16] = True
+        expected_mask[0, 30:41, 30:41] = True
+
+        result = labelme_shapes_to_detections(
+            shapes=shapes,
+            class_to_index={"dog": 0},
+            resolution_wh=(64, 48),
+            with_masks=with_masks,
+        )
+
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.xyxy, [[5, 5, 40, 40]])
+        np.testing.assert_array_equal(result.class_id, [0])
+        assert result.xyxy.dtype == np.float32
+        if with_masks:
+            assert result.mask is not None
+            assert result.mask.dtype == bool
+            np.testing.assert_array_equal(result.mask, expected_mask)
+        else:
+            assert result.mask is None
+
+    def test_interleaved_groups_combine_in_first_seen_order(self) -> None:
+        """Interleaved grouped shapes retain first-seen output order and union masks."""
+        shapes = [
+            dict(
+                _polygon("dog", [[5, 5], [15, 5], [15, 15], [5, 15]]),
+                group_id=7,
+            ),
+            dict(
+                _polygon("cat", [[20, 20], [25, 20], [25, 25], [20, 25]]),
+                group_id=11,
+            ),
+            dict(
+                _polygon("dog", [[30, 30], [40, 30], [40, 40], [30, 40]]),
+                group_id=7,
+            ),
+        ]
+        expected_masks = np.zeros((2, 48, 64), dtype=bool)
+        expected_masks[0, 5:16, 5:16] = True
+        expected_masks[0, 30:41, 30:41] = True
+        expected_masks[1, 20:26, 20:26] = True
+
+        result = labelme_shapes_to_detections(
+            shapes=shapes,
+            class_to_index={"dog": 0, "cat": 1},
+            resolution_wh=(64, 48),
+            with_masks=True,
+        )
+
+        assert len(result) == 2
+        np.testing.assert_array_equal(result.xyxy, [[5, 5, 40, 40], [20, 20, 25, 25]])
+        np.testing.assert_array_equal(result.class_id, [0, 1])
+        np.testing.assert_array_equal(result.mask, expected_masks)
+
+    @pytest.mark.parametrize(
+        ("first_fields", "second_fields", "expected_class_ids"),
+        [
+            pytest.param({}, {}, [0, 0], id="missing-groups"),
+            pytest.param(
+                {"group_id": None}, {"group_id": None}, [0, 0], id="null-groups"
+            ),
+            pytest.param(
+                {"group_id": 0}, {"group_id": 1}, [0, 0], id="different-groups"
+            ),
+            pytest.param(
+                {"group_id": 0},
+                {"group_id": 0, "label": "cat"},
+                [0, 1],
+                id="different-labels",
+            ),
+            pytest.param({"group_id": 0}, {}, [0, 0], id="grouped-and-ungrouped"),
+        ],
+    )
+    def test_keeps_distinct_instances(
+        self,
+        first_fields: dict,
+        second_fields: dict,
+        expected_class_ids: list[int],
+    ) -> None:
+        """Ungrouped shapes, distinct groups, and distinct labels stay independent."""
+        shapes = [
+            dict(_polygon("dog", [[5, 5], [15, 5], [15, 15], [5, 15]]), **first_fields),
+            dict(
+                _polygon("dog", [[30, 30], [40, 30], [40, 40], [30, 40]]),
+                **second_fields,
+            ),
+        ]
+        expected_masks = np.zeros((2, 48, 64), dtype=bool)
+        expected_masks[0, 5:16, 5:16] = True
+        expected_masks[1, 30:41, 30:41] = True
+
+        result = labelme_shapes_to_detections(
+            shapes=shapes,
+            class_to_index={"dog": 0, "cat": 1},
+            resolution_wh=(64, 48),
+            with_masks=True,
+        )
+
+        assert len(result) == 2
+        np.testing.assert_array_equal(result.xyxy, [[5, 5, 15, 15], [30, 30, 40, 40]])
+        np.testing.assert_array_equal(result.class_id, expected_class_ids)
+        np.testing.assert_array_equal(result.mask, expected_masks)
+
     def test_empty_shapes(self) -> None:
         """Empty shape list returns an empty Detections instance."""
         result = labelme_shapes_to_detections(
@@ -469,7 +603,7 @@ class TestDetectionsToLabelmeShapes:
             detections_to_labelme_shapes(detections=detections, classes=["dog"])
 
     def test_multi_component_mask(self) -> None:
-        """Disconnected mask regions export as one polygon shape per component."""
+        """Disconnected mask regions export as polygons sharing one explicit group."""
         mask = np.zeros((1, 48, 64), dtype=bool)
         mask[0, 5:15, 5:15] = True
         mask[0, 30:40, 30:40] = True
@@ -484,6 +618,8 @@ class TestDetectionsToLabelmeShapes:
         assert len(shapes) == 2
         assert all(shape["shape_type"] == "polygon" for shape in shapes)
         assert all(shape["label"] == "dog" for shape in shapes)
+        assert shapes[0]["group_id"] is not None
+        assert shapes[0]["group_id"] == shapes[1]["group_id"]
 
     def test_empty_mask_falls_back_to_rectangle(self) -> None:
         """All-zero mask falls back to rectangle; detection is not silently dropped."""
@@ -571,6 +707,42 @@ class TestAsLabelmeRoundTrip:
             loaded_detections.xyxy, annotations[image_paths[0]].xyxy
         )
         assert loaded_detections.mask is None
+
+    @pytest.mark.parametrize("instance_count", [1, 2])
+    def test_disconnected_masks_round_trip(
+        self, tmp_path: Path, instance_count: int
+    ) -> None:
+        """Disconnected same-class masks retain instance membership and geometry."""
+        images_dir = tmp_path / "images"
+        annotations_dir = tmp_path / "annotations"
+        _write_image(images_dir / "a.jpg", 64, 48)
+        image_path = str(images_dir / "a.jpg")
+        masks = np.zeros((instance_count, 48, 64), dtype=bool)
+        for index in range(instance_count):
+            offset = index * 20
+            masks[index, 5:15, 5 + offset : 15 + offset] = True
+            masks[index, 30:40, 30 + offset : 40 + offset] = True
+        xyxy = np.array([[5, 5, 39, 39], [25, 5, 59, 39]], dtype=np.float32)
+        detections = Detections(
+            xyxy=xyxy[:instance_count],
+            mask=masks,
+            class_id=np.zeros(instance_count, dtype=int),
+        )
+        dataset = DetectionDataset(
+            classes=["dog"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_labelme(annotations_directory_path=str(annotations_dir))
+        loaded = DetectionDataset.from_labelme(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        result = loaded.annotations[image_path]
+        assert len(result) == instance_count
+        np.testing.assert_array_equal(result.class_id, detections.class_id)
+        np.testing.assert_array_equal(result.xyxy, detections.xyxy)
+        np.testing.assert_array_equal(result.mask, masks)
 
     def test_masks_round_trip(self, tmp_path: Path) -> None:
         """Masked detections survive a save-load cycle with approximate coordinates."""
@@ -775,3 +947,50 @@ class TestSaveLabelmeAnnotations:
                 dataset=dataset,
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
+
+
+class TestDetectionDatasetLabelmeImageShapes:
+    """LabelMe exports preserve dimensions and geometry for each image shape."""
+
+    @pytest.mark.parametrize(
+        "image_shape",
+        [
+            pytest.param((16, 24), id="grayscale"),
+            pytest.param((16, 24, 3), id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_dimensions_geometry_and_source_image(
+        self, tmp_path: Path, image_shape: tuple[int, ...], with_mask: bool
+    ) -> None:
+        """Grayscale and color images export boxes and masks without pixel changes."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_labelme(annotations_directory_path=str(tmp_path))
+
+        output = json.loads((tmp_path / "image.json").read_text())
+        assert output["imageWidth"] == 24
+        assert output["imageHeight"] == 16
+        assert len(output["shapes"]) == 1
+        shape = output["shapes"][0]
+        assert shape["label"] == "object"
+        if with_mask:
+            assert shape["shape_type"] == "polygon"
+            assert sorted(shape["points"]) == [[3, 2], [3, 10], [15, 2], [15, 10]]
+        else:
+            assert shape["shape_type"] == "rectangle"
+            assert shape["points"] == [[3, 2], [15, 10]]
+        np.testing.assert_array_equal(image, original_image)
