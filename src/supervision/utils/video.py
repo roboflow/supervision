@@ -398,7 +398,8 @@ def process_video(
        The processing happens in the main thread, simplifying use of stateful objects
        without synchronization.
     3. Writer thread: Dequeues processed frames from `frame_write_queue` and writes
-       them sequentially to the output video file.
+       them sequentially to the output video file. Shutdown waits for any active
+       write to finish before releasing the output sink.
 
     Args:
         source_path: Path to the input video file.
@@ -429,8 +430,11 @@ def process_video(
     Raises:
         RuntimeError: If the reader thread fails to open or decode the source
             video, raised as `RuntimeError(f"Reader thread raised: {exc!r}")`
-            from the original exception. Exceptions raised by `callback` are
-            re-raised unchanged.
+            from the original exception. If writing a processed frame to
+            `target_path` fails, raised as
+            `RuntimeError(f"Writer thread raised: {exc!r}")` from the original
+            exception. Exceptions raised by `callback` are re-raised unchanged.
+        TypeError: If `callback` returns `None` instead of the processed frame.
 
     Example:
         ```python
@@ -471,6 +475,7 @@ def process_video(
     )
 
     reader_exception: Exception | None = None
+    writer_exception: Exception | None = None
 
     def reader_thread() -> None:
         """Feed frames into the read queue, always ending with the sentinel."""
@@ -491,11 +496,24 @@ def process_video(
             frame_read_queue.put(None)
 
     def writer_thread(video_sink: VideoSink) -> None:
+        """Write processed frames until the sentinel, keeping the first write error.
+
+        The main loop puts frames into the bounded write queue without a timeout, so
+        after a failed write this thread keeps taking frames off the queue and discards
+        them; otherwise a full queue blocks the main loop forever. The error is raised
+        once the pipeline has shut down.
+        """
+        nonlocal writer_exception
         while True:
             frame = frame_write_queue.get()
             if frame is None:
                 break
-            video_sink.write_frame(frame=frame)
+            if writer_exception is not None:
+                continue
+            try:
+                video_sink.write_frame(frame=frame)
+            except Exception as exc:
+                writer_exception = exc
 
     reader_worker = threading.Thread(target=reader_thread, daemon=True)
     with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
@@ -527,18 +545,22 @@ def process_video(
                 frame_index, frame = read_item
                 try:
                     processed_frame = callback(frame, frame_index)
+                    # `None` is the writer's end-of-stream sentinel; queueing it
+                    # would stop the writer while frames keep arriving.
+                    if processed_frame is None:
+                        raise TypeError(
+                            f"`callback` returned None for frame {frame_index}; "
+                            "it must return the processed frame."
+                        )
                     frame_write_queue.put(processed_frame)
                     progress_bar.update(1)
                 except Exception as exc:
                     exception_in_worker = exc
                     break
+                if writer_exception is not None:
+                    break
         finally:
-            try:
-                frame_write_queue.put(None, timeout=1)
-            except Full:
-                # Best effort: if the writer is stuck and the queue never drains,
-                # do not block shutdown forever trying to enqueue the sentinel.
-                pass
+            frame_write_queue.put(None)
             if not read_finished:
                 while True:
                     # Use timeout to prevent indefinite blocking if reader thread fails
@@ -555,7 +577,7 @@ def process_video(
                         # Reader is still alive; continue waiting for frames.
                         continue
             reader_worker.join(timeout=10)
-            writer_worker.join(timeout=10)
+            writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
@@ -563,15 +585,13 @@ def process_video(
                 raise RuntimeError(
                     f"Reader thread raised: {reader_exception!r}"
                 ) from reader_exception
+            if writer_exception is not None:
+                raise RuntimeError(
+                    f"Writer thread raised: {writer_exception!r}"
+                ) from writer_exception
 
     if preserve_audio:
-        if writer_worker.is_alive():
-            logger.warning(
-                "Writer thread did not finish in time; skipping audio mux "
-                "to avoid reading an incomplete output file."
-            )
-        else:
-            _mux_audio(source_path=source_path, video_path=target_path)
+        _mux_audio(source_path=source_path, video_path=target_path)
 
 
 class FPSMonitor:
