@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import supervision.metrics.mean_average_precision as mean_average_precision
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
@@ -544,6 +545,82 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
 
+class TestMaskIouWithJaccard:
+    """Tests for dense-mask IoU validation and temporary-buffer bounds."""
+
+    def test_rejects_equal_area_masks_with_different_shapes(self) -> None:
+        """Masks with equal pixel counts but different height and width must fail."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 6, 2]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            mask=np.ones((1, 2, 6), dtype=bool),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 4, 3]], dtype=np.float64),
+            class_id=np.array([0]),
+            mask=np.ones((1, 3, 4), dtype=bool),
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        with pytest.raises(ValueError, match="spatial dimensions"):
+            metric.update(predictions, targets).compute()
+
+    def test_does_not_stack_all_ground_truth_masks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The evaluator must materialize ground truths in bounded chunks."""
+        masks_true = [
+            np.ones((4, 4), dtype=bool),
+            np.zeros((4, 4), dtype=bool),
+        ]
+        masks_detection = [np.ones((4, 4), dtype=bool)]
+        original_asarray = np.asarray
+        ground_truth_mask_ids = {id(mask) for mask in masks_true}
+        chunk_sizes: list[int] = []
+
+        def track_ground_truth_chunks(
+            masks: object, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            """Record each materialized ground-truth chunk."""
+            if (
+                isinstance(masks, list)
+                and masks
+                and all(id(mask) in ground_truth_mask_ids for mask in masks)
+            ):
+                chunk_sizes.append(len(masks))
+            return original_asarray(masks, *args, **kwargs)
+
+        monkeypatch.setattr(mean_average_precision, "_MASK_IOU_GT_BUFFER_BYTES", 176)
+        monkeypatch.setattr(
+            mean_average_precision.np, "asarray", track_ground_truth_chunks
+        )
+
+        iou = mean_average_precision._mask_iou_with_jaccard(
+            masks_true, masks_detection, [False, False]
+        )
+
+        assert chunk_sizes == [1, 1]
+        np.testing.assert_allclose(iou, np.array([[1.0, 0.0]]))
+
+    def test_crowd_iou_is_applied_in_each_ground_truth_chunk(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Crowd columns retain their special denominator across GT chunks."""
+        masks_true = [
+            np.array([[True, False], [False, False]]),
+            np.ones((2, 2), dtype=bool),
+        ]
+        masks_detection = [np.array([[False, False], [False, True]])]
+        monkeypatch.setattr(mean_average_precision, "_MASK_IOU_GT_BUFFER_BYTES", 56)
+
+        iou = mean_average_precision._mask_iou_with_jaccard(
+            masks_true, masks_detection, [False, True]
+        )
+
+        np.testing.assert_allclose(iou, np.array([[0.0, 1.0]]))
+
+
 class TestMeanAveragePrecisionIgnoreFlag:
     """Tests for explicit target ignore flags in COCO-style evaluation."""
 
@@ -675,3 +752,82 @@ class TestEvaluationDatasetLoadPredictions:
         assert loaded_annotations[0]["image_id"] == 1
         assert loaded_annotations[0]["category_id"] == 1
         assert loaded_annotations[0]["bbox"] == [0, 0, 1, 1]
+
+
+class TestMeanAveragePrecisionPycocotoolsParity:
+    """Scores match pycocotools where float32 rounding would move a threshold."""
+
+    def test_recall_landing_on_a_recall_threshold_matches_pycocotools(self) -> None:
+        """Recall 0.7 of 10 targets samples precision where pycocotools does."""
+        targets_xyxy = np.array([[i * 20, 0, i * 20 + 10, 10] for i in range(10)])
+        false_positives_xyxy = np.array(
+            [[i * 20, 100, i * 20 + 10, 110] for i in range(10)]
+        )
+        # Seven hits, ten misses, then an eighth hit: recall reaches exactly 0.7
+        # before the precision drops.
+        predictions_xyxy = np.vstack(
+            [targets_xyxy[:7], false_positives_xyxy, targets_xyxy[7:8]]
+        )
+        targets = Detections(xyxy=targets_xyxy, class_id=np.zeros(10, dtype=int))
+        predictions = Detections(
+            xyxy=predictions_xyxy,
+            class_id=np.zeros(len(predictions_xyxy), dtype=int),
+            confidence=np.linspace(0.99, 0.5, len(predictions_xyxy)),
+        )
+
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # pycocotools 2.0.11 `COCOeval(..., "bbox")` stats[1] for the same data.
+        assert result.map50 == pytest.approx(0.7414741474147416, abs=1e-6)
+
+    @pytest.mark.parametrize(
+        ("prediction_width", "expected_map50_95"),
+        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
+    )
+    def test_iou_landing_on_an_iou_threshold_matches_pycocotools(
+        self, prediction_width: int, expected_map50_95: float
+    ) -> None:
+        """An IoU equal to a threshold counts as a match at it, as in pycocotools."""
+        targets = Detections(xyxy=np.array([[0, 0, 100, 10]]), class_id=np.array([0]))
+        predictions = Detections(
+            xyxy=np.array([[0, 0, prediction_width, 10]]),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # IoU is prediction_width / 100; pycocotools 2.0.11 gives the same stats[0].
+        assert result.map50_95 == pytest.approx(expected_map50_95)
+
+    @pytest.mark.parametrize(
+        ("prediction_width", "expected_map50_95"),
+        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
+    )
+    def test_mask_iou_landing_on_an_iou_threshold_matches_pycocotools(
+        self, prediction_width: int, expected_map50_95: float
+    ) -> None:
+        """A mask IoU equal to a threshold matches at it, as in pycocotools."""
+        target_mask = np.zeros((1, 20, 120), dtype=bool)
+        target_mask[0, :10, :100] = True
+        prediction_mask = np.zeros((1, 20, 120), dtype=bool)
+        prediction_mask[0, :10, :prediction_width] = True
+        targets = Detections(
+            xyxy=np.array([[0, 0, 100, 10]]), mask=target_mask, class_id=np.array([0])
+        )
+        predictions = Detections(
+            xyxy=np.array([[0, 0, prediction_width, 10]]),
+            mask=prediction_mask,
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+
+        result = (
+            MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        # Mask IoU is prediction_width / 100; pycocotools 2.0.11 ("segm") gives the
+        # same stats[0].
+        assert result.map50_95 == pytest.approx(expected_map50_95)

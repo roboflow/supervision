@@ -16,7 +16,6 @@ from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch_with_jaccard,
-    mask_iou_batch,
     oriented_box_iou_batch,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
@@ -579,6 +578,9 @@ MAX_ALL_OBJECT_AREA = 1e5**2
 # Smallest number to avoid division by zero
 EPS = np.finfo(np.float32).eps
 
+# Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.
+_MASK_IOU_GT_BUFFER_BYTES = 1024 * 5 * 1024 * 1024
+
 
 def _mask_iou_with_jaccard(
     masks_true: list[npt.NDArray[np.bool_]],
@@ -598,33 +600,78 @@ def _mask_iou_with_jaccard(
 
     Returns:
         Array of IoU values of shape `(len(masks_detection), len(masks_true))`.
+
+    Raises:
+        ValueError: If the masks do not share the same spatial dimensions.
     """
     if len(masks_detection) == 0 or len(masks_true) == 0:
         return np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
 
-    gt_masks = np.stack(masks_true).astype(bool)
-    dt_masks = np.stack(masks_detection).astype(bool)
+    mask_shape = masks_true[0].shape
+    if any(
+        mask.shape != mask_shape
+        for mask in itertools.chain(masks_true[1:], masks_detection)
+    ):
+        raise ValueError(
+            "Ground-truth and detection masks must share the same spatial "
+            f"dimensions; got {mask_shape} and a different shape."
+        )
+
     crowd = np.asarray(is_crowd, dtype=bool)
 
-    # Compute base IoU via the optimised path (float32 + memory-chunked).
-    # mask_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
-    iou: npt.NDArray[np.float64] = mask_iou_batch(gt_masks, dt_masks).T.astype(
-        np.float64
+    # pycocotools divides the pixel counts in float64 and compares the IoUs with
+    # float64 thresholds. `mask_iou_batch` divides float32 counts, which rounds an
+    # exact IoU such as 65/100 just below the 0.65 threshold, so count the pixels
+    # here and divide in float64. float32 counts pixels exactly up to 2**24.
+    pixels = int(np.prod(mask_shape))
+    count_dtype = np.float32 if pixels <= 2**24 else np.float64
+
+    # Predictions are capped at max_dets by the evaluator. Ground truths are not,
+    # so only materialize GT chunks whose mask and pairwise buffers fit the budget.
+    dt_flat = np.asarray(masks_detection, dtype=count_dtype).reshape(
+        len(masks_detection), pixels
     )
-
-    if not np.any(crowd):
-        return iou
-
-    # Override crowd columns: COCO convention collapses the union to the
-    # detection area, so a small detection inside a large crowd region scores
-    # IoU ≈ 1.  Recompute only the crowd columns to avoid a full float64 matmul.
+    detection_buffer_bytes = dt_flat.nbytes
+    if detection_buffer_bytes > _MASK_IOU_GT_BUFFER_BYTES:
+        logger.warning(
+            "Detection masks require %d bytes, exceeding the %d-byte mask IoU "
+            "buffer budget; ground-truth chunking cannot reduce this floor.",
+            detection_buffer_bytes,
+            _MASK_IOU_GT_BUFFER_BYTES,
+        )
+    area_dt = dt_flat.sum(axis=1, dtype=np.float64)  # (dt,)
+    iou = np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
     eps = np.spacing(1)
-    crowd_idx = np.where(crowd)[0]
-    gt_flat = gt_masks[crowd_idx].reshape(len(crowd_idx), -1).astype(np.float32)
-    dt_flat = dt_masks.reshape(dt_masks.shape[0], -1).astype(np.float32)
-    area_inter = (dt_flat @ gt_flat.T).astype(np.float64)  # (dt, N_crowd)
-    area_dt = dt_flat.sum(axis=1).astype(np.float64)  # (dt,)
-    iou[:, crowd_idx] = area_inter / (area_dt[:, None] + eps)
+
+    count_itemsize = np.dtype(count_dtype).itemsize
+    per_gt_buffer_bytes = pixels * count_itemsize + 3 * len(dt_flat) * 8
+    available_gt_buffer_bytes = max(
+        _MASK_IOU_GT_BUFFER_BYTES - detection_buffer_bytes, 0
+    )
+    gt_chunk_size = max(available_gt_buffer_bytes // per_gt_buffer_bytes, 1)
+    for gt_chunk_start in range(0, len(masks_true), gt_chunk_size):
+        gt_chunk_stop = gt_chunk_start + gt_chunk_size
+        gt_masks = np.asarray(
+            masks_true[gt_chunk_start:gt_chunk_stop], dtype=count_dtype
+        ).reshape(-1, pixels)
+        area_inter = (dt_flat @ gt_masks.T).astype(np.float64)
+        area_gt = gt_masks.sum(axis=1, dtype=np.float64)
+        union = area_dt[:, None] + area_gt - area_inter
+        iou_chunk = np.divide(
+            area_inter,
+            union,
+            out=np.zeros_like(area_inter),
+            where=union != 0,
+        )
+
+        crowd_chunk = crowd[gt_chunk_start:gt_chunk_stop]
+        if np.any(crowd_chunk):
+            # COCO crowd regions use detection area as the denominator.
+            iou_chunk[:, crowd_chunk] = area_inter[:, crowd_chunk] / (
+                area_dt[:, None] + eps
+            )
+        iou[:, gt_chunk_start:gt_chunk_stop] = iou_chunk
+
     return iou
 
 
@@ -650,13 +697,17 @@ class COCOEvaluatorParameters:
         self.img_ids: list[int] = []
         self.cat_ids: list[int] = []
 
+        # Thresholds are float64 as in pycocotools. IoUs and recalls are compared
+        # against them, and float32 rounds some of them (e.g. 0.7) to the other side
+        # of the float64 value pycocotools compares, which moves the precision
+        # sampled at that recall, or the match made at that IoU, by one detection.
         # IoU thresholds [0.5, 0.55, 0.6, 0.65, ..., 0.95]
         self.iou_thrs = np.linspace(
             0.5,
             0.95,
             int(np.round((0.95 - 0.5) / 0.05)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 101 recall thresholds [0.0, 0.01, 0.02, ..., 1.00]
         self.rec_thrs = np.linspace(
@@ -664,7 +715,7 @@ class COCOEvaluatorParameters:
             1.00,
             int(np.round((1.00 - 0.0) / 0.01)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float64,
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
@@ -723,7 +774,7 @@ class COCOEvaluator:
         # List of results summarization
         self.stats: list[object] = []
         # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], npt.NDArray[np.float32]] = {}
+        self.ious: dict[tuple[int, int], npt.NDArray[np.float64]] = {}
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
@@ -763,9 +814,8 @@ class COCOEvaluator:
         self.eval_imgs = []
         self.results = {}
 
-    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
-        """
-        Compute the IoU between the targets and predictions for a given image and
+    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float64]:
+        """Compute the IoU between the targets and predictions for a given image and
         category, using boxes, masks or oriented bounding boxes depending on the
         configured metric target.
 
@@ -782,7 +832,7 @@ class COCOEvaluator:
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
-            empty_result: npt.NDArray[np.float32] = np.array([], dtype=np.float32)
+            empty_result: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
             return empty_result
 
         # Sort predictions by highest score first
@@ -817,7 +867,7 @@ class COCOEvaluator:
             gt_boxes = [g["bbox"] for g in gt]
             dt_boxes = [d["bbox"] for d in dt]
             iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd)
-        return iou.astype(np.float32)
+        return iou.astype(np.float64)
 
     def _evaluate_image(
         self,
@@ -1065,8 +1115,8 @@ class COCOEvaluator:
                         np.logical_not(dt_matches), np.logical_not(dt_ignored)
                     )
 
-                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float32)
-                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float32)
+                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float64)
+                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float64)
 
                     # Loop through thresholds
                     for iou_thresh_idx, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
@@ -1074,7 +1124,7 @@ class COCOEvaluator:
                         fp = np.array(fp)
                         num_tps = len(tp)
                         # Recall: TP / Total number of ground truth objects
-                        rc = tp / np.float32(num_non_ignored_gt)
+                        rc = tp / num_non_ignored_gt
                         # Precision: TP / (FP + TP)
                         pr = (tp / (fp + tp + EPS)).tolist()
                         # List to compute the precision at each recall threshold
