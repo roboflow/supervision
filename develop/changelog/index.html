@@ -4072,6 +4072,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.process_video</code> now raises instead of hanging forever when a processed frame cannot be written. The writer thread did not handle errors: once <code>VideoSink.write_frame</code> raised, the thread died while the main loop kept putting frames into the bounded <code>writer_buffer</code> queue, which filled up and blocked the call with no timeout. Without OpenCV, the PyAV writer raises for every frame that is not a <code>uint8</code> array of the source video's shape, so a callback that resizes or crops the frame hung the call after <code>writer_buffer</code> frames. Writer shutdown waits for queued frames and any active write before releasing <code>VideoSink</code>, then raises the first write error as <code>RuntimeError("Writer thread raised: ...")</code> from the original exception, like reader errors. The shutdown marker is queued even when the bounded queue is full. A callback that returns <code>None</code>, for example one that forgets to <code>return</code> the annotated frame, was taken by the writer as its end-of-stream marker and hung the call the same way with either backend; it now raises <code>TypeError</code> naming the frame. Callbacks that return a frame the writer accepts are unaffected. (<a href="https://github.com/roboflow/supervision/pull/2636">#2636</a>)</p>
+</li>
+<li>
 <p><code>sv.ConfusionMatrix</code> now supports <code>MetricTarget.MASKS</code>, so an instance segmentation model can be scored on the shapes it predicts rather than on their bounding boxes. <code>from_detections</code> and <code>benchmark</code> accept <code>metric_target=MetricTarget.MASKS</code> and match predictions to targets by mask IoU, computed with <code>mask_iou_batch</code> on dense <code>(N, H, W)</code> arrays or <code>CompactMask</code>; every other metric already offered this target, and <code>ConfusionMatrix</code> was the one that raised <code>MetricTarget.MASKS is not currently supported</code>. Two instances that share a box but not a shape are no longer counted as a match, and the validation grids written by <code>benchmark(save_directory_path=...)</code> fill each mask so the panels show the geometry the outcome was decided on. A non-empty <code>Detections</code> without <code>mask</code>, or predictions and targets whose masks differ in resolution, raise <code>ValueError</code>; <code>Detections.empty()</code> needs no masks. <code>from_tensors</code>, <code>evaluate_detection_batch</code> and <code>detections_to_tensor</code> keep rejecting masks, which have no tensor row layout, and now point at <code>from_detections</code>. <code>from_detections</code> also raises when <code>predictions</code> and <code>targets</code> differ in length instead of silently scoring the shorter list. (<a href="https://github.com/roboflow/supervision/pull/2612">#2612</a>)</p>
 </li>
 <li>
@@ -6154,7 +6157,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 29, 2026 11:46:01 UTC">September 29, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 30, 2026 12:53:24 UTC">September 30, 2026</span>
   </span>
 
     
@@ -6182,9 +6185,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6192,14 +6195,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/franklin-robo" class="md-author" title="@franklin-robo">
-          
-          <img src="https://avatars.githubusercontent.com/u/231090758?v=4&size=72" alt="franklin-robo">
         </a>
       
       
