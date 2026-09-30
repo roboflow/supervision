@@ -2267,6 +2267,86 @@ def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
     assert np.allclose(result.detection_confidence, [0.9, 0.7])
 
 
+class TestKeyPointsWithNmsEmptyJoints:
+    """NMS preserves skeletons with an empty keypoint axis."""
+
+    @pytest.mark.parametrize("skeleton_count", [1, 3])
+    @pytest.mark.parametrize("class_agnostic", [False, True])
+    def test_keeps_skeletons_and_aligned_fields(
+        self, skeleton_count: int, class_agnostic: bool
+    ) -> None:
+        """Filtering out every joint preserves each skeleton and its aligned fields."""
+        key_points = KeyPoints(
+            xy=np.tile(
+                np.array([[[10, 10], [20, 20]]], dtype=np.float32),
+                (skeleton_count, 1, 1),
+            ),
+            keypoint_confidence=np.full((skeleton_count, 2), 0.8, dtype=np.float32),
+            detection_confidence=np.array([0.3, 0.9, 0.7], dtype=np.float32)[
+                :skeleton_count
+            ],
+            visible=np.ones((skeleton_count, 2), dtype=bool),
+            class_id=np.arange(skeleton_count) % 2,
+            data={"custom_data": np.arange(skeleton_count)},
+        )
+        filtered = key_points[np.zeros((skeleton_count, 2), dtype=bool)]
+
+        result = filtered.with_nms(threshold=0.0, class_agnostic=class_agnostic)
+
+        assert result.xy.shape == (skeleton_count, 0, 2)
+        assert result.xy.dtype == key_points.xy.dtype
+        assert result == filtered
+        assert result is not filtered
+
+    @pytest.mark.parametrize("skeleton_count", [1, 3])
+    def test_keeps_skeletons_without_optional_fields(self, skeleton_count: int) -> None:
+        """Class-agnostic NMS needs only detection confidence when joints are absent."""
+        key_points = KeyPoints(
+            xy=np.empty((skeleton_count, 0, 2), dtype=np.float32),
+            detection_confidence=np.full(skeleton_count, 0.9, dtype=np.float32),
+        )
+
+        result = key_points.with_nms(class_agnostic=True)
+
+        assert result == key_points
+
+    @pytest.mark.parametrize(
+        ("missing_field", "class_agnostic"),
+        [
+            pytest.param("detection_confidence", False, id="class-aware-no-confidence"),
+            pytest.param(
+                "detection_confidence", True, id="class-agnostic-no-confidence"
+            ),
+            pytest.param("class_id", False, id="class-aware-no-class-id"),
+        ],
+    )
+    def test_requires_nms_fields(
+        self, missing_field: str, class_agnostic: bool
+    ) -> None:
+        """An empty joint axis does not bypass required NMS fields."""
+        key_points = KeyPoints(
+            xy=np.empty((1, 0, 2), dtype=np.float32),
+            detection_confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+        setattr(key_points, missing_field, None)
+
+        with pytest.raises(ValueError, match=missing_field):
+            key_points.with_nms(class_agnostic=class_agnostic)
+
+    @pytest.mark.parametrize("threshold", [-0.1, 1.1])
+    def test_rejects_invalid_threshold(self, threshold: float) -> None:
+        """Empty joints still require an NMS threshold between zero and one."""
+        key_points = KeyPoints(
+            xy=np.empty((1, 0, 2), dtype=np.float32),
+            detection_confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+
+        with pytest.raises(ValueError, match="iou_threshold"):
+            key_points.with_nms(threshold=threshold)
+
+
 @pytest.mark.parametrize(
     ("key_points", "threshold", "class_agnostic", "match"),
     [
