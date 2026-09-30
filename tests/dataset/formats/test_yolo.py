@@ -1139,3 +1139,37 @@ class TestDetectionDatasetYoloImageShapes:
         else:
             assert lines == ["0 0.37500 0.37500 0.50000 0.50000"]
         np.testing.assert_array_equal(image, original_image)
+
+    def test_writes_nine_normalized_obb_tokens_for_grayscale_image(
+        self, tmp_path: Path
+    ) -> None:
+        """A grayscale OBB export preserves class and normalized corners."""
+        image = np.zeros((16, 24), dtype=np.uint8)
+        corners = np.array(
+            [[[3.0, 2.0], [15.0, 2.0], [15.0, 10.0], [3.0, 10.0]]],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[3.0, 2.0, 15.0, 10.0]], dtype=np.float32),
+            class_id=np.array([1]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        dataset = DetectionDataset(
+            classes=["background", "object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path), is_obb=True)
+
+        tokens = (tmp_path / "image.txt").read_text().split()
+        assert len(tokens) == 9
+        assert tokens[0] == "1"
+        np.testing.assert_allclose(
+            np.array(tokens[1:], dtype=np.float32),
+            np.array(
+                [0.125, 0.125, 0.625, 0.125, 0.625, 0.625, 0.125, 0.625],
+                dtype=np.float32,
+            ),
+            atol=1e-5,
+        )
