@@ -150,6 +150,39 @@ class TestLabelmeShapesToDetections:
         else:
             assert result.mask is None
 
+    def test_interleaved_groups_combine_in_first_seen_order(self) -> None:
+        """Interleaved grouped shapes retain first-seen output order and union masks."""
+        shapes = [
+            dict(
+                _polygon("dog", [[5, 5], [15, 5], [15, 15], [5, 15]]),
+                group_id=7,
+            ),
+            dict(
+                _polygon("cat", [[20, 20], [25, 20], [25, 25], [20, 25]]),
+                group_id=11,
+            ),
+            dict(
+                _polygon("dog", [[30, 30], [40, 30], [40, 40], [30, 40]]),
+                group_id=7,
+            ),
+        ]
+        expected_masks = np.zeros((2, 48, 64), dtype=bool)
+        expected_masks[0, 5:16, 5:16] = True
+        expected_masks[0, 30:41, 30:41] = True
+        expected_masks[1, 20:26, 20:26] = True
+
+        result = labelme_shapes_to_detections(
+            shapes=shapes,
+            class_to_index={"dog": 0, "cat": 1},
+            resolution_wh=(64, 48),
+            with_masks=True,
+        )
+
+        assert len(result) == 2
+        np.testing.assert_array_equal(result.xyxy, [[5, 5, 40, 40], [20, 20, 25, 25]])
+        np.testing.assert_array_equal(result.class_id, [0, 1])
+        np.testing.assert_array_equal(result.mask, expected_masks)
+
     @pytest.mark.parametrize(
         ("first_fields", "second_fields", "expected_class_ids"),
         [
