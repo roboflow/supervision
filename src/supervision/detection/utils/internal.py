@@ -424,9 +424,14 @@ def process_roboflow_result(
             masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
-            polygon = np.array(
-                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
-            )
+            # Vertices are sub-pixel floats; round them like the dataset loaders do,
+            # since truncating shifts the mask up and to the left by up to a pixel.
+            polygon = np.round(
+                np.array(
+                    [[point["x"], point["y"]] for point in prediction["points"]],
+                    dtype=np.float64,
+                )
+            ).astype(np.int32)
             mask = polygon_to_mask(
                 polygon, resolution_wh=(image_width, image_height)
             ).astype(bool)

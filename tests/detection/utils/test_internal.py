@@ -575,6 +575,35 @@ def test_polygon_prediction_compact_masks_true() -> None:
     assert len(masks) == 1
 
 
+@pytest.mark.parametrize("compact_masks", [False, True])
+def test_polygon_prediction_rounds_decimal_vertices(compact_masks: bool) -> None:
+    """Sub-pixel polygon vertices are rounded to the nearest pixel, not truncated."""
+    roboflow_result = _result(
+        _pred(
+            yx=(5.1, 5.1),
+            size=(5.0, 5.0),
+            points=[
+                {"x": 2.6, "y": 2.6},
+                {"x": 7.6, "y": 2.6},
+                {"x": 7.6, "y": 7.6},
+                {"x": 2.6, "y": 7.6},
+            ],
+        ),
+        img_w=12,
+        img_h=12,
+    )
+    expected_mask = np.zeros((1, 12, 12), dtype=bool)
+    expected_mask[0, 3:9, 3:9] = True
+
+    _, _, _, masks, _, _ = process_roboflow_result(
+        roboflow_result, compact_masks=compact_masks
+    )
+
+    assert masks is not None
+    dense_masks = masks.to_dense() if isinstance(masks, CompactMask) else masks
+    np.testing.assert_array_equal(dense_masks, expected_mask)
+
+
 def test_box_only_compact_masks_true_returns_none_mask() -> None:
     """Box-only predictions with compact_masks=True yield None mask."""
     roboflow_result = _result(
