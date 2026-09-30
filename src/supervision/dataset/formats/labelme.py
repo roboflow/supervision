@@ -382,6 +382,8 @@ def save_labelme_annotations(
 ) -> None:
     """Export a ``DetectionDataset`` to per-image LabelMe ``.json`` files.
 
+    Image dimensions are read from grayscale or color arrays without changing pixels.
+
     Args:
         dataset: The ``DetectionDataset`` to write.
         annotations_directory_path: Directory where the LabelMe ``.json`` files
@@ -410,7 +412,7 @@ def save_labelme_annotations(
     )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, detections in dataset:
-        image_height, image_width, _ = image.shape
+        image_height, image_width = image.shape[:2]
         labelme_dict: LabelMeDict = {
             "version": _LABELME_EXPORT_VERSION,
             "flags": {},
