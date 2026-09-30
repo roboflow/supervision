@@ -2,9 +2,9 @@ import os
 import threading
 import time
 from pathlib import Path
-from queue import Empty, Full
+from queue import Empty
 from queue import Queue as StdQueue
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from unittest.mock import patch
 
 import av
@@ -15,6 +15,7 @@ from supervision import _cv2 as cv2
 from supervision.utils.video import (
     FPSMonitor,
     VideoInfo,
+    VideoSink,
     get_video_frames_generator,
     process_video,
 )
@@ -100,10 +101,10 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
         )
 
 
-def test_process_video_enqueues_writer_sentinel_with_timeout(
+def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """process_video enqueues the writer sentinel and bounded worker joins."""
+    """process_video queues its sentinel and waits for the writer to exit."""
     read_queue = StdQueue()
     read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
     read_queue.put((1, np.zeros((2, 2, 3), dtype=np.uint8)))
@@ -195,107 +196,95 @@ def test_process_video_enqueues_writer_sentinel_with_timeout(
             show_progress=False,
         )
 
-    assert write_queue.put_calls[-1] == (None, 1)
+    assert write_queue.put_calls[-1] == (None, None)
     assert all(timeout is None for _item, timeout in write_queue.put_calls[:-1])
-    assert join_calls == [10, 10]
+    assert join_calls == [10, None]
 
 
-def test_process_video_best_effort_sentinel_handles_full_queue(
+def test_process_video_retries_full_queue_sentinel_after_writer_recovers(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """process_video should not hang if the writer queue is already full."""
-    read_queue = StdQueue()
-    read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
-    read_queue.put(None)
+    """A recovered writer drains a full queue and receives the shutdown sentinel."""
+    target_path = str(tmp_path / "target_full_queue_recovered.mp4")
+    write_started = threading.Event()
+    release_write = threading.Event()
+    callback_failed = threading.Event()
+    queues: list[StdQueue[object]] = []
+    writer_threads: list[threading.Thread] = []
+    process_errors: list[BaseException] = []
+    process_finished = threading.Event()
 
-    class FullWriteQueue:
-        """Record writer queue puts and fail the shutdown sentinel."""
+    def recording_queue(maxsize: int = 0) -> StdQueue[object]:
+        """Retain the real queues so failure cleanup can be verified."""
+        queue = StdQueue(maxsize=maxsize)
+        queues.append(queue)
+        return queue
 
-        def __init__(self) -> None:
-            """Initialize the queue call log."""
-            self.put_calls: list[tuple[object, object | None]] = []
+    def blocked_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+        """Hold the first backend write while the bounded queue fills."""
+        if not write_started.is_set():
+            writer_threads.append(threading.current_thread())
+            write_started.set()
+            if not release_write.wait(timeout=10):
+                raise TimeoutError("test backend was not released")
 
-        def put(self, item: object, timeout: object | None = None) -> None:
-            """Record the put and raise Full for the shutdown sentinel."""
-            self.put_calls.append((item, timeout))
-            if item is None:
-                raise Full
+    def recover_backend() -> None:
+        """Release the blocked backend after the former sentinel deadline."""
+        if write_started.wait(timeout=5) and callback_failed.wait(timeout=5):
+            release_write.wait(timeout=1.1)
+            release_write.set()
 
-        def get(self, timeout: object | None = None) -> object:
-            """The writer thread is disabled, so reads are not expected."""
-            raise AssertionError("writer queue should not be read in this test")
+    def callback(frame: np.ndarray, frame_index: int) -> np.ndarray:
+        """Fill the one-frame queue, then preserve a callback failure."""
+        if frame_index == 1:
+            assert write_started.wait(timeout=5)
+        if frame_index == 2:
+            assert len(queues) == 2
+            assert queues[1].full()
+            callback_failed.set()
+            raise ValueError("Test callback failure after queue filled")
+        return frame
 
-    join_calls: list[object | None] = []
+    def run_process_video() -> None:
+        """Capture the pipeline exception without blocking the test thread."""
+        try:
+            process_video(
+                source_path=dummy_video_path,
+                target_path=target_path,
+                callback=callback,
+                writer_buffer=1,
+            )
+        except BaseException as exc:
+            process_errors.append(exc)
+        finally:
+            process_finished.set()
 
-    class FakeThread:
-        """Thread stand-in that keeps the test single-threaded."""
-
-        def __init__(
-            self,
-            target: object,
-            args: tuple[object, ...] = (),
-            daemon: bool = False,
-        ) -> None:
-            """Store the thread target without starting it."""
-            self.target = target
-            self.args = args
-            self.daemon = daemon
-
-        def start(self) -> None:
-            """Do nothing; the test preloads the queues instead."""
-
-        def join(self, timeout=None) -> None:
-            """Record join timeouts for shutdown verification."""
-            join_calls.append(timeout)
-
-    class FakeVideoSink:
-        """Minimal sink context manager used to verify shutdown ordering."""
-
-        def __init__(self, target_path: str, video_info: object) -> None:
-            """Store constructor arguments for completeness."""
-            self.target_path = target_path
-            self.video_info = video_info
-
-        def __enter__(self) -> "FakeVideoSink":
-            """Return the sink context manager."""
-            return self
-
-        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
-            """Propagate any exception without side effects."""
-            return None
-
-        def write_frame(self, frame: object) -> None:
-            """The writer thread is disabled in this test."""
-
-    write_queue = FullWriteQueue()
-    queue_factory_calls = iter([read_queue, write_queue])
-
+    monkeypatch.setattr("supervision.utils.video.Queue", recording_queue)
     monkeypatch.setattr(
-        "supervision.utils.video.Queue",
-        lambda *args, **kwargs: next(queue_factory_calls),
+        "supervision.utils.video.VideoSink.write_frame", blocked_write_frame
     )
-    monkeypatch.setattr("supervision.utils.video.threading.Thread", FakeThread)
-    monkeypatch.setattr("supervision.utils.video.VideoSink", FakeVideoSink)
-    monkeypatch.setattr(
-        "supervision.utils.video.VideoInfo.from_video_path",
-        lambda video_path: SimpleNamespace(total_frames=1),
-    )
+    recovery_thread = threading.Thread(target=recover_backend, daemon=True)
+    recovery_thread.start()
+    process_thread = threading.Thread(target=run_process_video, daemon=True)
+    process_thread.start()
 
-    target_path = str(tmp_path / "target_full_queue.mp4")
+    try:
+        assert callback_failed.wait(timeout=5)
+        assert process_finished.wait(timeout=5)
+    finally:
+        release_write.set()
+        if len(queues) == 2 and writer_threads and writer_threads[0].is_alive():
+            queues[1].put(None, timeout=1)
+        process_thread.join(timeout=5)
+        recovery_thread.join(timeout=5)
+        for writer_thread in writer_threads:
+            writer_thread.join(timeout=5)
 
-    def callback(frame, index):
-        raise ValueError("Test exception at frame 0")
-
-    with pytest.raises(ValueError, match="Test exception at frame 0"):
-        process_video(
-            source_path=dummy_video_path,
-            target_path=target_path,
-            callback=callback,
-            show_progress=False,
-        )
-
-    assert write_queue.put_calls[-1] == (None, 1)
-    assert join_calls == [10, 10]
+    assert len(process_errors) == 1
+    assert isinstance(process_errors[0], ValueError)
+    assert str(process_errors[0]) == "Test callback failure after queue filled"
+    assert len(writer_threads) == 1
+    assert not writer_threads[0].is_alive()
 
 
 def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
@@ -412,7 +401,7 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
         )
 
     assert read_queue.get_calls == [None, 1, 1]
-    assert join_calls == [10, 10]
+    assert join_calls == [10, None]
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
@@ -514,6 +503,117 @@ def test_process_video_propagates_reader_thread_errors(
         )
 
     assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_process_video_propagates_writer_thread_errors(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A failing frame write raises RuntimeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_writer_error.mp4")
+
+    def failing_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+        """Stand in for a sink that cannot write, e.g. on a full disk."""
+        raise OSError("write failed")
+
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoSink.write_frame", failing_write_frame
+    )
+
+    with pytest.raises(RuntimeError, match="Writer thread raised") as exc_info:
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: frame,
+            writer_buffer=1,
+        )
+
+    assert isinstance(exc_info.value.__cause__, OSError)
+
+
+def test_process_video_waits_for_delayed_writer_failure_before_releasing_sink(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A late write error is raised before the active sink is released."""
+    target_path = str(tmp_path / "target_delayed_writer_error.mp4")
+    write_started = threading.Event()
+    release_write = threading.Event()
+    write_active = threading.Event()
+    process_finished = threading.Event()
+    process_errors: list[BaseException] = []
+    release_overlapped_write: list[bool] = []
+    original_exit = VideoSink.__exit__
+
+    def delayed_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+        """Hold the final write beyond the former ten-second join deadline."""
+        write_active.set()
+        write_started.set()
+        try:
+            if not release_write.wait(timeout=20):
+                raise TimeoutError("test backend was not released")
+            raise OSError("delayed write failed")
+        finally:
+            write_active.clear()
+
+    def recording_exit(
+        self: VideoSink,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        """Record whether the sink closes while a write remains active."""
+        release_overlapped_write.append(write_active.is_set())
+        original_exit(self, exc_type, exc_value, exc_traceback)
+
+    def run_process_video() -> None:
+        """Capture the pipeline error while the test controls the writer."""
+        try:
+            process_video(
+                source_path=dummy_video_path,
+                target_path=target_path,
+                callback=lambda frame, index: frame,
+                writer_buffer=32,
+            )
+        except BaseException as exc:
+            process_errors.append(exc)
+        finally:
+            process_finished.set()
+
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoSink.write_frame", delayed_write_frame
+    )
+    monkeypatch.setattr("supervision.utils.video.VideoSink.__exit__", recording_exit)
+    process_thread = threading.Thread(target=run_process_video, daemon=True)
+    process_thread.start()
+
+    try:
+        assert write_started.wait(timeout=5)
+        assert not process_finished.wait(timeout=10.5)
+    finally:
+        release_write.set()
+        process_thread.join(timeout=5)
+
+    assert process_finished.is_set()
+    assert len(process_errors) == 1
+    assert isinstance(process_errors[0], RuntimeError)
+    assert isinstance(process_errors[0].__cause__, OSError)
+    assert not release_overlapped_write[0]
+
+
+def test_process_video_rejects_callback_returning_none(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
+    """A callback returning None raises TypeError instead of hanging forever."""
+    target_path = str(tmp_path / "target_callback_none.mp4")
+
+    with pytest.raises(TypeError, match="returned None for frame 0"):
+        _run_process_video_with_deadline(
+            deadline_seconds=30,
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, index: None,
+            writer_buffer=1,
+        )
 
 
 def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:

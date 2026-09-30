@@ -5,6 +5,10 @@ date_modified: 2026-09-29
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.process_video` now raises instead of hanging forever when a processed frame cannot be written. The writer thread did not handle errors: once `VideoSink.write_frame` raised, the thread died while the main loop kept putting frames into the bounded `writer_buffer` queue, which filled up and blocked the call with no timeout. Without OpenCV, the PyAV writer raises for every frame that is not a `uint8` array of the source video's shape, so a callback that resizes or crops the frame hung the call after `writer_buffer` frames. Writer shutdown waits for queued frames and any active write before releasing `VideoSink`, then raises the first write error as `RuntimeError("Writer thread raised: ...")` from the original exception, like reader errors. The shutdown marker is queued even when the bounded queue is full. A callback that returns `None`, for example one that forgets to `return` the annotated frame, was taken by the writer as its end-of-stream marker and hung the call the same way with either backend; it now raises `TypeError` naming the frame. Callbacks that return a frame the writer accepts are unaffected. ([#2636](https://github.com/roboflow/supervision/pull/2636))
+
 ### 0.30.6 <small>Sep 29, 2026</small>
 
 - `sv.VertexEllipseHaloAnnotator` now draws the whole halo of a key point whose covariance ellipse is not horizontal. The fade box was sized from the ellipse's semi-axes as if the major axis always ran along the image x axis, so a vertical or diagonal ellipse was clipped to a thin band — a 20 x 1 px ellipse at 90° drew 6 px tall instead of 39 px. The box now covers the rotated ellipse, matching `sv.VertexEllipseOutlineAnnotator` and `sv.VertexEllipseAreaAnnotator`. Horizontal ellipses are unchanged. ([#2634](https://github.com/roboflow/supervision/pull/2634))
