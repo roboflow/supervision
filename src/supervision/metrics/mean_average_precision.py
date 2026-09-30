@@ -575,6 +575,9 @@ MAX_ALL_OBJECT_AREA = 1e5**2
 # Smallest number to avoid division by zero
 EPS = np.finfo(np.float32).eps
 
+# Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.
+_MASK_IOU_GT_BUFFER_BYTES = 1024 * 5 * 1024 * 1024
+
 
 def _mask_iou_with_jaccard(
     masks_true: list[npt.NDArray[np.bool_]],
@@ -594,38 +597,78 @@ def _mask_iou_with_jaccard(
 
     Returns:
         Array of IoU values of shape `(len(masks_detection), len(masks_true))`.
+
+    Raises:
+        ValueError: If the masks do not share the same spatial dimensions.
     """
     if len(masks_detection) == 0 or len(masks_true) == 0:
         return np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
 
-    gt_masks = np.stack(masks_true).astype(bool)
-    dt_masks = np.stack(masks_detection).astype(bool)
+    mask_shape = masks_true[0].shape
+    if any(
+        mask.shape != mask_shape
+        for mask in itertools.chain(masks_true[1:], masks_detection)
+    ):
+        raise ValueError(
+            "Ground-truth and detection masks must share the same spatial "
+            f"dimensions; got {mask_shape} and a different shape."
+        )
+
     crowd = np.asarray(is_crowd, dtype=bool)
 
     # pycocotools divides the pixel counts in float64 and compares the IoUs with
     # float64 thresholds. `mask_iou_batch` divides float32 counts, which rounds an
     # exact IoU such as 65/100 just below the 0.65 threshold, so count the pixels
     # here and divide in float64. float32 counts pixels exactly up to 2**24.
-    pixels = int(np.prod(gt_masks.shape[1:]))
+    pixels = int(np.prod(mask_shape))
     count_dtype = np.float32 if pixels <= 2**24 else np.float64
-    gt_flat = gt_masks.reshape(len(gt_masks), pixels).astype(count_dtype)
-    dt_flat = dt_masks.reshape(len(dt_masks), pixels).astype(count_dtype)
-    area_inter = (dt_flat @ gt_flat.T).astype(np.float64)  # (dt, gt)
-    area_dt = dt_flat.sum(axis=1, dtype=np.float64)  # (dt,)
-    area_gt = gt_flat.sum(axis=1, dtype=np.float64)  # (gt,)
-    union = area_dt[:, None] + area_gt[None, :] - area_inter
-    iou: npt.NDArray[np.float64] = np.divide(
-        area_inter, union, out=np.zeros_like(area_inter), where=union != 0
+
+    # Predictions are capped at max_dets by the evaluator. Ground truths are not,
+    # so only materialize GT chunks whose mask and pairwise buffers fit the budget.
+    dt_flat = np.asarray(masks_detection, dtype=count_dtype).reshape(
+        len(masks_detection), pixels
     )
-
-    if not np.any(crowd):
-        return iou
-
-    # Override crowd columns: COCO convention collapses the union to the
-    # detection area, so a small detection inside a large crowd region scores
-    # IoU ≈ 1.
+    detection_buffer_bytes = dt_flat.nbytes
+    if detection_buffer_bytes > _MASK_IOU_GT_BUFFER_BYTES:
+        logger.warning(
+            "Detection masks require %d bytes, exceeding the %d-byte mask IoU "
+            "buffer budget; ground-truth chunking cannot reduce this floor.",
+            detection_buffer_bytes,
+            _MASK_IOU_GT_BUFFER_BYTES,
+        )
+    area_dt = dt_flat.sum(axis=1, dtype=np.float64)  # (dt,)
+    iou = np.empty((len(masks_detection), len(masks_true)), dtype=np.float64)
     eps = np.spacing(1)
-    iou[:, crowd] = area_inter[:, crowd] / (area_dt[:, None] + eps)
+
+    count_itemsize = np.dtype(count_dtype).itemsize
+    per_gt_buffer_bytes = pixels * count_itemsize + 3 * len(dt_flat) * 8
+    available_gt_buffer_bytes = max(
+        _MASK_IOU_GT_BUFFER_BYTES - detection_buffer_bytes, 0
+    )
+    gt_chunk_size = max(available_gt_buffer_bytes // per_gt_buffer_bytes, 1)
+    for gt_chunk_start in range(0, len(masks_true), gt_chunk_size):
+        gt_chunk_stop = gt_chunk_start + gt_chunk_size
+        gt_masks = np.asarray(
+            masks_true[gt_chunk_start:gt_chunk_stop], dtype=count_dtype
+        ).reshape(-1, pixels)
+        area_inter = (dt_flat @ gt_masks.T).astype(np.float64)
+        area_gt = gt_masks.sum(axis=1, dtype=np.float64)
+        union = area_dt[:, None] + area_gt - area_inter
+        iou_chunk = np.divide(
+            area_inter,
+            union,
+            out=np.zeros_like(area_inter),
+            where=union != 0,
+        )
+
+        crowd_chunk = crowd[gt_chunk_start:gt_chunk_stop]
+        if np.any(crowd_chunk):
+            # COCO crowd regions use detection area as the denominator.
+            iou_chunk[:, crowd_chunk] = area_inter[:, crowd_chunk] / (
+                area_dt[:, None] + eps
+            )
+        iou[:, gt_chunk_start:gt_chunk_stop] = iou_chunk
+
     return iou
 
 

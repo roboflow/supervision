@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import supervision.metrics.mean_average_precision as mean_average_precision
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
@@ -542,6 +543,82 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
         result = metric.update([predictions], [targets]).compute()
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestMaskIouWithJaccard:
+    """Tests for dense-mask IoU validation and temporary-buffer bounds."""
+
+    def test_rejects_equal_area_masks_with_different_shapes(self) -> None:
+        """Masks with equal pixel counts but different height and width must fail."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 6, 2]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            mask=np.ones((1, 2, 6), dtype=bool),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 4, 3]], dtype=np.float64),
+            class_id=np.array([0]),
+            mask=np.ones((1, 3, 4), dtype=bool),
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        with pytest.raises(ValueError, match="spatial dimensions"):
+            metric.update(predictions, targets).compute()
+
+    def test_does_not_stack_all_ground_truth_masks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The evaluator must materialize ground truths in bounded chunks."""
+        masks_true = [
+            np.ones((4, 4), dtype=bool),
+            np.zeros((4, 4), dtype=bool),
+        ]
+        masks_detection = [np.ones((4, 4), dtype=bool)]
+        original_asarray = np.asarray
+        ground_truth_mask_ids = {id(mask) for mask in masks_true}
+        chunk_sizes: list[int] = []
+
+        def track_ground_truth_chunks(
+            masks: object, *args: object, **kwargs: object
+        ) -> np.ndarray:
+            """Record each materialized ground-truth chunk."""
+            if (
+                isinstance(masks, list)
+                and masks
+                and all(id(mask) in ground_truth_mask_ids for mask in masks)
+            ):
+                chunk_sizes.append(len(masks))
+            return original_asarray(masks, *args, **kwargs)
+
+        monkeypatch.setattr(mean_average_precision, "_MASK_IOU_GT_BUFFER_BYTES", 176)
+        monkeypatch.setattr(
+            mean_average_precision.np, "asarray", track_ground_truth_chunks
+        )
+
+        iou = mean_average_precision._mask_iou_with_jaccard(
+            masks_true, masks_detection, [False, False]
+        )
+
+        assert chunk_sizes == [1, 1]
+        np.testing.assert_allclose(iou, np.array([[1.0, 0.0]]))
+
+    def test_crowd_iou_is_applied_in_each_ground_truth_chunk(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Crowd columns retain their special denominator across GT chunks."""
+        masks_true = [
+            np.array([[True, False], [False, False]]),
+            np.ones((2, 2), dtype=bool),
+        ]
+        masks_detection = [np.array([[False, False], [False, True]])]
+        monkeypatch.setattr(mean_average_precision, "_MASK_IOU_GT_BUFFER_BYTES", 56)
+
+        iou = mean_average_precision._mask_iou_with_jaccard(
+            masks_true, masks_detection, [False, True]
+        )
+
+        np.testing.assert_allclose(iou, np.array([[0.0, 1.0]]))
 
 
 class TestMeanAveragePrecisionIgnoreFlag:
