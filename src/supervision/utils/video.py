@@ -398,7 +398,8 @@ def process_video(
        The processing happens in the main thread, simplifying use of stateful objects
        without synchronization.
     3. Writer thread: Dequeues processed frames from `frame_write_queue` and writes
-       them sequentially to the output video file.
+       them sequentially to the output video file. Shutdown waits for any active
+       write to finish before releasing the output sink.
 
     Args:
         source_path: Path to the input video file.
@@ -559,12 +560,7 @@ def process_video(
                 if writer_exception is not None:
                     break
         finally:
-            try:
-                frame_write_queue.put(None, timeout=1)
-            except Full:
-                # Best effort: if the writer is stuck and the queue never drains,
-                # do not block shutdown forever trying to enqueue the sentinel.
-                pass
+            frame_write_queue.put(None)
             if not read_finished:
                 while True:
                     # Use timeout to prevent indefinite blocking if reader thread fails
@@ -581,7 +577,7 @@ def process_video(
                         # Reader is still alive; continue waiting for frames.
                         continue
             reader_worker.join(timeout=10)
-            writer_worker.join(timeout=10)
+            writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
@@ -595,13 +591,7 @@ def process_video(
                 ) from writer_exception
 
     if preserve_audio:
-        if writer_worker.is_alive():
-            logger.warning(
-                "Writer thread did not finish in time; skipping audio mux "
-                "to avoid reading an incomplete output file."
-            )
-        else:
-            _mux_audio(source_path=source_path, video_path=target_path)
+        _mux_audio(source_path=source_path, video_path=target_path)
 
 
 class FPSMonitor:
