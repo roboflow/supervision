@@ -696,6 +696,8 @@ class DetectionDataset(BaseDataset):
         the files. When an image file contains a ``polygon`` shape, or when
         ``force_masks=True`` is set, both ``rectangle`` and ``polygon`` shapes
         produce masks: rectangles via a four-corner polygon fill.
+        Shapes with the same label and non-null ``group_id`` are combined into
+        one detection. Shapes without a group ID remain independent.
 
         Args:
             images_directory_path: The path to the
@@ -743,14 +745,14 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str | None = None,
         annotations_directory_path: str | None = None,
     ) -> None:
-        """
-        Exports the dataset to LabelMe format. This method saves the images and
-        their corresponding annotations as per-image LabelMe ``.json`` files.
-        Masked detections are written as ``polygon`` shapes whose vertices
-        approximate the mask contour, so masks are not bit-exact on round-trip.
-        Because the bounding box is recomputed from the quantized polygon contour
-        on re-import, bounding boxes for masked detections may also shift by
-        approximately one pixel after a save-load cycle.
+        """Exports the dataset to LabelMe format. This method saves the images and their
+        corresponding annotations as per-image LabelMe ``.json`` files. Masked
+        detections are written as ``polygon`` shapes whose vertices approximate the mask
+        contour, so masks are not bit-exact on round-trip. Because the bounding box is
+        recomputed from the quantized polygon contour on re-import, bounding boxes for
+        masked detections may also shift by approximately one pixel after a save-load
+        cycle. Disconnected components of a mask share a ``group_id`` so they load back
+        as one instance.
 
         Args:
             images_directory_path: The path to the directory
