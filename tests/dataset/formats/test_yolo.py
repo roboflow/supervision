@@ -270,7 +270,7 @@ class TestYoloAnnotationsToDetectionsClassId:
 
 
 class TestYoloAnnotationsToDetectionsTrailingToken:
-    """Tests for YOLO box lines that carry a sixth confidence or tracker-id token."""
+    """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
 
     @pytest.mark.parametrize(
         "extra_token",
@@ -315,8 +315,6 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
         assert result.mask.shape == (1, 10, 10)
         assert bool(result.mask[0, 5, 5])
 
-
-class TestYoloSegmentationTrailingToken:
     @pytest.mark.parametrize(
         "extra_token",
         [
@@ -324,12 +322,12 @@ class TestYoloSegmentationTrailingToken:
             pytest.param("3", id="tracker-id"),
         ],
     )
-    def test_loads_polygon_with_trailing_token(self, extra_token: str) -> None:
+    def test_loads_a_polygon_that_has_a_trailing_token(self, extra_token: str) -> None:
         """A saved confidence or track id does not change polygon geometry."""
-        line = f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"
+        lines = [f"1 0.1 0.1 0.9 0.1 0.5 0.9 {extra_token}"]
 
         result = yolo_annotations_to_detections(
-            lines=[line], resolution_wh=(10, 10), with_masks=True
+            lines=lines, resolution_wh=(10, 10), with_masks=True
         )
 
         np.testing.assert_array_equal(result.class_id, np.array([1]))
@@ -337,13 +335,13 @@ class TestYoloSegmentationTrailingToken:
         assert result.mask is not None
         assert bool(result.mask[0, 5, 5])
 
-    def test_rejects_nonnumeric_trailing_token(self) -> None:
-        """A malformed extra field is rejected instead of silently discarded."""
-        line = "1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"
+    def test_rejects_a_nonnumeric_trailing_token_after_a_polygon(self) -> None:
+        """Guard that the token dropped from a polygon line is parsed, not discarded."""
+        lines = ["1 0.1 0.1 0.9 0.1 0.5 0.9 garbage"]
 
         with pytest.raises(ValueError, match="garbage"):
             yolo_annotations_to_detections(
-                lines=[line], resolution_wh=(10, 10), with_masks=True
+                lines=lines, resolution_wh=(10, 10), with_masks=True
             )
 
 
@@ -1092,3 +1090,86 @@ class TestDetectionsToYoloAnnotationsEmptyMask:
         )
 
         assert lines == []
+
+
+class TestDetectionDatasetYoloImageShapes:
+    """YOLO exports normalize coordinates for grayscale and color images."""
+
+    @pytest.mark.parametrize(
+        "image_shape",
+        [
+            pytest.param((16, 24), id="grayscale"),
+            pytest.param((16, 24, 3), id="color"),
+        ],
+    )
+    @pytest.mark.parametrize("with_mask", [False, True])
+    def test_preserves_normalized_geometry_and_source_image(
+        self, tmp_path: Path, image_shape: tuple[int, ...], with_mask: bool
+    ) -> None:
+        """Grayscale and color boxes and masks use the same width and height."""
+        image = np.arange(np.prod(image_shape), dtype=np.uint8).reshape(image_shape)
+        original_image = image.copy()
+        mask = np.zeros((1, 16, 24), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask if with_mask else None,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path))
+
+        lines = (tmp_path / "image.txt").read_text().splitlines()
+        assert len(lines) == 1
+        if with_mask:
+            tokens = lines[0].split()
+            assert tokens[0] == "0"
+            points = np.array(tokens[1:], dtype=float).reshape(-1, 2)
+            assert sorted(points.tolist()) == [
+                [0.125, 0.125],
+                [0.125, 0.625],
+                [0.625, 0.125],
+                [0.625, 0.625],
+            ]
+        else:
+            assert lines == ["0 0.37500 0.37500 0.50000 0.50000"]
+        np.testing.assert_array_equal(image, original_image)
+
+    def test_writes_nine_normalized_obb_tokens_for_grayscale_image(
+        self, tmp_path: Path
+    ) -> None:
+        """A grayscale OBB export preserves class and normalized corners."""
+        image = np.zeros((16, 24), dtype=np.uint8)
+        corners = np.array(
+            [[[3.0, 2.0], [15.0, 2.0], [15.0, 10.0], [3.0, 10.0]]],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[3.0, 2.0, 15.0, 10.0]], dtype=np.float32),
+            class_id=np.array([1]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        dataset = DetectionDataset(
+            classes=["background", "object"],
+            images={"image.png": image},
+            annotations={"image.png": detections},
+        )
+
+        dataset.as_yolo(annotations_directory_path=str(tmp_path), is_obb=True)
+
+        tokens = (tmp_path / "image.txt").read_text().split()
+        assert len(tokens) == 9
+        assert tokens[0] == "1"
+        np.testing.assert_allclose(
+            np.array(tokens[1:], dtype=np.float32),
+            np.array(
+                [0.125, 0.125, 0.625, 0.125, 0.625, 0.625, 0.125, 0.625],
+                dtype=np.float32,
+            ),
+            atol=1e-5,
+        )

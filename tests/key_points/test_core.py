@@ -1438,6 +1438,71 @@ class TestFromInferenceOmittedKeypoints:
             np.array([[40, 41, 60, 61], [10, 11, 30, 31]], dtype=np.float32),
         )
 
+    def test_prediction_confidence_becomes_detection_confidence(self) -> None:
+        """Each prediction's score is kept as its `detection_confidence`."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (10, 11), 0.6),
+                    _inference_keypoint(2, (30, 31), 0.4),
+                ],
+            ]
+        )
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.detection_confidence is not None
+        np.testing.assert_allclose(key_points.detection_confidence, [0.9])
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.9], rtol=1e-6
+        )
+
+    def test_mixed_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
+        """One missing object score makes the batch use keypoint means throughout."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (10, 11), 0.6),
+                    _inference_keypoint(1, (20, 21), 0.4),
+                ],
+                [
+                    _inference_keypoint(0, (30, 31), 0.8),
+                    _inference_keypoint(1, (40, 41), 0.6),
+                ],
+            ]
+        )
+        result["predictions"][1].pop("confidence")
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.detection_confidence is None
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
+        )
+
+    def test_null_prediction_confidence_uses_keypoint_mean_for_all(self) -> None:
+        """A null object score is treated as missing across the prediction batch."""
+        result = _inference_pose_result(
+            [
+                [
+                    _inference_keypoint(0, (10, 11), 0.6),
+                    _inference_keypoint(1, (20, 21), 0.4),
+                ],
+                [
+                    _inference_keypoint(0, (30, 31), 0.8),
+                    _inference_keypoint(1, (40, 41), 0.6),
+                ],
+            ]
+        )
+        result["predictions"][1]["confidence"] = None
+
+        key_points = KeyPoints.from_inference(result)
+
+        assert key_points.detection_confidence is None
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.5, 0.7], rtol=1e-6
+        )
+
     def test_objects_without_keypoints_keep_their_class(self) -> None:
         """Objects whose key points were all omitted still load, with no key points."""
         result = _inference_pose_result([[], []])
@@ -1479,13 +1544,19 @@ class _FakeUltralyticsKeypoints:
 class _FakeUltralyticsPoseResults:
     """Ultralytics-like pose `Results` holding boxes, names and key points."""
 
-    def __init__(self, keypoints: np.ndarray, class_id: list[int]) -> None:
-        """Wrap key point data with one box and class id per skeleton."""
+    def __init__(
+        self,
+        keypoints: np.ndarray,
+        class_id: list[int],
+        box_confidence: list[float] | None = None,
+    ) -> None:
+        """Wrap key point data with one box, score and class id per skeleton."""
         count = len(class_id)
+        conf = np.ones(count) if box_confidence is None else np.array(box_confidence)
         self.keypoints = _FakeUltralyticsKeypoints(keypoints)
         self.boxes = _FakeUltralyticsBoxes(
             xyxy=np.zeros((count, 4)),
-            conf=np.ones(count),
+            conf=conf,
             cls=np.array(class_id, dtype=float),
         )
         self.names = {0: "person"}
@@ -1533,6 +1604,28 @@ class TestFromUltralytics:
             key_points.data["class_name"], ["person", "person"]
         )
 
+    def test_box_scores_become_detection_confidence(self) -> None:
+        """Each pose's box score is kept as its `detection_confidence`."""
+        results = _FakeUltralyticsPoseResults(
+            keypoints=np.array(
+                [
+                    [[10.0, 20.0, 0.9], [30.0, 40.0, 0.2]],
+                    [[50.0, 60.0, 0.3], [70.0, 80.0, 0.4]],
+                ],
+                dtype=np.float32,
+            ),
+            class_id=[0, 0],
+            box_confidence=[0.95, 0.6],
+        )
+
+        key_points = KeyPoints.from_ultralytics(results)
+
+        assert key_points.detection_confidence is not None
+        np.testing.assert_allclose(key_points.detection_confidence, [0.95, 0.6])
+        np.testing.assert_allclose(
+            key_points.as_detections().confidence, [0.95, 0.6], rtol=1e-6
+        )
+
     @pytest.mark.parametrize("depth", [2, 3])
     def test_result_without_keypoints_is_empty(self, depth: int) -> None:
         """A result with no skeletons returns `KeyPoints.empty()`."""
@@ -1543,6 +1636,47 @@ class TestFromUltralytics:
         key_points = KeyPoints.from_ultralytics(results)
 
         assert key_points == KeyPoints.empty()
+
+
+class _FakeDetectron2Instances:
+    """Detectron2-like `Instances` holding key points, scores and classes."""
+
+    def __init__(
+        self, keypoints: np.ndarray, scores: list[float], class_id: list[int]
+    ) -> None:
+        """Wrap `(N, K, 3)` key points with one score and class id per object."""
+        self.pred_keypoints = _FakeTensor(keypoints)
+        self.scores = _FakeTensor(np.array(scores, dtype=np.float32))
+        self.pred_classes = _FakeTensor(np.array(class_id))
+
+
+class TestFromDetectron2:
+    """KeyPoints.from_detectron2 for keypoint R-CNN results."""
+
+    def test_instance_scores_become_detection_confidence(self) -> None:
+        """Each instance's score is kept as its `detection_confidence`."""
+        instances = _FakeDetectron2Instances(
+            keypoints=np.array(
+                [
+                    [[10.0, 20.0, 0.9], [30.0, 40.0, 0.2]],
+                    [[50.0, 60.0, 0.3], [70.0, 80.0, 0.4]],
+                ],
+                dtype=np.float32,
+            ),
+            scores=[0.95, 0.6],
+            class_id=[0, 0],
+        )
+
+        key_points = KeyPoints.from_detectron2({"instances": instances})
+
+        np.testing.assert_array_equal(
+            key_points.xy, [[[10.0, 20.0], [30.0, 40.0]], [[50.0, 60.0], [70.0, 80.0]]]
+        )
+        np.testing.assert_allclose(
+            key_points.keypoint_confidence, [[0.9, 0.2], [0.3, 0.4]]
+        )
+        assert key_points.detection_confidence is not None
+        np.testing.assert_allclose(key_points.detection_confidence, [0.95, 0.6])
 
 
 @pytest.mark.parametrize(
@@ -2131,6 +2265,86 @@ def test_with_nms_keeps_skeleton_without_any_finite_keypoint():
     result = key_points.with_nms(threshold=0.3)
 
     assert np.allclose(result.detection_confidence, [0.9, 0.7])
+
+
+class TestKeyPointsWithNmsEmptyJoints:
+    """NMS preserves skeletons with an empty keypoint axis."""
+
+    @pytest.mark.parametrize("skeleton_count", [1, 3])
+    @pytest.mark.parametrize("class_agnostic", [False, True])
+    def test_keeps_skeletons_and_aligned_fields(
+        self, skeleton_count: int, class_agnostic: bool
+    ) -> None:
+        """Filtering out every joint preserves each skeleton and its aligned fields."""
+        key_points = KeyPoints(
+            xy=np.tile(
+                np.array([[[10, 10], [20, 20]]], dtype=np.float32),
+                (skeleton_count, 1, 1),
+            ),
+            keypoint_confidence=np.full((skeleton_count, 2), 0.8, dtype=np.float32),
+            detection_confidence=np.array([0.3, 0.9, 0.7], dtype=np.float32)[
+                :skeleton_count
+            ],
+            visible=np.ones((skeleton_count, 2), dtype=bool),
+            class_id=np.arange(skeleton_count) % 2,
+            data={"custom_data": np.arange(skeleton_count)},
+        )
+        filtered = key_points[np.zeros((skeleton_count, 2), dtype=bool)]
+
+        result = filtered.with_nms(threshold=0.0, class_agnostic=class_agnostic)
+
+        assert result.xy.shape == (skeleton_count, 0, 2)
+        assert result.xy.dtype == key_points.xy.dtype
+        assert result == filtered
+        assert result is not filtered
+
+    @pytest.mark.parametrize("skeleton_count", [1, 3])
+    def test_keeps_skeletons_without_optional_fields(self, skeleton_count: int) -> None:
+        """Class-agnostic NMS needs only detection confidence when joints are absent."""
+        key_points = KeyPoints(
+            xy=np.empty((skeleton_count, 0, 2), dtype=np.float32),
+            detection_confidence=np.full(skeleton_count, 0.9, dtype=np.float32),
+        )
+
+        result = key_points.with_nms(class_agnostic=True)
+
+        assert result == key_points
+
+    @pytest.mark.parametrize(
+        ("missing_field", "class_agnostic"),
+        [
+            pytest.param("detection_confidence", False, id="class-aware-no-confidence"),
+            pytest.param(
+                "detection_confidence", True, id="class-agnostic-no-confidence"
+            ),
+            pytest.param("class_id", False, id="class-aware-no-class-id"),
+        ],
+    )
+    def test_requires_nms_fields(
+        self, missing_field: str, class_agnostic: bool
+    ) -> None:
+        """An empty joint axis does not bypass required NMS fields."""
+        key_points = KeyPoints(
+            xy=np.empty((1, 0, 2), dtype=np.float32),
+            detection_confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+        setattr(key_points, missing_field, None)
+
+        with pytest.raises(ValueError, match=missing_field):
+            key_points.with_nms(class_agnostic=class_agnostic)
+
+    @pytest.mark.parametrize("threshold", [-0.1, 1.1])
+    def test_rejects_invalid_threshold(self, threshold: float) -> None:
+        """Empty joints still require an NMS threshold between zero and one."""
+        key_points = KeyPoints(
+            xy=np.empty((1, 0, 2), dtype=np.float32),
+            detection_confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+
+        with pytest.raises(ValueError, match="iou_threshold"):
+            key_points.with_nms(threshold=threshold)
 
 
 @pytest.mark.parametrize(
