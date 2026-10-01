@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import numbers
 from fractions import Fraction
 from pathlib import Path
 from types import TracebackType
@@ -39,8 +40,8 @@ _AVCOL_BT709 = 1
 
 
 def _is_int(value: Any) -> bool:
-    """Report a Python `int` that is not a `bool`."""
-    return isinstance(value, int) and not isinstance(value, bool)
+    """Report an integer, Python or NumPy, that is not a `bool`."""
+    return isinstance(value, numbers.Integral) and not isinstance(value, bool)
 
 
 def _frame_rate(fps: float) -> Fraction:
@@ -159,8 +160,9 @@ class DepthSink:
         self.video_info = video_info
         self.clip_range = clip_range
         self.preview = preview
-        self.crf = crf
-        self.reserved_max = reserved_max
+        # NumPy integers would make the depth.json preview block unwritable.
+        self.crf = int(crf)
+        self.reserved_max = int(reserved_max)
         self._rate = _frame_rate(video_info.fps)
         self._scale = power_of_two_scale(clip_range.max_value)
         self._first: DepthMap | None = None

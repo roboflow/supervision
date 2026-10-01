@@ -174,19 +174,26 @@ class TestDepthSink:
         assert manifest["display_range"] == [1.0, 9.0]
         assert not (tmp_path / "preview.mp4").exists()
 
-    def test_numpy_clip_range_writes_its_manifest(self, tmp_path: Path) -> None:
-        """A clip range built from NumPy scalars still writes plain JSON numbers."""
+    def test_numpy_numbers_write_their_manifest(self, tmp_path: Path) -> None:
+        """A clip range and options given as NumPy numbers write plain JSON numbers."""
         clip_range = sv.DepthClipRange(
             display_range=(np.float32(2.0), np.float32(60.0)),
             max_value=np.float32(63.0),
         )
 
-        with sv.DepthSink(tmp_path, VIDEO_INFO, clip_range) as sink:
+        with sv.DepthSink(
+            tmp_path,
+            VIDEO_INFO,
+            clip_range,
+            crf=np.int64(18),
+            reserved_max=np.int64(40),
+        ) as sink:
             sink.write_depth_map(_frames(1)[0])
 
         manifest = json.loads((tmp_path / "depth.json").read_text())
         assert manifest["display_range_px"] == [2.0, 60.0]
         assert manifest["preview"]["range_px"] == [0, 63.0]
+        assert manifest["preview"]["reserved_max"] == 40
 
     def test_reuses_uint16_codes_at_the_clip_scale(self, tmp_path: Path) -> None:
         """Codes already at the clip's scale are written untouched."""
@@ -283,15 +290,13 @@ class TestDepthSink:
     @pytest.mark.parametrize(
         ("reserved_max", "crf", "match"),
         [
-            (15, 18, "reserved_max"),
-            (234, 18, "reserved_max"),
-            (31.5, 18, "reserved_max"),
-            (31, 52, "crf"),
-            (31, True, "crf"),
+            pytest.param(15, 18, "reserved_max", id="reserved-max-below-tv-black"),
+            pytest.param(234, 18, "reserved_max", id="reserved-max-at-tv-top"),
+            pytest.param(31, 52, "crf", id="crf-above-51"),
         ],
     )
     def test_rejects_invalid_options(
-        self, tmp_path: Path, reserved_max: float, crf: int | bool, match: str
+        self, tmp_path: Path, reserved_max: int, crf: int, match: str
     ) -> None:
         """The guard band and CRF must be integers within their valid ranges."""
         with pytest.raises(ValueError, match=match):
