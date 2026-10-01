@@ -199,6 +199,17 @@ class TestDepthSink:
 
         assert not (tmp_path / "depth.json").exists()
 
+    def test_failed_rerun_removes_the_earlier_manifest(self, tmp_path: Path) -> None:
+        """A new clip that fails does not leave the previous clip's depth.json."""
+        with sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE, preview=False) as sink:
+            sink.write_depth_map(_frames(1)[0])
+
+        with pytest.raises(RuntimeError, match="model failed"):
+            with sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE, preview=False):
+                raise RuntimeError("model failed")
+
+        assert not (tmp_path / "depth.json").exists()
+
     def test_empty_clip_writes_no_manifest(self, tmp_path: Path) -> None:
         """A sink that received no frames has nothing to describe."""
         with sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE):

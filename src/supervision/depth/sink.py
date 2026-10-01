@@ -165,8 +165,10 @@ class DepthSink:
         self._is_open = False
 
     def __enter__(self) -> DepthSink:
-        """Create the target folders for a new clip."""
+        """Create the target folders for a new clip and drop an earlier manifest."""
         (self.target_dir / "exact").mkdir(parents=True, exist_ok=True)
+        # A manifest left by an earlier clip would describe frames this one overwrites.
+        (self.target_dir / "depth.json").unlink(missing_ok=True)
         self._first = None
         self._count = 0
         self._is_open = True
