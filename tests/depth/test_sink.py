@@ -268,12 +268,18 @@ class TestDepthSink:
 
     @pytest.mark.parametrize(
         ("reserved_max", "crf", "match"),
-        [(15, 18, "reserved_max"), (234, 18, "reserved_max"), (31, 52, "crf")],
+        [
+            (15, 18, "reserved_max"),
+            (234, 18, "reserved_max"),
+            (31.5, 18, "reserved_max"),
+            (31, 52, "crf"),
+            (31, True, "crf"),
+        ],
     )
     def test_rejects_invalid_options(
-        self, tmp_path: Path, reserved_max: int, crf: int, match: str
+        self, tmp_path: Path, reserved_max: float, crf: int | bool, match: str
     ) -> None:
-        """The guard band must fit TV range and CRF must be valid for x264."""
+        """The guard band and CRF must be integers within their valid ranges."""
         with pytest.raises(ValueError, match=match):
             sv.DepthSink(
                 tmp_path, VIDEO_INFO, CLIP_RANGE, crf=crf, reserved_max=reserved_max

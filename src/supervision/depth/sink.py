@@ -38,6 +38,11 @@ _AVCOL_RANGE_MPEG = 1
 _AVCOL_BT709 = 1
 
 
+def _is_int(value: Any) -> bool:
+    """Report a Python `int` that is not a `bool`."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _frame_rate(fps: float) -> Fraction:
     """Return the frame rate as an exact fraction, snapping NTSC rates to x/1001.
 
@@ -141,15 +146,15 @@ class DepthSink:
                 code of guard band costs one step of preview precision.
 
         Raises:
-            ValueError: If `reserved_max` or `crf` is out of range.
+            ValueError: If `reserved_max` or `crf` is not an integer in its range.
         """
-        if not 16 <= reserved_max <= _TV_TOP - 2:
+        if not _is_int(reserved_max) or not 16 <= reserved_max <= _TV_TOP - 2:
             raise ValueError(
                 f"reserved_max must be an integer from 16 to {_TV_TOP - 2}, got "
-                f"{reserved_max}."
+                f"{reserved_max!r}."
             )
-        if not 0 <= crf <= 51:
-            raise ValueError(f"crf must be from 0 to 51, got {crf}.")
+        if not _is_int(crf) or not 0 <= crf <= 51:
+            raise ValueError(f"crf must be an integer from 0 to 51, got {crf!r}.")
         self.target_dir = Path(target_dir)
         self.video_info = video_info
         self.clip_range = clip_range
