@@ -968,6 +968,84 @@ def test_florence_2_invalid_payloads_raise_value_error(
         from_florence_2(florence_result, (10, 10))
 
 
+class TestFromFlorence2Segmentation:
+    """`from_florence_2` over segmentation tasks whose instances hold polygon lists."""
+
+    @pytest.mark.parametrize(
+        "task", ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]
+    )
+    def test_merges_polygons_of_one_instance(self, task: str) -> None:
+        """An instance split into two polygons yields one detection with both parts."""
+        florence_result = {
+            task: {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3], [6, 6, 8, 6, 8, 8, 6, 8]]],
+                "labels": [""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+        expected_mask[0, 6:9, 6:9] = True
+
+        xyxy, labels, masks, obb = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 8, 8]], dtype=np.float32))
+        assert labels is None
+        np.testing.assert_array_equal(masks, expected_mask)
+        assert obb is None
+
+    def test_keeps_separate_instances_apart(self) -> None:
+        """Polygons of different instances stay separate detections."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3]], [[6, 6, 8, 6, 8, 8, 6, 8]]],
+                "labels": ["", ""],
+            }
+        }
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(
+            xyxy, np.array([[1, 1, 3, 3], [6, 6, 8, 8]], dtype=np.float32)
+        )
+        assert masks is not None
+        assert masks.shape == (2, 10, 10)
+        assert masks[0, 1:4, 1:4].all()
+        assert masks[1, 6:9, 6:9].all()
+        assert masks.sum() == 18
+
+    def test_skips_instance_without_polygons(self) -> None:
+        """An instance without polygons is skipped and the valid one is kept."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[], [[1, 1, 3, 1, 3, 3, 1, 3]]],
+                "labels": ["", ""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 3, 3]], dtype=np.float32))
+        np.testing.assert_array_equal(masks, expected_mask)
+
+    def test_all_empty_instances_yield_empty_detections(self) -> None:
+        """A result whose instances all lack polygons yields empty detections."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[], []],
+                "labels": ["", ""],
+            }
+        }
+
+        detections = Detections.from_vlm(
+            vlm=VLM.FLORENCE_2, result=florence_result, resolution_wh=(10, 10)
+        )
+
+        assert len(detections) == 0
+        assert detections.xyxy.shape == (0, 4)
+
+
 @pytest.mark.parametrize(
     ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [

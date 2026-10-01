@@ -544,14 +544,22 @@ def from_florence_2(
     if task in ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]:
         xyxy_list: list[npt.NDArray[Any]] = []
         masks_list: list[npt.NDArray[Any]] = []
-        for polygons_of_same_class in result["polygons"]:
-            for polygon in polygons_of_same_class:
-                polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
-                mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
-                masks_list.append(mask)
-                xyxy_box = polygon_to_xyxy(polygon)
-                xyxy_list.append(xyxy_box)
-            # per-class labels also provided, but they are ["", "", "", ...]
+        # Each entry of `result["polygons"]` is one instance, split into several
+        # polygons when the object is not a single connected region. The parts are
+        # merged so that every instance becomes exactly one detection.
+        for polygons_of_instance in result["polygons"]:
+            polygons = [
+                np.reshape(polygon, (-1, 2)).astype(np.int32)
+                for polygon in polygons_of_instance
+            ]
+            if not polygons:
+                continue
+            mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=bool)
+            for polygon in polygons:
+                mask |= polygon_to_mask(polygon, resolution_wh).astype(bool)
+            masks_list.append(mask)
+            xyxy_list.append(polygon_to_xyxy(np.concatenate(polygons)))
+            # per-instance labels also provided, but they are ["", "", "", ...]
             # when we figure out how to set class names, we can do
             # zip(result["labels"], result["polygons"])
         xyxy = np.array(xyxy_list, dtype=np.float32)
