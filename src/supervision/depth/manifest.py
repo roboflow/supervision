@@ -14,7 +14,6 @@ import re
 import struct
 import zlib
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -29,28 +28,12 @@ _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_FILTER_UP = 2
 _PNG_COMPRESSION_LEVEL = 6
 _UINT16_MAX = 65535
-
-#: The preview code standing for the top of the range, per luma level.
-PREVIEW_TOP_CODES = {"full": 255, "tv": 235}
-#: The lowest reserved preview code per luma level: TV black (16) is no depth.
-_PREVIEW_MIN_RESERVED_CODES = {"full": 0, "tv": 16}
 _FRAME_INDEX_TOKEN = re.compile(r"\{index(?::0(\d{1,2}))?\}")
 
 
 @dataclass(frozen=True)
-class _DepthPreview:
-    """The parsed `preview` block of a clip manifest."""
-
-    file: str
-    levels: str
-    reserved_max: int
-    range_px: tuple[float, float]
-    codec: str | None = None
-
-
-@dataclass(frozen=True)
 class _DepthManifest:
-    """A `depth.json` checked against every rule supervision-js enforces."""
+    """The depth.json fields DepthMap.load reads, checked as supervision-js does."""
 
     kind: str
     width: int
@@ -62,7 +45,6 @@ class _DepthManifest:
     image_file: str | None = None
     frame_count: int | None = None
     frame_pattern: str | None = None
-    preview: _DepthPreview | None = None
 
 
 def _fail(message: str) -> NoReturn:
@@ -184,47 +166,13 @@ def _read_display_range(root: dict[str, Any], kind: str) -> tuple[float, float] 
     return in_kind_unit if in_kind_unit is not None else in_pixels
 
 
-def _read_preview(value: Any) -> _DepthPreview:
-    """Return the preview block; a preview without `levels` is full range."""
-    preview = _read_object(value, "preview")
-    file = _read_file_name(preview.get("file"), "preview.file")
-    codec = _read_optional_string(preview.get("codec"), "preview.codec")
-    levels = preview.get("levels")
-    levels = "full" if levels is None else levels
-    if not isinstance(levels, str) or levels not in PREVIEW_TOP_CODES:
-        _fail(f"preview.levels must be one of {', '.join(PREVIEW_TOP_CODES)}")
-    reserved_max = preview.get("reserved_max")
-    lowest = _PREVIEW_MIN_RESERVED_CODES[levels]
-    highest = PREVIEW_TOP_CODES[levels] - 2
-    if (
-        isinstance(reserved_max, bool)
-        or not isinstance(reserved_max, (int, float))
-        or not math.isfinite(reserved_max)
-        or reserved_max != int(reserved_max)
-        or not lowest <= reserved_max <= highest
-    ):
-        _fail(
-            f"preview.reserved_max must be an integer from {lowest} to {highest} "
-            f"at {levels} levels"
-        )
-    range_px = _read_optional_range(preview.get("range_px"), "preview.range_px")
-    if range_px is None:
-        _fail("preview.range_px is required")
-    return _DepthPreview(
-        file=file,
-        levels=levels,
-        reserved_max=int(reserved_max),
-        range_px=range_px,
-        codec=codec,
-    )
-
-
 def parse_manifest(data: Any) -> _DepthManifest:
-    """Check a decoded `depth.json` with supervision-js's rules and return its fields.
+    """Check the `depth.json` fields DepthMap.load reads and return them.
 
-    Unknown fields are ignored so newer producers stay readable. Errors are
-    `ValueError` with the message format `depth.json: storage.scale must be a positive
-    number`, naming the offending wire field.
+    Each field is checked as supervision-js checks it. Other fields, such as a clip's
+    `preview`, are ignored, and so are unknown fields, so newer producers stay
+    readable. Errors are `ValueError` with the message format `depth.json:
+    storage.scale must be a positive number`, naming the offending wire field.
     """
     root = _read_object(data, "the manifest")
     if root.get("schema") != DEPTH_MANIFEST_SCHEMA:
@@ -265,15 +213,6 @@ def parse_manifest(data: Any) -> _DepthManifest:
         frames = _read_object(root["frames"], "frames")
         frame_count = _read_positive_integer(frames.get("count"), "frames.count")
         frame_pattern = _read_frame_pattern(frames.get("exact"), "frames.exact")
-        _check_frame_times(frames.get("times_s"), frame_count)
-
-    preview = None
-    if root.get("preview") is not None:
-        if not has_frames:
-            _fail("preview is only valid next to frames")
-        if kind != "disparity_px":
-            _fail("preview is only supported for kind disparity_px")
-        preview = _read_preview(root["preview"])
 
     return _DepthManifest(
         kind=kind,
@@ -286,23 +225,7 @@ def parse_manifest(data: Any) -> _DepthManifest:
         image_file=image_file,
         frame_count=frame_count,
         frame_pattern=frame_pattern,
-        preview=preview,
     )
-
-
-def _check_frame_times(value: Any, count: int) -> None:
-    """Check optional `frames.times_s`: `count` finite seconds, strictly increasing."""
-    if value is None:
-        return
-    if not isinstance(value, list) or len(value) != count:
-        _fail(f"frames.times_s must be an array of frames.count ({count}) times")
-    previous = None
-    for index, time in enumerate(value):
-        if not (_is_number(time) and math.isfinite(time) and time >= 0):
-            _fail(f"frames.times_s[{index}] must be a finite number of seconds >= 0")
-        if previous is not None and time <= previous:
-            _fail(f"frames.times_s must strictly increase at index {index}")
-        previous = time
 
 
 def resolve_frame_file(pattern: str, index: int) -> str:
@@ -316,10 +239,6 @@ def resolve_frame_file(pattern: str, index: int) -> str:
 
         ```
     """
-    if index < 0:
-        raise ValueError(
-            f"Depth frame index must be a non-negative integer, got {index}."
-        )
 
     def expand(match: re.Match[str]) -> str:
         """Pad the index to the token's width, or write it plainly."""
@@ -393,7 +312,7 @@ def encode_png16(codes: npt.NDArray[np.uint16]) -> bytes:
     )
 
 
-def read_png16(source: str | Path | bytes) -> npt.NDArray[np.uint16]:
+def read_png16(path: str | Path) -> npt.NDArray[np.uint16]:
     """Read a 16-bit grayscale PNG, written with any row filter, as `uint16`.
 
     Raises:
@@ -401,8 +320,7 @@ def read_png16(source: str | Path | bytes) -> npt.NDArray[np.uint16]:
     """
     from PIL import Image
 
-    opened = BytesIO(source) if isinstance(source, bytes) else source
-    with Image.open(opened) as image:
+    with Image.open(path) as image:
         if image.format != "PNG" or image.mode not in {"I", "I;16", "I;16B", "I;16L"}:
             raise ValueError(
                 "Depth PNG must be a single-channel 16-bit grayscale PNG, got "
@@ -512,13 +430,3 @@ def encode_codes(
 def json_number(value: float) -> int | float:
     """Write whole numbers as JSON integers (scale 1024, not 1024.0)."""
     return int(value) if float(value).is_integer() else float(value)
-
-
-def avc_codec_string(path: str | Path) -> str | None:
-    """Read the RFC 6381 codec string `avc1.PPCCLL` from an MP4's `avcC` box."""
-    data = Path(path).read_bytes()
-    at = data.find(b"avcC")
-    if at < 0:
-        return None
-    start = at + 5
-    return "avc1." + data[start : start + 3].hex()

@@ -412,7 +412,7 @@ class TestDepthMapPercentileRange:
         """The estimator matches supervision-js: stride 2, nearest rank."""
         ramp = np.tile(np.arange(1, 101, dtype=np.float32), (2, 1))
 
-        value_range = sv.DepthMap(ramp, kind="disparity_px").percentile_range()
+        value_range = sv.DepthMap(ramp, kind="disparity_px")._percentile_range()
 
         assert value_range == (3.0, 97.0)
 
@@ -421,7 +421,7 @@ class TestDepthMapPercentileRange:
         disparity = np.tile(np.arange(10, 110, 10, dtype=np.float32), (1, 1))
         depth_map = sv.DepthMap(disparity, kind="disparity_px", camera=CAMERA)
 
-        value_range = depth_map.percentile_range(0, 100, quantity="depth")
+        value_range = depth_map._percentile_range(0, 100, quantity="depth")
 
         assert value_range == pytest.approx((100 / 90, 10.0))
 
@@ -431,7 +431,7 @@ class TestDepthMapPercentileRange:
 
         value_range = sv.DepthMap(
             codes, kind="disparity_px", scale=256
-        ).percentile_range()
+        )._percentile_range()
 
         assert value_range == (2.0, 513 / 256)
 
@@ -440,7 +440,7 @@ class TestDepthMapPercentileRange:
         values = np.zeros((40, 40), dtype=np.float32)
         values[0, 0] = 5.0
 
-        value_range = sv.DepthMap(values, kind="depth_m").percentile_range()
+        value_range = sv.DepthMap(values, kind="depth_m")._percentile_range()
 
         assert value_range is None
 
@@ -450,7 +450,7 @@ class TestDepthMapPercentileRange:
         depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m")
 
         with pytest.raises(ValueError, match="percentiles"):
-            depth_map.percentile_range(low, high)
+            depth_map._percentile_range(low, high)
 
 
 class TestDepthMapMeasureDetections:
@@ -509,21 +509,23 @@ class TestDepthMapMeasureDetections:
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 10.0]
 
     @pytest.mark.parametrize(
-        ("kind", "field", "expected"),
+        ("camera", "field", "expected"),
         [
-            pytest.param(None, DEPTH_M_DATA_FIELD, 2.0, id="metres-by-default"),
-            pytest.param("disparity_px", DISPARITY_PX_DATA_FIELD, 50.0, id="disparity"),
+            pytest.param(CAMERA, DEPTH_M_DATA_FIELD, 2.0, id="metres-with-camera"),
+            pytest.param(
+                None, DISPARITY_PX_DATA_FIELD, 50.0, id="disparity-without-camera"
+            ),
         ],
     )
-    def test_measures_requested_kind_from_disparity(
-        self, kind: str | None, field: str, expected: float
+    def test_measures_disparity_maps_in_metres_when_it_can(
+        self, camera: sv.DepthCamera | None, field: str, expected: float
     ) -> None:
-        """A disparity map with a camera measures metres by default."""
+        """A disparity map measures metres with a camera and pixels without one."""
         disparity = np.full((10, 10), 50.0, dtype=np.float32)
-        depth_map = sv.DepthMap(disparity, kind="disparity_px", camera=CAMERA)
+        depth_map = sv.DepthMap(disparity, kind="disparity_px", camera=camera)
         detections = sv.Detections(xyxy=np.array([[0, 0, 5, 5]], float))
 
-        measured = depth_map.measure_detections(detections, kind=kind)
+        measured = depth_map.measure_detections(detections)
 
         assert measured.data[field].tolist() == [expected]
 
@@ -567,10 +569,6 @@ class _FakeLMMInferenceResponse:
     def __init__(self, normalized_depth: np.ndarray) -> None:
         """Hold the depth under `response`, as Inference's depth models return it."""
         self.response = {"normalized_depth": normalized_depth}
-
-    def model_dump(self) -> dict[str, Any]:
-        """Dump as pydantic does, with the depth nested under `response`."""
-        return {"response": dict(self.response)}
 
 
 class TestDepthMapFromInference:
@@ -718,21 +716,6 @@ class TestDepthMapFromFiles:
 
         with pytest.raises(ValueError, match="16-bit"):
             sv.DepthMap.from_png16(tmp_path / "gray.png", scale=256, kind="depth_m")
-
-    def test_from_npy_loads_float_array(self, tmp_path: Any) -> None:
-        """A float NPY loads with its values."""
-        np.save(tmp_path / "depth.npy", np.array([[1.5, np.nan]]))
-
-        depth_map = sv.DepthMap.from_npy(tmp_path / "depth.npy", kind="depth_m")
-
-        np.testing.assert_array_equal(depth_map.to_float(), [[1.5, np.nan]])
-
-    def test_from_npy_rejects_integer_array(self, tmp_path: Any) -> None:
-        """An integer NPY has no unit and is refused."""
-        np.save(tmp_path / "depth.npy", np.ones((2, 2), dtype=np.int64))
-
-        with pytest.raises(ValueError, match="2D float"):
-            sv.DepthMap.from_npy(tmp_path / "depth.npy", kind="depth_m")
 
 
 class TestDepthMapEquality:

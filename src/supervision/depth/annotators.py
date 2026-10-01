@@ -181,7 +181,7 @@ class DepthAnnotator:
             converted = conversion.apply_range(clip_range)
             if converted is not None:
                 return converted
-        percentile = depth_map.percentile_range(quantity=self.quantity)
+        percentile = depth_map._percentile_range(quantity=self.quantity)
         if percentile is not None:
             return percentile
         full = depth_map._full_range(conversion)

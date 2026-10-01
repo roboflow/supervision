@@ -17,8 +17,6 @@ from supervision.depth.core import (
     _manifest_header,
 )
 from supervision.depth.manifest import (
-    PREVIEW_TOP_CODES,
-    avc_codec_string,
     encode_codes,
     encode_png16,
     power_of_two_scale,
@@ -31,7 +29,9 @@ logger = _get_logger(__name__)
 _EXACT_PATTERN = "exact/{index:06}.png"
 _PREVIEW_FILE = "preview.mp4"
 _TV_BLACK = 16
-_TV_TOP = PREVIEW_TOP_CODES["tv"]
+_TV_TOP = 235
+# Guard band of 16 codes above TV black: codec error around holes reads as no depth.
+_RESERVED_MAX = 31
 _NEUTRAL_CHROMA = 128
 # libavutil enum values: AVCOL_RANGE_MPEG (TV range) and BT.709 for the primaries,
 # the transfer characteristic and the matrix.
@@ -61,23 +61,20 @@ def _frame_rate(fps: float) -> Fraction:
 
 
 def _preview_codes(
-    depth_map: DepthMap,
-    value_range: tuple[float, float],
-    reserved_max: int,
+    depth_map: DepthMap, value_range: tuple[float, float]
 ) -> npt.NDArray[np.uint8]:
     """Return a map's 8-bit TV-range preview codes, as supervision-js decodes them.
 
-    No depth is code 16 (TV black). Codes up to `reserved_max` are a guard band that
-    keeps the codec's error around holes reading as no depth, and depth `d` is
+    No depth is code 16 (TV black), and depth `d` is
     `clamp(T + 1 + rint((d - low) / (high - low) * (235 - T - 1)), T + 1, 235)` with
-    `T = reserved_max`.
+    `T = 31`, the top of the guard band.
     """
     low, high = value_range
-    span = _TV_TOP - reserved_max - 1
+    span = _TV_TOP - _RESERVED_MAX - 1
     values = depth_map.to_float(no_depth_value=low).astype(np.float64)
     codes: npt.NDArray[np.uint8] = np.clip(
-        reserved_max + 1 + np.rint((values - low) / (high - low) * span),
-        reserved_max + 1,
+        _RESERVED_MAX + 1 + np.rint((values - low) / (high - low) * span),
+        _RESERVED_MAX + 1,
         _TV_TOP,
     ).astype(np.uint8)
     codes[~depth_map.valid_mask] = _TV_BLACK
@@ -93,10 +90,8 @@ class DepthSink:
       exact values, quantised with the largest power-of-two scale that holds the
       clip range's `max_value`.
     - `preview.mp4`: an 8-bit H.264 video of the same frames, which supervision-js
-      draws while the clip plays. Codes sit in the luma of `yuv420p` with neutral
-      chroma, in TV range flagged with BT.709 colour, at CRF 18 with a keyframe every
-      second; frame `k` is at `k / fps`, the time of video frame `k`. The preview
-      spans `[0, max_value]` and is defined for `disparity_px` maps only.
+      draws while the clip plays. The preview spans `[0, max_value]` and is defined
+      for `disparity_px` maps only.
     - `depth.json`: the clip manifest, written when the `with` block exits without an
       error, with the clip range's `display_range`. Entering the sink removes a
       `depth.json` an earlier clip left in the folder.
@@ -133,7 +128,6 @@ class DepthSink:
         clip_range: DepthClipRange,
         preview: bool = True,
         crf: int = 18,
-        reserved_max: int = 31,
     ) -> None:
         """
         Args:
@@ -144,26 +138,17 @@ class DepthSink:
                 exact depth only while playback rests.
             crf: H.264 constant rate factor of the preview; lower is closer to the
                 exact codes, 0 is lossless.
-            reserved_max: Highest preview code meaning no depth, from 16 to 233. Each
-                code of guard band costs one step of preview precision.
 
         Raises:
-            ValueError: If `reserved_max` or `crf` is not an integer in its range.
+            ValueError: If `crf` is not an integer from 0 to 51.
         """
-        if not _is_int(reserved_max) or not 16 <= reserved_max <= _TV_TOP - 2:
-            raise ValueError(
-                f"reserved_max must be an integer from 16 to {_TV_TOP - 2}, got "
-                f"{reserved_max!r}."
-            )
         if not _is_int(crf) or not 0 <= crf <= 51:
             raise ValueError(f"crf must be an integer from 0 to 51, got {crf!r}.")
         self.target_dir = Path(target_dir)
         self.video_info = video_info
         self.clip_range = clip_range
         self.preview = preview
-        # NumPy integers would make the depth.json preview block unwritable.
         self.crf = int(crf)
-        self.reserved_max = int(reserved_max)
         self._rate = _frame_rate(video_info.fps)
         self._scale = power_of_two_scale(clip_range.max_value)
         self._first: DepthMap | None = None
@@ -277,9 +262,7 @@ class DepthSink:
         import av
 
         width, height = depth_map.resolution_wh
-        luma = _preview_codes(
-            depth_map, (0.0, self.clip_range.max_value), self.reserved_max
-        )
+        luma = _preview_codes(depth_map, (0.0, self.clip_range.max_value))
         chroma = np.full((height // 2, width), _NEUTRAL_CHROMA, dtype=np.uint8)
         frame = av.VideoFrame.from_ndarray(
             np.concatenate([luma, chroma]), format="yuv420p"
@@ -328,15 +311,12 @@ class DepthSink:
         )
         manifest["frames"] = {"count": self._count, "exact": _EXACT_PATTERN}
         if wrote_preview:
-            preview_path = self.target_dir / _PREVIEW_FILE
-            preview: dict[str, Any] = {"file": _PREVIEW_FILE}
-            codec = avc_codec_string(preview_path)
-            if codec is not None:
-                preview["codec"] = codec
-            preview["levels"] = "tv"
-            preview["reserved_max"] = self.reserved_max
-            preview["range_px"] = [0, self.clip_range.max_value]
-            manifest["preview"] = preview
+            manifest["preview"] = {
+                "file": _PREVIEW_FILE,
+                "levels": "tv",
+                "reserved_max": _RESERVED_MAX,
+                "range_px": [0, self.clip_range.max_value],
+            }
         manifest_path = self.target_dir / "depth.json"
         manifest_path.write_text(
             json.dumps(manifest, indent=2) + "\n", encoding="utf-8"

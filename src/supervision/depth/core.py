@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import binascii
 import json
 import math
 import numbers
@@ -457,7 +456,6 @@ class DepthMap:
             "disp_occ_0/000000_10.png", scale=256, kind="disparity_px"
         )
         middlebury = sv.DepthMap.from_pfm("disp0.pfm")
-        array = sv.DepthMap.from_npy("depth.npy", kind="depth_m")
         ```
 
     Attributes:
@@ -911,7 +909,7 @@ class DepthMap:
                 )
         return self._decode_stored(low_value), self._decode_stored(high_value)
 
-    def percentile_range(
+    def _percentile_range(
         self,
         low: float = 2.0,
         high: float = 98.0,
@@ -936,16 +934,6 @@ class DepthMap:
         Raises:
             ValueError: If the percentiles are out of order or the quantity is
                 impossible for this map.
-
-        Examples:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> ramp = np.tile(np.arange(1, 101, dtype=np.float32), (2, 1))
-            >>> sv.DepthMap(ramp, kind="disparity_px").percentile_range()
-            (3.0, 97.0)
-
-            ```
         """
         _check_percentiles(low, high)
         conversion = _resolve_conversion(
@@ -967,32 +955,28 @@ class DepthMap:
             1.0,
         )
 
-    def measure_detections(
-        self, detections: Detections, kind: DepthKind | str | None = None
-    ) -> Detections:
+    def measure_detections(self, detections: Detections) -> Detections:
         """Return the detections with the median depth under each object in `data`.
 
         For each detection, the median of the valid depth pixels inside its mask
         (dense or `sv.CompactMask`) or, without masks, inside its box (rounded and
-        clipped as in `sv.crop_image`) is stored in a new `data` column named after
-        the measured kind: `"depth_m"`, `"disparity_px"` or `"relative_inverse"`
+        clipped as in `sv.crop_image`) is stored in a new `data` column. The depth is
+        in metres, under `"depth_m"`, when the map can give them (a `depth_m` map, or
+        a disparity map with a camera), and in the map's own kind otherwise, under
+        `"disparity_px"` or `"relative_inverse"`
         (`supervision.config.DEPTH_M_DATA_FIELD` and its siblings). Objects whose
         region holds no depth get `NaN`. The map must have the detections' image
         size; resize it first otherwise.
 
         Args:
             detections: Detections in the map's pixel coordinates.
-            kind: The kind to measure. `None` measures metres when the map can give
-                them (a `depth_m` map, or a disparity map with a camera) and the
-                map's own kind otherwise.
 
         Returns:
             A copy of `detections` with the new `data` column, float32 of shape
             `(N,)`.
 
         Raises:
-            ValueError: If the masks do not match the map's size, or the requested
-                kind cannot be derived from this map.
+            ValueError: If the masks do not match the map's size.
 
         Examples:
             ```pycon
@@ -1011,8 +995,11 @@ class DepthMap:
 
             ```
         """
-        target = self._measured_kind(kind)
-        measured = self._as_kind(target)
+        measured = (
+            self.to_depth()
+            if self.kind is DepthKind.DISPARITY_PX and self.camera is not None
+            else self
+        )
         values = measured.to_float()
         height, width = values.shape
         medians = np.full(len(detections), np.nan, dtype=np.float32)
@@ -1051,28 +1038,8 @@ class DepthMap:
             DepthKind.DEPTH_M: DEPTH_M_DATA_FIELD,
             DepthKind.DISPARITY_PX: DISPARITY_PX_DATA_FIELD,
             DepthKind.RELATIVE_INVERSE: RELATIVE_INVERSE_DATA_FIELD,
-        }[target]
+        }[measured.kind]
         return replace(detections, data={**detections.data, field: medians})
-
-    def _measured_kind(self, kind: DepthKind | str | None) -> DepthKind:
-        """Resolve `measure_detections`' kind, preferring metres when available."""
-        if kind is not None:
-            return DepthKind.from_value(kind)
-        if self.kind is DepthKind.DISPARITY_PX and self.camera is not None:
-            return DepthKind.DEPTH_M
-        return self.kind
-
-    def _as_kind(self, kind: DepthKind) -> DepthMap:
-        """Return this map converted to `kind`, or raise when that is impossible."""
-        if kind is self.kind:
-            return self
-        if kind is DepthKind.DEPTH_M:
-            return self.to_depth()
-        if kind is DepthKind.DISPARITY_PX:
-            return self.to_disparity()
-        raise ValueError(
-            f"Cannot derive relative inverse depth from a {self.kind.value} map."
-        )
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> DepthMap:
@@ -1122,10 +1089,6 @@ class DepthMap:
         response = getattr(inference_result, "response", None)
         if isinstance(response, dict):
             inference_result = response
-        elif hasattr(inference_result, "model_dump"):
-            inference_result = inference_result.model_dump()
-        elif hasattr(inference_result, "dict"):
-            inference_result = inference_result.dict()
         normalized = inference_result.get("normalized_depth")
         if normalized is None:
             raise ValueError(
@@ -1283,34 +1246,6 @@ class DepthMap:
         """
         return cls(read_pfm(path), kind=kind)
 
-    @classmethod
-    def from_npy(cls, path: str | Path, kind: DepthKind | str) -> DepthMap:
-        """Load a 2D float array saved with `np.save`.
-
-        Args:
-            path: Path to the `.npy` file.
-            kind: What the values measure.
-
-        Returns:
-            A float32 `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the file does not hold a 2D float array.
-
-        Examples:
-            ```python
-            import supervision as sv
-
-            depth_map = sv.DepthMap.from_npy("depth_meter.npy", kind="depth_m")
-            ```
-        """
-        values = np.load(path, allow_pickle=False)
-        if values.ndim != 2 or not np.issubdtype(values.dtype, np.floating):
-            raise ValueError(
-                f"{path} must hold a 2D float array, got {values.dtype} {values.shape}."
-            )
-        return cls(values, kind=kind)
-
     def save(self, path: str | Path, scale: float | None = None) -> None:
         """Write the map as a `depth.json` manifest and a 16-bit PNG beside it.
 
@@ -1390,9 +1325,10 @@ class DepthMap:
     def load(cls, path: str | Path, frame_index: int | None = None) -> DepthMap:
         """Load a map from a `depth.json` manifest and its 16-bit PNG.
 
-        The manifest is checked with the same rules supervision-js applies, and every
+        The fields it reads are checked as supervision-js checks them, and every
         error names the offending field (`depth.json: storage.scale must be a
-        positive number`). A clip manifest needs `frame_index`.
+        positive number`); other fields, such as a clip's `preview`, are ignored. A
+        clip manifest needs `frame_index`.
 
         Args:
             path: Path to the manifest.
@@ -1492,10 +1428,7 @@ def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
     """Decode a base64 8- or 16-bit grayscale PNG into floats from 0 to 1."""
     from PIL import Image
 
-    try:
-        data = base64.b64decode(payload, validate=True)
-    except (binascii.Error, ValueError) as error:
-        raise ValueError("normalized_depth is not valid base64.") from error
+    data = base64.b64decode(payload, validate=True)
     try:
         with Image.open(BytesIO(data)) as image:
             mode = image.mode

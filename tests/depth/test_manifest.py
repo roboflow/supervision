@@ -53,16 +53,13 @@ CLIP_MANIFEST: dict[str, Any] = {
 
 
 def _with(manifest: dict[str, Any], path: str, value: Any) -> dict[str, Any]:
-    """Return a copy of a manifest with one dotted field set, or removed for ...."""
+    """Return a copy of a manifest with one dotted field set."""
     changed = copy.deepcopy(manifest)
     *parents, leaf = path.split(".")
     node = changed
     for parent in parents:
         node = node[parent]
-    if value is ...:
-        del node[leaf]
-    else:
-        node[leaf] = value
+    node[leaf] = value
     return changed
 
 
@@ -97,11 +94,12 @@ class TestEncodePng16:
         rows = np.frombuffer(zlib.decompress(chunks[1][1]), np.uint8).reshape(3, 7)
         assert rows[:, 0].tolist() == [2, 2, 2]
 
-    def test_decodes_identically_in_pillow(self) -> None:
+    def test_decodes_identically_in_pillow(self, tmp_path: Path) -> None:
         """A standard decoder reads back the exact codes, big-endian and unfiltered."""
         codes = np.random.default_rng(0).integers(0, 65536, (17, 23), dtype=np.uint16)
+        (tmp_path / "depth.png").write_bytes(encode_png16(codes))
 
-        decoded = read_png16(encode_png16(codes))
+        decoded = read_png16(tmp_path / "depth.png")
 
         np.testing.assert_array_equal(decoded, codes)
 
@@ -219,14 +217,11 @@ class TestParseManifest:
         [
             pytest.param(STILL_MANIFEST, id="still"),
             pytest.param(CLIP_MANIFEST, id="clip"),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.levels", ...), id="preview-full-range"
-            ),
             pytest.param(_with(STILL_MANIFEST, "unknown", 1), id="unknown-field"),
         ],
     )
     def test_accepts_valid_manifests(self, manifest: dict[str, Any]) -> None:
-        """Still and clip manifests, old full-range previews and new fields pass."""
+        """Still and clip manifests and new fields pass."""
         parsed = parse_manifest(manifest)
 
         assert parsed.width == 4
@@ -319,41 +314,6 @@ class TestParseManifest:
                 _with(CLIP_MANIFEST, "frames.exact", "exact/frame.png"),
                 "frames.exact must contain {index}",
                 id="frame-pattern",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "frames.times_s", [0.0, 0.1]),
-                "frames.times_s must be an array of frames.count",
-                id="times-length",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "frames.times_s", [0.0, 0.2, 0.1]),
-                "frames.times_s must strictly increase at index 2",
-                id="times-order",
-            ),
-            pytest.param(
-                _with(STILL_MANIFEST, "preview", CLIP_MANIFEST["preview"]),
-                "preview is only valid next to frames",
-                id="preview-on-still",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "kind", "depth_m"),
-                "preview is only supported for kind disparity_px",
-                id="preview-for-depth",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.levels", "pc"),
-                "preview.levels must be one of full, tv",
-                id="preview-levels",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.reserved_max", 15),
-                "preview.reserved_max must be an integer from 16 to 233 at tv",
-                id="reserved-below-tv-black",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.range_px", ...),
-                "preview.range_px is required",
-                id="preview-range",
             ),
         ],
     )

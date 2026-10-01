@@ -52,7 +52,7 @@ class TestPreviewCodes:
         values = np.array([[0.0, 1e-6, 31.5, 63.0, 80.0]], dtype=np.float32)
         depth_map = sv.DepthMap(values, kind="disparity_px")
 
-        codes = _preview_codes(depth_map, (0.0, 63.0), reserved_max=31)
+        codes = _preview_codes(depth_map, (0.0, 63.0))
 
         assert codes.tolist() == [[16, 32, 134, 235, 235]]
 
@@ -94,10 +94,7 @@ class TestDepthSink:
             "cy_px": 4.0,
         }
         assert manifest["view"] == "left"
-        assert manifest["preview"]["codec"].startswith("avc1.")
-        assert {
-            key: value for key, value in manifest["preview"].items() if key != "codec"
-        } == {
+        assert manifest["preview"] == {
             "file": "preview.mp4",
             "levels": "tv",
             "reserved_max": 31,
@@ -128,7 +125,7 @@ class TestDepthSink:
         lumas, _, _, _ = _decode_preview(tmp_path / "preview.mp4")
 
         for luma, depth_map in zip(lumas, frames):
-            expected = _preview_codes(depth_map, (0.0, 63.0), reserved_max=31)
+            expected = _preview_codes(depth_map, (0.0, 63.0))
             np.testing.assert_array_equal(luma, expected)
 
     def test_preview_is_tv_range_timed_and_keyed_every_second(
@@ -156,7 +153,7 @@ class TestDepthSink:
 
         lumas, _, _, _ = _decode_preview(tmp_path / "preview.mp4")
 
-        expected = _preview_codes(frames[0], (0.0, 63.0), reserved_max=31)
+        expected = _preview_codes(frames[0], (0.0, 63.0))
         error = np.abs(lumas[0].astype(int) - expected.astype(int))
         assert error.max() <= 4
         assert (lumas[0][:2, :2] <= 31).all()
@@ -186,14 +183,12 @@ class TestDepthSink:
             VIDEO_INFO,
             clip_range,
             crf=np.int64(18),
-            reserved_max=np.int64(40),
         ) as sink:
             sink.write_depth_map(_frames(1)[0])
 
         manifest = json.loads((tmp_path / "depth.json").read_text())
         assert manifest["display_range_px"] == [2.0, 60.0]
         assert manifest["preview"]["range_px"] == [0, 63.0]
-        assert manifest["preview"]["reserved_max"] == 40
 
     def test_reuses_uint16_codes_at_the_clip_scale(self, tmp_path: Path) -> None:
         """Codes already at the clip's scale are written untouched."""
@@ -287,19 +282,7 @@ class TestDepthSink:
         with pytest.raises(RuntimeError, match="open DepthSink context"):
             sink.write_depth_map(_frames(1)[0])
 
-    @pytest.mark.parametrize(
-        ("reserved_max", "crf", "match"),
-        [
-            pytest.param(15, 18, "reserved_max", id="reserved-max-below-tv-black"),
-            pytest.param(234, 18, "reserved_max", id="reserved-max-at-tv-top"),
-            pytest.param(31, 52, "crf", id="crf-above-51"),
-        ],
-    )
-    def test_rejects_invalid_options(
-        self, tmp_path: Path, reserved_max: int, crf: int, match: str
-    ) -> None:
-        """The guard band and CRF must be integers within their valid ranges."""
-        with pytest.raises(ValueError, match=match):
-            sv.DepthSink(
-                tmp_path, VIDEO_INFO, CLIP_RANGE, crf=crf, reserved_max=reserved_max
-            )
+    def test_rejects_a_crf_above_51(self, tmp_path: Path) -> None:
+        """The CRF must be an integer from 0 to 51."""
+        with pytest.raises(ValueError, match="crf"):
+            sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE, crf=52)
