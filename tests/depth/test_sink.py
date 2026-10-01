@@ -61,13 +61,13 @@ class TestFrameRate:
     @pytest.mark.parametrize(
         ("fps", "expected"),
         [
-            (24.0, Fraction(24)),
-            (25, Fraction(25)),
-            (29.97, Fraction(30000, 1001)),
-            (30000 / 1001, Fraction(30000, 1001)),
-            (23.976, Fraction(24000, 1001)),
-            (59.94, Fraction(60000, 1001)),
-            (12.5, Fraction(25, 2)),
+            pytest.param(24.0, Fraction(24), id="whole-float"),
+            pytest.param(25, Fraction(25), id="whole-int"),
+            pytest.param(29.97, Fraction(30000, 1001), id="ntsc-29.97-rounded"),
+            pytest.param(30000 / 1001, Fraction(30000, 1001), id="ntsc-29.97-exact"),
+            pytest.param(23.976, Fraction(24000, 1001), id="ntsc-23.976"),
+            pytest.param(59.94, Fraction(60000, 1001), id="ntsc-59.94"),
+            pytest.param(12.5, Fraction(25, 2), id="fractional"),
         ],
     )
     def test_snaps_ntsc_rates(self, fps: float, expected: Fraction) -> None:

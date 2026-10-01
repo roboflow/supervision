@@ -98,7 +98,12 @@ class TestDepthMapInit:
         assert depth_map.values.dtype == np.float32
 
     @pytest.mark.parametrize(
-        "display_range", [(5.0, 5.0), (6.0, 5.0), (0.0, float("inf"))]
+        "display_range",
+        [
+            pytest.param((5.0, 5.0), id="equal-ends"),
+            pytest.param((6.0, 5.0), id="reversed"),
+            pytest.param((0.0, float("inf")), id="infinite-high"),
+        ],
     )
     def test_rejects_empty_display_range(
         self, display_range: tuple[float, float]
@@ -137,9 +142,15 @@ class TestDepthMapValidMask:
     @pytest.mark.parametrize(
         ("kind", "expected"),
         [
-            ("disparity_px", [False, False, False, False, True]),
-            ("depth_m", [False, False, False, False, True]),
-            ("relative_inverse", [False, False, False, True, True]),
+            pytest.param(
+                "disparity_px", [False, False, False, False, True], id="disparity"
+            ),
+            pytest.param("depth_m", [False, False, False, False, True], id="depth"),
+            pytest.param(
+                "relative_inverse",
+                [False, False, False, True, True],
+                id="relative-keeps-zero",
+            ),
         ],
     )
     def test_float_no_depth_rules_per_kind(
@@ -372,13 +383,13 @@ class TestDepthMapValueAt:
     @pytest.mark.parametrize(
         ("x", "y", "resolution_wh", "expected"),
         [
-            (1.0, 0.0, None, 10.0),
-            (1.99, 0.5, None, 10.0),
-            (0.0, 0.0, None, None),
-            (2.0, 0.0, None, None),
-            (-0.5, 0.0, None, None),
-            (30.0, 5.0, (40, 10), 10.0),
-            (float("nan"), 0.0, None, None),
+            pytest.param(1.0, 0.0, None, 10.0, id="pixel-corner"),
+            pytest.param(1.99, 0.5, None, 10.0, id="inside-pixel"),
+            pytest.param(0.0, 0.0, None, None, id="no-depth"),
+            pytest.param(2.0, 0.0, None, None, id="right-edge"),
+            pytest.param(-0.5, 0.0, None, None, id="left-of-map"),
+            pytest.param(30.0, 5.0, (40, 10), 10.0, id="scaled-resolution"),
+            pytest.param(float("nan"), 0.0, None, None, id="nan-x"),
         ],
     )
     def test_reads_value_under_point(
@@ -490,8 +501,8 @@ class TestDepthMapMeasureDetections:
     @pytest.mark.parametrize(
         ("kind", "field", "expected"),
         [
-            (None, DEPTH_M_DATA_FIELD, 2.0),
-            ("disparity_px", DISPARITY_PX_DATA_FIELD, 50.0),
+            pytest.param(None, DEPTH_M_DATA_FIELD, 2.0, id="metres-by-default"),
+            pytest.param("disparity_px", DISPARITY_PX_DATA_FIELD, 50.0, id="disparity"),
         ],
     )
     def test_measures_requested_kind_from_disparity(
@@ -817,7 +828,11 @@ class TestDepthClipRange:
             sv.DepthClipRange.from_depth_maps(frames)
 
     @pytest.mark.parametrize(
-        ("display_range", "max_value"), [((2.0, 1.0), 5.0), ((1.0, 2.0), 0.0)]
+        ("display_range", "max_value"),
+        [
+            pytest.param((2.0, 1.0), 5.0, id="reversed-range"),
+            pytest.param((1.0, 2.0), 0.0, id="zero-max-value"),
+        ],
     )
     def test_rejects_invalid_fields(
         self, display_range: tuple[float, float], max_value: float
