@@ -54,10 +54,11 @@ class DepthKind(Enum):
         DISPARITY_PX: Stereo disparity in pixels of the map. Larger is nearer.
             Metric depth is `fx_px * baseline_m / (disparity + doffs_px)`.
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
-        RELATIVE_INVERSE: Unitless normalised depth where larger is nearer, as
-            monocular models produce it: Roboflow Inference's per-image map with 1
-            for the nearest pixel, or Depth Anything V2's inverse depth up to an
-            unknown scale and shift. It has no metric depth.
+        RELATIVE_INVERSE: Unitless relative depth from a monocular model,
+            normalised so larger is nearer, with no metric scale. Roboflow
+            Inference's maps run from 0 for the farthest pixel to 1 for the
+            nearest; only Depth Anything V2 output is inverse depth, up to an
+            unknown scale and shift.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -384,7 +385,7 @@ def _squeeze_to_2d(
 
 
 class DepthMap:
-    """A per-pixel depth, disparity or relative inverse depth map for one frame.
+    """A per-pixel depth, disparity or relative depth map for one frame.
 
     `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container with
     its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)), its own

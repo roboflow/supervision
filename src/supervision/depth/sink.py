@@ -98,7 +98,8 @@ class DepthSink:
       second; frame `k` is at `k / fps`, the time of video frame `k`. The preview
       spans `[0, max_value]` and is defined for `disparity_px` maps only.
     - `depth.json`: the clip manifest, written when the `with` block exits without an
-      error, with the clip range's `display_range`.
+      error, with the clip range's `display_range`. Entering the sink removes a
+      `depth.json` an earlier clip left in the folder.
 
     Frames are matched to the video by index, so write exactly one map per video
     frame, in order. Every map must have the first map's kind and size; the
@@ -119,7 +120,7 @@ class DepthSink:
         depth_maps = [model_depth(frame) for frame in sv.get_video_frames_generator("left.mp4")]
         clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
 
-        with sv.DepthSink("left-depth", video_info, clip_range) as sink:
+        with sv.DepthSink("left-depth", video_info, clip_range, preview=False) as sink:
             for depth_map in depth_maps:
                 sink.write_depth_map(depth_map)
         ```

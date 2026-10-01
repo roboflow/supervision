@@ -10,7 +10,7 @@ date_modified: 2026-10-01
 
 # Visualize Depth Maps
 
-A depth map holds a distance for every pixel of an image: stereo disparity in pixels, metric depth in metres, or the relative inverse depth a monocular model such as Depth Anything predicts. [sv.DepthMap][supervision.depth.core.DepthMap] keeps any of the three with what it measures, and [sv.DepthAnnotator][supervision.depth.annotators.DepthAnnotator] colours it over the image, near objects warm and far ones cool, leaving pixels without depth unpainted.
+A depth map holds a distance for every pixel of an image: stereo disparity in pixels, metric depth in metres, or the relative depth a monocular model such as Depth Anything predicts, normalised so larger is nearer. [sv.DepthMap][supervision.depth.core.DepthMap] keeps any of the three with what it measures, and [sv.DepthAnnotator][supervision.depth.annotators.DepthAnnotator] colours it over the image, near objects warm and far ones cool, leaving pixels without depth unpainted.
 
 ![Stereo disparity coloured with sv.DepthAnnotator](https://media.roboflow.com/supervision-annotator-examples/depth-annotator-example.png){ align=center width="800" }
 
