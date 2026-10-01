@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
+
 - `sv.DetectionDataset.as_labelme`, `as_yolo`, and `as_pascal_voc` now export annotations for in-memory grayscale images shaped `(height, width)` without failing on a missing channel dimension. Image dimensions and annotation coordinates are preserved, Pascal VOC records depth `1`, and the source pixels are unchanged. [#2641](https://github.com/roboflow/supervision/pull/2641)
 
 - `sv.KeyPoints.with_nms` now preserves skeletons with zero joints, including those produced by boolean keypoint filtering, instead of raising a zero-size reduction error. All aligned fields and NMS validation requirements are preserved. [#2639](https://github.com/roboflow/supervision/pull/2639)
