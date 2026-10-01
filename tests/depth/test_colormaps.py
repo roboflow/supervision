@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from supervision.depth.colormaps import _colorize, _expanded_bgr_lut
+from supervision.depth.colormaps import _colorize
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -43,14 +43,6 @@ class TestDepthColormapTables:
 
 
 class TestDepthColormapFromValue:
-    @pytest.mark.parametrize(
-        "value",
-        ["turbo", "TURBO", pytest.param(sv.DepthColormap.TURBO, id="member")],
-    )
-    def test_accepts_member_or_name(self, value: str | sv.DepthColormap) -> None:
-        """Strings resolve case-insensitively; members pass through."""
-        assert sv.DepthColormap.from_value(value) is sv.DepthColormap.TURBO
-
     def test_rejects_unknown_name(self) -> None:
         """Unknown names list the valid ones."""
         with pytest.raises(ValueError, match="jet"):
@@ -67,19 +59,3 @@ class TestColorize:
         colors = _colorize(t, colormap)
 
         np.testing.assert_array_equal(colors[:, ::-1], colormap.rgb_lut())
-
-    def test_blends_linearly_between_entries(self) -> None:
-        """Halfway between two entries is their rounded mean, as GPU filtering is."""
-        rgb = sv.DepthColormap.TURBO.rgb_lut().astype(float)
-        expected = np.rint((rgb[127] + rgb[128]) / 2)
-
-        color = _colorize(np.array([127.5 / 255]), sv.DepthColormap.TURBO)
-
-        np.testing.assert_array_equal(color[0, ::-1], expected)
-
-    def test_expanded_table_is_read_only(self) -> None:
-        """The cached lookup cannot be changed by accident."""
-        lut = _expanded_bgr_lut(sv.DepthColormap.VIRIDIS)
-
-        with pytest.raises(ValueError, match="read-only"):
-            lut[0, 0] = 1

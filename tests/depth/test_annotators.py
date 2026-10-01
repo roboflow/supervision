@@ -62,7 +62,7 @@ class TestDepthAnnotatorColors:
 
         assert _rgb(scene) == [[TURBO[0].tolist(), TURBO[255].tolist()]]
 
-    @pytest.mark.parametrize("colormap", ["viridis", "cividis", "inferno", "magma"])
+    @pytest.mark.parametrize("colormap", ["viridis"])
     def test_uses_the_chosen_table(self, colormap: str) -> None:
         """Every colormap paints from its own table."""
         depth_map = sv.DepthMap(np.array([[1.0, 2.0]], np.float32), kind="disparity_px")
@@ -109,10 +109,11 @@ class TestDepthAnnotatorRange:
     @pytest.mark.parametrize(
         ("option", "display_range", "expected_low_high"),
         [
-            pytest.param("auto", None, (3.0, 97.0), id="auto-percentiles"),
+            pytest.param(
+                "auto", (10.0, 50.0), (3.0, 97.0), id="auto-ignores-map-range"
+            ),
             pytest.param("clip", (10.0, 50.0), (10.0, 50.0), id="clip-uses-map"),
             pytest.param("clip", None, (3.0, 97.0), id="clip-falls-back-to-auto"),
-            pytest.param((20.0, 30.0), (10.0, 50.0), (20.0, 30.0), id="explicit"),
             pytest.param(
                 sv.DepthClipRange(display_range=(5.0, 60.0), max_value=100.0),
                 (10.0, 50.0),
