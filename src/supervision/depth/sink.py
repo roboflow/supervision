@@ -127,7 +127,7 @@ class DepthSink:
         video_info: VideoInfo,
         clip_range: DepthClipRange,
         preview: bool = True,
-        crf: int = 18,
+        crf: int = 12,
     ) -> None:
         """
         Args:
@@ -137,7 +137,8 @@ class DepthSink:
             preview: Whether to write `preview.mp4`. Without it, supervision-js draws
                 exact depth only while playback rests.
             crf: H.264 constant rate factor of the preview; lower is closer to the
-                exact codes, 0 is lossless.
+                exact codes, 0 is lossless. The default 12 is supervision-js's
+                guidance: at 18, blocks show while the clip plays.
 
         Raises:
             ValueError: If `crf` is not an integer from 0 to 51.

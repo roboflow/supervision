@@ -145,7 +145,7 @@ class TestDepthSink:
         assert color_range == 1
 
     def test_default_crf_keeps_codes_near_exact(self, tmp_path: Path) -> None:
-        """At CRF 18 decoded codes stay within a few steps and holes stay no depth."""
+        """At the default CRF codes stay within a few steps and holes stay no depth."""
         frames = _frames()
         with sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE) as sink:
             for depth_map in frames:
