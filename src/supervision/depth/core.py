@@ -1099,7 +1099,12 @@ class DepthMap:
                 "from_inference() operates on a single result at a time. You can "
                 "retrieve it like so: inference_result = model.infer(image)[0]"
             )
-        if hasattr(inference_result, "model_dump"):
+        # In-process models return an LMMInferenceResponse holding the depth in a
+        # `response` dict; dumping it would also serialise its coloured depth image.
+        response = getattr(inference_result, "response", None)
+        if isinstance(response, dict):
+            inference_result = response
+        elif hasattr(inference_result, "model_dump"):
             inference_result = inference_result.model_dump()
         elif hasattr(inference_result, "dict"):
             inference_result = inference_result.dict()

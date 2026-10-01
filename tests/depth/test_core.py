@@ -540,6 +540,17 @@ class TestDepthMapMeasureDetections:
             self._depth_map().measure_detections(detections)
 
 
+class _FakeLMMInferenceResponse:
+    """Inference-like in-process response holding the depth in a `response` dict."""
+
+    def __init__(self, normalized_depth: np.ndarray) -> None:
+        self.response = {"normalized_depth": normalized_depth, "image": object()}
+
+    def model_dump(self) -> dict[str, Any]:
+        """Fail as dumping the response's image would."""
+        raise AssertionError("model_dump must not be called")
+
+
 class TestDepthMapFromInference:
     @pytest.mark.parametrize(
         ("result", "expected"),
@@ -585,6 +596,14 @@ class TestDepthMapFromInference:
         assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
         assert depth_map.valid_mask.all()
         np.testing.assert_allclose(depth_map.to_float(), expected, rtol=1e-6)
+
+    def test_unwraps_an_in_process_model_response(self) -> None:
+        """`get_model(...).infer(image)[0]` keeps its depth in a `response` dict."""
+        result = _FakeLMMInferenceResponse(np.array([[0.0, 1.0]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_inference(result)
+
+        np.testing.assert_array_equal(depth_map.to_float(), [[0.0, 1.0]])
 
     @pytest.mark.parametrize(
         ("result", "match"),
