@@ -604,6 +604,28 @@ def test_polygon_prediction_rounds_decimal_vertices(compact_masks: bool) -> None
     np.testing.assert_array_equal(dense_masks, expected_mask)
 
 
+@pytest.mark.parametrize("vertex", [float("nan"), float("inf")])
+def test_polygon_prediction_rejects_non_finite_vertex(vertex: float) -> None:
+    """A polygon vertex that is not a finite number is rejected with a clear error."""
+    roboflow_result = _result(
+        _pred(
+            yx=(5.1, 5.1),
+            size=(5.0, 5.0),
+            points=[
+                {"x": 2.6, "y": 2.6},
+                {"x": vertex, "y": 2.6},
+                {"x": 7.6, "y": 7.6},
+                {"x": 2.6, "y": 7.6},
+            ],
+        ),
+        img_w=12,
+        img_h=12,
+    )
+
+    with pytest.raises(ValueError, match="has a vertex that is not a finite number"):
+        process_roboflow_result(roboflow_result)
+
+
 def test_box_only_compact_masks_true_returns_none_mask() -> None:
     """Box-only predictions with compact_masks=True yield None mask."""
     roboflow_result = _result(

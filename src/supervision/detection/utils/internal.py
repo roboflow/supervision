@@ -326,6 +326,10 @@ def process_roboflow_result(
         tracker ID, or when only a subset do (mixed batch) — in that case all
         tracker IDs are dropped to preserve alignment with ``xyxy``.
 
+    Raises:
+        ValueError: If a polygon prediction has a vertex that is not a finite
+            number.
+
     Examples:
         ```pycon
         >>> from supervision.detection.utils.internal import process_roboflow_result
@@ -424,14 +428,18 @@ def process_roboflow_result(
             masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
+            vertices = np.array(
+                [[point["x"], point["y"]] for point in prediction["points"]],
+                dtype=np.float64,
+            )
+            if not np.isfinite(vertices).all():
+                raise ValueError(
+                    f"Polygon prediction of class {prediction['class']!r} has a "
+                    "vertex that is not a finite number."
+                )
             # Vertices are sub-pixel floats; round them like the dataset loaders do,
             # since truncating shifts the mask up and to the left by up to a pixel.
-            polygon = np.round(
-                np.array(
-                    [[point["x"], point["y"]] for point in prediction["points"]],
-                    dtype=np.float64,
-                )
-            ).astype(np.int32)
+            polygon = np.round(vertices).astype(np.int32)
             mask = polygon_to_mask(
                 polygon, resolution_wh=(image_width, image_height)
             ).astype(bool)
