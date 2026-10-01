@@ -10,7 +10,7 @@ date_modified: 2026-10-01
 
 # Visualize Depth Maps
 
-A depth map holds a distance for every pixel of an image: stereo disparity in pixels, metric depth in metres, or the relative inverse depth a monocular model such as Depth Anything predicts. \[`sv.DepthMap`\][supervision.depth.core.DepthMap] keeps any of the three with what it measures, and \[`sv.DepthAnnotator`\][supervision.depth.annotators.DepthAnnotator] colours it over the image, near objects warm and far ones cool, leaving pixels without depth unpainted.
+A depth map holds a distance for every pixel of an image: stereo disparity in pixels, metric depth in metres, or the relative inverse depth a monocular model such as Depth Anything predicts. [sv.DepthMap][supervision.depth.core.DepthMap] keeps any of the three with what it measures, and [sv.DepthAnnotator][supervision.depth.annotators.DepthAnnotator] colours it over the image, near objects warm and far ones cool, leaving pixels without depth unpainted.
 
 ![Stereo disparity coloured with sv.DepthAnnotator](https://media.roboflow.com/supervision-annotator-examples/depth-annotator-example.png){ align=center width="800" }
 
@@ -114,7 +114,7 @@ turbo = ListedColormap(sv.DepthColormap.TURBO.rgb_lut() / 255)
 
 ## Label Objects with Their Distance
 
-\[`measure_detections`\][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for \[`sv.LabelAnnotator`\]\[supervision.annotators.core.LabelAnnotator\]:
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator].
 
 ```python
 detections = depth_map.measure_detections(detections)
@@ -158,18 +158,18 @@ depth_map.save("depth/depth.json")  # also writes depth/depth.png
 depth_map = sv.DepthMap.load("depth/depth.json")
 ```
 
-For video, \[`sv.DepthSink`\][supervision.depth.sink.DepthSink] writes one exact PNG per video frame, an 8-bit preview video the browser plays, and the clip manifest:
+For video, [sv.DepthSink][supervision.depth.sink.DepthSink] writes one exact PNG per video frame, an 8-bit preview video the browser plays, and the clip manifest:
 
 ```python
 video_info = sv.VideoInfo.from_video_path(source)
 clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
 
-with sv.DepthSink("left-depth", video_info, clip_range) as sink:
+with sv.DepthSink("left-depth", video_info, clip_range, preview=False) as sink:
     for depth_map in depth_maps:
         sink.write_depth_map(depth_map)
 ```
 
-The preview is defined for disparity; pass `preview=False` for metric or relative maps, and supervision-js then draws exact depth while playback rests.
+The preview video is defined for disparity only, so this example passes `preview=False`, which metric and relative maps need; supervision-js then draws exact depth while playback rests. For stereo disparity maps, drop `preview=False` to also write the preview.
 
 ## Attribution
 
