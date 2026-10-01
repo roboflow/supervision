@@ -53,9 +53,10 @@ class DepthKind(Enum):
         DISPARITY_PX: Stereo disparity in pixels of the map. Larger is nearer.
             Metric depth is `fx_px * baseline_m / (disparity + doffs_px)`.
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
-        RELATIVE_INVERSE: Unitless inverse depth up to an unknown scale and shift, as
-            monocular models such as Depth Anything produce it. Larger is nearer. It
-            has no metric depth.
+        RELATIVE_INVERSE: Unitless normalised depth where larger is nearer, as
+            monocular models produce it: Roboflow Inference's per-image map with 1
+            for the nearest pixel, or Depth Anything V2's inverse depth up to an
+            unknown scale and shift. It has no metric depth.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -1069,8 +1070,9 @@ class DepthMap:
         Accepts the `normalized_depth` of every `depth_map_format` (`json` nested
         lists, `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK
         and Workflows decode them to). The map is normalised per image with 1 for
-        the nearest pixel and 0 for the farthest, so it loads as `relative_inverse`
-        float32; values from different images are not comparable.
+        the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
+        V3 maps are linear in depth, not inverse depth). It loads as
+        `relative_inverse` float32; values from different images are not comparable.
 
         Args:
             inference_result: One result from Inference, the Inference SDK or a

@@ -5,7 +5,7 @@ the colour coordinate `t` runs from 0 to 1. They are the published tables matplo
 ships (`matplotlib.colormaps[name]`, each channel rounded half up to 8 bits; Turbo is
 Google's table verbatim) and are byte-identical to supervision-js's
 `depth-colormap-tables.ts`, so a map coloured in Python and in the browser looks the
-same. `tests/depth/test_colormaps.py` regenerates them from matplotlib.
+same. `tests/depth/test_colormaps.py` compares them with matplotlib's.
 """
 
 from __future__ import annotations
