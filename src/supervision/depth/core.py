@@ -30,6 +30,7 @@ from supervision.depth.manifest import (
     read_pfm,
     read_png16,
     resolve_frame_file,
+    resolve_manifest_file,
 )
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
@@ -1370,8 +1371,9 @@ class DepthMap:
             and view.
 
         Raises:
-            ValueError: If the manifest is invalid, the frame index is missing or out
-                of range, or the PNG does not match the manifest's size.
+            ValueError: If the manifest is invalid or names a file outside its own
+                folder, the frame index is missing or out of range, or the PNG does
+                not match the manifest's size.
 
         Examples:
             ```python
@@ -1389,6 +1391,7 @@ class DepthMap:
                     f"{manifest_path} describes a still image; it has no frames."
                 )
             file_name = manifest.image_file
+            field = "image.file"
         else:
             count = manifest.frame_count
             assert count is not None
@@ -1399,7 +1402,8 @@ class DepthMap:
                     f"from 0 to {count - 1}."
                 )
             file_name = resolve_frame_file(manifest.frame_pattern, frame_index)
-        codes = read_png16(manifest_path.parent / file_name)
+            field = "frames.exact"
+        codes = read_png16(resolve_manifest_file(manifest_path, file_name, field))
         if codes.shape != (manifest.height, manifest.width):
             raise ValueError(
                 f"depth.json: {file_name} is {codes.shape[1]}x{codes.shape[0]} but the "

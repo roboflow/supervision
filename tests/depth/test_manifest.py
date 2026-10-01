@@ -355,6 +355,16 @@ class TestParseManifest:
                 "preview.range_px is required",
                 id="preview-range",
             ),
+            pytest.param(
+                _with(CLIP_MANIFEST, "preview.file", "../preview.mp4"),
+                "preview.file must be a relative path inside",
+                id="preview-file-traversal",
+            ),
+            pytest.param(
+                _with(CLIP_MANIFEST, "preview.file", "/preview.mp4"),
+                "preview.file must be a relative path inside",
+                id="preview-file-absolute",
+            ),
         ],
     )
     def test_rejects_invalid_fields_naming_them(
@@ -466,6 +476,49 @@ class TestDepthMapSaveLoad:
 
         with pytest.raises(ValueError, match=match):
             sv.DepthMap.load(tmp_path / "depth.json", frame_index=frame_index)
+
+    @pytest.mark.parametrize(
+        ("manifest", "frame_index", "match"),
+        [
+            pytest.param(
+                _with(STILL_MANIFEST, "image.file", "../depth.png"),
+                None,
+                "image.file '../depth.png' must name a file inside",
+                id="image-traversal",
+            ),
+            pytest.param(
+                _with(STILL_MANIFEST, "image.file", "/depth.png"),
+                None,
+                "image.file '/depth.png' must name a file inside",
+                id="image-absolute",
+            ),
+            pytest.param(
+                _with(CLIP_MANIFEST, "frames.exact", "../{index:06}.png"),
+                0,
+                "frames.exact '../000000.png' must name a file inside",
+                id="frames-traversal",
+            ),
+            pytest.param(
+                _with(CLIP_MANIFEST, "frames.exact", "/{index:06}.png"),
+                0,
+                "frames.exact '/000000.png' must name a file inside",
+                id="frames-absolute",
+            ),
+        ],
+    )
+    def test_load_refuses_files_outside_the_manifest_folder(
+        self,
+        tmp_path: Path,
+        manifest: dict[str, Any],
+        frame_index: int | None,
+        match: str,
+    ) -> None:
+        """A manifest cannot point the loader at a file beyond its own folder."""
+        (tmp_path / "clip").mkdir()
+        (tmp_path / "clip" / "depth.json").write_text(json.dumps(manifest))
+
+        with pytest.raises(ValueError, match=_escape(match)):
+            sv.DepthMap.load(tmp_path / "clip" / "depth.json", frame_index=frame_index)
 
     def test_load_rejects_png_of_another_size(self, tmp_path: Path) -> None:
         """The PNG must have the manifest's width and height."""

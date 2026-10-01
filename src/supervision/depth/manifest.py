@@ -15,7 +15,7 @@ import struct
 import zlib
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any, NoReturn
 
 import numpy as np
@@ -188,6 +188,9 @@ def _read_preview(value: Any) -> _DepthPreview:
     """Return the preview block; a preview without `levels` is full range."""
     preview = _read_object(value, "preview")
     file = _read_file_name(preview.get("file"), "preview.file")
+    # Python never opens the preview, so a lexical check keeps it beside the manifest.
+    if PurePath(file).anchor or ".." in PurePath(file).parts:
+        _fail("preview.file must be a relative path inside the manifest's folder")
     codec = _read_optional_string(preview.get("codec"), "preview.codec")
     levels = preview.get("levels")
     levels = "full" if levels is None else levels
@@ -327,6 +330,22 @@ def resolve_frame_file(pattern: str, index: int) -> str:
         return str(index) if width is None else str(index).zfill(int(width))
 
     return _FRAME_INDEX_TOKEN.sub(expand, pattern)
+
+
+def resolve_manifest_file(manifest_path: Path, file_name: str, field: str) -> Path:
+    """Return a manifest-named file's path, refusing any outside the manifest's folder.
+
+    Mirrors the dataset loaders' guard: `..` traversal, an absolute path or a symlink
+    pointing elsewhere would let a downloaded `depth.json` read any file on disk.
+    """
+    root = manifest_path.parent.resolve()
+    try:
+        resolved = (manifest_path.parent / file_name).resolve()
+    except (OSError, ValueError) as error:
+        _fail(f"{field} {file_name!r} is not a valid path: {error}")
+    if root not in resolved.parents or resolved.is_dir():
+        _fail(f"{field} {file_name!r} must name a file inside {root}")
+    return resolved
 
 
 def _png_chunk(kind: bytes, data: bytes) -> bytes:
