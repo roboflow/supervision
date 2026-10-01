@@ -4,6 +4,7 @@ import base64
 import binascii
 import json
 import math
+import numbers
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -180,7 +181,9 @@ class DepthCamera:
             value = getattr(self, name)
             if value is not None:
                 # NumPy scalars would make the depth.json camera block unwritable.
-                object.__setattr__(self, name, float(value))
+                object.__setattr__(
+                    self, name, _plain_float(value, f"DepthCamera {name}")
+                )
         for name in ("fx_px", "baseline_m"):
             value = getattr(self, name)
             if not (math.isfinite(value) and value > 0):
@@ -289,6 +292,13 @@ def _resolve_conversion(
         else "relative inverse depth has no metric scale"
     )
     raise ValueError(f"Cannot use quantity 'depth' for a {kind.value} map: {reason}.")
+
+
+def _plain_float(value: Any, field: str) -> float:
+    """Return a real number, Python or NumPy, as a Python float for depth.json."""
+    if not isinstance(value, numbers.Real) or isinstance(value, bool):
+        raise TypeError(f"{field} must be a real number, got {value!r}.")
+    return float(value)
 
 
 def _nearest_rank(count: int, fraction: float) -> int:
@@ -1535,10 +1545,14 @@ class DepthClipRange:
 
     def __post_init__(self) -> None:
         """Store plain floats and reject an empty range or a non-positive ceiling."""
-        low, high = (float(bound) for bound in self.display_range)
+        low, high = (
+            _plain_float(bound, "DepthClipRange display_range")
+            for bound in self.display_range
+        )
         # NumPy scalars would make the clip's depth.json unwritable.
         object.__setattr__(self, "display_range", (low, high))
-        object.__setattr__(self, "max_value", float(self.max_value))
+        max_value = _plain_float(self.max_value, "DepthClipRange max_value")
+        object.__setattr__(self, "max_value", max_value)
         if not (math.isfinite(low) and math.isfinite(high) and low < high):
             raise ValueError(
                 "DepthClipRange display_range must be two finite numbers with "
