@@ -485,6 +485,17 @@ class TestDepthMapMeasureDetections:
 
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
 
+    @pytest.mark.filterwarnings("ignore:.*mask of type uint8")
+    def test_measures_inside_uint8_masks(self) -> None:
+        """A 0/1 uint8 mask selects pixels like a boolean one, not rows by index."""
+        mask = np.zeros((1, 20, 20), dtype=np.uint8)
+        mask[0, 2:6, 2:4] = 1
+        detections = sv.Detections(xyxy=np.array([[0, 0, 20, 20]], float), mask=mask)
+
+        measured = self._depth_map().measure_detections(detections)
+
+        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
+
     def test_measures_inside_compact_masks(self) -> None:
         """A CompactMask is read crop by crop with the same result as dense."""
         mask = np.zeros((2, 20, 20), dtype=bool)

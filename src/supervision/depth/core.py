@@ -1024,7 +1024,7 @@ class DepthMap:
                     x_offset : x_offset + crop.shape[1],
                 ][crop]
             elif mask is not None:
-                region = values[mask[index]]
+                region = values[np.asarray(mask[index], dtype=bool)]
             else:
                 x_min, y_min, x_max, y_max = (
                     detections.xyxy[index].round().astype(np.int64)
