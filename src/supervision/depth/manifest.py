@@ -15,7 +15,7 @@ import struct
 import zlib
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Any, NoReturn
 
 import numpy as np
@@ -188,9 +188,6 @@ def _read_preview(value: Any) -> _DepthPreview:
     """Return the preview block; a preview without `levels` is full range."""
     preview = _read_object(value, "preview")
     file = _read_file_name(preview.get("file"), "preview.file")
-    # Python never opens the preview, so a lexical check keeps it beside the manifest.
-    if PurePath(file).anchor or ".." in PurePath(file).parts:
-        _fail("preview.file must be a relative path inside the manifest's folder")
     codec = _read_optional_string(preview.get("codec"), "preview.codec")
     levels = preview.get("levels")
     levels = "full" if levels is None else levels

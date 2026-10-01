@@ -355,16 +355,6 @@ class TestParseManifest:
                 "preview.range_px is required",
                 id="preview-range",
             ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.file", "../preview.mp4"),
-                "preview.file must be a relative path inside",
-                id="preview-file-traversal",
-            ),
-            pytest.param(
-                _with(CLIP_MANIFEST, "preview.file", "/preview.mp4"),
-                "preview.file must be a relative path inside",
-                id="preview-file-absolute",
-            ),
         ],
     )
     def test_rejects_invalid_fields_naming_them(
