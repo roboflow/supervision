@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -572,12 +573,17 @@ class TestDepthMapFromInference:
                 [[0.0, 1.0], [0.2, 0.0]],
                 id="png8",
             ),
+            pytest.param(
+                SimpleNamespace(normalized_depth=[[0.0, 0.5]]),
+                [[0.0, 0.5]],
+                id="response-object",
+            ),
         ],
     )
     def test_loads_every_depth_map_format(
-        self, result: dict[str, Any], expected: list[list[float]]
+        self, result: Any, expected: list[list[float]]
     ) -> None:
-        """Json, png16, png8 and decoded arrays load as relative inverse depth."""
+        """Json, png16, png8 and response objects load as relative inverse depth."""
         depth_map = sv.DepthMap.from_inference(result)
 
         assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
@@ -597,6 +603,7 @@ class TestDepthMapFromInference:
         [
             pytest.param([{"normalized_depth": [[0.0]]}], "single result", id="list"),
             pytest.param({"predictions": []}, "normalized_depth", id="no-depth"),
+            pytest.param(object(), "normalized_depth", id="not-a-depth-result"),
             pytest.param(
                 {"normalized_depth": _png_base64(np.zeros((2, 2, 3), dtype=np.uint8))},
                 "grayscale",
@@ -723,15 +730,15 @@ class TestDepthClipRange:
         assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0), max_value=7.0)
 
     def test_long_clip_matches_the_range_of_its_repeated_frame(self) -> None:
-        """Past the sample budget, a clip of one structured frame keeps its range."""
+        """Past both sample caps, a clip of one structured frame keeps its range."""
         frame = sv.DepthMap(
-            np.tile(np.array([1.0, 1.0, 100.0, 100.0], np.float32), (512, 128)),
+            np.tile(np.array([1.0, 1.0, 100.0, 100.0], np.float32), (512, 256)),
             kind="depth_m",
         )
 
         clip_range = sv.DepthClipRange.from_depth_maps([frame] * 70)
 
-        assert clip_range == sv.DepthClipRange.from_depth_maps([frame])
+        assert clip_range.display_range == (1.0, 100.0)
 
     @pytest.mark.parametrize(
         ("frames", "match"),

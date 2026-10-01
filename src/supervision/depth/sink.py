@@ -30,7 +30,7 @@ _EXACT_PATTERN = "exact/{index:06}.png"
 _PREVIEW_FILE = "preview.mp4"
 _TV_BLACK = 16
 _TV_TOP = 235
-# Guard band of 16 codes above TV black: codec error around holes reads as no depth.
+# Guard band, codes 17 to 31 above TV black: codec error around holes reads as no depth.
 _RESERVED_MAX = 31
 _NEUTRAL_CHROMA = 128
 # libavutil enum values: AVCOL_RANGE_MPEG (TV range) and BT.709 for the primaries,

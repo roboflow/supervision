@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import json
 import math
-import numbers
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -56,8 +55,8 @@ class DepthKind(Enum):
         RELATIVE_INVERSE: Unitless relative depth from a monocular model,
             normalised so larger is nearer, with no metric scale. Roboflow
             Inference's maps run from 0 for the farthest pixel to 1 for the
-            nearest; only Depth Anything V2 output is inverse depth, up to an
-            unknown scale and shift.
+            nearest. Depth Anything V1 and V2 and DPT output is inverse depth up to
+            an unknown scale and shift; Depth Anything V3 output is linear in depth.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -295,10 +294,13 @@ def _resolve_conversion(
 
 
 def _plain_float(value: Any, field: str) -> float:
-    """Return a real number, Python or NumPy, as a Python float for depth.json."""
-    if not isinstance(value, numbers.Real) or isinstance(value, bool):
-        raise TypeError(f"{field} must be a real number, got {value!r}.")
-    return float(value)
+    """Return a Python, NumPy or one-value tensor number as a plain float."""
+    if not isinstance(value, (str, bytes, bool, np.bool_)):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            pass
+    raise TypeError(f"{field} must be a real number, got {value!r}.")
 
 
 def _nearest_rank(count: int, fraction: float) -> int:
@@ -547,7 +549,9 @@ class DepthMap:
         if camera is not None and not isinstance(camera, DepthCamera):
             raise ValueError("DepthMap camera must be a sv.DepthCamera or None.")
         if display_range is not None:
-            low, high = (float(bound) for bound in display_range)
+            low, high = (
+                _plain_float(bound, "DepthMap display_range") for bound in display_range
+            )
             if not (math.isfinite(low) and math.isfinite(high) and low < high):
                 raise ValueError(
                     "DepthMap display_range must be two finite numbers with "
@@ -1085,11 +1089,14 @@ class DepthMap:
                 "retrieve it like so: inference_result = model.infer(image)[0]"
             )
         # In-process models return an LMMInferenceResponse holding the depth in a
-        # `response` dict; dumping it would also serialise its coloured depth image.
+        # `response` dict; Inference's DepthEstimationResponse holds it as a field.
         response = getattr(inference_result, "response", None)
         if isinstance(response, dict):
             inference_result = response
-        normalized = inference_result.get("normalized_depth")
+        if isinstance(inference_result, dict):
+            normalized = inference_result.get("normalized_depth")
+        else:
+            normalized = getattr(inference_result, "normalized_depth", None)
         if normalized is None:
             raise ValueError(
                 "The inference result has no 'normalized_depth'; pass the result of "
@@ -1504,8 +1511,8 @@ class DepthClipRange:
     ) -> DepthClipRange:
         """Compute a clip's percentile range and largest value in one pass.
 
-        Each map contributes the valid values on its stride-2 grid, thinned to at most
-        65,536 values. Whenever the clip's samples pass 4,194,304 (32 MB), each one
+        Each map contributes the valid values on its stride-2 grid, thinned at random
+        to about 65,536 values. Whenever the clip's samples pass 4,194,304, each one
         is kept with probability 1/2 and later maps are kept at half the previous
         rate, so memory stays bounded however long the clip is and every frame is
         sampled alike; clips under that budget use every sample. The random draws
@@ -1545,12 +1552,12 @@ class DepthClipRange:
             if stored.size == 0:
                 # Depth only on odd rows or columns escapes the stride-2 grid.
                 stored = depth_map.values[valid]
-            stride = max(1, math.ceil(stored.size / _CLIP_SAMPLES_PER_FRAME))
-            sample = stored[::stride].astype(np.float64)
-            if keep_share < 1.0:
-                # Random rather than every n-th sample: a fixed step aliases with the
-                # rows of structured frames and skews the percentiles.
-                sample = sample[rng.random(sample.size) < keep_share]
+            share = keep_share * min(1.0, _CLIP_SAMPLES_PER_FRAME / stored.size)
+            if share < 1.0:
+                # Random rather than every n-th sample: a fixed step aliases with
+                # structured frames and skews the percentiles.
+                stored = stored[rng.random(stored.size) < share]
+            sample = stored.astype(np.float64)
             samples.append(sample / (depth_map.scale or 1.0))
             retained += sample.size
             if retained > _CLIP_SAMPLE_BUDGET:

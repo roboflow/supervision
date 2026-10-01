@@ -62,9 +62,9 @@ class TestDepthAnnotatorColors:
 
         assert _rgb(scene) == [[TURBO[0].tolist(), TURBO[255].tolist()]]
 
-    @pytest.mark.parametrize("colormap", ["viridis"])
-    def test_uses_the_chosen_table(self, colormap: str) -> None:
-        """Every colormap paints from its own table."""
+    def test_uses_the_chosen_table(self) -> None:
+        """A colormap other than the default paints from its own table."""
+        colormap = "viridis"
         depth_map = sv.DepthMap(np.array([[1.0, 2.0]], np.float32), kind="disparity_px")
         scene = np.zeros((1, 2, 3), dtype=np.uint8)
         lut = sv.DepthColormap.from_value(colormap).rgb_lut()
