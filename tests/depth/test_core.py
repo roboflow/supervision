@@ -565,11 +565,12 @@ class _FakeLMMInferenceResponse:
     """Inference-like in-process response holding the depth in a `response` dict."""
 
     def __init__(self, normalized_depth: np.ndarray) -> None:
-        self.response = {"normalized_depth": normalized_depth, "image": object()}
+        """Hold the depth under `response`, as Inference's depth models return it."""
+        self.response = {"normalized_depth": normalized_depth}
 
     def model_dump(self) -> dict[str, Any]:
-        """Fail as dumping the response's image would."""
-        raise AssertionError("model_dump must not be called")
+        """Dump as pydantic does, with the depth nested under `response`."""
+        return {"response": dict(self.response)}
 
 
 class TestDepthMapFromInference:
