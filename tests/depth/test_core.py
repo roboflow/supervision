@@ -736,6 +736,16 @@ class TestDepthClipRange:
 
         assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0), max_value=3.0)
 
+    def test_counts_depth_off_the_sampling_grid(self) -> None:
+        """Depth only on odd pixels still yields a range."""
+        values = np.zeros((4, 4), np.float32)
+        values[1, 1], values[3, 3] = 5.0, 7.0
+        frames = [sv.DepthMap(values, kind="depth_m")]
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+
+        assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0), max_value=7.0)
+
     @pytest.mark.parametrize(
         ("frames", "match"),
         [

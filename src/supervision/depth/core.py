@@ -1559,6 +1559,9 @@ class DepthClipRange:
             if not valid.any():
                 continue
             stored, _ = depth_map._sampled_values()
+            if stored.size == 0:
+                # Depth only on odd rows or columns escapes the stride-2 grid.
+                stored = depth_map.values[valid]
             stride = max(1, math.ceil(stored.size / _CLIP_SAMPLES_PER_FRAME))
             samples.append(
                 stored[::stride].astype(np.float64) / (depth_map.scale or 1.0)
