@@ -155,8 +155,7 @@ class DepthAnnotator:
 
         _blend(scene, valid, colors, self.opacity)
         if self.no_depth_color is not None:
-            no_depth = np.empty_like(colors)
-            no_depth[...] = self.no_depth_color.as_bgr()
+            no_depth = np.array(self.no_depth_color.as_bgr(), dtype=np.uint8)
             _blend(scene, ~valid, no_depth, self.opacity)
         return scene
 
@@ -213,7 +212,7 @@ def _check_display_range_option(
 
 def _color_coordinates(
     depth_map: DepthMap, conversion: _Conversion, low: float, high: float
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
     Mirrors the supervision-js shader: `t = clamp((v - low) / (high - low))`, flipped
@@ -221,11 +220,12 @@ def _color_coordinates(
     painted.
     """
     converted = conversion.apply(depth_map.to_float())
-    span = max(high - low, 1e-20)
+    span = np.float32(max(high - low, 1e-20))
     with np.errstate(invalid="ignore"):
-        coordinates = np.clip((converted - low) / span, 0.0, 1.0)
+        coordinates: npt.NDArray[np.floating] = (converted - np.float32(low)) / span
+    np.clip(coordinates, 0.0, 1.0, out=coordinates)
     if conversion.near_is_low:
-        coordinates = 1.0 - coordinates
+        np.subtract(1.0, coordinates, out=coordinates)
     coordinates[np.isnan(coordinates)] = 0.0
     return coordinates
 
@@ -236,14 +236,19 @@ def _blend(
     colors: npt.NDArray[np.uint8],
     opacity: float,
 ) -> None:
-    """Blend `colors` into `scene` at `opacity`, only where `where` is set."""
+    """Blend `colors` into `scene` at `opacity`, only where `where` is set.
+
+    `colors` is `(H, W, 3)` or a single `(3,)` colour. Whole-image arithmetic and a
+    masked copy are several times faster than gathering and scattering the masked
+    pixels.
+    """
     if opacity <= 0 or not where.any():
         return
+    mask = where[..., np.newaxis]
     if opacity >= 1:
-        scene[where] = colors[where]
+        np.copyto(scene, colors, where=mask)
         return
-    blended = (
-        scene[where].astype(np.float32) * (1 - opacity)
-        + colors[where].astype(np.float32) * opacity
-    )
-    scene[where] = np.rint(blended).astype(np.uint8)
+    blended = scene.astype(np.float32)
+    blended *= np.float32(1 - opacity)
+    blended += colors.astype(np.float32) * np.float32(opacity)
+    np.copyto(scene, np.rint(blended).astype(np.uint8), where=mask)

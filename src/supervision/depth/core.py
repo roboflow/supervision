@@ -228,15 +228,15 @@ class _Conversion:
     outer_offset: float = 0.0
     near_is_low: bool = False
 
-    def apply(self, values: npt.NDArray[np.floating]) -> npt.NDArray[np.float64]:
-        """Convert an array of values; division by zero yields infinities."""
-        values64 = values.astype(np.float64, copy=False)
+    def apply(self, values: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+        """Convert an array in its own float precision; x / 0 yields infinities."""
         if not self.reciprocal:
-            return values64
+            return values
+        dtype = values.dtype.type
         with np.errstate(divide="ignore", invalid="ignore"):
-            converted: npt.NDArray[np.float64] = (
-                self.numerator / (values64 + self.inner_offset) + self.outer_offset
-            )
+            converted: npt.NDArray[np.floating] = dtype(self.numerator) / (
+                values + dtype(self.inner_offset)
+            ) + dtype(self.outer_offset)
         return converted
 
     def apply_range(
