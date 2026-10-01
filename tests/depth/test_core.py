@@ -15,6 +15,7 @@ from supervision.config import (
     DISPARITY_PX_DATA_FIELD,
     RELATIVE_INVERSE_DATA_FIELD,
 )
+from supervision.depth import core
 from supervision.detection.compact_mask import CompactMask
 from tests.helpers import _FakeTensor
 
@@ -745,6 +746,31 @@ class TestDepthClipRange:
         clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
 
         assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0), max_value=7.0)
+
+    def test_long_clip_keeps_a_bounded_sample(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Past the sample budget the estimate thins out but stays near exact."""
+        monkeypatch.setattr("supervision.depth.core._CLIP_SAMPLE_BUDGET", 64)
+        ranked_sizes: list[int] = []
+        ranks = core._values_at_ranks
+
+        def spy(values: np.ndarray, low: float, high: float) -> tuple[float, float]:
+            """Record how many samples reach the percentile step."""
+            ranked_sizes.append(values.size)
+            return ranks(values, low, high)
+
+        monkeypatch.setattr("supervision.depth.core._values_at_ranks", spy)
+        frames = (
+            sv.DepthMap(np.full((8, 8), value, np.float32), kind="depth_m")
+            for value in range(1, 201)
+        )
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames)
+
+        assert ranked_sizes[0] <= 64
+        assert clip_range.display_range == pytest.approx((5.0, 196.0), abs=4)
+        assert clip_range.max_value == 200.0
 
     @pytest.mark.parametrize(
         ("frames", "match"),

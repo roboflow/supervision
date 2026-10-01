@@ -41,6 +41,8 @@ _PERCENTILE_STRIDE = 2
 _MIN_VALID_SAMPLE_SHARE = 0.01
 #: Each frame adds at most this many samples to a clip-wide percentile estimate.
 _CLIP_SAMPLES_PER_FRAME = 65536
+#: A clip-wide percentile estimate keeps at most about this many float64 samples.
+_CLIP_SAMPLE_BUDGET = 1 << 22
 _UINT16_MAX = 65535
 
 
@@ -1540,8 +1542,11 @@ class DepthClipRange:
         """Compute a clip's percentile range and largest value in one pass.
 
         Each map contributes the valid values on its stride-2 grid, thinned to at most
-        65,536 values, so memory stays bounded on long clips; the largest value is
-        exact. Pass a generator to read the clip once without holding it.
+        65,536 values. Whenever the clip's samples pass 4,194,304 (32 MB), every
+        second one is dropped and later maps are thinned twice as much, so memory
+        stays bounded however long the clip is and every frame is thinned alike;
+        clips under that budget use every sample. The largest value is exact. Pass a
+        generator to read the clip once without holding it.
 
         Args:
             depth_maps: The clip's maps, all of one kind.
@@ -1557,6 +1562,8 @@ class DepthClipRange:
         _check_percentiles(low, high)
         kind: DepthKind | None = None
         samples: list[npt.NDArray[np.float64]] = []
+        seen = retained = 0
+        thinning = 1
         max_value = -math.inf
         for depth_map in depth_maps:
             if kind is None:
@@ -1574,9 +1581,18 @@ class DepthClipRange:
                 # Depth only on odd rows or columns escapes the stride-2 grid.
                 stored = depth_map.values[valid]
             stride = max(1, math.ceil(stored.size / _CLIP_SAMPLES_PER_FRAME))
-            samples.append(
-                stored[::stride].astype(np.float64) / (depth_map.scale or 1.0)
-            )
+            grid = stored[::stride]
+            # Read the clip's samples as one stream and keep every `thinning`-th, so
+            # each frame is thinned alike however few samples it has.
+            sample = grid[(-seen) % thinning :: thinning].astype(np.float64)
+            samples.append(sample / (depth_map.scale or 1.0))
+            seen += grid.size
+            retained += sample.size
+            if retained > _CLIP_SAMPLE_BUDGET:
+                # Every second kept sample is every (2 * thinning)-th of the stream;
+                # the copy releases the larger array.
+                kept = np.concatenate(samples)[::2].copy()
+                samples, retained, thinning = [kept], kept.size, thinning * 2
             largest = float(depth_map.values[valid].max())
             max_value = max(max_value, largest / (depth_map.scale or 1.0))
         if not samples or sum(sample.size for sample in samples) == 0:
