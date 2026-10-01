@@ -38,7 +38,7 @@ from supervision.detection.core import Detections
 _PERCENTILE_STRIDE = 2
 #: Below this share of valid samples a percentile says nothing about the scene.
 _MIN_VALID_SAMPLE_SHARE = 0.01
-#: Each frame adds at most this many samples to a clip-wide percentile estimate.
+#: A frame adds about this many samples, or fewer, to a clip-wide percentile estimate.
 _CLIP_SAMPLES_PER_FRAME = 65536
 #: A clip-wide percentile estimate keeps at most about this many float64 samples.
 _CLIP_SAMPLE_BUDGET = 1 << 22
@@ -521,6 +521,7 @@ class DepthMap:
         Raises:
             ValueError: If the values are not 2D, the dtype does not match `scale`,
                 or the camera, range or scale is invalid.
+            TypeError: If a `display_range` bound is not a number.
         """
         array = np.asarray(values)
         if array.ndim != 2 or array.size == 0:
@@ -1512,10 +1513,11 @@ class DepthClipRange:
         """Compute a clip's percentile range and largest value in one pass.
 
         Each map contributes the valid values on its stride-2 grid, thinned at random
-        to about 65,536 values. Whenever the clip's samples pass 4,194,304, each one
-        is kept with probability 1/2 and later maps are kept at half the previous
-        rate, so memory stays bounded however long the clip is and every frame is
-        sampled alike; clips under that budget use every sample. The random draws
+        to about 65,536 values when it has more, so a large frame weighs no more than
+        a small one. Whenever the clip's samples pass 4,194,304, each one is kept with
+        probability 1/2 and later maps are kept at half the previous rate, so memory
+        stays bounded however long the clip is and early and late frames are sampled
+        alike. The random draws
         are seeded, so the result is reproducible. The largest value is exact. Pass a
         generator to read the clip once without holding it.
 
