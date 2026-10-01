@@ -86,7 +86,7 @@ This guide covers:
     )
     ```
 
-    Dataset files load directly: `sv.DepthMap.from_png16(path, scale=256, kind="disparity_px")` for KITTI, `sv.DepthMap.from_pfm(path)` for Middlebury and SceneFlow, `sv.DepthMap.from_npy(path, kind=...)` for arrays.
+    Dataset files load directly: `sv.DepthMap.from_png16(path, scale=256, kind="disparity_px")` for KITTI and `sv.DepthMap.from_pfm(path)` for Middlebury and SceneFlow.
 
 Every kind keeps "no depth" explicit: `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels the model or matcher could not measure, and `depth_map.valid_mask` marks the rest.
 
