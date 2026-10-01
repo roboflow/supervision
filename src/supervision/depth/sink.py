@@ -214,20 +214,20 @@ class DepthSink:
 
     def _open(self, depth_map: DepthMap) -> None:
         """Take the clip's kind and size from its first map and open the preview."""
-        self._first = depth_map
-        if not self.preview:
-            return
-        if depth_map.kind is not DepthKind.DISPARITY_PX:
+        width, height = depth_map.resolution_wh
+        if self.preview and depth_map.kind is not DepthKind.DISPARITY_PX:
             raise ValueError(
                 "The preview video is defined for disparity_px maps only; convert "
                 "with depth_map.to_disparity() or pass preview=False."
             )
-        width, height = depth_map.resolution_wh
-        if width % 2 or height % 2:
+        if self.preview and (width % 2 or height % 2):
             raise ValueError(
                 f"The yuv420p preview needs an even width and height, got "
                 f"{width}x{height}; resize the maps or pass preview=False."
             )
+        self._first = depth_map
+        if not self.preview:
+            return
         import av
 
         container = av.open(
@@ -300,11 +300,12 @@ class DepthSink:
                 container.close()
         if exc_type is not None:
             return
-        if self._first is None:
+        if self._count == 0:
             logger.warning(
                 "DepthSink wrote no frames; %s has no depth.json.", self.target_dir
             )
             return
+        assert self._first is not None
         self._write_manifest(self._first, wrote_preview=container is not None)
 
     def _write_manifest(self, first: DepthMap, wrote_preview: bool) -> None:

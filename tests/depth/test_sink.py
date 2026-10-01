@@ -243,10 +243,12 @@ class TestDepthSink:
     def test_rejects_frames_it_cannot_write(
         self, tmp_path: Path, depth_map: sv.DepthMap, preview: bool, match: str
     ) -> None:
-        """Previews need even disparity maps; values must fit the clip scale."""
+        """A refused first frame raises and leaves no manifest of zero frames."""
         with sv.DepthSink(tmp_path, VIDEO_INFO, CLIP_RANGE, preview=preview) as sink:
             with pytest.raises(ValueError, match=match):
                 sink.write_depth_map(depth_map)
+
+        assert not (tmp_path / "depth.json").exists()
 
     def test_rejects_a_frame_of_another_size(self, tmp_path: Path) -> None:
         """Every frame must match the first frame's kind and size."""
