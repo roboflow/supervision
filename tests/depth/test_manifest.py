@@ -444,6 +444,15 @@ class TestDepthMapSaveLoad:
         with pytest.raises(ValueError, match="does not fit"):
             depth_map.save(tmp_path / "depth.json", scale=256)
 
+    def test_save_refuses_a_manifest_path_named_like_the_png(
+        self, tmp_path: Path
+    ) -> None:
+        """A `.png` manifest path would make the manifest overwrite its image."""
+        depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m")
+
+        with pytest.raises(ValueError, match="pass a manifest path"):
+            depth_map.save(tmp_path / "depth.png")
+
     def test_loads_a_clip_frame(self, tmp_path: Path) -> None:
         """A clip manifest loads the frame its pattern names."""
         (tmp_path / "exact").mkdir()

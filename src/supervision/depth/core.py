@@ -1304,7 +1304,8 @@ class DepthMap:
             scale: Optional divisor for float maps.
 
         Raises:
-            ValueError: If a value does not fit 16 bits at `scale`.
+            ValueError: If `path` ends in `.png`, which is the image's own name, or a
+                value does not fit 16 bits at `scale`.
 
         Examples:
             ```python
@@ -1321,6 +1322,12 @@ class DepthMap:
             ```
         """
         manifest_path = Path(path)
+        if manifest_path.suffix.lower() == ".png":
+            raise ValueError(
+                "save() writes the PNG beside the manifest under the manifest's "
+                f"name, so {manifest_path} would be overwritten; pass a manifest "
+                f"path such as {manifest_path.with_suffix('.json')}."
+            )
         codes, stored_scale = self._stored_codes(scale)
         image_file = manifest_path.with_suffix(".png").name
         manifest = _manifest_header(
