@@ -404,6 +404,17 @@ class TestDepthMapSaveLoad:
             loaded.to_float(), depth_map.to_float(), atol=1 / 2048
         )
 
+    def test_numpy_camera_parameters_round_trip(self, tmp_path: Path) -> None:
+        """A camera built from NumPy scalars, as from a calibration file, saves."""
+        camera = sv.DepthCamera(fx_px=np.float32(700.0), baseline_m=np.float64(0.125))
+        depth_map = sv.DepthMap(
+            np.ones((2, 2), np.float32), kind="depth_m", camera=camera
+        )
+
+        depth_map.save(tmp_path / "depth.json")
+
+        assert sv.DepthMap.load(tmp_path / "depth.json").camera == camera
+
     def test_uint16_map_round_trips_byte_for_byte(self, tmp_path: Path) -> None:
         """Loading and saving again writes the same PNG and an equal map."""
         codes = np.random.default_rng(1).integers(0, 65536, (9, 11), dtype=np.uint16)

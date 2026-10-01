@@ -174,6 +174,20 @@ class TestDepthSink:
         assert manifest["display_range"] == [1.0, 9.0]
         assert not (tmp_path / "preview.mp4").exists()
 
+    def test_numpy_clip_range_writes_its_manifest(self, tmp_path: Path) -> None:
+        """A clip range built from NumPy scalars still writes plain JSON numbers."""
+        clip_range = sv.DepthClipRange(
+            display_range=(np.float32(2.0), np.float32(60.0)),
+            max_value=np.float32(63.0),
+        )
+
+        with sv.DepthSink(tmp_path, VIDEO_INFO, clip_range) as sink:
+            sink.write_depth_map(_frames(1)[0])
+
+        manifest = json.loads((tmp_path / "depth.json").read_text())
+        assert manifest["display_range_px"] == [2.0, 60.0]
+        assert manifest["preview"]["range_px"] == [0, 63.0]
+
     def test_reuses_uint16_codes_at_the_clip_scale(self, tmp_path: Path) -> None:
         """Codes already at the clip's scale are written untouched."""
         codes = np.random.default_rng(2).integers(0, 64512, (8, 16), dtype=np.uint16)

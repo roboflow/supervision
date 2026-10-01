@@ -174,7 +174,12 @@ class DepthCamera:
     cy_px: float | None = None
 
     def __post_init__(self) -> None:
-        """Reject parameters that cannot convert disparity to depth."""
+        """Store plain floats and reject parameters that cannot convert disparity."""
+        for name in ("fx_px", "baseline_m", "doffs_px", "cx_px", "cy_px"):
+            value = getattr(self, name)
+            if value is not None:
+                # NumPy scalars would make the depth.json camera block unwritable.
+                object.__setattr__(self, name, float(value))
         for name in ("fx_px", "baseline_m"):
             value = getattr(self, name)
             if not (math.isfinite(value) and value > 0):
@@ -1527,8 +1532,11 @@ class DepthClipRange:
     max_value: float
 
     def __post_init__(self) -> None:
-        """Reject an empty range or a non-positive ceiling."""
-        low, high = self.display_range
+        """Store plain floats and reject an empty range or a non-positive ceiling."""
+        low, high = (float(bound) for bound in self.display_range)
+        # NumPy scalars would make the clip's depth.json unwritable.
+        object.__setattr__(self, "display_range", (low, high))
+        object.__setattr__(self, "max_value", float(self.max_value))
         if not (math.isfinite(low) and math.isfinite(high) and low < high):
             raise ValueError(
                 "DepthClipRange display_range must be two finite numbers with "
