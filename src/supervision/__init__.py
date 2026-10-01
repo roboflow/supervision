@@ -53,6 +53,7 @@ from supervision.depth.core import (
     DepthMap,
     DepthQuantity,
 )
+from supervision.depth.sink import DepthSink
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -197,6 +198,7 @@ __all__ = [
     "DepthKind",
     "DepthMap",
     "DepthQuantity",
+    "DepthSink",
     "DetectionDataset",
     "Detections",
     "DetectionsSmoother",
