@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.metrics.MeanAveragePrecision(class_agnostic=True)` now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Class-aware scoring and the original input detections are unchanged.
+
 - `sv.DetectionDataset.as_labelme`, `as_yolo`, and `as_pascal_voc` now export annotations for in-memory grayscale images shaped `(height, width)` without failing on a missing channel dimension. Image dimensions and annotation coordinates are preserved, Pascal VOC records depth `1`, and the source pixels are unchanged. [#2641](https://github.com/roboflow/supervision/pull/2641)
 
 - `sv.KeyPoints.with_nms` now preserves skeletons with zero joints, including those produced by boolean keypoint filtering, instead of raising a zero-size reduction error. All aligned fields and NMS validation requirements are preserved. [#2639](https://github.com/roboflow/supervision/pull/2639)

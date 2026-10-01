@@ -1429,7 +1429,8 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
 
         Args:
             metric_target: The type of detection data to use.
-            class_agnostic: Whether to treat all data as a single class.
+            class_agnostic: Whether to treat all data as a single class, including
+                detections without class IDs.
             class_mapping: A dictionary to map class IDs to new IDs.
             image_indices: The indices of the images to use.
         """
@@ -1683,6 +1684,16 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 f" targets ({total_images_targets}) during the evaluation must be"
                 " the same."
             )
+
+        if self._class_agnostic:
+            detections = self._predictions_list + self._targets_list
+            # All-unlabeled inputs keep their default category; mixed inputs
+            # must join the class assigned to labeled detections in update.
+            if any(d.class_id is not None and len(d) > 0 for d in detections):
+                for detection in detections:
+                    if detection.class_id is None:
+                        detection.class_id = np.full(len(detection), -1, dtype=int)
+
         dict_targets = self._prepare_targets(self._targets_list)
         lst_predictions = self._prepare_predictions(self._predictions_list)
         # Create a coco object with the targets
