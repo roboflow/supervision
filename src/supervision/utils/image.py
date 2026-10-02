@@ -201,7 +201,7 @@ def crop_image(
 
     ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    xyxy_arr = np.asarray(xyxy, dtype=np.float64).round().astype(np.int32)
+    xyxy_arr = np.asarray(xyxy, dtype=np.float64).round()
     x_min, y_min, x_max, y_max = xyxy_arr.flatten()
 
     if isinstance(image, np.ndarray):
