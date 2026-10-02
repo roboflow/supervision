@@ -37,6 +37,14 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
+def calculate_speed(distance: float, elapsed_frames: int, fps: float) -> float:
+    """Convert displacement over source-frame intervals to kilometres per hour."""
+    if elapsed_frames < 1:
+        raise ValueError("At least one elapsed frame is required to calculate speed.")
+    elapsed_time = elapsed_frames / fps
+    return distance / elapsed_time * 3.6
+
+
 def main(
     source_video_path: str,
     target_video_path: str,
@@ -83,7 +91,7 @@ def main(
 
     with sv.VideoSink(target_video_path, video_info) as sink:
         window = sv.ImageWindow("frame")
-        for frame in frame_generator:
+        for frame_index, frame in enumerate(frame_generator):
             result = model(frame, conf=confidence_threshold, iou=iou_threshold)[0]
             detections = sv.Detections.from_ultralytics(result)
             detections = detections[polygon_zone.trigger(detections)]
@@ -96,19 +104,18 @@ def main(
             points = view_transformer.transform_points(points=points).astype(int)
 
             for tracker_id, [_, y] in zip(detections.tracker_id, points, strict=True):
-                coordinates[tracker_id].append(y)
+                coordinates[tracker_id].append((frame_index, y))
 
             labels = []
             for tracker_id in detections.tracker_id:
-                if len(coordinates[tracker_id]) < video_info.fps / 2:
+                history = coordinates[tracker_id]
+                elapsed_frames = history[-1][0] - history[0][0]
+                if len(history) < 2 or elapsed_frames < video_info.fps / 2:
                     labels.append(f"#{tracker_id}")
-                else:
-                    coordinate_start = coordinates[tracker_id][-1]
-                    coordinate_end = coordinates[tracker_id][0]
-                    distance = abs(coordinate_start - coordinate_end)
-                    time = len(coordinates[tracker_id]) / video_info.fps
-                    speed = distance / time * 3.6
-                    labels.append(f"#{tracker_id} {int(speed)} km/h")
+                    continue
+                distance = abs(history[-1][1] - history[0][1])
+                speed = calculate_speed(distance, elapsed_frames, video_info.fps)
+                labels.append(f"#{tracker_id} {int(speed)} km/h")
 
             annotated_frame = frame.copy()
             annotated_frame = trace_annotator.annotate(

@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-02
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- The Ultralytics, Inference and YOLO-NAS speed estimation examples (`examples/speed_estimation/`) now measure elapsed time from source-frame indices, as the RF-DETR example already does. They divided the distance by the number of stored positions over the frame rate, which assumed the vehicle was detected in every frame and counted N positions as N frame intervals instead of N - 1. A vehicle missed in one frame of three was reported about 44% too fast, and even a vehicle detected in every frame was reported about 4% too slow at 25 fps. Each tracked position is now stored with its frame index, speed is shown once the positions span at least half a second of source frames, and the RF-DETR example is unchanged. ([#2654](https://github.com/roboflow/supervision/pull/2654))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
