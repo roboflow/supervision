@@ -657,6 +657,199 @@ def oriented_box_iou_batch(
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
 
 
+_COCO_KEYPOINT_SIGMAS: npt.NDArray[np.float64] = (
+    np.array(
+        [
+            0.26,
+            0.25,
+            0.25,
+            0.35,
+            0.35,
+            0.79,
+            0.79,
+            0.72,
+            0.72,
+            0.62,
+            0.62,
+            1.07,
+            1.07,
+            0.87,
+            0.87,
+            0.89,
+            0.89,
+        ],
+        dtype=np.float64,
+    )
+    / 10.0
+)
+"""Per-keypoint OKS sigmas of the 17-point COCO person skeleton, in COCO keypoint order
+(nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles), as used by
+`pycocotools`."""
+
+
+def _resolve_keypoint_sigmas(
+    sigmas: npt.ArrayLike | None, num_keypoints: int
+) -> npt.NDArray[np.float64]:
+    """Return per-keypoint OKS sigmas, defaulting to COCO only for 17 keypoints.
+
+    Raises:
+        ValueError: If `sigmas` is `None` for a skeleton that is not 17 points
+            long, or if `sigmas` does not hold one positive value per keypoint.
+    """
+    if sigmas is None:
+        if num_keypoints != len(_COCO_KEYPOINT_SIGMAS):
+            raise ValueError(
+                f"OKS needs one sigma per keypoint, and the COCO preset only "
+                f"covers 17-point skeletons; got {num_keypoints} keypoints. "
+                f"Pass `sigmas` with shape ({num_keypoints},) for this skeleton."
+            )
+        return _COCO_KEYPOINT_SIGMAS
+    resolved = np.asarray(sigmas, dtype=np.float64)
+    if resolved.shape != (num_keypoints,):
+        raise ValueError(
+            f"`sigmas` must have shape ({num_keypoints},) to match the number of "
+            f"keypoints; got {resolved.shape}."
+        )
+    if not np.all(resolved > 0):
+        raise ValueError("`sigmas` must be positive.")
+    return resolved
+
+
+def _keypoint_oks_batch(
+    keypoints_true: npt.NDArray[np.number],
+    keypoints_detection: npt.NDArray[np.number],
+    area_true: npt.NDArray[np.number],
+    sigmas: npt.ArrayLike | None = None,
+    visible_true: npt.NDArray[np.bool_] | None = None,
+    xyxy_true: npt.NDArray[np.number] | None = None,
+) -> npt.NDArray[np.float64]:
+    """Compute pairwise Object Keypoint Similarity (OKS) between keypoint sets.
+
+    OKS is the keypoint counterpart of IoU used by COCO keypoint evaluation:
+
+    `OKS = mean over visible i of exp(-d_i^2 / (2 * area * (2 * sigma_i)^2))`
+
+    where `d_i` is the distance between the `i`-th target and detected keypoint,
+    `area` is the target's object area, and only the target's visible keypoints
+    contribute. The arithmetic follows `pycocotools` `COCOeval.computeOks`, and
+    the result is float64 so that values compared with OKS thresholds match it.
+
+    Args:
+        keypoints_true: Target keypoints of shape `(N, K, 2)`.
+        keypoints_detection: Detected keypoints of shape `(M, K, 2)`. Detection
+            visibility is not used, as in COCO.
+        area_true: Object area of each target, shape `(N,)`. COCO uses the
+            annotated segmentation area here.
+        sigmas: Per-keypoint falloff constants of shape `(K,)`. Defaults to
+            `_COCO_KEYPOINT_SIGMAS` when `K == 17` and is required otherwise.
+        visible_true: Boolean mask of shape `(N, K)` marking labelled target
+            keypoints. When `None`, all target keypoints are visible.
+        xyxy_true: Target boxes of shape `(N, 4)` in `(x_min, y_min, x_max,
+            y_max)` format, used only for targets with no visible keypoint.
+            As in `pycocotools`, such a target's box of width `w` and height
+            `h` is expanded to `[x_min - w, x_min + 2w] x [y_min - h, y_min + 2h]`,
+            `d_i` becomes the distance from each detected keypoint to that
+            expanded box (`0` inside it), and the mean runs over all `K`
+            keypoints. When `None`, a target with no visible keypoint has OKS
+            `0` with every detection.
+
+    Returns:
+        OKS matrix of shape `(N, M)`, where entry `[i, j]` is the similarity
+            between `keypoints_true[i]` and `keypoints_detection[j]`.
+
+    Raises:
+        ValueError: If the shapes are inconsistent, or `sigmas` is missing for a
+            skeleton that is not 17 points long.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.iou_and_nms import _keypoint_oks_batch
+        >>> keypoints_true = np.array([[[10, 10], [20, 10], [15, 20]]])
+        >>> keypoints_detection = np.array([
+        ...     [[10, 10], [20, 10], [15, 20]],
+        ...     [[12, 10], [20, 13], [15, 20]],
+        ... ])
+        >>> _keypoint_oks_batch(
+        ...     keypoints_true,
+        ...     keypoints_detection,
+        ...     area_true=np.array([100.0]),
+        ...     sigmas=np.array([0.25, 0.25, 0.25]),
+        ... )
+        array([[1.        , 0.91946...]])
+
+        ```
+    """
+    keypoints_true = np.asarray(keypoints_true)
+    keypoints_detection = np.asarray(keypoints_detection)
+    count_true, count_det = len(keypoints_true), len(keypoints_detection)
+    if count_true == 0 or count_det == 0:
+        return np.zeros((count_true, count_det), dtype=np.float64)
+
+    if (
+        keypoints_true.ndim != 3
+        or keypoints_true.shape[2] != 2
+        or keypoints_detection.shape[1:] != keypoints_true.shape[1:]
+    ):
+        raise ValueError(
+            "`keypoints_true` and `keypoints_detection` must have shapes (N, K, 2) "
+            f"and (M, K, 2); got {keypoints_true.shape} and "
+            f"{keypoints_detection.shape}."
+        )
+    num_keypoints = keypoints_true.shape[1]
+    area = np.asarray(area_true, dtype=np.float64)
+    if area.shape != (count_true,):
+        raise ValueError(
+            f"`area_true` must have shape ({count_true},); got {area.shape}."
+        )
+    if visible_true is None:
+        visible = np.ones((count_true, num_keypoints), dtype=bool)
+    else:
+        visible = np.asarray(visible_true, dtype=bool)
+        if visible.shape != (count_true, num_keypoints):
+            raise ValueError(
+                f"`visible_true` must have shape ({count_true}, {num_keypoints}); "
+                f"got {visible.shape}."
+            )
+    boxes = None
+    if xyxy_true is not None:
+        boxes = np.asarray(xyxy_true, dtype=np.float64)
+        if boxes.shape != (count_true, 4):
+            raise ValueError(
+                f"`xyxy_true` must have shape ({count_true}, 4); got {boxes.shape}."
+            )
+    variances = (_resolve_keypoint_sigmas(sigmas, num_keypoints) * 2) ** 2
+
+    true_xy = keypoints_true.astype(np.float64)[:, None, :, :]
+    detection_xy = keypoints_detection.astype(np.float64)[None, :, :, :]
+    dx = detection_xy[..., 0] - true_xy[..., 0]
+    dy = detection_xy[..., 1] - true_xy[..., 1]
+    num_visible = visible.sum(axis=1)
+    use_box = np.zeros(count_true, dtype=bool)
+    if boxes is not None:
+        use_box = num_visible == 0
+        # COCO xywh, then the same expansion and operation order as
+        # pycocotools `computeOks`.
+        x, y = boxes[:, 0], boxes[:, 1]
+        w, h = boxes[:, 2] - x, boxes[:, 3] - y
+        x0, x1 = (x - w)[:, None, None], (x + w * 2)[:, None, None]
+        y0, y1 = (y - h)[:, None, None], (y + h * 2)[:, None, None]
+        xd, yd = detection_xy[..., 0], detection_xy[..., 1]
+        box_dx = np.maximum(0, x0 - xd) + np.maximum(0, xd - x1)
+        box_dy = np.maximum(0, y0 - yd) + np.maximum(0, yd - y1)
+        dx = np.where(use_box[:, None, None], box_dx, dx)
+        dy = np.where(use_box[:, None, None], box_dy, dy)
+    # Same operation order as pycocotools, so OKS values that land on a
+    # threshold round the same way there and here.
+    error = (dx**2 + dy**2) / variances / (area[:, None, None] + np.spacing(1)) / 2
+    counted = visible | use_box[:, None]
+    similarity = np.where(counted[:, None, :], np.exp(-error), 0.0).sum(axis=2)
+    num_counted = counted.sum(axis=1)[:, None]
+    oks = np.zeros((count_true, count_det), dtype=np.float64)
+    np.divide(similarity, num_counted, out=oks, where=num_counted > 0)
+    return oks
+
+
 def compact_mask_iou_batch(
     masks_true: Any,
     masks_detection: Any,

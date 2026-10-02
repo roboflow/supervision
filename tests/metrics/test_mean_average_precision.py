@@ -1128,3 +1128,27 @@ class TestMeanAveragePrecisionPycocotoolsParity:
         # Mask IoU is prediction_width / 100; pycocotools 2.0.11 ("segm") gives the
         # same stats[0].
         assert result.map50_95 == pytest.approx(expected_map50_95)
+
+
+def test_box_map_uses_100_max_detections_by_default() -> None:
+    """Box mAP reads the 100-detection slice, so a match ranked 12th counts.
+
+    Eleven higher-scored false positives push the only true positive past the 1 and 10
+    detection limits, so AP is `1/12` only at 100 max detections.
+    """
+    false_positives = np.array(
+        [[200 + 20 * i, 0, 210 + 20 * i, 10] for i in range(11)], dtype=float
+    )
+    predictions = Detections(
+        xyxy=np.vstack([false_positives, [[0, 0, 50, 50]]]),
+        class_id=np.zeros(12, dtype=int),
+        confidence=np.r_[np.linspace(0.99, 0.9, 11), 0.5],
+    )
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=float), class_id=np.array([0])
+    )
+
+    result = MeanAveragePrecision().update(predictions, targets).compute()
+
+    assert result.map50_95 == pytest.approx(1 / 12, abs=1e-6)
+    assert result.map50 == pytest.approx(1 / 12, abs=1e-6)

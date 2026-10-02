@@ -5,6 +5,10 @@ from supervision.metrics.core import (
     MetricTarget,
 )
 from supervision.metrics.f1_score import F1Score, F1ScoreResult
+from supervision.metrics.keypoint_mean_average_precision import (
+    KeypointMeanAveragePrecision,
+    KeypointMeanAveragePrecisionResult,
+)
 from supervision.metrics.mean_average_precision import (
     MeanAveragePrecision,
     MeanAveragePrecisionResult,
@@ -29,6 +33,8 @@ __all__ = [
     "AveragingMethod",
     "F1Score",
     "F1ScoreResult",
+    "KeypointMeanAveragePrecision",
+    "KeypointMeanAveragePrecisionResult",
     "MeanAveragePrecision",
     "MeanAveragePrecisionResult",
     "MeanAverageRecall",

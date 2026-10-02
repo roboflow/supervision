@@ -54,6 +54,7 @@ class _TypeCocoDict(TypedDict, total=False):
     # `MetricTarget.MASKS` or an oriented box of shape (4, 2) for
     # `MetricTarget.ORIENTED_BOUNDING_BOXES`. Absent for `MetricTarget.BOXES`.
     # Invariant: shape/dtype match `metric_target` of the owning COCOEvaluator.
+    # The keypoint evaluator stores `(K, 3)` rows of `(x, y, visible)` instead.
     content: npt.NDArray[Any]
 
 
@@ -72,6 +73,73 @@ class _TypeEvaluationImageResult(TypedDict):
     dtScores: list[float]
     gtIgnore: npt.NDArray[np.int64]
     dtIgnore: npt.NDArray[np.bool_]
+
+
+def _mean_valid_score(scores: npt.NDArray[np.float64]) -> float:
+    """Average the scores that are not the `-1` sentinel, or return `-1`."""
+    valid_scores = scores[scores > -1]
+    if len(valid_scores) > 0:
+        return float(valid_scores.mean())
+    return -1
+
+
+def _scores_to_pandas(
+    scores: dict[str, float],
+    object_sizes: list[tuple[str, MetricResult | None]],
+) -> pd.DataFrame:
+    """Build a one-row DataFrame of scores and prefixed per-size scores.
+
+    Args:
+        scores: Column name to score for the overall result.
+        object_sizes: `(prefix, result)` pairs; each present result's own
+            `to_pandas` columns are added as `{prefix}_{column}`.
+
+    Returns:
+        A DataFrame with a single row.
+    """
+    ensure_pandas_installed()
+    import pandas as pd
+
+    pandas_data: dict[str, object] = dict(scores)
+    for prefix, result in object_sizes:
+        if result is None:
+            continue
+        for key, value in result.to_pandas().items():
+            pandas_data[f"{prefix}_{key}"] = value
+    return pd.DataFrame(pandas_data, index=[0])
+
+
+def _show_bar_plot(details: PlotDetails) -> None:
+    """Draw score bars with their values on a `[0, 1]` axis and show them."""
+    from matplotlib import pyplot as plt
+
+    plt.rcParams["font.family"] = "monospace"
+
+    _, ax = plt.subplots(figsize=(10, 6))
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Value", fontweight="bold")
+    ax.set_title(details.title, fontweight="bold")
+
+    x_positions = range(len(details.labels))
+    bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(details.labels, rotation=45, ha="right")
+
+    for bar in bars:
+        y_value = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            y_value + 0.02,
+            f"{y_value:.2f}",
+            ha="center",
+            va="bottom",
+        )
+
+    plt.rcParams["font.family"] = "sans-serif"
+
+    plt.tight_layout()
+    plt.show()
 
 
 @dataclass
@@ -108,11 +176,7 @@ class MeanAveragePrecisionResult(MetricResult):
     @property
     def map50_95(self) -> float:
         """The mAP score at IoU thresholds from `0.5` to `0.95`."""
-        valid_scores = self.mAP_scores[self.mAP_scores > -1]
-        if len(valid_scores) > 0:
-            return float(valid_scores.mean())
-        else:
-            return -1
+        return _mean_valid_score(self.mAP_scores)
 
     @property
     def map50(self) -> float:
@@ -197,32 +261,14 @@ class MeanAveragePrecisionResult(MetricResult):
         Returns:
             The result as a DataFrame.
         """
-        ensure_pandas_installed()
-        import pandas as pd
-
-        pandas_data: dict[str, object] = {
-            "mAP@50:95": self.map50_95,
-            "mAP@50": self.map50,
-            "mAP@75": self.map75,
-        }
-
-        if self.small_objects is not None:
-            small_objects_df = self.small_objects.to_pandas()
-            for key, value in small_objects_df.items():
-                pandas_data[f"small_objects_{key}"] = value
-        if self.medium_objects is not None:
-            medium_objects_df = self.medium_objects.to_pandas()
-            for key, value in medium_objects_df.items():
-                pandas_data[f"medium_objects_{key}"] = value
-        if self.large_objects is not None:
-            large_objects_df = self.large_objects.to_pandas()
-            for key, value in large_objects_df.items():
-                pandas_data[f"large_objects_{key}"] = value
-
         # Average precisions are currently not included in the DataFrame.
-        return pd.DataFrame(
-            pandas_data,
-            index=[0],
+        return _scores_to_pandas(
+            {"mAP@50:95": self.map50_95, "mAP@50": self.map50, "mAP@75": self.map75},
+            [
+                ("small_objects", self.small_objects),
+                ("medium_objects", self.medium_objects),
+                ("large_objects", self.large_objects),
+            ],
         )
 
     def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
@@ -265,37 +311,7 @@ class MeanAveragePrecisionResult(MetricResult):
         https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
         ){ align=center width="800" }
         """
-        from matplotlib import pyplot as plt
-
-        details = self._get_plot_details()
-
-        plt.rcParams["font.family"] = "monospace"
-
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
-        ax.set_title(details.title, fontweight="bold")
-
-        x_positions = range(len(details.labels))
-        bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
-
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-        for bar in bars:
-            y_value = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
-                ha="center",
-                va="bottom",
-            )
-
-        plt.rcParams["font.family"] = "sans-serif"
-
-        plt.tight_layout()
-        plt.show()
+        _show_bar_plot(self._get_plot_details())
 
 
 class EvaluationDataset:
@@ -1223,12 +1239,13 @@ class COCOEvaluator:
             ap_per_class = mean_with_mask(1).transpose(1, 0)
             return mAP_scores, ap_per_class
 
-        # Average precision over all sizes, 100 max detections
+        # Average precision over all sizes at the largest max detections (100 for
+        # boxes, masks and oriented boxes; `max_dets` is sorted in `evaluate`)
         area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
-        max_100_dets_idx = self.params.max_dets.index(100)
+        largest_max_dets_idx = len(self.params.max_dets) - 1
         # Average precision  [threshold, recall, classes]
         average_precision_all_sizes = precision[
-            :, :, :, area_range_idx, max_100_dets_idx
+            :, :, :, area_range_idx, largest_max_dets_idx
         ]
         # mAP over thresholds (dimension=num_thresholds)
         # Exclude -1 sentinel values when computing mean
@@ -1236,28 +1253,28 @@ class COCOEvaluator:
             average_precision_all_sizes
         )
 
-        # Average precision for SMALL objects and 100 max detections
+        # Average precision for SMALL objects at the largest max detections
         small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
         average_precision_small = precision[
-            :, :, :, small_area_range_idx, max_100_dets_idx
+            :, :, :, small_area_range_idx, largest_max_dets_idx
         ]
         mAP_scores_small, ap_per_class_small = compute_average_precision(
             average_precision_small
         )
 
-        # Average precision for MEDIUM objects and 100 max detections
+        # Average precision for MEDIUM objects at the largest max detections
         medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
         average_precision_medium = precision[
-            :, :, :, medium_area_range_idx, max_100_dets_idx
+            :, :, :, medium_area_range_idx, largest_max_dets_idx
         ]
         mAP_scores_medium, ap_per_class_medium = compute_average_precision(
             average_precision_medium
         )
 
-        # Average precision for LARGE objects and 100 max detections
+        # Average precision for LARGE objects at the largest max detections
         large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
         average_precision_large = precision[
-            :, :, :, large_area_range_idx, max_100_dets_idx
+            :, :, :, large_area_range_idx, largest_max_dets_idx
         ]
         mAP_scores_large, ap_per_class_large = compute_average_precision(
             average_precision_large
