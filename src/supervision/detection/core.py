@@ -584,6 +584,11 @@ class Detections:
         need a separate conversion; see
         [Evaluate targets from a PyTorch DataLoader](https://supervision.roboflow.com/latest/metrics/mean_average_precision/#evaluate-targets-from-a-pytorch-dataloader).
 
+        For semantic segmentation, pass either a class-ID tensor or the result of
+        `post_process_semantic_segmentation(return_segmentation_scores=True)`.
+        Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
+        holds one score per detection.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
