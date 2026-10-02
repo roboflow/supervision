@@ -9,6 +9,10 @@ date_modified: 2026-10-02
 
 - `sv.metrics.MeanAveragePrecision(class_agnostic=True)` now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Class-aware scoring and the original input detections are unchanged. ([#2650](https://github.com/roboflow/supervision/pull/2650))
 
+- `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
+
+- `sv.Detections.from_transformers` now accepts the semantic segmentation output returned by Transformers processors with `return_segmentation_scores=True`. These outputs carry a `segmentation` class map and per-pixel `segmentation_scores`, but no `segments_info`; the adapter previously treated every dictionary with `segmentation` as an instance or panoptic result and raised `KeyError: 'segments_info'`. The class map now follows the same path as a bare semantic tensor, while per-pixel scores remain excluded from per-detection `confidence`. ([#2643](https://github.com/roboflow/supervision/pull/2643))
+
 - `sv.DetectionDataset.as_labelme`, `as_yolo`, and `as_pascal_voc` now export annotations for in-memory grayscale images shaped `(height, width)` without failing on a missing channel dimension. Image dimensions and annotation coordinates are preserved, Pascal VOC records depth `1`, and the source pixels are unchanged. [#2641](https://github.com/roboflow/supervision/pull/2641)
 
 - `sv.KeyPoints.with_nms` now preserves skeletons with zero joints, including those produced by boolean keypoint filtering, instead of raising a zero-size reduction error. All aligned fields and NMS validation requirements are preserved. [#2639](https://github.com/roboflow/supervision/pull/2639)

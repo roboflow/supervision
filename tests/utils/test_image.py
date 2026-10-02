@@ -589,6 +589,28 @@ def test_crop_image_clips_out_of_bounds_coordinates() -> None:
     )
 
 
+class TestCropImageLargeCoordinates:
+    @pytest.mark.parametrize("as_pillow", [False, True])
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param((-(2**31) - 1, 0, 2**31 + 1, 3), id="past-int32"),
+            pytest.param((-(2**32), 0, 2**32, 3), id="int32-wraparound"),
+            pytest.param((-1e100, 0, 1e100, 3), id="large-float"),
+        ],
+    )
+    def test_clips_before_converting_to_integer(
+        self, as_pillow: bool, xyxy: tuple[int | float, ...]
+    ) -> None:
+        """Finite crop bounds outside int32 retain the image pixels."""
+        pixels = np.arange(12, dtype=np.uint8).reshape(3, 4)
+        image = Image.fromarray(pixels) if as_pillow else pixels
+
+        cropped = crop_image(image=image, xyxy=xyxy)
+
+        np.testing.assert_array_equal(np.asarray(cropped), pixels)
+
+
 @pytest.mark.parametrize(
     ("image", "expected"),
     [
