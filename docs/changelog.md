@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-02
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.metrics.MeanAveragePrecision(class_agnostic=True)` now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Class-aware scoring and the original input detections are unchanged. ([#2650](https://github.com/roboflow/supervision/pull/2650))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 

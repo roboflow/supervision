@@ -36,6 +36,116 @@ def _obb_detections(corners: list[list[int]], confidence: bool = False) -> Detec
 
 
 class TestMeanAveragePrecision:
+    @pytest.mark.parametrize(
+        ("prediction_class_id", "target_class_id"),
+        [
+            pytest.param(None, 3, id="unlabeled-predictions"),
+            pytest.param(7, None, id="unlabeled-targets"),
+            pytest.param(None, None, id="both-unlabeled"),
+            pytest.param(7, 3, id="both-labeled"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "class_mapping",
+        [pytest.param(None, id="no-mapping"), pytest.param({-1: 9}, id="mapped")],
+    )
+    @pytest.mark.parametrize(
+        "metric_target",
+        [
+            pytest.param(MetricTarget.BOXES, id="boxes"),
+            pytest.param(MetricTarget.MASKS, id="masks"),
+            pytest.param(MetricTarget.ORIENTED_BOUNDING_BOXES, id="oriented-boxes"),
+        ],
+    )
+    def test_class_agnostic_missing_class_ids(
+        self,
+        prediction_class_id: int | None,
+        target_class_id: int | None,
+        metric_target: MetricTarget,
+        class_mapping: dict[int, int] | None,
+    ) -> None:
+        """Perfect geometry scores full mAP regardless of class ID presence."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            confidence=np.array([0.9]),
+            class_id=(
+                np.array([prediction_class_id])
+                if prediction_class_id is not None
+                else None
+            ),
+            mask=np.ones((1, 10, 10), dtype=bool),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array(
+                    [[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32
+                )
+            },
+        )
+        targets = Detections(
+            xyxy=predictions.xyxy.copy(),
+            class_id=(
+                np.array([target_class_id]) if target_class_id is not None else None
+            ),
+            mask=predictions.mask.copy(),
+            data={ORIENTED_BOX_COORDINATES: predictions.data[ORIENTED_BOX_COORDINATES]},
+        )
+        metric = MeanAveragePrecision(
+            metric_target=metric_target,
+            class_agnostic=True,
+            class_mapping=class_mapping,
+        )
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        expected_class = (
+            0
+            if prediction_class_id is None and target_class_id is None
+            else 9
+            if class_mapping is not None
+            else -1
+        )
+        np.testing.assert_array_equal(result.matched_classes, [expected_class])
+        np.testing.assert_array_equal(
+            predictions.class_id,
+            None if prediction_class_id is None else [prediction_class_id],
+        )
+        np.testing.assert_array_equal(
+            targets.class_id, None if target_class_id is None else [target_class_id]
+        )
+
+    def test_class_agnostic_unlabeled_inputs_preserve_class_mapping(self) -> None:
+        """Unused class mappings do not change all-unlabeled evaluation."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            confidence=np.array([0.9]),
+        )
+        targets = Detections(xyxy=predictions.xyxy.copy())
+        metric = MeanAveragePrecision(class_agnostic=True, class_mapping={0: 4})
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [0])
+
+    def test_class_agnostic_normalizes_across_updates(self) -> None:
+        """Labeled and unlabeled images share one class across update calls."""
+        unlabeled = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            confidence=np.array([0.9]),
+        )
+        labeled = Detections(
+            xyxy=unlabeled.xyxy.copy(),
+            class_id=np.array([3]),
+            confidence=np.array([0.9]),
+        )
+        metric = MeanAveragePrecision(class_agnostic=True)
+        metric.update(unlabeled, unlabeled).update(labeled, labeled)
+
+        result = metric.compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
     def test_single_perfect_detection(self, detections_50_50, targets_50_50):
         """Test that single perfect detection gets 1.0 mAP (not 0.0 due to ID=0 bug)"""
         metric = MeanAveragePrecision()
