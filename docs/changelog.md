@@ -45,6 +45,8 @@ date_modified: 2026-09-29
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The index array was built from an empty list, so NumPy defaulted it to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0` — `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype and the rest now match them. Results with at least one surviving detection are unchanged.
 
+- Added new cookbook: **Pose Augmentation with Left/Right Keypoint Remapping**, showing how a horizontal flip on `sv.KeyPoints` mirrors coordinates without relabeling left/right landmarks, and how to fix the row order after flipping with `albumentations`. ([#2537](https://github.com/roboflow/supervision/pull/2537))
+
 ### 0.30.6 <small>Sep 29, 2026</small>
 
 - `sv.VertexEllipseHaloAnnotator` now draws the whole halo of a key point whose covariance ellipse is not horizontal. The fade box was sized from the ellipse's semi-axes as if the major axis always ran along the image x axis, so a vertical or diagonal ellipse was clipped to a thin band — a 20 x 1 px ellipse at 90° drew 6 px tall instead of 39 px. The box now covers the rotated ellipse, matching `sv.VertexEllipseOutlineAnnotator` and `sv.VertexEllipseAreaAnnotator`. Horizontal ellipses are unchanged. ([#2634](https://github.com/roboflow/supervision/pull/2634))
