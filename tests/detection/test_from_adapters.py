@@ -1,3 +1,5 @@
+from collections import UserDict
+
 import numpy as np
 import pytest
 
@@ -304,6 +306,29 @@ class TestFromTransformers:
         assert len(det) == 2
         np.testing.assert_array_equal(det.class_id, [0, 1])
         np.testing.assert_allclose(det.confidence, [0.9, 0.8])
+
+    def test_v5_semantic_output_with_scores_uses_class_map(self) -> None:
+        """Score-bearing semantic output has no segments_info but still yields masks."""
+        segmentation = np.array([[0, 1, 1], [0, 2, 2]], dtype=np.int64)
+        result = UserDict(
+            {
+                "segmentation": _FakeDetachTensor(segmentation),
+                "segmentation_scores": _FakeDetachTensor(
+                    np.zeros((3, 2, 3), dtype=np.float32)
+                ),
+            }
+        )
+
+        det = Detections.from_transformers(
+            result, id2label={0: "background", 1: "cat", 2: "dog"}
+        )
+
+        np.testing.assert_array_equal(det.class_id, [0, 1, 2])
+        np.testing.assert_array_equal(det.mask[1], segmentation == 1)
+        np.testing.assert_array_equal(
+            det.data[CLASS_NAME_DATA_FIELD], ["background", "cat", "dog"]
+        )
+        assert det.confidence is None
 
     def test_unrecognised_keys_raise_value_error(self) -> None:
         """Dict with no valid keys (no boxes/masks/segmentation) raises ValueError."""
