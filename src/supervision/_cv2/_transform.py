@@ -11,7 +11,6 @@ from supervision._cv2._common import _cast_array_like_opencv
 
 _FLT_EPSILON = float(np.finfo(np.float32).eps)
 _QUAD_SHAPES = ((4, 2), (4, 1, 2), (1, 4, 2))
-_TRIPLES_OF_QUAD = np.array([[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]])
 
 
 def _blur(
@@ -44,41 +43,16 @@ def _as_quad(points: npt.NDArray[Any], name: str) -> npt.NDArray[np.float64]:
     return quad
 
 
-def _has_collinear_triple(quad: npt.NDArray[np.float64]) -> bool:
-    """Report whether any three quad points are collinear at float32 resolution.
-
-    Flags triples whose edge cross product is at most ``FLT_EPSILON`` times the edge
-    lengths' product (sine of the angle below float32 epsilon); repeated points have
-    a zero-length edge and are flagged too.
-    """
-    triples = quad[_TRIPLES_OF_QUAD]
-    first = triples[:, 1] - triples[:, 0]
-    second = triples[:, 2] - triples[:, 0]
-    cross = np.abs(first[:, 0] * second[:, 1] - first[:, 1] * second[:, 0])
-    lengths = np.linalg.norm(first, axis=1) * np.linalg.norm(second, axis=1)
-    return bool(np.any(cross <= _FLT_EPSILON * lengths))
-
-
 def _get_perspective_transform(
     src: npt.NDArray[np.float32], dst: npt.NDArray[np.float32]
 ) -> npt.NDArray[np.float64]:
     """Solve OpenCV's eight-equation perspective system in float64.
 
-    Degenerate quads (three collinear or repeated points, or a transform that sends
-    the source origin to infinity) raise ``ValueError`` instead of returning a matrix
-    that does not map them.
+    Raises ``ValueError`` only if that system is singular, where OpenCV returns a
+    degenerate matrix instead.
     """
-    source = _as_quad(src, "src")
-    target = _as_quad(dst, "dst")
-    for name, quad in (("src", source), ("dst", target)):
-        if _has_collinear_triple(quad):
-            raise ValueError(
-                f"{name} contains three collinear or repeated points; "
-                "no perspective transform maps such quads"
-            )
-
-    x, y = source.T
-    u, v = target.T
+    x, y = _as_quad(src, "src").T
+    u, v = _as_quad(dst, "dst").T
     ones = np.ones(4)
     zeros = np.zeros(4)
     # Rows follow OpenCV: u = (m00 x + m01 y + m02) / (m20 x + m21 y + 1),
@@ -89,12 +63,10 @@ def _get_perspective_transform(
             np.column_stack((zeros, zeros, zeros, x, y, ones, -x * v, -y * v)),
         )
     )
-    if np.linalg.matrix_rank(coefficients) < 8:
-        raise ValueError(
-            "no perspective transform with m[2, 2] == 1 maps src onto dst; "
-            "the transform sends the source origin to infinity"
-        )
-    solution = np.linalg.solve(coefficients, np.concatenate((u, v)))
+    try:
+        solution = np.linalg.solve(coefficients, np.concatenate((u, v)))
+    except np.linalg.LinAlgError:
+        raise ValueError("the perspective system of src and dst is singular") from None
     return np.append(solution, 1.0).reshape(3, 3)
 
 

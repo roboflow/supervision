@@ -29,13 +29,23 @@ SPEED_SOURCE = np.array(
 SPEED_TARGET = np.array([[0, 0], [24, 0], [24, 249], [0, 249]], dtype=np.float32)
 UNIT = np.array([[0, 0], [1, 0], [1, 1], [0, 1]], dtype=np.float32)
 DOUBLE = UNIT * 2
-COLLINEAR = np.array([[0, 0], [1, 1], [2, 2], [0, 1]], dtype=np.float32)
-REPEATED = np.array([[0, 0], [0, 0], [1, 1], [0, 1]], dtype=np.float32)
+IDENTICAL = np.ones((4, 2), dtype=np.float32)
 NAN_CORNER = np.array([[np.nan, 0], [1, 0], [1, 1], [0, 1]], dtype=np.float32)
-# Exact images of INF_SOURCE under [[1, 0, 1], [0, 1, 0], [1, 1, 0]], which sends
-# (0, 0) to infinity, so no matrix with m[2, 2] == 1 maps one onto the other.
-INF_SOURCE = np.array([[1, 0], [3, 1], [2, 2], [0, 2]], dtype=np.float32)
-INF_TARGET = np.array([[2, 0], [1, 0.25], [0.75, 0.5], [0.5, 1]], dtype=np.float32)
+# Thin but non-degenerate quads with ill-conditioned perspective systems.
+THIN_8 = np.array([[0, 0], [1, 0], [1, 1e-8], [0, 1e-8]], dtype=np.float32)
+THIN_6 = np.array([[0, 0], [1, 0], [1, 1e-6], [0, 1e-6]], dtype=np.float32)
+THIN_JITTERED = np.array(
+    [[0, 0], [1, 0], [1.0000001, 1.1e-8], [0.05, 0.9e-8]], dtype=np.float32
+)
+THIN_OFFSET = np.array(
+    [
+        [44247.203125, 10406.745],
+        [44890.848, 10406.714],
+        [44821.34, 10407.404],
+        [44244.52, 10407.388],
+    ],
+    dtype=np.float32,
+)
 POINTS = np.zeros((4, 1, 2), dtype=np.float32)
 # Unit-square corners jittered by at most 0.2 stay strictly convex at any scale.
 _RNG = np.random.default_rng(20261001)
@@ -47,6 +57,12 @@ RANDOM_QUADS = (
 SPEED = pytest.param(SPEED_SOURCE, SPEED_TARGET, id="speed-example")
 SCALE = pytest.param(UNIT, DOUBLE, id="uniform-scale")
 RANDOM = [pytest.param(*pair, id=f"random-{i}") for i, pair in enumerate(RANDOM_QUADS)]
+
+
+def _project(matrix: np.ndarray, points: np.ndarray) -> np.ndarray:
+    """Map (4, 2) points through a 3x3 matrix by plain float64 homogeneous division."""
+    homogeneous = points.astype(np.float64) @ matrix[:, :2].T + matrix[:, 2]
+    return homogeneous[:, :2] / homogeneous[:, 2:]
 
 
 def test_fallback_blur_preserves_shape_and_dtype() -> None:
@@ -61,7 +77,7 @@ def test_fallback_blur_preserves_shape_and_dtype() -> None:
 class TestGetPerspectiveTransform:
     @pytest.mark.parametrize(("source", "target"), [*RANDOM, SPEED, SCALE])
     def test_matches_opencv(self, source: np.ndarray, target: np.ndarray) -> None:
-        """Solve the same normalized float64 homography as OpenCV."""
+        """Solve the same float64 homography as OpenCV."""
         expected = cv2.getPerspectiveTransform(source, target)
 
         actual = _get_perspective_transform(source, target)
@@ -69,8 +85,8 @@ class TestGetPerspectiveTransform:
         assert actual.shape == (3, 3)
         assert actual.dtype == np.float64
         assert actual[2, 2] == 1.0
-        # Both solve the same 8x8 system in float64 with LU; rtol=1e-5 absorbs
-        # pivoting and rounding differences.
+        # Both solve the same eight-equation system in float64 by LU (OpenCV's own and
+        # LAPACK's); on well-conditioned quads rtol=1e-5 absorbs pivoting differences.
         np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-12)
 
     @pytest.mark.parametrize("shape", [(4, 1, 2), (1, 4, 2)])
@@ -83,6 +99,33 @@ class TestGetPerspectiveTransform:
         np.testing.assert_array_equal(actual, expected)
 
     @pytest.mark.parametrize(
+        ("source", "target"),
+        [
+            pytest.param(THIN_8, THIN_8, id="1x1e-8-identity"),
+            pytest.param(THIN_6, UNIT, id="1x1e-6-to-unit"),
+            pytest.param(THIN_8, UNIT, id="1x1e-8-to-unit"),
+            pytest.param(THIN_JITTERED, THIN_JITTERED, id="jittered-thin-identity"),
+            pytest.param(THIN_OFFSET, THIN_OFFSET, id="offset-thin-identity"),
+        ],
+    )
+    def test_projects_thin_quads_like_opencv(
+        self, source: np.ndarray, target: np.ndarray
+    ) -> None:
+        """Solve thin quads without raising and land their corners where OpenCV does."""
+        reference = cv2.getPerspectiveTransform(source, target)
+
+        actual = _get_perspective_transform(source, target)
+
+        assert actual[2, 2] == 1.0
+        # Thin quads give ill-conditioned matrices, so compare where corners land
+        # rather than matrix entries. Measured gaps stay below 0.05 float32 ulps of
+        # the largest target coordinate, so 4 ulps leaves margin for other LAPACKs.
+        tolerance = 4 * np.finfo(np.float32).eps * np.abs(target).max()
+        np.testing.assert_allclose(
+            _project(actual, source), _project(reference, source), atol=tolerance
+        )
+
+    @pytest.mark.parametrize(
         ("source", "target", "error", "match"),
         [
             pytest.param(
@@ -91,23 +134,16 @@ class TestGetPerspectiveTransform:
             pytest.param(UNIT.tolist(), DOUBLE, TypeError, "float32", id="list"),
             pytest.param(UNIT[:3], DOUBLE[:3], ValueError, "shape", id="three-points"),
             pytest.param(UNIT.T.copy(), DOUBLE.T.copy(), ValueError, "shape", id="2x4"),
-            pytest.param(
-                COLLINEAR, DOUBLE, ValueError, "collinear", id="collinear-src"
-            ),
-            pytest.param(
-                DOUBLE, COLLINEAR, ValueError, "collinear", id="collinear-dst"
-            ),
-            pytest.param(REPEATED, DOUBLE, ValueError, "repeated", id="repeated"),
             pytest.param(NAN_CORNER, DOUBLE, ValueError, "finite", id="non-finite"),
             pytest.param(
-                INF_SOURCE, INF_TARGET, ValueError, "infinity", id="origin-to-infinity"
+                IDENTICAL, DOUBLE, ValueError, "singular", id="identical-src-points"
             ),
         ],
     )
     def test_raises_for_invalid_quads(
         self, source: Any, target: Any, error: type[Exception], match: str
     ) -> None:
-        """Raise for unsupported inputs and degenerate quads instead of solving."""
+        """Raise for unsupported inputs and for a singular perspective system."""
         with pytest.raises(error, match=match):
             _get_perspective_transform(source, target)
 

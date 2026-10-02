@@ -1,13 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-02
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
-- `examples/speed_estimation/rfdetr_example.py` raised `AttributeError` when building its `ViewTransformer`, with or without OpenCV installed, because the private `supervision._cv2` layer did not provide `getPerspectiveTransform` or `perspectiveTransform`. `supervision._cv2` now provides both: OpenCV's functions when OpenCV is installed, and NumPy fallbacks otherwise. For degenerate quads (three collinear or repeated points, or a transform that sends the source origin to infinity), the fallback `getPerspectiveTransform` raises `ValueError` instead of returning a matrix that does not map them. The public `sv` API is unchanged. ([#2652](https://github.com/roboflow/supervision/pull/2652))
+- `examples/speed_estimation/rfdetr_example.py` raised `AttributeError` when building its `ViewTransformer`, with or without OpenCV installed, because the private `supervision._cv2` layer did not provide `getPerspectiveTransform` or `perspectiveTransform`. `supervision._cv2` now provides both: OpenCV's functions when OpenCV is installed, and NumPy fallbacks otherwise. The NumPy fallback `getPerspectiveTransform` solves the same eight-equation system as OpenCV in float64 and raises `ValueError` only when that system is singular. The public `sv` API is unchanged. ([#2652](https://github.com/roboflow/supervision/pull/2652))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
