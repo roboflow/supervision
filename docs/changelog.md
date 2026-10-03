@@ -7,7 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.get_anchors_coordinates` now computes axis-aligned midpoint anchors without integer overflow. Signed and unsigned boxes whose corner sums exceeded their coordinate dtype could previously place the anchor outside the box, affecting annotators and zone tools. Direct-corner, oriented-box, and mask-centroid anchors are unchanged.
+- `sv.Detections.get_anchors_coordinates` now computes axis-aligned midpoint anchors without integer overflow. Signed and unsigned boxes whose corner sums exceeded their coordinate dtype could previously place the anchor outside the box, affecting annotators and zone tools. Direct-corner, oriented-box, and mask-centroid anchors are unchanged. ([#2660](https://github.com/roboflow/supervision/pull/2660))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
