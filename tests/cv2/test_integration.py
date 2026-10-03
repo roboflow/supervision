@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from supervision._cv2._image import _add_weighted
+from supervision._cv2._image import _add_weighted, _flip
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src" / "supervision"
@@ -90,6 +90,15 @@ def test_fallback_add_weighted_accepts_opencv_keyword_names() -> None:
     expected = _add_weighted(source, 0.5, other, 0.5, 10)
 
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_flip_accepts_opencv_keyword_names() -> None:
+    """Accept OpenCV's public `src` and `flipCode` parameter names."""
+    source = np.arange(6, dtype=np.uint8).reshape(2, 3)
+
+    actual = _flip(src=source, flipCode=-1)
+
+    np.testing.assert_array_equal(actual, _flip(source, -1))
 
 
 def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:
