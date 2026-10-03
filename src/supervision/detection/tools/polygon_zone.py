@@ -12,7 +12,11 @@ from supervision.detection.utils.converters import (
 )
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
-from supervision.geometry.core import Position
+from supervision.geometry.core import (
+    CoordinatesTransform,
+    Position,
+    _transform_points,
+)
 from supervision.geometry.utils import get_polygon_center
 
 
@@ -122,7 +126,11 @@ class PolygonZone:
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
-    def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
+    def trigger(
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransform | None = None,
+    ) -> npt.NDArray[np.bool_]:
         """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
@@ -133,21 +141,48 @@ class PolygonZone:
 
         Args:
             detections: The detections to be checked against the polygon zone
+            coord_transform: Optional camera-motion transform for this frame. The
+                zone stays in reference-frame coordinates; each anchor is mapped
+                with `coord_transform.rel_to_abs` before the inside test. Anchors
+                that map outside the zone's bounds, or to non-finite
+                coordinates, are not inside. `None` (default) uses the anchors
+                as they are.
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> camera_moved = sv.MatrixTransform(np.array([[1, 0, 50], [0, 1, 0]]))
+            >>> detections = sv.Detections(xyxy=np.array([[120.0, 40.0, 140.0, 60.0]]))
+            >>> zone.trigger(detections)
+            array([False])
+            >>> zone.trigger(detections, coord_transform=camera_moved)
+            array([ True])
+
+            ```
         """
         if len(detections) == 0:
             self.current_count = 0
             return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
-        all_anchors = np.array(
+        anchor_coordinates = np.array(
             [
-                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
+                detections.get_anchors_coordinates(anchors)
                 for anchors in self.triggering_anchors
             ]
         )
+        if coord_transform is not None:
+            anchor_coordinates = self._map_to_reference(
+                anchor_coordinates, coord_transform
+            )
+        all_anchors = np.rint(anchor_coordinates).astype(int)
 
         mask_h, mask_w = self.mask.shape
         x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
@@ -159,6 +194,21 @@ class PolygonZone:
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
+
+    def _map_to_reference(
+        self,
+        anchor_coordinates: npt.NDArray[np.number],
+        coord_transform: CoordinatesTransform,
+    ) -> npt.NDArray[np.float64]:
+        """Map current-frame anchors into the zone's reference frame.
+
+        Non-finite results become `-1` and all results are clipped to just outside the
+        mask, so every anchor that does not map into the mask fails the existing bounds
+        check instead of overflowing the integer cast.
+        """
+        mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
+        mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
+        return np.clip(mapped, -1.0, float(max(self.mask.shape)))
 
 
 class PolygonZoneAnnotator:
@@ -219,7 +269,10 @@ class PolygonZoneAnnotator:
         self.opacity = opacity
 
     def annotate(
-        self, scene: npt.NDArray[Any], label: str | None = None
+        self,
+        scene: npt.NDArray[Any],
+        label: str | None = None,
+        coord_transform: CoordinatesTransform | None = None,
     ) -> npt.NDArray[Any]:
         """Annotates the polygon zone within a frame with a count of detected objects.
 
@@ -227,27 +280,61 @@ class PolygonZoneAnnotator:
             scene: The image on which the polygon zone will be annotated
             label: A label for the count of detected objects
                 within the polygon zone (default: None)
+            coord_transform: Optional camera-motion transform for this frame. The
+                zone's vertices are mapped with `coord_transform.abs_to_rel` and
+                the label is centred on the mapped polygon; the image itself is
+                never warped. Pass the same transform as to
+                `PolygonZone.trigger`. If any vertex maps to non-finite
+                coordinates, nothing is drawn. `None` (default) draws the zone
+                where it was defined.
 
         Returns:
             The image with the polygon zone and count of detected objects
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[10, 10], [50, 10], [50, 50], [10, 50]])
+            ... )
+            >>> zone_annotator = sv.PolygonZoneAnnotator(
+            ...     zone=zone, display_in_zone_count=False
+            ... )
+            >>> camera_moved = sv.MatrixTransform(np.array([[1, 0, 40], [0, 1, 0]]))
+            >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> scene = zone_annotator.annotate(scene, coord_transform=camera_moved)
+            >>> bool(scene[30, 90].any()), bool(scene[30, 10].any())
+            (True, False)
+
+            ```
         """
+        polygon = self.zone.polygon
+        center = self.center
+        if coord_transform is not None:
+            mapped_polygon = _transform_points(polygon, coord_transform.abs_to_rel)
+            if not np.all(np.isfinite(mapped_polygon)):
+                return scene
+            polygon = np.rint(mapped_polygon).astype(int)
+            center = get_polygon_center(polygon=polygon)
+
         if self.opacity == 0:
             annotated_frame = draw_polygon(
                 scene=scene,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
         else:
             annotated_frame = draw_filled_polygon(
                 scene=scene.copy(),
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 opacity=self.opacity,
             )
             annotated_frame = draw_polygon(
                 scene=annotated_frame,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
@@ -256,7 +343,7 @@ class PolygonZoneAnnotator:
             annotated_frame = draw_text(
                 scene=annotated_frame,
                 text=str(self.zone.current_count) if label is None else label,
-                text_anchor=self.center,
+                text_anchor=center,
                 background_color=self.color,
                 text_color=self.text_color,
                 text_scale=self.text_scale,

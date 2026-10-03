@@ -130,6 +130,50 @@ Here is an example of inference run on the video:
   <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
 </video>
 
+## Follow a Moving Camera
+
+`PolygonZone` and `LineZone` assume a static camera. On drone, handheld, PTZ or onboard footage a zone drawn on one frame slides off its target as the camera moves. To keep it attached, pass a per-frame `coord_transform` to `trigger` and to the zone's annotator. The zone stays defined in the coordinates of a reference frame: `trigger` maps each detection anchor into that frame with `coord_transform.rel_to_abs` before the inside or side test, and the annotator draws the zone at `coord_transform.abs_to_rel` of its vertices. The image itself is never warped.
+
+Any object with `rel_to_abs` and `abs_to_rel` methods works (see [`sv.CoordinatesTransform`](../utils/geometry.md#supervision.geometry.core.CoordinatesTransform)). [`MotionEstimator`](https://trackers.roboflow.com/latest/) from the `trackers` package returns one per frame, relative to the first frame it saw, so draw your zones on that frame:
+
+```python
+import supervision as sv
+from rfdetr import RFDETRMedium
+from trackers import ByteTrackTracker, MotionEstimator
+
+model = RFDETRMedium()
+tracker = ByteTrackTracker()
+motion_estimator = MotionEstimator()
+
+zone = sv.PolygonZone(polygon=polygons[0])  # drawn on the first frame
+zone_annotator = sv.PolygonZoneAnnotator(zone=zone)
+line_zone = sv.LineZone(start=sv.Point(100, 600), end=sv.Point(1200, 600))
+line_zone_annotator = sv.LineZoneAnnotator()
+
+for frame in sv.get_video_frames_generator(VIDEO):
+    coord_transform = motion_estimator.update(frame)  # first frame -> this frame
+    detections = tracker.update(model.predict(frame[:, :, ::-1]))
+
+    in_zone = zone.trigger(detections, coord_transform=coord_transform)
+    crossed_in, crossed_out = line_zone.trigger(
+        detections, coord_transform=coord_transform
+    )
+
+    frame = zone_annotator.annotate(frame, coord_transform=coord_transform)
+    frame = line_zone_annotator.annotate(
+        frame, line_zone, coord_transform=coord_transform
+    )
+```
+
+If you already have a matrix, for example from `cv2.estimateAffinePartial2D` or `cv2.findHomography`, wrap it in [`sv.MatrixTransform`](../utils/geometry.md#supervision.geometry.core.MatrixTransform). The matrix must map reference-frame points to current-frame points.
+
+Things to keep in mind:
+
+- `LineZone` keeps its crossing history in reference coordinates, so pass a transform on every call. An object that stands still is not counted when the line moves under it.
+- Each zone takes its own transform, so zones that move with different parts of the image, or not at all, can share a frame.
+- One global transform is most accurate near the texture it was estimated from. With wide-angle lenses or rolling shutter, register on features close to the zones that matter.
+- Anchors that map outside a polygon zone's bounds, or through infinity, are not counted.
+
 ## Frequently Asked Questions
 
 ### How do I count objects in a zone with supervision?

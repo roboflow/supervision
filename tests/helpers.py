@@ -14,6 +14,7 @@ import numpy as np
 from PIL import Image
 
 from supervision.detection.core import Detections
+from supervision.geometry.core import CoordinatesTransform, Position
 from supervision.key_points.core import KeyPoints
 
 
@@ -90,6 +91,27 @@ def _create_detections(
             tracker_id if tracker_id is None else np.array(tracker_id, dtype=int)
         ),
         data=convert_data(data) if data else {},
+    )
+
+
+def _move_detections_with_camera(
+    detections: Detections,
+    transform: CoordinatesTransform,
+    anchor: Position = Position.BOTTOM_CENTER,
+) -> Detections:
+    """Shift each box so its `anchor` lands where `transform.abs_to_rel` maps it.
+
+    Simulates the current-frame view of reference-frame detections under camera motion.
+    Box size is kept, so only the chosen anchor is mapped exactly; under a pure
+    translation every anchor is.
+    """
+    anchors = detections.get_anchors_coordinates(anchor).astype(np.float64)
+    offsets = transform.abs_to_rel(anchors) - anchors
+    xyxy = detections.xyxy.astype(np.float64) + np.hstack([offsets, offsets])
+    return Detections(
+        xyxy=xyxy,
+        class_id=detections.class_id,
+        tracker_id=detections.tracker_id,
     )
 
 

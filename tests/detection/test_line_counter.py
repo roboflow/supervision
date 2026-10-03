@@ -10,8 +10,8 @@ from supervision import (
     LineZoneAnnotatorMulticlass,
 )
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Position, Vector
-from tests.helpers import _create_detections
+from supervision.geometry.core import MatrixTransform, Point, Position, Vector
+from tests.helpers import _create_detections, _move_detections_with_camera
 
 
 @pytest.mark.parametrize(
@@ -1340,3 +1340,252 @@ class TestLineZoneUnconfirmedTracks:
 
         assert crossed_in == [False, False, False, True, False]
         assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
+def _camera_matrix(degrees: float, dx: float, dy: float) -> np.ndarray:
+    """Return a 3x3 matrix rotating by `degrees` about (150, 100), then shifting."""
+    angle = np.radians(degrees)
+    cos, sin = np.cos(angle), np.sin(angle)
+    return np.array(
+        [
+            [cos, -sin, 150 - 150 * cos + 100 * sin + dx],
+            [sin, cos, 100 - 150 * sin - 100 * cos + dy],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+
+CAMERA_SHIFTS = [
+    MatrixTransform(_camera_matrix(degrees=0, dx=dx, dy=dy))
+    for dx, dy in [(0, 0), (10, -5), (25, 15), (40, 30), (55, 45)]
+]
+CAMERA_SHIFT_ROTATIONS = [
+    MatrixTransform(_camera_matrix(degrees=degrees, dx=dx, dy=dy))
+    for degrees, dx, dy in [
+        (0, 0, 0),
+        (2, 10, -5),
+        (4, 25, 15),
+        (6, 40, 30),
+        (8, 55, 45),
+    ]
+]
+TRACK_CROSSING_DOWN = [
+    [140.0, 40.0, 160.0, 80.0],
+    [140.0, 55.0, 160.0, 95.0],
+    [140.0, 110.0, 160.0, 150.0],
+    [140.0, 125.0, 160.0, 165.0],
+    [140.0, 140.0, 160.0, 180.0],
+]
+LINE_START, LINE_END = Point(0, 100), Point(300, 100)
+
+
+class TestLineZoneTriggerWithCoordTransform:
+    @pytest.mark.parametrize(
+        ("transforms", "triggering_anchors", "moved_anchor"),
+        [
+            pytest.param(
+                CAMERA_SHIFTS,
+                (
+                    Position.TOP_LEFT,
+                    Position.TOP_RIGHT,
+                    Position.BOTTOM_LEFT,
+                    Position.BOTTOM_RIGHT,
+                ),
+                Position.CENTER,
+                id="shift-four-corners",
+            ),
+            pytest.param(
+                CAMERA_SHIFT_ROTATIONS,
+                (Position.BOTTOM_CENTER,),
+                Position.BOTTOM_CENTER,
+                id="shift-rotate-bottom-center",
+            ),
+        ],
+    )
+    def test_moved_track_matches_unmoved_crossings(
+        self,
+        transforms: list[MatrixTransform],
+        triggering_anchors: tuple[Position, ...],
+        moved_anchor: Position,
+    ) -> None:
+        """A track seen by a moving camera crosses exactly as it does unmoved."""
+        line_zone = LineZone(LINE_START, LINE_END, triggering_anchors)
+        reference_zone = LineZone(LINE_START, LINE_END, triggering_anchors)
+        reference_frames = [
+            _create_detections(xyxy=[box], tracker_id=[1])
+            for box in TRACK_CROSSING_DOWN
+        ]
+        expected = [reference_zone.trigger(frame) for frame in reference_frames]
+        moved_frames = [
+            _move_detections_with_camera(frame, transform, moved_anchor)
+            for frame, transform in zip(reference_frames, transforms)
+        ]
+
+        results = [
+            line_zone.trigger(frame, coord_transform=transform)
+            for frame, transform in zip(moved_frames, transforms)
+        ]
+
+        assert reference_zone.out_count + reference_zone.in_count == 1
+        for (crossed_in, crossed_out), (expected_in, expected_out) in zip(
+            results, expected
+        ):
+            np.testing.assert_array_equal(crossed_in, expected_in)
+            np.testing.assert_array_equal(crossed_out, expected_out)
+        assert (line_zone.in_count, line_zone.out_count) == (
+            reference_zone.in_count,
+            reference_zone.out_count,
+        )
+
+    @pytest.mark.parametrize(
+        ("use_transform", "expected_crossings"), [(True, 0), (False, 1)]
+    )
+    def test_stationary_object_under_moving_line(
+        self, use_transform: bool, expected_crossings: int
+    ) -> None:
+        """A parked object is only counted when the camera motion is ignored."""
+        line_zone = LineZone(LINE_START, LINE_END)
+        parked = _create_detections(xyxy=[[140.0, 60.0, 160.0, 90.0]], tracker_id=[7])
+        camera_tilts = [
+            MatrixTransform(np.array([[1, 0, 0], [0, 1, dy]])) for dy in (0, 20, 40, 60)
+        ]
+        frames = [
+            _move_detections_with_camera(parked, tilt, Position.CENTER)
+            for tilt in camera_tilts
+        ]
+        transforms = camera_tilts if use_transform else [None] * len(frames)
+
+        for frame, transform in zip(frames, transforms):
+            line_zone.trigger(frame, coord_transform=transform)
+
+        assert line_zone.in_count + line_zone.out_count == expected_crossings
+
+    def test_identity_transform_matches_no_transform(self) -> None:
+        """An identity transform leaves every crossing decision unchanged."""
+        line_zone = LineZone(LINE_START, LINE_END)
+        reference_zone = LineZone(LINE_START, LINE_END)
+        frames = [
+            _create_detections(xyxy=[box], tracker_id=[1])
+            for box in TRACK_CROSSING_DOWN
+        ]
+        expected = [reference_zone.trigger(frame) for frame in frames]
+        identity = MatrixTransform(np.eye(3))
+
+        results = [
+            line_zone.trigger(frame, coord_transform=identity) for frame in frames
+        ]
+
+        for (crossed_in, crossed_out), (expected_in, expected_out) in zip(
+            results, expected
+        ):
+            np.testing.assert_array_equal(crossed_in, expected_in)
+            np.testing.assert_array_equal(crossed_out, expected_out)
+
+    def test_none_matches_existing_results(self) -> None:
+        """Passing coord_transform=None counts the documented crossing."""
+        line_zone = LineZone(start=Point(0, 100), end=Point(200, 100))
+        frames = [
+            _create_detections(xyxy=[[10, 110, 20, 150]], tracker_id=[1]),
+            _create_detections(xyxy=[[10, 50, 20, 90]], tracker_id=[1]),
+        ]
+
+        for frame in frames:
+            line_zone.trigger(frame, coord_transform=None)
+
+        assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+    def test_anchor_mapped_to_non_finite_is_outside_limits(self) -> None:
+        """Detections that map through infinity leave no crossing state."""
+        line_zone = LineZone(LINE_START, LINE_END)
+        beyond_horizon = MatrixTransform(
+            np.linalg.inv(np.array([[1, 0, 0], [0, 1, 0], [-0.01, 0, 1]]))
+        )
+        frames = [
+            _create_detections(xyxy=[box], tracker_id=[1])
+            for box in TRACK_CROSSING_DOWN
+        ]
+
+        for frame in frames:
+            line_zone.trigger(frame, coord_transform=beyond_horizon)
+
+        assert dict(line_zone.crossing_state_history) == {}
+        assert (line_zone.in_count, line_zone.out_count) == (0, 0)
+
+
+BLANK_FRAME = np.zeros((300, 300, 3), dtype=np.uint8)
+
+
+class TestLineZoneAnnotatorWithCoordTransform:
+    @pytest.mark.parametrize("text_orient_to_line", [True, False])
+    @pytest.mark.parametrize("text_centered", [True, False])
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(CAMERA_SHIFTS[3], id="shift"),
+            pytest.param(CAMERA_SHIFT_ROTATIONS[3], id="shift-rotate"),
+        ],
+    )
+    def test_draws_line_and_labels_at_mapped_position(
+        self,
+        transform: MatrixTransform,
+        text_centered: bool,
+        text_orient_to_line: bool,
+    ) -> None:
+        """The line and its count labels are drawn where the transform maps them."""
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=text_orient_to_line, text_centered=text_centered
+        )
+        start, end = transform.abs_to_rel(
+            np.array([LINE_START.as_xy_float_tuple(), LINE_END.as_xy_float_tuple()])
+        )
+        mapped_line = LineZone(Point(*start), Point(*end))
+        expected = annotator.annotate(BLANK_FRAME.copy(), mapped_line)
+
+        annotated = annotator.annotate(
+            BLANK_FRAME.copy(),
+            LineZone(LINE_START, LINE_END),
+            coord_transform=transform,
+        )
+
+        assert not np.array_equal(annotated, BLANK_FRAME)
+        np.testing.assert_array_equal(annotated, expected)
+
+    def test_draws_line_at_shifted_pixels(self) -> None:
+        """The line moves 50 px down and its original position stays blank."""
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        camera_tilt = MatrixTransform(np.array([[1, 0, 0], [0, 1, 50]]))
+
+        annotated = annotator.annotate(
+            BLANK_FRAME.copy(),
+            LineZone(LINE_START, LINE_END),
+            coord_transform=camera_tilt,
+        )
+
+        assert annotated[150, 150].any()
+        assert not annotated[100, 150].any()
+
+    def test_none_matches_default_annotation(self) -> None:
+        """Passing coord_transform=None draws exactly what the default call draws."""
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+        line_zone = LineZone(Point(20, 40), Point(260, 200))
+        expected = annotator.annotate(BLANK_FRAME.copy(), line_zone)
+
+        annotated = annotator.annotate(
+            BLANK_FRAME.copy(), line_zone, coord_transform=None
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    def test_draws_nothing_when_end_points_map_to_non_finite(self) -> None:
+        """A line with no finite position in this frame is not drawn."""
+        beyond_horizon = MatrixTransform(
+            np.array([[1, 0, 0], [0, 1, 0], [-0.01, 0, 1]])
+        )
+
+        annotated = LineZoneAnnotator().annotate(
+            BLANK_FRAME.copy(),
+            LineZone(LINE_START, LINE_END),
+            coord_transform=beyond_horizon,
+        )
+
+        np.testing.assert_array_equal(annotated, BLANK_FRAME)
