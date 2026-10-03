@@ -14,6 +14,7 @@ import numpy as np
 from PIL import Image
 
 from supervision.detection.core import Detections
+from supervision.geometry.core import CoordinatesTransform, Position
 from supervision.key_points.core import KeyPoints
 
 
@@ -91,6 +92,68 @@ def _create_detections(
         ),
         data=convert_data(data) if data else {},
     )
+
+
+def _move_detections_with_camera(
+    detections: Detections,
+    transform: CoordinatesTransform,
+    anchor: Position = Position.BOTTOM_CENTER,
+) -> Detections:
+    """Shift each box so its `anchor` lands where `transform.abs_to_rel` maps it.
+
+    Simulates the current-frame view of reference-frame detections under camera motion.
+    Box size is kept, so only the chosen anchor is mapped exactly; under a pure
+    translation every anchor is.
+    """
+    anchors = detections.get_anchors_coordinates(anchor).astype(np.float64)
+    offsets = transform.abs_to_rel(anchors) - anchors
+    xyxy = detections.xyxy.astype(np.float64) + np.hstack([offsets, offsets])
+    return Detections(
+        xyxy=xyxy,
+        class_id=detections.class_id,
+        tracker_id=detections.tracker_id,
+    )
+
+
+def _shift_rotate_matrix(
+    degrees: float, dx: float, dy: float, center: tuple[float, float] = (150, 150)
+) -> np.ndarray:
+    """Return a 3x3 matrix rotating by `degrees` about `center`, then shifting."""
+    angle = np.radians(degrees)
+    cos, sin = np.cos(angle), np.sin(angle)
+    cx, cy = center
+    return np.array(
+        [
+            [cos, -sin, cx - cos * cx + sin * cy + dx],
+            [sin, cos, cy - sin * cx - cos * cy + dy],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+
+class _ClampedHomography:
+    """Mirror `trackers.HomographyTransformation`: clamp `|w| < 1e-4`, never NaN."""
+
+    def __init__(self, matrix: list[list[float]]) -> None:
+        """Store the reference-to-current matrix and its inverse."""
+        self.matrix = np.array(matrix, dtype=np.float64)
+        self.inverse = np.linalg.inv(self.matrix)
+
+    @staticmethod
+    def _apply(matrix: np.ndarray, points: np.ndarray) -> np.ndarray:
+        """Apply `matrix` to `(N, 2)` points, clamping small `w` as trackers does."""
+        mapped = np.hstack([points, np.ones((len(points), 1))]) @ matrix.T
+        scale = mapped[:, 2:]
+        scale = np.where(np.abs(scale) < 1e-4, np.sign(scale + 1e-10) * 1e-4, scale)
+        return mapped[:, :2] / scale
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        return self._apply(self.matrix, points)
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        return self._apply(self.inverse, points)
 
 
 def _create_key_points(

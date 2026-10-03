@@ -1,8 +1,14 @@
+from fractions import Fraction
+
 import numpy as np
 import pytest
 
 from supervision.geometry.core import Point
-from supervision.geometry.utils import get_polygon_center
+from supervision.geometry.utils import (
+    _clip_polygon_to_box,
+    _clip_segment_to_box,
+    get_polygon_center,
+)
 
 
 def generate_test_polygon(n: int) -> np.ndarray:
@@ -133,3 +139,184 @@ def test_get_polygon_center_does_not_call_np_cross(
     result = get_polygon_center(generate_test_polygon(100))
 
     assert result == Point(x=50.0, y=121.0)
+
+
+class TestClipSegmentToBox:
+    @pytest.mark.parametrize(
+        "segment",
+        [
+            pytest.param([[-3.25, 4.0], [7.5, -9.0]], id="inside"),
+            pytest.param([[10.0, -10.0], [-10.0, 10.0]], id="corner-to-corner"),
+            pytest.param([[10.0, 3.0], [0.0, 0.0]], id="end-point-on-boundary"),
+            pytest.param([[2.0, 3.0], [2.0, 3.0]], id="zero-length-inside"),
+            pytest.param([[10.0, 3.0], [10.0, 3.0]], id="zero-length-on-boundary"),
+        ],
+    )
+    def test_segment_inside_is_unchanged(self, segment: list[list[float]]) -> None:
+        """A segment inside the box, boundary included, is returned as given."""
+        clipped = _clip_segment_to_box(np.array(segment), limit=10)
+
+        assert clipped is not None
+        np.testing.assert_array_equal(clipped, segment)
+
+    @pytest.mark.parametrize(
+        ("segment", "limit", "expected"),
+        [
+            pytest.param(
+                [[0.0, 0.0], [30.0, 15.0]], 10, [[0.0, 0.0], [10.0, 5.0]], id="one-out"
+            ),
+            pytest.param(
+                [[-30.0, -15.0], [30.0, 15.0]], 10, [[-10.0, -5.0], [10.0, 5.0]]
+            ),
+            pytest.param(
+                [[-1e20, 50.0], [1e20, 50.0]],
+                400,
+                [[-400.0, 50.0], [400.0, 50.0]],
+                id="both-far",
+            ),
+            pytest.param(
+                [[50.0, -1e20], [50.0, 1e20]],
+                400,
+                [[50.0, -400.0], [50.0, 400.0]],
+                id="both-far-y",
+            ),
+        ],
+    )
+    def test_segment_crossing_the_box_is_cut_at_the_boundary(
+        self, segment: list[list[float]], limit: float, expected: list[list[float]]
+    ) -> None:
+        """Outside end points move along the segment exactly onto the boundary."""
+        clipped = _clip_segment_to_box(np.array(segment), limit=limit)
+
+        assert clipped is not None
+        np.testing.assert_array_equal(clipped, expected)
+
+    @pytest.mark.parametrize("far_first", [False, True])
+    @pytest.mark.parametrize(
+        "far",
+        [
+            pytest.param((3.0e11, 1.5e11), id="3e11"),
+            pytest.param((3.0e16, 1.5e16 + 7.0), id="3e16"),
+            pytest.param((2.9e16, 1.3e16), id="2.9e16"),
+        ],
+    )
+    def test_near_horizon_end_point_stays_on_the_exact_line(
+        self, far: tuple[float, float], far_first: bool
+    ) -> None:
+        """A huge end point is pulled back onto the exact line, whichever end it is."""
+        near = (150.0, 225.0)
+        segment = np.array([far, near] if far_first else [near, far])
+        (x0, y0), (x1, y1) = map(Fraction, near), map(Fraction, far)
+        expected_y = float(y0 + (1600 - x0) * (y1 - y0) / (x1 - x0))
+        far_index = 0 if far_first else 1
+
+        clipped = _clip_segment_to_box(segment, limit=1600)
+
+        assert clipped is not None
+        np.testing.assert_array_equal(clipped[1 - far_index], near)
+        np.testing.assert_allclose(
+            clipped[far_index], [1600.0, expected_y], rtol=0, atol=1e-6
+        )
+
+    @pytest.mark.parametrize(
+        "segment",
+        [
+            pytest.param([[20.0, 0.0], [30.0, 5.0]], id="right-of-box"),
+            pytest.param([[-20.0, 15.0], [20.0, 15.0]], id="parallel-above"),
+            pytest.param([[5.0, 30.0], [30.0, 5.0]], id="past-corner"),
+            pytest.param([[1e12, 0.0], [1e12 + 300, 0.0]], id="far-translation"),
+            pytest.param([[20.0, 3.0], [20.0, 3.0]], id="zero-length-outside"),
+        ],
+    )
+    def test_segment_missing_the_box_returns_none(
+        self, segment: list[list[float]]
+    ) -> None:
+        """A segment with no point in the box has nothing to draw."""
+        assert _clip_segment_to_box(np.array(segment), limit=10) is None
+
+
+class TestClipPolygonToBox:
+    @pytest.mark.parametrize(
+        "polygon",
+        [
+            pytest.param([[0.0, 0.0], [5.0, 0.0], [5.0, 5.0], [0.0, 5.0]], id="inside"),
+            pytest.param([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]], id="vertex-at-limit"),
+            pytest.param(
+                [[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]],
+                id="the-box-itself",
+            ),
+        ],
+    )
+    def test_polygon_inside_is_unchanged(self, polygon: list[list[float]]) -> None:
+        """A polygon inside the box, boundary included, keeps vertices and order."""
+        clipped = _clip_polygon_to_box(np.array(polygon), limit=10)
+
+        np.testing.assert_array_equal(clipped, polygon)
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize(
+        ("polygon", "expected"),
+        [
+            pytest.param(
+                [[-5.0, -5.0], [30.0, 0.0], [20.0, 30.0], [0.0, 20.0]],
+                [(-5.0, -5.0), (10.0, -20 / 7), (10.0, 10.0), (-2.0, 10.0)],
+                id="one-vertex-inside",
+            ),
+            pytest.param(
+                [[-1e20, -1e20], [1e20, -1e20], [1e20, 1e20], [-1e20, 1e20]],
+                [(-10.0, -10.0), (10.0, -10.0), (10.0, 10.0), (-10.0, 10.0)],
+                id="far-square-around-the-box",
+            ),
+            pytest.param(
+                [[-1e20, 5.0], [1e20, 5.0], [0.0, 1e20]],
+                [(-10.0, 5.0), (10.0, 5.0), (10.0, 10.0), (-10.0, 10.0)],
+                id="far-triangle-crossing-the-box",
+            ),
+        ],
+    )
+    def test_polygon_crossing_the_box_keeps_vertex_order(
+        self,
+        polygon: list[list[float]],
+        expected: list[tuple[float, float]],
+        reverse: bool,
+    ) -> None:
+        """The overlap is cut at the boundary with the vertices' cyclic order kept."""
+        if reverse:
+            polygon, expected = polygon[::-1], expected[::-1]
+
+        clipped = _clip_polygon_to_box(np.array(polygon), limit=10)
+
+        vertices = [tuple(vertex) for vertex in np.round(clipped, 9).tolist()]
+        expected = [tuple(np.round(vertex, 9)) for vertex in expected]
+        assert len(vertices) == len(expected)
+        start = vertices.index(expected[0])
+        assert vertices[start:] + vertices[:start] == expected
+
+    def test_near_horizon_vertex_keeps_edge_directions(self) -> None:
+        """Edges to a huge vertex are cut where they leave the box."""
+        polygon = np.array([[0.0, 0.0], [2.0e11, 1.0e11], [0.0, 1.0e11]])
+
+        clipped = _clip_polygon_to_box(polygon, limit=100)
+
+        assert {tuple(np.round(vertex, 9)) for vertex in clipped.tolist()} == {
+            (0.0, 0.0),
+            (100.0, 50.0),
+            (100.0, 100.0),
+            (0.0, 100.0),
+        }
+
+    @pytest.mark.parametrize(
+        "polygon",
+        [
+            pytest.param([[20.0, 20.0], [30.0, 20.0], [30.0, 30.0]], id="outside"),
+            pytest.param(
+                [[2.0**32, 0.0], [2.0**32 + 100, 0.0], [2.0**32 + 100, 100.0]],
+                id="far-translation",
+            ),
+        ],
+    )
+    def test_polygon_outside_the_box_is_empty(self, polygon: list[list[float]]) -> None:
+        """A polygon with no area in the box clips to no vertices."""
+        clipped = _clip_polygon_to_box(np.array(polygon), limit=10)
+
+        assert clipped.shape == (0, 2)
