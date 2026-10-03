@@ -971,6 +971,104 @@ def test_get_anchor_coordinates(
         assert np.array_equal(result, expected_result)
 
 
+class TestDetectionsIntegerAnchors:
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "anchor", "expected"),
+        [
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER,
+                [21000, 21000],
+                id="int16-center",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER_LEFT,
+                [20000, 21000],
+                id="int16-center-left",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.CENTER_RIGHT,
+                [22000, 21000],
+                id="int16-center-right",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.TOP_CENTER,
+                [21000, 20000],
+                id="int16-top-center",
+            ),
+            pytest.param(
+                np.int16,
+                [20000, 20000, 22000, 22000],
+                Position.BOTTOM_CENTER,
+                [21000, 22000],
+                id="int16-bottom-center",
+            ),
+            pytest.param(
+                np.int32,
+                [1_500_000_000, 0, 1_700_000_000, 2],
+                Position.CENTER,
+                [1_600_000_000, 1],
+                id="int32-center",
+            ),
+            pytest.param(
+                np.uint16,
+                [60000, 0, 62000, 2],
+                Position.CENTER,
+                [61000, 1],
+                id="uint16-center",
+            ),
+            pytest.param(
+                np.int64,
+                [-(2**63) + 1, 0, 2**63 - 2, 2],
+                Position.CENTER,
+                [-0.5, 1],
+                id="int64-opposite-corners",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 0, 2**62 + 2**20, 2],
+                Position.CENTER,
+                [2**62 + 2**19, 1],
+                id="int64-overflow",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62 + 512, 0, 2**62 + 1024, 2],
+                Position.CENTER,
+                [float(2**62 + 768), 1],
+                id="int64-overflow-rounding",
+            ),
+            pytest.param(
+                np.uint64,
+                [2**63, 0, 2**63 + 2**20, 2],
+                Position.CENTER,
+                [2**63 + 2**19, 1],
+                id="uint64-overflow",
+            ),
+        ],
+    )
+    def test_large_integer_boxes_keep_midpoints(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[int],
+        anchor: Position,
+        expected: list[float],
+    ) -> None:
+        """Anchors stay inside valid integer boxes when corner sums exceed the dtype."""
+        detections = Detections(xyxy=np.array([xyxy], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(anchor)
+
+        np.testing.assert_array_equal(result, [expected])
+
+
 @pytest.mark.parametrize(
     ("detections_a", "detections_b", "expected_result"),
     [
