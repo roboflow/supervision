@@ -17,7 +17,7 @@ from supervision.geometry.core import (
     Position,
     _transform_points,
 )
-from supervision.geometry.utils import get_polygon_center
+from supervision.geometry.utils import _clip_polygon_to_box, get_polygon_center
 
 
 class PolygonZone:
@@ -141,12 +141,10 @@ class PolygonZone:
 
         Args:
             detections: The detections to be checked against the polygon zone
-            coord_transform: Optional camera-motion transform for this frame. The
-                zone stays in reference-frame coordinates; each anchor is mapped
-                with `coord_transform.rel_to_abs` before the inside test. Anchors
-                that map outside the zone's bounds, or to non-finite
-                coordinates, are not inside. `None` (default) uses the anchors
-                as they are.
+            coord_transform: Optional per-frame camera motion, such as
+                `sv.MatrixTransform`; anchors are mapped into the zone's reference
+                frame with `rel_to_abs`, and ones mapped out of its bounds or to
+                non-finite values are outside. See the "Follow a Moving Camera" how-to.
 
         Returns:
             A boolean numpy array indicating
@@ -179,9 +177,11 @@ class PolygonZone:
             ]
         )
         if coord_transform is not None:
-            anchor_coordinates = self._map_to_reference(
-                anchor_coordinates, coord_transform
-            )
+            mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
+            # Non-finite or far anchors land just outside the mask, so they fail
+            # the bounds check below instead of overflowing the integer cast.
+            mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
+            anchor_coordinates = np.clip(mapped, -1.0, float(max(self.mask.shape)))
         all_anchors = np.rint(anchor_coordinates).astype(int)
 
         mask_h, mask_w = self.mask.shape
@@ -194,21 +194,6 @@ class PolygonZone:
         is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
-
-    def _map_to_reference(
-        self,
-        anchor_coordinates: npt.NDArray[np.number],
-        coord_transform: CoordinatesTransform,
-    ) -> npt.NDArray[np.float64]:
-        """Map current-frame anchors into the zone's reference frame.
-
-        Non-finite results become `-1` and all results are clipped to just outside the
-        mask, so every anchor that does not map into the mask fails the existing bounds
-        check instead of overflowing the integer cast.
-        """
-        mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
-        mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
-        return np.clip(mapped, -1.0, float(max(self.mask.shape)))
 
 
 class PolygonZoneAnnotator:
@@ -280,13 +265,10 @@ class PolygonZoneAnnotator:
             scene: The image on which the polygon zone will be annotated
             label: A label for the count of detected objects
                 within the polygon zone (default: None)
-            coord_transform: Optional camera-motion transform for this frame. The
-                zone's vertices are mapped with `coord_transform.abs_to_rel` and
-                the label is centred on the mapped polygon; the image itself is
-                never warped. Pass the same transform as to
-                `PolygonZone.trigger`. If any vertex maps to non-finite
-                coordinates, nothing is drawn. `None` (default) draws the zone
-                where it was defined.
+            coord_transform: The transform passed to `PolygonZone.trigger`, such as
+                `sv.MatrixTransform`; the zone and label are drawn at `abs_to_rel` of
+                its vertices, clipped to 4x the scene size, and nothing is drawn if
+                a vertex is non-finite. See the "Follow a Moving Camera" how-to.
 
         Returns:
             The image with the polygon zone and count of detected objects
@@ -313,9 +295,13 @@ class PolygonZoneAnnotator:
         center = self.center
         if coord_transform is not None:
             mapped_polygon = _transform_points(polygon, coord_transform.abs_to_rel)
-            if not np.all(np.isfinite(mapped_polygon)):
+            # Clipping the polygon, not each vertex, keeps far edges on their lines.
+            clipped_polygon = _clip_polygon_to_box(
+                mapped_polygon, limit=4 * max(scene.shape[:2])
+            )
+            if len(clipped_polygon) == 0:
                 return scene
-            polygon = np.rint(mapped_polygon).astype(int)
+            polygon = np.rint(clipped_polygon).astype(int)
             center = get_polygon_center(polygon=polygon)
 
         if self.opacity == 0:

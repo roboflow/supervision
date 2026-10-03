@@ -220,23 +220,11 @@ class CoordinatesTransform(Protocol):
     Example:
         ```pycon
         >>> import numpy as np
-        >>> import supervision as sv
         >>> class Shift:
-        ...     def __init__(self, dx: float, dy: float) -> None:
-        ...         self.offset = np.array([dx, dy])
-        ...     def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
-        ...         return points + self.offset
-        ...     def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
-        ...         return points - self.offset
-        ...
-        >>> zone = sv.PolygonZone(
-        ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
-        ... )
-        >>> detections = sv.Detections(xyxy=np.array([[140.0, 40.0, 160.0, 60.0]]))
-        >>> zone.trigger(detections)
-        array([False])
-        >>> zone.trigger(detections, coord_transform=Shift(dx=100, dy=0))
-        array([ True])
+        ...     def abs_to_rel(self, points): return points + [100, 0]
+        ...     def rel_to_abs(self, points): return points - [100, 0]
+        >>> Shift().rel_to_abs(np.array([[150.0, 50.0]]))
+        array([[50., 50.]])
 
         ```
     """
@@ -273,12 +261,16 @@ class MatrixTransform:
     returned by `cv2.estimateAffinePartial2D`, is treated as a `(3, 3)` matrix
     whose last row is `[0, 0, 1]`.
 
-    A point whose homogeneous scale `w` is not positive maps through infinity
-    and is returned as `NaN`. Zones treat such points as outside.
+    A homography is defined only up to scale, so `matrix` and any non-zero
+    multiple of it, such as `-matrix`, give the same transform: points are
+    mapped with the sign that makes the homogeneous scale `w` positive at
+    `(0, 0)`, or at `(1, 1)` and then `(1, 0)` if `(0, 0)` lies on the horizon.
+    A point whose `w` is then not positive lies on or beyond the horizon and is
+    returned as `NaN`; zones treat such points as outside.
 
     Attributes:
-        matrix: The `(3, 3)` reference-to-current matrix.
-        inverse_matrix: The `(3, 3)` current-to-reference matrix.
+        matrix: The read-only `(3, 3)` reference-to-current matrix as given.
+        inverse_matrix: The read-only `(3, 3)` inverse of `matrix`.
 
     Example:
         ```pycon
@@ -319,6 +311,14 @@ class MatrixTransform:
         except np.linalg.LinAlgError as error:
             raise ValueError("Matrix must be invertible.") from error
 
+        # Points are mapped with sign-normalised copies; negating a matrix
+        # negates its inverse.
+        sign = _homography_sign(matrix_array)
+        self._forward_matrix: npt.NDArray[np.float64] = sign * matrix_array
+        self._inverse_matrix: npt.NDArray[np.float64] = sign * inverse_matrix
+        # Read-only, so editing them cannot silently diverge from the copies above.
+        matrix_array.setflags(write=False)
+        inverse_matrix.setflags(write=False)
         self.matrix: npt.NDArray[np.float64] = matrix_array
         self.inverse_matrix: npt.NDArray[np.float64] = inverse_matrix
 
@@ -335,7 +335,7 @@ class MatrixTransform:
         Raises:
             ValueError: If `points` is not of shape `(N, 2)`.
         """
-        return _apply_homogeneous_matrix(self.matrix, points)
+        return _apply_homogeneous_matrix(self._forward_matrix, points)
 
     def rel_to_abs(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Map points from current-frame to reference-frame coordinates.
@@ -350,7 +350,16 @@ class MatrixTransform:
         Raises:
             ValueError: If `points` is not of shape `(N, 2)`.
         """
-        return _apply_homogeneous_matrix(self.inverse_matrix, points)
+        return _apply_homogeneous_matrix(self._inverse_matrix, points)
+
+
+def _homography_sign(matrix: npt.NDArray[np.float64]) -> float:
+    """Return the sign making `w` positive at `(0, 0)`, else `(1, 1)`, else `(1, 0)`."""
+    h20, h21, h22 = matrix[2]
+    for w in (h22, h20 + h21 + h22, h20 + h22):
+        if w != 0:
+            return 1.0 if w > 0 else -1.0
+    return 1.0
 
 
 def _apply_homogeneous_matrix(
@@ -373,12 +382,7 @@ def _transform_points(
     points: npt.NDArray[np.number],
     transform: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]],
 ) -> npt.NDArray[np.float64]:
-    """Apply a `CoordinatesTransform` method to points of shape `(..., 2)`.
-
-    Zones hold anchors as `(anchors, detections, 2)` while the protocol takes `(N, 2)`,
-    so this flattens, maps and restores the shape, and checks that the transform
-    returned one point per input point.
-    """
+    """Apply a transform method to `(..., 2)` points via `(N, 2)`, checking shape."""
     flat_points = np.asarray(points, dtype=np.float64).reshape(-1, 2)
     mapped = np.asarray(transform(flat_points), dtype=np.float64)
     if mapped.shape != flat_points.shape:

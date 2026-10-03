@@ -115,6 +115,47 @@ def _move_detections_with_camera(
     )
 
 
+def _shift_rotate_matrix(
+    degrees: float, dx: float, dy: float, center: tuple[float, float] = (150, 150)
+) -> np.ndarray:
+    """Return a 3x3 matrix rotating by `degrees` about `center`, then shifting."""
+    angle = np.radians(degrees)
+    cos, sin = np.cos(angle), np.sin(angle)
+    cx, cy = center
+    return np.array(
+        [
+            [cos, -sin, cx - cos * cx + sin * cy + dx],
+            [sin, cos, cy - sin * cx - cos * cy + dy],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+
+class _ClampedHomography:
+    """Mirror `trackers.HomographyTransformation`: clamp `|w| < 1e-4`, never NaN."""
+
+    def __init__(self, matrix: list[list[float]]) -> None:
+        """Store the reference-to-current matrix and its inverse."""
+        self.matrix = np.array(matrix, dtype=np.float64)
+        self.inverse = np.linalg.inv(self.matrix)
+
+    @staticmethod
+    def _apply(matrix: np.ndarray, points: np.ndarray) -> np.ndarray:
+        """Apply `matrix` to `(N, 2)` points, clamping small `w` as trackers does."""
+        mapped = np.hstack([points, np.ones((len(points), 1))]) @ matrix.T
+        scale = mapped[:, 2:]
+        scale = np.where(np.abs(scale) < 1e-4, np.sign(scale + 1e-10) * 1e-4, scale)
+        return mapped[:, :2] / scale
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        return self._apply(self.matrix, points)
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        return self._apply(self.inverse, points)
+
+
 def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,

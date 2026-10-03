@@ -172,7 +172,7 @@ Things to keep in mind:
 - `LineZone` keeps its crossing history in reference coordinates, so pass a transform on every call. An object that stands still is not counted when the line moves under it.
 - Each zone takes its own transform, so zones that move with different parts of the image, or not at all, can share a frame.
 - One global transform is most accurate near the texture it was estimated from. With wide-angle lenses or rolling shutter, register on features close to the zones that matter.
-- Anchors that map outside a polygon zone's bounds, or through infinity, are not counted.
+- Anchors mapped out of a zone's bounds or to `NaN`, as `sv.MatrixTransform` does for points on or beyond its horizon, are treated as outside.
 
 ## Frequently Asked Questions
 

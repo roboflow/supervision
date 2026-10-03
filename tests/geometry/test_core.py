@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from supervision.geometry.core import MatrixTransform, Point, Position, Vector
+from tests.helpers import _shift_rotate_matrix
 
 
 def test_position_list_returns_enum_values_in_definition_order() -> None:
@@ -77,22 +78,7 @@ def test_vector_magnitude(vector: Vector, expected_result: float) -> None:
     assert result == expected_result
 
 
-def _shift_rotate_affine(
-    dx: float, dy: float, degrees: float, center: tuple[float, float]
-) -> np.ndarray:
-    """Return a 2x3 matrix rotating by `degrees` about `center`, then shifting."""
-    angle = np.radians(degrees)
-    cos, sin = np.cos(angle), np.sin(angle)
-    cx, cy = center
-    return np.array(
-        [
-            [cos, -sin, cx - cos * cx + sin * cy + dx],
-            [sin, cos, cy - sin * cx - cos * cy + dy],
-        ]
-    )
-
-
-SHIFT_ROTATE_AFFINE = _shift_rotate_affine(dx=30, dy=-20, degrees=5, center=(150, 150))
+SHIFT_ROTATE_AFFINE = _shift_rotate_matrix(degrees=5, dx=30, dy=-20)[:2]
 POINTS = np.array([[0.0, 0.0], [150.0, 150.0], [320.5, 41.25], [-12.0, 999.0]])
 
 
@@ -143,6 +129,50 @@ class TestMatrixTransform:
         assert np.isfinite(mapped[0]).all()
         assert np.isnan(mapped[1:]).all()
 
+    @pytest.mark.parametrize("scale", [-1.0, -2.5, 0.5])
+    @pytest.mark.parametrize("seed", range(5))
+    def test_scaled_matrix_maps_points_identically(
+        self, seed: int, scale: float
+    ) -> None:
+        """A homography and any non-zero multiple of it map points alike."""
+        rng = np.random.default_rng(seed)
+        matrix = np.eye(3) + 0.1 * rng.standard_normal((3, 3))
+        matrix[2, :2] = rng.normal(scale=5e-3, size=2)
+        matrix[2, 2] = rng.choice([-1.0, 1.0]) * rng.uniform(0.5, 1.5)
+        points = rng.uniform(-1000, 1000, size=(200, 2))
+        transform = MatrixTransform(matrix)
+        scaled = MatrixTransform(scale * matrix)
+
+        for method in ("abs_to_rel", "rel_to_abs"):
+            expected = getattr(transform, method)(points)
+            mapped = getattr(scaled, method)(points)
+
+            np.testing.assert_array_equal(np.isnan(mapped), np.isnan(expected))
+            np.testing.assert_allclose(mapped, expected, rtol=1e-9, atol=1e-6)
+        assert np.isnan(transform.abs_to_rel(points)).any()
+        assert np.isfinite(transform.abs_to_rel(points)).any()
+
+    @pytest.mark.parametrize("sign", [1.0, -1.0])
+    def test_origin_on_horizon_uses_reference_point_one_one(self, sign: float) -> None:
+        """With h22 = 0 the sign is chosen so that w is positive at (1, 1)."""
+        swap_x_and_w = sign * np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+        transform = MatrixTransform(swap_x_and_w)
+
+        mapped = transform.abs_to_rel(np.array([[1.0, 1.0], [2.0, 4.0], [-1.0, 1.0]]))
+
+        np.testing.assert_allclose(mapped[:2], [[1.0, 1.0], [0.5, 2.0]])
+        assert np.isnan(mapped[2]).all()
+
+    @pytest.mark.parametrize("scale", [1.0, -1.0])
+    def test_matrix_attributes_are_not_sign_normalised(self, scale: float) -> None:
+        """`matrix` is kept as given and `inverse_matrix` is its exact inverse."""
+        matrix = scale * np.array([[1, 0, 10], [0, 2, 0], [1e-3, 0, 1]])
+
+        transform = MatrixTransform(matrix)
+
+        np.testing.assert_array_equal(transform.matrix, matrix)
+        np.testing.assert_allclose(transform.inverse_matrix, np.linalg.inv(matrix))
+
     def test_keeps_its_own_copy_of_matrix(self) -> None:
         """Mutating the caller's array afterwards does not change the transform."""
         matrix = np.eye(3)
@@ -151,6 +181,14 @@ class TestMatrixTransform:
         matrix[0, 2] = 100.0
 
         np.testing.assert_allclose(transform.abs_to_rel(np.zeros((1, 2))), [[0, 0]])
+
+    @pytest.mark.parametrize("attribute", ["matrix", "inverse_matrix"])
+    def test_matrix_attributes_are_read_only(self, attribute: str) -> None:
+        """Writing to an exposed matrix raises instead of being silently ignored."""
+        transform = MatrixTransform(np.eye(3))
+
+        with pytest.raises(ValueError, match="read-only"):
+            getattr(transform, attribute)[0, 2] = 5.0
 
     @pytest.mark.parametrize(
         ("matrix", "match"),

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
+from tests.helpers import _ClampedHomography, _shift_rotate_matrix
 
 COLOR = sv.Color(r=255, g=0, b=0)
 THICKNESS = 2
@@ -61,11 +62,7 @@ def test_polygon_zone_annotator(
 
 
 SHIFT = sv.MatrixTransform(np.array([[1, 0, 30], [0, 1, -20]]))
-SHIFT_ROTATE = sv.MatrixTransform(
-    np.array(
-        [[0.9962, -0.0872, 13.65], [0.0872, 0.9962, -32.53]],
-    )
-)
+SHIFT_ROTATE = sv.MatrixTransform(_shift_rotate_matrix(degrees=5, dx=30, dy=-20))
 BLANK_SCENE = np.zeros((300, 300, 3), dtype=np.uint8)
 
 
@@ -99,17 +96,6 @@ class TestPolygonZoneAnnotatorWithCoordTransform:
         assert not np.array_equal(annotated, BLANK_SCENE)
         np.testing.assert_array_equal(annotated, expected)
 
-    def test_draws_edges_at_shifted_pixels(self) -> None:
-        """The left edge moves 30 px right and the original edge stays blank."""
-        annotator = sv.PolygonZoneAnnotator(
-            zone=sv.PolygonZone(POLYGON), color=COLOR, display_in_zone_count=False
-        )
-
-        annotated = annotator.annotate(scene=BLANK_SCENE.copy(), coord_transform=SHIFT)
-
-        assert annotated[130, 130].any()
-        assert not annotated[150, 100].any()
-
     def test_none_matches_default_annotation(self) -> None:
         """Passing coord_transform=None draws exactly what the default call draws."""
         annotator = sv.PolygonZoneAnnotator(zone=sv.PolygonZone(POLYGON), color=COLOR)
@@ -119,15 +105,82 @@ class TestPolygonZoneAnnotatorWithCoordTransform:
 
         np.testing.assert_array_equal(annotated, expected)
 
-    def test_draws_nothing_when_vertices_map_to_non_finite(self) -> None:
-        """A zone with no finite position in this frame is not drawn."""
-        beyond_horizon = sv.MatrixTransform(
-            np.array([[1, 0, 0], [0, 1, 0], [-0.01, 0, 1]])
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize("opacity", [0.0, 0.5])
+    @pytest.mark.parametrize("far_first", [False, True])
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                sv.MatrixTransform(
+                    np.array([[1, 0, 0], [0, 1, 0], [-(1 - w) / 200, 0, 1]])
+                ),
+                id=f"w={w}",
+            )
+            for w in (1e-9, 1e-14)
+        ]
+        + [
+            pytest.param(
+                _ClampedHomography([[1, 0, 0], [0, 1, 0], [-1 / 200, 0, 1]]),
+                id="trackers-clamped-w",
+            )
+        ],
+    )
+    def test_bent_edge_is_not_drawn(
+        self, transform: sv.CoordinatesTransform, far_first: bool, opacity: float
+    ) -> None:
+        """The top edge keeps slope 0.5 instead of bending to the clip corner."""
+        assert np.abs(transform.abs_to_rel(POLYGON.astype(float))).max() > 1e6
+        polygon = np.roll(POLYGON, -1 if far_first else 0, axis=0)
+        annotator = sv.PolygonZoneAnnotator(
+            zone=sv.PolygonZone(polygon),
+            color=COLOR,
+            display_in_zone_count=False,
+            opacity=opacity,
         )
-        annotator = sv.PolygonZoneAnnotator(zone=sv.PolygonZone(POLYGON), color=COLOR)
 
         annotated = annotator.annotate(
-            scene=BLANK_SCENE.copy(), coord_transform=beyond_horizon
+            scene=BLANK_SCENE.copy(), coord_transform=transform
+        )
+
+        # Vertices at x = 200 map beyond 1e6 and the top edge to y = 0.5 * x + 100
+        # from (200, 200) outwards, so (280, 240) is on it; (280, 280), on the
+        # diagonal y = x that clipping each coordinate would draw, is on no edge:
+        # it lies inside the zone, so it only gets the fill, if any.
+        np.testing.assert_array_equal(annotated[240, 280], COLOR.as_bgr())
+        np.testing.assert_array_equal(
+            annotated[280, 280], np.rint(np.array(COLOR.as_bgr()) * opacity)
+        )
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize("display_in_zone_count", [True, False])
+    @pytest.mark.parametrize(
+        "matrix",
+        [
+            pytest.param(np.array([[1, 0, 1e12], [0, 1, 0]]), id="shift-1e12"),
+            pytest.param(np.array([[1, 0, 2.0**32], [0, 1, 0]]), id="shift-2**32"),
+            pytest.param(
+                np.array([[1e10, 0, 0], [0, 1e10, 0], [-(1 - 1e-14) / 200, 0, 1]]),
+                id="near-horizon-beyond-int64",
+            ),
+            pytest.param(
+                np.array([[1, 0, 0], [0, 1, 0], [-0.01, 0, 1]]), id="beyond-horizon"
+            ),
+        ],
+    )
+    def test_draws_nothing_when_zone_has_no_position_in_scene(
+        self, matrix: np.ndarray, display_in_zone_count: bool
+    ) -> None:
+        """A zone mapped far off the scene or to NaN draws nothing."""
+        annotator = sv.PolygonZoneAnnotator(
+            zone=sv.PolygonZone(POLYGON),
+            color=COLOR,
+            opacity=0.5,
+            display_in_zone_count=display_in_zone_count,
+        )
+
+        annotated = annotator.annotate(
+            scene=BLANK_SCENE.copy(), coord_transform=sv.MatrixTransform(matrix)
         )
 
         np.testing.assert_array_equal(annotated, BLANK_SCENE)

@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from tests.helpers import _create_detections, _move_detections_with_camera
+from tests.helpers import (
+    _ClampedHomography,
+    _create_detections,
+    _move_detections_with_camera,
+    _shift_rotate_matrix,
+)
 
 DETECTION_BOXES = np.array(
     [
@@ -331,20 +336,6 @@ class TestPolygonZoneTrigger:
         assert not right_result
 
 
-def _shift_rotate_matrix(degrees: float, dx: float, dy: float) -> np.ndarray:
-    """Return a 3x3 matrix rotating by `degrees` about (150, 150), then shifting."""
-    angle = np.radians(degrees)
-    cos, sin = np.cos(angle), np.sin(angle)
-    rotate_about_center = np.array(
-        [
-            [cos, -sin, 150 - 150 * cos + 150 * sin + dx],
-            [sin, cos, 150 - 150 * sin - 150 * cos + dy],
-            [0.0, 0.0, 1.0],
-        ]
-    )
-    return rotate_about_center
-
-
 SHIFT = sv.MatrixTransform(np.array([[1, 0, 30], [0, 1, -20]]))
 SHIFT_ROTATE = sv.MatrixTransform(_shift_rotate_matrix(degrees=5, dx=30, dy=-20))
 PERSPECTIVE = sv.MatrixTransform(
@@ -371,6 +362,7 @@ class _WrongShapeTransform:
 
 
 class TestPolygonZoneTriggerWithCoordTransform:
+    @pytest.mark.parametrize("require_all_anchors", [True, False])
     @pytest.mark.parametrize(
         ("transform", "triggering_anchors", "moved_anchor"),
         [
@@ -389,6 +381,12 @@ class TestPolygonZoneTriggerWithCoordTransform:
                 sv.Position.CENTER,
                 id="perspective-center",
             ),
+            pytest.param(
+                sv.MatrixTransform(-2.5 * PERSPECTIVE.matrix),
+                (sv.Position.CENTER,),
+                sv.Position.CENTER,
+                id="negatively-scaled-perspective",
+            ),
         ],
     )
     def test_moved_detections_match_unmoved_trigger(
@@ -396,14 +394,17 @@ class TestPolygonZoneTriggerWithCoordTransform:
         transform: sv.MatrixTransform,
         triggering_anchors: tuple[sv.Position, ...],
         moved_anchor: sv.Position,
+        require_all_anchors: bool,
     ) -> None:
         """Moved detections with the camera transform trigger like unmoved ones."""
-        zone = sv.PolygonZone(POLYGON, triggering_anchors=triggering_anchors)
-        reference_zone = sv.PolygonZone(POLYGON, triggering_anchors=triggering_anchors)
+        zone = sv.PolygonZone(POLYGON, triggering_anchors, require_all_anchors)
+        reference_zone = sv.PolygonZone(
+            POLYGON, triggering_anchors, require_all_anchors
+        )
         moved_detections = _move_detections_with_camera(
             DETECTIONS, transform, moved_anchor
         )
-        expected = reference_zone.trigger(DETECTIONS)
+        expected = reference_zone.trigger(DETECTIONS, coord_transform=None)
 
         in_zone = zone.trigger(moved_detections, coord_transform=transform)
 
@@ -411,35 +412,6 @@ class TestPolygonZoneTriggerWithCoordTransform:
         assert not expected.all()
         np.testing.assert_array_equal(in_zone, expected)
         assert zone.current_count == reference_zone.current_count
-
-    @pytest.mark.parametrize(
-        "triggering_anchors", [FOUR_CORNERS, (sv.Position.BOTTOM_CENTER,)]
-    )
-    def test_identity_transform_matches_no_transform(
-        self, triggering_anchors: tuple[sv.Position, ...]
-    ) -> None:
-        """An identity transform leaves every decision unchanged."""
-        zone = sv.PolygonZone(POLYGON, triggering_anchors=triggering_anchors)
-        expected = sv.PolygonZone(
-            POLYGON, triggering_anchors=triggering_anchors
-        ).trigger(DETECTIONS)
-
-        in_zone = zone.trigger(
-            DETECTIONS, coord_transform=sv.MatrixTransform(np.eye(3))
-        )
-
-        np.testing.assert_array_equal(in_zone, expected)
-
-    def test_none_matches_existing_results(self) -> None:
-        """Passing coord_transform=None gives the documented default results."""
-        zone = sv.PolygonZone(POLYGON)
-
-        in_zone = zone.trigger(DETECTIONS, coord_transform=None)
-
-        np.testing.assert_array_equal(
-            in_zone, [False, False, True, True, True, True, False, False, False]
-        )
-        assert zone.current_count == 4
 
     @pytest.mark.parametrize(
         "transform",
@@ -475,6 +447,22 @@ class TestPolygonZoneTriggerWithCoordTransform:
 
         np.testing.assert_array_equal(in_zone, [False])
         assert zone.current_count == 0
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_w_clamping_transform_triggers_like_matrix_transform(self) -> None:
+        """A transform clamping w like trackers' triggers as MatrixTransform does."""
+        # rel_to_abs has w = 1 - x / 150: the centre at x = 150 maps far away,
+        # clamped or NaN, those beyond it are mirrored or NaN, all outside.
+        matrix = [[1, 0, 0], [0, 1, 0], [1 / 150, 0, 1]]
+        zone = sv.PolygonZone(POLYGON, triggering_anchors=(sv.Position.CENTER,))
+
+        clamped = zone.trigger(DETECTIONS, coord_transform=_ClampedHomography(matrix))
+        expected = zone.trigger(
+            DETECTIONS, coord_transform=sv.MatrixTransform(np.array(matrix))
+        )
+
+        np.testing.assert_array_equal(clamped, expected)
+        np.testing.assert_array_equal(clamped, [i == 1 for i in range(9)])
 
     def test_rejects_transform_returning_wrong_shape(self) -> None:
         """A transform that does not return one point per input point raises."""

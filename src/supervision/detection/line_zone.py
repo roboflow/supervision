@@ -23,6 +23,7 @@ from supervision.geometry.core import (
     Vector,
     _transform_points,
 )
+from supervision.geometry.utils import _clip_segment_to_box
 from supervision.utils.image import _overlay_image
 from supervision.utils.internal import SupervisionWarnings
 
@@ -188,14 +189,10 @@ class LineZone:
 
         Args:
             detections: A Detections object for which to update the counts.
-            coord_transform: Optional camera-motion transform for this frame. The
-                line stays in reference-frame coordinates; each anchor is mapped
-                with `coord_transform.rel_to_abs` before the side test, so the
-                crossing history is kept in one coordinate system and an object
-                that stands still is not counted when the line moves under it.
-                Detections with an anchor that maps to non-finite coordinates
-                are treated as outside the line's limits. Pass the same transform
-                to every call; `None` (default) uses the anchors as they are.
+            coord_transform: Optional per-frame camera motion, such as
+                `sv.MatrixTransform`; anchors are mapped into the line's reference
+                frame with `rel_to_abs`, and non-finite ones are outside its limits.
+                Pass it on every call; see the "Follow a Moving Camera" how-to.
 
         Returns:
             A tuple of two boolean NumPy arrays. The first array indicates which
@@ -207,9 +204,7 @@ class LineZone:
             ```pycon
             >>> import numpy as np
             >>> import supervision as sv
-            >>> start, end = sv.Point(0, 100), sv.Point(200, 100)
-            >>> static_line = sv.LineZone(start=start, end=end)
-            >>> moving_line = sv.LineZone(start=start, end=end)
+            >>> line = sv.LineZone(start=sv.Point(0, 100), end=sv.Point(200, 100))
             >>> track_id = np.array([1])
             >>> frame_1 = sv.Detections(
             ...     xyxy=np.array([[10.0, 50.0, 20.0, 90.0]]), tracker_id=track_id
@@ -219,13 +214,9 @@ class LineZone:
             >>> frame_2 = sv.Detections(
             ...     xyxy=np.array([[10.0, 110.0, 20.0, 150.0]]), tracker_id=track_id
             ... )
-            >>> _ = static_line.trigger(frame_1)
-            >>> _ = static_line.trigger(frame_2)
-            >>> static_line.in_count + static_line.out_count
-            1
-            >>> _ = moving_line.trigger(frame_1)
-            >>> _ = moving_line.trigger(frame_2, coord_transform=camera_moved)
-            >>> moving_line.in_count + moving_line.out_count
+            >>> _ = line.trigger(frame_1)
+            >>> _ = line.trigger(frame_2, coord_transform=camera_moved)
+            >>> line.in_count + line.out_count
             0
 
             ```
@@ -528,13 +519,10 @@ class LineZoneAnnotator:
         Args:
             frame: The image on which the line will be drawn.
             line_counter: The line zone that will be used to draw the line.
-            coord_transform: Optional camera-motion transform for this frame. The
-                line's end points are mapped with `coord_transform.abs_to_rel`,
-                and the line and count labels are drawn at the mapped
-                position; the image itself is never warped. Pass the same
-                transform as to `LineZone.trigger`. If an end point maps to
-                non-finite coordinates, nothing is drawn. `None` (default) draws
-                the line where it was defined.
+            coord_transform: The transform passed to `LineZone.trigger`, such as
+                `sv.MatrixTransform`; the line and labels are drawn at `abs_to_rel`
+                of its end points, clipped to 4x the frame size, and nothing is
+                drawn if an end point is non-finite. See the how-to guide.
 
         Returns:
             The image with the line drawn on it.
@@ -559,7 +547,9 @@ class LineZoneAnnotator:
         """
         vector = line_counter.vector
         if coord_transform is not None:
-            mapped_vector = self._map_vector(vector, coord_transform)
+            mapped_vector = self._map_vector(
+                vector, coord_transform, limit=4 * max(frame.shape[:2])
+            )
             if mapped_vector is None:
                 return frame
             vector = mapped_vector
@@ -622,19 +612,21 @@ class LineZoneAnnotator:
 
     @staticmethod
     def _map_vector(
-        vector: Vector, coord_transform: CoordinatesTransform
+        vector: Vector, coord_transform: CoordinatesTransform, limit: float
     ) -> Vector | None:
-        """Map a reference-frame line into the current frame with `abs_to_rel`.
+        """Map a line with `abs_to_rel`, clip it to `[-limit, limit]²` and round it.
 
-        Returns `None` when an end point maps to non-finite coordinates, so the
-        caller can skip drawing a line that has no position in this frame.
+        Clipping keeps near-horizon or far-translated end points drawable. Returns
+        `None` if an end point is non-finite or no part of the line is in bounds.
         """
         end_points = np.array(
             [vector.start.as_xy_float_tuple(), vector.end.as_xy_float_tuple()]
         )
         mapped = _transform_points(end_points, coord_transform.abs_to_rel)
-        if not np.all(np.isfinite(mapped)):
+        clipped = _clip_segment_to_box(mapped, limit=limit)
+        if clipped is None:
             return None
+        mapped = np.rint(clipped)
         return Vector(
             start=Point(x=float(mapped[0, 0]), y=float(mapped[0, 1])),
             end=Point(x=float(mapped[1, 0]), y=float(mapped[1, 1])),
