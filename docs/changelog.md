@@ -7,7 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_yolo` now reads the box of Ultralytics pose labels, a box followed by the keypoint values that `kpt_shape` in `data.yaml` declares, instead of parsing the whole row as a polygon, which gave wrong boxes and unrequested masks. The keypoints are skipped, as Ultralytics does for box tasks. A `kpt_shape` other than `[K, 2]` or `[K, 3]` now raises `ValueError`.
+- `sv.DetectionDataset.from_yolo` now reads the box of Ultralytics pose labels, a box followed by the keypoint values that `kpt_shape` in `data.yaml` declares, instead of parsing the whole row as a polygon, which gave wrong boxes and unrequested masks. The keypoints are skipped, as Ultralytics does for box tasks. A `kpt_shape` other than `[K, 2]` or `[K, 3]` now raises `ValueError`. ([#2655](https://github.com/roboflow/supervision/pull/2655))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
