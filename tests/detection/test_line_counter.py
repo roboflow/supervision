@@ -1261,6 +1261,24 @@ def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
     assert not np.array_equal(label[..., 3], upright[..., 3])
 
 
+class TestLineZoneAnnotatorOrientedLabel:
+    """Oriented count labels on lines whose text would otherwise be upside down."""
+
+    def test_annotate_draws_labels_for_right_to_left_line(self) -> None:
+        """Draw both counts on a line whose label is flipped to read upright."""
+        line_zone = LineZone(start=Point(170, 100), end=Point(30, 100))
+        frame = np.zeros((200, 200, 3), dtype=np.uint8)
+        line_only = LineZoneAnnotator(
+            display_in_count=False, display_out_count=False
+        ).annotate(frame=frame.copy(), line_counter=line_zone)
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+
+        annotated_frame = annotator.annotate(frame=frame.copy(), line_counter=line_zone)
+
+        assert annotated_frame.shape == frame.shape
+        assert not np.array_equal(annotated_frame, line_only)
+
+
 class TestLineZoneUnconfirmedTracks:
     """Detections with a negative `tracker_id` are unconfirmed and must not count.
 

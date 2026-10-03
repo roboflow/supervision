@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-03
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.LineZoneAnnotator(text_orient_to_line=True)` no longer raises `TypeError: _flip() got an unexpected keyword argument 'flipCode'` without OpenCV for lines drawn right to left. The NumPy fallback for `cv2.flip` now uses OpenCV's parameter names `src` and `flipCode`; behavior with OpenCV installed is unchanged. ([#2659](https://github.com/roboflow/supervision/pull/2659))
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
