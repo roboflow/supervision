@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_yolo` now reads the box of Ultralytics pose labels, a box followed by the keypoint values that `kpt_shape` in `data.yaml` declares, instead of parsing the whole row as a polygon, which gave wrong boxes and unrequested masks. The keypoints are skipped, as Ultralytics does for box tasks. A `kpt_shape` other than `[K, 2]` or `[K, 3]` now raises `ValueError`.
+
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
 - `sv.Detections.from_transformers` now accepts the semantic segmentation output returned by Transformers processors with `return_segmentation_scores=True`. These outputs carry a `segmentation` class map and per-pixel `segmentation_scores`, but no `segments_info`; the adapter previously treated every dictionary with `segmentation` as an instance or panoptic result and raised `KeyError: 'segments_info'`. The class map now follows the same path as a bare semantic tensor, while per-pixel scores remain excluded from per-detection `confidence`. ([#2643](https://github.com/roboflow/supervision/pull/2643))
