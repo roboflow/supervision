@@ -161,6 +161,64 @@ def _extract_class_names(file_path: str) -> list[str]:
     )
 
 
+def _extract_pose_value_count(file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
+            positive whole number ``K``.
+    """
+    data = read_yaml_file(file_path=file_path)
+    kpt_shape = data.get("kpt_shape") if isinstance(data, dict) else None
+    if kpt_shape is None:
+        return 0
+    if not (
+        isinstance(kpt_shape, list)
+        and len(kpt_shape) == 2
+        and all(
+            not isinstance(value, bool)
+            and (
+                isinstance(value, int)
+                or (isinstance(value, float) and value.is_integer())
+            )
+            and value > 0
+            for value in kpt_shape
+        )
+        and kpt_shape[1] in (2, 3)
+    ):
+        raise ValueError(
+            f"Expected 'kpt_shape' in data.yaml at '{file_path}' to be"
+            f" [number of keypoints, 2 or 3], got {kpt_shape!r}."
+        )
+    return int(kpt_shape[0]) * int(kpt_shape[1])
+
+
+def _drop_keypoints(lines: list[str], pose_value_count: int) -> list[str]:
+    """Keep the box of each pose label line and drop its keypoint values.
+
+    Only lines of exactly ``5 + pose_value_count`` tokens are pose labels; other
+    lines are returned unchanged. Ultralytics reads pose labels the same way for
+    box tasks.
+    """
+    kept = []
+    for line in lines:
+        values = line.split()
+        if len(values) == 5 + pose_value_count:
+            kept.append(" ".join(values[:5]))
+        else:
+            kept.append(line)
+    return kept
+
+
 def _image_name_to_annotation_name(image_name: str) -> str:
     base_name, _ = os.path.splitext(image_name)
     return base_name + ".txt"
@@ -315,6 +373,7 @@ def load_yolo_annotations(
     ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
+    pose_value_count = 0 if is_obb else _extract_pose_value_count(data_yaml_path)
     annotations = {}
 
     for image_path in tqdm(
@@ -331,6 +390,8 @@ def load_yolo_annotations(
 
         w, h = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
+        if pose_value_count:
+            lines = _drop_keypoints(lines=lines, pose_value_count=pose_value_count)
         resolution_wh = (w, h)
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
