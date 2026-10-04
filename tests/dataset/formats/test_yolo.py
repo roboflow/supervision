@@ -1,3 +1,4 @@
+import re
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -283,7 +284,12 @@ class TestYoloAnnotationsToDetectionsMalformedLine:
     )
     def test_rejects_a_line_that_is_too_short(self, line: str) -> None:
         """Too few tokens matched no branch, desynchronising the parsed lists."""
-        with pytest.raises(ValueError, match="token"):
+        expected = re.escape(
+            f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+            f"(class id and four box values), got {len(line.split())}."
+        )
+
+        with pytest.raises(ValueError, match=expected):
             yolo_annotations_to_detections(
                 lines=[line], resolution_wh=(100, 100), with_masks=False
             )
@@ -301,26 +307,42 @@ class TestYoloAnnotationsToDetectionsMalformedLine:
     ) -> None:
         """OBB reads nine tokens only; anything else failed inside the reshape."""
         line = " ".join(["0"] + ["0.5"] * coordinate_count)
+        expected = re.escape(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {coordinate_count + 1}."
+        )
 
-        with pytest.raises(ValueError, match="token"):
+        with pytest.raises(ValueError, match=expected):
             yolo_annotations_to_detections(
                 lines=[line], resolution_wh=(100, 100), with_masks=False, is_obb=True
             )
 
     def test_rejects_a_blank_line(self) -> None:
         """A blank line used to raise IndexError while splitting off the class id."""
-        with pytest.raises(ValueError, match="token"):
+        expected = re.escape(
+            "Invalid YOLO annotation line ''; expected at least 5 tokens "
+            "(class id and four box values), got 0."
+        )
+
+        with pytest.raises(ValueError, match=expected):
             yolo_annotations_to_detections(
                 lines=[""], resolution_wh=(100, 100), with_masks=False
             )
 
     def test_reports_the_short_line_rather_than_the_class_id(self) -> None:
         """One bad row among good ones used to surface as a class_id shape error."""
-        lines = ["0 0.5 0.5 0.2 0.2", "0 0.5 0.5 0.2"]
+        valid_line = "0 0.5 0.5 0.2 0.2"
+        short_line = "0 0.5 0.5 0.2"
+        expected = re.escape(
+            f"Invalid YOLO annotation line {short_line!r}; expected at least 5 "
+            f"tokens (class id and four box values), got 4."
+        )
 
-        with pytest.raises(ValueError, match="token"):
+        with pytest.raises(ValueError, match=expected):
             yolo_annotations_to_detections(
-                lines=lines, resolution_wh=(100, 100), with_masks=False
+                lines=[valid_line, short_line],
+                resolution_wh=(100, 100),
+                with_masks=False,
             )
 
 
