@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_yolo` now names a malformed annotation line instead of failing on an array shape. A line with fewer than five tokens contributed a class id but no box, so the mismatch surfaced as `operands could not be broadcast together with shapes (0,) (4,)`, as an `IndexError` for a blank line, or — when the file also held valid rows — as a `class_id` shape error that blamed the wrong column. `is_obb=True` lines that were not nine tokens failed inside a reshape. [#2665](https://github.com/roboflow/supervision/pull/2665)
+
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
 - `sv.Detections.from_transformers` now accepts the semantic segmentation output returned by Transformers processors with `return_segmentation_scores=True`. These outputs carry a `segmentation` class map and per-pixel `segmentation_scores`, but no `segments_info`; the adapter previously treated every dictionary with `segmentation` as an instance or panoptic result and raised `KeyError: 'segments_info'`. The class map now follows the same path as a bare semantic tensor, while per-pixel scores remain excluded from per-detection `confidence`. ([#2643](https://github.com/roboflow/supervision/pull/2643))
