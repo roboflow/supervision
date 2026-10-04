@@ -40,6 +40,10 @@ _CODECS = {
     "vp09": ("libvpx-vp9", "yuv420p"),
 }
 
+# OpenCV caps the encoder bit rate at INT_MAX and copies it into the bit rate
+# tolerance, a C `int` that PyAV refuses to set any higher.
+_MAX_BIT_RATE = 2**31 - 1
+
 
 def _video_writer_fourcc(*chars: str) -> int:
     """Encode four single-character strings using OpenCV's integer layout."""
@@ -60,6 +64,31 @@ def _codec_details(fourcc: int) -> tuple[str, str]:
         return _CODECS[code]
     except KeyError as exc:
         raise ValueError(f"Unsupported video codec: {code!r}") from exc
+
+
+def _opencv_encoder_options(
+    codec: str, fps: float, frame_size: tuple[int, int]
+) -> dict[str, int]:
+    """Return the encoder settings `cv2.VideoWriter` uses for a PyAV codec.
+
+    OpenCV's FFmpeg writer sets the bit rate of every encoder except libx264 from
+    the frame rate and size: two bits per pixel per frame, six for MJPEG. It uses
+    the same value as the rate tolerance, a minimum quantizer of 3 and a keyframe
+    every 12 frames. PyAV leaves the bit rate unset, which encodes the same frames
+    at a lower rate and quality. libx264 needs no options, since OpenCV encodes it
+    at CRF 23, libx264's own default.
+    """
+    if codec == "libx264":
+        return {}
+    width, height = frame_size
+    bits_per_pixel = 6 if codec == "mjpeg" else 2
+    bit_rate = int(min(bits_per_pixel * fps * width * height, _MAX_BIT_RATE))
+    return {
+        "bit_rate": bit_rate,
+        "bit_rate_tolerance": bit_rate,
+        "qmin": 3,
+        "gop_size": 12,
+    }
 
 
 def _quarter_turns(rotation: int) -> int:
@@ -240,6 +269,9 @@ class _VideoWriter:
     ) -> None:
         """Open a PyAV writer for the requested codec and frame dimensions.
 
+        The encoder runs with the rate control `cv2.VideoWriter` sets for the
+        codec, so a video keeps its quality whichever backend writes it.
+
         The PyAV fallback always encodes 3-channel BGR frames, so grayscale
         output is unsupported. ``is_color=False`` is rejected up front rather
         than silently ignored, keeping the OpenCV-shaped contract honest for
@@ -270,6 +302,9 @@ class _VideoWriter:
             self._stream.width = self._width
             self._stream.height = self._height
             self._stream.pix_fmt = pixel_format
+            encoder_options = _opencv_encoder_options(codec, fps, frame_size)
+            for name, value in encoder_options.items():
+                setattr(self._stream.codec_context, name, value)
             self._opened = True
         except Exception as exc:
             self._error = exc
