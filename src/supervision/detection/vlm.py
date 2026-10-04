@@ -336,6 +336,10 @@ def from_qwen_2_5_vl(
     text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"```$", "", text).strip()
 
+    # A response cut off inside a box's `bbox_2d` array ends in that array's
+    # elements, so the last `]` below belongs to the previous object's box and the
+    # slice drops that complete object. Recovery reads the unsliced text instead.
+    unsliced = text
     start = text.find("[")
     end = text.rfind("]")
     if start != -1 and end != -1 and end > start:
@@ -344,7 +348,7 @@ def from_qwen_2_5_vl(
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        repaired = recover_truncated_qwen_2_5_vl_response(text)
+        repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
         if repaired is not None:
             data = repaired
         else:

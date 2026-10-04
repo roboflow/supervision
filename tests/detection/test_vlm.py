@@ -398,6 +398,25 @@ def test_from_paligemma(
             ),
         ),  # truncated response, last object unfinished, previous ones recovered
         (
+            does_not_raise(),
+            """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [10,
+            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40""",
+            (640, 640),
+            (640, 640),
+            None,
+            (
+                np.array(
+                    [
+                        [0.0, 0.0, 64.0, 64.0],
+                        [10.0, 20.0, 110.0, 120.0],
+                    ],
+                    dtype=float,
+                ),
+                None,
+                np.array(["dog", "cat"], dtype=str),
+            ),
+        ),  # truncated inside the last bbox_2d array, previous ones recovered
+        (
             pytest.raises(
                 ValueError,
                 match=(
