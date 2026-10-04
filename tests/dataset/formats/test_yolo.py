@@ -269,6 +269,47 @@ class TestYoloAnnotationsToDetectionsClassId:
             )
 
 
+class TestYoloAnnotationsToDetectionsBoxExtent:
+    """Tests for how ``yolo_annotations_to_detections`` reads box width and height."""
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token"),
+        [
+            pytest.param("-0.4", "0.4", id="negative-width"),
+            pytest.param("0.4", "-0.4", id="negative-height"),
+            pytest.param("-0.4", "-0.4", id="negative-both"),
+        ],
+    )
+    def test_rejects_a_negative_box_extent(
+        self, width_token: str, height_token: str
+    ) -> None:
+        """A negative extent puts x_min past x_max, which the library never expects."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        with pytest.raises(ValueError, match="extent"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token"),
+        [
+            pytest.param("0.0", "0.4", id="zero-width"),
+            pytest.param("0.4", "0.0", id="zero-height"),
+        ],
+    )
+    def test_loads_a_zero_box_extent(self, width_token: str, height_token: str) -> None:
+        """A zero extent is degenerate but still ordered, so it keeps loading."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 100), with_masks=False
+        )
+
+        assert result.xyxy[0][0] <= result.xyxy[0][2]
+        assert result.xyxy[0][1] <= result.xyxy[0][3]
+
+
 class TestYoloAnnotationsToDetectionsTrailingToken:
     """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
 
@@ -1012,6 +1053,32 @@ def test_dataset_as_yolo_obb_round_trip_with_background_image(
 
 
 _EMPTY_MASK = np.zeros((100, 100), dtype=bool)
+
+
+class TestObjectToYoloBoxOrdering:
+    """Tests that ``object_to_yolo`` writes a width and height the loader accepts."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([70.0, 30.0, 30.0, 70.0], id="reversed-x"),
+            pytest.param([30.0, 70.0, 70.0, 30.0], id="reversed-y"),
+            pytest.param([70.0, 70.0, 30.0, 30.0], id="reversed-both"),
+        ],
+    )
+    def test_writes_a_non_negative_extent_for_a_reversed_box(
+        self, xyxy: list[float]
+    ) -> None:
+        """Detections allows a reversed box, so order the corners before measuring."""
+        line = object_to_yolo(
+            xyxy=np.array(xyxy), class_id=0, image_shape=(100, 100, 3)
+        )
+
+        result = yolo_annotations_to_detections(
+            lines=[line], resolution_wh=(100, 100), with_masks=False
+        )
+
+        np.testing.assert_allclose(result.xyxy, [[30.0, 30.0, 70.0, 70.0]])
 
 
 class TestDetectionsToYoloAnnotationsEmptyMask:

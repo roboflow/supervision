@@ -37,13 +37,26 @@ if TYPE_CHECKING:
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
+    """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
+
+    A negative width or height would place ``x_min`` past ``x_max``, breaking the
+    ordering every consumer of ``xyxy`` assumes: ``Detections.area`` turns negative,
+    ``box_iou_batch`` reports no overlap between identical regions, and ``with_nms``
+    stops suppressing. Reject it here rather than let a corrupt label travel on.
+    """
     x_center, y_center, width, height = values
+    box_width, box_height = float(width), float(height)
+    if box_width < 0 or box_height < 0:
+        raise ValueError(
+            f"Invalid box extent ({width}, {height}) in YOLO annotation; "
+            "expected a non-negative width and height."
+        )
     return np.array(
         [
-            float(x_center) - float(width) / 2,
-            float(y_center) - float(height) / 2,
-            float(x_center) + float(width) / 2,
-            float(y_center) + float(height) / 2,
+            float(x_center) - box_width / 2,
+            float(y_center) - box_height / 2,
+            float(x_center) + box_width / 2,
+            float(y_center) + box_height / 2,
         ],
         dtype=np.float32,
     )
@@ -373,6 +386,12 @@ def object_to_yolo(
     if polygon is None:
         xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
         x_min, y_min, x_max, y_max = xyxy_relative
+        # Order the corners before measuring. Detections does not enforce
+        # x_min <= x_max, and a reversed box would otherwise be written with a
+        # negative width or height, which the loader rejects: supervision would
+        # produce a dataset it cannot read back.
+        x_min, x_max = min(x_min, x_max), max(x_min, x_max)
+        y_min, y_max = min(y_min, y_max), max(y_min, y_max)
         x_center = (x_min + x_max) / 2
         y_center = (y_min + y_max) / 2
         width = x_max - x_min
