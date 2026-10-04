@@ -1,11 +1,11 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-04
 ---
 
 # Changelog
 
-### Unreleased <small>upcoming</small>
+### 0.30.7 <small>Oct 4, 2026</small>
 
 - `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
 
