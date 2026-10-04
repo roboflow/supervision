@@ -7,7 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now recovers every complete detection from a response that was cut off inside the last box's `bbox_2d` array. The parser cut the text at its last `]`, which in that case closes the previous object's box, so the truncation recovery never saw that object's closing `}` and dropped it too: a cut-off response with two complete detections returned one. Recovery now reads the text before that cut.
+- `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now recovers every complete detection from a response that was cut off inside the last box's `bbox_2d` array. The parser cut the text at its last `]`, which in that case closes the previous object's box, so the truncation recovery never saw that object's closing `}` and dropped it too: a cut-off response with two complete detections returned one. Recovery now reads the text before that cut. ([#2666](https://github.com/roboflow/supervision/pull/2666))
 
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
 
