@@ -43,9 +43,9 @@ Core data structure for bounding boxes, masks, confidence scores, class IDs, tra
 
 Draw bounding boxes, segmentation masks, and text labels on images. Annotators expose `annotate(scene=..., detections=...)`; pass an input image and a `Detections` object to get the annotated output. `LabelAnnotator` can use explicit `labels` or fall back to `detections["class_name"]`, class IDs, then detection indices. Colors can be assigned by class or manually specified.
 
-### Tracking objects
+### sv.ByteTrack
 
-The built-in `sv.ByteTrack` wrapper, which accepted `Detections` via `update_with_detections()`, was removed in `supervision-0.31.0`. Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`) instead, whose method is named `update()`. Use tracked `Detections` with `sv.TraceAnnotator` to visualize trajectories.
+Object tracker wrapper that assigns persistent IDs across video frames. The built-in `sv.ByteTrack` accepts `Detections` via `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package, where the method is named `update()`. Use tracked `Detections` with `sv.TraceAnnotator` to visualize trajectories.
 
 ### sv.PolygonZone and sv.LineZone
 
@@ -61,7 +61,7 @@ SAHI-style inference slicing: split high-resolution images into overlapping tile
 
 ### supervision.metrics.MeanAveragePrecision and sv.ConfusionMatrix
 
-Benchmarking tools. For mAP@0.5:0.95, use `supervision.metrics.MeanAveragePrecision` with `update()` and `compute()`; the top-level `sv.MeanAveragePrecision.from_detections()` was removed in `0.31.0`. `ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes)` generates a confusion matrix for detection results.
+Benchmarking tools. For mAP@0.5:0.95, use `supervision.metrics.MeanAveragePrecision` with `update()` and `compute()` rather than the deprecated top-level `sv.MeanAveragePrecision.from_detections()`. `ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes)` generates a confusion matrix for detection results.
 
 ### sv.CSVSink and sv.JSONSink
 
@@ -92,6 +92,7 @@ Export detection results to structured files. Use `CSVSink` and `JSONSink` as co
 - Keypoint Core (keypoint/core): https://supervision.roboflow.com/latest/keypoint/core/
 - Keypoint Annotators (keypoint/annotators): https://supervision.roboflow.com/latest/keypoint/annotators/
 - Classification Core (classification/core): https://supervision.roboflow.com/latest/classification/core/
+- ByteTrack Tracker (trackers): https://supervision.roboflow.com/latest/trackers/
 - Datasets Core (datasets/core): https://supervision.roboflow.com/latest/datasets/core/
 - mAP (metrics/mean_average_precision): https://supervision.roboflow.com/latest/metrics/mean_average_precision/
 - mAR (metrics/mean_average_recall): https://supervision.roboflow.com/latest/metrics/mean_average_recall/
@@ -148,7 +149,7 @@ Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP â€
 
 ### How do I track objects across video frames?
 
-Use `ByteTrackTracker` from the external `trackers` package (`pip install trackers`), which accepts `Detections` through `update()`; the built-in `sv.ByteTrack` wrapper, which used `update_with_detections()`, was removed as of `supervision-0.31.0`. Combine tracked detections with `sv.TraceAnnotator` to visualize trajectories.
+Use a tracker to assign persistent IDs. The built-in `sv.ByteTrack` wrapper accepts `Detections` with `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. Combine tracked detections with `sv.TraceAnnotator` to visualize trajectories.
 
 ### What dataset formats does supervision support?
 
