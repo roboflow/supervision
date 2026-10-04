@@ -178,9 +178,9 @@ def _extract_pose_value_count(file_path: str) -> int:
             positive whole number ``K``.
     """
     data = read_yaml_file(file_path=file_path)
-    kpt_shape = data.get("kpt_shape") if isinstance(data, dict) else None
-    if kpt_shape is None:
+    if not isinstance(data, dict) or "kpt_shape" not in data:
         return 0
+    kpt_shape = data["kpt_shape"]
     if not (
         isinstance(kpt_shape, list)
         and len(kpt_shape) == 2
@@ -373,7 +373,9 @@ def load_yolo_annotations(
     ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
-    pose_value_count = 0 if is_obb else _extract_pose_value_count(data_yaml_path)
+    pose_value_count = _extract_pose_value_count(data_yaml_path)
+    if is_obb:
+        pose_value_count = 0
     annotations = {}
 
     for image_path in tqdm(

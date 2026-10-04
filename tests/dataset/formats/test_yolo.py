@@ -488,9 +488,12 @@ class TestFromYoloPoseLabels:
             ],
         )
 
-    @pytest.mark.parametrize("kpt_shape", ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]"])
+    @pytest.mark.parametrize(
+        "kpt_shape", ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "null"]
+    )
+    @pytest.mark.parametrize("is_obb", [False, True], ids=["boxes", "obb"])
     def test_raises_on_an_invalid_kpt_shape(
-        self, tmp_path: Path, kpt_shape: str
+        self, tmp_path: Path, kpt_shape: str, is_obb: bool
     ) -> None:
         """A `kpt_shape` other than `[K, 2]` or `[K, 3]` is rejected."""
         paths = _write_pose_dataset(
@@ -498,7 +501,7 @@ class TestFromYoloPoseLabels:
         )
 
         with pytest.raises(ValueError, match="kpt_shape"):
-            DetectionDataset.from_yolo(*paths)
+            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
 
 
 @pytest.mark.parametrize(
