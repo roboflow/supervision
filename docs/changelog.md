@@ -7,6 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.VideoSink` and `sv.process_video` now write video at OpenCV's quality when OpenCV is not installed. The PyAV fallback left the encoder's bit rate unset, so `mp4v`, the default codec, and `MJPG` came out at well under half the bit rate `cv2.VideoWriter` uses: 30 frames of a 1280x720 texture scored 27.9 dB PSNR instead of 32.4 dB with `mp4v`, and 27.0 dB instead of 33.4 dB with `MJPG`. The fallback now sets the bit rate, rate tolerance, minimum quantizer and keyframe interval that OpenCV's FFmpeg writer uses for every codec except H.264, which already encoded at libx264's CRF 23 default in both backends. [#2661](https://github.com/roboflow/supervision/pull/2661)
 - `sv.DetectionDataset.as_labelme`, `as_yolo`, and `as_pascal_voc` now export annotations for in-memory grayscale images shaped `(height, width)` without failing on a missing channel dimension. Image dimensions and annotation coordinates are preserved, Pascal VOC records depth `1`, and the source pixels are unchanged. [#2641](https://github.com/roboflow/supervision/pull/2641)
 
 - `sv.KeyPoints.with_nms` now preserves skeletons with zero joints, including those produced by boolean keypoint filtering, instead of raising a zero-size reduction error. All aligned fields and NMS validation requirements are preserved. [#2639](https://github.com/roboflow/supervision/pull/2639)
