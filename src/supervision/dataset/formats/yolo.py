@@ -88,6 +88,29 @@ def _polygons_to_masks(
     )
 
 
+def _check_line_is_parsable(values: list[str], line: str, is_obb: bool) -> None:
+    """Raise unless a YOLO line carries enough tokens for a box, polygon or OBB.
+
+    Five tokens are a box, six add a trailing confidence or tracker id, and seven or
+    more are a polygon. ``is_obb=True`` reads nine-token four-corner lines only, where
+    an odd coordinate count cannot be paired into vertices. Anything else cannot be
+    read as any of them.
+    """
+    if is_obb:
+        if len(values) == 9:
+            return
+        raise ValueError(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {len(values)}."
+        )
+    if len(values) >= 5:
+        return
+    raise ValueError(
+        f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+        f"(class id and four box values), got {len(values)}."
+    )
+
+
 def _is_axis_aligned_box_line(values: list[str], is_obb: bool) -> bool:
     """Return True when a YOLO line is an axis-aligned box, possibly with extras.
 
@@ -230,6 +253,11 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
+        # Every branch below appends one box, so a line matching none of them would
+        # leave class_id_list one entry longer than relative_xyxy_list. That surfaced
+        # far away as a NumPy broadcast error, or as a class_id shape error when the
+        # file also held good rows, naming neither the line nor the real fault.
+        _check_line_is_parsable(values=values, line=line, is_obb=is_obb)
         class_id_list.append(_parse_class_id(values[0]))
         if _is_axis_aligned_box_line(values, is_obb):
             if len(values) == 6:

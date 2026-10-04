@@ -269,6 +269,61 @@ class TestYoloAnnotationsToDetectionsClassId:
             )
 
 
+class TestYoloAnnotationsToDetectionsMalformedLine:
+    """Tests for YOLO lines that match no known annotation shape."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            pytest.param("0", id="class-only"),
+            pytest.param("0 0.5", id="one-coordinate"),
+            pytest.param("0 0.5 0.5", id="two-coordinates"),
+            pytest.param("0 0.5 0.5 0.2", id="missing-height"),
+        ],
+    )
+    def test_rejects_a_line_that_is_too_short(self, line: str) -> None:
+        """Too few tokens matched no branch, desynchronising the parsed lists."""
+        with pytest.raises(ValueError, match="token"):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        "coordinate_count",
+        [
+            pytest.param(5, id="too-few"),
+            pytest.param(7, id="odd-count"),
+            pytest.param(10, id="too-many"),
+        ],
+    )
+    def test_rejects_an_obb_line_that_is_not_four_corners(
+        self, coordinate_count: int
+    ) -> None:
+        """OBB reads nine tokens only; anything else failed inside the reshape."""
+        line = " ".join(["0"] + ["0.5"] * coordinate_count)
+
+        with pytest.raises(ValueError, match="token"):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False, is_obb=True
+            )
+
+    def test_rejects_a_blank_line(self) -> None:
+        """A blank line used to raise IndexError while splitting off the class id."""
+        with pytest.raises(ValueError, match="token"):
+            yolo_annotations_to_detections(
+                lines=[""], resolution_wh=(100, 100), with_masks=False
+            )
+
+    def test_reports_the_short_line_rather_than_the_class_id(self) -> None:
+        """One bad row among good ones used to surface as a class_id shape error."""
+        lines = ["0 0.5 0.5 0.2 0.2", "0 0.5 0.5 0.2"]
+
+        with pytest.raises(ValueError, match="token"):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+
 class TestYoloAnnotationsToDetectionsBoxExtent:
     """Tests for how ``yolo_annotations_to_detections`` reads box width and height."""
 
