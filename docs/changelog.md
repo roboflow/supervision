@@ -7,6 +7,10 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.crop_image` now clips finite crop coordinates outside the 32-bit integer range to the image bounds before converting them to integers. Previously, the premature `int32` conversion could wrap an out-of-bounds box and return an empty crop for both NumPy and Pillow images. ([#2642](https://github.com/roboflow/supervision/pull/2642))
+
+- `sv.Detections.from_transformers` now accepts the semantic segmentation output returned by Transformers processors with `return_segmentation_scores=True`. These outputs carry a `segmentation` class map and per-pixel `segmentation_scores`, but no `segments_info`; the adapter previously treated every dictionary with `segmentation` as an instance or panoptic result and raised `KeyError: 'segments_info'`. The class map now follows the same path as a bare semantic tensor, while per-pixel scores remain excluded from per-detection `confidence`. ([#2643](https://github.com/roboflow/supervision/pull/2643))
+
 - `sv.DetectionDataset.from_yolo` now rejects a label whose width or height is negative, instead of building a box with `x_min` past `x_max`. Such a box made `Detections.area` negative, made `box_iou_batch` score two boxes covering the identical region at `0.0`, and stopped `with_nms` suppressing, so a corrupt label skewed evaluation silently. `object_to_yolo` now orders the corners before measuring the width and height, so a reversed `Detections` box no longer exports as a file the loader refuses to read; the exported box describes the same rectangle and normal boxes are unchanged. [#2663](https://github.com/roboflow/supervision/pull/2663)
 
 - `sv.DetectionDataset.as_labelme`, `as_yolo`, and `as_pascal_voc` now export annotations for in-memory grayscale images shaped `(height, width)` without failing on a missing channel dimension. Image dimensions and annotation coordinates are preserved, Pascal VOC records depth `1`, and the source pixels are unchanged. [#2641](https://github.com/roboflow/supervision/pull/2641)
