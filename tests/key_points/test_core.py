@@ -1638,6 +1638,32 @@ class TestFromUltralytics:
         assert key_points == KeyPoints.empty()
 
 
+class TestFromTransformers:
+    """KeyPoints.from_transformers for per-image pose results."""
+
+    def test_no_poses_returns_empty_key_points(self) -> None:
+        """An image without detected poses has an empty result list."""
+        key_points = KeyPoints.from_transformers([])
+
+        assert key_points == KeyPoints.empty()
+
+    def test_pose_result_preserves_coordinates_and_scores(self) -> None:
+        """A nonempty pose result still carries its keypoints and scores."""
+        results = [
+            {
+                "keypoints": _FakeTensor(
+                    np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
+                ),
+                "scores": _FakeTensor(np.array([0.9, 0.7], dtype=np.float32)),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
+
+
 class _FakeDetectron2Instances:
     """Detectron2-like `Instances` holding key points, scores and classes."""
 

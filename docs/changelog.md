@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-09-29
+date_modified: 2026-10-05
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.KeyPoints.from_transformers` now returns an empty `KeyPoints` object when pose post-processing returns no instances for an image, instead of raising `IndexError`. This lets callers handle frames with no detected people without stopping the pose pipeline.
 
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 

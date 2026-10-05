@@ -935,7 +935,8 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                and class names, and confidences of each keypoint. An empty
+                per-image result returns `KeyPoints.empty()`.
 
         Examples:
             ```python
@@ -985,6 +986,9 @@ class KeyPoints:
             ```
 
         """  # noqa: E501 // docs
+
+        if not transformers_results:
+            return cls.empty()
 
         if "keypoints" in transformers_results[0]:
             if transformers_results[0]["keypoints"].cpu().numpy().size == 0:
