@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.BoxAnnotator`, `sv.CropAnnotator`, `sv.PercentageBarAnnotator` and `sv.draw_rectangle` now draw a border of `thickness` 2 or more identically with and without `opencv-python` installed. Without it, supervision's NumPy fallback drew the border entirely inside the rectangle, because Pillow's `ImageDraw.rectangle(outline=..., width=...)` only grows inward, while OpenCV centers each edge's band on the edge and rounds the four joints with a filled disc. A default `sv.BoxAnnotator()` box, `thickness=2`, came out 1 pixel smaller per side and painted 392 pixels instead of 596. Borders of `thickness=1` and filled rectangles were already correct and are unchanged. ([#2674](https://github.com/roboflow/supervision/issues/2674))
+
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
