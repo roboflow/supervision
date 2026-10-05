@@ -1,11 +1,11 @@
 ---
 comments: true
-description: Load depth maps from Roboflow Inference, Ultralytics YOLO26 depth, Hugging Face or a stereo matcher, colour them over images and video, label objects with their distance, and write clips supervision-js plays in the browser.
+description: Load depth maps from Roboflow Inference, Ultralytics YOLO26 depth, Hugging Face or a stereo matcher, colour them over images and video, and label objects with their distance.
 authors:
   - name: Caio Viotti
     role: Roboflow
     github: https://github.com/cfviotti
-date_modified: 2026-10-01
+date_modified: 2026-10-05
 ---
 
 # Visualize Depth Maps
@@ -20,7 +20,6 @@ This guide covers:
 2. [Colouring it](#colour-a-depth-map)
 3. [Reading distances and labelling objects](#label-objects-with-their-distance)
 4. [Colouring a video with one range](#colour-a-video-with-one-range)
-5. [Saving depth for the browser](#save-depth-for-supervision-js)
 
 ## Load a Depth Map
 
@@ -148,28 +147,6 @@ with sv.VideoSink("<TARGET_VIDEO_PATH>", sv.VideoInfo.from_video_path(source)) a
 ```
 
 `DepthClipRange.from_depth_maps` reads a generator too, so for long clips you can estimate depth twice instead of holding every map. Relative maps from monocular models change scale from frame to frame by design, so a locked range still flickers with them; metric and stereo maps do not.
-
-## Save Depth for supervision-js
-
-[supervision-js](https://github.com/roboflow/supervision-js) draws depth in the browser and reads exact values under the pointer. `save` writes the format it loads, a `depth.json` manifest and a 16-bit PNG:
-
-```python
-depth_map.save("depth/depth.json")  # also writes depth/depth.png
-depth_map = sv.DepthMap.load("depth/depth.json")
-```
-
-For video, [sv.DepthSink][supervision.depth.sink.DepthSink] writes one exact PNG per video frame, an 8-bit preview video the browser plays, and the clip manifest:
-
-```python
-video_info = sv.VideoInfo.from_video_path(source)
-clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
-
-with sv.DepthSink("left-depth", video_info, clip_range, preview=False) as sink:
-    for depth_map in depth_maps:
-        sink.write_depth_map(depth_map)
-```
-
-The preview video is defined for disparity only, so this example passes `preview=False`, which metric and relative maps need; supervision-js then draws exact depth while playback rests. For stereo disparity maps, drop `preview=False` to also write the preview.
 
 ## Attribution
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import json
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
@@ -18,19 +17,7 @@ from supervision.config import (
     DISPARITY_PX_DATA_FIELD,
     RELATIVE_INVERSE_DATA_FIELD,
 )
-from supervision.depth.manifest import (
-    DEPTH_MANIFEST_SCHEMA,
-    DEPTH_MANIFEST_VERSION,
-    encode_codes,
-    encode_png16,
-    json_number,
-    parse_manifest,
-    power_of_two_scale,
-    read_pfm,
-    read_png16,
-    resolve_frame_file,
-    resolve_manifest_file,
-)
+from supervision.depth.readers import read_pfm, read_png16
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 
@@ -179,7 +166,6 @@ class DepthCamera:
         for name in ("fx_px", "baseline_m", "doffs_px", "cx_px", "cy_px"):
             value = getattr(self, name)
             if value is not None:
-                # NumPy scalars would make the depth.json camera block unwritable.
                 object.__setattr__(
                     self, name, _plain_float(value, f"DepthCamera {name}")
                 )
@@ -209,19 +195,6 @@ class DepthCamera:
             cx_px=None if self.cx_px is None else self.cx_px - x_offset,
             cy_px=None if self.cy_px is None else self.cy_px - y_offset,
         )
-
-    def _to_manifest(self) -> dict[str, float]:
-        """Return the snake_case `camera` block of a depth manifest."""
-        block: dict[str, float] = {
-            "fx_px": self.fx_px,
-            "baseline_m": self.baseline_m,
-            "doffs_px": self.doffs_px,
-        }
-        if self.cx_px is not None:
-            block["cx_px"] = self.cx_px
-        if self.cy_px is not None:
-            block["cy_px"] = self.cy_px
-        return block
 
 
 @dataclass(frozen=True)
@@ -390,11 +363,9 @@ class DepthMap:
 
     `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container with
     its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)), its own
-    model connectors, and a file format shared with supervision-js
-    ([`save`](#supervision.depth.core.DepthMap.save) and
-    [`load`](#supervision.depth.core.DepthMap.load)). It belongs to the whole frame, so
-    it is not a `sv.Detections` field; `measure_detections` brings the depth under each
-    object into `detections.data`.
+    model connectors. It belongs to the whole frame, so it is not a `sv.Detections`
+    field; `measure_detections` brings the depth under each object into
+    `detections.data`.
 
     `values` is stored in one of two forms:
 
@@ -403,8 +374,7 @@ class DepthMap:
       for `relative_inverse`, non-finite and negative values are no depth, because a
       normalised map puts its farthest real pixel at exactly 0.
     - **uint16 stored codes** with a `scale`: the value is `code / scale` and code 0 is
-      no depth, the layout of KITTI PNGs and of the shared PNG16 format. Codes are kept
-      untouched, so a loaded map saves back byte for byte.
+      no depth, the layout of KITTI PNGs. Codes are kept untouched.
 
     === "Inference"
 
@@ -1254,183 +1224,6 @@ class DepthMap:
         """
         return cls(read_pfm(path), kind=kind)
 
-    def save(self, path: str | Path, scale: float | None = None) -> None:
-        """Write the map as a `depth.json` manifest and a 16-bit PNG beside it.
-
-        The files are the shared format supervision-js reads: the PNG is named after
-        the manifest (`depth.json` writes `depth.png`), every row uses the PNG Up
-        filter for fast browser decoding, the stored value divided by
-        `storage.scale` is the value in the kind's unit, and 0 is no depth.
-
-        A uint16 map is written with its own codes and scale, byte for byte. A float
-        map is quantised with `scale`, or, without one, with the largest power of
-        two that keeps its largest value under 65535 (1/1024 px steps for disparity
-        up to 63 px). A valid value that would round to 0 is written as 1.
-
-        Args:
-            path: Manifest path, conventionally `depth.json`.
-            scale: Optional divisor for float maps.
-
-        Raises:
-            ValueError: If `path` ends in `.png`, which is the image's own name, or a
-                value does not fit 16 bits at `scale`.
-
-        Examples:
-            ```python
-            import numpy as np
-            import supervision as sv
-
-            depth_map = sv.DepthMap(
-                np.random.uniform(1, 60, (720, 1280)).astype(np.float32),
-                kind="disparity_px",
-                camera=sv.DepthCamera(fx_px=1050.0, baseline_m=0.12),
-            )
-            depth_map.save("out/depth.json")  # also writes out/depth.png
-            assert sv.DepthMap.load("out/depth.json").resolution_wh == (1280, 720)
-            ```
-        """
-        manifest_path = Path(path)
-        if manifest_path.suffix.lower() == ".png":
-            raise ValueError(
-                "save() writes the PNG beside the manifest under the manifest's "
-                f"name, so {manifest_path} would be overwritten; pass a manifest "
-                f"path such as {manifest_path.with_suffix('.json')}."
-            )
-        codes, stored_scale = self._stored_codes(scale)
-        image_file = manifest_path.with_suffix(".png").name
-        manifest = _manifest_header(
-            kind=self.kind,
-            resolution_wh=self.resolution_wh,
-            scale=stored_scale,
-            camera=self.camera,
-            display_range=self.display_range,
-            view=self.view,
-        )
-        manifest["image"] = {"file": image_file}
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        (manifest_path.parent / image_file).write_bytes(encode_png16(codes))
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-        )
-
-    def _stored_codes(
-        self, scale: float | None
-    ) -> tuple[npt.NDArray[np.uint16], float]:
-        """Return the uint16 codes and scale to write, keeping existing codes."""
-        if self.values.dtype == np.uint16 and scale in (None, self.scale):
-            assert self.scale is not None
-            return self.values, self.scale
-        valid = self.valid_mask
-        values = self.to_float(0.0)
-        if scale is None:
-            largest = float(values[valid].max()) if valid.any() else 0.0
-            scale = power_of_two_scale(largest)
-        if not (math.isfinite(scale) and scale > 0):
-            raise ValueError(f"scale must be a positive number, got {scale}.")
-        return encode_codes(values, valid, scale), float(scale)
-
-    @classmethod
-    def load(cls, path: str | Path, frame_index: int | None = None) -> DepthMap:
-        """Load a map from a `depth.json` manifest and its 16-bit PNG.
-
-        The fields it reads are checked as supervision-js checks them, and every
-        error names the offending field (`depth.json: storage.scale must be a
-        positive number`); other fields, such as a clip's `preview`, are ignored. A
-        clip manifest needs `frame_index`.
-
-        Args:
-            path: Path to the manifest.
-            frame_index: Zero-based frame to load from a clip manifest.
-
-        Returns:
-            A uint16 `sv.DepthMap` with the manifest's scale, camera, display range
-            and view.
-
-        Raises:
-            ValueError: If the manifest is invalid or names a file outside its own
-                folder, the frame index is missing or out of range, or the PNG does
-                not match the manifest's size.
-
-        Examples:
-            ```python
-            import supervision as sv
-
-            still = sv.DepthMap.load("depth/depth.json")
-            frame = sv.DepthMap.load("clip/depth.json", frame_index=42)
-            ```
-        """
-        manifest_path = Path(path)
-        manifest = parse_manifest(json.loads(manifest_path.read_text(encoding="utf-8")))
-        if manifest.image_file is not None:
-            if frame_index is not None:
-                raise ValueError(
-                    f"{manifest_path} describes a still image; it has no frames."
-                )
-            file_name = manifest.image_file
-            field = "image.file"
-        else:
-            count = manifest.frame_count
-            assert count is not None
-            assert manifest.frame_pattern is not None
-            if frame_index is None or not 0 <= frame_index < count:
-                raise ValueError(
-                    f"{manifest_path} is a clip of {count} frames; pass a frame_index "
-                    f"from 0 to {count - 1}."
-                )
-            file_name = resolve_frame_file(manifest.frame_pattern, frame_index)
-            field = "frames.exact"
-        codes = read_png16(resolve_manifest_file(manifest_path, file_name, field))
-        if codes.shape != (manifest.height, manifest.width):
-            raise ValueError(
-                f"depth.json: {file_name} is {codes.shape[1]}x{codes.shape[0]} but the "
-                f"manifest says {manifest.width}x{manifest.height}."
-            )
-        camera = None if manifest.camera is None else DepthCamera(**manifest.camera)
-        return cls(
-            codes,
-            kind=manifest.kind,
-            scale=manifest.scale,
-            camera=camera,
-            display_range=manifest.display_range,
-            view=manifest.view,
-        )
-
-
-def _manifest_header(
-    kind: DepthKind,
-    resolution_wh: tuple[int, int],
-    scale: float,
-    camera: DepthCamera | None,
-    display_range: tuple[float, float] | None,
-    view: str | None,
-) -> dict[str, Any]:
-    """Return the `depth.json` fields shared by still images and clips.
-
-    Fields follow the order of supervision-js's documentation; a disparity range is
-    written as `display_range_px`, its name for disparity.
-    """
-    width, height = resolution_wh
-    manifest: dict[str, Any] = {
-        "schema": DEPTH_MANIFEST_SCHEMA,
-        "version": DEPTH_MANIFEST_VERSION,
-        "kind": kind.value,
-    }
-    if view is not None:
-        manifest["view"] = view
-    manifest["width"] = width
-    manifest["height"] = height
-    manifest["storage"] = {
-        "format": "png16",
-        "scale": json_number(scale),
-        "no_depth": 0,
-    }
-    if camera is not None:
-        manifest["camera"] = camera._to_manifest()
-    if display_range is not None:
-        key = "display_range_px" if kind is DepthKind.DISPARITY_PX else "display_range"
-        manifest[key] = list(display_range)
-    return manifest
-
 
 def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
     """Decode a base64 8- or 16-bit grayscale PNG into floats from 0 to 1."""
@@ -1461,8 +1254,7 @@ class DepthClipRange:
 
     Colouring each frame with its own range makes a still wall change colour as
     things enter and leave the frame. A clip range, computed in a first pass over the
-    clip, keeps colours meaning the same distance on every frame, and tells
-    `sv.DepthSink` how to quantise the clip.
+    clip, keeps colours meaning the same distance on every frame.
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' kind unit.
@@ -1491,7 +1283,6 @@ class DepthClipRange:
             _plain_float(bound, "DepthClipRange display_range")
             for bound in self.display_range
         )
-        # NumPy scalars would make the clip's depth.json unwritable.
         object.__setattr__(self, "display_range", (low, high))
         max_value = _plain_float(self.max_value, "DepthClipRange max_value")
         object.__setattr__(self, "max_value", max_value)

@@ -48,8 +48,11 @@ class DepthAnnotator:
 
         ```python
         import supervision as sv
+        from ultralytics import YOLO
 
-        depth_maps = [sv.DepthMap.load("clip/depth.json", i) for i in range(192)]
+        model = YOLO("yolo26n-depth.pt")
+        frames = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
+        depth_maps = [sv.DepthMap.from_ultralytics(model(frame)[0]) for frame in frames]
         clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
         depth_annotator = sv.DepthAnnotator(display_range=clip_range)
         ```

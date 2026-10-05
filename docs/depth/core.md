@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Load depth, disparity and relative depth maps from Inference, Ultralytics, Transformers and stereo datasets into sv.DepthMap, convert them, and save the depth.json format supervision-js reads.
+description: Load depth, disparity and relative depth maps from Inference, Ultralytics, Transformers and stereo datasets into sv.DepthMap and convert them between disparity and metric depth.
 ---
 
 # Depth Estimation

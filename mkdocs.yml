@@ -77,7 +77,6 @@ nav:
       - Depth Estimation:
           - Core: depth/core.md
           - Annotators: depth/annotators.md
-          - Depth Sink: depth/sink.md
       - Classification:
           - Core: classification/core.md
       - Tools:
