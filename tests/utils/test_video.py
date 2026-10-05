@@ -1160,3 +1160,71 @@ def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
     frame_indices = [round(float(frame.mean()) / 25) for frame in frames]
 
     assert frame_indices == expected_frame_indices
+
+
+class _UnreliableCountCapture:
+    """Fake capture that decodes `frame_count` frames but reports `reported_count`.
+
+    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with
+    no duration, as written by a browser's `MediaRecorder`, reports a huge negative
+    count, and a variable frame rate MKV or WebM can report fewer frames than it
+    holds.
+    """
+
+    def __init__(self, frame_count: int, reported_count: float) -> None:
+        self.frame_count = frame_count
+        self.reported_count = reported_count
+        self.position = 0
+
+    def isOpened(self) -> bool:
+        """Report the capture as open."""
+        return True
+
+    def get(self, property_id: int) -> float:
+        """Return the unreliable frame count estimate."""
+        assert property_id == cv2.CAP_PROP_FRAME_COUNT
+        return self.reported_count
+
+    def read(self) -> tuple[bool, np.ndarray | None]:
+        """Decode the next frame, filled with its index, until the stream ends."""
+        if self.position >= self.frame_count:
+            return False, None
+        frame = np.full((2, 2, 3), self.position, dtype=np.uint8)
+        self.position += 1
+        return True, frame
+
+    def grab(self) -> bool:
+        """Skip the next frame."""
+        success, _ = self.read()
+        return success
+
+    def release(self) -> None:
+        """No-op release for the fake capture."""
+
+
+@pytest.mark.parametrize(
+    ("reported_count", "end", "expected_frame_indices"),
+    [
+        pytest.param(-2.767e17, None, [0, 1, 2, 3, 4], id="negative-count"),
+        pytest.param(0, None, [0, 1, 2, 3, 4], id="zero-count"),
+        pytest.param(3, None, [0, 1, 2, 3, 4], id="underestimated-count"),
+        pytest.param(-2.767e17, 2, [0, 1], id="negative-count-with-end"),
+    ],
+)
+def test_get_video_frames_generator_reads_past_unreliable_frame_count(
+    monkeypatch: pytest.MonkeyPatch,
+    reported_count: float,
+    end: int | None,
+    expected_frame_indices: list[int],
+) -> None:
+    """Frames are read until the stream ends, not until the estimated frame count."""
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: _UnreliableCountCapture(
+            frame_count=5, reported_count=reported_count
+        ),
+    )
+
+    frames = get_video_frames_generator("recording.webm", end=end)
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == expected_frame_indices

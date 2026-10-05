@@ -166,16 +166,22 @@ class VideoSink:
 
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
-) -> tuple[cv2.VideoCapture, int, int]:
-    """Open a video, position it at `start`, and return it with the clamped range."""
+) -> tuple[cv2.VideoCapture, int, int | None]:
+    """Open a video, position it at `start`, and return it with the frame range.
+
+    An `end` of `None` is kept, so the caller reads until the stream runs out.
+    """
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
+    # OpenCV estimates the frame count from container metadata. A WebM without a
+    # duration, as browsers record it, reports a huge negative count, and a
+    # variable frame rate video can report fewer frames than it holds, so the
+    # count only rejects an `end` when it is positive and never bounds the read.
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if end is not None and end > total_frames:
+    if end is not None and 0 < total_frames < end:
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
-    end = min(end, total_frames) if end is not None else total_frames
 
     if iterative_seek:
         # Count grabs separately: `start` is returned as the position of the first
@@ -292,7 +298,7 @@ def get_video_frames_generator(
     try:
         while True:
             success, frame = video.read()
-            if not success or frame_position >= end:
+            if not success or (end is not None and frame_position >= end):
                 break
             if frame is not None:
                 yield cast(npt.NDArray[np.uint8], frame)
