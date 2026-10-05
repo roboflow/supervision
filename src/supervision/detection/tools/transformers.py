@@ -85,9 +85,10 @@ def process_transformers_v5_segmentation_result(
     `post_process_panoptic_segmentation` (v5).
 
     Args:
-        segmentation_result: Either a dictionary containing segmentation results
-            (`segments_info` and `segmentation`) or a tensor object
-            representing a semantic segmentation map.
+        segmentation_result: A tensor containing a semantic segmentation map, a
+            dictionary with `segmentation` and `segmentation_scores` for a semantic
+            result, or a dictionary with `segments_info` and `segmentation` for an
+            instance or panoptic result.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
@@ -97,12 +98,20 @@ def process_transformers_v5_segmentation_result(
             scores, class IDs, and data.
     """
     if segmentation_result.__class__.__name__ == "Tensor":
-        segmentation_array = segmentation_result.cpu().detach().numpy()
-        return process_transformers_v5_panoptic_segmentation_result(
-            segmentation_array, id2label
+        semantic_map = segmentation_result
+    elif (
+        "segments_info" not in segmentation_result
+        and "segmentation_scores" in segmentation_result
+    ):
+        semantic_map = segmentation_result["segmentation"]
+    else:
+        return process_transformers_v5_semantic_or_instance_segmentation_result(
+            cast(dict[str, Any], segmentation_result), id2label
         )
-    return process_transformers_v5_semantic_or_instance_segmentation_result(
-        cast(dict[str, Any], segmentation_result), id2label
+
+    segmentation_array = semantic_map.cpu().detach().numpy()
+    return process_transformers_v5_panoptic_segmentation_result(
+        segmentation_array, id2label
     )
 
 
