@@ -7,7 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionsSmoother` now ages cached track history on frames without `tracker_id`, as it already does on tracked empty frames. Expired boxes and confidence scores no longer affect a returning track. Short gaps still preserve smoothing, and untracked detections retain the existing warning and unchanged return value.
+- `sv.DetectionsSmoother` now ages cached track history on frames without `tracker_id`, as it already does on tracked empty frames. Expired boxes and confidence scores no longer affect a returning track. Short gaps still preserve smoothing, and untracked detections retain the existing warning and unchanged return value. ([#2676](https://github.com/roboflow/supervision/pull/2676))
 
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 
