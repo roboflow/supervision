@@ -51,63 +51,29 @@ class _FakeDepthEstimatorOutput:
 
 class TestDepthMapInit:
     @pytest.mark.parametrize(
-        ("values", "scale", "exception"),
+        ("values", "match"),
         [
             pytest.param(
-                np.ones((2, 2), np.uint16),
-                None,
-                pytest.raises(ValueError, match="need a positive"),
-                id="uint16-without-scale",
+                np.ones((2, 2), np.uint16), "got uint16.*scale", id="uint16-codes"
             ),
+            pytest.param(np.ones((2, 2), np.int32), "got int32", id="int32"),
             pytest.param(
-                np.ones((2, 2), np.float32),
-                256,
-                pytest.raises(ValueError, match="uint16 stored codes only"),
-                id="float-with-scale",
-            ),
-            pytest.param(
-                np.ones((2, 2), np.int32),
-                None,
-                pytest.raises(ValueError, match="got int32"),
-                id="int32",
-            ),
-            pytest.param(
-                np.ones((2, 2, 1), np.float32),
-                None,
-                pytest.raises(ValueError, match=r"\(H, W\)"),
-                id="three-dimensional",
+                np.ones((2, 2, 1), np.float32), r"\(H, W\)", id="three-dimensional"
             ),
         ],
     )
-    def test_validates_values_against_scale(
-        self, values: np.ndarray, scale: float | None, exception: Any
+    def test_rejects_values_that_are_not_a_float_map(
+        self, values: np.ndarray, match: str
     ) -> None:
-        """Float values take no scale; uint16 codes need one; others are refused."""
-        with exception:
-            sv.DepthMap(values, kind="depth_m", scale=scale)
+        """Only 2D float values are accepted; integer codes must be divided first."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap(values, kind="depth_m")
 
     def test_stores_float64_as_float32(self) -> None:
         """Any float dtype is stored as float32."""
         depth_map = sv.DepthMap(np.ones((2, 2)), kind="depth_m")
 
         assert depth_map.values.dtype == np.float32
-
-    @pytest.mark.parametrize(
-        "display_range",
-        [
-            pytest.param((5.0, 5.0), id="equal-ends"),
-            pytest.param((6.0, 5.0), id="reversed"),
-            pytest.param((0.0, float("inf")), id="infinite-high"),
-        ],
-    )
-    def test_rejects_empty_display_range(
-        self, display_range: tuple[float, float]
-    ) -> None:
-        """A display range needs finite ends with low < high."""
-        with pytest.raises(ValueError, match="display_range"):
-            sv.DepthMap(
-                np.ones((2, 2), np.float32), kind="depth_m", display_range=display_range
-            )
 
     def test_rejects_unknown_kind(self) -> None:
         """The kind must be one of the three depth kinds."""
@@ -122,8 +88,8 @@ class TestDepthCamera:
             pytest.param({"fx_px": 0.0, "baseline_m": 0.1}, id="zero-focal"),
             pytest.param({"fx_px": 700.0, "baseline_m": -0.1}, id="negative-baseline"),
             pytest.param(
-                {"fx_px": 700.0, "baseline_m": 0.1, "cx_px": float("nan")},
-                id="nan-cx",
+                {"fx_px": 700.0, "baseline_m": 0.1, "doffs_px": float("nan")},
+                id="nan-doffs",
             ),
         ],
     )
@@ -158,14 +124,6 @@ class TestDepthMapValidMask:
 
         assert valid.tolist() == [expected]
 
-    def test_uint16_code_zero_is_no_depth(self) -> None:
-        """For stored codes, 0 is no depth whatever the kind."""
-        codes = np.array([[0, 1, 65535]], dtype=np.uint16)
-
-        valid = sv.DepthMap(codes, kind="relative_inverse", scale=65535).valid_mask
-
-        assert valid.tolist() == [[False, True, True]]
-
 
 class TestDepthMapToFloat:
     def test_returns_a_copy(self) -> None:
@@ -188,87 +146,41 @@ class TestDepthMapConversion:
         assert depth.kind is sv.DepthKind.DEPTH_M
         np.testing.assert_allclose(depth.to_float(), [[np.nan, 5.0, 2.0]])
 
-    def test_depth_to_disparity_round_trips(self) -> None:
-        """Converting to disparity and back returns the metric values."""
-        depth = np.array([[1.0, 2.5, 10.0]], dtype=np.float32)
-        depth_map = sv.DepthMap(depth, kind="depth_m", camera=CAMERA)
-
-        round_trip = depth_map.to_disparity().to_depth()
-
-        np.testing.assert_allclose(round_trip.to_float(), depth, rtol=1e-6)
-
-    def test_converts_display_range_with_swapped_ends(self) -> None:
-        """Near disparity is the far end's opposite, so range ends swap."""
-        depth_map = sv.DepthMap(
-            np.ones((2, 2), np.float32),
-            kind="disparity_px",
-            camera=CAMERA,
-            display_range=(10.0, 50.0),
-        )
-
-        display_range = depth_map.to_depth().display_range
-
-        assert display_range == pytest.approx((2.0, 10.0))
-
     @pytest.mark.parametrize(
-        ("kind", "camera", "method"),
+        ("kind", "camera"),
         [
-            pytest.param("relative_inverse", None, "to_depth", id="relative-to-depth"),
-            pytest.param(
-                "relative_inverse", CAMERA, "to_disparity", id="relative-to-disparity"
-            ),
-            pytest.param(
-                "disparity_px", None, "to_depth", id="disparity-without-camera"
-            ),
-            pytest.param("depth_m", None, "to_disparity", id="depth-without-camera"),
+            pytest.param("relative_inverse", CAMERA, id="relative"),
+            pytest.param("disparity_px", None, id="disparity-without-camera"),
         ],
     )
     def test_raises_when_conversion_is_impossible(
-        self, kind: str, camera: sv.DepthCamera | None, method: str
+        self, kind: str, camera: sv.DepthCamera | None
     ) -> None:
-        """Conversions need metric data and a camera."""
+        """Metric depth needs disparity with a camera."""
         depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind=kind, camera=camera)
 
         with pytest.raises(ValueError, match="Cannot"):
-            getattr(depth_map, method)()
+            depth_map.to_depth()
 
     def test_same_kind_returns_the_map_itself(self) -> None:
         """Asking for the kind a map already has returns it unchanged."""
-        depth_map = sv.DepthMap(
-            np.full((2, 2), 700, np.uint16), kind="depth_m", scale=100
-        )
+        depth_map = sv.DepthMap(np.full((2, 2), 7.0, np.float32), kind="depth_m")
 
-        assert depth_map.to_depth() == depth_map
+        assert depth_map.to_depth() is depth_map
 
 
 class TestDepthMapResize:
     def test_nearest_scales_disparity_values_with_width(self) -> None:
-        """Halving the width halves disparity, its range and the focal length."""
+        """Halving the width halves disparity and the focal length."""
         disparity = np.full((4, 8), 20.0, dtype=np.float32)
-        camera = sv.DepthCamera(fx_px=800.0, baseline_m=0.1, cx_px=4.0, cy_px=2.0)
-        depth_map = sv.DepthMap(
-            disparity, kind="disparity_px", camera=camera, display_range=(4.0, 40.0)
-        )
+        camera = sv.DepthCamera(fx_px=800.0, baseline_m=0.1)
+        depth_map = sv.DepthMap(disparity, kind="disparity_px", camera=camera)
 
         resized = depth_map.resize((4, 2))
 
         assert resized.resolution_wh == (4, 2)
         np.testing.assert_array_equal(resized.to_float(), np.full((2, 4), 10.0))
-        assert resized.display_range == (2.0, 20.0)
-        assert resized.camera == sv.DepthCamera(
-            fx_px=400.0, baseline_m=0.1, cx_px=2.0, cy_px=1.0
-        )
-
-    def test_uint16_disparity_keeps_codes_and_changes_scale(self) -> None:
-        """A uint16 disparity map is not re-quantised; its scale absorbs the ratio."""
-        codes = np.full((2, 4), 2560, dtype=np.uint16)
-        depth_map = sv.DepthMap(codes, kind="disparity_px", scale=256)
-
-        resized = depth_map.resize((8, 4))
-
-        assert resized.values.dtype == np.uint16
-        assert resized.scale == 128
-        np.testing.assert_array_equal(resized.to_float(), np.full((4, 8), 20.0))
+        assert resized.camera == sv.DepthCamera(fx_px=400.0, baseline_m=0.1)
 
     @pytest.mark.parametrize(
         ("kind", "values", "expected"),
@@ -303,15 +215,6 @@ class TestDepthMapResize:
 
         np.testing.assert_array_equal(resized.to_float(), expected)
 
-    def test_foreground_on_uint16_depth_ignores_zero_codes(self) -> None:
-        """Stored code 0 never wins, and the smallest depth code does."""
-        codes = np.array([[0, 900, 700, 0]], dtype=np.uint16)
-        depth_map = sv.DepthMap(codes, kind="depth_m", scale=100)
-
-        resized = depth_map.resize((1, 1), method="foreground")
-
-        assert resized.values.tolist() == [[700]]
-
     def test_foreground_grows_by_nearest_sampling(self) -> None:
         """An axis that grows has nothing to pool and repeats pixels."""
         depth_map = sv.DepthMap(np.array([[1.0, 2.0]], np.float32), kind="depth_m")
@@ -342,16 +245,16 @@ class TestDepthMapResize:
 
 
 class TestDepthMapCrop:
-    def test_crops_values_and_shifts_principal_point(self) -> None:
-        """The crop keeps values and moves cx, cy by its origin."""
+    def test_crops_values_and_keeps_camera(self) -> None:
+        """The crop keeps the values inside the box and the same camera."""
         values = np.arange(20, dtype=np.float32).reshape(4, 5) + 1
-        camera = sv.DepthCamera(fx_px=100.0, baseline_m=0.1, cx_px=2.5, cy_px=2.0)
+        camera = sv.DepthCamera(fx_px=100.0, baseline_m=0.1)
         depth_map = sv.DepthMap(values, kind="depth_m", camera=camera)
 
         cropped = depth_map.crop((1, 1, 3, 4))
 
         np.testing.assert_array_equal(cropped.values, values[1:4, 1:3])
-        assert (cropped.camera.cx_px, cropped.camera.cy_px) == (1.5, 1.0)
+        assert cropped.camera == camera
 
     def test_raises_for_box_outside_map(self) -> None:
         """A box that misses the map has nothing to crop."""
@@ -380,8 +283,8 @@ class TestDepthMapValueAt:
         expected: float | None,
     ) -> None:
         """The pixel under the point is read; holes and outside points give None."""
-        codes = np.array([[2560, 0, 2560]], dtype=np.uint16)
-        depth_map = sv.DepthMap(codes, kind="disparity_px", scale=256)
+        disparity = np.array([[10.0, np.nan, 10.0]], dtype=np.float32)
+        depth_map = sv.DepthMap(disparity, kind="disparity_px")
 
         value = depth_map.value_at(x, y, resolution_wh=resolution_wh)
 
@@ -396,22 +299,19 @@ class TestDepthMapPercentileRange:
 
         value_range = depth_map._percentile_range(0, 100, quantity="depth")
 
-        assert value_range == pytest.approx((100 / 90, 10.0))
+        assert value_range == pytest.approx((1.0, 10.0))
 
-    def test_widens_a_flat_uint16_map_by_one_code(self) -> None:
-        """Coinciding ends are widened by one code so the range stays usable."""
-        codes = np.full((4, 4), 512, dtype=np.uint16)
+    def test_widens_a_flat_map_by_one_float32_step(self) -> None:
+        """Coinciding ends are widened by one float32 step so the range stays usable."""
+        values = np.full((4, 4), 2.0, dtype=np.float32)
 
-        value_range = sv.DepthMap(
-            codes, kind="disparity_px", scale=256
-        )._percentile_range()
+        value_range = sv.DepthMap(values, kind="disparity_px")._percentile_range()
 
-        assert value_range == (2.0, 513 / 256)
+        assert value_range == (2.0, float(np.nextafter(np.float32(2.0), np.inf)))
 
-    def test_returns_none_below_one_percent_valid(self) -> None:
-        """A map that is almost all holes has no meaningful percentile range."""
+    def test_returns_none_without_depth(self) -> None:
+        """A map that is all holes has no percentile range."""
         values = np.zeros((40, 40), dtype=np.float32)
-        values[0, 0] = 5.0
 
         value_range = sv.DepthMap(values, kind="depth_m")._percentile_range()
 
@@ -669,8 +569,8 @@ class TestDepthMapFromTransformers:
 
 
 class TestDepthMapFromFiles:
-    def test_from_png16_keeps_codes_and_scale(self, tmp_path: Any) -> None:
-        """A KITTI-style PNG written by another tool loads as uint16 codes."""
+    def test_from_png16_divides_by_scale(self, tmp_path: Any) -> None:
+        """A KITTI-style PNG loads as float32 code / scale, with NaN for code 0."""
         codes = np.array([[0, 256], [5120, 65535]], dtype=np.uint16)
         Image.fromarray(codes).save(tmp_path / "kitti.png")
 
@@ -678,8 +578,10 @@ class TestDepthMapFromFiles:
             tmp_path / "kitti.png", scale=256, kind="disparity_px"
         )
 
-        np.testing.assert_array_equal(depth_map.values, codes)
-        assert depth_map.scale == 256
+        assert depth_map.values.dtype == np.float32
+        np.testing.assert_array_equal(
+            depth_map.values, [[np.nan, 1.0], [20.0, 65535 / 256]]
+        )
 
     def test_from_png16_rejects_8_bit_png(self, tmp_path: Any) -> None:
         """An 8-bit PNG is not a depth PNG."""
@@ -691,7 +593,7 @@ class TestDepthMapFromFiles:
 
 class TestDepthMapEquality:
     def test_float_maps_with_nan_compare_equal(self) -> None:
-        """NaN holes compare equal so round trips can be checked."""
+        """NaN holes compare equal, so maps with missing pixels compare equal."""
         values = np.array([[np.nan, 1.0]], dtype=np.float32)
 
         assert sv.DepthMap(values, kind="depth_m") == sv.DepthMap(
@@ -708,18 +610,18 @@ class TestDepthMapEquality:
 
 
 class TestDepthClipRange:
-    def test_reads_a_generator_and_decodes_codes(self) -> None:
-        """Stored codes are decoded, and maps are read once from an iterator."""
+    def test_reads_a_generator(self) -> None:
+        """Maps are read once from an iterator."""
         frames = (
-            sv.DepthMap(np.full((2, 2), code, np.uint16), kind="depth_m", scale=100)
-            for code in (100, 300)
+            sv.DepthMap(np.full((2, 2), depth, np.float32), kind="depth_m")
+            for depth in (1.0, 3.0)
         )
 
         clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
 
-        assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0), max_value=3.0)
+        assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0))
 
-    def test_counts_depth_off_the_sampling_grid(self) -> None:
+    def test_counts_depth_on_odd_pixels_only(self) -> None:
         """Depth only on odd pixels still yields a range."""
         values = np.zeros((4, 4), np.float32)
         values[1, 1], values[3, 3] = 5.0, 7.0
@@ -727,7 +629,7 @@ class TestDepthClipRange:
 
         clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
 
-        assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0), max_value=7.0)
+        assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0))
 
     def test_long_clip_matches_the_range_of_its_repeated_frame(self) -> None:
         """Past both sample caps, a clip of one structured frame keeps its range."""
@@ -765,16 +667,7 @@ class TestDepthClipRange:
         with pytest.raises(ValueError, match=match):
             sv.DepthClipRange.from_depth_maps(frames)
 
-    @pytest.mark.parametrize(
-        ("display_range", "max_value"),
-        [
-            pytest.param((2.0, 1.0), 5.0, id="reversed-range"),
-            pytest.param((1.0, 2.0), 0.0, id="zero-max-value"),
-        ],
-    )
-    def test_rejects_invalid_fields(
-        self, display_range: tuple[float, float], max_value: float
-    ) -> None:
-        """The range must be ordered and the ceiling positive."""
+    def test_rejects_a_reversed_range(self) -> None:
+        """The range must be ordered low to high."""
         with pytest.raises(ValueError, match="DepthClipRange"):
-            sv.DepthClipRange(display_range=display_range, max_value=max_value)
+            sv.DepthClipRange(display_range=(2.0, 1.0))

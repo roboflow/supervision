@@ -15,19 +15,15 @@ from supervision.depth.core import (
     _resolve_conversion,
 )
 from supervision.draw.base import ImageType
-from supervision.draw.color import Color
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
 
 _FALLBACK_RANGE = (0.0, 1.0)
-_DISPLAY_RANGE_MODES = ("clip", "auto")
 
 
 class DepthAnnotator:
     """Colours a `sv.DepthMap` over an image, near objects warm and far ones cool.
 
-    The options and the colours match supervision-js's depth renderer, so a map looks
-    the same in Python and in the browser: the same 256-entry colour tables, the same
-    quantity and range rules, and pixels without depth left unpainted.
+    Pixels without depth are left unpainted, so the scene shows through.
 
     === "Image"
 
@@ -62,9 +58,8 @@ class DepthAnnotator:
         self,
         colormap: DepthColormap | str = DepthColormap.TURBO,
         quantity: DepthQuantity | str = DepthQuantity.DISPARITY,
-        display_range: str | tuple[float, float] | DepthClipRange = "clip",
+        display_range: str | tuple[float, float] | DepthClipRange = "auto",
         opacity: float = 1.0,
-        no_depth_color: Color | None = None,
     ) -> None:
         """
         Args:
@@ -77,16 +72,12 @@ class DepthAnnotator:
                 disparity map with a camera.
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
-                `"clip"` (default) uses the map's own `display_range`, converted to
-                the quantity, and behaves as `"auto"` for a map without one.
-                `"auto"` uses this map's 2nd to 98th percentile.
+                `"auto"` (default) uses this map's 2nd to 98th percentile.
                 A `(low, high)` tuple fixes the range in the quantity's unit (pixels
                 for disparity, metres for depth).
                 A `sv.DepthClipRange` uses one range, in the maps' kind unit, for
                 every frame of a clip.
             opacity: Opacity of the colours over the scene, from 0 to 1.
-            no_depth_color: Colour for pixels without depth, painted at `opacity`.
-                `None` (default) leaves them unpainted, so the scene shows through.
 
         Raises:
             ValueError: If an option is out of range.
@@ -97,7 +88,6 @@ class DepthAnnotator:
         if not (math.isfinite(opacity) and 0 <= opacity <= 1):
             raise ValueError(f"opacity must be between 0 and 1, got {opacity}.")
         self.opacity = float(opacity)
-        self.no_depth_color = no_depth_color
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, depth_map: DepthMap) -> ImageType:
@@ -157,9 +147,6 @@ class DepthAnnotator:
             valid = valid[rows, columns]
 
         _blend(scene, valid, colors, self.opacity)
-        if self.no_depth_color is not None:
-            no_depth = np.array(self.no_depth_color.as_bgr(), dtype=np.uint8)
-            _blend(scene, ~valid, no_depth, self.opacity)
         return scene
 
     def _resolve_range(
@@ -167,28 +154,18 @@ class DepthAnnotator:
     ) -> tuple[float, float]:
         """Return the colour range in the quantity's unit for this map.
 
-        Falls back step by step like supervision-js: a clip range that cannot be
-        converted to the percentile range, and that, when too few pixels hold depth,
-        to the full range of the valid values, so a sparse frame still colours what
-        it has.
+        A clip range that cannot be converted falls back to the percentile range, and a
+        map without any depth to `(0, 1)`.
         """
         option = self.display_range
         if isinstance(option, tuple):
             return option
-        clip_range = None
         if isinstance(option, DepthClipRange):
-            clip_range = option.display_range
-        elif option == "clip":
-            clip_range = depth_map.display_range
-        if clip_range is not None:
-            converted = conversion.apply_range(clip_range)
+            converted = conversion.apply_range(option.display_range)
             if converted is not None:
                 return converted
         percentile = depth_map._percentile_range(quantity=self.quantity)
-        if percentile is not None:
-            return percentile
-        full = depth_map._full_range(conversion)
-        return full if full is not None else _FALLBACK_RANGE
+        return percentile if percentile is not None else _FALLBACK_RANGE
 
 
 def _check_display_range_option(
@@ -198,9 +175,9 @@ def _check_display_range_option(
     if isinstance(display_range, DepthClipRange):
         return display_range
     if isinstance(display_range, str):
-        if display_range not in _DISPLAY_RANGE_MODES:
+        if display_range != "auto":
             raise ValueError(
-                f"display_range must be 'clip', 'auto', a (low, high) tuple or a "
+                "display_range must be 'auto', a (low, high) tuple or a "
                 f"sv.DepthClipRange, got {display_range!r}."
             )
         return display_range
@@ -218,9 +195,8 @@ def _color_coordinates(
 ) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
-    Mirrors the supervision-js shader: `t = clamp((v - low) / (high - low))`, flipped
-    when the quantity's low end is near. Pixels without depth get 0; they are not
-    painted.
+    `t = clamp((v - low) / (high - low))`, flipped when the quantity's low end is
+    near. Pixels without depth get 0; they are not painted.
     """
     converted = conversion.apply(depth_map.to_float())
     span = np.float32(max(high - low, 1e-20))
@@ -241,9 +217,8 @@ def _blend(
 ) -> None:
     """Blend `colors` into `scene` at `opacity`, only where `where` is set.
 
-    `colors` is `(H, W, 3)` or a single `(3,)` colour. Whole-image arithmetic and a
-    masked copy are several times faster than gathering and scattering the masked
-    pixels.
+    `colors` is `(H, W, 3)`. Whole-image arithmetic and a masked copy are several
+    times faster than gathering and scattering the masked pixels.
     """
     if opacity <= 0 or not where.any():
         return

@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Load depth, disparity and relative depth maps from Inference, Ultralytics, Transformers and stereo datasets into sv.DepthMap and convert them between disparity and metric depth.
+description: Load depth, disparity and relative depth maps from Inference, Ultralytics, Transformers and stereo datasets into sv.DepthMap and convert disparity to metric depth.
 ---
 
 # Depth Estimation

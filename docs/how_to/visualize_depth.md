@@ -96,19 +96,18 @@ depth_annotator = sv.DepthAnnotator(opacity=0.65)
 annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 ```
 
-The defaults are the ones supervision-js uses, so a map looks the same in a notebook and in the browser:
+The defaults:
 
 - `colormap="turbo"` separates the most depth steps. `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers; use them for figures.
 - `quantity="disparity"` colours inverse depth, which gives near detail most of the colours. `quantity="depth"` colours metres and needs a metric map or a stereo camera.
-- `display_range="clip"` uses the map's own range when it has one and its 2nd to 98th percentile otherwise. A `(low, high)` tuple fixes the range in pixels or metres.
-- Pixels without depth stay unpainted, so the image shows through where the model gave up. Pass `no_depth_color=sv.Color.BLACK` to paint them.
+- `display_range="auto"` uses the map's 2nd to 98th percentile. A `(low, high)` tuple fixes the range in pixels or metres, and `sv.DepthClipRange` holds one range across a video.
+- Pixels without depth stay unpainted, so the image shows through where the model gave up.
 
-To draw a colour bar that matches, build a matplotlib colormap from the same table:
+To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
 ```python
-from matplotlib.colors import ListedColormap
-
-turbo = ListedColormap(sv.DepthColormap.TURBO.rgb_lut() / 255)
+height, width = annotated_image.shape[:2]
+annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.as_bgr()
 ```
 
 ## Label Objects with Their Distance

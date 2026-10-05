@@ -21,10 +21,6 @@ from supervision.depth.readers import read_pfm, read_png16
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 
-#: Percentile estimates read every second pixel in each axis, as supervision-js does.
-_PERCENTILE_STRIDE = 2
-#: Below this share of valid samples a percentile says nothing about the scene.
-_MIN_VALID_SAMPLE_SHARE = 0.01
 #: A frame adds about this many samples, or fewer, to a clip-wide percentile estimate.
 _CLIP_SAMPLES_PER_FRAME = 65536
 #: A clip-wide percentile estimate keeps at most about this many float64 samples.
@@ -133,8 +129,8 @@ class DepthQuantity(Enum):
 class DepthCamera:
     """Pinhole stereo camera parameters that relate disparity to metric depth.
 
-    All pixel values are in pixels of the depth map they belong to, so resizing or
-    cropping a `sv.DepthMap` updates them.
+    All pixel values are in pixels of the depth map they belong to, so resizing a
+    `sv.DepthMap` updates them.
 
     Attributes:
         fx_px: Focal length in pixels.
@@ -142,8 +138,6 @@ class DepthCamera:
         doffs_px: Difference between the two views' principal points in pixels
             (Middlebury's `doffs`), so that depth is
             `fx_px * baseline_m / (disparity + doffs_px)`.
-        cx_px: Optional principal point column.
-        cy_px: Optional principal point row.
 
     Examples:
         ```pycon
@@ -158,42 +152,25 @@ class DepthCamera:
     fx_px: float
     baseline_m: float
     doffs_px: float = 0.0
-    cx_px: float | None = None
-    cy_px: float | None = None
 
     def __post_init__(self) -> None:
         """Store plain floats and reject parameters that cannot convert disparity."""
-        for name in ("fx_px", "baseline_m", "doffs_px", "cx_px", "cy_px"):
+        for name in ("fx_px", "baseline_m", "doffs_px"):
             value = getattr(self, name)
-            if value is not None:
-                object.__setattr__(
-                    self, name, _plain_float(value, f"DepthCamera {name}")
-                )
+            object.__setattr__(self, name, _plain_float(value, f"DepthCamera {name}"))
         for name in ("fx_px", "baseline_m"):
             value = getattr(self, name)
             if not (math.isfinite(value) and value > 0):
                 raise ValueError(f"DepthCamera {name} must be a positive number.")
-        for name in ("doffs_px", "cx_px", "cy_px"):
-            value = getattr(self, name)
-            if value is not None and not math.isfinite(value):
-                raise ValueError(f"DepthCamera {name} must be a finite number.")
+        if not math.isfinite(self.doffs_px):
+            raise ValueError("DepthCamera doffs_px must be a finite number.")
 
-    def _scaled(self, scale_x: float, scale_y: float) -> DepthCamera:
-        """Return the camera for the map resized by `scale_x` and `scale_y`."""
+    def _scaled(self, scale_x: float) -> DepthCamera:
+        """Return the camera for the map resized to `scale_x` times its width."""
         return DepthCamera(
             fx_px=self.fx_px * scale_x,
             baseline_m=self.baseline_m,
             doffs_px=self.doffs_px * scale_x,
-            cx_px=None if self.cx_px is None else self.cx_px * scale_x,
-            cy_px=None if self.cy_px is None else self.cy_px * scale_y,
-        )
-
-    def _shifted(self, x_offset: int, y_offset: int) -> DepthCamera:
-        """Return the camera for the map cropped at `(x_offset, y_offset)`."""
-        return replace(
-            self,
-            cx_px=None if self.cx_px is None else self.cx_px - x_offset,
-            cy_px=None if self.cy_px is None else self.cy_px - y_offset,
         )
 
 
@@ -201,9 +178,9 @@ class DepthCamera:
 class _Conversion:
     """How a value in the map kind's unit becomes the ranged or coloured quantity.
 
-    `reciprocal ? numerator / (x + inner_offset) + outer_offset : x`, mirroring
-    supervision-js's `resolveDepthValueConversion`. Depth grows away from the camera,
-    so for depth the low end of a range is the near, warm end (`near_is_low`).
+    `reciprocal ? numerator / (x + inner_offset) + outer_offset : x`. Depth grows
+    away from the camera, so for depth the low end of a range is the near, warm end
+    (`near_is_low`).
     """
 
     reciprocal: bool = False
@@ -292,11 +269,18 @@ def _check_percentiles(low: float, high: float) -> None:
 def _values_at_ranks(
     values: npt.NDArray[Any], low: float, high: float
 ) -> tuple[float, float]:
-    """Return the values at the low and high nearest ranks of an unsorted array."""
+    """Return the values at the low and high nearest ranks of an unsorted array.
+
+    Ends that coincide are widened by one float32 step, so the range stays usable as an
+    explicit range.
+    """
     low_rank = _nearest_rank(values.size, low / 100)
     high_rank = _nearest_rank(values.size, high / 100)
     ordered = np.partition(values, [low_rank, high_rank])
-    return float(ordered[low_rank]), float(ordered[high_rank])
+    low_value, high_value = float(ordered[low_rank]), float(ordered[high_rank])
+    if low_value == high_value:
+        high_value = float(np.nextafter(np.float32(high_value), np.float32(np.inf)))
+    return low_value, high_value
 
 
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
@@ -367,14 +351,10 @@ class DepthMap:
     field; `measure_detections` brings the depth under each object into
     `detections.data`.
 
-    `values` is stored in one of two forms:
-
-    - **float** (any float dtype, kept as float32): values in the kind's unit. For
-      `disparity_px` and `depth_m`, non-finite values and values `<= 0` are no depth;
-      for `relative_inverse`, non-finite and negative values are no depth, because a
-      normalised map puts its farthest real pixel at exactly 0.
-    - **uint16 stored codes** with a `scale`: the value is `code / scale` and code 0 is
-      no depth, the layout of KITTI PNGs. Codes are kept untouched.
+    `values` are float32 in the kind's unit. For `disparity_px` and `depth_m`,
+    non-finite values and values `<= 0` are no depth; for `relative_inverse`,
+    non-finite and negative values are no depth, because a normalised map puts its
+    farthest real pixel at exactly 0.
 
     === "Inference"
 
@@ -431,15 +411,9 @@ class DepthMap:
         ```
 
     Attributes:
-        values: `(H, W)` float32 values in the kind's unit, or uint16 stored codes.
+        values: `(H, W)` float32 values in the kind's unit.
         kind: What the values measure.
-        scale: For uint16 codes, the divisor that turns a code into a value. `None`
-            for float values.
-        camera: Optional stereo camera, needed to convert between disparity and
-            metric depth.
-        display_range: Optional `(low, high)` colour range in the kind's unit, such as
-            one range for a whole clip.
-        view: Optional name of the camera the map is registered to, such as `"left"`.
+        camera: Optional stereo camera, needed to convert disparity to metric depth.
 
     Examples:
         ```pycon
@@ -461,110 +435,62 @@ class DepthMap:
         ```
     """
 
-    values: npt.NDArray[Any]
+    values: npt.NDArray[np.float32]
     kind: DepthKind
-    scale: float | None
     camera: DepthCamera | None
-    display_range: tuple[float, float] | None
-    view: str | None
 
     def __init__(
         self,
-        values: npt.NDArray[Any],
+        values: npt.NDArray[np.floating],
         kind: DepthKind | str,
-        scale: float | None = None,
         camera: DepthCamera | None = None,
-        display_range: tuple[float, float] | None = None,
-        view: str | None = None,
     ) -> None:
-        """Create a depth map and check its values against its storage form.
+        """Create a depth map from float values in the kind's unit.
 
         Args:
-            values: `(H, W)` array: float values in the kind's unit, or uint16 stored
-                codes together with `scale`.
+            values: `(H, W)` float array in the kind's unit; any float dtype is
+                stored as float32.
             kind: What the values measure, as a `sv.DepthKind` or its string value.
-            scale: Divisor for uint16 codes; must be `None` for float values.
             camera: Optional stereo camera parameters.
-            display_range: Optional `(low, high)` colour range in the kind's unit.
-            view: Optional name of the camera the map is registered to.
 
         Raises:
-            ValueError: If the values are not 2D, the dtype does not match `scale`,
-                or the camera, range or scale is invalid.
-            TypeError: If a `display_range` bound is not a number.
+            ValueError: If the values are not a 2D float array or the camera is
+                invalid.
         """
         array = np.asarray(values)
         if array.ndim != 2 or array.size == 0:
             raise ValueError(
                 f"DepthMap values must be a non-empty (H, W) array, got {array.shape}."
             )
-        if array.dtype == np.uint16:
-            if scale is None or not (math.isfinite(scale) and scale > 0):
-                raise ValueError(
-                    "DepthMap uint16 values are stored codes and need a positive "
-                    "scale (value = code / scale)."
-                )
-            scale = float(scale)
-        elif np.issubdtype(array.dtype, np.floating):
-            if scale is not None:
-                raise ValueError(
-                    "DepthMap scale applies to uint16 stored codes only; float values "
-                    "are already in the kind's unit."
-                )
-            array = array.astype(np.float32, copy=False)
-        else:
+        if not np.issubdtype(array.dtype, np.floating):
             raise ValueError(
-                "DepthMap values must be float, or uint16 stored codes with a scale; "
-                f"got {array.dtype}."
+                f"DepthMap values must be float, got {array.dtype}. Divide integer "
+                "codes, such as a 16-bit PNG's, by your dataset's scale first, or "
+                "load the file with sv.DepthMap.from_png16."
             )
         if camera is not None and not isinstance(camera, DepthCamera):
             raise ValueError("DepthMap camera must be a sv.DepthCamera or None.")
-        if display_range is not None:
-            low, high = (
-                _plain_float(bound, "DepthMap display_range") for bound in display_range
-            )
-            if not (math.isfinite(low) and math.isfinite(high) and low < high):
-                raise ValueError(
-                    "DepthMap display_range must be two finite numbers with "
-                    f"low < high, got {display_range}."
-                )
-            display_range = (low, high)
-        self.values = array
+        self.values = array.astype(np.float32, copy=False)
         self.kind = DepthKind.from_value(kind)
-        self.scale = scale
         self.camera = camera
-        self.display_range = display_range
-        self.view = view
 
     def __repr__(self) -> str:
         """Summarise the map without printing its values."""
         width, height = self.resolution_wh
         return (
             f"DepthMap(kind={self.kind.value!r}, resolution_wh=({width}, {height}), "
-            f"dtype={self.values.dtype}, scale={self.scale}, camera={self.camera}, "
-            f"display_range={self.display_range}, view={self.view!r})"
+            f"camera={self.camera})"
         )
 
     def __eq__(self, other: object) -> bool:
-        """Compare every field; float values compare NaN equal to NaN."""
+        """Compare every field; values compare NaN equal to NaN."""
         if not isinstance(other, DepthMap):
             return NotImplemented
-        same_dtype = self.values.dtype == other.values.dtype
         return (
-            same_dtype
-            and self.kind is other.kind
-            and self.scale == other.scale
+            self.kind is other.kind
             and self.camera == other.camera
-            and self.display_range == other.display_range
-            and self.view == other.view
-            and np.array_equal(
-                self.values,
-                other.values,
-                equal_nan=self.values.dtype != np.uint16,
-            )
+            and np.array_equal(self.values, other.values, equal_nan=True)
         )
-
-    __hash__ = None  # type: ignore[assignment]
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
@@ -575,8 +501,6 @@ class DepthMap:
     @property
     def valid_mask(self) -> npt.NDArray[np.bool_]:
         """A boolean `(H, W)` array, `True` where the map holds depth."""
-        if self.values.dtype == np.uint16:
-            return np.asarray(self.values != 0)
         if self.kind is DepthKind.RELATIVE_INVERSE:
             return np.asarray(np.isfinite(self.values) & (self.values >= 0))
         return np.asarray(np.isfinite(self.values) & (self.values > 0))
@@ -594,18 +518,15 @@ class DepthMap:
             ```pycon
             >>> import numpy as np
             >>> import supervision as sv
-            >>> codes = np.array([[0, 256, 2560]], dtype=np.uint16)
-            >>> sv.DepthMap(codes, kind="disparity_px", scale=256).to_float(0.0)
+            >>> disparity = np.array([[np.nan, 1.0, 10.0]], dtype=np.float32)
+            >>> sv.DepthMap(disparity, kind="disparity_px").to_float(0.0)
             array([[ 0.,  1., 10.]], dtype=float32)
 
             ```
         """
-        if self.values.dtype == np.uint16:
-            result = self.values.astype(np.float32) / np.float32(self.scale)
-        else:
-            result = self.values.astype(np.float32, copy=True)
+        result: npt.NDArray[np.float32] = self.values.copy()
         result[~self.valid_mask] = no_depth_value
-        return np.asarray(result, dtype=np.float32)
+        return result
 
     def to_depth(self) -> DepthMap:
         """Return the map as metric depth in metres.
@@ -626,47 +547,12 @@ class DepthMap:
         conversion = _resolve_conversion(self.kind, self.camera, DepthQuantity.DEPTH)
         return self._converted(DepthKind.DEPTH_M, conversion)
 
-    def to_disparity(self) -> DepthMap:
-        """Return the map as stereo disparity in pixels.
-
-        A metric map converts with `fx_px * baseline_m / depth - doffs_px`; pixels
-        where that is not a positive disparity become no depth. A `disparity_px` map
-        is returned as it is.
-
-        Returns:
-            A `disparity_px` map with float32 values.
-
-        Raises:
-            ValueError: If the map is `relative_inverse`, which has no pixel scale, or
-                a metric map without a camera.
-        """
-        if self.kind is DepthKind.DISPARITY_PX:
-            return self
-        if self.kind is DepthKind.RELATIVE_INVERSE or self.camera is None:
-            raise ValueError(
-                f"Cannot convert a {self.kind.value} map to disparity: it needs a "
-                "metric map with a DepthCamera."
-            )
-        conversion = _resolve_conversion(
-            self.kind, self.camera, DepthQuantity.DISPARITY
-        )
-        return self._converted(DepthKind.DISPARITY_PX, conversion)
-
     def _converted(self, kind: DepthKind, conversion: _Conversion) -> DepthMap:
         """Apply a reciprocal conversion, keeping only positive finite results."""
         converted = conversion.apply(self.to_float())
         with np.errstate(invalid="ignore"):
             converted[~(np.isfinite(converted) & (converted > 0))] = np.nan
-        display_range = None
-        if self.display_range is not None:
-            display_range = conversion.apply_range(self.display_range)
-        return DepthMap(
-            converted.astype(np.float32),
-            kind=kind,
-            camera=self.camera,
-            display_range=display_range,
-            view=self.view,
-        )
+        return DepthMap(converted, kind=kind, camera=self.camera)
 
     def resize(
         self, resolution_wh: tuple[int, int], method: str = "nearest"
@@ -683,10 +569,8 @@ class DepthMap:
           depth), so thin near objects survive shrinking and holes never win over
           depth. An axis that grows samples the nearest pixel.
 
-        Disparity is measured in pixels of the map, so a disparity map's values, and
-        its display range, scale with the width ratio; a uint16 map changes its
-        `scale` instead, keeping its codes exact. The camera's pixel parameters scale
-        with the map.
+        Disparity is measured in pixels of the map, so a disparity map's values scale
+        with the width ratio, and so do the camera's pixel parameters.
 
         Args:
             resolution_wh: Target `(width, height)`.
@@ -722,39 +606,15 @@ class DepthMap:
         else:
             values = self._pool_foreground(width, height)
         ratio_x = width / source_width
-        ratio_y = height / source_height
-        scale = self.scale
-        display_range = self.display_range
         if self.kind is DepthKind.DISPARITY_PX:
-            if values.dtype == np.uint16:
-                assert scale is not None
-                scale = scale / ratio_x
-            else:
-                values = values * np.float32(ratio_x)
-            if display_range is not None:
-                display_range = (display_range[0] * ratio_x, display_range[1] * ratio_x)
-        camera = None if self.camera is None else self.camera._scaled(ratio_x, ratio_y)
-        return DepthMap(
-            values,
-            kind=self.kind,
-            scale=scale,
-            camera=camera,
-            display_range=display_range,
-            view=self.view,
-        )
+            values = values * np.float32(ratio_x)
+        camera = None if self.camera is None else self.camera._scaled(ratio_x)
+        return DepthMap(values, kind=self.kind, camera=camera)
 
-    def _pool_foreground(self, width: int, height: int) -> npt.NDArray[Any]:
+    def _pool_foreground(self, width: int, height: int) -> npt.NDArray[np.float32]:
         """Pool each target pixel's source block to its nearest valid value."""
         valid = self.valid_mask
         near_is_low = self.kind is DepthKind.DEPTH_M
-        if self.values.dtype == np.uint16:
-            codes = self.values.astype(np.int32)
-            # Rank codes so no depth (0) is lowest and nearer depth ranks higher.
-            keys = np.where(valid, 65536 - codes, 0) if near_is_low else codes
-            pooled = _pool_axis(_pool_axis(keys, height, axis=0), width, axis=1)
-            if near_is_low:
-                pooled = np.where(pooled == 0, 0, 65536 - pooled)
-            return pooled.astype(np.uint16)
         signed = -self.values if near_is_low else self.values
         keys = np.where(valid, signed, -np.inf).astype(np.float32)
         pooled = _pool_axis(_pool_axis(keys, height, axis=0), width, axis=1)
@@ -765,7 +625,7 @@ class DepthMap:
         """Return the part of the map inside a box.
 
         Coordinates are rounded and clipped to the map, as in `sv.crop_image`. Values
-        are unchanged; the camera's principal point moves with the crop.
+        are unchanged.
 
         Args:
             xyxy: Box as `(x_min, y_min, x_max, y_max)` in map pixels.
@@ -797,14 +657,10 @@ class DepthMap:
                 f"Crop box {np.asarray(xyxy).tolist()} does not overlap the "
                 f"{width}x{height} map."
             )
-        camera = None if self.camera is None else self.camera._shifted(x_min, y_min)
         return DepthMap(
             self.values[y_min:y_max, x_min:x_max].copy(),
             kind=self.kind,
-            scale=self.scale,
-            camera=camera,
-            display_range=self.display_range,
-            view=self.view,
+            camera=self.camera,
         )
 
     def value_at(
@@ -830,8 +686,8 @@ class DepthMap:
             ```pycon
             >>> import numpy as np
             >>> import supervision as sv
-            >>> codes = np.array([[0, 2560]], dtype=np.uint16)
-            >>> depth_map = sv.DepthMap(codes, kind="disparity_px", scale=256)
+            >>> disparity = np.array([[np.nan, 10.0]], dtype=np.float32)
+            >>> depth_map = sv.DepthMap(disparity, kind="disparity_px")
             >>> depth_map.value_at(1, 0), depth_map.value_at(0, 0)
             (10.0, None)
             >>> depth_map.value_at(300, 100, resolution_wh=(400, 200))
@@ -850,39 +706,7 @@ class DepthMap:
             return None
         if not self.valid_mask[row_index, column_index]:
             return None
-        value = float(self.values[row_index, column_index])
-        return value / self.scale if self.scale is not None else value
-
-    def _sampled_values(self) -> tuple[npt.NDArray[Any], int]:
-        """Return valid stored values on the stride-2 grid and how many were read."""
-        grid = self.values[::_PERCENTILE_STRIDE, ::_PERCENTILE_STRIDE]
-        valid = self.valid_mask[::_PERCENTILE_STRIDE, ::_PERCENTILE_STRIDE]
-        return grid[valid], int(grid.size)
-
-    def _decode_stored(self, stored: float) -> float:
-        """Turn one stored value (a code for uint16 maps) into the kind's unit."""
-        return stored / self.scale if self.scale is not None else stored
-
-    def _stored_range(
-        self, values: npt.NDArray[Any], low: float, high: float
-    ) -> tuple[float, float]:
-        """Return the nearest-rank range in the kind's unit, widened when flat.
-
-        Ends that coincide are widened by one code for uint16 maps and by one float32
-        step otherwise, so the range stays usable as an explicit range.
-        """
-        low_value, high_value = _values_at_ranks(values, low, high)
-        if low_value == high_value:
-            if self.values.dtype == np.uint16:
-                if high_value < _UINT16_MAX:
-                    high_value += 1
-                else:
-                    low_value -= 1
-            else:
-                high_value = float(
-                    np.nextafter(np.float32(high_value), np.float32(np.inf))
-                )
-        return self._decode_stored(low_value), self._decode_stored(high_value)
+        return float(self.values[row_index, column_index])
 
     def _percentile_range(
         self,
@@ -892,10 +716,8 @@ class DepthMap:
     ) -> tuple[float, float] | None:
         """Return this map's own percentile range in the quantity's unit.
 
-        It is the range `sv.DepthAnnotator` uses with `display_range="auto"`, computed
-        exactly as supervision-js's `computeDepthPercentileRange`: valid values on
-        every second pixel of every second row, nearest rank, then converted to the
-        quantity. On a uint16 map both libraries return the same range.
+        It is the range `sv.DepthAnnotator` uses with `display_range="auto"`: the
+        nearest-rank percentiles of every valid value, converted to the quantity.
 
         Args:
             low: Lower percentile, from 0 to 100.
@@ -903,8 +725,7 @@ class DepthMap:
             quantity: `"disparity"` or `"depth"`.
 
         Returns:
-            `(low, high)` in the quantity's unit, or `None` when fewer than 1 % of the
-            sampled pixels hold depth.
+            `(low, high)` in the quantity's unit, or `None` when no pixel holds depth.
 
         Raises:
             ValueError: If the percentiles are out of order or the quantity is
@@ -914,21 +735,10 @@ class DepthMap:
         conversion = _resolve_conversion(
             self.kind, self.camera, DepthQuantity.from_value(quantity)
         )
-        values, sampled = self._sampled_values()
-        if values.size < sampled * _MIN_VALID_SAMPLE_SHARE or values.size == 0:
-            return None
-        stored_range = self._stored_range(values, low, high)
-        return conversion.apply_range(stored_range) or (0.0, 1.0)
-
-    def _full_range(self, conversion: _Conversion) -> tuple[float, float] | None:
-        """Return min to max of the sampled valid values in the quantity's unit."""
-        values, _ = self._sampled_values()
+        values = self.values[self.valid_mask]
         if values.size == 0:
             return None
-        return conversion.apply_range(self._stored_range(values, 0.0, 100.0)) or (
-            0.0,
-            1.0,
-        )
+        return conversion.apply_range(_values_at_ranks(values, low, high)) or (0.0, 1.0)
 
     def measure_detections(self, detections: Detections) -> Detections:
         """Return the detections with the median depth under each object in `data`.
@@ -1172,7 +982,8 @@ class DepthMap:
 
         This is the layout of KITTI stereo and depth (`scale=256`), DrivingStereo
         (256, or 128 at full resolution), InStereo2K (100) and Ultralytics depth
-        datasets (1000 by default). Codes are kept as uint16.
+        datasets (1000 by default). Values load as float32 `code / scale`, with `NaN`
+        where the code is 0.
 
         Args:
             path: Path to the PNG.
@@ -1180,10 +991,11 @@ class DepthMap:
             kind: What the values measure.
 
         Returns:
-            A uint16 `sv.DepthMap`.
+            A float32 `sv.DepthMap`.
 
         Raises:
-            ValueError: If the file is not a single-channel 16-bit PNG.
+            ValueError: If the file is not a single-channel 16-bit PNG or `scale` is
+                not a positive number.
 
         Examples:
             ```python
@@ -1194,7 +1006,14 @@ class DepthMap:
             )
             ```
         """
-        return cls(read_png16(path), kind=kind, scale=scale)
+        if not (math.isfinite(scale) and scale > 0):
+            raise ValueError(
+                f"from_png16 scale must be a positive number, got {scale}."
+            )
+        codes = read_png16(path)
+        values = codes.astype(np.float32) / np.float32(scale)
+        values[codes == 0] = np.nan
+        return cls(values, kind=kind)
 
     @classmethod
     def from_pfm(
@@ -1250,7 +1069,7 @@ def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
 
 @dataclass(frozen=True)
 class DepthClipRange:
-    """One colour range and value ceiling for a whole clip of depth maps.
+    """One colour range for a whole clip of depth maps.
 
     Colouring each frame with its own range makes a still wall change colour as
     things enter and leave the frame. A clip range, computed in a first pass over the
@@ -1258,7 +1077,6 @@ class DepthClipRange:
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' kind unit.
-        max_value: The largest value the clip holds, in the kind's unit.
 
     Examples:
         ```pycon
@@ -1269,30 +1087,25 @@ class DepthClipRange:
         ...     for d in (10.0, 20.0, 30.0)
         ... ]
         >>> sv.DepthClipRange.from_depth_maps(frames)
-        DepthClipRange(display_range=(10.0, 30.0), max_value=30.0)
+        DepthClipRange(display_range=(10.0, 30.0))
 
         ```
     """
 
     display_range: tuple[float, float]
-    max_value: float
 
     def __post_init__(self) -> None:
-        """Store plain floats and reject an empty range or a non-positive ceiling."""
+        """Store plain floats and reject an empty range."""
         low, high = (
             _plain_float(bound, "DepthClipRange display_range")
             for bound in self.display_range
         )
         object.__setattr__(self, "display_range", (low, high))
-        max_value = _plain_float(self.max_value, "DepthClipRange max_value")
-        object.__setattr__(self, "max_value", max_value)
         if not (math.isfinite(low) and math.isfinite(high) and low < high):
             raise ValueError(
                 "DepthClipRange display_range must be two finite numbers with "
                 f"low < high, got {self.display_range}."
             )
-        if not (math.isfinite(self.max_value) and self.max_value > 0):
-            raise ValueError("DepthClipRange max_value must be a positive number.")
 
     @classmethod
     def from_depth_maps(
@@ -1301,16 +1114,15 @@ class DepthClipRange:
         low: float = 2.0,
         high: float = 98.0,
     ) -> DepthClipRange:
-        """Compute a clip's percentile range and largest value in one pass.
+        """Compute a clip's percentile range in one pass.
 
-        Each map contributes the valid values on its stride-2 grid, thinned at random
-        to about 65,536 values when it has more, so a large frame weighs no more than
-        a small one. Whenever the clip's samples pass 4,194,304, each one is kept with
-        probability 1/2 and later maps are kept at half the previous rate, so memory
-        stays bounded however long the clip is and early and late frames are sampled
-        alike. The random draws
-        are seeded, so the result is reproducible. The largest value is exact. Pass a
-        generator to read the clip once without holding it.
+        Each map contributes its valid values, thinned at random to about 65,536
+        values when it has more, so a large frame weighs no more than a small one.
+        Whenever the clip's samples pass 4,194,304, each one is kept with probability
+        1/2 and later maps are kept at half the previous rate, so memory stays bounded
+        however long the clip is and early and late frames are sampled alike. The
+        random draws are seeded, so the result is reproducible. Pass a generator to
+        read the clip once without holding it.
 
         Args:
             depth_maps: The clip's maps, all of one kind.
@@ -1329,7 +1141,6 @@ class DepthClipRange:
         retained = 0
         keep_share = 1.0
         rng = np.random.default_rng(0)
-        max_value = -math.inf
         for depth_map in depth_maps:
             if kind is None:
                 kind = depth_map.kind
@@ -1338,20 +1149,16 @@ class DepthClipRange:
                     f"A clip range needs maps of one kind; got {kind.value} and "
                     f"{depth_map.kind.value}."
                 )
-            valid = depth_map.valid_mask
-            if not valid.any():
+            values = depth_map.values[depth_map.valid_mask]
+            if values.size == 0:
                 continue
-            stored, _ = depth_map._sampled_values()
-            if stored.size == 0:
-                # Depth only on odd rows or columns escapes the stride-2 grid.
-                stored = depth_map.values[valid]
-            share = keep_share * min(1.0, _CLIP_SAMPLES_PER_FRAME / stored.size)
+            share = keep_share * min(1.0, _CLIP_SAMPLES_PER_FRAME / values.size)
             if share < 1.0:
                 # Random rather than every n-th sample: a fixed step aliases with
                 # structured frames and skews the percentiles.
-                stored = stored[rng.random(stored.size) < share]
-            sample = stored.astype(np.float64)
-            samples.append(sample / (depth_map.scale or 1.0))
+                values = values[rng.random(values.size) < share]
+            sample = values.astype(np.float64)
+            samples.append(sample)
             retained += sample.size
             if retained > _CLIP_SAMPLE_BUDGET:
                 # Keeping each sample with probability 1/2 leaves every sample of the
@@ -1359,11 +1166,7 @@ class DepthClipRange:
                 kept = np.concatenate(samples)
                 kept = kept[rng.random(kept.size) < 0.5]
                 samples, retained, keep_share = [kept], kept.size, keep_share / 2
-            largest = float(depth_map.values[valid].max())
-            max_value = max(max_value, largest / (depth_map.scale or 1.0))
         if not samples or sum(sample.size for sample in samples) == 0:
             raise ValueError("The clip holds no depth to compute a range from.")
-        low_value, high_value = _values_at_ranks(np.concatenate(samples), low, high)
-        if low_value == high_value:
-            high_value = float(np.nextafter(np.float32(high_value), np.float32(np.inf)))
-        return cls(display_range=(low_value, high_value), max_value=max_value)
+        display_range = _values_at_ranks(np.concatenate(samples), low, high)
+        return cls(display_range=display_range)

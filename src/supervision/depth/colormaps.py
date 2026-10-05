@@ -3,9 +3,8 @@
 Each table is 256 sRGB entries as 6-digit hex, darkest or coldest first, in the order
 the colour coordinate `t` runs from 0 to 1. They are the published tables matplotlib
 ships (`matplotlib.colormaps[name]`, each channel rounded half up to 8 bits; Turbo is
-Google's table verbatim) and are byte-identical to supervision-js's
-`depth-colormap-tables.ts`, so a map coloured in Python and in the browser looks the
-same. `tests/depth/test_colormaps.py` compares them with matplotlib's.
+Google's table verbatim). `tests/depth/test_colormaps.py` compares them with
+matplotlib's.
 """
 
 from __future__ import annotations
@@ -164,10 +163,10 @@ _TABLES = {
 }
 
 #: Entries in every depth colour table; the colour coordinate `t` picks one.
-DEPTH_COLORMAP_ENTRIES = 256
+_TABLE_ENTRIES = 256
 #: Interpolated steps between two neighbouring table entries in the expanded lookup.
 _STEPS_PER_ENTRY = 16
-_EXPANDED_ENTRIES = (DEPTH_COLORMAP_ENTRIES - 1) * _STEPS_PER_ENTRY + 1
+_EXPANDED_ENTRIES = (_TABLE_ENTRIES - 1) * _STEPS_PER_ENTRY + 1
 
 
 class DepthColormap(Enum):
@@ -231,42 +230,17 @@ class DepthColormap(Enum):
             f"Invalid depth colormap: {value!r}. Must be one of {cls.list()}."
         )
 
-    def rgb_lut(self) -> npt.NDArray[np.uint8]:
-        """Return the colour table as a `(256, 3)` RGB array, far end first.
-
-        Entry `i` is the colour of the colour coordinate `t = i / 255`. The table is
-        the one `sv.DepthAnnotator` paints with, so it can build a colour bar that
-        matches the picture, for example with
-        `matplotlib.colors.ListedColormap(lut / 255)`.
-
-        Returns:
-            A new `(256, 3)` `uint8` array in RGB order.
-
-        Examples:
-            ```pycon
-            >>> import supervision as sv
-            >>> lut = sv.DepthColormap.TURBO.rgb_lut()
-            >>> lut.shape
-            (256, 3)
-            >>> lut[0].tolist(), lut[-1].tolist()
-            ([48, 18, 59], [122, 4, 3])
-
-            ```
-        """
-        lut: npt.NDArray[np.uint8] = _rgb_lut(self).copy()
-        return lut
-
 
 @cache
 def _rgb_lut(colormap: DepthColormap) -> npt.NDArray[np.uint8]:
     """Decode a colormap's hex table once into a read-only `(256, 3)` RGB array."""
     lut: npt.NDArray[np.uint8]
     if colormap is DepthColormap.GRAYSCALE:
-        ramp = np.arange(DEPTH_COLORMAP_ENTRIES, dtype=np.uint8)
+        ramp = np.arange(_TABLE_ENTRIES, dtype=np.uint8)
         lut = np.repeat(ramp[:, np.newaxis], 3, axis=1)
     else:
         raw = bytes.fromhex(_TABLES[colormap.value])
-        lut = np.frombuffer(raw, dtype=np.uint8).reshape(DEPTH_COLORMAP_ENTRIES, 3)
+        lut = np.frombuffer(raw, dtype=np.uint8).reshape(_TABLE_ENTRIES, 3)
     lut = lut.copy()
     lut.flags.writeable = False
     return lut
@@ -276,17 +250,17 @@ def _rgb_lut(colormap: DepthColormap) -> npt.NDArray[np.uint8]:
 def _expanded_bgr_lut(colormap: DepthColormap) -> npt.NDArray[np.uint8]:
     """Return the table interpolated to 16 steps per entry, in BGR order.
 
-    supervision-js samples its 256x1 table texture with linear filtering at
-    `u = (t * 255 + 0.5) / 256`, so a colour between two entries is their linear
-    blend. Expanding the table once to `255 * 16 + 1` entries lets one `np.take` per
-    frame reproduce that blend to a sixteenth of an entry; entry `16 * i` is exactly
+    A colour between two table entries is their linear blend, so smooth surfaces get
+    smooth gradients instead of the visible bands that 256 flat steps draw in Turbo.
+    Expanding the table once to `255 * 16 + 1` entries gives that blend to a
+    sixteenth of an entry with one `np.take` per frame; entry `16 * i` is exactly
     table entry `i`.
     """
     rgb = _rgb_lut(colormap).astype(np.float64)
     positions = np.arange(_EXPANDED_ENTRIES) / _STEPS_PER_ENTRY
     expanded = np.column_stack(
         [
-            np.interp(positions, np.arange(DEPTH_COLORMAP_ENTRIES), rgb[:, channel])
+            np.interp(positions, np.arange(_TABLE_ENTRIES), rgb[:, channel])
             for channel in range(3)
         ]
     )
