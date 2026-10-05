@@ -340,7 +340,8 @@ def xyxy_to_mask(
 
     Returns:
         A 3D `np.ndarray` of shape `(N, height, width)` containing 2D bool masks
-            for each bounding box.
+            for each bounding box. Inclusive boxes ending left of or above the image
+            produce empty masks, even with fractional coordinates.
 
     Examples:
         ```pycon
@@ -377,6 +378,9 @@ def xyxy_to_mask(
         x_min = max(0, int(x_min))
         y_min = max(0, int(y_min))
         if coordinate_convention == "inclusive":
+            # Check before int() truncates negative fractions toward zero.
+            if x_max < 0 or y_max < 0:
+                continue
             x_max = min(width - 1, int(x_max))
             y_max = min(height - 1, int(y_max))
             if x_max >= x_min and y_max >= y_min:
