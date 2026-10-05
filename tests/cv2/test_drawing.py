@@ -71,6 +71,31 @@ def test_fallback_rectangle_fills_the_requested_region() -> None:
 
 
 @requires_cv2
+@pytest.mark.parametrize("thickness", [1, 2, 3, 4, 7])
+def test_fallback_rectangle_stroke_matches_opencv(thickness: int) -> None:
+    """Center a thick border on the rectangle's edges the way OpenCV does."""
+    actual = np.zeros((24, 28, 3), dtype=np.uint8)
+    expected = np.zeros_like(actual)
+
+    _rectangle(actual, (6, 5), (20, 17), (1, 2, 3), thickness=thickness)
+    cv2.rectangle(expected, (6, 5), (20, 17), (1, 2, 3), thickness=thickness)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@requires_cv2
+def test_fallback_rectangle_stroke_clips_to_the_canvas() -> None:
+    """Clip a thick border that falls partly outside the image."""
+    actual = np.zeros((16, 16, 3), dtype=np.uint8)
+    expected = np.zeros_like(actual)
+
+    _rectangle(actual, (-4, 2), (13, 20), (4, 5, 6), thickness=5)
+    cv2.rectangle(expected, (-4, 2), (13, 20), (4, 5, 6), thickness=5)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@requires_cv2
 def test_fallback_scalar_color_matches_opencv_channel_padding() -> None:
     """Pad short scalar colors in BGR channel order like OpenCV."""
     actual = np.zeros((8, 8, 3), dtype=np.uint8)

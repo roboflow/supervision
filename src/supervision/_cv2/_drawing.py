@@ -85,6 +85,59 @@ def _line(
     return _paint(img, mask, color)
 
 
+def _disc(radius: int) -> npt.NDArray[np.bool_]:
+    """Return OpenCV's filled circle of `radius`, which is the integer disc."""
+    offsets = np.arange(-radius, radius + 1)
+    return offsets[:, np.newaxis] ** 2 + offsets[np.newaxis, :] ** 2 <= radius * radius
+
+
+def _rectangle_mask(
+    image: _ImageArray, first: _Point, second: _Point, thickness: int
+) -> npt.NDArray[np.bool_]:
+    """Rasterize an OpenCV rectangle, filled or stroked, into a boolean mask."""
+    height, width = image.shape[:2]
+    (left, top), (right, bottom) = first, second
+    mask = np.zeros((height, width), dtype=bool)
+
+    def fill(x1: int, y1: int, x2: int, y2: int) -> None:
+        """Set an inclusive box, clipped to the image."""
+        x1, y1 = max(x1, 0), max(y1, 0)
+        x2, y2 = min(x2, width - 1), min(y2, height - 1)
+        if x1 <= x2 and y1 <= y2:
+            mask[y1 : y2 + 1, x1 : x2 + 1] = True
+
+    if thickness < 0:
+        fill(left, top, right, bottom)
+        return mask
+
+    # OpenCV centers each edge's band on the edge and rounds the four joints
+    # with a filled disc, so a thick border spreads outside the rectangle as
+    # well as inside. Pillow's `width=` only ever grows inward.
+    radius = 0 if thickness <= 1 else (thickness + 1) // 2
+    fill(left, top - radius, right, top + radius)
+    fill(left, bottom - radius, right, bottom + radius)
+    fill(left - radius, top, left + radius, bottom)
+    fill(right - radius, top, right + radius, bottom)
+    if radius:
+        disc = _disc(radius)
+        for center_x, center_y in (
+            (left, top),
+            (right, top),
+            (left, bottom),
+            (right, bottom),
+        ):
+            x1, y1 = center_x - radius, center_y - radius
+            row_start, column_start = max(-y1, 0), max(-x1, 0)
+            row_stop = min(disc.shape[0], height - y1)
+            column_stop = min(disc.shape[1], width - x1)
+            if row_start >= row_stop or column_start >= column_stop:
+                continue
+            mask[
+                y1 + row_start : y1 + row_stop, x1 + column_start : x1 + column_stop
+            ] |= disc[row_start:row_stop, column_start:column_stop]
+    return mask
+
+
 def _rectangle(
     img: _ImageArray,
     pt1: Sequence[int | float],
@@ -98,17 +151,15 @@ def _rectangle(
     del lineType
     _validate_shift(shift)
     first_point, second_point = _point(pt1), _point(pt2)
-    first = tuple(min(left, right) for left, right in zip(first_point, second_point))
-    second = tuple(max(left, right) for left, right in zip(first_point, second_point))
-    if thickness < 0:
-        mask = _drawing_mask(img, lambda draw: draw.rectangle([first, second], fill=1))
-    else:
-        width = max(1, thickness)
-        mask = _drawing_mask(
-            img,
-            lambda draw: draw.rectangle([first, second], outline=1, width=width),
-        )
-    return _paint(img, mask, color)
+    first = (
+        min(first_point[0], second_point[0]),
+        min(first_point[1], second_point[1]),
+    )
+    second = (
+        max(first_point[0], second_point[0]),
+        max(first_point[1], second_point[1]),
+    )
+    return _paint(img, _rectangle_mask(img, first, second, thickness), color)
 
 
 def _circle(
