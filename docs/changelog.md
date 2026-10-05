@@ -7,6 +7,7 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.get_video_frames_generator` now reads a video until the stream ends when no `end` is given, instead of stopping at OpenCV's `CAP_PROP_FRAME_COUNT`. OpenCV estimates that count from container metadata: a WebM without a duration, as recorded by browsers, reports a huge negative count, so no frames were yielded and `end` always raised `Requested frames are outbound`, and a variable frame rate MKV or WebM can report fewer frames than it holds, so the video was cut short. `sv.process_video` was affected the same way. A positive frame count still rejects an `end` past it. Videos read without OpenCV were not affected. ([#2672](https://github.com/roboflow/supervision/pull/2672))
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
