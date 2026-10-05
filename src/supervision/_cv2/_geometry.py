@@ -18,6 +18,29 @@ def _as_points(contour: npt.NDArray[Any]) -> npt.NDArray[np.float64]:
     return points.reshape(-1, 2).astype(np.float64, copy=False)
 
 
+def _point_to_segment_distance_squared(
+    point: npt.NDArray[np.float64],
+    start: npt.NDArray[np.float64],
+    end: npt.NDArray[np.float64],
+) -> float:
+    """Squared Euclidean distance from a point to a finite segment (OpenCV approxPolyDP)."""
+    segment = end - start
+    length_squared = float(np.dot(segment, segment))
+    if length_squared == 0.0:
+        offset = point - start
+        return float(np.dot(offset, offset))
+    projection = float(np.dot(point - start, segment)) / length_squared
+    if projection <= 0.0:
+        closest = start
+    elif projection >= 1.0:
+        closest = end
+    else:
+        closest = start + projection * segment
+    offset = point - closest
+    return float(np.dot(offset, offset))
+
+
+
 def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
     """Compute a contour's signed or absolute shoelace area."""
     points = _as_points(contour)
@@ -74,24 +97,16 @@ def _simplify_slices(
         split = start
 
         if position != end:
-            segment = end_point - start_point
             while position != end:
                 point = points[position]
-                distance = abs(
-                    float(
-                        (point[1] - start_point[1]) * segment[0]
-                        - (point[0] - start_point[0]) * segment[1]
-                    )
+                distance_squared = _point_to_segment_distance_squared(
+                    point, start_point, end_point
                 )
-                if distance > maximum_distance:
-                    maximum_distance = distance
+                if distance_squared > maximum_distance:
+                    maximum_distance = distance_squared
                     split = position
                 position = (position + 1) % count
-            segment_length_squared = float(np.dot(segment, segment))
-            within_epsilon = (
-                maximum_distance * maximum_distance
-                <= epsilon_squared * segment_length_squared
-            )
+            within_epsilon = maximum_distance <= epsilon_squared
         else:
             within_epsilon = True
 

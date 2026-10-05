@@ -207,3 +207,20 @@ def test_intersect_convex_convex_bounds_float32_roundoff() -> None:
         expected_area, _ = cv2.intersectConvexConvex(polygons[0], polygons[1])
 
         assert actual_area == pytest.approx(expected_area, abs=5e-4)
+
+
+def test_approx_poly_dp_keeps_vertex_beyond_segment_endpoint_closed() -> None:
+    """Keep a vertex far beyond a segment end that sits near the infinite line."""
+    contour = np.array([[2, 3], [10, 13], [11, 3], [9, 1], [13, 6]], dtype=np.int32)
+    actual = _approx_poly_dp(contour, 1.0, closed=True).reshape(-1, 2)
+    assert len(actual) == 5
+    np.testing.assert_array_equal(actual, contour)
+
+
+def test_approx_poly_dp_keeps_vertex_beyond_segment_endpoint_open() -> None:
+    """Keep an open-polyline vertex whose projection falls outside the segment."""
+    contour = np.array(
+        [[86, 24], [97, 37], [15, 41], [97, 11], [69, 13], [68, 15]], dtype=np.int32
+    )
+    actual = _approx_poly_dp(contour, 10.0, closed=False).reshape(-1, 2)
+    assert any(np.array_equal(vertex, [97, 11]) for vertex in actual)
