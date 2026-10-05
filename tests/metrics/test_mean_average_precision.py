@@ -37,17 +37,17 @@ def _obb_detections(corners: list[list[int]], confidence: bool = False) -> Detec
 
 class TestMeanAveragePrecision:
     @pytest.mark.parametrize(
-        ("prediction_class_id", "target_class_id"),
+        ("prediction_class_id", "target_class_id", "class_mapping", "expected_class"),
         [
-            pytest.param(None, 3, id="unlabeled-predictions"),
-            pytest.param(7, None, id="unlabeled-targets"),
-            pytest.param(None, None, id="both-unlabeled"),
-            pytest.param(7, 3, id="both-labeled"),
+            pytest.param(None, 3, None, -1, id="unlabeled-predictions"),
+            pytest.param(7, None, None, -1, id="unlabeled-targets"),
+            pytest.param(None, None, None, 0, id="both-unlabeled"),
+            pytest.param(7, 3, None, -1, id="both-labeled"),
+            pytest.param(None, 3, {-1: 9}, 9, id="mapped-unlabeled-predictions"),
+            pytest.param(7, None, {-1: 9}, 9, id="mapped-unlabeled-targets"),
+            pytest.param(None, None, {-1: 9}, 0, id="both-unlabeled-unused-mapping"),
+            pytest.param(7, 3, {-1: 9}, 9, id="mapped-labeled"),
         ],
-    )
-    @pytest.mark.parametrize(
-        "class_mapping",
-        [pytest.param(None, id="no-mapping"), pytest.param({-1: 9}, id="mapped")],
     )
     @pytest.mark.parametrize(
         "metric_target",
@@ -63,6 +63,7 @@ class TestMeanAveragePrecision:
         target_class_id: int | None,
         metric_target: MetricTarget,
         class_mapping: dict[int, int] | None,
+        expected_class: int,
     ) -> None:
         """Perfect geometry scores full mAP regardless of class ID presence."""
         predictions = Detections(
@@ -97,13 +98,6 @@ class TestMeanAveragePrecision:
         result = metric.update(predictions, targets).compute()
 
         assert result.map50_95 == pytest.approx(1.0)
-        expected_class = (
-            0
-            if prediction_class_id is None and target_class_id is None
-            else 9
-            if class_mapping is not None
-            else -1
-        )
         np.testing.assert_array_equal(result.matched_classes, [expected_class])
         np.testing.assert_array_equal(
             predictions.class_id,
