@@ -23,7 +23,8 @@ def _point_to_segment_distance_squared(
     start: npt.NDArray[np.float64],
     end: npt.NDArray[np.float64],
 ) -> float:
-    """Squared Euclidean distance from a point to a finite segment (OpenCV approxPolyDP)."""
+    """Squared Euclidean distance from a point to a finite segment (OpenCV
+    approxPolyDP)."""
     segment = end - start
     length_squared = float(np.dot(segment, segment))
     if length_squared == 0.0:
@@ -38,7 +39,6 @@ def _point_to_segment_distance_squared(
         closest = start + projection * segment
     offset = point - closest
     return float(np.dot(offset, offset))
-
 
 
 def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
