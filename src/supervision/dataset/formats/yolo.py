@@ -91,9 +91,9 @@ def _is_axis_aligned_box_line(values: list[str], is_obb: bool) -> bool:
 def _with_seg_mask(lines: list[str]) -> bool:
     """Return True when any annotation line encodes a polygon rather than a box.
 
-    A YOLO polygon has a class id plus at least three xy pairs, so seven or
-    more tokens. Six tokens are a box with a trailing confidence or tracker
-    id, which Ultralytics writes from ``save_txt``.
+    A YOLO polygon has a class id plus at least three xy pairs, so seven or more tokens.
+    Six tokens are a box with a trailing confidence or tracker id, which Ultralytics
+    writes from ``save_txt``.
     """
     return any(len(line.split()) > 6 for line in lines)
 
@@ -198,14 +198,13 @@ def yolo_annotations_to_detections(
 ) -> Detections:
     """Convert YOLO annotation lines into ``Detections``.
 
-    When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
-    lines add a trailing confidence or tracker id, which is ignored. Lines with
-    seven or more tokens are polygons; an even token count means a polygon
-    followed by one confidence or tracker id, which is also ignored. A polygon
-    line that is malformed rather than annotated, with an odd coordinate count
-    and no extra field, is indistinguishable from the latter and is read the
-    same way. When ``is_obb=True``, annotations must use the nine-token
-    four-corner OBB format.
+    When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token lines add
+    a trailing confidence or tracker id, which is ignored. Lines with seven or more
+    tokens are polygons; an even token count means a polygon followed by one confidence
+    or tracker id, which is also ignored. A polygon line that is malformed rather than
+    annotated, with an odd coordinate count and no extra field, is indistinguishable
+    from the latter and is read the same way. When ``is_obb=True``, annotations must use
+    the nine-token four-corner OBB format.
     """
     if len(lines) == 0:
         return Detections.empty()

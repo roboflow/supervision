@@ -215,8 +215,8 @@ def _exif_oriented(image: Any) -> Any:
     """Rotate and flip a Pillow image by its EXIF orientation tag, as OpenCV does.
 
     `cv2.imread` and `cv2.imdecode` apply the tag on every read except
-    `IMREAD_UNCHANGED`. An image without the tag, or with the identity orientation
-    `1`, is returned as it is rather than copied.
+    `IMREAD_UNCHANGED`. An image without the tag, or with the identity orientation `1`,
+    is returned as it is rather than copied.
     """
     from PIL import ImageOps
 
