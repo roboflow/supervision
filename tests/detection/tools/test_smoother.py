@@ -1,5 +1,7 @@
 """Tests for DetectionsSmoother bounding-box and confidence smoothing."""
 
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -11,6 +13,57 @@ from supervision.utils.internal import SupervisionWarnings
 
 
 class TestDetectionsSmoother:
+    @pytest.mark.parametrize("gap_frames", [0, 1, 2, 3])
+    @pytest.mark.parametrize("oriented", [False, True])
+    @pytest.mark.parametrize("missing_frame", ["empty", "nonempty", "tracked-empty"])
+    def test_history_follows_the_frame_window(
+        self, gap_frames: int, oriented: bool, missing_frame: str
+    ) -> None:
+        """Every frame ages history while a short absence preserves smoothing."""
+        smoother = DetectionsSmoother(length=3)
+        first = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.5]),
+            tracker_id=np.array([7]),
+        )
+        returned = Detections(
+            xyxy=np.array([[100, 0, 110, 10]], dtype=np.float32),
+            confidence=np.array([0.9]),
+            tracker_id=np.array([7]),
+        )
+        if oriented:
+            corners = np.array([[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=float)
+            first.data[ORIENTED_BOX_COORDINATES] = corners
+            returned.data[ORIENTED_BOX_COORDINATES] = corners + np.array([100, 0])
+        missing = Detections.empty()
+        if missing_frame == "nonempty":
+            missing = Detections(xyxy=np.array([[200, 0, 210, 10]], dtype=float))
+        elif missing_frame == "tracked-empty":
+            missing.tracker_id = np.array([], dtype=int)
+        smoother.update_with_detections(first)
+        for _ in range(gap_frames):
+            warning = (
+                pytest.warns(SupervisionWarnings, match="requires tracker_id")
+                if missing.tracker_id is None
+                else nullcontext()
+            )
+            with warning:
+                smoother.update_with_detections(missing)
+        history_retained = 7 in smoother.tracks
+        expected_x = 50 if gap_frames < 2 else 100
+        expected_confidence = 0.7 if gap_frames < 2 else 0.9
+
+        result = smoother.update_with_detections(returned)
+
+        assert history_retained == (gap_frames < 3)
+        assert_allclose(result.xyxy, [[expected_x, 0, expected_x + 10, 10]])
+        assert_allclose(result.confidence, [expected_confidence])
+        if oriented:
+            assert_allclose(
+                result.data[ORIENTED_BOX_COORDINATES],
+                corners + np.array([expected_x, 0]),
+            )
+
     @pytest.mark.parametrize(
         ("conf1", "conf2", "expected_confidence"),
         [

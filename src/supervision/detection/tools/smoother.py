@@ -144,6 +144,9 @@ class DetectionsSmoother:
     def update_with_detections(self, detections: Detections) -> Detections:
         """Updates the smoother with a new set of detections from a frame.
 
+        Frames without tracker IDs still age the cached history, but their
+        detections are returned unchanged with a warning.
+
         Args:
             detections: The detections to add to the smoother.
         """
@@ -154,15 +157,18 @@ class DetectionsSmoother:
                 "information.",
                 category=SupervisionWarnings,
             )
-            return detections
+        else:
+            for detection_idx in range(len(detections)):
+                tracker_id_value = detections.tracker_id[detection_idx]
+                tracker_id = int(tracker_id_value)
 
-        for detection_idx in range(len(detections)):
-            tracker_id_value = detections.tracker_id[detection_idx]
-            tracker_id = int(tracker_id_value)
+                self.tracks[tracker_id].append(detections.select(detection_idx))
 
-            self.tracks[tracker_id].append(detections.select(detection_idx))
-
-        active_ids = set(detections.tracker_id.tolist())
+        active_ids = (
+            set(detections.tracker_id.tolist())
+            if detections.tracker_id is not None
+            else set()
+        )
 
         for track_id in self.tracks.keys():
             if track_id not in active_ids:
@@ -171,6 +177,9 @@ class DetectionsSmoother:
         for track_id in list(self.tracks.keys()):
             if all(d is None for d in self.tracks[track_id]):
                 del self.tracks[track_id]
+
+        if detections.tracker_id is None:
+            return detections
 
         current_track_ids = active_ids
         return self.get_smoothed_detections(track_ids=current_track_ids)
