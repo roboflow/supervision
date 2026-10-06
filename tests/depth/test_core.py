@@ -1,9 +1,44 @@
 from __future__ import annotations
 
+import base64
+import io
+from types import SimpleNamespace
+from typing import Any
+
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision as sv
+from tests.helpers import _FakeTensor
+
+
+def _png_base64(values: np.ndarray) -> str:
+    """Encode a grayscale array as a base64 PNG, as the inference server does."""
+    buffer = io.BytesIO()
+    Image.fromarray(values).save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+class _FakeUltralyticsDepth:
+    """Ultralytics-like `DepthMap` exposing a tensor in `data`."""
+
+    def __init__(self, depth: np.ndarray) -> None:
+        self.data = _FakeTensor(depth)
+
+
+class _FakeUltralyticsResult:
+    """Ultralytics-like `Results` with an optional `depth` attribute."""
+
+    def __init__(self, depth: np.ndarray | None) -> None:
+        self.depth = None if depth is None else _FakeUltralyticsDepth(depth)
+
+
+class _FakeDepthEstimatorOutput:
+    """Transformers-like model output exposing `predicted_depth`."""
+
+    def __init__(self, predicted_depth: Any) -> None:
+        self.predicted_depth = predicted_depth
 
 
 class TestDepthMapInit:
@@ -98,6 +133,161 @@ class TestDepthMapPercentileRange:
 
         with pytest.raises(ValueError, match="percentiles"):
             depth_map._percentile_range(low, high)
+
+
+class _FakeLMMInferenceResponse:
+    """Inference-like in-process response holding the depth in a `response` dict."""
+
+    def __init__(self, normalized_depth: np.ndarray) -> None:
+        """Hold the depth under `response`, as Inference's depth models return it."""
+        self.response = {"normalized_depth": normalized_depth}
+
+
+class TestDepthMapFromInference:
+    @pytest.mark.parametrize(
+        ("result", "expected"),
+        [
+            pytest.param(
+                {"normalized_depth": [[0.0, 0.5], [1.0, 0.25]]},
+                [[0.0, 0.5], [1.0, 0.25]],
+                id="json",
+            ),
+            pytest.param(
+                {
+                    "normalized_depth": _png_base64(
+                        np.array([[0, 65535], [32768, 0]], dtype=np.uint16)
+                    ),
+                    "depth_map_format": "png16",
+                },
+                [[0.0, 1.0], [32768 / 65535, 0.0]],
+                id="png16",
+            ),
+            pytest.param(
+                {
+                    "normalized_depth": _png_base64(
+                        np.array([[0, 255], [51, 0]], dtype=np.uint8)
+                    ),
+                    "depth_map_format": "png8",
+                },
+                [[0.0, 1.0], [0.2, 0.0]],
+                id="png8",
+            ),
+            pytest.param(
+                SimpleNamespace(normalized_depth=[[0.0, 0.5]]),
+                [[0.0, 0.5]],
+                id="response-object",
+            ),
+        ],
+    )
+    def test_loads_every_depth_map_format(
+        self, result: Any, expected: list[list[float]]
+    ) -> None:
+        """Json, png16, png8 and response objects load as relative inverse depth."""
+        depth_map = sv.DepthMap.from_inference(result)
+
+        assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
+        assert depth_map.valid_mask.all()
+        np.testing.assert_allclose(depth_map.to_float(), expected, rtol=1e-6)
+
+    def test_unwraps_an_in_process_model_response(self) -> None:
+        """`get_model(...).infer(image)[0]` keeps its depth in a `response` dict."""
+        result = _FakeLMMInferenceResponse(np.array([[0.0, 1.0]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_inference(result)
+
+        np.testing.assert_array_equal(depth_map.to_float(), [[0.0, 1.0]])
+
+    @pytest.mark.parametrize(
+        ("result", "match"),
+        [
+            pytest.param([{"normalized_depth": [[0.0]]}], "single result", id="list"),
+            pytest.param({"predictions": []}, "normalized_depth", id="no-depth"),
+            pytest.param(object(), "normalized_depth", id="not-a-depth-result"),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2, 3), dtype=np.uint8))},
+                "grayscale",
+                id="rgb-png",
+            ),
+        ],
+    )
+    def test_rejects_invalid_results(self, result: Any, match: str) -> None:
+        """Lists, results without depth and non-grayscale PNGs are refused."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_inference(result)
+
+
+class TestDepthMapFromUltralytics:
+    def test_loads_metric_depth(self) -> None:
+        """YOLO26 depth is metric, and its 0 pixels are no depth."""
+        result = _FakeUltralyticsResult(np.array([[0.0, 2.5]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_ultralytics(result)
+
+        assert depth_map.kind is sv.DepthKind.DEPTH_M
+        np.testing.assert_array_equal(depth_map.to_float(), [[np.nan, 2.5]])
+
+    def test_raises_without_depth(self) -> None:
+        """A detection result has no depth map to load."""
+        with pytest.raises(ValueError, match="no depth map"):
+            sv.DepthMap.from_ultralytics(_FakeUltralyticsResult(None))
+
+
+class TestDepthMapFromTransformers:
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(
+                {"predicted_depth": _FakeTensor(np.ones((1, 2, 3)))}, id="pipeline"
+            ),
+            pytest.param(
+                _FakeDepthEstimatorOutput(np.ones((1, 1, 2, 3))), id="model-output"
+            ),
+        ],
+    )
+    def test_loads_predicted_depth_with_given_kind(self, result: Any) -> None:
+        """predicted_depth is squeezed to (H, W) and takes the given kind."""
+        depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
+
+        assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
+        assert depth_map.resolution_wh == (3, 2)
+
+    @pytest.mark.parametrize(
+        ("result", "match"),
+        [
+            pytest.param(
+                [{"predicted_depth": np.ones((2, 2))}], "single result", id="list"
+            ),
+            pytest.param({"depth": None}, "no 'predicted_depth'", id="no-depth"),
+            pytest.param({"predicted_depth": np.ones((2, 2, 2))}, "single", id="batch"),
+        ],
+    )
+    def test_rejects_invalid_results(self, result: Any, match: str) -> None:
+        """Lists, batches and results without predicted_depth are refused."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_transformers(result, kind="depth_m")
+
+
+class TestDepthMapFromFiles:
+    def test_from_png16_divides_by_scale(self, tmp_path: Any) -> None:
+        """A KITTI-style PNG loads as float32 code / scale, with NaN for code 0."""
+        codes = np.array([[0, 256], [5120, 65535]], dtype=np.uint16)
+        Image.fromarray(codes).save(tmp_path / "kitti.png")
+
+        depth_map = sv.DepthMap.from_png16(
+            tmp_path / "kitti.png", scale=256, kind="disparity_px"
+        )
+
+        assert depth_map.values.dtype == np.float32
+        np.testing.assert_array_equal(
+            depth_map.values, [[np.nan, 1.0], [20.0, 65535 / 256]]
+        )
+
+    def test_from_png16_rejects_8_bit_png(self, tmp_path: Any) -> None:
+        """An 8-bit PNG is not a depth PNG."""
+        Image.fromarray(np.zeros((2, 2), np.uint8)).save(tmp_path / "gray.png")
+
+        with pytest.raises(ValueError, match="16-bit"):
+            sv.DepthMap.from_png16(tmp_path / "gray.png", scale=256, kind="depth_m")
 
 
 class TestDepthMapEquality:

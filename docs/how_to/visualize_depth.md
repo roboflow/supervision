@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.
+description: Load depth maps from Roboflow Inference, Ultralytics YOLO26 depth, Hugging Face or stereo datasets and colour them over images with sv.DepthAnnotator.
 authors:
   - name: Caio Viotti
     role: Roboflow
@@ -21,18 +21,65 @@ This guide covers:
 
 ## Load a Depth Map
 
-A depth map is a float array with one value per pixel and the kind of value it holds: `"disparity_px"` for a stereo matcher's disparity, `"depth_m"` for metric depth, or `"relative_inverse"` for a monocular model's relative depth.
+=== "Inference"
 
-```python
-import numpy as np
-import supervision as sv
-from supervision import _cv2 as cv2
+    Roboflow depth models return a map normalised per image, 1 for the nearest pixel and 0 for the farthest. It loads as `relative_inverse`: good for pictures, not for distances.
 
-image = cv2.imread("<SOURCE_IMAGE_PATH>")
-disparity = np.load("<DISPARITY_NPY_PATH>")  # float32 pixels, left view
+    ```python
+    import supervision as sv
+    from inference import get_model
+    from supervision import _cv2 as cv2
 
-depth_map = sv.DepthMap(disparity, kind="disparity_px")
-```
+    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+    model = get_model(model_id="depth-anything-v3/small")
+
+    depth_map = sv.DepthMap.from_inference(model.infer(image)[0])
+    ```
+
+=== "Ultralytics"
+
+    YOLO26 depth models predict metric depth in metres.
+
+    ```python
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolo26n-depth.pt")
+    result = model("<SOURCE_IMAGE_PATH>")[0]
+
+    depth_map = sv.DepthMap.from_ultralytics(result)
+    ```
+
+=== "Transformers"
+
+    The pipeline does not say what its model predicts, so name the kind.
+
+    ```python
+    import supervision as sv
+    from transformers import pipeline
+
+    estimator = pipeline(
+        "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
+    )
+    result = estimator("<SOURCE_IMAGE_PATH>")
+
+    depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
+    ```
+
+=== "Stereo"
+
+    A stereo matcher's disparity, or any other float array, loads with the kind of value it holds.
+
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    disparity = np.load("<DISPARITY_NPY_PATH>")  # float32 pixels, left view
+
+    depth_map = sv.DepthMap(disparity, kind="disparity_px")
+    ```
+
+    Dataset files load directly: `sv.DepthMap.from_png16(path, scale=256, kind="disparity_px")` for KITTI and `sv.DepthMap.from_pfm(path)` for Middlebury and SceneFlow.
 
 Every kind keeps "no depth" explicit: `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels the model or matcher could not measure, and `depth_map.valid_mask` marks the rest.
 

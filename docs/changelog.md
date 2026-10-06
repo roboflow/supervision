@@ -7,6 +7,8 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DepthMap` now loads depth from models and dataset files: `from_inference` (Roboflow depth models, every `depth_map_format`), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers` (the `depth-estimation` pipeline or a model output, with the kind you name), `from_png16` (KITTI, DrivingStereo, InStereo2K and Ultralytics depth datasets) and `from_pfm` (Middlebury, SceneFlow).
+
 - Added `sv.DepthMap` and `sv.DepthAnnotator` to colour depth maps over images. `sv.DepthMap` holds a stereo disparity, metric depth or relative depth array for one frame together with what its values measure (`sv.DepthKind`), and treats `NaN`, infinities and values at or below 0 (below 0 for relative maps) as pixels without depth. `sv.DepthAnnotator` colours a map over NumPy or Pillow images without OpenCV, near objects warm and pixels without depth unpainted, with Turbo, Viridis, Cividis, Inferno, Magma or grayscale tables (`sv.DepthColormap`), over the map's own 2nd to 98th percentile or a fixed `(low, high)` range.
 
 - `sv.DetectionsSmoother` now ages cached track history on frames without `tracker_id`, as it already does on tracked empty frames. Expired boxes and confidence scores no longer affect a returning track. Short gaps still preserve smoothing, and untracked detections retain the existing warning and unchanged return value. ([#2676](https://github.com/roboflow/supervision/pull/2676))

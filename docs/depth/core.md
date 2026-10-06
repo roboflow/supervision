@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Hold depth, disparity and relative depth maps in sv.DepthMap, with what each value measures and which pixels hold depth.
+description: Load depth, disparity and relative depth maps from Inference, Ultralytics, Transformers and stereo datasets into sv.DepthMap.
 ---
 
 # Depth Estimation
