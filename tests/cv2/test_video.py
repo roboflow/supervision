@@ -302,6 +302,66 @@ def test_opencv_encoder_options_leave_libx264_at_its_crf_default() -> None:
 
 
 @pytest.mark.parametrize(
+    ("codec", "fps", "frame_size"),
+    [
+        pytest.param("mpeg4", 0.0, (96, 64), id="zero-fps"),
+        pytest.param("mjpeg", 0.0, (96, 64), id="zero-fps-mjpeg"),
+        pytest.param("mpeg4", 1e-4, (2, 2), id="rate-rounds-to-zero"),
+    ],
+)
+def test_opencv_encoder_options_skip_a_zero_bit_rate(
+    codec: str, fps: float, frame_size: tuple[int, int]
+) -> None:
+    """A bit rate that truncates to zero sets nothing, as it aborts FFmpeg."""
+    assert _opencv_encoder_options(codec, fps, frame_size) == {}
+
+
+def test_fallback_writer_applies_opencv_encoder_options(tmp_path: Path) -> None:
+    """The writer copies the OpenCV rate control onto the PyAV codec context."""
+    fourcc = _cv2.VideoWriter_fourcc(*"mp4v")
+    writer = _VideoWriter(str(tmp_path / "target.mp4"), fourcc, 30.0, (96, 64))
+
+    assert writer.isOpened()
+    codec_context = writer._stream.codec_context
+    writer.release()
+
+    # PyAV exposes `bit_rate_tolerance` write-only, so it reads back as None.
+    assert codec_context.bit_rate == 368_640
+    assert codec_context.qmin == 3
+    assert codec_context.gop_size == 12
+
+
+@pytest.mark.parametrize("fps", [0.0, -30.0, float("nan"), float("inf")])
+def test_fallback_writer_rejects_a_frame_rate_that_is_not_positive(
+    tmp_path: Path, fps: float
+) -> None:
+    """A writer refuses fps <= 0 or non-finite fps and stays closed, as OpenCV does.
+
+    The check runs in a subprocess: a zero bit rate tolerance makes FFmpeg
+    SIGABRT the whole interpreter, which would take the test run down with it.
+    """
+    target_path = tmp_path / "target.mp4"
+    _run_without_opencv(
+        f"""
+import numpy as np
+from supervision._cv2 import VideoWriter_fourcc
+from supervision._cv2._video import _VideoWriter
+
+fourcc = VideoWriter_fourcc(*"mp4v")
+writer = _VideoWriter({str(target_path)!r}, fourcc, float({str(fps)!r}), (96, 64))
+assert not writer.isOpened()
+try:
+    writer.write(np.zeros((64, 96, 3), dtype=np.uint8))
+except RuntimeError:
+    pass
+else:
+    raise AssertionError("write() must fail on a closed writer")
+writer.release()
+"""
+    )
+
+
+@pytest.mark.parametrize(
     ("codec", "extension"),
     [
         pytest.param("mp4v", ".mp4", id="mp4v"),
@@ -311,7 +371,7 @@ def test_opencv_encoder_options_leave_libx264_at_its_crf_default() -> None:
 def test_fallback_writer_matches_opencv_video_quality(
     tmp_path: Path, codec: str, extension: str
 ) -> None:
-    """Fallback writer encodes frames within 1 dB PSNR of `cv2.VideoWriter`."""
+    """Fallback writer matches `cv2.VideoWriter` in file size and within 1 dB PSNR."""
     cv2 = pytest.importorskip("cv2")
     frames = _panning_texture_frames()
     fourcc = cv2.VideoWriter_fourcc(*codec)
@@ -327,6 +387,10 @@ def test_fallback_writer_matches_opencv_video_quality(
             writer.write(frame)
         writer.release()
 
+    # File size follows the encoder's bit rate, so it checks the rate control
+    # without depending on how each build converts BGR to YUV.
+    size_ratio = fallback_path.stat().st_size / reference_path.stat().st_size
+    assert 0.5 < size_ratio < 2
     reference_psnr = _mean_psnr(reference_path, frames)
     assert _mean_psnr(fallback_path, frames) > reference_psnr - 1
 
