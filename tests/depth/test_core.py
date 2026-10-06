@@ -116,3 +116,67 @@ class TestDepthMapEquality:
         assert sv.DepthMap(values, kind="depth_m") != sv.DepthMap(
             values, kind="disparity_px"
         )
+
+
+class TestDepthClipRange:
+    def test_reads_a_generator(self) -> None:
+        """Maps are read once from an iterator."""
+        frames = (
+            sv.DepthMap(np.full((2, 2), depth, np.float32), kind="depth_m")
+            for depth in (1.0, 3.0)
+        )
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+
+        assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0))
+
+    def test_counts_depth_on_odd_pixels_only(self) -> None:
+        """Depth only on odd pixels still yields a range."""
+        values = np.zeros((4, 4), np.float32)
+        values[1, 1], values[3, 3] = 5.0, 7.0
+        frames = [sv.DepthMap(values, kind="depth_m")]
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+
+        assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0))
+
+    def test_long_clip_matches_the_range_of_its_repeated_frame(self) -> None:
+        """Past both sample caps, a clip of one structured frame keeps its range."""
+        frame = sv.DepthMap(
+            np.tile(np.array([1.0, 1.0, 100.0, 100.0], np.float32), (512, 256)),
+            kind="depth_m",
+        )
+
+        clip_range = sv.DepthClipRange.from_depth_maps([frame] * 70)
+
+        assert clip_range.display_range == (1.0, 100.0)
+
+    @pytest.mark.parametrize(
+        ("frames", "match"),
+        [
+            pytest.param(
+                [sv.DepthMap(np.zeros((2, 2), np.float32), kind="depth_m")],
+                "no depth",
+                id="no-depth",
+            ),
+            pytest.param(
+                [
+                    sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m"),
+                    sv.DepthMap(np.ones((2, 2), np.float32), kind="disparity_px"),
+                ],
+                "one kind",
+                id="mixed-kinds",
+            ),
+        ],
+    )
+    def test_rejects_clips_without_one_kind_of_depth(
+        self, frames: list[sv.DepthMap], match: str
+    ) -> None:
+        """A clip needs depth, all of one kind."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthClipRange.from_depth_maps(frames)
+
+    def test_rejects_a_reversed_range(self) -> None:
+        """The range must be ordered low to high."""
+        with pytest.raises(ValueError, match="DepthClipRange"):
+            sv.DepthClipRange(display_range=(2.0, 1.0))

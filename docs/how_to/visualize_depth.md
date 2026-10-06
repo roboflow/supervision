@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.
+description: Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.
 authors:
   - name: Caio Viotti
     role: Roboflow
@@ -18,6 +18,7 @@ This guide covers:
 
 1. [Loading a depth map](#load-a-depth-map)
 2. [Colouring it](#colour-a-depth-map)
+3. [Colouring a video with one range](#colour-a-video-with-one-range)
 
 ## Load a Depth Map
 
@@ -46,7 +47,7 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 The defaults:
 
 - `colormap="turbo"` separates the most depth steps. `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers; use them for figures.
-- `display_range="auto"` uses the map's 2nd to 98th percentile. A `(low, high)` tuple fixes the range.
+- `display_range="auto"` uses the map's 2nd to 98th percentile. A `(low, high)` tuple fixes the range, and `sv.DepthClipRange` holds one range across a video.
 - A metric map is coloured as inverse depth, which gives near detail most of the colours.
 - Pixels without depth stay unpainted, so the image shows through where the model gave up.
 
@@ -55,6 +56,27 @@ To show the depth alone, annotate a blank canvas instead of the image. To paint 
 ```python
 annotated_image[~depth_map.valid_mask] = sv.Color.BLACK.as_bgr()
 ```
+
+## Colour a Video with One Range
+
+Colouring each frame with its own range makes a still wall change colour whenever something enters the frame. Compute one range for the whole clip in a first pass, then colour every frame with it:
+
+```python
+import supervision as sv
+
+source = "<SOURCE_VIDEO_PATH>"
+depth_maps = [estimate_depth(frame) for frame in sv.get_video_frames_generator(source)]
+clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
+
+depth_annotator = sv.DepthAnnotator(display_range=clip_range, opacity=0.65)
+frames = sv.get_video_frames_generator(source)
+
+with sv.VideoSink("<TARGET_VIDEO_PATH>", sv.VideoInfo.from_video_path(source)) as sink:
+    for frame, depth_map in zip(frames, depth_maps):
+        sink.write_frame(depth_annotator.annotate(frame, depth_map))
+```
+
+`DepthClipRange.from_depth_maps` reads a generator too, so for long clips you can estimate depth twice instead of holding every map. Relative maps from monocular models change scale from frame to frame by design, so a locked range still flickers with them; metric and stereo maps do not.
 
 ## Attribution
 

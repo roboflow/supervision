@@ -84,16 +84,39 @@ class TestDepthAnnotatorRange:
         values = np.tile(np.arange(1, 101, dtype=np.float32), (2, 1))
         return sv.DepthMap(values, kind="disparity_px")
 
-    def test_auto_uses_the_2nd_to_98th_percentile(self) -> None:
-        """Auto colours the map over its own 2nd to 98th percentile."""
-        annotator = sv.DepthAnnotator(display_range="auto")
+    @pytest.mark.parametrize(
+        ("option", "expected_low_high"),
+        [
+            pytest.param("auto", (3.0, 98.0), id="auto"),
+            pytest.param(
+                sv.DepthClipRange(display_range=(5.0, 60.0)),
+                (5.0, 60.0),
+                id="clip-range",
+            ),
+        ],
+    )
+    def test_resolves_display_range(
+        self, option: Any, expected_low_high: tuple[float, float]
+    ) -> None:
+        """Each range option picks the documented range."""
+        annotator = sv.DepthAnnotator(display_range=option)
         depth_map = self._ramp()
-        conversion_free = sv.DepthAnnotator(display_range=(3.0, 98.0))
+        conversion_free = sv.DepthAnnotator(display_range=expected_low_high)
         expected = conversion_free.annotate(np.zeros((2, 100, 3), np.uint8), depth_map)
 
         annotated = annotator.annotate(np.zeros((2, 100, 3), np.uint8), depth_map)
 
         np.testing.assert_array_equal(annotated, expected)
+
+    def test_clip_range_is_converted_for_a_metric_map(self) -> None:
+        """A metric clip range becomes an inverse-depth range for a metric map."""
+        depth_map = sv.DepthMap(np.array([[1.0, 5.0]], np.float32), kind="depth_m")
+        clip_range = sv.DepthClipRange(display_range=(1.0, 5.0))
+        scene = np.zeros((1, 2, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=clip_range).annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[TURBO[255].tolist(), TURBO[0].tolist()]]
 
     def test_sparse_map_spans_its_few_values(self) -> None:
         """With two valid pixels, auto spans the values that exist."""

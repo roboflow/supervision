@@ -7,6 +7,7 @@ import numpy.typing as npt
 
 from supervision.depth.colormaps import DepthColormap, _colorize
 from supervision.depth.core import (
+    DepthClipRange,
     DepthMap,
     _Conversion,
     _index_map,
@@ -39,12 +40,23 @@ class DepthAnnotator:
         depth_annotator = sv.DepthAnnotator(display_range="auto", opacity=0.6)
         annotated_image = depth_annotator.annotate(image.copy(), depth_map)
         ```
+
+    === "Video with one range"
+
+        ```python
+        import supervision as sv
+
+        frames = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
+        depth_maps = [estimate_depth(frame) for frame in frames]
+        clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
+        depth_annotator = sv.DepthAnnotator(display_range=clip_range)
+        ```
     """
 
     def __init__(
         self,
         colormap: DepthColormap | str = DepthColormap.TURBO,
-        display_range: str | tuple[float, float] = "auto",
+        display_range: str | tuple[float, float] | DepthClipRange = "auto",
         opacity: float = 1.0,
     ) -> None:
         """
@@ -57,6 +69,8 @@ class DepthAnnotator:
                 `"auto"` (default) uses this map's 2nd to 98th percentile.
                 A `(low, high)` tuple fixes the range in the coloured unit (pixels
                 for disparity, 1 / metres for a metric map).
+                A `sv.DepthClipRange` uses one range, in the maps' kind unit, for
+                every frame of a clip.
             opacity: Opacity of the colours over the scene, from 0 to 1.
 
         Raises:
@@ -108,7 +122,7 @@ class DepthAnnotator:
                 f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
             )
         conversion = _resolve_conversion(depth_map.kind)
-        low, high = self._resolve_range(depth_map)
+        low, high = self._resolve_range(depth_map, conversion)
         coordinates = _color_coordinates(depth_map, conversion, low, high)
         colors = _colorize(coordinates, self.colormap)
         valid = depth_map.valid_mask
@@ -124,27 +138,36 @@ class DepthAnnotator:
         _blend(scene, valid, colors, self.opacity)
         return scene
 
-    def _resolve_range(self, depth_map: DepthMap) -> tuple[float, float]:
+    def _resolve_range(
+        self, depth_map: DepthMap, conversion: _Conversion
+    ) -> tuple[float, float]:
         """Return the colour range in the quantity's unit for this map.
 
-        A map without any depth falls back to `(0, 1)`.
+        A clip range that cannot be converted falls back to the percentile range, and a
+        map without any depth to `(0, 1)`.
         """
         option = self.display_range
         if isinstance(option, tuple):
             return option
+        if isinstance(option, DepthClipRange):
+            converted = conversion.apply_range(option.display_range)
+            if converted is not None:
+                return converted
         percentile = depth_map._percentile_range()
         return percentile if percentile is not None else _FALLBACK_RANGE
 
 
 def _check_display_range_option(
-    display_range: str | tuple[float, float],
-) -> str | tuple[float, float]:
+    display_range: str | tuple[float, float] | DepthClipRange,
+) -> str | tuple[float, float] | DepthClipRange:
     """Validate the annotator's `display_range` option and normalise tuples."""
+    if isinstance(display_range, DepthClipRange):
+        return display_range
     if isinstance(display_range, str):
         if display_range != "auto":
             raise ValueError(
-                "display_range must be 'auto' or a (low, high) tuple, got "
-                f"{display_range!r}."
+                "display_range must be 'auto', a (low, high) tuple or a "
+                f"sv.DepthClipRange, got {display_range!r}."
             )
         return display_range
     low, high = (float(bound) for bound in display_range)
