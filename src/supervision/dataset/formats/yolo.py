@@ -350,9 +350,10 @@ def load_yolo_annotations(
         annotations_directory_path: The path to the directory
             containing the YOLO annotation files.
         data_yaml_path: The path to the data
-            YAML file containing class information. With a pose `kpt_shape`
-            of `[K, D]`, every row of exactly `5 + K * D` values, a polygon
-            row of that length included, is read as a box, as Ultralytics does.
+            YAML file containing class information and, for pose datasets,
+            `kpt_shape`. With a `kpt_shape` of `[K, D]`, every row of exactly
+            `5 + K * D` values, a polygon row of that length included, is read
+            as a box, as Ultralytics does.
         force_masks: If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
             This parameter has no effect when `is_obb=True`; mask generation
@@ -366,6 +367,12 @@ def load_yolo_annotations(
         A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
+
+    Raises:
+        ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
+            not a list or dict, or a dict mixing numeric and non-numeric keys;
+            or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
+            `kpt_shape: null` included.
     """
     if is_obb and force_masks:
         warnings.warn(

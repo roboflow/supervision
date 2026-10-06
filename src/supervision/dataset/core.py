@@ -538,7 +538,8 @@ class DetectionDataset(BaseDataset):
             annotations_directory_path: The path to the directory
                 containing the YOLO annotation files.
             data_yaml_path: The path to the data
-                YAML file containing class information.
+                YAML file containing class information and, for pose
+                datasets, `kpt_shape`.
             force_masks: If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
@@ -550,6 +551,12 @@ class DetectionDataset(BaseDataset):
         Returns:
             A DetectionDataset instance
                 containing the loaded images and annotations.
+
+        Raises:
+            ValueError: If `data.yaml` is not a mapping; if its `names` is
+                missing, not a list or dict, or a dict mixing numeric and
+                non-numeric keys; or if its `kpt_shape` is present but not
+                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included.
 
         Examples:
             ```python
