@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import tempfile
 from collections.abc import Callable, Iterator
@@ -44,6 +45,11 @@ _CODECS = {
 # tolerance, a C `int` that PyAV refuses to set any higher.
 _MAX_BIT_RATE = 2**31 - 1
 
+# Bits per pixel per frame that OpenCV's FFmpeg writer targets, keyed by PyAV
+# codec. libx264 is absent on purpose: OpenCV encodes it at CRF 23, libx264's
+# own default, so it needs no options.
+_BITS_PER_PIXEL = {"mpeg4": 2, "mjpeg": 6, "libvpx-vp9": 2}
+
 
 def _video_writer_fourcc(*chars: str) -> int:
     """Encode four single-character strings using OpenCV's integer layout."""
@@ -76,13 +82,17 @@ def _opencv_encoder_options(
     the same value as the rate tolerance, a minimum quantizer of 3 and a keyframe
     every 12 frames. PyAV leaves the bit rate unset, which encodes the same frames
     at a lower rate and quality. libx264 needs no options, since OpenCV encodes it
-    at CRF 23, libx264's own default.
+    at CRF 23, libx264's own default. A frame rate or size that rounds the bit
+    rate down to zero also needs none: a zero rate tolerance makes FFmpeg abort the
+    process, so the encoder keeps PyAV's defaults instead.
     """
-    if codec == "libx264":
+    bits_per_pixel = _BITS_PER_PIXEL.get(codec)
+    if bits_per_pixel is None:
         return {}
     width, height = frame_size
-    bits_per_pixel = 6 if codec == "mjpeg" else 2
     bit_rate = int(min(bits_per_pixel * fps * width * height, _MAX_BIT_RATE))
+    if bit_rate < 1:
+        return {}
     return {
         "bit_rate": bit_rate,
         "bit_rate_tolerance": bit_rate,
@@ -277,6 +287,9 @@ class _VideoWriter:
         than silently ignored, keeping the OpenCV-shaped contract honest for
         callers that would otherwise expect single-channel writes.
 
+        A frame rate that is not a positive finite number leaves the writer
+        closed, as `cv2.VideoWriter` does, so `isOpened()` returns ``False``.
+
         Raises:
             NotImplementedError: If ``is_color`` is ``False``; grayscale
                 writing is not supported by the PyAV fallback.
@@ -295,6 +308,8 @@ class _VideoWriter:
         try:
             import av
 
+            if not math.isfinite(fps) or fps <= 0:
+                raise ValueError(f"Video frame rate must be positive, got {fps}")
             codec, pixel_format = _codec_details(fourcc)
             self._container = av.open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
@@ -303,8 +318,12 @@ class _VideoWriter:
             self._stream.height = self._height
             self._stream.pix_fmt = pixel_format
             encoder_options = _opencv_encoder_options(codec, fps, frame_size)
-            for name, value in encoder_options.items():
-                setattr(self._stream.codec_context, name, value)
+            if encoder_options:
+                codec_context = self._stream.codec_context
+                codec_context.bit_rate = encoder_options["bit_rate"]
+                codec_context.bit_rate_tolerance = encoder_options["bit_rate_tolerance"]
+                codec_context.qmin = encoder_options["qmin"]
+                codec_context.gop_size = encoder_options["gop_size"]
             self._opened = True
         except Exception as exc:
             self._error = exc
