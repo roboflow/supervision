@@ -177,6 +177,19 @@ def _extract_class_names(file_path: str) -> list[str]:
     )
 
 
+def _is_positive_whole_number(value: Any) -> bool:
+    """Return whether a YAML value is a positive whole number.
+
+    Whole-number floats such as ``17.0`` count; booleans do not, although
+    ``bool`` subclasses ``int`` in Python.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value > 0
+    return isinstance(value, float) and value.is_integer() and value > 0
+
+
 def _extract_pose_value_count(file_path: str) -> int:
     """Return the number of keypoint values that follow the box in a pose label.
 
@@ -200,15 +213,7 @@ def _extract_pose_value_count(file_path: str) -> int:
     if not (
         isinstance(kpt_shape, list)
         and len(kpt_shape) == 2
-        and all(
-            not isinstance(value, bool)
-            and (
-                isinstance(value, int)
-                or (isinstance(value, float) and value.is_integer())
-            )
-            and value > 0
-            for value in kpt_shape
-        )
+        and all(_is_positive_whole_number(value) for value in kpt_shape)
         and kpt_shape[1] in (2, 3)
     ):
         raise ValueError(
@@ -226,7 +231,7 @@ def _drop_keypoints(lines: list[str], pose_value_count: int) -> list[str]:
     lines are returned unchanged. Ultralytics reads pose labels the same way for
     box tasks.
     """
-    kept = []
+    kept: list[str] = []
     for line in lines:
         values = line.split()
         if len(values) == 5 + pose_value_count:
