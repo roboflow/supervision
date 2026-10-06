@@ -20,15 +20,18 @@ from supervision._cv2.constants import (
 
 
 def _flip(src: npt.NDArray[Any], flipCode: int) -> npt.NDArray[Any]:
-    """Flip an image vertically, horizontally, or along both axes."""
+    """Flip an image vertically, horizontally, or along both axes.
+
+    Flip direction follows the sign of `flipCode`, as in `cv2.flip`: `0` flips
+    vertically, any positive code flips horizontally, and any negative code
+    flips along both axes.
+    """
     if flipCode == 0:
         axes: tuple[int, ...] = (0,)
-    elif flipCode == 1:
+    elif flipCode > 0:
         axes = (1,)
-    elif flipCode == -1:
-        axes = (0, 1)
     else:
-        raise ValueError(f"Unsupported flip code: {flipCode}")
+        axes = (0, 1)
     return np.ascontiguousarray(np.flip(src, axis=axes))
 
 
