@@ -557,7 +557,8 @@ class DetectionDataset(BaseDataset):
                 missing, not a list or dict, or a dict mixing numeric and
                 non-numeric keys; or if its `kpt_shape` is present but not
                 `[K, 2]` or `[K, 3]`, `kpt_shape: null` included. Also if an
-                annotation file holds a class id that is not a whole number, a
+                annotation file contains an invalid line, such as one with too
+                few tokens, a class id that is not a whole number, a
                 non-numeric coordinate, or a box with a negative width or
                 height; the message names the offending file.
 

@@ -55,7 +55,7 @@ date_modified: 2026-10-07
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The empty index array defaulted to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0`; `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.
 
-- `sv.DetectionDataset.from_yolo` now names a malformed annotation line instead of failing on an array shape. A line with fewer than five tokens contributed a class id but no box, so the mismatch surfaced as `operands could not be broadcast together with shapes (0,) (4,)`, as an `IndexError` for a blank line, or — when the file also held valid rows — as a `class_id` shape error that blamed the wrong column. `is_obb=True` lines that were not nine tokens failed inside a reshape. [#2665](https://github.com/roboflow/supervision/pull/2665)
+- `sv.DetectionDataset.from_yolo` now names a malformed annotation line instead of failing on an array shape. A line with fewer than five tokens contributed a class id but no box, so the mismatch surfaced as `operands could not be broadcast together with shapes (0,) (4,)`, or — when the file also held valid rows — as a `class_id` shape error that blamed the wrong column. With `is_obb=True`, a line that was not nine tokens failed with an array shape or length error. A malformed line now raises a `ValueError` naming the offending line. [#2665](https://github.com/roboflow/supervision/pull/2665)
 
 ### 0.30.7 <small>Oct 4, 2026</small>
 

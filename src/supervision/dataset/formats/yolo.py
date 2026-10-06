@@ -336,9 +336,10 @@ def yolo_annotations_to_detections(
     ``load_yolo_annotations`` drops them before calling this function.
 
     Raises:
-        ValueError: If a class id is not a whole number, a box value is not
-            finite, a box has a negative width or height, or a coordinate token
-            is not numeric.
+        ValueError: If a line has fewer than five tokens, or is not nine tokens
+            with ``is_obb=True``; or if a class id is not a whole number, a box
+            value is not finite, a box has a negative width or height, or a
+            coordinate token is not numeric.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -434,7 +435,8 @@ def load_yolo_annotations(
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
             not a list or dict, or a dict mixing numeric and non-numeric keys;
             or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
-            `kpt_shape: null` included.
+            `kpt_shape: null` included. Also if an annotation file contains an
+            invalid line; the message names the offending file.
     """
     if is_obb and force_masks:
         warnings.warn(
