@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -8,6 +9,7 @@ from supervision import (
     LineZone,
     LineZoneAnnotator,
     LineZoneAnnotatorMulticlass,
+    _cv2,
 )
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
@@ -1288,8 +1290,27 @@ def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
 class TestLineZoneAnnotatorOrientedLabel:
     """Oriented count labels on lines whose text would otherwise be upside down."""
 
+    @pytest.fixture(autouse=True)
+    def _clear_label_cache(self) -> None:
+        """Drop cached label images so every test renders and flips its own."""
+        LineZoneAnnotator._make_label_image.cache_clear()
+
+    @staticmethod
+    def _make_label(line_angle_degrees: float) -> np.ndarray:
+        """Render the "out: 7" count label for a line at the given angle."""
+        return LineZoneAnnotator._make_label_image(
+            "out: 7",
+            text_scale=0.75,
+            text_thickness=1,
+            text_padding=4,
+            text_color=Color.WHITE,
+            text_box_show=True,
+            text_box_color=Color.BLACK,
+            line_angle_degrees=line_angle_degrees,
+        )
+
     def test_annotate_draws_labels_for_right_to_left_line(self) -> None:
-        """Draw both counts on a line whose label is flipped to read upright."""
+        """Draw both counts on a line drawn right to left without raising."""
         line_zone = LineZone(start=Point(170, 100), end=Point(30, 100))
         frame = np.zeros((200, 200, 3), dtype=np.uint8)
         line_only = LineZoneAnnotator(
@@ -1299,8 +1320,58 @@ class TestLineZoneAnnotatorOrientedLabel:
 
         annotated_frame = annotator.annotate(frame=frame.copy(), line_counter=line_zone)
 
-        assert annotated_frame.shape == frame.shape
         assert not np.array_equal(annotated_frame, line_only)
+
+    def test_label_at_180_degrees_reads_upright(self) -> None:
+        """Render the label of a right-to-left line the way an upright label reads.
+
+        A 180 degree rotation alone leaves the text upside down; the flip ahead of it
+        cancels that, so the result equals the 0 degree label. For an odd-sized label it
+        sits one pixel up and left, because PIL rotates about a pixel corner while the
+        flip mirrors about pixel centres. A missing or single-axis flip breaks this
+        equality.
+        """
+        upright = self._make_label(0.0)
+        size = upright.shape[0]
+        offset = size % 2
+
+        flipped = self._make_label(180.0)
+
+        np.testing.assert_array_equal(
+            flipped[: size - offset, : size - offset], upright[offset:, offset:]
+        )
+
+    @pytest.mark.parametrize(
+        ("line_angle_degrees", "expected_flips"),
+        [
+            pytest.param(0.0, 0, id="0-degrees-upright"),
+            pytest.param(45.0, 0, id="45-degrees-upright"),
+            pytest.param(90.0, 0, id="90-degrees-upright-boundary"),
+            pytest.param(90.0001, 1, id="just-past-90-flipped"),
+            pytest.param(135.0, 1, id="135-degrees-flipped"),
+            pytest.param(225.0, 1, id="225-degrees-flipped"),
+            pytest.param(269.9, 1, id="just-before-270-flipped"),
+            pytest.param(270.0, 0, id="270-degrees-upright-boundary"),
+            pytest.param(315.0, 0, id="315-degrees-upright"),
+        ],
+    )
+    def test_label_is_flipped_only_between_90_and_270_degrees(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        line_angle_degrees: float,
+        expected_flips: int,
+    ) -> None:
+        """Flip the label only for lines pointing left, strictly past 90 and below 270.
+
+        Lines pointing left would otherwise show upside-down text. The bounds are
+        exclusive, so exactly 90 and 270 degrees stay unflipped.
+        """
+        flip_spy = mock.Mock(wraps=_cv2.flip)
+        monkeypatch.setattr(_cv2, "flip", flip_spy)
+
+        self._make_label(line_angle_degrees)
+
+        assert flip_spy.call_count == expected_flips
 
 
 class TestLineZoneUnconfirmedTracks:
