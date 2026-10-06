@@ -936,7 +936,7 @@ class KeyPoints:
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint. An empty
+                class names, and confidences of each keypoint. An empty
                 `transformers_results` returns `KeyPoints.empty()`.
 
         Examples:
