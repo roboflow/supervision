@@ -4094,6 +4094,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.QWEN_2_5_VL</code> or <code>sv.VLM.QWEN_3_VL</code> now recovers every complete detection from a response that was cut off before its closing <code>]</code>, such as inside the last box's <code>bbox_2d</code> array or right after a complete object. The parser cut the text at its last <code>]</code>, which in a cut-off response can sit before the last complete object's closing <code>}</code>, so the truncation recovery never saw that <code>}</code> and dropped the object: a cut-off response with two complete detections returned one. Recovery now reads the text before that cut, and the cut text when that fails. (<a href="https://github.com/roboflow/supervision/pull/2666">#2666</a>)</p>
+</li>
+<li>
 <p><code>sv.DetectionDataset.from_yolo</code> now names a malformed annotation line instead of failing on an array shape. A line with fewer than five tokens contributed a class id but no box, so the mismatch surfaced as <code>operands could not be broadcast together with shapes (0,) (4,)</code>, or — when the file also held valid rows — as a <code>class_id</code> shape error that blamed the wrong column. With <code>is_obb=True</code>, a line that was not nine tokens failed with an array shape or length error. A malformed line now raises a <code>ValueError</code> naming the offending line. (<a href="https://github.com/roboflow/supervision/pull/2665">#2665</a>)</p>
 </li>
 <li>
@@ -6226,7 +6229,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 14:28:56 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 16:17:04 UTC">October 6, 2026</span>
   </span>
 
     
@@ -6254,9 +6257,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/aminmiral" class="md-author" title="@aminmiral">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/146321254?v=4&size=72" alt="aminmiral">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6264,21 +6267,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/aminmiral" class="md-author" title="@aminmiral">
+          
+          <img src="https://avatars.githubusercontent.com/u/146321254?v=4&size=72" alt="aminmiral">
+        </a>
+      
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
-          
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +32
+            +31
           </a>
         
       
