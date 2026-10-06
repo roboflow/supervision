@@ -4094,6 +4094,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.VideoSink</code> and <code>sv.process_video</code> now write video at OpenCV's quality when OpenCV is not installed. The PyAV fallback left the encoder's bit rate unset, so <code>mp4v</code>, the default codec, and <code>MJPG</code> came out at well under half the bit rate <code>cv2.VideoWriter</code> uses: 30 frames of a 1280x720 texture scored 27.9 dB PSNR instead of 32.4 dB with <code>mp4v</code>, and 27.0 dB instead of 33.4 dB with <code>MJPG</code>. The fallback now sets the bit rate, rate tolerance, minimum quantizer and keyframe interval that OpenCV's FFmpeg writer uses for every codec except H.264, which already encoded at libx264's CRF 23 default in both backends. Output files grow with the bit rate, to the sizes OpenCV writes, and <code>vp09</code> now encodes several times slower into much larger files, as it does with OpenCV; <code>codec="avc1"</code> keeps files small. A frame rate of zero or less now leaves the fallback writer closed, so <code>sv.VideoSink</code> raises <code>RuntimeError</code> as it does with OpenCV, where the fallback used to write at PyAV's default frame rate. <a href="https://github.com/roboflow/supervision/pull/2661">#2661</a></p>
+</li>
+<li>
 <p><code>sv.Detections.get_anchors_coordinates</code> now computes axis-aligned midpoint anchors without integer overflow. Signed and unsigned boxes whose corner sums exceeded their coordinate dtype could previously place the anchor outside the box, affecting annotators and zone tools. Direct-corner, oriented-box, and mask-centroid anchors are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2660">#2660</a>)</p>
 </li>
 <li>
@@ -6217,7 +6220,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 11:43:31 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 13:16:41 UTC">October 6, 2026</span>
   </span>
 
     
@@ -6245,9 +6248,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6255,14 +6258,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
+          
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
+        </a>
+      
         <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
           <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
-        </a>
-      
-        <a href="https://github.com/8rulerstar" class="md-author" title="@8rulerstar">
-          
-          <img src="https://avatars.githubusercontent.com/u/190670431?v=4&size=72" alt="8rulerstar">
         </a>
       
       
