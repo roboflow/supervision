@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import tempfile
 from collections.abc import Callable, Iterator
@@ -40,6 +41,15 @@ _CODECS = {
     "vp09": ("libvpx-vp9", "yuv420p"),
 }
 
+# OpenCV caps the encoder bit rate at INT_MAX and copies it into the bit rate
+# tolerance, a C `int` that PyAV refuses to set any higher.
+_MAX_BIT_RATE = 2**31 - 1
+
+# Bits per pixel per frame that OpenCV's FFmpeg writer targets, keyed by PyAV
+# codec. libx264 is absent on purpose: OpenCV encodes it at CRF 23, libx264's
+# own default, so it needs no options.
+_BITS_PER_PIXEL = {"mpeg4": 2, "mjpeg": 6, "libvpx-vp9": 2}
+
 
 def _video_writer_fourcc(*chars: str) -> int:
     """Encode four single-character strings using OpenCV's integer layout."""
@@ -60,6 +70,35 @@ def _codec_details(fourcc: int) -> tuple[str, str]:
         return _CODECS[code]
     except KeyError as exc:
         raise ValueError(f"Unsupported video codec: {code!r}") from exc
+
+
+def _opencv_encoder_options(
+    codec: str, fps: float, frame_size: tuple[int, int]
+) -> dict[str, int]:
+    """Return the encoder settings `cv2.VideoWriter` uses for a PyAV codec.
+
+    OpenCV's FFmpeg writer sets the bit rate of every encoder except libx264 from
+    the frame rate and size: two bits per pixel per frame, six for MJPEG. It uses
+    the same value as the rate tolerance, a minimum quantizer of 3 and a keyframe
+    every 12 frames. PyAV leaves the bit rate unset, which encodes the same frames
+    at a lower rate and quality. libx264 needs no options, since OpenCV encodes it
+    at CRF 23, libx264's own default. A frame rate or size that rounds the bit
+    rate down to zero also needs none: a zero rate tolerance makes FFmpeg abort the
+    process, so the encoder keeps PyAV's defaults instead.
+    """
+    bits_per_pixel = _BITS_PER_PIXEL.get(codec)
+    if bits_per_pixel is None:
+        return {}
+    width, height = frame_size
+    bit_rate = int(min(bits_per_pixel * fps * width * height, _MAX_BIT_RATE))
+    if bit_rate < 1:
+        return {}
+    return {
+        "bit_rate": bit_rate,
+        "bit_rate_tolerance": bit_rate,
+        "qmin": 3,
+        "gop_size": 12,
+    }
 
 
 def _quarter_turns(rotation: int) -> int:
@@ -240,10 +279,16 @@ class _VideoWriter:
     ) -> None:
         """Open a PyAV writer for the requested codec and frame dimensions.
 
+        The encoder runs with the rate control `cv2.VideoWriter` sets for the
+        codec, so a video keeps its quality whichever backend writes it.
+
         The PyAV fallback always encodes 3-channel BGR frames, so grayscale
         output is unsupported. ``is_color=False`` is rejected up front rather
         than silently ignored, keeping the OpenCV-shaped contract honest for
         callers that would otherwise expect single-channel writes.
+
+        A frame rate that is not a positive finite number leaves the writer
+        closed, as `cv2.VideoWriter` does, so `isOpened()` returns ``False``.
 
         Raises:
             NotImplementedError: If ``is_color`` is ``False``; grayscale
@@ -263,6 +308,8 @@ class _VideoWriter:
         try:
             import av
 
+            if not math.isfinite(fps) or fps <= 0:
+                raise ValueError(f"Video frame rate must be positive, got {fps}")
             codec, pixel_format = _codec_details(fourcc)
             self._container = av.open(str(filename), mode="w")
             rate = Fraction(str(fps)).limit_denominator(100_000)
@@ -270,6 +317,13 @@ class _VideoWriter:
             self._stream.width = self._width
             self._stream.height = self._height
             self._stream.pix_fmt = pixel_format
+            encoder_options = _opencv_encoder_options(codec, fps, frame_size)
+            if encoder_options:
+                codec_context = self._stream.codec_context
+                codec_context.bit_rate = encoder_options["bit_rate"]
+                codec_context.bit_rate_tolerance = encoder_options["bit_rate_tolerance"]
+                codec_context.qmin = encoder_options["qmin"]
+                codec_context.gop_size = encoder_options["gop_size"]
             self._opened = True
         except Exception as exc:
             self._error = exc
