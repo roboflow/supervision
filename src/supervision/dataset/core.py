@@ -561,7 +561,10 @@ class DetectionDataset(BaseDataset):
             ValueError: If `data.yaml` is not a mapping; if its `names` is
                 missing, not a list or dict, or a dict mixing numeric and
                 non-numeric keys; or if its `kpt_shape` is present but not
-                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included.
+                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included. Also if an
+                annotation file holds a class id that is not a whole number, a
+                non-numeric coordinate, or a box with a negative width or
+                height; the message names the offending file.
 
         Examples:
             ```python
