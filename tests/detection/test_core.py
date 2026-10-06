@@ -1038,6 +1038,8 @@ class TestDetectionsIntegerAnchors:
                 [2**62 + 2**19, 1],
                 id="int64-overflow",
             ),
+            # The exact midpoint 2**62 + 768 lies between float64 neighbours that are
+            # 1024 apart at 2**62, so it rounds to 2**62 + 1024 (float() does the same).
             pytest.param(
                 np.int64,
                 [2**62 + 512, 0, 2**62 + 1024, 2],
@@ -1187,7 +1189,7 @@ class TestDetectionsIntegerAnchors:
         anchor: Position,
         expected: list[float],
     ) -> None:
-        """Anchors stay inside valid integer boxes when corner sums exceed the dtype."""
+        """Anchors of large integer boxes equal the exact midpoint of the corners."""
         detections = Detections(xyxy=np.array([xyxy], dtype=dtype))
 
         result = detections.get_anchors_coordinates(anchor)
