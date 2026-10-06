@@ -1,5 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
+from typing import Any
 
 import numpy as np
 import pytest
