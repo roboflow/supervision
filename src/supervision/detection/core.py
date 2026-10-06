@@ -27,6 +27,7 @@ from supervision.detection.utils._typing import (
     _MetadataType,
 )
 from supervision.detection.utils.boxes import (
+    _box_midpoint,
     _oriented_box_anchors,
     _sort_box_corners,
     xyxyxyxy_to_xyxy,
@@ -2253,38 +2254,10 @@ class Detections:
             """Combine x and y coordinate arrays into anchor points."""
             return cast(npt.NDArray[np.generic], np.array([x, y]).transpose())
 
-        def midpoint(
-            first: npt.NDArray[np.number], second: npt.NDArray[np.number]
-        ) -> npt.NDArray[np.number]:
-            """Average corners without overflowing an integer coordinate dtype."""
-            if np.issubdtype(xyxy.dtype, np.integer):
-                if xyxy.dtype.itemsize > 4:
-                    integer_first = cast(npt.NDArray[np.integer], first)
-                    integer_second = cast(npt.NDArray[np.integer], second)
-                    summed = integer_first + integer_second
-                    if np.issubdtype(xyxy.dtype, np.signedinteger):
-                        overflow = (
-                            (integer_first ^ summed) & (integer_second ^ summed)
-                        ) < 0
-                    else:
-                        overflow = summed < integer_first
-                    midpoints = summed.astype(np.float64) / 2
-                    if np.any(overflow):
-                        # Exact sums avoid rounding each corner before averaging.
-                        exact_sums = integer_first[overflow].astype(
-                            object
-                        ) + integer_second[overflow].astype(object)
-                        midpoints[overflow] = (
-                            np.asarray(exact_sums, dtype=np.float64) / 2
-                        )
-                    return midpoints
-                return (first.astype(np.float64) + second.astype(np.float64)) / 2
-            return (first + second) / 2
-
         if anchor == Position.CENTER:
             return coordinates(
-                midpoint(xyxy[:, 0], xyxy[:, 2]),
-                midpoint(xyxy[:, 1], xyxy[:, 3]),
+                _box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+                _box_midpoint(xyxy[:, 1], xyxy[:, 3]),
             )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
@@ -2293,17 +2266,17 @@ class Detections:
                 )
             return calculate_masks_centroids(masks=self.mask)
         elif anchor == Position.CENTER_LEFT:
-            return coordinates(xyxy[:, 0], midpoint(xyxy[:, 1], xyxy[:, 3]))
+            return coordinates(xyxy[:, 0], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.CENTER_RIGHT:
-            return coordinates(xyxy[:, 2], midpoint(xyxy[:, 1], xyxy[:, 3]))
+            return coordinates(xyxy[:, 2], _box_midpoint(xyxy[:, 1], xyxy[:, 3]))
         elif anchor == Position.BOTTOM_CENTER:
-            return coordinates(midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 3])
+            return coordinates(_box_midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 3])
         elif anchor == Position.BOTTOM_LEFT:
             return coordinates(xyxy[:, 0], xyxy[:, 3])
         elif anchor == Position.BOTTOM_RIGHT:
             return coordinates(xyxy[:, 2], xyxy[:, 3])
         elif anchor == Position.TOP_CENTER:
-            return coordinates(midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 1])
+            return coordinates(_box_midpoint(xyxy[:, 0], xyxy[:, 2]), xyxy[:, 1])
         elif anchor == Position.TOP_LEFT:
             return coordinates(xyxy[:, 0], xyxy[:, 1])
         elif anchor == Position.TOP_RIGHT:

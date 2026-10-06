@@ -472,6 +472,58 @@ def _oriented_box_anchors(
     return cast(npt.NDArray[np.float64], center + sx * width + sy * height)
 
 
+def _box_midpoint(
+    first: npt.NDArray[np.number], second: npt.NDArray[np.number]
+) -> npt.NDArray[np.number]:
+    """Average two arrays of box corner coordinates without wrapping integers.
+
+    Integer inputs produce `float64` midpoints; floating-point inputs keep their
+    dtype. Integers of 32 bits or fewer are widened to `float64`, which is exact.
+    For 64-bit integers a corner sum that overflows is recomputed exactly and
+    rounded once to `float64`.
+
+    Args:
+        first: Lower corner coordinates, an integer or floating-point array.
+        second: Upper corner coordinates, with the same dtype and shape as `first`.
+
+    Returns:
+        Array with the midpoint of each `first`/`second` pair.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _box_midpoint
+        >>> _box_midpoint(
+        ...     np.array([20000], dtype=np.int16), np.array([22000], dtype=np.int16)
+        ... )
+        array([21000.])
+
+        ```
+    """
+    if not np.issubdtype(first.dtype, np.integer):
+        return (first + second) / 2
+    if first.dtype.itemsize <= 4:
+        return (first.astype(np.float64) + second.astype(np.float64)) / 2
+
+    integer_first = cast(npt.NDArray[np.integer], first)
+    integer_second = cast(npt.NDArray[np.integer], second)
+    summed = integer_first + integer_second
+    if np.issubdtype(first.dtype, np.signedinteger):
+        # Signed addition wrapped when both operands differ in sign from the sum.
+        overflow = ((integer_first ^ summed) & (integer_second ^ summed)) < 0
+    else:
+        # Unsigned addition wrapped when the sum fell below an operand.
+        overflow = summed < integer_first
+    midpoints = summed.astype(np.float64) / 2
+    if np.any(overflow):
+        # Exact sums avoid rounding each corner before averaging.
+        exact_sums = integer_first[overflow].astype(object) + integer_second[
+            overflow
+        ].astype(object)
+        midpoints[overflow] = np.asarray(exact_sums, dtype=np.float64) / 2
+    return midpoints
+
+
 def scale_boxes(
     xyxy: npt.NDArray[np.number], factor: float
 ) -> npt.NDArray[np.floating]:
