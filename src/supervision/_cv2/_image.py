@@ -24,7 +24,8 @@ def _flip(src: npt.NDArray[Any], flipCode: int) -> npt.NDArray[Any]:
 
     Flip direction follows the sign of `flipCode`, as in `cv2.flip`: `0` flips
     vertically, any positive code flips horizontally, and any negative code
-    flips along both axes.
+    flips along both axes. The camelCase `flipCode` mirrors `cv2.flip(src, flipCode)`
+    so keyword calls bind on both backends; keep it when editing.
     """
     if flipCode == 0:
         axes: tuple[int, ...] = (0,)
