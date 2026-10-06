@@ -197,7 +197,8 @@ def _extract_pose_value_count(file_path: str) -> int:
     ):
         raise ValueError(
             f"Expected 'kpt_shape' in data.yaml at '{file_path}' to be"
-            f" [number of keypoints, 2 or 3], got {kpt_shape!r}."
+            f" [number of keypoints, 2 or 3], got {kpt_shape!r}. Fix it, or"
+            " remove 'kpt_shape' if the dataset has no keypoints."
         )
     return int(kpt_shape[0]) * int(kpt_shape[1])
 
