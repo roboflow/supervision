@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -173,47 +175,87 @@ assert _cv2.resize(image, (2, 1), interpolation=_cv2.INTER_NEAREST).shape == (1,
     )
 
 
-@pytest.mark.parametrize(
-    ("public_name", "private_name"),
-    [
-        pytest.param("addWeighted", "_add_weighted", id="addWeighted"),
-        pytest.param("blur", "_blur", id="blur"),
-        pytest.param("convertScaleAbs", "_convert_scale_abs", id="convertScaleAbs"),
-        pytest.param("copyMakeBorder", "_copy_make_border", id="copyMakeBorder"),
-        pytest.param("cvtColor", "_cvt_color", id="cvtColor"),
-        pytest.param("flip", "_flip", id="flip"),
-        pytest.param("imread", "_imread", id="imread"),
-        pytest.param("imwrite", "_imwrite", id="imwrite"),
-        pytest.param("mean", "_mean", id="mean"),
-        pytest.param("merge", "_merge", id="merge"),
-        pytest.param("resize", "_resize", id="resize"),
-        pytest.param("split", "_split", id="split"),
-        pytest.param("approxPolyDP", "_approx_poly_dp", id="approxPolyDP"),
-        pytest.param(
-            "connectedComponents",
-            "_connected_components",
-            id="connectedComponents",
-        ),
-        pytest.param(
-            "connectedComponentsWithStats",
-            "_connected_components_with_stats",
-            id="connectedComponentsWithStats",
-        ),
-        pytest.param("contourArea", "_contour_area", id="contourArea"),
-        pytest.param("circle", "_circle", id="circle"),
-        pytest.param("drawContours", "_draw_contours", id="drawContours"),
-        pytest.param("ellipse", "_ellipse", id="ellipse"),
-        pytest.param("fillPoly", "_fill_poly", id="fillPoly"),
-        pytest.param(
-            "intersectConvexConvex",
-            "_intersect_convex_convex",
-            id="intersectConvexConvex",
-        ),
-        pytest.param("line", "_line", id="line"),
-        pytest.param("polylines", "_polylines", id="polylines"),
-        pytest.param("rectangle", "_rectangle", id="rectangle"),
-    ],
+_FALLBACK_BINDINGS = [
+    pytest.param("addWeighted", "_add_weighted", id="addWeighted"),
+    pytest.param("blur", "_blur", id="blur"),
+    pytest.param("convertScaleAbs", "_convert_scale_abs", id="convertScaleAbs"),
+    pytest.param("copyMakeBorder", "_copy_make_border", id="copyMakeBorder"),
+    pytest.param("cvtColor", "_cvt_color", id="cvtColor"),
+    pytest.param("flip", "_flip", id="flip"),
+    pytest.param("imread", "_imread", id="imread"),
+    pytest.param("imwrite", "_imwrite", id="imwrite"),
+    pytest.param("mean", "_mean", id="mean"),
+    pytest.param("merge", "_merge", id="merge"),
+    pytest.param("resize", "_resize", id="resize"),
+    pytest.param("split", "_split", id="split"),
+    pytest.param("approxPolyDP", "_approx_poly_dp", id="approxPolyDP"),
+    pytest.param(
+        "connectedComponents",
+        "_connected_components",
+        id="connectedComponents",
+    ),
+    pytest.param(
+        "connectedComponentsWithStats",
+        "_connected_components_with_stats",
+        id="connectedComponentsWithStats",
+    ),
+    pytest.param("contourArea", "_contour_area", id="contourArea"),
+    pytest.param("circle", "_circle", id="circle"),
+    pytest.param("drawContours", "_draw_contours", id="drawContours"),
+    pytest.param("ellipse", "_ellipse", id="ellipse"),
+    pytest.param("fillPoly", "_fill_poly", id="fillPoly"),
+    pytest.param(
+        "intersectConvexConvex",
+        "_intersect_convex_convex",
+        id="intersectConvexConvex",
+    ),
+    pytest.param("line", "_line", id="line"),
+    pytest.param("polylines", "_polylines", id="polylines"),
+    pytest.param("rectangle", "_rectangle", id="rectangle"),
+]
+
+
+# Fallbacks that still rename OpenCV parameters. Every caller passes them
+# positionally, so nothing breaks yet; align a fallback and delete its entry here.
+_RENAMED_FALLBACKS = frozenset(
+    {
+        "approxPolyDP",
+        "blur",
+        "convertScaleAbs",
+        "copyMakeBorder",
+        "cvtColor",
+        "imwrite",
+        "intersectConvexConvex",
+        "mean",
+        "merge",
+        "split",
+    }
 )
+_ALIGNED_BINDINGS = [
+    binding
+    for binding in _FALLBACK_BINDINGS
+    if binding.values[0] not in _RENAMED_FALLBACKS
+]
+_RENAMED_BINDINGS = [
+    binding for binding in _FALLBACK_BINDINGS if binding.values[0] in _RENAMED_FALLBACKS
+]
+
+
+def _opencv_parameter_names(public_name: str) -> set[str]:
+    """Return the parameter names OpenCV documents on its function's first doc line."""
+    summary = getattr(cv2, public_name).__doc__.splitlines()[0]
+    match = re.match(rf"{public_name}\((.*)\) ->", summary)
+    assert match, f"unrecognised cv2.{public_name} docstring: {summary!r}"
+    arguments = match.group(1).replace("[", "").replace("]", "")
+    return {part.split("=")[0].strip() for part in arguments.split(",") if part.strip()}
+
+
+def _fallback_parameter_names(private_name: str) -> set[str]:
+    """Return the parameter names of a private fallback implementation."""
+    return set(inspect.signature(getattr(_cv2, private_name)).parameters)
+
+
+@pytest.mark.parametrize(("public_name", "private_name"), _FALLBACK_BINDINGS)
 def test_facade_binds_fallback_operation_without_opencv(
     public_name: str, private_name: str
 ) -> None:
@@ -236,3 +278,25 @@ from supervision import _cv2
 assert getattr(_cv2, {public_name!r}) is getattr(_cv2, {private_name!r})
 """
     )
+
+
+@pytest.mark.parametrize(("public_name", "private_name"), _ALIGNED_BINDINGS)
+def test_fallback_parameter_names_match_opencv(
+    public_name: str, private_name: str
+) -> None:
+    """Name every fallback parameter as OpenCV does, so keyword calls bind on both."""
+    fallback_names = _fallback_parameter_names(private_name)
+    opencv_names = _opencv_parameter_names(public_name)
+
+    assert fallback_names - opencv_names == set()
+
+
+@pytest.mark.parametrize(("public_name", "private_name"), _RENAMED_BINDINGS)
+def test_renamed_fallbacks_still_differ_from_opencv(
+    public_name: str, private_name: str
+) -> None:
+    """Drop an allow-list entry once its fallback is aligned with OpenCV."""
+    fallback_names = _fallback_parameter_names(private_name)
+    opencv_names = _opencv_parameter_names(public_name)
+
+    assert fallback_names - opencv_names != set()
