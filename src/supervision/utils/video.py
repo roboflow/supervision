@@ -31,7 +31,8 @@ class VideoInfo:
         fps: frames per second of the video as a float. Common values include
             23.976, 24.0, 25.0, 29.97, 30.0, 59.94, and 60.0.
         total_frames: total number of frames in the video,
-            default is None
+            default is None. An estimate from container metadata that can be zero,
+            negative, or lower than the number of frames the video holds.
 
     Examples:
         ```python
@@ -182,15 +183,20 @@ def _validate_and_setup_video(
     if end is not None and 0 < total_frames < end:
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
+    # `set()` cannot be trusted past a positive frame count: the PyAV fallback
+    # returns False without moving when `start` exceeds the count, and OpenCV
+    # returns True without moving on a duration-less WebM. Grabbing frames lands
+    # on `start` or runs out with the stream, so the first read is labelled right.
+    seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
 
-    if iterative_seek:
+    if seek_by_grabbing:
         # Count grabs separately: `start` is returned as the position of the first
         # frame read, and the caller measures `end` from it.
         for _ in range(start):
             success = video.grab()
             if not success:
                 break
-    elif start > 0:
+    else:
         video.set(cv2.CAP_PROP_POS_FRAMES, start)
 
     return video, start, end

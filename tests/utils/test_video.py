@@ -1228,3 +1228,48 @@ def test_get_video_frames_generator_reads_past_unreliable_frame_count(
     frames = get_video_frames_generator("recording.webm", end=end)
 
     assert [int(frame[0, 0, 0]) for frame in frames] == expected_frame_indices
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+@pytest.mark.parametrize(
+    ("reported_count", "start", "expected_frame_indices"),
+    [
+        pytest.param(-2.767e17, 2, [2, 3, 4], id="negative-count"),
+        pytest.param(0, 2, [2, 3, 4], id="zero-count"),
+        pytest.param(3, 4, [4], id="start-past-underestimated-count"),
+        pytest.param(-2.767e17, 7, [], id="start-past-stream"),
+        pytest.param(5, 7, [], id="start-past-positive-count"),
+    ],
+)
+def test_get_video_frames_generator_seeks_to_start_past_unreliable_frame_count(
+    monkeypatch: pytest.MonkeyPatch,
+    reported_count: float,
+    start: int,
+    iterative_seek: bool,
+    expected_frame_indices: list[int],
+) -> None:
+    """The first frame yielded is `start` even when the count cannot bound it."""
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: _UnreliableCountCapture(
+            frame_count=5, reported_count=reported_count
+        ),
+    )
+
+    frames = get_video_frames_generator(
+        "recording.webm", start=start, iterative_seek=iterative_seek
+    )
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == expected_frame_indices
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+def test_get_video_frames_generator_yields_nothing_when_start_is_past_video(
+    numbered_video_path: str, iterative_seek: bool
+) -> None:
+    """A `start` past the last frame of a real video yields no frames."""
+    frames = get_video_frames_generator(
+        numbered_video_path, start=12, iterative_seek=iterative_seek
+    )
+
+    assert list(frames) == []
