@@ -330,6 +330,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
+    A truncated response yields every complete detection before the cut.
+
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
         input_wh: Width and height of the coordinate space where boxes
@@ -352,6 +354,12 @@ def from_qwen_2_5_vl(
     text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"```$", "", text).strip()
 
+    # A response cut off inside a box's `bbox_2d` array ends in that array's
+    # elements, so the last `]` below belongs to the previous object's box and the
+    # slice drops that complete object. Recovery therefore reads the unsliced text
+    # first, and the slice when that fails (e.g. a `}` in trailing prose or in a
+    # label). `ast.literal_eval` keeps reading the slice.
+    unsliced = text
     start = text.find("[")
     end = text.rfind("]")
     if start != -1 and end != -1 and end > start:
@@ -360,7 +368,9 @@ def from_qwen_2_5_vl(
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        repaired = recover_truncated_qwen_2_5_vl_response(text)
+        repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
+        if repaired is None:
+            repaired = recover_truncated_qwen_2_5_vl_response(text)
         if repaired is not None:
             data = repaired
         else:
