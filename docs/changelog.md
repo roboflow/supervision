@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-05
+date_modified: 2026-10-06
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `examples/speed_estimation/rfdetr_example.py` raised `AttributeError` when building its `ViewTransformer`, with or without OpenCV installed, because the private `supervision._cv2` layer did not provide `getPerspectiveTransform` or `perspectiveTransform`. `supervision._cv2` now provides both: OpenCV's functions when OpenCV is installed, and NumPy fallbacks otherwise. The NumPy fallback `getPerspectiveTransform` solves OpenCV's eight-equation system in float64, so it agrees with OpenCV to within OpenCV's float32 rounding of that system's product terms rather than bit for bit. It raises `ValueError` for invalid points and for an exactly singular system, but does not detect near-singular ones, where OpenCV switches to an SVD null-space solution. The fallbacks cover only OpenCV's default 2-D usage: `getPerspectiveTransform` takes no `solveMethod`, and `perspectiveTransform` rejects 3-D points, affine `(2, 3)` matrices and bool matrices. The public `sv` API is unchanged. ([#2652](https://github.com/roboflow/supervision/pull/2652))
 
 - `sv.metrics.MeanAveragePrecision(class_agnostic=True)` now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Unsigned class ID arrays no longer raise `OverflowError` with `class_agnostic=True` on NumPy 2. Class-aware scoring and the original input detections are unchanged. ([#2650](https://github.com/roboflow/supervision/pull/2650))
 
