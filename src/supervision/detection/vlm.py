@@ -319,6 +319,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
+    A truncated response yields every complete detection before the cut.
+
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
         input_wh: Width and height of the coordinate space where boxes
