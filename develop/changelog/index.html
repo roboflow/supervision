@@ -4094,6 +4094,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>examples/speed_estimation/rfdetr_example.py</code> raised <code>AttributeError</code> when building its <code>ViewTransformer</code>, with or without OpenCV installed, because the private <code>supervision._cv2</code> layer did not provide <code>getPerspectiveTransform</code> or <code>perspectiveTransform</code>. <code>supervision._cv2</code> now provides both: OpenCV's functions when OpenCV is installed, and NumPy fallbacks otherwise. The NumPy fallback <code>getPerspectiveTransform</code> solves OpenCV's eight-equation system in float64, so it agrees with OpenCV to within OpenCV's float32 rounding of that system's product terms rather than bit for bit. It raises <code>ValueError</code> for invalid points and for an exactly singular system, but does not detect near-singular ones, where OpenCV switches to an SVD null-space solution. The fallbacks cover only OpenCV's default 2-D usage: <code>getPerspectiveTransform</code> takes no <code>solveMethod</code>, and <code>perspectiveTransform</code> rejects 3-D points, affine <code>(2, 3)</code> matrices and bool matrices. The public <code>sv</code> API is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2652">#2652</a>)</p>
+</li>
+<li>
 <p><code>sv.metrics.MeanAveragePrecision(class_agnostic=True)</code> now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Unsigned class ID arrays no longer raise <code>OverflowError</code> with <code>class_agnostic=True</code> on NumPy 2. Class-aware scoring and the original input detections are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2650">#2650</a>)</p>
 </li>
 <li>
@@ -6202,7 +6205,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 08:59:48 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 09:41:57 UTC">October 6, 2026</span>
   </span>
 
     
@@ -6230,9 +6233,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+        <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+          <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6240,21 +6243,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+          
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+        </a>
+      
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
-          
-          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +30
+            +31
           </a>
         
       
