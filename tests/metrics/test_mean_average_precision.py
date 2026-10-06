@@ -67,6 +67,32 @@ def _agnostic_pair(
     return predictions, targets
 
 
+def _square_detections(
+    offsets: tuple[int, int, int],
+    class_id: np.ndarray | None,
+    confidence: np.ndarray | None,
+) -> Detections:
+    """Build one 10x10 square whose box, mask and oriented box shift independently.
+
+    `offsets` holds the shift in pixels of the box, the mask and the oriented box, so a
+    test can break only the geometry that its metric target reads.
+    """
+    box_offset, mask_offset, oriented_box_offset = offsets
+    mask = np.zeros((1, 40, 40), dtype=bool)
+    mask[0, mask_offset : mask_offset + 10, mask_offset : mask_offset + 10] = True
+    corners = np.array([[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32)
+    return Detections(
+        xyxy=np.array(
+            [[box_offset, box_offset, box_offset + 10, box_offset + 10]],
+            dtype=np.float64,
+        ),
+        class_id=class_id,
+        confidence=confidence,
+        mask=mask,
+        data={ORIENTED_BOX_COORDINATES: corners + oriented_box_offset},
+    )
+
+
 class TestMeanAveragePrecision:
     @pytest.mark.parametrize(
         ("prediction_class_id", "target_class_id", "class_mapping", "expected_class"),
@@ -117,7 +143,7 @@ class TestMeanAveragePrecision:
         )
         np.testing.assert_array_equal(targets.class_id, original_targets.class_id)
 
-    def test_class_agnostic_unlabeled_inputs_preserve_class_mapping(self) -> None:
+    def test_class_agnostic_unlabeled_inputs_ignore_unused_class_mapping(self) -> None:
         """Unused class mappings do not change all-unlabeled evaluation."""
         predictions = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
@@ -146,6 +172,163 @@ class TestMeanAveragePrecision:
         metric.update(unlabeled, unlabeled).update(labeled, labeled)
 
         result = metric.compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
+    def test_class_agnostic_state_sequence(self) -> None:
+        """Repeated compute, update after compute and reset keep the right class."""
+        unlabeled_predictions, unlabeled_targets = _agnostic_pair(None, None)
+        labeled_predictions, labeled_targets = _agnostic_pair(3, 4)
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        unlabeled_result = metric.update(
+            unlabeled_predictions, unlabeled_targets
+        ).compute()
+        mixed_result = metric.update(labeled_predictions, labeled_targets).compute()
+        repeated_result = metric.compute()
+        metric.reset()
+        reset_result = metric.update(unlabeled_predictions, unlabeled_targets).compute()
+
+        np.testing.assert_array_equal(unlabeled_result.matched_classes, [0])
+        np.testing.assert_array_equal(mixed_result.matched_classes, [-1])
+        assert mixed_result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(repeated_result.matched_classes, [-1])
+        assert repeated_result.map50_95 == pytest.approx(mixed_result.map50_95)
+        np.testing.assert_array_equal(reset_result.matched_classes, [0])
+        assert unlabeled_predictions.class_id is None
+        assert unlabeled_targets.class_id is None
+
+    def test_class_agnostic_crossed_labeling_across_images(self) -> None:
+        """Images that label opposite sides still share one class in one update."""
+        first_predictions, first_targets = _agnostic_pair(None, 1)
+        second_predictions, second_targets = _agnostic_pair(5, None)
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        result = metric.update(
+            [first_predictions, second_predictions], [first_targets, second_targets]
+        ).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
+    def test_class_agnostic_crossed_labeling_with_image_indices(self) -> None:
+        """Custom image indices do not change how mixed labeling is normalized."""
+        first_predictions, first_targets = _agnostic_pair(None, 1)
+        second_predictions, second_targets = _agnostic_pair(5, None)
+        metric = MeanAveragePrecision(class_agnostic=True, image_indices=[5, 9])
+
+        result = metric.update(
+            [first_predictions, second_predictions], [first_targets, second_targets]
+        ).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
+    def test_class_agnostic_empty_labeled_predictions_keep_targets_unlabeled(
+        self,
+    ) -> None:
+        """Labeled but empty predictions do not move unlabeled targets to class -1."""
+        _, targets = _agnostic_pair(None, None)
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        result = metric.update(Detections.empty(), targets).compute()
+
+        assert result.map50_95 == pytest.approx(0.0)
+        np.testing.assert_array_equal(result.matched_classes, [0])
+
+    @pytest.mark.parametrize(
+        "class_id_dtype",
+        [
+            pytest.param(np.uint8, id="uint8"),
+            pytest.param(np.uint32, id="uint32"),
+        ],
+    )
+    def test_class_agnostic_unsigned_class_ids(self, class_id_dtype: type) -> None:
+        """Unsigned class IDs are relabeled to -1 without overflow or wrap-around."""
+        predictions = _square_detections(
+            (0, 0, 0), np.array([3], dtype=class_id_dtype), np.array([0.9])
+        )
+        targets = _square_detections(
+            (0, 0, 0), np.array([4], dtype=class_id_dtype), None
+        )
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+        assert predictions.class_id is not None
+        assert predictions.class_id.dtype == class_id_dtype
+        np.testing.assert_array_equal(predictions.class_id, [3])
+
+    @pytest.mark.parametrize(
+        ("prediction_class_id", "target_class_id"),
+        [
+            pytest.param(None, np.array([3]), id="unlabeled-predictions"),
+            pytest.param(np.array([7]), None, id="unlabeled-targets"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("metric_target", "target_offsets"),
+        [
+            pytest.param(MetricTarget.BOXES, (20, 0, 0), id="boxes"),
+            pytest.param(MetricTarget.MASKS, (0, 20, 0), id="masks"),
+            pytest.param(
+                MetricTarget.ORIENTED_BOUNDING_BOXES, (0, 0, 20), id="oriented-boxes"
+            ),
+        ],
+    )
+    def test_class_agnostic_mismatched_geometry_scores_zero(
+        self,
+        prediction_class_id: np.ndarray | None,
+        target_class_id: np.ndarray | None,
+        metric_target: MetricTarget,
+        target_offsets: tuple[int, int, int],
+    ) -> None:
+        """Mixed-label detections that miss the target geometry score zero mAP."""
+        predictions = _square_detections(
+            (0, 0, 0), prediction_class_id, np.array([0.9])
+        )
+        targets = _square_detections(target_offsets, target_class_id, None)
+        metric = MeanAveragePrecision(metric_target=metric_target, class_agnostic=True)
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(0.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
+    def test_class_aware_unlabeled_predictions_stay_unmatched(self) -> None:
+        """Without `class_agnostic`, unlabeled predictions stay unmatched."""
+        predictions, targets = _agnostic_pair(None, 3)
+        metric = MeanAveragePrecision()
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(0.0)
+        np.testing.assert_array_equal(result.matched_classes, [3])
+
+    def test_class_agnostic_multiple_detections_with_mixed_labeling(self) -> None:
+        """Several detections per image merge into one class."""
+        xyxy = np.array(
+            [[0, 0, 10, 10], [20, 20, 30, 30], [40, 40, 50, 50]], dtype=np.float64
+        )
+        predictions = Detections(xyxy=xyxy, confidence=np.array([0.9, 0.8, 0.7]))
+        targets = Detections(xyxy=xyxy.copy(), class_id=np.array([1, 2, 3]))
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        np.testing.assert_array_equal(result.matched_classes, [-1])
+
+    def test_class_agnostic_mixed_labeling_without_confidence(self) -> None:
+        """Predictions without confidence still merge into the labeled class."""
+        predictions, targets = _agnostic_pair(None, 3)
+        predictions.confidence = None
+        metric = MeanAveragePrecision(class_agnostic=True)
+
+        result = metric.update(predictions, targets).compute()
 
         assert result.map50_95 == pytest.approx(1.0)
         np.testing.assert_array_equal(result.matched_classes, [-1])
