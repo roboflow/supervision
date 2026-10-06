@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -8,9 +9,11 @@ from supervision import (
     LineZone,
     LineZoneAnnotator,
     LineZoneAnnotatorMulticlass,
+    _cv2,
 )
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
 
 
@@ -1142,6 +1145,29 @@ def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> No
     assert not line_zone.crossing_state_history
 
 
+@pytest.mark.parametrize(
+    ("untracked_frames", "expected_crossing"), [(1, True), (2, False)]
+)
+def test_line_zone_ages_history_on_untracked_frames(
+    untracked_frames: int, expected_crossing: bool
+) -> None:
+    """Missing tracker IDs preserve short gaps but expire stale crossing state."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
+
+    line_zone.trigger(below)
+    for _ in range(untracked_frames):
+        with pytest.warns(SupervisionWarnings, match="requires tracker_id"):
+            line_zone.trigger(untracked)
+    crossed_in, crossed_out = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert crossed_out.tolist() == [False]
+    assert line_zone.in_count == int(expected_crossing)
+
+
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
     """Class changes must not split a tracker crossing history."""
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
@@ -1259,6 +1285,93 @@ def test_line_zone_label_rotation_uses_pillow_canvas() -> None:
     assert label.shape[2] == 4
     assert np.any(label[..., 3])
     assert not np.array_equal(label[..., 3], upright[..., 3])
+
+
+class TestLineZoneAnnotatorOrientedLabel:
+    """Oriented count labels on lines whose text would otherwise be upside down."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_label_cache(self) -> None:
+        """Drop cached label images so every test renders and flips its own."""
+        LineZoneAnnotator._make_label_image.cache_clear()
+
+    @staticmethod
+    def _make_label(line_angle_degrees: float) -> np.ndarray:
+        """Render the "out: 7" count label for a line at the given angle."""
+        return LineZoneAnnotator._make_label_image(
+            "out: 7",
+            text_scale=0.75,
+            text_thickness=1,
+            text_padding=4,
+            text_color=Color.WHITE,
+            text_box_show=True,
+            text_box_color=Color.BLACK,
+            line_angle_degrees=line_angle_degrees,
+        )
+
+    def test_annotate_draws_labels_for_right_to_left_line(self) -> None:
+        """Draw both counts on a line drawn right to left without raising."""
+        line_zone = LineZone(start=Point(170, 100), end=Point(30, 100))
+        frame = np.zeros((200, 200, 3), dtype=np.uint8)
+        line_only = LineZoneAnnotator(
+            display_in_count=False, display_out_count=False
+        ).annotate(frame=frame.copy(), line_counter=line_zone)
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+
+        annotated_frame = annotator.annotate(frame=frame.copy(), line_counter=line_zone)
+
+        assert not np.array_equal(annotated_frame, line_only)
+
+    def test_label_at_180_degrees_reads_upright(self) -> None:
+        """Render the label of a right-to-left line the way an upright label reads.
+
+        A 180 degree rotation alone leaves the text upside down; the flip ahead of it
+        cancels that, so the result equals the 0 degree label. For an odd-sized label it
+        sits one pixel up and left, because PIL rotates about a pixel corner while the
+        flip mirrors about pixel centres. A missing or single-axis flip breaks this
+        equality.
+        """
+        upright = self._make_label(0.0)
+        size = upright.shape[0]
+        offset = size % 2
+
+        flipped = self._make_label(180.0)
+
+        np.testing.assert_array_equal(
+            flipped[: size - offset, : size - offset], upright[offset:, offset:]
+        )
+
+    @pytest.mark.parametrize(
+        ("line_angle_degrees", "expected_flips"),
+        [
+            pytest.param(0.0, 0, id="0-degrees-upright"),
+            pytest.param(45.0, 0, id="45-degrees-upright"),
+            pytest.param(90.0, 0, id="90-degrees-upright-boundary"),
+            pytest.param(90.0001, 1, id="just-past-90-flipped"),
+            pytest.param(135.0, 1, id="135-degrees-flipped"),
+            pytest.param(225.0, 1, id="225-degrees-flipped"),
+            pytest.param(269.9, 1, id="just-before-270-flipped"),
+            pytest.param(270.0, 0, id="270-degrees-upright-boundary"),
+            pytest.param(315.0, 0, id="315-degrees-upright"),
+        ],
+    )
+    def test_label_is_flipped_only_between_90_and_270_degrees(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        line_angle_degrees: float,
+        expected_flips: int,
+    ) -> None:
+        """Flip the label only for lines pointing left, strictly past 90 and below 270.
+
+        Lines pointing left would otherwise show upside-down text. The bounds are
+        exclusive, so exactly 90 and 270 degrees stay unflipped.
+        """
+        flip_spy = mock.Mock(wraps=_cv2.flip)
+        monkeypatch.setattr(_cv2, "flip", flip_spy)
+
+        self._make_label(line_angle_degrees)
+
+        assert flip_spy.call_count == expected_flips
 
 
 class TestLineZoneUnconfirmedTracks:

@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.boxes import (
+    _box_midpoint as box_midpoint,
+)
+from supervision.detection.utils.boxes import (
     _oriented_box_anchors as oriented_box_anchors,
 )
 from supervision.detection.utils.boxes import (
@@ -797,3 +800,42 @@ def test_obb_polygon_area_uint64_origin_avoids_underflow() -> None:
     result = obb_polygon_area(corners[None])
 
     np.testing.assert_array_equal(result, np.array([4.0]))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "first", "second", "expected", "expected_dtype"),
+    [
+        pytest.param(np.int16, [20000], [22000], [21000.0], np.float64, id="int16"),
+        pytest.param(np.uint8, [1], [4], [2.5], np.float64, id="uint8-odd-sum"),
+        pytest.param(
+            np.int64,
+            [-(2**62) - 2**20],
+            [-(2**62)],
+            [-(2**62) - 2**19],
+            np.float64,
+            id="int64-negative-overflow",
+        ),
+        pytest.param(
+            np.uint64,
+            [2**63],
+            [2**63 + 2**20],
+            [2**63 + 2**19],
+            np.float64,
+            id="uint64-overflow",
+        ),
+        pytest.param(np.float32, [1.0], [4.0], [2.5], np.float32, id="float32"),
+        pytest.param(np.int64, [], [], [], np.float64, id="empty-int64"),
+    ],
+)
+def test_box_midpoint_returns_expected_values_and_dtype(
+    dtype: type[np.generic],
+    first: list[float],
+    second: list[float],
+    expected: list[float],
+    expected_dtype: type[np.floating],
+) -> None:
+    """Midpoints never wrap integer dtypes and floats keep their own dtype."""
+    result = box_midpoint(np.array(first, dtype=dtype), np.array(second, dtype=dtype))
+
+    assert result.dtype == expected_dtype
+    np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
