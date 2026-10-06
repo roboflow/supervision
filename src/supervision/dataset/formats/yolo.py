@@ -19,6 +19,7 @@ from supervision.dataset.utils import (
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
+from supervision.detection.utils.boxes import _sort_box_corners
 from supervision.detection.utils.converters import (
     mask_to_polygons,
     polygon_to_mask,
@@ -37,13 +38,27 @@ if TYPE_CHECKING:
 
 
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
+    """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
+
+    A negative width or height would place ``x_min`` past ``x_max``, breaking the
+    ordering every consumer of ``xyxy`` assumes: ``box_iou_batch`` reports no overlap
+    between identical regions, ``with_nms`` stops suppressing, and ``Detections.area``
+    turns negative when only one of the two extents is negative. Reject it here rather
+    than let a corrupt label travel on.
+    """
     x_center, y_center, width, height = values
+    box_width, box_height = float(width), float(height)
+    if box_width < 0 or box_height < 0:
+        raise ValueError(
+            f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
+            "expected a non-negative width and height."
+        )
     return np.array(
         [
-            float(x_center) - float(width) / 2,
-            float(y_center) - float(height) / 2,
-            float(x_center) + float(width) / 2,
-            float(y_center) + float(height) / 2,
+            float(x_center) - box_width / 2,
+            float(y_center) - box_height / 2,
+            float(x_center) + box_width / 2,
+            float(y_center) + box_height / 2,
         ],
         dtype=np.float32,
     )
@@ -287,6 +302,10 @@ def yolo_annotations_to_detections(
     same way. When ``is_obb=True``, annotations must use the nine-token
     four-corner OBB format. Pose keypoints are not stripped here;
     ``load_yolo_annotations`` drops them before calling this function.
+
+    Raises:
+        ValueError: If a class id is not a whole number, a box has a negative
+            width or height, or a coordinate token is not numeric.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -432,12 +451,18 @@ def load_yolo_annotations(
         resolution_wh = (w, h)
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
-        annotation = yolo_annotations_to_detections(
-            lines=lines,
-            resolution_wh=resolution_wh,
-            with_masks=with_masks,
-            is_obb=is_obb,
-        )
+        try:
+            annotation = yolo_annotations_to_detections(
+                lines=lines,
+                resolution_wh=resolution_wh,
+                with_masks=with_masks,
+                is_obb=is_obb,
+            )
+        except ValueError as error:
+            # One bad label among thousands of files must be traceable to its file.
+            raise ValueError(
+                f"Invalid YOLO annotation file '{annotation_path}': {error}"
+            ) from error
         annotations[image_path] = annotation
     return classes, image_paths, annotations
 
@@ -459,10 +484,15 @@ def object_to_yolo(
 
     Returns:
         A YOLO annotation line with coordinates normalized by the image dimensions.
+        A reversed box, with ``x1 > x2`` or ``y1 > y2``, is written as the same
+        rectangle with its corners ordered, so the line never carries a negative
+        width or height.
 
     Examples:
         ```pycon
         >>> object_to_yolo(np.array([3, 2, 15, 10]), 0, (16, 24))
+        '0 0.37500 0.37500 0.50000 0.50000'
+        >>> object_to_yolo(np.array([15, 10, 3, 2]), 0, (16, 24))
         '0 0.37500 0.37500 0.50000 0.50000'
 
         ```
@@ -470,7 +500,9 @@ def object_to_yolo(
     h, w = image_shape[:2]
     if polygon is None:
         xyxy_relative = xyxy / np.array([w, h, w, h], dtype=np.float32)
-        x_min, y_min, x_max, y_max = xyxy_relative
+        # Detections does not enforce x_min <= x_max; a reversed box would be written
+        # with a negative extent that the loader rejects.
+        x_min, y_min, x_max, y_max = _sort_box_corners(xyxy_relative[np.newaxis])[0]
         x_center = (x_min + x_max) / 2
         y_center = (y_min + y_max) / 2
         width = x_max - x_min

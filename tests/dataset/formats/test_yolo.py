@@ -269,6 +269,81 @@ class TestYoloAnnotationsToDetectionsClassId:
             )
 
 
+class TestYoloAnnotationsToDetectionsBoxExtent:
+    """Tests for how ``yolo_annotations_to_detections`` reads box width and height."""
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token"),
+        [
+            pytest.param("-0.4", "0.4", id="negative-width"),
+            pytest.param("0.4", "-0.4", id="negative-height"),
+            pytest.param("-0.4", "-0.4", id="negative-both"),
+            pytest.param("-inf", "0.4", id="negative-infinite-width"),
+            pytest.param("0.4", "-inf", id="negative-infinite-height"),
+            pytest.param("-1e-9", "0.4", id="tiny-negative-width"),
+        ],
+    )
+    def test_rejects_a_negative_box_extent(
+        self, width_token: str, height_token: str
+    ) -> None:
+        """A negative extent puts x_min past x_max, which the library never expects."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        with pytest.raises(
+            ValueError, match=r"Invalid box extent \(.*\) in YOLO annotation"
+        ):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        ("line", "with_masks", "is_obb"),
+        [
+            pytest.param(
+                "0 0.5 0.5 -0.4 0.4 0.9", False, False, id="box-with-confidence"
+            ),
+            pytest.param("0 0.5 0.5 -0.4 0.4", True, False, id="box-with-masks"),
+            pytest.param("0 0.5 0.5 -0.4 0.4", False, True, id="box-in-obb-mode"),
+        ],
+    )
+    def test_rejects_a_negative_extent_on_every_box_line_shape(
+        self, line: str, with_masks: bool, is_obb: bool
+    ) -> None:
+        """The guard also covers confidence-suffixed, masked and OBB-mode boxes."""
+        with pytest.raises(ValueError, match="Invalid box extent"):
+            yolo_annotations_to_detections(
+                lines=[line],
+                resolution_wh=(100, 100),
+                with_masks=with_masks,
+                is_obb=is_obb,
+            )
+
+    @pytest.mark.parametrize(
+        ("width_token", "height_token", "expected_xyxy"),
+        [
+            pytest.param("0.0", "0.4", [50.0, 30.0, 50.0, 70.0], id="zero-width"),
+            pytest.param("0.4", "0.0", [30.0, 50.0, 70.0, 50.0], id="zero-height"),
+            pytest.param(
+                "-0.0", "0.4", [50.0, 30.0, 50.0, 70.0], id="negative-zero-width"
+            ),
+            pytest.param(
+                "0.4", "-0.0", [30.0, 50.0, 70.0, 50.0], id="negative-zero-height"
+            ),
+        ],
+    )
+    def test_loads_a_zero_box_extent(
+        self, width_token: str, height_token: str, expected_xyxy: list[float]
+    ) -> None:
+        """A zero extent, written ``-0.0`` or ``0.0``, is ordered and keeps loading."""
+        lines = [f"0 0.5 0.5 {width_token} {height_token}"]
+
+        result = yolo_annotations_to_detections(
+            lines=lines, resolution_wh=(100, 100), with_masks=False
+        )
+
+        np.testing.assert_allclose(result.xyxy, [expected_xyxy], atol=1e-4)
+
+
 class TestYoloAnnotationsToDetectionsTrailingToken:
     """Tests for YOLO box and polygon lines carrying a confidence or tracker id."""
 
@@ -1132,6 +1207,77 @@ def test_dataset_as_yolo_obb_round_trip_with_background_image(
     assert bg_label.read_text().strip() == "", (
         "Background image label file must be empty"
     )
+
+
+class TestObjectToYoloBoxOrdering:
+    """Tests that ``object_to_yolo`` writes a width and height the loader accepts."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([70.0, 30.0, 30.0, 70.0], id="reversed-x"),
+            pytest.param([30.0, 70.0, 70.0, 30.0], id="reversed-y"),
+            pytest.param([70.0, 70.0, 30.0, 30.0], id="reversed-both"),
+        ],
+    )
+    def test_writes_a_non_negative_extent_for_a_reversed_box(
+        self, xyxy: list[float]
+    ) -> None:
+        """Detections allows a reversed box, so order the corners before measuring."""
+        line = object_to_yolo(
+            xyxy=np.array(xyxy), class_id=0, image_shape=(100, 100, 3)
+        )
+
+        result = yolo_annotations_to_detections(
+            lines=[line], resolution_wh=(100, 100), with_masks=False
+        )
+
+        assert line == "0 0.50000 0.50000 0.40000 0.40000"
+        np.testing.assert_allclose(result.xyxy, [[30.0, 30.0, 70.0, 70.0]], atol=1e-3)
+
+    def test_keeps_a_non_finite_corner_visible(self) -> None:
+        """A NaN corner is written as ``nan`` rather than hidden as a zero-width box."""
+        line = object_to_yolo(
+            xyxy=np.array([30.0, 30.0, np.nan, 70.0]),
+            class_id=0,
+            image_shape=(100, 100, 3),
+        )
+
+        assert "nan" in line.lower()
+
+    def test_reversed_box_survives_a_dataset_export_and_reload(
+        self, tmp_path: Path
+    ) -> None:
+        """A reversed box written by ``as_yolo`` reloads through ``from_yolo``."""
+        detections = Detections(
+            xyxy=np.array([[70.0, 30.0, 30.0, 70.0]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images={"image.png": np.zeros((100, 100, 3), dtype=np.uint8)},
+            annotations={"image.png": detections},
+        )
+        images_dir = tmp_path / "images"
+        labels_dir = tmp_path / "labels"
+        data_yaml = tmp_path / "data.yaml"
+        dataset.as_yolo(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(labels_dir),
+            data_yaml_path=str(data_yaml),
+        )
+
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(labels_dir),
+            data_yaml_path=str(data_yaml),
+        )
+
+        (reloaded_detections,) = reloaded.annotations.values()
+        np.testing.assert_allclose(
+            reloaded_detections.xyxy, [[30.0, 30.0, 70.0, 70.0]], atol=1e-3
+        )
+        np.testing.assert_allclose(reloaded_detections.area, [1600.0], atol=0.2)
 
 
 _EMPTY_MASK = np.zeros((100, 100), dtype=bool)
