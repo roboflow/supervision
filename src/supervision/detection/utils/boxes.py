@@ -6,6 +6,9 @@ import numpy.typing as npt
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
 
+# Built once: subscripting `npt.NDArray[...]` inside `cast` costs ~1.5 µs per call.
+_IntegerArray = npt.NDArray[np.integer]
+
 
 def clip_boxes(
     xyxy: npt.NDArray[np.number],
@@ -505,8 +508,8 @@ def _box_midpoint(
     if first.dtype.itemsize <= 4:
         return (first.astype(np.float64) + second.astype(np.float64)) / 2
 
-    integer_first = cast(npt.NDArray[np.integer], first)
-    integer_second = cast(npt.NDArray[np.integer], second)
+    integer_first = cast(_IntegerArray, first)
+    integer_second = cast(_IntegerArray, second)
     summed = integer_first + integer_second
     if np.issubdtype(first.dtype, np.signedinteger):
         # Signed addition wrapped when both operands differ in sign from the sum.
