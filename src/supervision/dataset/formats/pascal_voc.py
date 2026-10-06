@@ -72,22 +72,18 @@ def object_to_pascal_voc(
     xyxy = xyxy + 1
     # Order the corners so a reversed box is written as the same rectangle
     # rather than with xmin past xmax.
-    xyxy = [
-        min(xyxy[0], xyxy[2]),
-        min(xyxy[1], xyxy[3]),
-        max(xyxy[0], xyxy[2]),
-        max(xyxy[1], xyxy[3]),
-    ]
+    x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
+    y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0]))
+    xmin.text = str(int(x_min))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1]))
+    ymin.text = str(int(y_min))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2]))
+    xmax.text = str(int(x_max))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3]))
+    ymax.text = str(int(y_max))
 
     if polygon is not None:
         # 1-indexed, rebound to avoid mutating the caller's array (see above).
