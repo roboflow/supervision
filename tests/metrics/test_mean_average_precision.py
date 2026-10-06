@@ -35,6 +35,38 @@ def _obb_detections(corners: list[list[int]], confidence: bool = False) -> Detec
     )
 
 
+def _agnostic_pair(
+    prediction_class_id: int | None, target_class_id: int | None
+) -> tuple[Detections, Detections]:
+    """Build a perfectly matching prediction and target with optional class IDs.
+
+    Boxes, masks and oriented boxes all describe the same square, so any metric target
+    can evaluate the pair. Each call returns fresh arrays, so a second call yields an
+    untouched reference copy.
+    """
+    prediction_class_ids = (
+        np.array([prediction_class_id]) if prediction_class_id is not None else None
+    )
+    target_class_ids = (
+        np.array([target_class_id]) if target_class_id is not None else None
+    )
+    oriented_boxes = np.array([[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32)
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+        confidence=np.array([0.9]),
+        class_id=prediction_class_ids,
+        mask=np.ones((1, 10, 10), dtype=bool),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+    targets = Detections(
+        xyxy=predictions.xyxy.copy(),
+        class_id=target_class_ids,
+        mask=predictions.mask.copy(),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes.copy()},
+    )
+    return predictions, targets
+
+
 class TestMeanAveragePrecision:
     @pytest.mark.parametrize(
         ("prediction_class_id", "target_class_id", "class_mapping", "expected_class"),
@@ -66,28 +98,9 @@ class TestMeanAveragePrecision:
         expected_class: int,
     ) -> None:
         """Perfect geometry scores full mAP regardless of class ID presence."""
-        predictions = Detections(
-            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
-            confidence=np.array([0.9]),
-            class_id=(
-                np.array([prediction_class_id])
-                if prediction_class_id is not None
-                else None
-            ),
-            mask=np.ones((1, 10, 10), dtype=bool),
-            data={
-                ORIENTED_BOX_COORDINATES: np.array(
-                    [[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=np.float32
-                )
-            },
-        )
-        targets = Detections(
-            xyxy=predictions.xyxy.copy(),
-            class_id=(
-                np.array([target_class_id]) if target_class_id is not None else None
-            ),
-            mask=predictions.mask.copy(),
-            data={ORIENTED_BOX_COORDINATES: predictions.data[ORIENTED_BOX_COORDINATES]},
+        predictions, targets = _agnostic_pair(prediction_class_id, target_class_id)
+        original_predictions, original_targets = _agnostic_pair(
+            prediction_class_id, target_class_id
         )
         metric = MeanAveragePrecision(
             metric_target=metric_target,
@@ -100,12 +113,9 @@ class TestMeanAveragePrecision:
         assert result.map50_95 == pytest.approx(1.0)
         np.testing.assert_array_equal(result.matched_classes, [expected_class])
         np.testing.assert_array_equal(
-            predictions.class_id,
-            None if prediction_class_id is None else [prediction_class_id],
+            predictions.class_id, original_predictions.class_id
         )
-        np.testing.assert_array_equal(
-            targets.class_id, None if target_class_id is None else [target_class_id]
-        )
+        np.testing.assert_array_equal(targets.class_id, original_targets.class_id)
 
     def test_class_agnostic_unlabeled_inputs_preserve_class_mapping(self) -> None:
         """Unused class mappings do not change all-unlabeled evaluation."""
