@@ -500,6 +500,22 @@ class TestFromYoloPoseLabels:
         np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
         assert detections.mask is None
 
+    def test_obb_rows_keep_their_corners(self, tmp_path: Path) -> None:
+        """An OBB row as long as a `[2, 2]` pose row keeps all four corners."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label="0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9\n",
+            kpt_shape="[2, 2]",
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths, is_obb=True)
+
+        corners = dataset[0][2].data[ORIENTED_BOX_COORDINATES]
+        assert corners.shape == (1, 4, 2)
+        np.testing.assert_allclose(
+            corners, [[[10.0, 8.0], [90.0, 8.0], [90.0, 72.0], [10.0, 72.0]]]
+        )
+
     @pytest.mark.parametrize(
         "kpt_shape", ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "null"]
     )
