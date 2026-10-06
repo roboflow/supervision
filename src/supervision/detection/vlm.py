@@ -503,6 +503,11 @@ def from_florence_2(
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
 
+    For `<REFERRING_EXPRESSION_SEGMENTATION>` and `<REGION_TO_SEGMENTATION>`, each
+    entry of `result["polygons"]` is one instance whose polygons are merged into a
+    single mask and a single box. Polygons with fewer than three vertices are
+    ignored, and an instance left without any usable polygon is skipped.
+
     Args:
         result: dict containing the model output
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
