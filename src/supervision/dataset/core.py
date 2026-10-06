@@ -527,8 +527,10 @@ class DetectionDataset(BaseDataset):
         keypoint values is read as its box; the keypoints are not loaded, and
         rows of other lengths are read as before. A polygon row of that same
         length, with or without a trailing confidence, is read as a box too,
-        as Ultralytics does. A `kpt_shape` other than `[K, 2]` or `[K, 3]`
-        raises `ValueError`.
+        as Ultralytics does. Pose rows with a trailing confidence or tracker id,
+        or with a keypoint count that does not match `kpt_shape`, are not
+        supported and are parsed as before. A `kpt_shape` other than `[K, 2]`
+        or `[K, 3]` raises `ValueError`.
 
         Args:
             images_directory_path: The path to the
