@@ -436,3 +436,44 @@ class TestSaveCreatemlAnnotations:
         loaded = loaded_annotations[image_paths[0]]
         np.testing.assert_array_almost_equal(loaded.xyxy, xyxy, decimal=decimal)
         np.testing.assert_array_equal(loaded.class_id, class_id)
+
+
+class TestCreatemlBoxExtent:
+    """Tests for how the CreateML loader and exporter handle a reversed box."""
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            pytest.param(-40, 40, id="negative-width"),
+            pytest.param(40, -40, id="negative-height"),
+            pytest.param(-40, -40, id="negative-both"),
+        ],
+    )
+    def test_rejects_a_negative_box_extent(self, width, height) -> None:
+        """A negative extent puts x_min past x_max once corners are formed."""
+        annotations = [
+            {
+                "label": "thing",
+                "coordinates": {"x": 50, "y": 50, "width": width, "height": height},
+            }
+        ]
+
+        with pytest.raises(
+            ValueError, match=r"Invalid box extent \(.*\) in CreateML annotation"
+        ):
+            createml_annotations_to_detections(
+                image_annotations=annotations, class_to_index={"thing": 0}
+            )
+
+    def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
+        """Export must not write a box the loader would refuse to read back."""
+        detections = Detections(
+            xyxy=np.array([[70, 70, 30, 30]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        coordinates = detections_to_createml_annotations(detections, classes=["thing"])[
+            0
+        ]["coordinates"]
+
+        assert coordinates == {"x": 50.0, "y": 50.0, "width": 40.0, "height": 40.0}

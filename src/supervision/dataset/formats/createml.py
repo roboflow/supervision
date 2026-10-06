@@ -113,6 +113,12 @@ def createml_annotations_to_detections(
             raise ValueError(
                 f"Malformed CreateML annotation entry {annotation!r}: {exc}"
             ) from exc
+        if width < 0 or height < 0:
+            raise ValueError(
+                f"Invalid box extent ({coordinates['width']}, "
+                f"{coordinates['height']}) in CreateML annotation for label "
+                f"{label!r}; expected a non-negative width and height."
+            )
         xyxy.append(
             [
                 x_center - width / 2,
@@ -268,6 +274,10 @@ def detections_to_createml_annotations(
     annotations: list[CreateMLDict] = []
     for xyxy, class_id in zip(detections.xyxy, class_ids):
         x_min, y_min, x_max, y_max = (float(value) for value in xyxy)
+        # Order the corners first: a reversed box would otherwise be written
+        # with a negative width or height, which the loader now rejects.
+        x_min, x_max = min(x_min, x_max), max(x_min, x_max)
+        y_min, y_max = min(y_min, y_max), max(y_min, y_max)
         annotations.append(
             {
                 "label": classes[int(class_id)],

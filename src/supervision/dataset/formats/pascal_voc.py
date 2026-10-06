@@ -70,6 +70,14 @@ def object_to_pascal_voc(
     # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
     # would corrupt the caller's detections by +1 on every export.
     xyxy = xyxy + 1
+    # Order the corners so a reversed box is written as the same rectangle
+    # rather than with xmin past xmax.
+    xyxy = [
+        min(xyxy[0], xyxy[2]),
+        min(xyxy[1], xyxy[3]),
+        max(xyxy[0], xyxy[2]),
+        max(xyxy[1], xyxy[3]),
+    ]
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
@@ -330,6 +338,11 @@ def detections_from_xml_obj(
         x2 = _parse_coordinate(_get_required_text(bbox, "xmax"), "xmax")
         y2 = _parse_coordinate(_get_required_text(bbox, "ymax"), "ymax")
 
+        # Order the corners, as the LabelMe loader does for its rectangles: a
+        # Pascal VOC box names two corners explicitly, so a reversed pair
+        # describes the same rectangle rather than being malformed input.
+        x1, x2 = min(x1, x2), max(x1, x2)
+        y1, y2 = min(y1, y2), max(y1, y2)
         xyxy.append([x1, y1, x2, y2])
 
         object_mask: npt.NDArray[np.bool_] = np.zeros(
