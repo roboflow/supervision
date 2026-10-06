@@ -49,6 +49,17 @@ from supervision.detection.vlm import (
             np.array(["cat"], dtype=str),
             id="classes-filter-keeps-only-matching",
         ),
+        pytest.param(
+            "```json\n"
+            '[{"bbox_2d": [0, 0, 500, 500], "label": "dog"},'
+            ' {"bbox_2d": [500, 500, 1000, 1000], "label": "cat"},'
+            ' {"bbox_2d": [9, 10',
+            (640, 480),
+            None,
+            np.array([[0.0, 0.0, 320.0, 240.0], [320.0, 240.0, 640.0, 480.0]]),
+            np.array(["dog", "cat"], dtype=str),
+            id="truncated-inside-last-bbox-keeps-complete-detections",
+        ),
     ],
 )
 def test_from_qwen_3_vl(
@@ -263,6 +274,17 @@ def test_from_paligemma(
         np.testing.assert_array_equal(result[2], expected_results[2])
 
 
+_QWEN_DOG_AND_CAT = (
+    '```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, '
+    '{"bbox_2d": [10, 20, 110, 120], "label": "cat"}'
+)
+_QWEN_DOG_AND_CAT_RESULT = (
+    np.array([[0.0, 0.0, 64.0, 64.0], [10.0, 20.0, 110.0, 120.0]], dtype=float),
+    None,
+    np.array(["dog", "cat"], dtype=str),
+)
+
+
 @pytest.mark.parametrize(
     ("exception", "result", "input_wh", "resolution_wh", "classes", "expected_results"),
     [
@@ -419,6 +441,60 @@ def test_from_paligemma(
                 np.array(["dog", "cat"], dtype=str),
             ),
         ),  # truncated response, last object unfinished, previous ones recovered
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ', {"bbox_2d": [30, 40',
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-inside-last-bbox-keeps-previous",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ",",
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-after-comma-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ', {"bbox_',
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-inside-key-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ", null,]\nNote {x}",
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="trailing-prose-with-brace-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            '```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, '
+            '{"bbox_2d": [10, 20, 110, 120], "label": "c}t"}, '
+            '{"bbox_2d": [30, 40',
+            (640, 640),
+            (640, 640),
+            None,
+            (
+                np.array(
+                    [[0.0, 0.0, 64.0, 64.0], [10.0, 20.0, 110.0, 120.0]],
+                    dtype=float,
+                ),
+                None,
+                np.array(["dog", "c}t"], dtype=str),
+            ),
+            id="truncated-after-label-with-brace-keeps-complete",
+        ),
         (
             pytest.raises(
                 ValueError,
@@ -465,6 +541,7 @@ def test_from_qwen_2_5_vl(
     classes: list[str] | None,
     expected_results,
 ) -> None:
+    """from_qwen_2_5_vl parses, scales and filters boxes, recovering truncated JSON."""
     with exception:
         xyxy, class_id, class_name = from_qwen_2_5_vl(
             result=result,
