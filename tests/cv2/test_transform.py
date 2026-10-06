@@ -76,18 +76,44 @@ def test_fallback_blur_preserves_shape_and_dtype() -> None:
 
 class TestGetPerspectiveTransform:
     @pytest.mark.parametrize(("source", "target"), [*RANDOM, SPEED, SCALE])
-    def test_matches_opencv(self, source: np.ndarray, target: np.ndarray) -> None:
-        """Solve the same float64 homography as OpenCV."""
-        expected = cv2.getPerspectiveTransform(source, target)
-
+    def test_maps_source_corners_onto_target(
+        self, source: np.ndarray, target: np.ndarray
+    ) -> None:
+        """Return a float64 (3, 3) matrix with m[2, 2] == 1 that maps src onto dst."""
         actual = _get_perspective_transform(source, target)
 
         assert actual.shape == (3, 3)
         assert actual.dtype == np.float64
         assert actual[2, 2] == 1.0
-        # Both solve the same eight-equation system in float64 by LU (OpenCV's own and
-        # LAPACK's); on well-conditioned quads rtol=1e-5 absorbs pivoting differences.
-        np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-12)
+        # The float64 solve lands corners within ~1e-14 of the largest target
+        # coordinate (measured over 50k random quads); 1e-12 leaves wide margin.
+        np.testing.assert_allclose(
+            _project(actual, source), target, rtol=0, atol=1e-12 * np.abs(target).max()
+        )
+
+    @pytest.mark.parametrize(("source", "target"), [*RANDOM, SPEED, SCALE])
+    def test_matches_opencv_within_float32_rounding(
+        self, source: np.ndarray, target: np.ndarray
+    ) -> None:
+        """Project the source corners where OpenCV does, up to its float32 rounding.
+
+        OpenCV forms the product terms of its system from float32 products, so the
+        matrices differ elementwise by more than any fixed rtol on unseen quads; the
+        corners they map are the contract, and OpenCV's own corner error bounds the gap.
+        """
+        expected = cv2.getPerspectiveTransform(source, target)
+
+        actual = _get_perspective_transform(source, target)
+
+        # OpenCV's corner error reaches ~18 float32 ulps of the largest target
+        # coordinate (measured over 50k random quads); 32 ulps leaves ~1.8x margin.
+        tolerance = 32 * np.finfo(np.float32).eps * np.abs(target).max()
+        np.testing.assert_allclose(
+            _project(actual, source),
+            _project(expected, source),
+            rtol=0,
+            atol=tolerance,
+        )
 
     @pytest.mark.parametrize("shape", [(4, 1, 2), (1, 4, 2)])
     def test_accepts_opencv_point_vector_layouts(self, shape: tuple[int, ...]) -> None:
@@ -220,6 +246,38 @@ class TestPerspectiveTransform:
         expected = np.array([[[0, 0]], [[0, 0]], [[np.nan, np.nan]]], dtype=dtype)
 
         projected = _perspective_transform(points, matrix)
+
+        np.testing.assert_array_equal(projected, expected)
+
+    @pytest.mark.filterwarnings("error")
+    @pytest.mark.parametrize(
+        ("points", "matrix"),
+        [
+            pytest.param(
+                np.array([[[1e308, 1.0]]], dtype=np.float64),
+                np.diag([10.0, 1.0, 1.0]),
+                id="float64-sum-overflow",
+            ),
+            pytest.param(
+                np.array([[[2e38, 1.0]]], dtype=np.float32),
+                np.diag([10.0, 1.0, 1.0]),
+                id="float32-cast-overflow",
+            ),
+        ],
+    )
+    def test_overflow_gives_infinity_without_raising_or_warning(
+        self, points: np.ndarray, matrix: np.ndarray
+    ) -> None:
+        """Return IEEE infinity for overflowing coordinates, silently like OpenCV.
+
+        A caller running under ``np.seterr(over="raise")`` or ``-W error`` must not
+        see the fallback fail where OpenCV returns infinity: the sums can overflow in
+        float64, and the float64 result can overflow again when cast to float32.
+        """
+        expected = np.array([[[np.inf, 1.0]]], dtype=points.dtype)
+
+        with np.errstate(over="raise", invalid="raise"):
+            projected = _perspective_transform(points, matrix)
 
         np.testing.assert_array_equal(projected, expected)
 

@@ -46,10 +46,23 @@ def _as_quad(points: npt.NDArray[Any], name: str) -> npt.NDArray[np.float64]:
 def _get_perspective_transform(
     src: npt.NDArray[np.float32], dst: npt.NDArray[np.float32]
 ) -> npt.NDArray[np.float64]:
-    """Solve OpenCV's eight-equation perspective system in float64.
+    """Compute the perspective transform that maps four source points onto four targets.
 
-    Raises ``ValueError`` only if that system is singular, where OpenCV returns a
-    degenerate matrix instead.
+    Solves OpenCV's eight-equation system in float64. OpenCV forms the product terms
+    of that system (``-x*u``, ``-y*u``, ``-x*v``, ``-y*v``) from float32 point
+    products, so the two backends agree to that float32 rounding rather than bit for
+    bit, and this fallback is the more accurate of the two.
+
+    The fallback does not check conditioning: a near-singular system, such as three
+    nearly collinear source points, returns a finite ill-conditioned matrix. OpenCV
+    instead switches to an SVD null-space solution (unit norm, ``m[2, 2] != 1``) when
+    its LU solve fails or leaves a residual of at least 1e-8.
+
+    Raises:
+        TypeError: If ``src`` or ``dst`` is not a float32 NumPy array.
+        ValueError: If ``src`` or ``dst`` has an unsupported shape or a non-finite
+            point, or the system is exactly singular (a zero LU pivot), where OpenCV
+            returns a degenerate matrix instead.
     """
     x, y = _as_quad(src, "src").T
     u, v = _as_quad(dst, "dst").T
@@ -101,7 +114,9 @@ def _perspective_transform(
     y = points[:, 1]
     # Points whose w is NaN or |w| <= FLT_EPSILON map to (0, 0) below; other
     # non-finite intermediates follow IEEE arithmetic as in OpenCV, so skip warnings.
-    with np.errstate(invalid="ignore"):
+    # Overflow, in the sums and again in the final cast to float32, gives IEEE
+    # infinity as in OpenCV, so it must not raise under a caller's strict error policy.
+    with np.errstate(invalid="ignore", over="ignore"):
         # Spell out OpenCV's per-point sums instead of a matmul so rounding matches.
         projected_x = x * matrix[0, 0] + y * matrix[0, 1] + matrix[0, 2]
         projected_y = x * matrix[1, 0] + y * matrix[1, 1] + matrix[1, 2]
@@ -110,6 +125,7 @@ def _perspective_transform(
         finite_w = np.abs(w) > _FLT_EPSILON
         inverse_w = np.reciprocal(w, out=np.zeros_like(w), where=finite_w)
         mapped = np.column_stack((projected_x * inverse_w, projected_y * inverse_w))
-    # Zero explicitly: an infinite coordinate times a zero inverse_w would be NaN.
-    mapped[~finite_w] = 0.0
-    return mapped.astype(src.dtype, copy=False).reshape(src.shape)
+        # Zero explicitly: an infinite coordinate times a zero inverse_w would be NaN.
+        mapped[~finite_w] = 0.0
+        result = mapped.astype(src.dtype, copy=False)
+    return result.reshape(src.shape)
