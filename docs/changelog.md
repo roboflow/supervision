@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-05
+date_modified: 2026-10-06
 ---
 
 # Changelog
@@ -9,7 +9,11 @@ date_modified: 2026-10-05
 
 - `sv.DetectionDataset.from_yolo` now rejects a label whose width or height is negative, instead of building a box with `x_min` past `x_max`. Such a box made `Detections.area` negative, made `box_iou_batch` score two boxes covering the identical region at `0.0`, and stopped `with_nms` suppressing, so a corrupt label skewed evaluation silently. `object_to_yolo` now orders the corners before measuring the width and height, so a reversed `Detections` box no longer exports as a file the loader refuses to read; the exported box describes the same rectangle and normal boxes are unchanged. [#2663](https://github.com/roboflow/supervision/pull/2663)
 
+- `sv.Detections.from_vlm` with `sv.VLM.FLORENCE_2` now returns one detection per instance for `<REFERRING_EXPRESSION_SEGMENTATION>` and `<REGION_TO_SEGMENTATION>`. Florence-2 returns each instance as a list of polygons, one per connected region, but every polygon became its own detection, so an object split into two regions came back as two detections. The polygons of an instance are now merged into one mask with one box around all of them. Instances made of a single polygon load as before. Polygons with fewer than three vertices are ignored, and an instance without any usable polygon is skipped, so it no longer yields an empty-mask detection or raises. ([#2648](https://github.com/roboflow/supervision/pull/2648))
+
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
+
+- `sv.Detections.from_inference` now rounds polygon vertices to the nearest pixel before rasterising masks. Roboflow returns sub-pixel float vertices, and casting them to `int` truncated every coordinate, moving each mask up and to the left by up to one pixel. A square with corners at 2.6 and 7.6 now fills rows and columns 3-8 instead of 2-7, as `from_coco`, `from_yolo`, `from_labelme` and `from_pascal_voc` load the same polygon. A vertex that is NaN or infinite raises a `ValueError`, as it does in `from_coco`. RLE masks and box-only predictions are unchanged. [#2649](https://github.com/roboflow/supervision/pull/2649)
 
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
 
