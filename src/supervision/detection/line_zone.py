@@ -176,6 +176,8 @@ class LineZone:
         Detections whose `tracker_id` is negative are treated as unconfirmed
         tracks and ignored: they are never counted, leave no crossing state
         behind, and their entries in both returned arrays are always `False`.
+        Frames without tracker IDs are skipped for counting but age existing
+        crossing history like empty frames.
 
         Args:
             detections: A Detections object for which to update the counts.
@@ -194,6 +196,7 @@ class LineZone:
             return crossed_in, crossed_out
 
         if detections.tracker_id is None:
+            self._evict_stale_crossing_history(set())
             warnings.warn(
                 "Line zone counting skipped. LineZone requires tracker_id. Refer to "
                 "https://trackers.roboflow.com/latest/ for more "
