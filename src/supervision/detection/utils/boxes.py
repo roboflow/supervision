@@ -10,6 +10,9 @@ from deprecate import (  # type: ignore[import-untyped,unused-ignore]
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
 
+# Built once: subscripting `npt.NDArray[...]` inside `cast` costs ~1.5 µs per call.
+_IntegerArray = npt.NDArray[np.integer]
+
 
 def clip_boxes(
     xyxy: npt.NDArray[np.number],
@@ -484,6 +487,58 @@ def _oriented_box_anchors(
     height = np.where((height[:, 1] < 0)[:, None], -height, height)
 
     return cast(npt.NDArray[np.float64], center + sx * width + sy * height)
+
+
+def _box_midpoint(
+    first: npt.NDArray[np.number], second: npt.NDArray[np.number]
+) -> npt.NDArray[np.number]:
+    """Average two arrays of box corner coordinates without wrapping integers.
+
+    Integer inputs produce `float64` midpoints; floating-point inputs keep their
+    dtype. Integers of 32 bits or fewer are widened to `float64`, which is exact.
+    For 64-bit integers a corner sum that overflows is recomputed exactly and
+    rounded once to `float64`.
+
+    Args:
+        first: Lower corner coordinates, an integer or floating-point array.
+        second: Upper corner coordinates, with the same dtype and shape as `first`.
+
+    Returns:
+        Array with the midpoint of each `first`/`second` pair.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import _box_midpoint
+        >>> _box_midpoint(
+        ...     np.array([20000], dtype=np.int16), np.array([22000], dtype=np.int16)
+        ... )
+        array([21000.])
+
+        ```
+    """
+    if not np.issubdtype(first.dtype, np.integer):
+        return (first + second) / 2
+    if first.dtype.itemsize <= 4:
+        return (first.astype(np.float64) + second.astype(np.float64)) / 2
+
+    integer_first = cast(_IntegerArray, first)
+    integer_second = cast(_IntegerArray, second)
+    summed = integer_first + integer_second
+    if np.issubdtype(first.dtype, np.signedinteger):
+        # Signed addition wrapped when both operands differ in sign from the sum.
+        overflow = ((integer_first ^ summed) & (integer_second ^ summed)) < 0
+    else:
+        # Unsigned addition wrapped when the sum fell below an operand.
+        overflow = summed < integer_first
+    midpoints = summed.astype(np.float64) / 2
+    if np.any(overflow):
+        # Exact sums avoid rounding each corner before averaging.
+        exact_sums = integer_first[overflow].astype(object) + integer_second[
+            overflow
+        ].astype(object)
+        midpoints[overflow] = np.asarray(exact_sums, dtype=np.float64) / 2
+    return midpoints
 
 
 def scale_boxes(
