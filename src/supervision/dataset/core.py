@@ -522,13 +522,24 @@ class DetectionDataset(BaseDataset):
     ) -> DetectionDataset:
         """Creates a Dataset instance from YOLO formatted data.
 
+        When `data.yaml` declares `kpt_shape: [K, D]`, as Ultralytics pose
+        datasets do, a row of exactly `class x y w h` followed by `K * D`
+        keypoint values is read as its box; the keypoints are not loaded, and
+        rows of other lengths are read as before. A polygon row of that same
+        length, with or without a trailing confidence, is read as a box too,
+        as Ultralytics does. Pose rows with a trailing confidence or tracker id,
+        or with a keypoint count that does not match `kpt_shape`, are not
+        supported and are parsed as before. A `kpt_shape` other than `[K, 2]`
+        or `[K, 3]` raises `ValueError`.
+
         Args:
             images_directory_path: The path to the
                 directory containing the images.
             annotations_directory_path: The path to the directory
                 containing the YOLO annotation files.
             data_yaml_path: The path to the data
-                YAML file containing class information.
+                YAML file containing class information and, for pose
+                datasets, `kpt_shape`.
             force_masks: If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
@@ -540,6 +551,16 @@ class DetectionDataset(BaseDataset):
         Returns:
             A DetectionDataset instance
                 containing the loaded images and annotations.
+
+        Raises:
+            ValueError: If `data.yaml` is not a mapping; if its `names` is
+                missing, not a list or dict, or a dict mixing numeric and
+                non-numeric keys; or if its `kpt_shape` is present but not
+                `[K, 2]` or `[K, 3]`, `kpt_shape: null` included. Also if an
+                annotation file contains an invalid line, such as one with too
+                few tokens, a class id that is not a whole number, a
+                non-numeric coordinate, or a box with a negative width or
+                height; the message names the offending file.
 
         Examples:
             ```python

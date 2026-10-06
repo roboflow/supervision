@@ -15,7 +15,11 @@ from deprecate import deprecated, void
 from PIL import Image
 
 from supervision.detection.utils.boxes import _sort_box_corners, denormalize_boxes
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import (
+    MIN_POLYGON_POINT_COUNT,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.validators import _validate_resolution
 
 
@@ -315,6 +319,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
+    A truncated response yields every complete detection before the cut.
+
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
         input_wh: Width and height of the coordinate space where boxes
@@ -336,6 +342,12 @@ def from_qwen_2_5_vl(
     text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"```$", "", text).strip()
 
+    # A response cut off inside a box's `bbox_2d` array ends in that array's
+    # elements, so the last `]` below belongs to the previous object's box and the
+    # slice drops that complete object. Recovery therefore reads the unsliced text
+    # first, and the slice when that fails (e.g. a `}` in trailing prose or in a
+    # label). `ast.literal_eval` keeps reading the slice.
+    unsliced = text
     start = text.find("[")
     end = text.rfind("]")
     if start != -1 and end != -1 and end > start:
@@ -344,7 +356,9 @@ def from_qwen_2_5_vl(
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        repaired = recover_truncated_qwen_2_5_vl_response(text)
+        repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
+        if repaired is None:
+            repaired = recover_truncated_qwen_2_5_vl_response(text)
         if repaired is not None:
             data = repaired
         else:
@@ -499,6 +513,11 @@ def from_florence_2(
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
 
+    For `<REFERRING_EXPRESSION_SEGMENTATION>` and `<REGION_TO_SEGMENTATION>`, each
+    entry of `result["polygons"]` is one instance whose polygons are merged into a
+    single mask and a single box. Polygons with fewer than three vertices are
+    ignored, and an instance left without any usable polygon is skipped.
+
     Args:
         result: dict containing the model output
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
@@ -542,20 +561,38 @@ def from_florence_2(
         return xyxy, labels, None, xyxyxyxy
 
     if task in ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]:
+        width, height = map(int, resolution_wh)
         xyxy_list: list[npt.NDArray[Any]] = []
         masks_list: list[npt.NDArray[Any]] = []
-        for polygons_of_same_class in result["polygons"]:
-            for polygon in polygons_of_same_class:
-                polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
-                mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
-                masks_list.append(mask)
-                xyxy_box = polygon_to_xyxy(polygon)
-                xyxy_list.append(xyxy_box)
-            # per-class labels also provided, but they are ["", "", "", ...]
-            # when we figure out how to set class names, we can do
-            # zip(result["labels"], result["polygons"])
-        xyxy = np.array(xyxy_list, dtype=np.float32)
-        masks = np.array(masks_list)
+        # Each entry of `result["polygons"]` is one instance, split into several
+        # polygons when the object is not a single connected region. The parts are
+        # merged so that every instance becomes exactly one detection.
+        for polygons_of_instance in result["polygons"]:
+            parts = [
+                np.reshape(part, (-1, 2)).astype(np.int32)
+                for part in polygons_of_instance
+            ]
+            # Parts below the minimum vertex count draw nothing into the mask, so
+            # they must not widen the box either. An instance left without any
+            # usable part is skipped instead of reaching `polygon_to_xyxy` empty.
+            polygons = [part for part in parts if len(part) >= MIN_POLYGON_POINT_COUNT]
+            if not polygons:
+                continue
+            mask = np.zeros((height, width), dtype=bool)
+            for polygon in polygons:
+                np.logical_or(mask, polygon_to_mask(polygon, (width, height)), out=mask)
+            masks_list.append(mask)
+            xyxy_list.append(polygon_to_xyxy(np.concatenate(polygons)))
+            # per-instance labels also provided, but they are ["", "", "", ...]
+            # when we figure out how to set class names, build them next to
+            # `xyxy_list` so that skipped instances do not shift the alignment
+        xyxy = np.array(xyxy_list, dtype=np.float32).reshape(-1, 4)
+        # an empty list must still honour the documented `(n, h, w)` shape
+        masks = (
+            np.stack(masks_list)
+            if masks_list
+            else np.zeros((0, height, width), dtype=bool)
+        )
         return xyxy, None, masks, None
 
     if task == "<OPEN_VOCABULARY_DETECTION>":
