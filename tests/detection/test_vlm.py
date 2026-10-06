@@ -56,6 +56,17 @@ from supervision.detection.vlm import (
             np.array(["cat"], dtype=str),
             id="classes-filter-keeps-only-matching",
         ),
+        pytest.param(
+            "```json\n"
+            '[{"bbox_2d": [0, 0, 500, 500], "label": "dog"},'
+            ' {"bbox_2d": [500, 500, 1000, 1000], "label": "cat"},'
+            ' {"bbox_2d": [9, 10',
+            (640, 480),
+            None,
+            np.array([[0.0, 0.0, 320.0, 240.0], [320.0, 240.0, 640.0, 480.0]]),
+            np.array(["dog", "cat"], dtype=str),
+            id="truncated-inside-last-bbox-keeps-complete-detections",
+        ),
     ],
 )
 def test_from_qwen_3_vl(
@@ -270,6 +281,17 @@ def test_from_paligemma(
         np.testing.assert_array_equal(result[2], expected_results[2])
 
 
+_QWEN_DOG_AND_CAT = (
+    '```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, '
+    '{"bbox_2d": [10, 20, 110, 120], "label": "cat"}'
+)
+_QWEN_DOG_AND_CAT_RESULT = (
+    np.array([[0.0, 0.0, 64.0, 64.0], [10.0, 20.0, 110.0, 120.0]], dtype=float),
+    None,
+    np.array(["dog", "cat"], dtype=str),
+)
+
+
 @pytest.mark.parametrize(
     ("exception", "result", "input_wh", "resolution_wh", "classes", "expected_results"),
     [
@@ -397,6 +419,60 @@ def test_from_paligemma(
                 np.array(["dog", "cat"], dtype=str),
             ),
         ),  # truncated response, last object unfinished, previous ones recovered
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ', {"bbox_2d": [30, 40',
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-inside-last-bbox-keeps-previous",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ",",
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-after-comma-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ', {"bbox_',
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="truncated-inside-key-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            _QWEN_DOG_AND_CAT + ", null,]\nNote {x}",
+            (640, 640),
+            (640, 640),
+            None,
+            _QWEN_DOG_AND_CAT_RESULT,
+            id="trailing-prose-with-brace-keeps-complete",
+        ),
+        pytest.param(
+            does_not_raise(),
+            '```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, '
+            '{"bbox_2d": [10, 20, 110, 120], "label": "c}t"}, '
+            '{"bbox_2d": [30, 40',
+            (640, 640),
+            (640, 640),
+            None,
+            (
+                np.array(
+                    [[0.0, 0.0, 64.0, 64.0], [10.0, 20.0, 110.0, 120.0]],
+                    dtype=float,
+                ),
+                None,
+                np.array(["dog", "c}t"], dtype=str),
+            ),
+            id="truncated-after-label-with-brace-keeps-complete",
+        ),
         (
             pytest.raises(
                 ValueError,
@@ -435,6 +511,7 @@ def test_from_qwen_2_5_vl(
     classes: list[str] | None,
     expected_results,
 ) -> None:
+    """from_qwen_2_5_vl parses, scales and filters boxes, recovering truncated JSON."""
     with exception:
         xyxy, class_id, class_name = from_qwen_2_5_vl(
             result=result,
@@ -966,6 +1043,227 @@ def test_florence_2_invalid_payloads_raise_value_error(
     """Malformed Florence 2 region payloads raise `ValueError`."""
     with pytest.raises(ValueError, match=match):
         from_florence_2(florence_result, (10, 10))
+
+
+class TestFromFlorence2Segmentation:
+    """`from_florence_2` over segmentation tasks whose instances hold polygon lists."""
+
+    @pytest.mark.parametrize(
+        "task", ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]
+    )
+    def test_merges_polygons_of_one_instance(self, task: str) -> None:
+        """An instance split into two polygons yields one detection with both parts."""
+        florence_result = {
+            task: {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3], [6, 6, 8, 6, 8, 8, 6, 8]]],
+                "labels": [""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+        expected_mask[0, 6:9, 6:9] = True
+
+        xyxy, labels, masks, obb = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 8, 8]], dtype=np.float32))
+        assert labels is None
+        np.testing.assert_array_equal(masks, expected_mask)
+        assert obb is None
+
+    def test_keeps_separate_instances_apart(self) -> None:
+        """Polygons of different instances stay separate detections."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3]], [[6, 6, 8, 6, 8, 8, 6, 8]]],
+                "labels": ["", ""],
+            }
+        }
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(
+            xyxy, np.array([[1, 1, 3, 3], [6, 6, 8, 8]], dtype=np.float32)
+        )
+        assert masks is not None
+        assert masks.shape == (2, 10, 10)
+        assert masks[0, 1:4, 1:4].all()
+        assert masks[1, 6:9, 6:9].all()
+        assert masks.sum() == 18
+
+    @pytest.mark.parametrize(
+        "polygons",
+        [
+            pytest.param([[], [[1, 1, 3, 1, 3, 3, 1, 3]]], id="empty-instance"),
+            pytest.param(
+                [[[], []], [[1, 1, 3, 1, 3, 3, 1, 3]]], id="instance-of-empty-parts"
+            ),
+            pytest.param(
+                [[[9, 9, 10, 10]], [[1, 1, 3, 1, 3, 3, 1, 3]]],
+                id="instance-of-degenerate-part",
+            ),
+        ],
+    )
+    def test_skips_instance_without_usable_polygon(self, polygons: list[Any]) -> None:
+        """An instance without a polygon of 3+ vertices is skipped."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": polygons,
+                "labels": ["", ""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 3, 3]], dtype=np.float32))
+        np.testing.assert_array_equal(masks, expected_mask)
+
+    @pytest.mark.parametrize(
+        "polygons_of_instance",
+        [
+            pytest.param([[], [1, 1, 3, 1, 3, 3, 1, 3]], id="empty-part-beside-valid"),
+            pytest.param(
+                [[1, 1, 3, 1, 3, 3, 1, 3], [9, 9, 10, 10]],
+                id="degenerate-part-beside-valid",
+            ),
+        ],
+    )
+    def test_unusable_part_does_not_widen_merged_box(
+        self, polygons_of_instance: list[Any]
+    ) -> None:
+        """A part under the minimum vertex count changes neither box nor mask."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [polygons_of_instance],
+                "labels": [""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 3, 3]], dtype=np.float32))
+        np.testing.assert_array_equal(masks, expected_mask)
+
+    @pytest.mark.parametrize(
+        "polygons",
+        [
+            pytest.param([], id="no-instances"),
+            pytest.param([[], []], id="empty-instances"),
+            pytest.param([[[]]], id="instance-of-empty-part"),
+        ],
+    )
+    def test_without_usable_instance_returns_documented_empty_shapes(
+        self, polygons: list[Any]
+    ) -> None:
+        """A result without a usable instance returns `(0, 4)` and `(0, h, w)`."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {"polygons": polygons, "labels": []}
+        }
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (10, 8))
+
+        assert xyxy.shape == (0, 4)
+        assert masks is not None
+        assert masks.shape == (0, 8, 10)
+
+    @pytest.mark.parametrize(
+        "polygons",
+        [
+            pytest.param([[], []], id="empty-instances"),
+            pytest.param([[[]]], id="instance-of-empty-part"),
+        ],
+    )
+    def test_from_vlm_without_usable_instance_yields_empty_detections(
+        self, polygons: list[Any]
+    ) -> None:
+        """`Detections.from_vlm` returns no detections when no instance is usable."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": polygons,
+                "labels": [""] * len(polygons),
+            }
+        }
+
+        detections = Detections.from_vlm(
+            vlm=VLM.FLORENCE_2, result=florence_result, resolution_wh=(10, 10)
+        )
+
+        assert len(detections) == 0
+        assert detections.xyxy.shape == (0, 4)
+
+    def test_merged_instance_follows_width_height_order(self) -> None:
+        """On a non-square frame the mask is `(h, w)` and the box spans both parts."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3], [8, 5, 10, 5, 10, 7, 8, 7]]],
+                "labels": [""],
+            }
+        }
+        expected_mask = np.zeros((1, 8, 12), dtype=bool)
+        expected_mask[0, 1:4, 1:4] = True
+        expected_mask[0, 5:8, 8:11] = True
+
+        xyxy, _, masks, _ = from_florence_2(florence_result, (12, 8))
+
+        np.testing.assert_array_equal(xyxy, np.array([[1, 1, 10, 7]], dtype=np.float32))
+        np.testing.assert_array_equal(masks, expected_mask)
+
+    def test_overlapping_parts_are_united_in_one_mask(self) -> None:
+        """Overlapping parts of one instance are united, not summed or XOR-ed."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[[1, 1, 5, 1, 5, 5, 1, 5], [3, 3, 7, 3, 7, 7, 3, 7]]],
+                "labels": [""],
+            }
+        }
+        expected_mask = np.zeros((1, 10, 10), dtype=bool)
+        expected_mask[0, 1:6, 1:6] = True
+        expected_mask[0, 3:8, 3:8] = True
+
+        _, _, masks, _ = from_florence_2(florence_result, (10, 10))
+
+        np.testing.assert_array_equal(masks, expected_mask)
+
+    def test_accepts_float_resolution(self) -> None:
+        """A float `resolution_wh` is cast to int as `polygon_to_mask` does."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [[[1, 1, 3, 1, 3, 3, 1, 3]]],
+                "labels": [""],
+            }
+        }
+
+        _, _, masks, _ = from_florence_2(florence_result, (10.0, 10.0))  # type: ignore[arg-type]
+
+        assert masks is not None
+        assert masks.shape == (1, 10, 10)
+
+    def test_from_vlm_keeps_instance_order_with_multi_part_instance(self) -> None:
+        """`Detections.from_vlm` yields one detection per instance, in input order."""
+        florence_result = {
+            "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                "polygons": [
+                    [[1, 1, 3, 1, 3, 3, 1, 3], [5, 1, 7, 1, 7, 3, 5, 3]],
+                    [[1, 6, 3, 6, 3, 8, 1, 8]],
+                ],
+                "labels": ["", ""],
+            }
+        }
+
+        detections = Detections.from_vlm(
+            vlm=VLM.FLORENCE_2, result=florence_result, resolution_wh=(10, 10)
+        )
+
+        np.testing.assert_array_equal(
+            detections.xyxy, np.array([[1, 1, 7, 3], [1, 6, 3, 8]], dtype=np.float32)
+        )
+        assert detections.mask is not None
+        assert detections.mask.shape == (2, 10, 10)
+        assert detections.mask[0].sum() == 18
+        assert detections.mask[1].sum() == 9
 
 
 @pytest.mark.parametrize(

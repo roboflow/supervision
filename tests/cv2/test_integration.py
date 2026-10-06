@@ -9,8 +9,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
-from supervision._cv2._image import _add_weighted
+from supervision import _cv2
+from supervision._cv2._image import _add_weighted, _flip
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src" / "supervision"
@@ -90,6 +92,53 @@ def test_fallback_add_weighted_accepts_opencv_keyword_names() -> None:
     expected = _add_weighted(source, 0.5, other, 0.5, 10)
 
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_flip_accepts_opencv_keyword_names() -> None:
+    """Accept OpenCV's public `src` and `flipCode` parameter names."""
+    source = np.array([[1, 2], [3, 4]], dtype=np.uint8)
+
+    actual = _flip(src=source, flipCode=-1)
+
+    np.testing.assert_array_equal(actual, np.array([[4, 3], [2, 1]], dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("flip_code", "expected"),
+    [
+        pytest.param(
+            2, np.array([[2, 1], [4, 3]], dtype=np.uint8), id="positive-horizontal"
+        ),
+        pytest.param(
+            -2, np.array([[4, 3], [2, 1]], dtype=np.uint8), id="negative-both"
+        ),
+    ],
+)
+def test_fallback_flip_follows_sign_of_flip_code(
+    flip_code: int, expected: np.ndarray
+) -> None:
+    """Flip by the sign of any positive or negative code, as OpenCV does."""
+    source = np.array([[1, 2], [3, 4]], dtype=np.uint8)
+
+    actual = _flip(source, flip_code)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_facade_maps_speed_example_source_onto_target() -> None:
+    """Run the speed example's ViewTransformer calls through the active backend."""
+    source = np.array([[1252, 787], [2298, 803], [5039, 2159], [-550, 2159]])
+    target = np.array([[0, 0], [24, 0], [24, 249], [0, 249]])
+    matrix = _cv2.getPerspectiveTransform(
+        source.astype(np.float32), target.astype(np.float32)
+    )
+    points = source.reshape(-1, 1, 2).astype(np.float32)
+
+    projected = _cv2.perspectiveTransform(points, matrix)
+
+    # float32 output spacing near 249 is about 1.5e-5; 1e-3 leaves room for the
+    # conditioning of a homography solved from 5000-pixel image coordinates.
+    np.testing.assert_allclose(projected.reshape(-1, 2), target, rtol=0, atol=1e-3)
 
 
 def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:
