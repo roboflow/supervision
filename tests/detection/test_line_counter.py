@@ -11,6 +11,7 @@ from supervision import (
 )
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
 
 
@@ -1140,6 +1141,29 @@ def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> No
         line_zone.trigger(Detections.empty())
 
     assert not line_zone.crossing_state_history
+
+
+@pytest.mark.parametrize(
+    ("untracked_frames", "expected_crossing"), [(1, True), (2, False)]
+)
+def test_line_zone_ages_history_on_untracked_frames(
+    untracked_frames: int, expected_crossing: bool
+) -> None:
+    """Missing tracker IDs preserve short gaps but expire stale crossing state."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
+
+    line_zone.trigger(below)
+    for _ in range(untracked_frames):
+        with pytest.warns(SupervisionWarnings, match="requires tracker_id"):
+            line_zone.trigger(untracked)
+    crossed_in, crossed_out = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert crossed_out.tolist() == [False]
+    assert line_zone.in_count == int(expected_crossing)
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
