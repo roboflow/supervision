@@ -109,6 +109,8 @@ def main(
             labels = []
             for tracker_id in detections.tracker_id:
                 history = coordinates[tracker_id]
+                # The deque keeps detections, not frames: gaps make N positions span
+                # more than N - 1 frame intervals, so take time from stored indices.
                 elapsed_frames = (
                     history[-1][0] - history[0][0] if len(history) > 1 else 0
                 )
