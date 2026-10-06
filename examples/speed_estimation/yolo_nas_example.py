@@ -112,8 +112,10 @@ def main(
             labels = []
             for tracker_id in detections.tracker_id:
                 history = coordinates[tracker_id]
-                elapsed_frames = history[-1][0] - history[0][0]
-                if len(history) < 2 or elapsed_frames < video_info.fps / 2:
+                elapsed_frames = (
+                    history[-1][0] - history[0][0] if len(history) > 1 else 0
+                )
+                if elapsed_frames < video_info.fps / 2:
                     labels.append(f"#{tracker_id}")
                     continue
                 distance = abs(history[-1][1] - history[0][1])
