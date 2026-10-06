@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import warnings
 from collections.abc import Sequence
@@ -40,14 +41,22 @@ if TYPE_CHECKING:
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
-    A negative width or height would place ``x_min`` past ``x_max``, breaking the
-    ordering every consumer of ``xyxy`` assumes: ``box_iou_batch`` reports no overlap
-    between identical regions, ``with_nms`` stops suppressing, and ``Detections.area``
-    turns negative when only one of the two extents is negative. Reject it here rather
-    than let a corrupt label travel on.
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
+    would pass the extent check below unnoticed. A negative width or height would
+    place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
+    assumes: ``box_iou_batch`` reports no overlap between identical regions,
+    ``with_nms`` stops suppressing, and ``Detections.area`` turns negative when only
+    one of the two extents is negative. Reject both here rather than let a corrupt
+    label travel on.
     """
     x_center, y_center, width, height = values
-    box_width, box_height = float(width), float(height)
+    numbers = [float(value) for value in values]
+    if not all(math.isfinite(number) for number in numbers):
+        raise ValueError(
+            f"Invalid box ({x_center!r}, {y_center!r}, {width!r}, {height!r}) in YOLO "
+            "annotation; expected a finite center, width and height."
+        )
+    box_x_center, box_y_center, box_width, box_height = numbers
     if box_width < 0 or box_height < 0:
         raise ValueError(
             f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
@@ -55,10 +64,10 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
         )
     return np.array(
         [
-            float(x_center) - box_width / 2,
-            float(y_center) - box_height / 2,
-            float(x_center) + box_width / 2,
-            float(y_center) + box_height / 2,
+            box_x_center - box_width / 2,
+            box_y_center - box_height / 2,
+            box_x_center + box_width / 2,
+            box_y_center + box_height / 2,
         ],
         dtype=np.float32,
     )
@@ -327,8 +336,9 @@ def yolo_annotations_to_detections(
     ``load_yolo_annotations`` drops them before calling this function.
 
     Raises:
-        ValueError: If a class id is not a whole number, a box has a negative
-            width or height, or a coordinate token is not numeric.
+        ValueError: If a class id is not a whole number, a box value is not
+            finite, a box has a negative width or height, or a coordinate token
+            is not numeric.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -353,7 +363,7 @@ def yolo_annotations_to_detections(
             relative_xyxy_list.append(box)
             if with_masks:
                 relative_polygon_list.append(_box_to_polygon(box=box))
-        elif len(values) > 5:
+        else:
             polygon_values = values[1:]
             if not is_obb and len(polygon_values) % 2:
                 _ = float(polygon_values.pop())

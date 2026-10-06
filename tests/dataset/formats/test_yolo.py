@@ -356,8 +356,6 @@ class TestYoloAnnotationsToDetectionsBoxExtent:
             pytest.param("-0.4", "0.4", id="negative-width"),
             pytest.param("0.4", "-0.4", id="negative-height"),
             pytest.param("-0.4", "-0.4", id="negative-both"),
-            pytest.param("-inf", "0.4", id="negative-infinite-width"),
-            pytest.param("0.4", "-inf", id="negative-infinite-height"),
             pytest.param("-1e-9", "0.4", id="tiny-negative-width"),
         ],
     )
@@ -370,6 +368,31 @@ class TestYoloAnnotationsToDetectionsBoxExtent:
         with pytest.raises(
             ValueError, match=r"Invalid box extent \(.*\) in YOLO annotation"
         ):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize("token", ["nan", "inf", "-inf"])
+    @pytest.mark.parametrize(
+        "line_template",
+        [
+            pytest.param("0 {} 0.5 0.2 0.4", id="x-center"),
+            pytest.param("0 0.5 {} 0.2 0.4", id="y-center"),
+            pytest.param("0 0.5 0.5 {} 0.4", id="width"),
+            pytest.param("0 0.5 0.5 0.2 {}", id="height"),
+        ],
+    )
+    def test_rejects_a_non_finite_box_value(
+        self, line_template: str, token: str
+    ) -> None:
+        """A nan or infinite center, width or height is rejected as not finite."""
+        lines = [line_template.format(token)]
+        expected = (
+            rf"Invalid box \(.*'{re.escape(token)}'.*\) in YOLO annotation; "
+            r"expected a finite center, width and height\."
+        )
+
+        with pytest.raises(ValueError, match=expected):
             yolo_annotations_to_detections(
                 lines=lines, resolution_wh=(100, 100), with_masks=False
             )
