@@ -98,6 +98,27 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
+def _read_data_yaml(file_path: str) -> dict[str, Any]:
+    """Read a YOLO data.yaml file and check that its root is a mapping.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        The parsed data.yaml content.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping.
+    """
+    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Expected mapping in data.yaml at '{file_path}',"
+            f" got {type(data).__name__}."
+        )
+    return data
+
+
 def _extract_class_names(file_path: str) -> list[str]:
     """Return class names from a YOLO data.yaml file ordered by class index.
 
@@ -118,12 +139,7 @@ def _extract_class_names(file_path: str) -> list[str]:
         ValueError: If the YAML root is not a mapping, if ``names`` is
             neither a list nor a dict, or if the dict has mixed key types.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"Expected mapping in data.yaml at '{file_path}',"
-            f" got {type(data).__name__}."
-        )
+    data = _read_data_yaml(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -174,11 +190,11 @@ def _extract_pose_value_count(file_path: str) -> int:
         ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
 
     Raises:
-        ValueError: If ``kpt_shape`` is not ``[K, 2]`` or ``[K, 3]`` with a
-            positive whole number ``K``.
+        ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
+            not ``[K, 2]`` or ``[K, 3]`` with a positive whole number ``K``.
     """
-    data = read_yaml_file(file_path=file_path)
-    if not isinstance(data, dict) or "kpt_shape" not in data:
+    data = _read_data_yaml(file_path=file_path)
+    if "kpt_shape" not in data:
         return 0
     kpt_shape = data["kpt_shape"]
     if not (
@@ -377,7 +393,7 @@ def load_yolo_annotations(
     ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
-    pose_value_count = _extract_pose_value_count(data_yaml_path)
+    pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
     if is_obb:
         pose_value_count = 0
     annotations = {}
