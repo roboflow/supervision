@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-06
+date_modified: 2026-10-07
 ---
 
 # Changelog
@@ -56,6 +56,8 @@ date_modified: 2026-10-06
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks ([#2504](https://github.com/roboflow/supervision/pull/2504)).
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The empty index array defaulted to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0`; `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.
+
+- `sv.DetectionDataset.from_coco`, `from_pascal_voc` and `from_createml` no longer build a box with `x_min` past `x_max`, completing the fix [#2663](https://github.com/roboflow/supervision/pull/2663) started for `from_yolo`. `coco` and `createml` name an extent, so a negative width or height is now rejected; `pascal_voc` names two corners, so a reversed pair is now ordered, as the LabelMe loader already did. The three exporters measured the extent from raw corner values, so a reversed `Detections` was written as a file the loader refuses to read; each now orders the corners first and the COCO exporter writes the ordered origin. The exported box describes the same rectangle and normal boxes are unchanged. [#2683](https://github.com/roboflow/supervision/pull/2683)
 
 ### 0.30.7 <small>Oct 4, 2026</small>
 
