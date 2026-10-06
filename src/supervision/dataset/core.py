@@ -525,8 +525,10 @@ class DetectionDataset(BaseDataset):
         When `data.yaml` declares `kpt_shape: [K, D]`, as Ultralytics pose
         datasets do, a row of exactly `class x y w h` followed by `K * D`
         keypoint values is read as its box; the keypoints are not loaded, and
-        rows of other lengths are read as before. A `kpt_shape` other than
-        `[K, 2]` or `[K, 3]` raises `ValueError`.
+        rows of other lengths are read as before. A polygon row of that same
+        length, with or without a trailing confidence, is read as a box too,
+        as Ultralytics does. A `kpt_shape` other than `[K, 2]` or `[K, 3]`
+        raises `ValueError`.
 
         Args:
             images_directory_path: The path to the

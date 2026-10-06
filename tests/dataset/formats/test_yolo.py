@@ -488,6 +488,18 @@ class TestFromYoloPoseLabels:
             ],
         )
 
+    def test_reads_a_polygon_of_pose_length_as_a_box(self, tmp_path: Path) -> None:
+        """A triangle as long as a `[1, 2]` pose row is read as a box, with no mask."""
+        paths = _write_pose_dataset(
+            tmp_path, label="0 0.5 0.5 0.2 0.4 0.1 0.9\n", kpt_shape="[1, 2]"
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+        assert detections.mask is None
+
     @pytest.mark.parametrize(
         "kpt_shape", ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "null"]
     )

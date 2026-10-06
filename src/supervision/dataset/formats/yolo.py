@@ -332,7 +332,9 @@ def load_yolo_annotations(
         annotations_directory_path: The path to the directory
             containing the YOLO annotation files.
         data_yaml_path: The path to the data
-            YAML file containing class information.
+            YAML file containing class information. With a pose `kpt_shape`
+            of `[K, D]`, every row of exactly `5 + K * D` values, a polygon
+            row of that length included, is read as a box, as Ultralytics does.
         force_masks: If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
             This parameter has no effect when `is_obb=True`; mask generation
