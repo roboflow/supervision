@@ -988,7 +988,7 @@ class KeyPoints:
 
         """  # noqa: E501 // docs
 
-        if not transformers_results:
+        if len(transformers_results) == 0:
             return cls.empty()
 
         if "keypoints" in transformers_results[0]:
