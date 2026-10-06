@@ -83,8 +83,10 @@ class MeanAveragePrecisionResult(MetricResult):
     Attributes:
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        is_class_agnostic: When computing class-agnostic results, class ID
-            is set to `-1`.
+        is_class_agnostic: When computing class-agnostic results, the class ID of
+            every labeled detection is set to `-1`. Detections without class IDs
+            join that class when any input has class IDs, and otherwise keep the
+            default class `0`.
         mAP_scores: the mAP scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         ap_per_class: the average precision scores per
@@ -1460,9 +1462,13 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
 
         Args:
             metric_target: The type of detection data to use.
-            class_agnostic: Whether to treat all data as a single class, including
-                detections without class IDs.
-            class_mapping: A dictionary to map class IDs to new IDs.
+            class_agnostic: Whether to treat all data as a single class with ID `-1`.
+                Detections without class IDs join that class when any input has
+                class IDs, and otherwise keep the default class `0`.
+            class_mapping: A dictionary to map class IDs to new IDs. With
+                `class_agnostic=True` and any input that has class IDs, it must
+                contain key `-1`, which maps the single merged class. It is not
+                used when no input has class IDs.
             image_indices: The indices of the images to use.
         """
         self._metric_target = metric_target
