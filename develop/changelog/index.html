@@ -4106,6 +4106,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.FLORENCE_2</code> now returns one detection per instance for <code>&lt;REFERRING_EXPRESSION_SEGMENTATION&gt;</code> and <code>&lt;REGION_TO_SEGMENTATION&gt;</code>. Florence-2 returns each instance as a list of polygons, one per connected region, but every polygon became its own detection, so an object split into two regions came back as two detections. The polygons of an instance are now merged into one mask with one box around all of them. Instances made of a single polygon load as before. Polygons with fewer than three vertices are ignored, and an instance without any usable polygon is skipped, so it no longer yields an empty-mask detection or raises. (<a href="https://github.com/roboflow/supervision/pull/2648">#2648</a>)</p>
 </li>
 <li>
+<p><code>sv.DetectionDataset.from_yolo</code> now reads the box of Ultralytics pose labels, a box followed by the keypoint values that <code>kpt_shape</code> in <code>data.yaml</code> declares, instead of parsing the whole row as a polygon, which gave wrong boxes and unrequested masks. The keypoints are skipped, as Ultralytics does for box tasks. A polygon row with that same number of values, with or without a trailing confidence, is read as a box too, as Ultralytics does. A <code>kpt_shape</code> other than <code>[K, 2]</code> or <code>[K, 3]</code> now raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2655">#2655</a>)</p>
+</li>
+<li>
 <p><code>sv.xyxy_to_mask</code> now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to <code>int</code> rounded it toward zero and incorrectly filled pixels along the image edge. (<a href="https://github.com/roboflow/supervision/pull/2646">#2646</a>)</p>
 </li>
 <li>
@@ -6208,7 +6211,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 09:48:11 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 10:16:34 UTC">October 6, 2026</span>
   </span>
 
     
@@ -6236,9 +6239,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
+        <a href="https://github.com/8rulerstar" class="md-author" title="@8rulerstar">
           
-          <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
+          <img src="https://avatars.githubusercontent.com/u/190670431?v=4&size=72" alt="8rulerstar">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6246,21 +6249,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
+          
+          <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +32
           </a>
         
       
