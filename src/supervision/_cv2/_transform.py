@@ -58,6 +58,10 @@ def _get_perspective_transform(
     instead switches to an SVD null-space solution (unit norm, ``m[2, 2] != 1``) when
     its LU solve fails or leaves a residual of at least 1e-8.
 
+    Only OpenCV's default solve is supported: there is no ``solveMethod`` argument,
+    and ``src`` and ``dst`` must be native-endian float32 arrays. Non-finite points
+    raise, where OpenCV returns an all-NaN matrix.
+
     Raises:
         TypeError: If ``src`` or ``dst`` is not a float32 NumPy array.
         ValueError: If ``src`` or ``dst`` has an unsupported shape or a non-finite
@@ -91,6 +95,11 @@ def _perspective_transform(
     Points whose ``w`` is NaN or has ``|w| <= FLT_EPSILON`` map to ``(0, 0)``; other
     non-finite values follow IEEE arithmetic, as in OpenCV. The output keeps the
     shape and dtype of ``src``; empty input returns ``None``.
+
+    Only 2-D points are supported: ``src`` is a native-endian float32 or float64 array
+    of shape ``(rows, cols, 2)`` and ``m`` a ``(3, 3)`` integer or floating array.
+    OpenCV's other forms are rejected: 3-D points with a 4x4 matrix, an affine
+    ``(2, 3)`` matrix and a bool matrix.
     """
     if not isinstance(src, np.ndarray) or src.dtype not in (np.float32, np.float64):
         raise TypeError("src must be a float32 or float64 NumPy array, as in OpenCV")
@@ -117,7 +126,8 @@ def _perspective_transform(
     # Overflow, in the sums and again in the final cast to float32, gives IEEE
     # infinity as in OpenCV, so it must not raise under a caller's strict error policy.
     with np.errstate(invalid="ignore", over="ignore"):
-        # Spell out OpenCV's per-point sums instead of a matmul so rounding matches.
+        # Spell out the per-point sums instead of a matmul: matches OpenCV within FMA
+        # rounding (bit-exact for float32).
         projected_x = x * matrix[0, 0] + y * matrix[0, 1] + matrix[0, 2]
         projected_y = x * matrix[1, 0] + y * matrix[1, 1] + matrix[1, 2]
         w = x * matrix[2, 0] + y * matrix[2, 1] + matrix[2, 2]

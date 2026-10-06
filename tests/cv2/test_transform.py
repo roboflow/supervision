@@ -163,8 +163,8 @@ class TestGetPerspectiveTransform:
         """Land thin-quad corners where OpenCV's LU solution does, within a tight atol.
 
         The atol is per case, about a tenth of the quad's thickness, so a regression
-        that collapses the thin direction fails instead of hiding in a tolerance
-        sized by the largest coordinate. Measured gaps are at most 5.5e-12.
+        that collapses the thin direction fails instead of hiding in a tolerance sized
+        by the largest coordinate. Measured gaps are at most 5.5e-12.
         """
         reference = cv2.getPerspectiveTransform(source, target)
 
@@ -192,10 +192,10 @@ class TestGetPerspectiveTransform:
     ) -> None:
         """Keep the centroid fixed when a thin quad maps onto itself.
 
-        The true transform is the identity, so this needs no reference backend. It
-        also holds for the jittered quad, where OpenCV's SVD path (m[2, 2] != 1)
-        moves the centroid from x=0.51 to x=0.27, which is why that quad is not an
-        OpenCV parity case.
+        The true transform is the identity, so this needs no reference backend. It also
+        holds for the jittered quad, where OpenCV's SVD path (m[2, 2] != 1) moves the
+        centroid from x=0.51 to x=0.27, which is why that quad is not an OpenCV parity
+        case.
         """
         centroid = quad.astype(np.float64).mean(axis=0, keepdims=True)
 
@@ -446,6 +446,8 @@ class TestPerspectiveTransform:
                 "src must be a float32 or float64",
                 id="list-points",
             ),
+            # OpenCV reads a (2, 3) matrix as an affine transform; the fallback only
+            # implements the (3, 3) perspective case, so rejecting it is intentional.
             pytest.param(
                 POINTS,
                 np.eye(3)[:2],
