@@ -222,5 +222,10 @@ def test_approx_poly_dp_keeps_vertex_beyond_segment_endpoint_open() -> None:
     contour = np.array(
         [[86, 24], [97, 37], [15, 41], [97, 11], [69, 13], [68, 15]], dtype=np.int32
     )
-    actual = _approx_poly_dp(contour, 10.0, closed=False).reshape(-1, 2)
-    assert any(np.array_equal(vertex, [97, 11]) for vertex in actual)
+    actual = _approx_poly_dp(contour, 10.0, closed=False)
+    expected = cv2.approxPolyDP(contour, 10.0, closed=False)
+
+    np.testing.assert_array_equal(actual, expected)
+    np.testing.assert_array_equal(
+        actual.reshape(-1, 2), [[86, 24], [97, 37], [15, 41], [97, 11], [68, 15]]
+    )
