@@ -413,6 +413,129 @@ def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None
     np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
 
 
+def _write_pose_dataset(
+    root: Path, label: str, kpt_shape: str = "[2, 3]"
+) -> tuple[str, str, str]:
+    """Write a one-image pose dataset and return the paths `from_yolo` takes."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text(label)
+    (root / "data.yaml").write_text(f"names: ['person']\nkpt_shape: {kpt_shape}\n")
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloPoseLabels:
+    @pytest.mark.parametrize(
+        ("kpt_shape", "keypoints"),
+        [
+            pytest.param("[2, 3]", "0.45 0.3 2 0.55 0.6 0", id="xy-visibility"),
+            pytest.param("[2, 2]", "0.45 0.3 0.55 0.6", id="xy-only"),
+            pytest.param("[2.0, 3]", "0.45 0.3 2 0.55 0.6 0", id="whole-number-floats"),
+        ],
+    )
+    def test_reads_the_box_and_skips_the_keypoints(
+        self, tmp_path: Path, kpt_shape: str, keypoints: str
+    ) -> None:
+        """Pose labels load as their boxes, with no mask built from keypoints."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label=f"0 0.5 0.5 0.2 0.4 {keypoints}\n0 0.25 0.25 0.1 0.1 {keypoints}\n",
+            kpt_shape=kpt_shape,
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_allclose(
+            detections.xyxy, [[40.0, 24.0, 60.0, 56.0], [20.0, 16.0, 30.0, 24.0]]
+        )
+        assert detections.mask is None
+
+    def test_forced_masks_cover_the_box_not_the_keypoints(self, tmp_path: Path) -> None:
+        """With `force_masks`, a pose label gets the same mask as its box alone."""
+        box_paths = _write_pose_dataset(tmp_path / "box", label="0 0.5 0.5 0.2 0.4\n")
+        box_dataset = DetectionDataset.from_yolo(*box_paths, force_masks=True)
+        pose_paths = _write_pose_dataset(
+            tmp_path / "pose", label="0 0.5 0.5 0.2 0.4 0.05 0.05 2 0.95 0.95 2\n"
+        )
+
+        dataset = DetectionDataset.from_yolo(*pose_paths, force_masks=True)
+
+        np.testing.assert_array_equal(dataset[0][2].mask, box_dataset[0][2].mask)
+
+    def test_reads_rows_of_other_lengths_as_before(self, tmp_path: Path) -> None:
+        """Only pose-length rows drop keypoints; boxes and polygons load as before."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label=(
+                "0 0.5 0.5 0.2 0.4 0.45 0.3 2 0.55 0.6 0\n"
+                "0 0.5 0.5 0.2 0.4\n"
+                "0 0.1 0.1 0.9 0.1 0.5 0.9\n"
+            ),
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        np.testing.assert_allclose(
+            dataset[0][2].xyxy,
+            [
+                [40.0, 24.0, 60.0, 56.0],
+                [40.0, 24.0, 60.0, 56.0],
+                [10.0, 8.0, 90.0, 72.0],
+            ],
+        )
+
+    def test_reads_a_polygon_of_pose_length_as_a_box(self, tmp_path: Path) -> None:
+        """A triangle as long as a `[1, 2]` pose row is read as a box, with no mask."""
+        paths = _write_pose_dataset(
+            tmp_path, label="0 0.5 0.5 0.2 0.4 0.1 0.9\n", kpt_shape="[1, 2]"
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+        assert detections.mask is None
+
+    def test_obb_rows_keep_their_corners(self, tmp_path: Path) -> None:
+        """An OBB row as long as a `[2, 2]` pose row keeps all four corners."""
+        paths = _write_pose_dataset(
+            tmp_path,
+            label="0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9\n",
+            kpt_shape="[2, 2]",
+        )
+
+        dataset = DetectionDataset.from_yolo(*paths, is_obb=True)
+
+        corners = dataset[0][2].data[ORIENTED_BOX_COORDINATES]
+        assert corners.shape == (1, 4, 2)
+        np.testing.assert_allclose(
+            corners, [[[10.0, 8.0], [90.0, 8.0], [90.0, 72.0], [10.0, 72.0]]]
+        )
+
+    @pytest.mark.parametrize(
+        "kpt_shape",
+        ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "[true, 3]", "[17, 3, 1]", "null"],
+    )
+    @pytest.mark.parametrize(
+        "is_obb",
+        [pytest.param(False, id="boxes"), pytest.param(True, id="obb")],
+    )
+    def test_raises_on_an_invalid_kpt_shape(
+        self, tmp_path: Path, kpt_shape: str, is_obb: bool
+    ) -> None:
+        """A `kpt_shape` other than `[K, 2]` or `[K, 3]` is rejected."""
+        paths = _write_pose_dataset(
+            tmp_path, label="0 0.5 0.5 0.2 0.4\n", kpt_shape=kpt_shape
+        )
+
+        with pytest.raises(ValueError, match="kpt_shape"):
+            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
+
+
 @pytest.mark.parametrize(
     ("image_name", "expected_result", "exception"),
     [
