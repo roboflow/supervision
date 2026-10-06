@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import warnings
 from collections.abc import Sequence
@@ -40,14 +41,22 @@ if TYPE_CHECKING:
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
-    A negative width or height would place ``x_min`` past ``x_max``, breaking the
-    ordering every consumer of ``xyxy`` assumes: ``box_iou_batch`` reports no overlap
-    between identical regions, ``with_nms`` stops suppressing, and ``Detections.area``
-    turns negative when only one of the two extents is negative. Reject it here rather
-    than let a corrupt label travel on.
+    Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
+    would pass the extent check below unnoticed. A negative width or height would
+    place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
+    assumes: ``box_iou_batch`` reports no overlap between identical regions,
+    ``with_nms`` stops suppressing, and ``Detections.area`` turns negative when only
+    one of the two extents is negative. Reject both here rather than let a corrupt
+    label travel on.
     """
     x_center, y_center, width, height = values
-    box_width, box_height = float(width), float(height)
+    numbers = [float(value) for value in values]
+    if not all(math.isfinite(number) for number in numbers):
+        raise ValueError(
+            f"Invalid box ({x_center!r}, {y_center!r}, {width!r}, {height!r}) in YOLO "
+            "annotation; expected a finite center, width and height."
+        )
+    box_x_center, box_y_center, box_width, box_height = numbers
     if box_width < 0 or box_height < 0:
         raise ValueError(
             f"Invalid box extent ({width!r}, {height!r}) in YOLO annotation; "
@@ -55,10 +64,10 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
         )
     return np.array(
         [
-            float(x_center) - box_width / 2,
-            float(y_center) - box_height / 2,
-            float(x_center) + box_width / 2,
-            float(y_center) + box_height / 2,
+            box_x_center - box_width / 2,
+            box_y_center - box_height / 2,
+            box_x_center + box_width / 2,
+            box_y_center + box_height / 2,
         ],
         dtype=np.float32,
     )
@@ -87,6 +96,29 @@ def _polygons_to_masks(
             for polygon in polygons
         ],
         dtype=bool,
+    )
+
+
+def _check_line_is_parsable(values: list[str], line: str, is_obb: bool) -> None:
+    """Raise unless a YOLO line carries enough tokens for a box, polygon or OBB.
+
+    Five tokens are a box, six add a trailing confidence or tracker id, and seven or
+    more are a polygon. ``is_obb=True`` reads nine-token four-corner lines only, where
+    an odd coordinate count cannot be paired into vertices. Anything else cannot be
+    read as any of them.
+    """
+    if is_obb:
+        if len(values) == 9:
+            return
+        raise ValueError(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {len(values)}."
+        )
+    if len(values) >= 5:
+        return
+    raise ValueError(
+        f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+        f"(class id and four box values), got {len(values)}."
     )
 
 
@@ -304,8 +336,10 @@ def yolo_annotations_to_detections(
     ``load_yolo_annotations`` drops them before calling this function.
 
     Raises:
-        ValueError: If a class id is not a whole number, a box has a negative
-            width or height, or a coordinate token is not numeric.
+        ValueError: If a line has fewer than five tokens, or is not nine tokens
+            with ``is_obb=True``; or if a class id is not a whole number, a box
+            value is not finite, a box has a negative width or height, or a
+            coordinate token is not numeric.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -317,6 +351,9 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
+        # Every line passing this check appends exactly one box below, which keeps
+        # class_id_list aligned with relative_xyxy_list.
+        _check_line_is_parsable(values=values, line=line, is_obb=is_obb)
         class_id_list.append(_parse_class_id(values[0]))
         if _is_axis_aligned_box_line(values, is_obb):
             if len(values) == 6:
@@ -325,7 +362,7 @@ def yolo_annotations_to_detections(
             relative_xyxy_list.append(box)
             if with_masks:
                 relative_polygon_list.append(_box_to_polygon(box=box))
-        elif len(values) > 5:
+        else:
             polygon_values = values[1:]
             if not is_obb and len(polygon_values) % 2:
                 _ = float(polygon_values.pop())
@@ -396,7 +433,8 @@ def load_yolo_annotations(
         ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
             not a list or dict, or a dict mixing numeric and non-numeric keys;
             or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
-            `kpt_shape: null` included.
+            `kpt_shape: null` included. Also if an annotation file contains an
+            invalid line; the message names the offending file.
     """
     if is_obb and force_masks:
         warnings.warn(

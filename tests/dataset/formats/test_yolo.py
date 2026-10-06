@@ -1,3 +1,4 @@
+import re
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -269,6 +270,74 @@ class TestYoloAnnotationsToDetectionsClassId:
             )
 
 
+class TestYoloAnnotationsToDetectionsMalformedLine:
+    """Tests for YOLO lines that match no known annotation shape."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            pytest.param("0", id="class-only"),
+            pytest.param("0 0.5", id="one-coordinate"),
+            pytest.param("0 0.5 0.5", id="two-coordinates"),
+            pytest.param("0 0.5 0.5 0.2", id="missing-height"),
+            pytest.param("", id="blank"),
+            pytest.param("   ", id="whitespace-only"),
+        ],
+    )
+    def test_rejects_a_line_that_is_too_short(self, line: str) -> None:
+        """Rejects a line with fewer than five tokens."""
+        expected = re.escape(
+            f"Invalid YOLO annotation line {line!r}; expected at least 5 tokens "
+            f"(class id and four box values), got {len(line.split())}."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False
+            )
+
+    @pytest.mark.parametrize(
+        "coordinate_count",
+        [
+            pytest.param(4, id="axis-aligned-box"),
+            pytest.param(5, id="too-few"),
+            pytest.param(7, id="odd-count"),
+            pytest.param(9, id="corners-with-confidence"),
+            pytest.param(10, id="too-many"),
+        ],
+    )
+    def test_rejects_an_obb_line_that_is_not_four_corners(
+        self, coordinate_count: int
+    ) -> None:
+        """Rejects an OBB line that is not a class id and four corner pairs."""
+        line = " ".join(["0"] + ["0.5"] * coordinate_count)
+        expected = re.escape(
+            f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
+            f"(class id and four corner pairs), got {coordinate_count + 1}."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[line], resolution_wh=(100, 100), with_masks=False, is_obb=True
+            )
+
+    def test_reports_the_short_line_rather_than_the_class_id(self) -> None:
+        """Reports a short line that follows a valid one by quoting the short line."""
+        valid_line = "0 0.5 0.5 0.2 0.2"
+        short_line = "0 0.5 0.5 0.2"
+        expected = re.escape(
+            f"Invalid YOLO annotation line {short_line!r}; expected at least 5 "
+            f"tokens (class id and four box values), got 4."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=[valid_line, short_line],
+                resolution_wh=(100, 100),
+                with_masks=False,
+            )
+
+
 class TestYoloAnnotationsToDetectionsBoxExtent:
     """Tests for how ``yolo_annotations_to_detections`` reads box width and height."""
 
@@ -278,8 +347,6 @@ class TestYoloAnnotationsToDetectionsBoxExtent:
             pytest.param("-0.4", "0.4", id="negative-width"),
             pytest.param("0.4", "-0.4", id="negative-height"),
             pytest.param("-0.4", "-0.4", id="negative-both"),
-            pytest.param("-inf", "0.4", id="negative-infinite-width"),
-            pytest.param("0.4", "-inf", id="negative-infinite-height"),
             pytest.param("-1e-9", "0.4", id="tiny-negative-width"),
         ],
     )
@@ -296,6 +363,31 @@ class TestYoloAnnotationsToDetectionsBoxExtent:
                 lines=lines, resolution_wh=(100, 100), with_masks=False
             )
 
+    @pytest.mark.parametrize("token", ["nan", "inf", "-inf"])
+    @pytest.mark.parametrize(
+        "line_template",
+        [
+            pytest.param("0 {} 0.5 0.2 0.4", id="x-center"),
+            pytest.param("0 0.5 {} 0.2 0.4", id="y-center"),
+            pytest.param("0 0.5 0.5 {} 0.4", id="width"),
+            pytest.param("0 0.5 0.5 0.2 {}", id="height"),
+        ],
+    )
+    def test_rejects_a_non_finite_box_value(
+        self, line_template: str, token: str
+    ) -> None:
+        """A nan or infinite center, width or height is rejected as not finite."""
+        lines = [line_template.format(token)]
+        expected = (
+            rf"Invalid box \(.*'{re.escape(token)}'.*\) in YOLO annotation; "
+            r"expected a finite center, width and height\."
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            yolo_annotations_to_detections(
+                lines=lines, resolution_wh=(100, 100), with_masks=False
+            )
+
     @pytest.mark.parametrize(
         ("line", "with_masks", "is_obb"),
         [
@@ -303,13 +395,12 @@ class TestYoloAnnotationsToDetectionsBoxExtent:
                 "0 0.5 0.5 -0.4 0.4 0.9", False, False, id="box-with-confidence"
             ),
             pytest.param("0 0.5 0.5 -0.4 0.4", True, False, id="box-with-masks"),
-            pytest.param("0 0.5 0.5 -0.4 0.4", False, True, id="box-in-obb-mode"),
         ],
     )
     def test_rejects_a_negative_extent_on_every_box_line_shape(
         self, line: str, with_masks: bool, is_obb: bool
     ) -> None:
-        """The guard also covers confidence-suffixed, masked and OBB-mode boxes."""
+        """The guard also covers confidence-suffixed and masked boxes."""
         with pytest.raises(ValueError, match="Invalid box extent"):
             yolo_annotations_to_detections(
                 lines=[line],
@@ -486,6 +577,75 @@ def test_from_yolo_loads_labels_saved_with_numpy_savetxt(tmp_path: Path) -> None
 
     np.testing.assert_array_equal(detections.class_id, np.array([1]))
     np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
+
+
+def _write_yolo_dataset(root: Path, label: str) -> tuple[str, str, str]:
+    """Write a one-image YOLO dataset and return the paths `from_yolo` takes."""
+    images_dir = root / "images"
+    labels_dir = root / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+    Image.new("RGB", (100, 80)).save(images_dir / "test.png")
+    (labels_dir / "test.txt").write_text(label)
+    (root / "data.yaml").write_text("names: ['cat', 'dog']\n")
+    return str(images_dir), str(labels_dir), str(root / "data.yaml")
+
+
+class TestFromYoloLabelLines:
+    """Tests for how ``DetectionDataset.from_yolo`` reads the lines of a label file."""
+
+    @pytest.mark.parametrize(
+        ("valid_line", "invalid_line", "is_obb", "line_error"),
+        [
+            pytest.param(
+                "0 0.5 0.5 0.2 0.4",
+                "1 0.5 0.5 0.2",
+                False,
+                "Invalid YOLO annotation line '1 0.5 0.5 0.2'; expected at least 5 "
+                "tokens (class id and four box values), got 4.",
+                id="box-missing-height",
+            ),
+            pytest.param(
+                "0 0.1 0.1 0.9 0.1 0.9 0.9 0.1 0.9",
+                "1 0.5 0.5 0.2 0.4",
+                True,
+                "Invalid YOLO OBB annotation line '1 0.5 0.5 0.2 0.4'; expected 9 "
+                "tokens (class id and four corner pairs), got 5.",
+                id="obb-axis-aligned-box",
+            ),
+        ],
+    )
+    def test_names_the_file_and_the_invalid_line(
+        self,
+        tmp_path: Path,
+        valid_line: str,
+        invalid_line: str,
+        is_obb: bool,
+        line_error: str,
+    ) -> None:
+        """An invalid line between valid ones is reported with its file and its text."""
+        paths = _write_yolo_dataset(
+            tmp_path, label=f"{valid_line}\n{invalid_line}\n{valid_line}\n"
+        )
+        label_path = tmp_path / "labels" / "test.txt"
+        expected = re.escape(
+            f"Invalid YOLO annotation file '{label_path}': {line_error}"
+        )
+
+        with pytest.raises(ValueError, match=expected):
+            DetectionDataset.from_yolo(*paths, is_obb=is_obb)
+
+    def test_skips_trailing_blank_and_whitespace_only_lines(
+        self, tmp_path: Path
+    ) -> None:
+        """A label file ending in blank and whitespace-only lines loads its box."""
+        paths = _write_yolo_dataset(tmp_path, label="0 0.5 0.5 0.2 0.4\n\n   \n\t\n")
+
+        dataset = DetectionDataset.from_yolo(*paths)
+
+        _, _, detections = dataset[0]
+        np.testing.assert_array_equal(detections.class_id, np.array([0]))
+        np.testing.assert_allclose(detections.xyxy, [[40.0, 24.0, 60.0, 56.0]])
 
 
 def _write_pose_dataset(
