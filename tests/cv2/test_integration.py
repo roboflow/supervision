@@ -9,9 +9,10 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from supervision import _cv2
-from supervision._cv2._image import _add_weighted
+from supervision._cv2._image import _add_weighted, _flip
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src" / "supervision"
@@ -89,6 +90,37 @@ def test_fallback_add_weighted_accepts_opencv_keyword_names() -> None:
 
     actual = _add_weighted(src1=source, alpha=0.5, src2=other, beta=0.5, gamma=10)
     expected = _add_weighted(source, 0.5, other, 0.5, 10)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_flip_accepts_opencv_keyword_names() -> None:
+    """Accept OpenCV's public `src` and `flipCode` parameter names."""
+    source = np.array([[1, 2], [3, 4]], dtype=np.uint8)
+
+    actual = _flip(src=source, flipCode=-1)
+
+    np.testing.assert_array_equal(actual, np.array([[4, 3], [2, 1]], dtype=np.uint8))
+
+
+@pytest.mark.parametrize(
+    ("flip_code", "expected"),
+    [
+        pytest.param(
+            2, np.array([[2, 1], [4, 3]], dtype=np.uint8), id="positive-horizontal"
+        ),
+        pytest.param(
+            -2, np.array([[4, 3], [2, 1]], dtype=np.uint8), id="negative-both"
+        ),
+    ],
+)
+def test_fallback_flip_follows_sign_of_flip_code(
+    flip_code: int, expected: np.ndarray
+) -> None:
+    """Flip by the sign of any positive or negative code, as OpenCV does."""
+    source = np.array([[1, 2], [3, 4]], dtype=np.uint8)
+
+    actual = _flip(source, flip_code)
 
     np.testing.assert_array_equal(actual, expected)
 
