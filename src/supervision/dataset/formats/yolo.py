@@ -134,6 +134,27 @@ def _with_seg_mask(lines: list[str]) -> bool:
     return any(len(line.split()) > 6 for line in lines)
 
 
+def _read_data_yaml(file_path: str) -> dict[str, Any]:
+    """Read a YOLO data.yaml file and check that its root is a mapping.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        The parsed data.yaml content.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping.
+    """
+    data: dict[str, Any] = read_yaml_file(file_path=file_path)
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Expected mapping in data.yaml at '{file_path}',"
+            f" got {type(data).__name__}."
+        )
+    return data
+
+
 def _extract_class_names(file_path: str) -> list[str]:
     """Return class names from a YOLO data.yaml file ordered by class index.
 
@@ -154,12 +175,7 @@ def _extract_class_names(file_path: str) -> list[str]:
         ValueError: If the YAML root is not a mapping, if ``names`` is
             neither a list nor a dict, or if the dict has mixed key types.
     """
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"Expected mapping in data.yaml at '{file_path}',"
-            f" got {type(data).__name__}."
-        )
+    data = _read_data_yaml(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
@@ -195,6 +211,70 @@ def _extract_class_names(file_path: str) -> list[str]:
         "Expected 'names' to be a list or dict in data.yaml at "
         f"'{file_path}', got {type(names).__name__}."
     )
+
+
+def _is_positive_whole_number(value: Any) -> bool:
+    """Return whether a YAML value is a positive whole number.
+
+    Whole-number floats such as ``17.0`` count; booleans do not, although
+    ``bool`` subclasses ``int`` in Python.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value > 0
+    return isinstance(value, float) and value.is_integer() and value > 0
+
+
+def _extract_pose_value_count(file_path: str) -> int:
+    """Return the number of keypoint values that follow the box in a pose label.
+
+    Ultralytics pose datasets declare ``kpt_shape: [K, D]`` in data.yaml and
+    write each label as ``class x y w h`` followed by ``K * D`` keypoint values.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        ``K * D``, or ``0`` when data.yaml has no ``kpt_shape``.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, or if ``kpt_shape`` is
+            not ``[K, 2]`` or ``[K, 3]`` with a positive whole number ``K``.
+    """
+    data = _read_data_yaml(file_path=file_path)
+    if "kpt_shape" not in data:
+        return 0
+    kpt_shape = data["kpt_shape"]
+    if not (
+        isinstance(kpt_shape, list)
+        and len(kpt_shape) == 2
+        and all(_is_positive_whole_number(value) for value in kpt_shape)
+        and kpt_shape[1] in (2, 3)
+    ):
+        raise ValueError(
+            f"Expected 'kpt_shape' in data.yaml at '{file_path}' to be"
+            f" [number of keypoints, 2 or 3], got {kpt_shape!r}. Fix it, or"
+            " remove 'kpt_shape' if the dataset has no keypoints."
+        )
+    return int(kpt_shape[0]) * int(kpt_shape[1])
+
+
+def _drop_keypoints(lines: list[str], pose_value_count: int) -> list[str]:
+    """Keep the box of each pose label line and drop its keypoint values.
+
+    Only lines of exactly ``5 + pose_value_count`` tokens are pose labels; other
+    lines are returned unchanged. Ultralytics reads pose labels the same way for
+    box tasks.
+    """
+    kept: list[str] = []
+    for line in lines:
+        values = line.split()
+        if len(values) == 5 + pose_value_count:
+            kept.append(" ".join(values[:5]))
+        else:
+            kept.append(line)
+    return kept
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
@@ -241,7 +321,8 @@ def yolo_annotations_to_detections(
     line that is malformed rather than annotated, with an odd coordinate count
     and no extra field, is indistinguishable from the latter and is read the
     same way. When ``is_obb=True``, annotations must use the nine-token
-    four-corner OBB format.
+    four-corner OBB format. Pose keypoints are not stripped here;
+    ``load_yolo_annotations`` drops them before calling this function.
     """
     if len(lines) == 0:
         return Detections.empty()
@@ -315,7 +396,10 @@ def load_yolo_annotations(
         annotations_directory_path: The path to the directory
             containing the YOLO annotation files.
         data_yaml_path: The path to the data
-            YAML file containing class information.
+            YAML file containing class information and, for pose datasets,
+            `kpt_shape`. With a `kpt_shape` of `[K, D]`, every row of exactly
+            `5 + K * D` values, a polygon row of that length included, is read
+            as a box, as Ultralytics does.
         force_masks: If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
             This parameter has no effect when `is_obb=True`; mask generation
@@ -329,6 +413,12 @@ def load_yolo_annotations(
         A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
+
+    Raises:
+        ValueError: If `data.yaml` is not a mapping; if its `names` is missing,
+            not a list or dict, or a dict mixing numeric and non-numeric keys;
+            or if its `kpt_shape` is present but not `[K, 2]` or `[K, 3]`,
+            `kpt_shape: null` included.
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -356,6 +446,12 @@ def load_yolo_annotations(
     ]
 
     classes = _extract_class_names(file_path=data_yaml_path)
+    pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
+    if is_obb:
+        # OBB rows are never pose labels, yet a nine-token OBB row would match
+        # the pose length when 5 + K * D == 9 and lose its corners; kpt_shape
+        # is still validated by the call above.
+        pose_value_count = 0
     annotations = {}
 
     for image_path in tqdm(
@@ -372,6 +468,8 @@ def load_yolo_annotations(
 
         w, h = _image_file_resolution_wh(image_path)
         lines = read_txt_file(file_path=annotation_path, skip_empty=True)
+        if pose_value_count:
+            lines = _drop_keypoints(lines=lines, pose_value_count=pose_value_count)
         resolution_wh = (w, h)
 
         with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
