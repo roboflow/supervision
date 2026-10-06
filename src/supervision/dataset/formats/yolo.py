@@ -264,7 +264,8 @@ def yolo_annotations_to_detections(
     line that is malformed rather than annotated, with an odd coordinate count
     and no extra field, is indistinguishable from the latter and is read the
     same way. When ``is_obb=True``, annotations must use the nine-token
-    four-corner OBB format.
+    four-corner OBB format. Pose keypoints are not stripped here;
+    ``load_yolo_annotations`` drops them before calling this function.
     """
     if len(lines) == 0:
         return Detections.empty()
