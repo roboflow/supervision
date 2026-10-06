@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from tests.helpers import _create_detections
+from tests.helpers import (
+    _ConstantTransform,
+    _create_detections,
+    _ShiftTransform,
+    _WrongShapeTransform,
+)
 
 DETECTION_BOXES = np.array(
     [
@@ -329,3 +334,98 @@ class TestPolygonZoneTrigger:
 
         assert left_result
         assert not right_result
+
+
+FOUR_CORNERS = (
+    sv.Position.TOP_LEFT,
+    sv.Position.TOP_RIGHT,
+    sv.Position.BOTTOM_LEFT,
+    sv.Position.BOTTOM_RIGHT,
+)
+# The camera moved by (30, -20): DETECTION_BOXES as seen in the current frame.
+SHIFTED_DETECTIONS = _create_detections(
+    xyxy=DETECTION_BOXES + np.array([30.0, -20.0, 30.0, -20.0]),
+    class_id=[0] * len(DETECTION_BOXES),
+)
+
+
+class TestPolygonZoneTriggerWithCoordTransform:
+    @pytest.mark.parametrize(
+        ("triggering_anchors", "require_all_anchors", "transform", "expected"),
+        [
+            pytest.param(
+                FOUR_CORNERS,
+                True,
+                _ShiftTransform(30, -20),
+                [False, False, False, True, True, True, False, False, False],
+                id="all-four-corners",
+            ),
+            pytest.param(
+                FOUR_CORNERS,
+                False,
+                _ShiftTransform(30, -20),
+                [False, False, True, True, True, True, True, False, False],
+                id="any-of-four-corners",
+            ),
+            pytest.param(
+                (sv.Position.BOTTOM_CENTER,),
+                True,
+                _ShiftTransform(30, -20),
+                [False, False, True, True, True, True, False, False, False],
+                id="bottom-center",
+            ),
+            pytest.param(
+                (sv.Position.BOTTOM_CENTER,),
+                True,
+                None,
+                [False, False, False, True, True, False, False, False, False],
+                id="bottom-center-without-transform",
+            ),
+        ],
+    )
+    def test_shifted_detections_are_tested_in_reference_coordinates(
+        self,
+        triggering_anchors: tuple[sv.Position, ...],
+        require_all_anchors: bool,
+        transform: _ShiftTransform | None,
+        expected: list[bool],
+    ) -> None:
+        """Anchors are mapped back by the camera shift before the inside test."""
+        zone = sv.PolygonZone(POLYGON, triggering_anchors, require_all_anchors)
+
+        in_zone = zone.trigger(SHIFTED_DETECTIONS, coord_transform=transform)
+
+        np.testing.assert_array_equal(in_zone, expected)
+        assert zone.current_count == sum(expected)
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "mapped_point",
+        [
+            pytest.param((-60.0, 45.0), id="negative-x"),
+            pytest.param((160.0, 45.0), id="beyond-mask-width"),
+            pytest.param((45.0, -1e30), id="far-beyond-int-range"),
+            pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param((np.inf, 45.0), id="inf"),
+        ],
+    )
+    def test_anchor_mapped_out_of_bounds_is_not_counted(
+        self, mapped_point: tuple[float, float]
+    ) -> None:
+        """An anchor inside the zone in frame but mapped outside its mask is out."""
+        zone = sv.PolygonZone(np.array([[0, 0], [100, 0], [100, 100], [0, 100]]))
+        detections = _create_detections(xyxy=[[40.0, 40.0, 60.0, 50.0]], class_id=[0])
+
+        in_zone = zone.trigger(
+            detections, coord_transform=_ConstantTransform(*mapped_point)
+        )
+
+        np.testing.assert_array_equal(in_zone, [False])
+        assert zone.current_count == 0
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        zone = sv.PolygonZone(POLYGON)
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            zone.trigger(DETECTIONS, coord_transform=_WrongShapeTransform())

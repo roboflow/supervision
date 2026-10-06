@@ -93,6 +93,53 @@ def _create_detections(
     )
 
 
+class _ShiftTransform:
+    """A camera motion that shifts the reference frame by `(dx, dy)` pixels."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        return points + self.offset
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        return points - self.offset
+
+
+class _ConstantTransform:
+    """A degenerate transform that maps every point to the same `(x, y)`.
+
+    Used to feed non-finite or far-away mapped anchors into the zones.
+    """
+
+    def __init__(self, x: float, y: float) -> None:
+        """Store the point that every input point is mapped to."""
+        self.point = np.array([x, y], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map every point to the stored point."""
+        return np.tile(self.point, (len(points), 1))
+
+
+class _WrongShapeTransform:
+    """A transform that drops points, violating the protocol."""
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return only the first point."""
+        return points[:1]
+
+
 def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,

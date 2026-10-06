@@ -12,7 +12,11 @@ from supervision.detection.utils.converters import (
 )
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
-from supervision.geometry.core import Position
+from supervision.geometry.core import (
+    CoordinatesTransformation,
+    Position,
+    _transform_points,
+)
 from supervision.geometry.utils import get_polygon_center
 
 
@@ -122,7 +126,11 @@ class PolygonZone:
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
 
-    def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
+    def trigger(
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None = None,
+    ) -> npt.NDArray[np.bool_]:
         """Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
@@ -133,21 +141,51 @@ class PolygonZone:
 
         Args:
             detections: The detections to be checked against the polygon zone
+            coord_transform: Optional per-frame camera motion. Anchors are mapped
+                into the zone's reference frame with `rel_to_abs` before the
+                inside test; anchors mapped outside the zone's bounds or to
+                non-finite values are outside.
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [50, 0]
+            ...     def rel_to_abs(self, points): return points - [50, 0]
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> detections = sv.Detections(xyxy=np.array([[120.0, 40.0, 140.0, 60.0]]))
+            >>> zone.trigger(detections)
+            array([False])
+            >>> zone.trigger(detections, coord_transform=CameraShift())
+            array([ True])
+
+            ```
         """
         if len(detections) == 0:
             self.current_count = 0
             return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
-        all_anchors = np.array(
+        anchor_coordinates = np.array(
             [
-                np.rint(detections.get_anchors_coordinates(anchors)).astype(int)
+                detections.get_anchors_coordinates(anchors)
                 for anchors in self.triggering_anchors
             ]
         )
+        if coord_transform is not None:
+            mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
+            # -1 is just outside the mask, so non-finite anchors fail the bounds
+            # check below; clipping far finite ones to the same range keeps them
+            # outside without overflowing the integer cast.
+            mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
+            anchor_coordinates = np.clip(mapped, -1.0, float(max(self.mask.shape)))
+        all_anchors = np.rint(anchor_coordinates).astype(int)
 
         mask_h, mask_w = self.mask.shape
         x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
