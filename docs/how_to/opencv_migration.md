@@ -1,7 +1,7 @@
 ---
 comments: true
 description: Migrate Supervision installations after OpenCV becomes an ambient optional backend: use the included fallback by default or select one compatible OpenCV wheel for your application.
-date_modified: 2026-10-01
+date_modified: 2026-10-06
 ---
 
 # Migrate to Supervision Without an OpenCV Dependency
