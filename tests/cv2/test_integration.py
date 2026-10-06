@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
+from supervision import _cv2
 from supervision._cv2._image import _add_weighted
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -90,6 +91,22 @@ def test_fallback_add_weighted_accepts_opencv_keyword_names() -> None:
     expected = _add_weighted(source, 0.5, other, 0.5, 10)
 
     np.testing.assert_array_equal(actual, expected)
+
+
+def test_facade_maps_speed_example_source_onto_target() -> None:
+    """Run the speed example's ViewTransformer calls through the active backend."""
+    source = np.array([[1252, 787], [2298, 803], [5039, 2159], [-550, 2159]])
+    target = np.array([[0, 0], [24, 0], [24, 249], [0, 249]])
+    matrix = _cv2.getPerspectiveTransform(
+        source.astype(np.float32), target.astype(np.float32)
+    )
+    points = source.reshape(-1, 1, 2).astype(np.float32)
+
+    projected = _cv2.perspectiveTransform(points, matrix)
+
+    # float32 output spacing near 249 is about 1.5e-5; 1e-3 leaves room for the
+    # conditioning of a homography solved from 5000-pixel image coordinates.
+    np.testing.assert_allclose(projected.reshape(-1, 2), target, rtol=0, atol=1e-3)
 
 
 def test_ordinary_suite_passes_when_cv2_is_blocked(tmp_path: Path) -> None:
