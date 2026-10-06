@@ -179,10 +179,13 @@ def _validate_and_setup_video(
     # duration, as browsers record it, reports a huge negative count, and a
     # variable frame rate video can report fewer frames than it holds, so the
     # count only rejects an `end` when it is positive and never bounds the read.
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    # It is read only when needed: the PyAV fallback decodes the whole video a
+    # second time when the container metadata lacks a count.
+    start = max(start, 0)
+    needs_frame_count = end is not None or (start > 0 and not iterative_seek)
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
     if end is not None and 0 < total_frames < end:
         raise Exception("Requested frames are outbound")
-    start = max(start, 0)
     # `set()` cannot be trusted past a positive frame count: the PyAV fallback
     # returns False without moving when `start` exceeds the count, and OpenCV
     # returns True without moving on a duration-less WebM. Grabbing frames lands
