@@ -7,6 +7,8 @@ date_modified: 2026-09-29
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` with `sv.VLM.FLORENCE_2` now returns one detection per instance for `<REFERRING_EXPRESSION_SEGMENTATION>` and `<REGION_TO_SEGMENTATION>`. Florence-2 returns each instance as a list of polygons, one per connected region, but every polygon became its own detection, so an object split into two regions came back as two detections. The polygons of an instance are now merged into one mask with one box around all of them. Instances made of a single polygon load as before. Polygons with fewer than three vertices are ignored, and an instance without any usable polygon is skipped, so it no longer yields an empty-mask detection or raises. ([#2648](https://github.com/roboflow/supervision/pull/2648))
+
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
