@@ -402,6 +402,9 @@ def load_yolo_annotations(
     classes = _extract_class_names(file_path=data_yaml_path)
     pose_value_count = _extract_pose_value_count(file_path=data_yaml_path)
     if is_obb:
+        # OBB rows are never pose labels, yet a nine-token OBB row would match
+        # the pose length when 5 + K * D == 9 and lose its corners; kpt_shape
+        # is still validated by the call above.
         pose_value_count = 0
     annotations = {}
 
