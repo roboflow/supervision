@@ -309,7 +309,7 @@ class TestYoloAnnotationsToDetectionsMalformedLine:
     def test_rejects_an_obb_line_that_is_not_four_corners(
         self, coordinate_count: int
     ) -> None:
-        """OBB reads nine tokens only; anything else failed inside the reshape."""
+        """Rejects an OBB line that is not a class id and four corner pairs."""
         line = " ".join(["0"] + ["0.5"] * coordinate_count)
         expected = re.escape(
             f"Invalid YOLO OBB annotation line {line!r}; expected 9 tokens "
@@ -322,7 +322,7 @@ class TestYoloAnnotationsToDetectionsMalformedLine:
             )
 
     def test_reports_the_short_line_rather_than_the_class_id(self) -> None:
-        """One bad row among good ones used to surface as a class_id shape error."""
+        """Reports a short line that follows a valid one by quoting the short line."""
         valid_line = "0 0.5 0.5 0.2 0.2"
         short_line = "0 0.5 0.5 0.2"
         expected = re.escape(

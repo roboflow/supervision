@@ -351,10 +351,8 @@ def yolo_annotations_to_detections(
     w, h = resolution_wh
     for line in lines:
         values = line.split()
-        # Every branch below appends one box, so a line matching none of them would
-        # leave class_id_list one entry longer than relative_xyxy_list. That surfaced
-        # far away as a NumPy broadcast error, or as a class_id shape error when the
-        # file also held good rows, naming neither the line nor the real fault.
+        # Every line passing this check appends exactly one box below, which keeps
+        # class_id_list aligned with relative_xyxy_list.
         _check_line_is_parsable(values=values, line=line, is_obb=is_obb)
         class_id_list.append(_parse_class_id(values[0]))
         if _is_axis_aligned_box_line(values, is_obb):
