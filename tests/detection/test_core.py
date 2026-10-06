@@ -1052,6 +1052,132 @@ class TestDetectionsIntegerAnchors:
                 [2**63 + 2**19, 1],
                 id="uint64-overflow",
             ),
+            pytest.param(
+                np.int64,
+                [-(2**62) - 2**20, 0, -(2**62), 2],
+                Position.CENTER,
+                [-(2**62) - 2**19, 1],
+                id="int64-negative-overflow",
+            ),
+            pytest.param(
+                np.int64,
+                [-(2**63), 0, -(2**63) + 2, 2],
+                Position.CENTER,
+                [float(-(2**63) + 1), 1],
+                id="int64-minimum-pair",
+            ),
+            pytest.param(
+                np.int64,
+                [2**63 - 1, 0, 2**63 - 1, 2],
+                Position.CENTER,
+                [float(2**63 - 1), 1],
+                id="int64-maximum-pair",
+            ),
+            pytest.param(
+                np.uint64,
+                [2**64 - 1, 0, 2**64 - 1, 2],
+                Position.CENTER,
+                [float(2**64 - 1), 1],
+                id="uint64-maximum-pair",
+            ),
+            pytest.param(
+                np.int16,
+                [-20000, 0, -22000, 2],
+                Position.CENTER,
+                [-21000, 1],
+                id="int16-negative-center",
+            ),
+            pytest.param(
+                np.int32,
+                [-1_500_000_000, 0, -1_700_000_000, 2],
+                Position.CENTER,
+                [-1_600_000_000, 1],
+                id="int32-negative-center",
+            ),
+            pytest.param(
+                np.int8,
+                [100, 0, 120, 2],
+                Position.CENTER,
+                [110, 1],
+                id="int8-center",
+            ),
+            pytest.param(
+                np.uint8,
+                [200, 0, 250, 2],
+                Position.CENTER,
+                [225, 1],
+                id="uint8-center",
+            ),
+            pytest.param(
+                np.uint32,
+                [4_000_000_000, 0, 4_200_000_000, 2],
+                Position.CENTER,
+                [4_100_000_000, 1],
+                id="uint32-center",
+            ),
+            pytest.param(
+                np.int16,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int16-odd-sum",
+            ),
+            pytest.param(
+                np.int32,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int32-odd-sum",
+            ),
+            pytest.param(
+                np.uint16,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="uint16-odd-sum",
+            ),
+            pytest.param(
+                np.int64,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="int64-odd-sum",
+            ),
+            pytest.param(
+                np.uint64,
+                [1, 2, 4, 7],
+                Position.CENTER,
+                [2.5, 4.5],
+                id="uint64-odd-sum",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.CENTER_LEFT,
+                [2**62, 2**62 + 2**19],
+                id="int64-overflow-center-left",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.CENTER_RIGHT,
+                [2**62 + 2**20, 2**62 + 2**19],
+                id="int64-overflow-center-right",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.TOP_CENTER,
+                [2**62 + 2**19, 2**62],
+                id="int64-overflow-top-center",
+            ),
+            pytest.param(
+                np.int64,
+                [2**62, 2**62, 2**62 + 2**20, 2**62 + 2**20],
+                Position.BOTTOM_CENTER,
+                [2**62 + 2**19, 2**62 + 2**20],
+                id="int64-overflow-bottom-center",
+            ),
         ],
     )
     def test_large_integer_boxes_keep_midpoints(
@@ -1067,6 +1193,122 @@ class TestDetectionsIntegerAnchors:
         result = detections.get_anchors_coordinates(anchor)
 
         np.testing.assert_array_equal(result, [expected])
+
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "expected"),
+        [
+            pytest.param(
+                np.int64,
+                [[2**62, 0, 2**62 + 2**20, 2], [0, 0, 10, 4], [1, 2, 3, 4]],
+                [[2**62 + 2**19, 1], [5, 2], [2, 3]],
+                id="int64-overflow-first-row",
+            ),
+            pytest.param(
+                np.int64,
+                [[0, 0, 10, 4], [1, 2, 3, 4], [-(2**62) - 2**20, 0, -(2**62), 2]],
+                [[5, 2], [2, 3], [-(2**62) - 2**19, 1]],
+                id="int64-negative-overflow-last-row",
+            ),
+            pytest.param(
+                np.int64,
+                [
+                    [0, 2**62, 2, 2**62 + 2**20],
+                    [0, 0, 10, 4],
+                    [2**62, 0, 2**62 + 2**20, 2],
+                ],
+                [[1, 2**62 + 2**19], [5, 2], [2**62 + 2**19, 1]],
+                id="int64-overflow-on-one-axis",
+            ),
+            pytest.param(
+                np.uint64,
+                [[2**63, 0, 2**63 + 2**20, 2], [0, 0, 10, 4], [1, 2, 3, 4]],
+                [[2**63 + 2**19, 1], [5, 2], [2, 3]],
+                id="uint64-overflow-first-row",
+            ),
+            pytest.param(
+                np.uint64,
+                [[1, 2, 3, 4], [0, 0, 10, 4], [2**63, 2**63, 2**63 + 2**20, 2**63]],
+                [[2, 3], [5, 2], [2**63 + 2**19, 2**63]],
+                id="uint64-overflow-last-row",
+            ),
+        ],
+    )
+    def test_mixed_overflow_rows_keep_midpoints(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[list[int]],
+        expected: list[list[int]],
+    ) -> None:
+        """Only rows whose corner sum overflows get the exact midpoint."""
+        detections = Detections(xyxy=np.array(xyxy, dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+
+    @pytest.mark.parametrize(
+        "dtype", [np.int16, np.int32, np.int64, np.uint16, np.uint64]
+    )
+    def test_integer_midpoint_anchor_returns_float64(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Midpoint anchors of integer boxes are `float64`, never truncated."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.dtype == np.float64
+
+    @pytest.mark.parametrize("dtype", [np.int16, np.int64])
+    @pytest.mark.parametrize(
+        ("anchor", "expected"),
+        [
+            pytest.param(Position.TOP_LEFT, [1, 2], id="top-left"),
+            pytest.param(Position.BOTTOM_RIGHT, [4, 7], id="bottom-right"),
+        ],
+    )
+    def test_corner_anchor_keeps_integer_dtype(
+        self, dtype: type[np.integer], anchor: Position, expected: list[int]
+    ) -> None:
+        """Corner anchors skip the midpoint path and keep the input dtype."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=dtype))
+
+        result = detections.get_anchors_coordinates(anchor)
+
+        assert result.dtype == dtype
+        np.testing.assert_array_equal(result, [expected])
+
+    def test_float_midpoint_keeps_float_dtype(self) -> None:
+        """Floating-point boxes still average in their own dtype."""
+        detections = Detections(xyxy=np.array([[1, 2, 4, 7]], dtype=np.float32))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.dtype == np.float32
+        np.testing.assert_array_equal(result, [[2.5, 4.5]])
+
+    def test_oriented_anchor_with_integer_xyxy_uses_rotated_body(self) -> None:
+        """OBB data still wins over the integer midpoint path for `xyxy`."""
+        quad = _rotated_rect(100, 100, 120, 36, 35)
+        float_detections = _make_obb_detections([quad], [0.9], [0])
+        integer_detections = _make_obb_detections([quad], [0.9], [0])
+        integer_detections.xyxy = integer_detections.xyxy.astype(np.int64)
+
+        result = integer_detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+
+        expected = float_detections.get_anchors_coordinates(Position.BOTTOM_CENTER)
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [np.int16, np.int64, np.uint64])
+    def test_empty_integer_boxes_return_empty_anchors(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Zero detections of any integer dtype yield an empty `(0, 2)` array."""
+        detections = Detections(xyxy=np.empty((0, 4), dtype=dtype))
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        assert result.shape == (0, 2)
 
 
 @pytest.mark.parametrize(
