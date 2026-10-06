@@ -78,8 +78,10 @@ class MeanAveragePrecisionResult:
     Attributes:
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        is_class_agnostic: When computing class-agnostic results, class ID
-            is set to `-1`.
+        is_class_agnostic: When computing class-agnostic results, the class ID of
+            every labeled detection is set to `-1`. Detections without class IDs
+            join that class when any input has class IDs, and otherwise keep the
+            default class `0`.
         mAP_scores: the mAP scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         ap_per_class: the average precision scores per
@@ -580,6 +582,37 @@ EPS = np.finfo(np.float32).eps
 
 # Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.
 _MASK_IOU_GT_BUFFER_BYTES = 1024 * 5 * 1024 * 1024
+
+
+def _agnostic_class_ids(length: int) -> npt.NDArray[np.int_]:
+    """Build the class IDs that class-agnostic evaluation gives every detection.
+
+    Args:
+        length: Number of detections to label.
+
+    Returns:
+        A signed integer array filled with `-1`. The dtype is fixed so that unsigned
+        class ID dtypes on caller data can neither overflow nor wrap around.
+    """
+    return np.full(length, -1, dtype=int)
+
+
+def _with_agnostic_class_id(detections: Detections) -> Detections:
+    """Return detections that carry the class-agnostic class ID.
+
+    Args:
+        detections: Stored detections of a metric.
+
+    Returns:
+        `detections` itself when it already has class IDs, otherwise a shallow copy
+        labeled with the class-agnostic class ID. The input is never modified, so
+        repeated calls to `MeanAveragePrecision.compute` leave stored state untouched.
+    """
+    if detections.class_id is not None:
+        return detections
+    labeled = copy.copy(detections)
+    labeled.class_id = _agnostic_class_ids(len(detections))
+    return labeled
 
 
 def _mask_iou_with_jaccard(
@@ -1449,8 +1482,13 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
 
         Args:
             metric_target: The type of detection data to use.
-            class_agnostic: Whether to treat all data as a single class.
-            class_mapping: A dictionary to map class IDs to new IDs.
+            class_agnostic: Whether to treat all data as a single class with ID `-1`.
+                Detections without class IDs join that class when any input has
+                class IDs, and otherwise keep the default class `0`.
+            class_mapping: A dictionary to map class IDs to new IDs. With
+                `class_agnostic=True` and any input that has class IDs, it must
+                contain key `-1`, which maps the single merged class. It is not
+                used when no input has class IDs.
             image_indices: The indices of the images to use.
         """
         self._metric_target = metric_target
@@ -1495,15 +1533,16 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
             )
 
         if self._class_agnostic:
+            # Relabel private copies so caller-owned detections stay as passed in.
             predictions = deepcopy(predictions)
             targets = deepcopy(targets)
 
             for prediction in predictions:
                 if prediction.class_id is not None:
-                    prediction.class_id[:] = -1
+                    prediction.class_id = _agnostic_class_ids(len(prediction))
             for target in targets:
                 if target.class_id is not None:
-                    target.class_id[:] = -1
+                    target.class_id = _agnostic_class_ids(len(target))
 
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
@@ -1705,8 +1744,22 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 f" targets ({total_images_targets}) during the evaluation must be"
                 " the same."
             )
-        dict_targets = self._prepare_targets(self._targets_list)
-        lst_predictions = self._prepare_predictions(self._predictions_list)
+
+        predictions_list = self._predictions_list
+        targets_list = self._targets_list
+        if self._class_agnostic:
+            detections = predictions_list + targets_list
+            # All-unlabeled inputs keep their default category; mixed inputs
+            # must join the class assigned to labeled detections in update.
+            # Relabeled shallow copies keep the stored detections unmodified.
+            if any(d.class_id is not None and len(d) > 0 for d in detections):
+                predictions_list = [
+                    _with_agnostic_class_id(d) for d in predictions_list
+                ]
+                targets_list = [_with_agnostic_class_id(d) for d in targets_list]
+
+        dict_targets = self._prepare_targets(targets_list)
+        lst_predictions = self._prepare_predictions(predictions_list)
         # Create a coco object with the targets
         coco_gt = EvaluationDataset(targets=dict_targets)
         # Include the predictions to coco object

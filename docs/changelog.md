@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-04
+date_modified: 2026-10-05
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.metrics.MeanAveragePrecision(class_agnostic=True)` now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Unsigned class ID arrays no longer raise `OverflowError` with `class_agnostic=True` on NumPy 2. Class-aware scoring and the original input detections are unchanged. ([#2650](https://github.com/roboflow/supervision/pull/2650))
 
 - `sv.Detections.from_vlm` with `sv.VLM.FLORENCE_2` now returns one detection per instance for `<REFERRING_EXPRESSION_SEGMENTATION>` and `<REGION_TO_SEGMENTATION>`. Florence-2 returns each instance as a list of polygons, one per connected region, but every polygon became its own detection, so an object split into two regions came back as two detections. The polygons of an instance are now merged into one mask with one box around all of them. Instances made of a single polygon load as before. Polygons with fewer than three vertices are ignored, and an instance without any usable polygon is skipped, so it no longer yields an empty-mask detection or raises. ([#2648](https://github.com/roboflow/supervision/pull/2648))
 
