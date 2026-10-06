@@ -41,7 +41,11 @@ from supervision._cv2._image import (
     _resize,
 )
 from supervision._cv2._text import _get_text_size, _put_text
-from supervision._cv2._transform import _blur
+from supervision._cv2._transform import (
+    _blur,
+    _get_perspective_transform,
+    _perspective_transform,
+)
 from supervision._cv2._video import (
     _video_writer_fourcc,
     _VideoCapture,
@@ -134,6 +138,7 @@ if _IS_CV2_AVAILABLE:
         ellipse,
         fillPoly,
         flip,
+        getPerspectiveTransform,
         getTextSize,
         imdecode,
         imencode,
@@ -143,6 +148,7 @@ if _IS_CV2_AVAILABLE:
         line,
         mean,
         merge,
+        perspectiveTransform,
         polylines,
         putText,
         rectangle,
@@ -214,6 +220,7 @@ else:
     fillPoly = _fill_poly  # type: ignore[assignment]
     _find_contours_impl = _find_contours
     flip = _flip  # type: ignore[assignment]
+    getPerspectiveTransform = _get_perspective_transform  # type: ignore[assignment]
     getTextSize = _get_text_size  # type: ignore[assignment]
     imdecode = _imdecode  # type: ignore[assignment]
     imencode = _imencode  # type: ignore[assignment]
@@ -223,6 +230,7 @@ else:
     line = _line  # type: ignore[assignment]
     mean = _mean  # type: ignore[assignment]
     merge = _merge  # type: ignore[assignment]
+    perspectiveTransform = _perspective_transform  # type: ignore[assignment]
     polylines = _polylines  # type: ignore[assignment]
     putText = _put_text  # type: ignore[assignment]
     rectangle = _rectangle  # type: ignore[assignment]
@@ -285,6 +293,7 @@ __all__ = [
     "fillPoly",
     "find_contours",
     "flip",
+    "getPerspectiveTransform",
     "getTextSize",
     "imdecode",
     "imencode",
@@ -294,6 +303,7 @@ __all__ = [
     "line",
     "mean",
     "merge",
+    "perspectiveTransform",
     "polylines",
     "putText",
     "rectangle",
