@@ -19,7 +19,6 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     polygon_to_xyxy,
 )
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_resolution
 
