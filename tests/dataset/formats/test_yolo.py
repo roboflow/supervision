@@ -520,7 +520,10 @@ class TestFromYoloPoseLabels:
         "kpt_shape",
         ["[17]", "[17, 4]", "[0, 3]", "[17.5, 3]", "[true, 3]", "[17, 3, 1]", "null"],
     )
-    @pytest.mark.parametrize("is_obb", [False, True], ids=["boxes", "obb"])
+    @pytest.mark.parametrize(
+        "is_obb",
+        [pytest.param(False, id="boxes"), pytest.param(True, id="obb")],
+    )
     def test_raises_on_an_invalid_kpt_shape(
         self, tmp_path: Path, kpt_shape: str, is_obb: bool
     ) -> None:
