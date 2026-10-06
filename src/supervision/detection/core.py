@@ -2201,7 +2201,12 @@ class Detections:
 
         Returns:
             Array of shape `(n, 2)` where each row is the `[x, y]` anchor
-            coordinate for the corresponding detection.
+            coordinate for the corresponding detection. Anchors that average
+            two corners of an integer box, such as `Position.CENTER`, are
+            returned as `float64`; a corner sum beyond `2**53` is rounded
+            once to the nearest `float64`. Anchors that are corners keep the
+            integer dtype of `xyxy`, and floating-point boxes keep their own
+            dtype.
 
         Raises:
             ValueError: If the provided `anchor` is not supported.
