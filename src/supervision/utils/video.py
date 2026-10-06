@@ -223,6 +223,9 @@ def get_video_frames_generator(
             video should generate frames
         end: Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+            A zero or negative frame count reported by the container means the
+            count is unknown: `end` is not checked and reading stops at the
+            stream end.
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
@@ -242,6 +245,9 @@ def get_video_frames_generator(
         A generator that yields the frames of the video.
 
     Raises:
+        Exception: If `end` exceeds a positive frame count reported by the
+            container (raised on first iteration; wrapped in `RuntimeError` when
+            `prefetch` > 0).
         ValueError: If `prefetch` is negative.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
