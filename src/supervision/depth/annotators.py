@@ -8,6 +8,7 @@ import numpy.typing as npt
 from supervision.depth.colormaps import DepthColormap, _colorize
 from supervision.depth.core import (
     DepthMap,
+    DepthQuantity,
     _Conversion,
     _index_map,
     _resolve_conversion,
@@ -22,9 +23,6 @@ class DepthAnnotator:
     """Colours a `sv.DepthMap` over an image, near objects warm and far ones cool.
 
     Pixels without depth are left unpainted, so the scene shows through.
-
-    A metric map is coloured as inverse depth, which spends colour on near detail the
-    way disparity does.
 
     === "Image"
 
@@ -44,6 +42,7 @@ class DepthAnnotator:
     def __init__(
         self,
         colormap: DepthColormap | str = DepthColormap.TURBO,
+        quantity: DepthQuantity | str = DepthQuantity.DISPARITY,
         display_range: str | tuple[float, float] = "auto",
         opacity: float = 1.0,
     ) -> None:
@@ -52,17 +51,22 @@ class DepthAnnotator:
             colormap: Colour table: `"turbo"` (default), `"viridis"`, `"cividis"`,
                 `"inferno"`, `"magma"` or `"grayscale"`. The near end is always the
                 warm or bright end.
+            quantity: `"disparity"` (default) colours disparity, or inverse depth for a
+                metric map, which spends colour on near detail the way stereo
+                measures it. `"depth"` colours metres; it needs a `depth_m` map or a
+                disparity map with a camera.
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
                 `"auto"` (default) uses this map's 2nd to 98th percentile.
-                A `(low, high)` tuple fixes the range in the coloured unit (pixels
-                for disparity, 1 / metres for a metric map).
+                A `(low, high)` tuple fixes the range in the quantity's unit (pixels
+                for disparity, metres for depth).
             opacity: Opacity of the colours over the scene, from 0 to 1.
 
         Raises:
             ValueError: If an option is out of range.
         """
         self.colormap = DepthColormap.from_value(colormap)
+        self.quantity = DepthQuantity.from_value(quantity)
         self.display_range = _check_display_range_option(display_range)
         if not (math.isfinite(opacity) and 0 <= opacity <= 1):
             raise ValueError(f"opacity must be between 0 and 1, got {opacity}.")
@@ -86,6 +90,8 @@ class DepthAnnotator:
                 `PIL.Image.Image`).
 
         Raises:
+            ValueError: If the quantity is impossible for this map, for example
+                `"depth"` for a relative map.
             TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
 
         Examples:
@@ -107,7 +113,9 @@ class DepthAnnotator:
             raise ValueError(
                 f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
             )
-        conversion = _resolve_conversion(depth_map.kind)
+        conversion = _resolve_conversion(
+            depth_map.kind, depth_map.camera, self.quantity
+        )
         low, high = self._resolve_range(depth_map)
         coordinates = _color_coordinates(depth_map, conversion, low, high)
         colors = _colorize(coordinates, self.colormap)
@@ -132,7 +140,7 @@ class DepthAnnotator:
         option = self.display_range
         if isinstance(option, tuple):
             return option
-        percentile = depth_map._percentile_range()
+        percentile = depth_map._percentile_range(quantity=self.quantity)
         return percentile if percentile is not None else _FALLBACK_RANGE
 
 
@@ -161,14 +169,16 @@ def _color_coordinates(
 ) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
-    `t = clamp((v - low) / (high - low))`. Pixels without depth get 0; they are not
-    painted.
+    `t = clamp((v - low) / (high - low))`, flipped when the quantity's low end is
+    near. Pixels without depth get 0; they are not painted.
     """
     converted = conversion.apply(depth_map.to_float())
     span = np.float32(max(high - low, 1e-20))
     with np.errstate(invalid="ignore"):
         coordinates: npt.NDArray[np.floating] = (converted - np.float32(low)) / span
     np.clip(coordinates, 0.0, 1.0, out=coordinates)
+    if conversion.near_is_low:
+        np.subtract(1.0, coordinates, out=coordinates)
     coordinates[np.isnan(coordinates)] = 0.0
     return coordinates
 

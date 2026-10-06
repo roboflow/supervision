@@ -20,7 +20,7 @@ description: Colour depth and disparity maps over images with sv.DepthAnnotator 
     )
     ```
 
-=== "Colour-blind safe"
+=== "Metres, colour-blind safe"
 
     ```python
     import supervision as sv
@@ -30,7 +30,8 @@ description: Colour depth and disparity maps over images with sv.DepthAnnotator 
 
     depth_annotator = sv.DepthAnnotator(
         colormap="cividis",
-        display_range=(2.0, 120.0),
+        quantity="depth",
+        display_range=(0.5, 20.0),
     )
     annotated_image = depth_annotator.annotate(
         scene=image.copy(),
@@ -57,3 +58,9 @@ Left: OpenCV SGBM disparity over the frame at opacity 0.65; the frame shows thro
 </div>
 
 :::supervision.depth.colormaps.DepthColormap
+
+<div class="md-typeset">
+    <h2><a href="#supervision.depth.core.DepthQuantity">DepthQuantity</a></h2>
+</div>
+
+:::supervision.depth.core.DepthQuantity

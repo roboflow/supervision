@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.
+description: Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance.
 authors:
   - name: Caio Viotti
     role: Roboflow
@@ -18,6 +18,7 @@ This guide covers:
 
 1. [Loading a depth map](#load-a-depth-map)
 2. [Colouring it](#colour-a-depth-map)
+3. [Reading distances and labelling objects](#label-objects-with-their-distance)
 
 ## Load a Depth Map
 
@@ -31,8 +32,14 @@ from supervision import _cv2 as cv2
 image = cv2.imread("<SOURCE_IMAGE_PATH>")
 disparity = np.load("<DISPARITY_NPY_PATH>")  # float32 pixels, left view
 
-depth_map = sv.DepthMap(disparity, kind="disparity_px")
+depth_map = sv.DepthMap(
+    disparity,
+    kind="disparity_px",
+    camera=sv.DepthCamera(fx_px=1050.0, baseline_m=0.12),
+)
 ```
+
+The camera is optional: with the rig's focal length and baseline, a stereo matcher's disparity gives metric depth too.
 
 Every kind keeps "no depth" explicit: `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels the model or matcher could not measure, and `depth_map.valid_mask` marks the rest.
 
@@ -46,15 +53,32 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 The defaults:
 
 - `colormap="turbo"` separates the most depth steps. `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers; use them for figures.
-- `display_range="auto"` uses the map's 2nd to 98th percentile. A `(low, high)` tuple fixes the range.
-- A metric map is coloured as inverse depth, which gives near detail most of the colours.
+- `quantity="disparity"` colours inverse depth, which gives near detail most of the colours. `quantity="depth"` colours metres and needs a metric map or a stereo camera.
+- `display_range="auto"` uses the map's 2nd to 98th percentile. A `(low, high)` tuple fixes the range in pixels or metres.
 - Pixels without depth stay unpainted, so the image shows through where the model gave up.
 
-To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour, for a map the size of the image:
+To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
 ```python
-annotated_image[~depth_map.valid_mask] = sv.Color.BLACK.as_bgr()
+height, width = annotated_image.shape[:2]
+annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.as_bgr()
 ```
+
+## Label Objects with Their Distance
+
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator].
+
+```python
+detections = depth_map.measure_detections(detections)
+
+labels = [
+    f"{name} {depth:.1f} m"
+    for name, depth in zip(detections.data["class_name"], detections.data["depth_m"])
+]
+annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
+```
+
+A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. For one pixel, `depth_map.value_at(x, y)` returns the value or `None` where there is no depth.
 
 ## Attribution
 
