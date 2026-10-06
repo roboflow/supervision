@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-06
+date_modified: 2026-10-07
 ---
 
 # Changelog
@@ -52,6 +52,8 @@ date_modified: 2026-10-06
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks ([#2504](https://github.com/roboflow/supervision/pull/2504)).
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The empty index array defaulted to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0`; `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.
+
+- `sv.DetectionDataset.from_yolo` now rejects a label whose width or height is negative, instead of building a box with `x_min` past `x_max`. Such a box made `Detections.area` negative, made `box_iou_batch` score two boxes covering the identical region at `0.0`, and stopped `with_nms` suppressing, so a corrupt label skewed evaluation silently. `object_to_yolo` now orders the corners before measuring the width and height, so a reversed `Detections` box no longer exports as a file the loader refuses to read; the exported box describes the same rectangle and normal boxes are unchanged. [#2663](https://github.com/roboflow/supervision/pull/2663)
 
 ### 0.30.7 <small>Oct 4, 2026</small>
 
