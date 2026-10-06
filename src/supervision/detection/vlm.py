@@ -342,7 +342,9 @@ def from_qwen_2_5_vl(
 
     # A response cut off inside a box's `bbox_2d` array ends in that array's
     # elements, so the last `]` below belongs to the previous object's box and the
-    # slice drops that complete object. Recovery reads the unsliced text instead.
+    # slice drops that complete object. Recovery therefore reads the unsliced text
+    # first, and the slice when that fails (e.g. a `}` in trailing prose or in a
+    # label). `ast.literal_eval` keeps reading the slice.
     unsliced = text
     start = text.find("[")
     end = text.rfind("]")
@@ -353,6 +355,8 @@ def from_qwen_2_5_vl(
         data = json.loads(text)
     except json.JSONDecodeError:
         repaired = recover_truncated_qwen_2_5_vl_response(unsliced)
+        if repaired is None:
+            repaired = recover_truncated_qwen_2_5_vl_response(text)
         if repaired is not None:
             data = repaired
         else:
