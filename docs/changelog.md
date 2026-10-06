@@ -11,6 +11,8 @@ date_modified: 2026-10-04
 
 - `sv.xyxy_to_mask` now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to `int` rounded it toward zero and incorrectly filled pixels along the image edge. ([#2646](https://github.com/roboflow/supervision/pull/2646))
 
+- `sv.Detections.from_inference` now rounds polygon vertices to the nearest pixel before rasterising masks. Roboflow returns sub-pixel float vertices, and casting them to `int` truncated every coordinate, moving each mask up and to the left by up to one pixel. A square with corners at 2.6 and 7.6 now fills rows and columns 3-8 instead of 2-7, as `from_coco`, `from_yolo`, `from_labelme` and `from_pascal_voc` load the same polygon. A vertex that is NaN or infinite raises a `ValueError`, as it does in `from_coco`. RLE masks and box-only predictions are unchanged. [#2649](https://github.com/roboflow/supervision/pull/2649)
+
 - `sv.LineZone.trigger` now ages tracker crossing history on nonempty frames whose detections lack `tracker_id`, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. ([#2644](https://github.com/roboflow/supervision/pull/2644))
 
 ### 0.30.7 <small>Oct 4, 2026</small>
