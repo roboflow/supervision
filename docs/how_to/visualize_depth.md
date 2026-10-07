@@ -30,9 +30,9 @@ This guide covers:
     ```python
     import supervision as sv
     from inference import get_model
-    from supervision import _cv2 as cv2
+    from PIL import Image
 
-    image = cv2.imread("<SOURCE_IMAGE_PATH>")
+    image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
     model = get_model(model_id="depth-anything-v3/small")
 
     depth_map = sv.DepthMap.from_inference(model.infer(image)[0])
