@@ -2613,6 +2613,35 @@ class TestCocoBoxExtent:
                 with_masks=False,
             )
 
+    @pytest.mark.parametrize(
+        ("box_width", "box_height", "expected_xyxy"),
+        [
+            pytest.param(0.0, 40.0, [50.0, 50.0, 50.0, 90.0], id="zero-width"),
+            pytest.param(40.0, 0.0, [50.0, 50.0, 90.0, 50.0], id="zero-height"),
+            pytest.param(
+                -0.0, 40.0, [50.0, 50.0, 50.0, 90.0], id="negative-zero-width"
+            ),
+            pytest.param(
+                40.0, -0.0, [50.0, 50.0, 90.0, 50.0], id="negative-zero-height"
+            ),
+        ],
+    )
+    def test_loads_a_zero_box_extent(
+        self, box_width: float, box_height: float, expected_xyxy: list[float]
+    ) -> None:
+        """A zero extent is degenerate but valid, so it must keep loading."""
+        annotations = [
+            mock_coco_annotation(
+                annotation_id=1, bbox=(50, 50, box_width, box_height), category_id=0
+            )
+        ]
+
+        result = coco_annotations_to_detections(
+            image_annotations=annotations, resolution_wh=(100, 100), with_masks=False
+        )
+
+        assert result.xyxy[0].tolist() == expected_xyxy
+
     def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
         """Export must not write a box the loader would refuse to read back."""
         detections = Detections(

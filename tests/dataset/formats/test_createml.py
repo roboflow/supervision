@@ -465,6 +465,36 @@ class TestCreatemlBoxExtent:
                 image_annotations=annotations, class_to_index={"thing": 0}
             )
 
+    @pytest.mark.parametrize(
+        ("width", "height", "expected_xyxy"),
+        [
+            pytest.param(0.0, 40.0, [50.0, 30.0, 50.0, 70.0], id="zero-width"),
+            pytest.param(40.0, 0.0, [30.0, 50.0, 70.0, 50.0], id="zero-height"),
+            pytest.param(
+                -0.0, 40.0, [50.0, 30.0, 50.0, 70.0], id="negative-zero-width"
+            ),
+            pytest.param(
+                40.0, -0.0, [30.0, 50.0, 70.0, 50.0], id="negative-zero-height"
+            ),
+        ],
+    )
+    def test_loads_a_zero_box_extent(
+        self, width: float, height: float, expected_xyxy: list[float]
+    ) -> None:
+        """A zero extent is degenerate but valid, so it must keep loading."""
+        annotations = [
+            {
+                "label": "thing",
+                "coordinates": {"x": 50, "y": 50, "width": width, "height": height},
+            }
+        ]
+
+        result = createml_annotations_to_detections(
+            image_annotations=annotations, class_to_index={"thing": 0}
+        )
+
+        assert result.xyxy[0].tolist() == expected_xyxy
+
     def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
         """Export must not write a box the loader would refuse to read back."""
         detections = Detections(

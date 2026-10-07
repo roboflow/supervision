@@ -213,6 +213,11 @@ def coco_annotations_to_detections(
         populated as an object array (shape ``(N,)``) holding the raw polygon list or
         RLE dict per annotation; consumed by :func:`detections_to_coco_annotations`
         for a coordinate-preserving round-trip.
+
+    Raises:
+        ValueError: If an annotation's ``bbox`` has a negative width or height.
+            A negative extent would place ``x_max`` before ``x_min`` once the
+            corners are formed; a zero extent is accepted.
     """
     if not image_annotations:
         return Detections.empty()
