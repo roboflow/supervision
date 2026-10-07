@@ -71,28 +71,97 @@ def test_fallback_rectangle_fills_the_requested_region() -> None:
 
 
 @requires_cv2
-@pytest.mark.parametrize("thickness", [1, 2, 3, 4, 7])
-def test_fallback_rectangle_stroke_matches_opencv(thickness: int) -> None:
-    """Center a thick border on the rectangle's edges the way OpenCV does."""
-    actual = np.zeros((24, 28, 3), dtype=np.uint8)
+@pytest.mark.parametrize(
+    ("shape", "point_1", "point_2", "thickness"),
+    [
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 0, id="thickness-0"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 1, id="thickness-1"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 2, id="thickness-2"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 3, id="thickness-3"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 4, id="thickness-4"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 6, id="thickness-6"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 7, id="thickness-7"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 8, id="thickness-8"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), 25, id="thickness-over-box"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), -2, id="negative-fills"),
+        pytest.param((24, 28, 3), (6, 5), (20, 17), -5, id="negative-fills-more"),
+        pytest.param((24, 28, 3), (6, 9), (20, 9), 3, id="zero-height"),
+        pytest.param((24, 28, 3), (9, 5), (9, 17), 3, id="zero-width"),
+        pytest.param((24, 28, 3), (20, 17), (6, 5), 3, id="reversed-corners"),
+        pytest.param((24, 28), (6, 5), (20, 17), 3, id="two-dimensional-image"),
+        pytest.param((1, 1, 3), (0, 0), (0, 0), 3, id="one-pixel-canvas"),
+        pytest.param((24, 28, 3), (40, 40), (60, 60), 3, id="off-canvas"),
+        pytest.param((16, 16, 3), (-4, 2), (13, 20), 5, id="clipped-left-bottom"),
+    ],
+)
+def test_fallback_rectangle_matches_opencv(
+    shape: tuple[int, ...],
+    point_1: tuple[int, int],
+    point_2: tuple[int, int],
+    thickness: int,
+) -> None:
+    """Match OpenCV's rectangle raster for filled, thick, clipped, and edge cases."""
+    actual = np.zeros(shape, dtype=np.uint8)
     expected = np.zeros_like(actual)
 
-    _rectangle(actual, (6, 5), (20, 17), (1, 2, 3), thickness=thickness)
-    cv2.rectangle(expected, (6, 5), (20, 17), (1, 2, 3), thickness=thickness)
+    _rectangle(actual, point_1, point_2, (1, 2, 3), thickness=thickness)
+    cv2.rectangle(expected, point_1, point_2, (1, 2, 3), thickness=thickness)
 
     np.testing.assert_array_equal(actual, expected)
 
 
-@requires_cv2
-def test_fallback_rectangle_stroke_clips_to_the_canvas() -> None:
-    """Clip a thick border that falls partly outside the image."""
-    actual = np.zeros((16, 16, 3), dtype=np.uint8)
+def test_fallback_rectangle_border_is_centered_on_the_edges() -> None:
+    """Spread a `thickness=2` border one pixel outside and inside each edge."""
+    image = np.zeros((80, 100, 3), dtype=np.uint8)
+
+    _rectangle(image, (20, 20), (80, 60), (1, 2, 3), thickness=2)
+
+    painted = image.any(axis=2)
+    rows, columns = np.where(painted)
+    assert int(painted.sum()) == 596
+    assert (columns.min(), columns.max(), rows.min(), rows.max()) == (19, 81, 19, 61)
+    assert painted[40, 19]
+    assert not painted[40, 22]
+
+
+def test_fallback_rectangle_numpy_integer_thickness_matches_python_int() -> None:
+    """Keep a NumPy integer `thickness` from wrapping around in the corner radius."""
+    actual = np.zeros((120, 140, 3), dtype=np.uint8)
     expected = np.zeros_like(actual)
 
-    _rectangle(actual, (-4, 2), (13, 20), (4, 5, 6), thickness=5)
-    cv2.rectangle(expected, (-4, 2), (13, 20), (4, 5, 6), thickness=5)
+    _rectangle(actual, (50, 50), (90, 80), (1, 2, 3), thickness=np.uint8(40))
+    _rectangle(expected, (50, 50), (90, 80), (1, 2, 3), thickness=40)
 
     np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("thickness", [10_000, 32_767])
+def test_fallback_rectangle_huge_thickness_covers_a_small_canvas(
+    thickness: int,
+) -> None:
+    """Paint a small canvas without allocating arrays sized by the border radius."""
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+
+    _rectangle(image, (2, 2), (5, 5), (1, 2, 3), thickness=thickness)
+
+    assert image.any(axis=2).all()
+
+
+@pytest.mark.parametrize(
+    ("thickness", "error"),
+    [
+        pytest.param(2.5, TypeError, id="float"),
+        pytest.param(32_768, ValueError, id="above-opencv-maximum"),
+    ],
+)
+def test_fallback_rectangle_rejects_thickness_opencv_rejects(
+    thickness: float, error: type[Exception]
+) -> None:
+    """Raise for a non-integer or oversized `thickness` instead of drawing."""
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+
+    with pytest.raises(error):
+        _rectangle(image, (2, 2), (5, 5), (1, 2, 3), thickness=thickness)
 
 
 @requires_cv2
