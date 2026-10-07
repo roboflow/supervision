@@ -143,26 +143,37 @@ def _resize(
     """Resize with exact nearest or OpenCV-compatible linear sampling."""
     source_height, source_width = src.shape[:2]
     width, height = dsize if dsize is not None else (0, 0)
-    if width == 0 or height == 0:
+    # Like OpenCV, when the size comes from `fx`/`fy`, pixels are mapped with
+    # those factors rather than with the ratio of the rounded sizes.
+    scale_from_factors = width == 0 or height == 0
+    if scale_from_factors:
         width = round(source_width * fx)
         height = round(source_height * fy)
     if min(width, height, source_width, source_height) <= 0:
         raise ValueError("Resize dimensions must be positive")
+    if scale_from_factors:
+        scale_x, scale_y = 1 / fx, 1 / fy
+    else:
+        scale_x, scale_y = source_width / width, source_height / height
 
     if interpolation == _INTER_NEAREST:
-        y_indices = np.minimum(
-            (np.arange(height) * source_height // height), source_height - 1
-        )
-        x_indices = np.minimum(
-            (np.arange(width) * source_width // width), source_width - 1
-        )
+        if scale_from_factors:
+            y_indices = np.floor(np.arange(height) * scale_y).astype(np.int64)
+            x_indices = np.floor(np.arange(width) * scale_x).astype(np.int64)
+        else:
+            y_indices = np.arange(height) * source_height // height
+            x_indices = np.arange(width) * source_width // width
+        y_indices = np.minimum(y_indices, source_height - 1)
+        x_indices = np.minimum(x_indices, source_width - 1)
         return np.ascontiguousarray(src[y_indices[:, np.newaxis], x_indices])
 
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
-    if src.dtype == np.uint8 and (
-        src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3)
+    if (
+        not scale_from_factors
+        and src.dtype == np.uint8
+        and (src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3))
     ):
         from PIL import Image
 
@@ -181,8 +192,8 @@ def _resize(
             )
         return np.ascontiguousarray(np.asarray(resized))
 
-    y = (np.arange(height) + 0.5) * source_height / height - 0.5
-    x = (np.arange(width) + 0.5) * source_width / width - 0.5
+    y = (np.arange(height) + 0.5) * scale_y - 0.5
+    x = (np.arange(width) + 0.5) * scale_x - 0.5
     y_floor = np.floor(y).astype(np.int64)
     x_floor = np.floor(x).astype(np.int64)
     y0 = np.clip(y_floor, 0, source_height - 1)
