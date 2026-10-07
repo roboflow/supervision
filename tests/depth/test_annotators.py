@@ -170,4 +170,3 @@ class TestDepthAnnotatorScene:
             sv.DepthAnnotator(quantity="depth").annotate(
                 np.zeros((2, 2, 3), np.uint8), depth_map
             )
-

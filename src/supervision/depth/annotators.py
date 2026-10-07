@@ -58,8 +58,9 @@ class DepthAnnotator:
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
                 `"auto"` (default) uses this map's 2nd to 98th percentile.
-                A `(low, high)` tuple fixes the range in the quantity's unit (pixels
-                for disparity, metres for depth).
+                A `(low, high)` tuple fixes the range in the quantity's unit: pixels
+                for disparity, metres for depth, and 1 / metres for a metric map
+                without a camera coloured as disparity (the default).
             opacity: Opacity of the colours over the scene, from 0 to 1.
 
         Raises:

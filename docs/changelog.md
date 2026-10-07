@@ -7,7 +7,7 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DepthMap` now measures distance. `sv.DepthCamera` holds a stereo rig's focal length and baseline, so `to_depth` converts disparity to metres; `resize` and `crop` change a map's size without blending holes into depth; `value_at` reads the value under one point; and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]` for `sv.LabelAnnotator`. `sv.DepthAnnotator(quantity="depth")` colours metres instead of disparity (`sv.DepthQuantity`). [#2693](https://github.com/roboflow/supervision/pull/2693)
+- `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(quantity="depth")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
 
 - Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))
 

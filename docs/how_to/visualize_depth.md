@@ -46,7 +46,7 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 
 - `colormap="turbo"` separates the most depth steps; `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers.
 - `quantity="disparity"` colours inverse depth, which gives near detail most of the colours; `quantity="depth"` colours metres and needs a metric map or a stereo camera.
-- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in pixels or metres.
+- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the coloured unit: pixels for disparity, metres for depth, and 1 / metres for a metric map without a camera coloured as disparity (the default).
 
 To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
@@ -60,6 +60,10 @@ annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.
 [measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator].
 
 ```python
+from inference import get_model
+
+model = get_model(model_id="rfdetr-small")
+detections = sv.Detections.from_inference(model.infer(image)[0])
 detections = depth_map.measure_detections(detections)
 
 labels = [
