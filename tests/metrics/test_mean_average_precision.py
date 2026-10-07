@@ -1054,6 +1054,34 @@ class TestEvaluationDatasetLoadPredictions:
 class TestMeanAveragePrecisionPycocotoolsParity:
     """Scores match pycocotools where float32 rounding would move a threshold."""
 
+    @pytest.mark.parametrize(
+        "num_objects",
+        [
+            pytest.param(1, id="single-object"),
+            pytest.param(2, id="two-objects"),
+        ],
+    )
+    def test_perfect_predictions_score_exactly_one(self, num_objects: int) -> None:
+        """Perfect predictions score 1.0, not 1.0 minus the precision epsilon."""
+        # Arrange
+        xyxy = np.array([[i * 20, 0, i * 20 + 10, 10] for i in range(num_objects)])
+        targets = Detections(xyxy=xyxy, class_id=np.zeros(num_objects, dtype=int))
+        predictions = Detections(
+            xyxy=xyxy,
+            class_id=np.zeros(num_objects, dtype=int),
+            confidence=np.full(num_objects, 0.9),
+        )
+
+        # Act
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # Assert
+        # pycocotools 2.0.11 gives 1.0 within 3e-16; a float32 epsilon gave
+        # 0.99999988.
+        assert result.map50_95 == 1.0
+        assert result.map50 == 1.0
+        assert result.map75 == 1.0
+
     def test_recall_landing_on_a_recall_threshold_matches_pycocotools(self) -> None:
         """Recall 0.7 of 10 targets samples precision where pycocotools does."""
         targets_xyxy = np.array([[i * 20, 0, i * 20 + 10, 10] for i in range(10)])

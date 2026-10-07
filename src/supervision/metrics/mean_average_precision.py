@@ -590,8 +590,9 @@ SMALL_OBJECT_AREA = 32**2
 MEDIUM_OBJECT_AREA = 96**2
 MAX_ALL_OBJECT_AREA = 1e5**2
 
-# Smallest number to avoid division by zero
-EPS = np.finfo(np.float32).eps
+# Avoids division by zero in precision; np.spacing(1) as in pycocotools, so a
+# perfect precision stays 1.0 in float64
+EPS = np.spacing(1)
 
 # Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.
 _MASK_IOU_GT_BUFFER_BYTES = 1024 * 5 * 1024 * 1024
