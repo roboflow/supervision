@@ -505,6 +505,60 @@ def test_inference_slicer_keeps_crossed_obb_detections(
 class TestInferenceSlicerBatch:
     """Tests for InferenceSlicer batch_size > 1 path."""
 
+    @pytest.mark.parametrize("empty_batches", [1, 2])
+    @pytest.mark.parametrize("batch_size", [2, 3])
+    def test_probes_empty_batches_before_serializing_obb(
+        self, empty_batches: int, batch_size: int
+    ) -> None:
+        """OBB callbacks stay on the caller thread after leading empty batches."""
+        tile_count = (empty_batches + 3) * batch_size - 1
+        empty_tiles = empty_batches * batch_size
+        image = np.repeat(np.arange(tile_count, dtype=np.uint8), 16)[None, :]
+        image = np.repeat(image, 16, axis=0)
+        caller_thread = threading.get_ident()
+        callback_threads: list[int] = []
+
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Return empty results before oriented detections in source order."""
+            callback_threads.append(threading.get_ident())
+            results = []
+            for tile in tiles:
+                index = int(tile[0, 0])
+                if index < empty_tiles:
+                    results.append(Detections.empty())
+                else:
+                    results.append(
+                        Detections(
+                            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+                            confidence=np.array([0.9]),
+                            class_id=np.array([index]),
+                            data={
+                                ORIENTED_BOX_COORDINATES: np.array(
+                                    [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+                                    dtype=float,
+                                )
+                            },
+                        )
+                    )
+            return results
+
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=16,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
+            detections = slicer(image)
+
+        assert callback_threads == [caller_thread] * (empty_batches + 3)
+        np.testing.assert_array_equal(
+            detections.class_id, np.arange(empty_tiles, tile_count)
+        )
+
     @pytest.mark.parametrize(
         "batch_size",
         [
