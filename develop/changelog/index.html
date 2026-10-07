@@ -4116,6 +4116,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.BoxAnnotator</code>, <code>sv.CropAnnotator</code>, <code>sv.PercentageBarAnnotator</code> and <code>sv.draw_rectangle</code> now draw a border of <code>thickness</code> 2 or more identically with and without <code>opencv-python</code> installed. Without it, supervision's NumPy fallback drew the border entirely inside the rectangle, because Pillow's <code>ImageDraw.rectangle(outline=..., width=...)</code> only grows inward, while OpenCV centers each edge's band on the edge and rounds the four joints with a filled disc. A default <code>sv.BoxAnnotator()</code> box, <code>thickness=2</code>, around the rectangle from (20, 20) to (80, 60) came out 1 pixel smaller per side and painted 392 pixels instead of 596. The border now extends <code>(thickness + 1) // 2</code> pixels outside the rectangle. Filled rectangles and borders of <code>thickness=1</code> are unchanged, except zero-height rectangles (a horizontal line or a single point), which no longer draw 1 or 2 extra pixels. Rectangle <code>thickness</code> must now be an integer of at most 32767, as in OpenCV, and a very large <code>thickness</code> no longer allocates memory proportional to its square. (<a href="https://github.com/roboflow/supervision/pull/2675">#2675</a>)</p>
+</li>
+<li>
 <p>The NumPy fallback for <code>cv2.approxPolyDP</code> (used by <code>sv.approximate_polygon</code> and YOLO/COCO polygon export) now measures distance to the finite segment, as OpenCV 4.13+ does (older OpenCV keeps the infinite-line behaviour, so results differ by installed backend). Vertices beyond a segment endpoint that sit near the infinite line through that segment are no longer dropped when their true distance exceeds <code>epsilon</code>. The fallback also compares in OpenCV's division-free scaled form, so exact ties and <code>epsilon</code> boundaries resolve as in OpenCV. An open contour whose last point repeats its first now takes a single seed pass as in OpenCV, and a <code>NaN</code>, infinite, or <code>1e30</code>-and-larger <code>epsilon</code> raises <code>ValueError</code> instead of hanging or overflowing. (<a href="https://github.com/roboflow/supervision/pull/2673">#2673</a>)</p>
 </li>
 <li>
@@ -6235,7 +6238,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 7, 2026 07:44:52 UTC">October 7, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 7, 2026 15:48:43 UTC">October 7, 2026</span>
   </span>
 
     
@@ -6263,9 +6266,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/atikulmunna" class="md-author" title="@atikulmunna">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/103902791?v=4&size=72" alt="atikulmunna">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6273,21 +6276,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+          
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+        </a>
+      
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
-          
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +30
+            +31
           </a>
         
       
