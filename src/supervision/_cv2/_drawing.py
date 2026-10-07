@@ -98,8 +98,14 @@ def _rectangle(
     del lineType
     _validate_shift(shift)
     first_point, second_point = _point(pt1), _point(pt2)
-    x1, y1 = (min(first_point[0], second_point[0]), min(first_point[1], second_point[1]))
-    x2, y2 = (max(first_point[0], second_point[0]), max(first_point[1], second_point[1]))
+    x1, y1 = (
+        min(first_point[0], second_point[0]),
+        min(first_point[1], second_point[1]),
+    )
+    x2, y2 = (
+        max(first_point[0], second_point[0]),
+        max(first_point[1], second_point[1]),
+    )
     height, width = img.shape[:2]
     if thickness < 0:
         x0_clamped = max(x1, 0)
