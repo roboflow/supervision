@@ -109,7 +109,8 @@ class DetectionsSmoother:
         """
         Args:
             length: The maximum number of frames to consider for smoothing
-                detections. Defaults to 5.
+                detections. Every call to `update_with_detections` counts as one
+                frame, including frames without tracker IDs. Defaults to 5.
         """
         self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
             lambda: deque(maxlen=length)
@@ -144,26 +145,46 @@ class DetectionsSmoother:
     def update_with_detections(self, detections: Detections) -> Detections:
         """Updates the smoother with a new set of detections from a frame.
 
+        Every call counts as one frame toward the window `length`. Frames without
+        tracker IDs, including empty ones, still age the cached history, but their
+        detections are returned unchanged and each such frame emits a warning. The
+        warning is raised before the history changes, so a warning turned into an
+        error leaves the cached history intact.
+
         Args:
             detections: The detections to add to the smoother.
+
+        Returns:
+            Smoothed detections for the tracks present in this frame. When
+            `detections` has no `tracker_id`, the input object itself is returned.
         """
-        if detections.tracker_id is None:
+        tracker_ids = detections.tracker_id
+        if tracker_ids is None:
             warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
                 "https://trackers.roboflow.com/latest/ for more "
                 "information.",
                 category=SupervisionWarnings,
             )
+            self._age_tracks(active_ids=set())
             return detections
 
         for detection_idx in range(len(detections)):
-            tracker_id_value = detections.tracker_id[detection_idx]
-            tracker_id = int(tracker_id_value)
-
+            tracker_id = int(tracker_ids[detection_idx])
             self.tracks[tracker_id].append(detections.select(detection_idx))
 
-        active_ids = set(detections.tracker_id.tolist())
+        active_ids = set(tracker_ids.tolist())
+        self._age_tracks(active_ids=active_ids)
+        return self.get_smoothed_detections(track_ids=active_ids)
 
+    def _age_tracks(self, active_ids: set[int]) -> None:
+        """Advance every cached track by one frame and drop fully expired tracks.
+
+        Args:
+            active_ids: Track IDs that received a detection in the current frame.
+        """
+        # Tracks without a detection this frame get an empty sample, so the window
+        # slides on every call and old samples fall out even while a track is absent.
         for track_id in self.tracks.keys():
             if track_id not in active_ids:
                 self.tracks[track_id].append(None)
@@ -171,9 +192,6 @@ class DetectionsSmoother:
         for track_id in list(self.tracks.keys()):
             if all(d is None for d in self.tracks[track_id]):
                 del self.tracks[track_id]
-
-        current_track_ids = active_ids
-        return self.get_smoothed_detections(track_ids=current_track_ids)
 
     def get_track(self, track_id: int) -> Detections | None:
         """Return the smoothed `Detections` for a single track.
