@@ -216,6 +216,7 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
         pytest.param(1.5, 1.5, id="non-integer-upscale"),
         pytest.param(0.3, 3.7, id="mixed"),
         pytest.param(1 / 7, 1 / 7, id="pixelate"),
+        pytest.param(1.03, 1.03, id="rounds-to-same-size"),
     ],
 )
 @pytest.mark.parametrize("shape", [(13, 10, 3), (13, 10)], ids=["bgr", "gray"])

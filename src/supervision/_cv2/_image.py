@@ -149,6 +149,8 @@ def _resize(
     if scale_from_factors:
         width = round(source_width * fx)
         height = round(source_height * fy)
+        # OpenCV copies the image unchanged when the size stays the same.
+        scale_from_factors = (width, height) != (source_width, source_height)
     if min(width, height, source_width, source_height) <= 0:
         raise ValueError("Resize dimensions must be positive")
     if scale_from_factors:
