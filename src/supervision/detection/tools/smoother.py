@@ -149,6 +149,10 @@ class DetectionsSmoother:
 
         Args:
             detections: The detections to add to the smoother.
+
+        Returns:
+            Smoothed detections for the tracks present in this frame. When
+            `detections` has no `tracker_id`, the input object itself is returned.
         """
         tracker_ids = detections.tracker_id
         if tracker_ids is None:
