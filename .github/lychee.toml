@@ -33,4 +33,6 @@ exclude = [
     # fixme: this page returns 401 Unauthorized when accessed and 404 Not Found when accessed with browser,
     #  which is weird and should be investigated
     "https://huggingface.co/spaces/Roboflow/Annotators",
+    # todo: this page ghive 404 on GH
+    "https://github.com/roboflow/supervision/pull/1625",
 ]
