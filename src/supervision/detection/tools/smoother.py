@@ -109,7 +109,8 @@ class DetectionsSmoother:
         """
         Args:
             length: The maximum number of frames to consider for smoothing
-                detections. Defaults to 5.
+                detections. Every call to `update_with_detections` counts as one
+                frame, including frames without tracker IDs. Defaults to 5.
         """
         self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
             lambda: deque(maxlen=length)
@@ -144,8 +145,11 @@ class DetectionsSmoother:
     def update_with_detections(self, detections: Detections) -> Detections:
         """Updates the smoother with a new set of detections from a frame.
 
-        Frames without tracker IDs still age the cached history, but their
-        detections are returned unchanged with a warning.
+        Every call counts as one frame toward the window `length`. Frames without
+        tracker IDs, including empty ones, still age the cached history, but their
+        detections are returned unchanged and each such frame emits a warning. The
+        warning is raised before the history changes, so a warning turned into an
+        error leaves the cached history intact.
 
         Args:
             detections: The detections to add to the smoother.

@@ -1,5 +1,6 @@
 """Tests for DetectionsSmoother bounding-box and confidence smoothing."""
 
+import warnings
 from collections.abc import Callable
 
 import numpy as np
@@ -481,6 +482,19 @@ class TestDetectionsSmoother:
         )
 
         assert smoother.tracks[9].maxlen == 2
+
+    def test_warning_raised_as_error_leaves_history_unchanged(self) -> None:
+        """A raised warning aborts the update before history ages, keeping it atomic."""
+        smoother = DetectionsSmoother(length=2)
+        smoother.update_with_detections(_track(0, 0.5))
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SupervisionWarnings)
+            with pytest.raises(SupervisionWarnings):
+                smoother.update_with_detections(_untracked_nonempty())
+
+        result = smoother.update_with_detections(_track(100, 0.9))
+
+        assert_allclose(result.xyxy, [[50, 0, 60, 10]])
 
 
 class TestDetectionsSmootherOrientedBoxes:
