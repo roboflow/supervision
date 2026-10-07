@@ -19,17 +19,21 @@ from supervision._cv2.constants import (
 )
 
 
-def _flip(image: npt.NDArray[Any], flip_code: int) -> npt.NDArray[Any]:
-    """Flip an image vertically, horizontally, or along both axes."""
-    if flip_code == 0:
+def _flip(src: npt.NDArray[Any], flipCode: int) -> npt.NDArray[Any]:
+    """Flip an image vertically, horizontally, or along both axes.
+
+    Flip direction follows the sign of `flipCode`, as in `cv2.flip`: `0` flips
+    vertically, any positive code flips horizontally, and any negative code
+    flips along both axes. The camelCase `flipCode` mirrors `cv2.flip(src, flipCode)`
+    so keyword calls bind on both backends; keep it when editing.
+    """
+    if flipCode == 0:
         axes: tuple[int, ...] = (0,)
-    elif flip_code == 1:
+    elif flipCode > 0:
         axes = (1,)
-    elif flip_code == -1:
-        axes = (0, 1)
     else:
-        raise ValueError(f"Unsupported flip code: {flip_code}")
-    return np.ascontiguousarray(np.flip(image, axis=axes))
+        axes = (0, 1)
+    return np.ascontiguousarray(np.flip(src, axis=axes))
 
 
 def _copy_make_border(

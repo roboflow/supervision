@@ -5,19 +5,24 @@ from __future__ import annotations
 import importlib
 import subprocess
 import sys
+from typing import Any
 
 import numpy as np
 import pytest
 
 from supervision import _cv2
 
+cv2: Any
 try:
     cv2 = importlib.import_module("cv2")
 except (ImportError, OSError):
-    pytest.skip(
-        "OpenCV is required as the reference implementation for this test module",
-        allow_module_level=True,
-    )
+    cv2 = None
+
+# The symbol-surface and import-failure tests need no native OpenCV and must also
+# run in the jobs without it; only tests that call or compare against it are gated.
+_requires_opencv = pytest.mark.skipif(
+    cv2 is None, reason="OpenCV is required as the reference implementation"
+)
 
 
 REQUIRED_SYMBOLS = {
@@ -39,6 +44,7 @@ REQUIRED_SYMBOLS = {
     "fillPoly",
     "find_contours",
     "flip",
+    "getPerspectiveTransform",
     "getTextSize",
     "imread",
     "imwrite",
@@ -46,6 +52,7 @@ REQUIRED_SYMBOLS = {
     "line",
     "mean",
     "merge",
+    "perspectiveTransform",
     "polylines",
     "putText",
     "rectangle",
@@ -67,11 +74,13 @@ def test_facade_exports_required_opencv_symbol(symbol: str) -> None:
     assert hasattr(_cv2, symbol)
 
 
+@_requires_opencv
 def test_facade_reports_opencv_backend() -> None:
     """Report OpenCV when the native backend is available."""
     assert _cv2.BACKEND_NAME == "opencv"
 
 
+@_requires_opencv
 def test_facade_routes_color_calls_to_opencv() -> None:
     """Route color conversion calls through the Supervision facade."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
@@ -82,6 +91,7 @@ def test_facade_routes_color_calls_to_opencv() -> None:
     )
 
 
+@_requires_opencv
 def test_facade_routes_resize_calls_to_opencv() -> None:
     """Route resize calls through the Supervision facade."""
     image = np.array([[[10, 20, 30], [40, 50, 60]]], dtype=np.uint8)
