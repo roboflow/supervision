@@ -18,6 +18,59 @@ def _as_points(contour: npt.NDArray[Any]) -> npt.NDArray[np.float64]:
     return points.reshape(-1, 2).astype(np.float64, copy=False)
 
 
+def _farthest_from_segment(
+    xs: list[float], ys: list[float], start: int, end: int, count: int
+) -> tuple[float, int, float]:
+    """Find the contour point farthest from the finite segment ``start`` to ``end``.
+
+    Points strictly between ``start`` and ``end`` (wrapping at ``count``) are
+    scanned. Distances stay in OpenCV's division-free scaled domain, so every
+    value is the squared distance multiplied by the returned scale; callers
+    compare the maximum with ``epsilon**2 * scale``.
+
+    Args:
+        xs: X coordinates of the contour points.
+        ys: Y coordinates of the contour points.
+        start: Index of the segment's first point.
+        end: Index of the segment's last point.
+        count: Number of contour points, used for index wrap-around.
+
+    Returns:
+        The scaled maximum distance, the index of the farthest point (``start``
+        when no point lies between the ends), and the scale.
+    """
+    start_x, start_y = xs[start], ys[start]
+    end_x, end_y = xs[end], ys[end]
+    segment_x, segment_y = end_x - start_x, end_y - start_y
+    length_squared = segment_x * segment_x + segment_y * segment_y
+    # OpenCV asserts that a slice never has equal ends; keep a plain point
+    # distance with unit scale so a broken invariant cannot divide by zero.
+    scale = length_squared if length_squared > 0.0 else 1.0
+    maximum = 0.0
+    split = start
+    position = (start + 1) % count
+    while position != end:
+        offset_x = xs[position] - start_x
+        offset_y = ys[position] - start_y
+        # A negative or too-long projection means the nearest point of the
+        # segment is an end point, not the infinite line through the segment.
+        projection = offset_x * segment_x + offset_y * segment_y
+        if length_squared == 0.0 or projection < 0.0:
+            distance = (offset_x * offset_x + offset_y * offset_y) * scale
+        elif projection > length_squared:
+            beyond_x = xs[position] - end_x
+            beyond_y = ys[position] - end_y
+            distance = (beyond_x * beyond_x + beyond_y * beyond_y) * length_squared
+        else:
+            cross = offset_x * segment_y - offset_y * segment_x
+            distance = cross * cross
+        if distance > maximum:
+            maximum = distance
+            split = position
+        position = (position + 1) % count
+    return maximum, split, scale
+
+
 def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
     """Compute a contour's signed or absolute shoelace area."""
     points = _as_points(contour)
@@ -36,6 +89,12 @@ def _simplify_slices(
     count = len(points)
     stack: list[tuple[int, int]] = []
     output: list[npt.NDArray[np.float64]] = []
+    # Plain Python floats keep the per-point inner loop out of NumPy indexing.
+    xs = points[:, 0].tolist()
+    ys = points[:, 1].tolist()
+    # OpenCV seeds an explicitly closed contour with three passes, but an open
+    # one that only closes because its first and last points match with one.
+    seed_iterations = 3 if closed else 1
 
     if closed or np.array_equal(points[0], points[-1]):
         closed = True
@@ -43,7 +102,7 @@ def _simplify_slices(
         right_start = 0
         start_point = points[0]
         within_epsilon = False
-        for _ in range(3):
+        for _ in range(seed_iterations):
             position = (position + right_start) % count
             start_point = points[position]
             maximum_distance = 0.0
@@ -67,36 +126,13 @@ def _simplify_slices(
 
     while stack:
         start, end = stack.pop()
-        start_point = points[start]
-        end_point = points[end]
-        position = (start + 1) % count
-        maximum_distance = 0.0
-        split = start
+        maximum_distance, split, scale = _farthest_from_segment(
+            xs, ys, start, end, count
+        )
 
-        if position != end:
-            segment = end_point - start_point
-            while position != end:
-                point = points[position]
-                distance = abs(
-                    float(
-                        (point[1] - start_point[1]) * segment[0]
-                        - (point[0] - start_point[0]) * segment[1]
-                    )
-                )
-                if distance > maximum_distance:
-                    maximum_distance = distance
-                    split = position
-                position = (position + 1) % count
-            segment_length_squared = float(np.dot(segment, segment))
-            within_epsilon = (
-                maximum_distance * maximum_distance
-                <= epsilon_squared * segment_length_squared
-            )
-        else:
-            within_epsilon = True
-
-        if within_epsilon:
-            output.append(start_point)
+        # No point between the ends gives a maximum of 0.0, always within epsilon.
+        if maximum_distance <= epsilon_squared * scale:
+            output.append(points[start])
         else:
             stack.extend(((split, end), (start, split)))
 
@@ -163,8 +199,9 @@ def _approx_poly_dp(
     contour: npt.NDArray[Any], epsilon: float, closed: bool
 ) -> npt.NDArray[Any]:
     """Approximate a contour with the supported OpenCV polygon contract."""
-    if epsilon < 0:
-        raise ValueError("epsilon must be non-negative")
+    # Written as a negated range so NaN fails it too; OpenCV rejects the same set.
+    if not 0 <= epsilon < 1e30:
+        raise ValueError("epsilon must be non-negative and below 1e30")
     points = _as_points(contour)
     if len(points) == 0:
         dtype = np.asarray(contour).dtype

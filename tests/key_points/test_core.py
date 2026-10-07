@@ -1638,6 +1638,86 @@ class TestFromUltralytics:
         assert key_points == KeyPoints.empty()
 
 
+class TestFromTransformers:
+    """KeyPoints.from_transformers for per-image pose results."""
+
+    @pytest.mark.parametrize(
+        "results",
+        [
+            pytest.param([], id="empty-list"),
+            pytest.param((), id="empty-tuple"),
+            pytest.param(
+                [
+                    {
+                        "keypoints": _FakeTensor(np.zeros((0, 2), dtype=np.float32)),
+                        "scores": _FakeTensor(np.zeros((0,), dtype=np.float32)),
+                    }
+                ],
+                id="empty-keypoints-tensor",
+            ),
+            pytest.param(
+                [{"scores": _FakeTensor(np.array([0.9], dtype=np.float32))}],
+                id="no-keypoints-key",
+            ),
+        ],
+    )
+    def test_result_without_poses_returns_empty_key_points(
+        self, results: object
+    ) -> None:
+        """A result that holds no poses returns `KeyPoints.empty()`."""
+        key_points = KeyPoints.from_transformers(results)
+
+        assert key_points == KeyPoints.empty()
+
+    def test_none_result_raises_type_error(self) -> None:
+        """A `None` result is a caller bug, not an image without poses."""
+        with pytest.raises(TypeError):
+            KeyPoints.from_transformers(None)
+
+    def test_pose_result_preserves_coordinates_and_scores(self) -> None:
+        """A nonempty pose result still carries its keypoints and scores."""
+        results = [
+            {
+                "keypoints": _FakeTensor(
+                    np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
+                ),
+                "scores": _FakeTensor(np.array([0.9, 0.7], dtype=np.float32)),
+            }
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        assert key_points.xy.shape == (1, 2, 2)
+        assert key_points.xy.dtype == np.float32
+        np.testing.assert_array_equal(key_points.xy, [[[10.0, 20.0], [30.0, 40.0]]])
+        assert key_points.keypoint_confidence is not None
+        np.testing.assert_allclose(key_points.keypoint_confidence, [[0.9, 0.7]])
+        np.testing.assert_array_equal(key_points.class_id, [0])
+
+    def test_multiple_poses_are_stacked_with_sequential_class_ids(self) -> None:
+        """Several poses stack into one `(N, K, 2)` array with ids `0..N-1`."""
+        results = [
+            {
+                "keypoints": _FakeTensor(
+                    np.array([[10.0, 20.0], [30.0, 40.0]], dtype=np.float32)
+                ),
+                "scores": _FakeTensor(np.array([0.9, 0.7], dtype=np.float32)),
+            },
+            {
+                "keypoints": _FakeTensor(
+                    np.array([[50.0, 60.0], [70.0, 80.0]], dtype=np.float32)
+                ),
+                "scores": _FakeTensor(np.array([0.6, 0.5], dtype=np.float32)),
+            },
+        ]
+
+        key_points = KeyPoints.from_transformers(results)
+
+        assert key_points.xy.shape == (2, 2, 2)
+        assert key_points.xy.dtype == np.float32
+        np.testing.assert_array_equal(key_points.class_id, [0, 1])
+
+
 class _FakeDetectron2Instances:
     """Detectron2-like `Instances` holding key points, scores and classes."""
 
