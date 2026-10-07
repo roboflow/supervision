@@ -13,7 +13,6 @@ from supervision.config import (
     DISPARITY_PX_DATA_FIELD,
     RELATIVE_INVERSE_DATA_FIELD,
 )
-from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 
 
@@ -697,9 +696,7 @@ class DepthMap:
         medians = np.full(len(detections), np.nan, dtype=np.float32)
         mask = detections.mask
         if mask is not None:
-            mask_shape = (
-                mask.image_shape if isinstance(mask, CompactMask) else mask.shape[1:]
-            )
+            mask_shape = mask.shape[1:]
             if tuple(mask_shape) != (height, width):
                 raise ValueError(
                     f"Detection masks are {mask_shape[1]}x{mask_shape[0]} but the "
@@ -707,14 +704,7 @@ class DepthMap:
                     "depth_map.resize(...) first."
                 )
         for index in range(len(detections)):
-            if isinstance(mask, CompactMask):
-                crop = mask.crop(index)
-                x_offset, y_offset = (int(v) for v in mask.offsets[index])
-                region = values[
-                    y_offset : y_offset + crop.shape[0],
-                    x_offset : x_offset + crop.shape[1],
-                ][crop]
-            elif mask is not None:
+            if mask is not None:
                 region = values[np.asarray(mask[index], dtype=bool)]
             else:
                 x_min, y_min, x_max, y_max = (

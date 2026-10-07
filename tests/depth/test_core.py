@@ -328,7 +328,7 @@ class TestDepthMapMeasureDetections:
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
 
     def test_measures_inside_compact_masks(self) -> None:
-        """A CompactMask is read crop by crop with the same result as dense."""
+        """A CompactMask gives the same result as dense masks."""
         mask = np.zeros((2, 20, 20), dtype=bool)
         mask[0, 2:6, 2:4] = True
         mask[1, 8:10, 8:12] = True
