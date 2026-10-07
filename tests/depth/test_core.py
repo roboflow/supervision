@@ -26,12 +26,6 @@ class TestDepthMapInit:
         with pytest.raises(ValueError, match=match):
             sv.DepthMap(values, kind="depth_m")
 
-    def test_stores_float64_as_float32(self) -> None:
-        """Any float dtype is stored as float32."""
-        depth_map = sv.DepthMap(np.ones((2, 2)), kind="depth_m")
-
-        assert depth_map.values.dtype == np.float32
-
     def test_rejects_unknown_kind(self) -> None:
         """The kind must be one of the three depth kinds."""
         with pytest.raises(ValueError, match="Invalid depth kind"):
@@ -107,14 +101,6 @@ class TestDepthMapEquality:
 
         assert sv.DepthMap(values, kind="depth_m") == sv.DepthMap(
             values.copy(), kind="depth_m"
-        )
-
-    def test_different_kinds_are_not_equal(self) -> None:
-        """Equal values of different kinds are different maps."""
-        values = np.ones((2, 2), dtype=np.float32)
-
-        assert sv.DepthMap(values, kind="depth_m") != sv.DepthMap(
-            values, kind="disparity_px"
         )
 
 

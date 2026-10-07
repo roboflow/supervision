@@ -23,10 +23,11 @@ class DepthKind(Enum):
             Metric depth is `fx_px * baseline_m / (disparity + doffs_px)`.
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
         RELATIVE_INVERSE: Unitless relative depth from a monocular model,
-            normalised so larger is nearer, with no metric scale. Roboflow
-            Inference's maps run from 0 for the farthest pixel to 1 for the
-            nearest. Depth Anything V1 and V2 and DPT output is inverse depth up to
-            an unknown scale and shift; Depth Anything V3 output is linear in depth.
+            normalised so larger is nearer, with no metric scale. The kind promises
+            only that larger is nearer: Depth Anything V1, V2 and DPT output inverse
+            depth up to an unknown scale and shift, while Depth Anything V3 output is
+            linear in depth. Roboflow Inference's maps run from 0 for the farthest
+            pixel to 1 for the nearest.
     """
 
     DISPARITY_PX = "disparity_px"
