@@ -204,6 +204,11 @@ def coco_annotations_to_detections(
     xyxy_list = [image_annotation["bbox"] for image_annotation in image_annotations]
     xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
+    x0 = np.minimum(xyxy[:, 0], xyxy[:, 2])
+    y0 = np.minimum(xyxy[:, 1], xyxy[:, 3])
+    x1 = np.maximum(xyxy[:, 0], xyxy[:, 2])
+    y1 = np.maximum(xyxy[:, 1], xyxy[:, 3])
+    xyxy = np.stack([x0, y0, x1, y1], axis=1)
 
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
@@ -312,7 +317,11 @@ def detections_to_coco_annotations(
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
+        x_min = min(xyxy[0], xyxy[2])
+        y_min = min(xyxy[1], xyxy[3])
+        x_max = max(xyxy[0], xyxy[2])
+        y_max = max(xyxy[1], xyxy[3])
+        box_width, box_height = x_max - x_min, y_max - y_min
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
             mask_bool = mask
@@ -383,7 +392,7 @@ def detections_to_coco_annotations(
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id) + 1,
-            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+            "bbox": [x_min, y_min, box_width, box_height],
             "area": area,
             "segmentation": segmentation,
             "iscrowd": iscrowd,

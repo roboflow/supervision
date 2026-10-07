@@ -115,10 +115,10 @@ def createml_annotations_to_detections(
             ) from exc
         xyxy.append(
             [
-                x_center - width / 2,
-                y_center - height / 2,
-                x_center + width / 2,
-                y_center + height / 2,
+                x_center - abs(width) / 2,
+                y_center - abs(height) / 2,
+                x_center + abs(width) / 2,
+                y_center + abs(height) / 2,
             ]
         )
         class_ids.append(class_to_index[label])
@@ -267,7 +267,10 @@ def detections_to_createml_annotations(
         )
     annotations: list[CreateMLDict] = []
     for xyxy, class_id in zip(detections.xyxy, class_ids):
-        x_min, y_min, x_max, y_max = (float(value) for value in xyxy)
+        x_min = min(float(xyxy[0]), float(xyxy[2]))
+        y_min = min(float(xyxy[1]), float(xyxy[3]))
+        x_max = max(float(xyxy[0]), float(xyxy[2]))
+        y_max = max(float(xyxy[1]), float(xyxy[3]))
         annotations.append(
             {
                 "label": classes[int(class_id)],

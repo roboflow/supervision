@@ -70,16 +70,20 @@ def object_to_pascal_voc(
     # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
     # would corrupt the caller's detections by +1 on every export.
     xyxy = xyxy + 1
+    x1 = min(xyxy[0], xyxy[2])
+    y1 = min(xyxy[1], xyxy[3])
+    x2 = max(xyxy[0], xyxy[2])
+    y2 = max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0]))
+    xmin.text = str(int(x1))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1]))
+    ymin.text = str(int(y1))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2]))
+    xmax.text = str(int(x2))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3]))
+    ymax.text = str(int(y2))
 
     if polygon is not None:
         # 1-indexed, rebound to avoid mutating the caller's array (see above).
@@ -359,6 +363,11 @@ def detections_from_xml_obj(
 
     # https://github.com/roboflow/supervision/issues/144
     xyxy_arr -= 1
+    x0 = np.minimum(xyxy_arr[:, 0], xyxy_arr[:, 2])
+    y0 = np.minimum(xyxy_arr[:, 1], xyxy_arr[:, 3])
+    x1 = np.maximum(xyxy_arr[:, 0], xyxy_arr[:, 2])
+    y1 = np.maximum(xyxy_arr[:, 1], xyxy_arr[:, 3])
+    xyxy_arr = np.stack([x0, y0, x1, y1], axis=1)
 
     for k in sorted(set(class_names)):
         if k not in extended_classes:

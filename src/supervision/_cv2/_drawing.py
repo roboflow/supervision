@@ -98,16 +98,37 @@ def _rectangle(
     del lineType
     _validate_shift(shift)
     first_point, second_point = _point(pt1), _point(pt2)
-    first = tuple(min(left, right) for left, right in zip(first_point, second_point))
-    second = tuple(max(left, right) for left, right in zip(first_point, second_point))
+    x1, y1 = (min(first_point[0], second_point[0]), min(first_point[1], second_point[1]))
+    x2, y2 = (max(first_point[0], second_point[0]), max(first_point[1], second_point[1]))
+    height, width = img.shape[:2]
     if thickness < 0:
-        mask = _drawing_mask(img, lambda draw: draw.rectangle([first, second], fill=1))
-    else:
-        width = max(1, thickness)
-        mask = _drawing_mask(
-            img,
-            lambda draw: draw.rectangle([first, second], outline=1, width=width),
-        )
+        x0_clamped = max(x1, 0)
+        y0_clamped = max(y1, 0)
+        x1_clamped = min(x2 + 1, width)
+        y1_clamped = min(y2 + 1, height)
+        if x0_clamped < x1_clamped and y0_clamped < y1_clamped:
+            img[y0_clamped:y1_clamped, x0_clamped:x1_clamped] = _color_for_image(
+                img, color
+            )
+        return img
+    t = max(1, thickness)
+    mask = np.zeros((height, width), dtype=bool)
+    r_out = t // 2
+    r_in = (t - 1) // 2
+    outer_x1 = max(x1 - r_out, 0)
+    outer_y1 = max(y1 - r_out, 0)
+    outer_x2 = min(x2 + r_out + 1, width)
+    outer_y2 = min(y2 + r_out + 1, height)
+    if outer_x1 < outer_x2 and outer_y1 < outer_y2:
+        inner_x1 = max(x1 + r_in + 1, 0)
+        inner_y1 = max(y1 + r_in + 1, 0)
+        inner_x2 = min(x2 - r_in, width)
+        inner_y2 = min(y2 - r_in, height)
+        outer = np.s_[outer_y1:outer_y2, outer_x1:outer_x2]
+        mask[outer] = True
+        if inner_x1 < inner_x2 and inner_y1 < inner_y2:
+            inner = np.s_[inner_y1:inner_y2, inner_x1:inner_x2]
+            mask[inner] = False
     return _paint(img, mask, color)
 
 

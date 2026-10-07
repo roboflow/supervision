@@ -29,6 +29,27 @@ def _contour_area(contour: npt.NDArray[Any], oriented: bool = False) -> float:
     return area if oriented else abs(area)
 
 
+def _point_to_segment_distance_squared(
+    point: npt.NDArray[np.float64],
+    start: npt.NDArray[np.float64],
+    end: npt.NDArray[np.float64],
+) -> float:
+    """Return squared distance from a point to a line segment (not infinite line)."""
+    segment = end - start
+    segment_len_sq = float(np.dot(segment, segment))
+    if segment_len_sq == 0.0:
+        diff = point - start
+        return float(np.dot(diff, diff))
+    t = float(np.dot(point - start, segment)) / segment_len_sq
+    if t < 0.0:
+        diff = point - start
+    elif t > 1.0:
+        diff = point - end
+    else:
+        diff = point - (start + t * segment)
+    return float(np.dot(diff, diff))
+
+
 def _simplify_slices(
     points: npt.NDArray[np.float64], epsilon_squared: float, closed: bool
 ) -> npt.NDArray[np.float64]:
@@ -74,24 +95,16 @@ def _simplify_slices(
         split = start
 
         if position != end:
-            segment = end_point - start_point
             while position != end:
                 point = points[position]
-                distance = abs(
-                    float(
-                        (point[1] - start_point[1]) * segment[0]
-                        - (point[0] - start_point[0]) * segment[1]
-                    )
+                distance = _point_to_segment_distance_squared(
+                    point, start_point, end_point
                 )
                 if distance > maximum_distance:
                     maximum_distance = distance
                     split = position
                 position = (position + 1) % count
-            segment_length_squared = float(np.dot(segment, segment))
-            within_epsilon = (
-                maximum_distance * maximum_distance
-                <= epsilon_squared * segment_length_squared
-            )
+            within_epsilon = maximum_distance <= epsilon_squared
         else:
             within_epsilon = True
 
