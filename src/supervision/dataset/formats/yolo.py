@@ -104,8 +104,8 @@ def _check_line_is_parsable(values: list[str], line: str, is_obb: bool) -> None:
 
     Five tokens are a box, six add a trailing confidence or tracker id, and seven or
     more are a polygon. ``is_obb=True`` reads nine-token four-corner lines only, where
-    an odd coordinate count cannot be paired into vertices. Anything else cannot be
-    read as any of them.
+    an odd coordinate count cannot be paired into vertices. Anything else cannot be read
+    as any of them.
     """
     if is_obb:
         if len(values) == 9:
@@ -227,8 +227,8 @@ def _extract_class_names(file_path: str) -> list[str]:
 def _is_positive_whole_number(value: Any) -> bool:
     """Return whether a YAML value is a positive whole number.
 
-    Whole-number floats such as ``17.0`` count; booleans do not, although
-    ``bool`` subclasses ``int`` in Python.
+    Whole-number floats such as ``17.0`` count; booleans do not, although ``bool``
+    subclasses ``int`` in Python.
     """
     if isinstance(value, bool):
         return False
@@ -274,9 +274,8 @@ def _extract_pose_value_count(file_path: str) -> int:
 def _drop_keypoints(lines: list[str], pose_value_count: int) -> list[str]:
     """Keep the box of each pose label line and drop its keypoint values.
 
-    Only lines of exactly ``5 + pose_value_count`` tokens are pose labels; other
-    lines are returned unchanged. Ultralytics reads pose labels the same way for
-    box tasks.
+    Only lines of exactly ``5 + pose_value_count`` tokens are pose labels; other lines
+    are returned unchanged. Ultralytics reads pose labels the same way for box tasks.
     """
     kept: list[str] = []
     for line in lines:
