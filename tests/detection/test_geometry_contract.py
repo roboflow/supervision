@@ -142,9 +142,9 @@ class TestGeometryContractValues:
     def test_iou_uses_the_rotated_body(self) -> None:
         """Diamonds offset along the diagonal touch on an edge; envelopes overlap.
 
-        Envelopes are ``[-d, -d, d, d]`` and ``[0, 0, 2d, 2d]``: they intersect over
-        ``d * d`` with a union of ``7 * d * d``. The bodies meet only along the shared
-        edge, so the oriented overlap is zero.
+        Envelopes are ``[-d, -d, d, d]`` and ``[0, 0, 2d, 2d]``: they intersect over ``d
+        * d`` with a union of ``7 * d * d``. The bodies meet only along the shared edge,
+        so the oriented overlap is zero.
         """
         obb = detection_iou(_oriented(), _oriented(HALF_DIAGONAL, HALF_DIAGONAL))
         envelope = detection_iou(
