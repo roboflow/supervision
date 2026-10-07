@@ -1,4 +1,4 @@
-"""Private Pillow-based drawing fallbacks for the OpenCV facade."""
+"""Private Pillow/NumPy drawing fallbacks for the OpenCV facade."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def _paint(image: _ImageArray, mask: npt.NDArray[np.bool_], color: Any) -> _Imag
 
 
 def _point(point: Sequence[int | float]) -> _Point:
-    """Convert an OpenCV point to integer Pillow coordinates."""
+    """Convert an OpenCV point to integer pixel coordinates."""
     return round(point[0]), round(point[1])
 
 
