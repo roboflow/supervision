@@ -13,6 +13,7 @@ from supervision.detection.utils.iou_and_nms import (
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.keypoint_mean_average_precision import (
     KeypointMeanAveragePrecision,
+    KeypointMeanAveragePrecisionResult,
 )
 
 PERSON_TEMPLATE = np.array(
@@ -616,3 +617,132 @@ class TestKeypointMeanAveragePrecisionPycocotoolsParity:
             EXPECTED_STATS[4], abs=1e-6
         )
         assert result.ap_per_class == pytest.approx(EXPECTED_AP_PER_CLASS, abs=1e-6)
+
+
+class TestKeypointOksBatchShapeValidation:
+    """Per-target inputs of `_keypoint_oks_batch` must match the target count."""
+
+    def test_raises_for_invalid_area_shape(self) -> None:
+        """`area_true` must hold one area per target."""
+        keypoints = np.zeros((1, 3, 2))
+
+        with pytest.raises(ValueError, match="area_true"):
+            _keypoint_oks_batch(
+                keypoints, keypoints, area_true=np.ones(2), sigmas=[0.1, 0.1, 0.1]
+            )
+
+    def test_raises_for_invalid_visible_shape(self) -> None:
+        """`visible_true` must hold one flag per target keypoint."""
+        keypoints = np.zeros((1, 3, 2))
+
+        with pytest.raises(ValueError, match="visible_true"):
+            _keypoint_oks_batch(
+                keypoints,
+                keypoints,
+                area_true=np.array([1.0]),
+                sigmas=[0.1, 0.1, 0.1],
+                visible_true=np.ones((1, 2), dtype=bool),
+            )
+
+
+def _exact_match_result() -> KeypointMeanAveragePrecisionResult:
+    """Compute the result for one prediction on top of its target."""
+    metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+    return metric.update(
+        _triangle_key_points(confidence=0.9), _triangle_key_points()
+    ).compute()
+
+
+class TestKeypointMeanAveragePrecisionCategories:
+    """Skeletons are grouped by class unless the metric is class agnostic."""
+
+    def test_class_agnostic_matches_across_classes(self) -> None:
+        """A class-agnostic metric matches a prediction of another class."""
+        prediction = _triangle_key_points(confidence=0.9)
+        prediction.class_id = np.array([1])
+        metric = KeypointMeanAveragePrecision(
+            sigmas=TRIANGLE_SIGMAS, class_agnostic=True
+        )
+
+        result = metric.update(prediction, _triangle_key_points()).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        assert result.is_class_agnostic
+
+    def test_missing_class_id_falls_back_to_class_zero(self) -> None:
+        """Skeletons without `class_id` are scored as class 0."""
+        prediction = _triangle_key_points(confidence=0.9)
+        target = _triangle_key_points()
+        prediction.class_id = None
+        target.class_id = None
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(prediction, target).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        assert list(result.matched_classes) == [0]
+
+    def test_reset_clears_stored_data(self) -> None:
+        """After `reset`, earlier updates no longer contribute to the score."""
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric.update(_triangle_key_points(confidence=0.9), _triangle_key_points())
+
+        metric.reset()
+        result = metric.update(KeyPoints.empty(), _triangle_key_points()).compute()
+
+        assert result.map50_95 == pytest.approx(0.0)
+
+
+class TestKeypointMeanAveragePrecisionResult:
+    """Summary, DataFrame and plot helpers of the keypoint mAP result."""
+
+    def test_str_lists_overall_scores(self) -> None:
+        """The summary starts with the three overall OKS lines."""
+        result = _exact_match_result()
+
+        lines = str(result).splitlines()
+
+        assert lines[0].startswith("Average Precision (AP) @[ OKS=0.50:0.95")
+        assert lines[0].endswith("= 1.000")
+        assert len(lines) == 3 + (result.medium_objects is not None) + (
+            result.large_objects is not None
+        )
+
+    def test_to_pandas_holds_overall_scores(self) -> None:
+        """The DataFrame has one row with the overall mAP columns."""
+        result = _exact_match_result()
+
+        data_frame = result.to_pandas()
+
+        assert len(data_frame) == 1
+        assert data_frame["mAP@50:95"].iloc[0] == pytest.approx(1.0)
+        assert data_frame["mAP@50"].iloc[0] == pytest.approx(1.0)
+        assert data_frame["mAP@75"].iloc[0] == pytest.approx(1.0)
+
+    @pytest.mark.parametrize("include_object_sizes", [True, False])
+    def test_plot_details_start_with_overall_scores(
+        self, include_object_sizes: bool
+    ) -> None:
+        """Plot details list the overall scores, then any object-size bars."""
+        result = _exact_match_result()
+
+        details = result._get_plot_details(include_object_sizes=include_object_sizes)
+
+        assert details.labels[:3] == ["mAP@50:95", "mAP@50", "mAP@75"]
+        assert details.values[:3] == pytest.approx([1.0, 1.0, 1.0])
+        assert len(details.labels) == len(details.values) == len(details.colors)
+        assert (len(details.labels) > 3) == include_object_sizes
+        assert "Keypoint Mean Average Precision" in details.title
+
+    def test_plot_shows_figure(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """`plot` draws the bars and hands them to `plt.show` once."""
+        from matplotlib import pyplot as plt
+
+        shown: list[bool] = []
+        monkeypatch.setattr(plt, "show", lambda: shown.append(True))
+        result = _exact_match_result()
+
+        result.plot()
+        plt.close("all")
+
+        assert shown == [True]

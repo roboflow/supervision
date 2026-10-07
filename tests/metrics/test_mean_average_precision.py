@@ -1180,3 +1180,22 @@ def test_box_map_uses_100_max_detections_by_default() -> None:
 
     assert result.map50_95 == pytest.approx(1 / 12, abs=1e-6)
     assert result.map50 == pytest.approx(1 / 12, abs=1e-6)
+
+
+def test_box_map_plot_shows_figure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Box mAP `plot` draws the bars and hands them to `plt.show` once."""
+    from matplotlib import pyplot as plt
+
+    shown: list[bool] = []
+    monkeypatch.setattr(plt, "show", lambda: shown.append(True))
+    detections = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=float),
+        class_id=np.array([0]),
+        confidence=np.array([0.9]),
+    )
+    result = MeanAveragePrecision().update(detections, detections).compute()
+
+    result.plot()
+    plt.close("all")
+
+    assert shown == [True]
