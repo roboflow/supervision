@@ -7,6 +7,8 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.get_video_frames_generator` now reads a video until the stream ends when no `end` is given, instead of stopping at OpenCV's `CAP_PROP_FRAME_COUNT`. OpenCV estimates that count from container metadata: a WebM without a duration, as recorded by browsers, reports a huge negative count, so no frames were yielded and `end` always raised `Requested frames are outbound`, and a variable frame rate MKV or WebM can report fewer frames than it holds, so the video was cut short. `sv.process_video` without `max_frames` was affected the same way and now also reads to the stream end; with `max_frames`, a positive frame count that is too low still caps the frames processed. A positive frame count still rejects an `end` past it. Videos read without OpenCV were not affected. ([#2672](https://github.com/roboflow/supervision/pull/2672))
+
 - `sv.KeyPoints.from_transformers` now returns an empty `KeyPoints` object when pose post-processing returns no instances for an image, instead of raising `IndexError`. This lets callers handle frames with no detected people without stopping the pose pipeline. ([#2671](https://github.com/roboflow/supervision/pull/2671))
 
 ### 0.30.8 <small>Oct 6, 2026</small>
