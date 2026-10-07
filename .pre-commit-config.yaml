@@ -65,7 +65,8 @@ repos:
         types_or: [python, pyi, jupyter]
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.8
+    # 1.7.8 corrupts multiline f-string tokens: PyCQA/docformatter#367.
+    rev: v1.7.7
     hooks:
       - id: docformatter
         additional_dependencies:
