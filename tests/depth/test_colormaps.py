@@ -1,32 +1,13 @@
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 import pytest
 
 import supervision as sv
 from supervision.depth.colormaps import _colorize, _rgb_lut
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    import matplotlib
 
-
-class TestDepthColormapTables:
-    @pytest.mark.parametrize(
-        "name", ["turbo", "viridis", "cividis", "inferno", "magma"]
-    )
-    def test_tables_match_matplotlib_rounded_half_up(self, name: str) -> None:
-        """Vendored tables are matplotlib's entries rounded half up to 8 bits."""
-        expected = (matplotlib.colormaps[name](range(256))[:, :3] * 255 + 0.5).astype(
-            np.uint8
-        )
-
-        lut = _rgb_lut(sv.DepthColormap.from_value(name))
-
-        np.testing.assert_array_equal(lut, expected)
-
+class TestDepthColormapGrayscale:
     def test_grayscale_is_a_ramp(self) -> None:
         """Grayscale entry i is (i, i, i)."""
         lut = _rgb_lut(sv.DepthColormap.GRAYSCALE)

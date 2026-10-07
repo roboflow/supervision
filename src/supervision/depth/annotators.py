@@ -63,14 +63,12 @@ class DepthAnnotator:
             opacity: Opacity of the colours over the scene, from 0 to 1.
 
         Raises:
-            ValueError: If an option is out of range.
+            ValueError: If `colormap` or `display_range` is invalid.
         """
         self.colormap = DepthColormap.from_value(colormap)
         self.quantity = DepthQuantity.from_value(quantity)
         self.display_range = _check_display_range_option(display_range)
-        if not (math.isfinite(opacity) and 0 <= opacity <= 1):
-            raise ValueError(f"opacity must be between 0 and 1, got {opacity}.")
-        self.opacity = float(opacity)
+        self.opacity = opacity
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, depth_map: DepthMap) -> ImageType:

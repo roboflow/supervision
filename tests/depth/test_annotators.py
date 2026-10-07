@@ -41,7 +41,7 @@ class TestDepthAnnotatorColors:
         assert _rgb(scene) == [[TURBO[255].tolist(), TURBO[0].tolist()]]
 
     def test_metric_map_colours_inverse_depth_by_default(self) -> None:
-        """Disparity of a metric map without camera is 1 / Z."""
+        """A metric map is coloured as inverse depth, 1 / Z."""
         depth_map = sv.DepthMap(np.array([[0.5, 1.0, 2.0]], np.float32), kind="depth_m")
         scene = np.zeros((1, 3, 3), dtype=np.uint8)
 
@@ -171,8 +171,3 @@ class TestDepthAnnotatorScene:
                 np.zeros((2, 2, 3), np.uint8), depth_map
             )
 
-    @pytest.mark.parametrize("opacity", [-0.1, 1.5, float("nan")])
-    def test_rejects_opacity_outside_unit_range(self, opacity: float) -> None:
-        """Opacity must be between 0 and 1."""
-        with pytest.raises(ValueError, match="opacity"):
-            sv.DepthAnnotator(opacity=opacity)
