@@ -5,6 +5,10 @@ date_modified: 2026-10-06
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.KeyPoints.from_transformers` now returns an empty `KeyPoints` object when pose post-processing returns no instances for an image, instead of raising `IndexError`. This lets callers handle frames with no detected people without stopping the pose pipeline. ([#2671](https://github.com/roboflow/supervision/pull/2671))
+
 ### 0.30.8 <small>Oct 6, 2026</small>
 
 - `sv.Detections.from_vlm` with `sv.VLM.QWEN_2_5_VL` or `sv.VLM.QWEN_3_VL` now recovers complete detections from a response cut off before its closing `]`, such as inside the last box's `bbox_2d` array or right after a complete object. The parser cut the text at its last `]`, which in a cut-off response can sit before the last complete object's closing `}`, so that object was dropped: two complete detections returned one. Recovery now reads the text before that cut, then the cut text if that fails. A `}` inside the cut-off object's label can still drop the detection before it. ([#2666](https://github.com/roboflow/supervision/pull/2666))

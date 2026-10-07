@@ -789,12 +789,14 @@ class KeyPoints:
         [Transformers](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results: The output of a
-                Transformers model containing instances with prediction data.
+            transformers_results: The per-image output of a Transformers pose
+                post-processor: a list with one dict of prediction data per
+                detected pose. An empty list means no poses were detected.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, and confidences of each keypoint. An empty
+                `transformers_results` returns `KeyPoints.empty()`.
 
         Examples:
             ```python
@@ -844,6 +846,9 @@ class KeyPoints:
             ```
 
         """  # noqa: E501 // docs
+
+        if len(transformers_results) == 0:
+            return cls.empty()
 
         if "keypoints" in transformers_results[0]:
             if transformers_results[0]["keypoints"].cpu().numpy().size == 0:
