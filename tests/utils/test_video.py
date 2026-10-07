@@ -480,6 +480,31 @@ def test_process_video_max_frames_larger_than_video_processes_whole_video(
     assert os.path.exists(target_path)
 
 
+def test_process_video_max_frames_caps_read_when_frame_count_is_unknown(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A non-positive frame count leaves max_frames as the only cap on the read."""
+    monkeypatch.setattr(
+        "supervision.utils.video.VideoInfo.from_video_path",
+        lambda video_path: VideoInfo(width=640, height=480, fps=25, total_frames=-1),
+    )
+    processed_indices: list[int] = []
+
+    def callback(frame: np.ndarray, index: int) -> np.ndarray:
+        """Record the index of every processed frame."""
+        processed_indices.append(index)
+        return frame
+
+    process_video(
+        source_path=dummy_video_path,
+        target_path=str(tmp_path / "target_unknown_count.mp4"),
+        callback=callback,
+        max_frames=3,
+    )
+
+    assert processed_indices == [0, 1, 2]
+
+
 def test_process_video_propagates_reader_thread_errors(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1173,3 +1198,134 @@ def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
     frame_indices = [round(float(frame.mean()) / 25) for frame in frames]
 
     assert frame_indices == expected_frame_indices
+
+
+class _UnreliableCountCapture:
+    """Fake capture that decodes `frame_count` frames but reports `reported_count`.
+
+    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with
+    no duration, as written by a browser's `MediaRecorder`, reports a huge negative
+    count, and a variable frame rate MKV or WebM can report fewer frames than it
+    holds.
+    """
+
+    def __init__(self, frame_count: int, reported_count: float) -> None:
+        self.frame_count = frame_count
+        self.reported_count = reported_count
+        self.position = 0
+
+    def isOpened(self) -> bool:
+        """Report the capture as open."""
+        return True
+
+    def get(self, property_id: int) -> float:
+        """Return the unreliable frame count estimate."""
+        assert property_id == cv2.CAP_PROP_FRAME_COUNT
+        return self.reported_count
+
+    def read(self) -> tuple[bool, np.ndarray | None]:
+        """Decode the next frame, filled with its index, until the stream ends."""
+        if self.position >= self.frame_count:
+            return False, None
+        frame = np.full((2, 2, 3), self.position, dtype=np.uint8)
+        self.position += 1
+        return True, frame
+
+    def grab(self) -> bool:
+        """Skip the next frame."""
+        success, _ = self.read()
+        return success
+
+    def release(self) -> None:
+        """No-op release for the fake capture."""
+
+
+@pytest.mark.parametrize("prefetch", [0, 2])
+@pytest.mark.parametrize(
+    ("reported_count", "end", "expected_frame_indices"),
+    [
+        pytest.param(-2.767e17, None, [0, 1, 2, 3, 4], id="negative-count"),
+        pytest.param(0, None, [0, 1, 2, 3, 4], id="zero-count"),
+        pytest.param(3, None, [0, 1, 2, 3, 4], id="underestimated-count"),
+        pytest.param(-2.767e17, 2, [0, 1], id="negative-count-with-end"),
+        pytest.param(0, 3, [0, 1, 2], id="zero-count-with-end"),
+        pytest.param(5, 5, [0, 1, 2, 3, 4], id="end-at-positive-count"),
+    ],
+)
+def test_get_video_frames_generator_reads_past_unreliable_frame_count(
+    monkeypatch: pytest.MonkeyPatch,
+    reported_count: float,
+    end: int | None,
+    prefetch: int,
+    expected_frame_indices: list[int],
+) -> None:
+    """Frames are read until the stream ends, not until the estimated frame count."""
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: _UnreliableCountCapture(
+            frame_count=5, reported_count=reported_count
+        ),
+    )
+
+    frames = get_video_frames_generator("recording.webm", end=end, prefetch=prefetch)
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == expected_frame_indices
+
+
+def test_get_video_frames_generator_rejects_end_past_positive_frame_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An `end` past a positive reported frame count raises on first iteration."""
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: _UnreliableCountCapture(frame_count=5, reported_count=5),
+    )
+    frames = get_video_frames_generator("recording.webm", end=6)
+
+    with pytest.raises(Exception, match="outbound"):
+        next(frames)
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+@pytest.mark.parametrize(
+    ("reported_count", "start", "expected_frame_indices"),
+    [
+        pytest.param(-2.767e17, 2, [2, 3, 4], id="negative-count"),
+        pytest.param(0, 2, [2, 3, 4], id="zero-count"),
+        pytest.param(3, 4, [4], id="start-past-underestimated-count"),
+        pytest.param(-2.767e17, 7, [], id="start-past-stream"),
+        pytest.param(5, 7, [], id="start-past-positive-count"),
+    ],
+)
+def test_get_video_frames_generator_seeks_to_start_past_unreliable_frame_count(
+    monkeypatch: pytest.MonkeyPatch,
+    reported_count: float,
+    start: int,
+    iterative_seek: bool,
+    expected_frame_indices: list[int],
+) -> None:
+    """The first frame yielded is `start` even when the count cannot bound it."""
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: _UnreliableCountCapture(
+            frame_count=5, reported_count=reported_count
+        ),
+    )
+
+    frames = get_video_frames_generator(
+        "recording.webm", start=start, iterative_seek=iterative_seek
+    )
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == expected_frame_indices
+
+
+@pytest.mark.parametrize("iterative_seek", [False, True])
+def test_get_video_frames_generator_yields_nothing_when_start_is_past_video(
+    numbered_video_path: str, iterative_seek: bool
+) -> None:
+    """A `start` past the last frame of a real video yields no frames."""
+    frames = get_video_frames_generator(
+        numbered_video_path, start=12, iterative_seek=iterative_seek
+    )
+
+    assert list(frames) == []
