@@ -1521,8 +1521,8 @@ class TestDetectionMetrics:
     def test_confusion_matrix_masks_rejected_by_tensor_entry_points(
         self, call: Callable[[], None]
     ) -> None:
-        """Masks have no tensor layout: the tensor entry points raise and point
-        the caller at ``from_detections``."""
+        """Masks have no tensor layout: the tensor entry points raise and point the
+        caller at ``from_detections``."""
         with pytest.raises(ValueError, match=r"MetricTarget\.MASKS.*from_detections"):
             call()
 
@@ -2096,8 +2096,8 @@ class TestConfusionMatrixMasks:
         np.testing.assert_array_equal(cm.matrix, [[1, 1], [1, 0]])
 
     def test_split_detections_by_outcome_uses_mask_iou(self) -> None:
-        """The benchmark grid split follows mask IoU: the strip prediction is an FP
-        and its target an FN, where boxes would call both TPs."""
+        """The benchmark grid split follows mask IoU: the strip prediction is an FP and
+        its target an FN, where boxes would call both TPs."""
         predictions, targets = self._shared_box_pair()
 
         tp, fp, fn = _split_detections_by_outcome(
@@ -2163,8 +2163,8 @@ class TestConfusionMatrixMasks:
         fp_panel = saved_image[96:, :96]
 
         def painted(panel: np.ndarray) -> np.ndarray:
-            """Pixels the mask fill touched: fills read >= 120 on a black scene,
-            JPEG ringing stays below 10."""
+            """Pixels the mask fill touched: fills read >= 120 on a black scene, JPEG
+            ringing stays below 10."""
             return panel.max(axis=-1) > 32
 
         # The interior of the first target is filled in the Ground Truth panel.
