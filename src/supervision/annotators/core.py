@@ -2086,8 +2086,9 @@ class TraceAnnotator(BaseAnnotator):
 
     !!! warning
 
-    This annotator uses the `sv.Detections.tracker_id`. Read
-    [here](https://trackers.roboflow.com/latest/) to learn how to plug
+    This annotator uses the `sv.Detections.tracker_id`. Read [here](
+    https://trackers.roboflow.com/latest/)
+    to learn how to plug
     tracking into your inference pipeline.
     """
 

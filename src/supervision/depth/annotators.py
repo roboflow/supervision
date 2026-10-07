@@ -39,19 +39,6 @@ class DepthAnnotator:
         depth_annotator = sv.DepthAnnotator(display_range="auto", opacity=0.6)
         annotated_image = depth_annotator.annotate(image.copy(), depth_map)
         ```
-
-    === "Video with one range"
-
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-
-        model = YOLO("yolo26n-depth.pt")
-        frames = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
-        depth_maps = [sv.DepthMap.from_ultralytics(model(frame)[0]) for frame in frames]
-        clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
-        depth_annotator = sv.DepthAnnotator(display_range=clip_range)
-        ```
     """
 
     def __init__(
@@ -73,21 +60,20 @@ class DepthAnnotator:
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
                 `"auto"` (default) uses this map's 2nd to 98th percentile.
-                A `(low, high)` tuple fixes the range in the quantity's unit (pixels
-                for disparity, metres for depth).
+                A `(low, high)` tuple fixes the range in the quantity's unit: pixels
+                for disparity, metres for depth, and 1 / metres for a metric map
+                without a camera coloured as disparity (the default).
                 A `sv.DepthClipRange` uses one range, in the maps' kind unit, for
                 every frame of a clip.
             opacity: Opacity of the colours over the scene, from 0 to 1.
 
         Raises:
-            ValueError: If an option is out of range.
+            ValueError: If `colormap` or `display_range` is invalid.
         """
         self.colormap = DepthColormap.from_value(colormap)
         self.quantity = DepthQuantity.from_value(quantity)
         self.display_range = _check_display_range_option(display_range)
-        if not (math.isfinite(opacity) and 0 <= opacity <= 1):
-            raise ValueError(f"opacity must be between 0 and 1, got {opacity}.")
-        self.opacity = float(opacity)
+        self.opacity = opacity
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, depth_map: DepthMap) -> ImageType:

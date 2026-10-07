@@ -17,15 +17,13 @@ from supervision.config import (
     DISPARITY_PX_DATA_FIELD,
     RELATIVE_INVERSE_DATA_FIELD,
 )
-from supervision.depth.readers import read_pfm, read_png16
-from supervision.detection.compact_mask import CompactMask
+from supervision.depth.readers import _UINT16_MAX, _read_pfm, _read_png16
 from supervision.detection.core import Detections
 
 #: A frame adds about this many samples, or fewer, to a clip-wide percentile estimate.
 _CLIP_SAMPLES_PER_FRAME = 65536
 #: A clip-wide percentile estimate keeps at most about this many float64 samples.
 _CLIP_SAMPLE_BUDGET = 1 << 22
-_UINT16_MAX = 65535
 
 
 class DepthKind(Enum):
@@ -36,10 +34,11 @@ class DepthKind(Enum):
             Metric depth is `fx_px * baseline_m / (disparity + doffs_px)`.
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
         RELATIVE_INVERSE: Unitless relative depth from a monocular model,
-            normalised so larger is nearer, with no metric scale. Roboflow
-            Inference's maps run from 0 for the farthest pixel to 1 for the
-            nearest. Depth Anything V1 and V2 and DPT output is inverse depth up to
-            an unknown scale and shift; Depth Anything V3 output is linear in depth.
+            normalised so larger is nearer, with no metric scale. The kind promises
+            only that larger is nearer: Depth Anything V1, V2 and DPT output inverse
+            depth up to an unknown scale and shift, while Depth Anything V3 output is
+            linear in depth. Roboflow Inference's maps run from 0 for the farthest
+            pixel to 1 for the nearest.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -345,70 +344,15 @@ def _squeeze_to_2d(
 class DepthMap:
     """A per-pixel depth, disparity or relative depth map for one frame.
 
-    `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container with
-    its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)), its own
-    model connectors. It belongs to the whole frame, so it is not a `sv.Detections`
-    field; `measure_detections` brings the depth under each object into
-    `detections.data`.
+    `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container, with
+    its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)) and model
+    connectors. It belongs to the whole frame, so it is not a `sv.Detections` field;
+    `measure_detections` brings the depth under each object into `detections.data`.
 
     `values` are float32 in the kind's unit. For `disparity_px` and `depth_m`,
     non-finite values and values `<= 0` are no depth; for `relative_inverse`,
     non-finite and negative values are no depth, because a normalised map puts its
     farthest real pixel at exactly 0.
-
-    === "Inference"
-
-        Roboflow depth models return a normalised map where 1 is nearest; it loads as
-        `relative_inverse`.
-
-        ```python
-        import supervision as sv
-        from inference import get_model
-
-        model = get_model(model_id="depth-anything-v3/small")
-        result = model.infer("<SOURCE_IMAGE_PATH>")[0]
-        depth_map = sv.DepthMap.from_inference(result)
-        ```
-
-    === "Ultralytics"
-
-        YOLO26 depth models predict metric depth in metres.
-
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-
-        model = YOLO("yolo26n-depth.pt")
-        result = model("<SOURCE_IMAGE_PATH>")[0]
-        depth_map = sv.DepthMap.from_ultralytics(result)
-        ```
-
-    === "Transformers"
-
-        The `depth-estimation` pipeline returns whatever the model predicts, so name
-        the kind: `relative_inverse` for Depth Anything, `depth_m` for metric models.
-
-        ```python
-        import supervision as sv
-        from transformers import pipeline
-
-        estimator = pipeline(
-            "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
-        )
-        result = estimator("<SOURCE_IMAGE_PATH>")
-        depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
-        ```
-
-    === "Datasets"
-
-        ```python
-        import supervision as sv
-
-        kitti = sv.DepthMap.from_png16(
-            "disp_occ_0/000000_10.png", scale=256, kind="disparity_px"
-        )
-        middlebury = sv.DepthMap.from_pfm("disp0.pfm")
-        ```
 
     Attributes:
         values: `(H, W)` float32 values in the kind's unit.
@@ -790,9 +734,7 @@ class DepthMap:
         medians = np.full(len(detections), np.nan, dtype=np.float32)
         mask = detections.mask
         if mask is not None:
-            mask_shape = (
-                mask.image_shape if isinstance(mask, CompactMask) else mask.shape[1:]
-            )
+            mask_shape = mask.shape[1:]
             if tuple(mask_shape) != (height, width):
                 raise ValueError(
                     f"Detection masks are {mask_shape[1]}x{mask_shape[0]} but the "
@@ -800,14 +742,7 @@ class DepthMap:
                     "depth_map.resize(...) first."
                 )
         for index in range(len(detections)):
-            if isinstance(mask, CompactMask):
-                crop = mask.crop(index)
-                x_offset, y_offset = (int(v) for v in mask.offsets[index])
-                region = values[
-                    y_offset : y_offset + crop.shape[0],
-                    x_offset : x_offset + crop.shape[1],
-                ][crop]
-            elif mask is not None:
+            if mask is not None:
                 region = values[np.asarray(mask[index], dtype=bool)]
             else:
                 x_min, y_min, x_max, y_max = (
@@ -828,11 +763,12 @@ class DepthMap:
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from a Roboflow depth estimation result.
+        """Create a `sv.DepthMap` from a depth model served by Roboflow Inference.
 
-        Accepts the `normalized_depth` of every `depth_map_format` (`json` nested
-        lists, `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK
-        and Workflows decode them to). The map is normalised per image with 1 for
+        Reads the `normalized_depth` that Inference's depth models (Depth Anything,
+        YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
+        `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK and
+        Workflows decode them to). The map is normalised per image with 1 for
         the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
         V3 maps are linear in depth, not inverse depth). It loads as
         `relative_inverse` float32; values from different images are not comparable.
@@ -980,10 +916,9 @@ class DepthMap:
     ) -> DepthMap:
         """Load a 16-bit PNG whose value divided by `scale` is the map, 0 for none.
 
-        This is the layout of KITTI stereo and depth (`scale=256`), DrivingStereo
-        (256, or 128 at full resolution), InStereo2K (100) and Ultralytics depth
-        datasets (1000 by default). Values load as float32 `code / scale`, with `NaN`
-        where the code is 0.
+        KITTI disparity uses `scale=256`; Ultralytics depth datasets use 1000 by
+        default. Values load as float32 `code / scale`, with `NaN` where the code
+        is 0.
 
         Args:
             path: Path to the PNG.
@@ -1010,7 +945,7 @@ class DepthMap:
             raise ValueError(
                 f"from_png16 scale must be a positive number, got {scale}."
             )
-        codes = read_png16(path)
+        codes = _read_png16(path)
         values = codes.astype(np.float32) / np.float32(scale)
         values[codes == 0] = np.nan
         return cls(values, kind=kind)
@@ -1041,7 +976,7 @@ class DepthMap:
             depth_map = sv.DepthMap.from_pfm("Adirondack/disp0.pfm")
             ```
         """
-        return cls(read_pfm(path), kind=kind)
+        return cls(_read_pfm(path), kind=kind)
 
 
 def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
@@ -1073,7 +1008,9 @@ class DepthClipRange:
 
     Colouring each frame with its own range makes a still wall change colour as
     things enter and leave the frame. A clip range, computed in a first pass over the
-    clip, keeps colours meaning the same distance on every frame.
+    clip, keeps the colour scale fixed on every frame. Colours then stay put only
+    where the depth values are steady, as in ground truth or calibrated stereo; a
+    model's own frame-to-frame wobble becomes more visible.
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' kind unit.

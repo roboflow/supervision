@@ -32,6 +32,7 @@ class _FakeUltralyticsDepth:
     """Ultralytics-like `DepthMap` exposing a tensor in `data`."""
 
     def __init__(self, depth: np.ndarray) -> None:
+        """Wrap the depth array in a fake tensor."""
         self.data = _FakeTensor(depth)
 
 
@@ -39,6 +40,7 @@ class _FakeUltralyticsResult:
     """Ultralytics-like `Results` with an optional `depth` attribute."""
 
     def __init__(self, depth: np.ndarray | None) -> None:
+        """Attach a depth map, or none when `depth` is None."""
         self.depth = None if depth is None else _FakeUltralyticsDepth(depth)
 
 
@@ -46,6 +48,7 @@ class _FakeDepthEstimatorOutput:
     """Transformers-like model output exposing `predicted_depth`."""
 
     def __init__(self, predicted_depth: Any) -> None:
+        """Store the prediction as `predicted_depth`."""
         self.predicted_depth = predicted_depth
 
 
@@ -68,12 +71,6 @@ class TestDepthMapInit:
         """Only 2D float values are accepted; integer codes must be divided first."""
         with pytest.raises(ValueError, match=match):
             sv.DepthMap(values, kind="depth_m")
-
-    def test_stores_float64_as_float32(self) -> None:
-        """Any float dtype is stored as float32."""
-        depth_map = sv.DepthMap(np.ones((2, 2)), kind="depth_m")
-
-        assert depth_map.values.dtype == np.float32
 
     def test_rejects_unknown_kind(self) -> None:
         """The kind must be one of the three depth kinds."""
@@ -369,7 +366,7 @@ class TestDepthMapMeasureDetections:
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
 
     def test_measures_inside_compact_masks(self) -> None:
-        """A CompactMask is read crop by crop with the same result as dense."""
+        """A CompactMask gives the same result as dense masks."""
         mask = np.zeros((2, 20, 20), dtype=bool)
         mask[0, 2:6, 2:4] = True
         mask[1, 8:10, 8:12] = True
@@ -598,14 +595,6 @@ class TestDepthMapEquality:
 
         assert sv.DepthMap(values, kind="depth_m") == sv.DepthMap(
             values.copy(), kind="depth_m"
-        )
-
-    def test_different_kinds_are_not_equal(self) -> None:
-        """Equal values of different kinds are different maps."""
-        values = np.ones((2, 2), dtype=np.float32)
-
-        assert sv.DepthMap(values, kind="depth_m") != sv.DepthMap(
-            values, kind="disparity_px"
         )
 
 

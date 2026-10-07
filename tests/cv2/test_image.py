@@ -43,6 +43,12 @@ except (ImportError, OSError):
         pytest.param(0, np.array([[3, 4], [1, 2]], dtype=np.uint8), id="vertical"),
         pytest.param(1, np.array([[2, 1], [4, 3]], dtype=np.uint8), id="horizontal"),
         pytest.param(-1, np.array([[4, 3], [2, 1]], dtype=np.uint8), id="both"),
+        pytest.param(
+            2, np.array([[2, 1], [4, 3]], dtype=np.uint8), id="positive-horizontal"
+        ),
+        pytest.param(
+            -2, np.array([[4, 3], [2, 1]], dtype=np.uint8), id="negative-both"
+        ),
     ],
 )
 def test_fallback_flip_matches_opencv(flip_code: int, expected: np.ndarray) -> None:
@@ -582,9 +588,9 @@ def test_fallback_imwrite_resolves_uppercase_extension_like_lowercase(
 ) -> None:
     """Look up an uppercase file extension the same way `_imwrite` looks up lowercase.
 
-    `_imwrite` lowercases the extension before checking Pillow's format registry;
-    a caller passing an uppercase extension (e.g. `image.JPG`) must still resolve to
-    the same writer options and produce identical bytes to the lowercase form.
+    `_imwrite` lowercases the extension before checking Pillow's format registry; a
+    caller passing an uppercase extension (e.g. `image.JPG`) must still resolve to the
+    same writer options and produce identical bytes to the lowercase form.
     """
     image = _gradient_image()
     uppercase_path = tmp_path / f"image{extension}"

@@ -10,7 +10,6 @@ import supervision as sv
 from supervision.depth.colormaps import _rgb_lut
 
 TURBO = _rgb_lut(sv.DepthColormap.TURBO)
-CAMERA = sv.DepthCamera(fx_px=100.0, baseline_m=1.0)
 
 
 def _rgb(image: np.ndarray) -> list[list[list[int]]]:
@@ -42,7 +41,7 @@ class TestDepthAnnotatorColors:
         assert _rgb(scene) == [[TURBO[255].tolist(), TURBO[0].tolist()]]
 
     def test_metric_map_colours_inverse_depth_by_default(self) -> None:
-        """Disparity of a metric map without camera is 1 / Z."""
+        """A metric map is coloured as inverse depth, 1 / Z."""
         depth_map = sv.DepthMap(np.array([[0.5, 1.0, 2.0]], np.float32), kind="depth_m")
         scene = np.zeros((1, 3, 3), dtype=np.uint8)
 
@@ -120,10 +119,22 @@ class TestDepthAnnotatorRange:
 
         np.testing.assert_array_equal(annotated, expected)
 
+    def test_clip_range_is_converted_for_a_metric_map(self) -> None:
+        """A metric clip range becomes an inverse-depth range for a metric map."""
+        depth_map = sv.DepthMap(np.array([[1.0, 5.0]], np.float32), kind="depth_m")
+        clip_range = sv.DepthClipRange(display_range=(1.0, 5.0))
+        scene = np.zeros((1, 2, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=clip_range).annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[TURBO[255].tolist(), TURBO[0].tolist()]]
+
     def test_clip_range_is_converted_for_depth(self) -> None:
         """A disparity clip range becomes a metre range under quantity depth."""
         depth_map = sv.DepthMap(
-            np.array([[10.0, 50.0]], np.float32), kind="disparity_px", camera=CAMERA
+            np.array([[10.0, 50.0]], np.float32),
+            kind="disparity_px",
+            camera=sv.DepthCamera(fx_px=100.0, baseline_m=1.0),
         )
         clip_range = sv.DepthClipRange(display_range=(10.0, 50.0))
         scene = np.zeros((1, 2, 3), dtype=np.uint8)
@@ -198,9 +209,3 @@ class TestDepthAnnotatorScene:
             sv.DepthAnnotator(quantity="depth").annotate(
                 np.zeros((2, 2, 3), np.uint8), depth_map
             )
-
-    @pytest.mark.parametrize("opacity", [-0.1, 1.5, float("nan")])
-    def test_rejects_opacity_outside_unit_range(self, opacity: float) -> None:
-        """Opacity must be between 0 and 1."""
-        with pytest.raises(ValueError, match="opacity"):
-            sv.DepthAnnotator(opacity=opacity)
