@@ -285,7 +285,14 @@ class TestKeypointOksBatch:
                 xyxy_true=np.zeros((2, 4)),
             )
 
-    @pytest.mark.parametrize(("num_true", "num_detection"), [(0, 2), (2, 0), (0, 0)])
+    @pytest.mark.parametrize(
+        ("num_true", "num_detection"),
+        [
+            pytest.param(0, 2, id="no-targets"),
+            pytest.param(2, 0, id="no-detections"),
+            pytest.param(0, 0, id="both-empty"),
+        ],
+    )
     def test_empty_input_gives_empty_matrix(
         self, num_true: int, num_detection: int
     ) -> None:
@@ -323,10 +330,12 @@ class TestKeypointOksBatch:
         [
             pytest.param([0.1, 0.1], id="wrong-length"),
             pytest.param([0.1, 0.0, 0.1], id="non-positive"),
+            pytest.param([0.1, np.inf, 0.1], id="infinite"),
+            pytest.param([0.1, np.nan, 0.1], id="nan"),
         ],
     )
     def test_raises_for_invalid_sigmas(self, sigmas: list[float]) -> None:
-        """Sigmas must hold one positive value per keypoint."""
+        """Sigmas must hold one positive, finite value per keypoint."""
         keypoints = np.zeros((1, 3, 2))
 
         with pytest.raises(ValueError, match="sigmas"):
@@ -392,6 +401,38 @@ class TestKeypointMeanAveragePrecision:
         result = metric.update(_triangle_key_points(confidence=0.9), KeyPoints.empty())
 
         assert result.compute().map50_95 == -1
+
+    @pytest.mark.parametrize("with_area", [False, True])
+    def test_three_column_xy_matches_planar_xy(self, with_area: bool) -> None:
+        """A z column in `xy` is ignored, so scores match the `(N, K, 2)` input."""
+
+        def with_z(key_points: KeyPoints) -> KeyPoints:
+            z = np.full((*key_points.xy.shape[:2], 1), 7.0, dtype=np.float32)
+            return KeyPoints(
+                xy=np.concatenate([key_points.xy, z], axis=2),
+                class_id=key_points.class_id,
+                detection_confidence=key_points.detection_confidence,
+                visible=key_points.visible,
+                data=key_points.data,
+            )
+
+        target = _triangle_key_points()
+        if with_area:
+            target.data = {"area": np.array([2000.0])}
+        prediction = _triangle_key_points(offset=2.0, confidence=0.9)
+
+        planar = (
+            KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+            .update(prediction, target)
+            .compute()
+        )
+        spatial = (
+            KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+            .update(with_z(prediction), with_z(target))
+            .compute()
+        )
+
+        assert spatial.mAP_scores == pytest.approx(planar.mAP_scores)
 
     def test_target_without_visible_points_is_skipped(self) -> None:
         """A target with no labelled keypoint is not counted as a miss."""

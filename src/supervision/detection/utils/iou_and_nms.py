@@ -710,8 +710,8 @@ def _resolve_keypoint_sigmas(
             f"`sigmas` must have shape ({num_keypoints},) to match the number of "
             f"keypoints; got {resolved.shape}."
         )
-    if not np.all(resolved > 0):
-        raise ValueError("`sigmas` must be positive.")
+    if not np.all(np.isfinite(resolved) & (resolved > 0)):
+        raise ValueError("`sigmas` must be positive and finite.")
     return resolved
 
 

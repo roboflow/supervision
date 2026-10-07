@@ -590,8 +590,8 @@ SMALL_OBJECT_AREA = 32**2
 MEDIUM_OBJECT_AREA = 96**2
 MAX_ALL_OBJECT_AREA = 1e5**2
 
-# Avoids division by zero in precision; np.spacing(1) as in pycocotools, so a
-# perfect precision stays 1.0 in float64
+# Avoids division by zero in precision. np.spacing(1), as in pycocotools, removes
+# the float32-epsilon-sized bias, so a perfect precision stored as float32 is 1.0
 EPS = np.spacing(1)
 
 # Match the 5 GiB dense-mask working-memory convention in `mask_iou_batch`.

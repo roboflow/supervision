@@ -309,9 +309,10 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
       any number of predictions may match it and are then ignored. OKS against
       it is computed like any other target, using its box when it has no
       visible keypoint. Without the key, every target is a regular instance.
-    - **Invalid values.** NaN coordinates or a target area of `0` are not
-      rejected. As in `pycocotools`, they yield an OKS of `0` for that pair,
-      so the pair silently fails to match. Clean such labels beforehand.
+    - **Invalid values.** NaN coordinates and a target area of `0` are not
+      rejected. As in `pycocotools`, a NaN keypoint adds `0` to the OKS, and
+      with a zero area only keypoints at exactly zero distance add to it, so
+      such pairs score low or `0`. Clean such labels beforehand.
 
     Examples:
         ```pycon
@@ -479,7 +480,8 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         for image_id, image_targets in enumerate(self._targets_list):
             if len(image_targets) == 0:
                 continue
-            xy = image_targets.xy.astype(np.float64)
+            # `xy` may carry a third (z) column; OKS is planar.
+            xy = image_targets.xy[..., :2].astype(np.float64)
             visible = (
                 np.ones(xy.shape[:2], dtype=bool)
                 if image_targets.visible is None
@@ -533,7 +535,7 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         for image_id, image_predictions in enumerate(self._predictions_list):
             if len(image_predictions) == 0:
                 continue
-            xy = image_predictions.xy.astype(np.float64)
+            xy = image_predictions.xy[..., :2].astype(np.float64)
             confidence = image_predictions.detection_confidence
             boxes = image_predictions.data.get(_XYXY_DATA_FIELD)
             for index in range(len(image_predictions)):
