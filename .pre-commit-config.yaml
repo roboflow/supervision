@@ -37,7 +37,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.6
+    rev: v3.9.9
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -45,7 +45,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.29.3
+    rev: v2.30.1
     hooks:
       - id: pyproject-fmt
         additional_dependencies:
@@ -57,7 +57,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.10
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -65,6 +65,7 @@ repos:
         types_or: [python, pyi, jupyter]
 
   - repo: https://github.com/PyCQA/docformatter
+    # 1.7.8 corrupts multiline f-string tokens: PyCQA/docformatter#367.
     rev: v1.7.7
     hooks:
       - id: docformatter
@@ -92,7 +93,7 @@ repos:
         args: ["--number", "--wrap=no"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+    rev: v2.4.0
     hooks:
       - id: mypy
         language_version: python3.11
