@@ -31,9 +31,9 @@ class DepthAnnotator:
         ```python
         import supervision as sv
         from inference import get_model
-        from supervision import _cv2 as cv2
+        from PIL import Image
 
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        image = Image.open("<SOURCE_IMAGE_PATH>")
         model = get_model(model_id="depth-anything-v3/small")
         depth_map = sv.DepthMap.from_inference(model.infer(image)[0])
 
@@ -166,8 +166,8 @@ def _color_coordinates(
     painted.
     """
     converted = conversion.apply(depth_map.to_float())
-    span = np.float32(max(high - low, 1e-20))
-    with np.errstate(invalid="ignore"):
+    span = np.float32(high - low)
+    with np.errstate(divide="ignore", invalid="ignore"):
         coordinates: npt.NDArray[np.floating] = (converted - np.float32(low)) / span
     np.clip(coordinates, 0.0, 1.0, out=coordinates)
     coordinates[np.isnan(coordinates)] = 0.0

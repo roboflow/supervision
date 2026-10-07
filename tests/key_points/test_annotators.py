@@ -249,9 +249,9 @@ class TestEdgeAnnotator:
         """A finite (x, y) pair with a non-finite z component is skipped.
 
         Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is
-        never rasterized by EdgeAnnotator. A future change to only check (x, y)
-        should be a deliberate decision, not an accidental one.
+        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
+        rasterized by EdgeAnnotator. A future change to only check (x, y) should be a
+        deliberate decision, not an accidental one.
         """
         key_points = sv.KeyPoints(
             xy=np.array([[[10.0, 10.0, np.nan], [90.0, 90.0, 1.0]]], dtype=np.float32),
@@ -622,10 +622,9 @@ class TestVertexLabelAnnotator:
     def test_non_finite_vertex_skipped_when_visible_is_set(self, scene):
         """A non-finite keypoint is skipped even when `visible` is explicitly set.
 
-        When `visible` is provided, the zero-coordinate sentinel branch never
-        runs (it is an `elif` on `visible is None`), so this pins that the
-        finiteness check still applies on its own and is not accidentally
-        bypassed alongside it.
+        When `visible` is provided, the zero-coordinate sentinel branch never runs (it
+        is an `elif` on `visible is None`), so this pins that the finiteness check still
+        applies on its own and is not accidentally bypassed alongside it.
         """
         key_points = sv.KeyPoints(
             xy=np.array([[[np.nan, np.nan], [50.0, 50.0]]], dtype=np.float32),
@@ -639,9 +638,9 @@ class TestVertexLabelAnnotator:
         """A finite (x, y) pair with a non-finite z component is skipped.
 
         Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is
-        never rasterized by VertexLabelAnnotator. A future change to only check
-        (x, y) should be a deliberate decision, not an accidental one.
+        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
+        rasterized by VertexLabelAnnotator. A future change to only check (x, y) should
+        be a deliberate decision, not an accidental one.
         """
         key_points = sv.KeyPoints(
             xy=np.array([[[50.0, 50.0, np.nan]]], dtype=np.float32),

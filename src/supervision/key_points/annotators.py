@@ -36,10 +36,10 @@ def _has_finite_coordinates(point: npt.ArrayLike) -> bool:
 
     Pose estimators mark an undetected or occluded keypoint with `NaN` rather than
     dropping it, and `KeyPoints` accepts those values, so annotators receive them
-    routinely. Every drawing helper below converts a coordinate to `int`, which
-    raises on `NaN` and on an infinity, and `np.allclose(point, 0)` does not catch
-    either. `KeyPoints.as_detections` already excludes non-finite coordinates; this
-    keeps the annotators on the same rule instead of aborting the whole frame.
+    routinely. Every drawing helper below converts a coordinate to `int`, which raises
+    on `NaN` and on an infinity, and `np.allclose(point, 0)` does not catch either.
+    `KeyPoints.as_detections` already excludes non-finite coordinates; this keeps the
+    annotators on the same rule instead of aborting the whole frame.
     """
     return bool(np.isfinite(point).all())
 
