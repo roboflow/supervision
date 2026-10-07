@@ -1,7 +1,8 @@
-"""Private Pillow-based drawing fallbacks for the OpenCV facade."""
+"""Private Pillow/NumPy drawing fallbacks for the OpenCV facade."""
 
 from __future__ import annotations
 
+import operator
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -11,6 +12,9 @@ from PIL import Image, ImageDraw
 
 _ImageArray = npt.NDArray[Any]
 _Point = tuple[int, int]
+
+#: Largest border thickness OpenCV accepts (its `MAX_THICKNESS`).
+_MAX_THICKNESS = 32767
 
 
 def _drawing_mask(
@@ -43,7 +47,7 @@ def _paint(image: _ImageArray, mask: npt.NDArray[np.bool_], color: Any) -> _Imag
 
 
 def _point(point: Sequence[int | float]) -> _Point:
-    """Convert an OpenCV point to integer Pillow coordinates."""
+    """Convert an OpenCV point to integer pixel coordinates."""
     return round(point[0]), round(point[1])
 
 
@@ -85,6 +89,57 @@ def _line(
     return _paint(img, mask, color)
 
 
+def _paint_disc(mask: npt.NDArray[np.bool_], center: _Point, radius: int) -> None:
+    """Set OpenCV's filled circle of `radius`, the integer disc, in `mask`.
+
+    The disc is evaluated only over the part of its bounding square that falls inside
+    the mask, so a huge radius on a small canvas allocates canvas-sized arrays rather
+    than radius-sized ones.
+    """
+    height, width = mask.shape
+    center_x, center_y = center
+    x_start, x_stop = max(center_x - radius, 0), min(center_x + radius + 1, width)
+    y_start, y_stop = max(center_y - radius, 0), min(center_y + radius + 1, height)
+    if x_start >= x_stop or y_start >= y_stop:
+        return
+    rows = np.arange(y_start, y_stop)[:, np.newaxis] - center_y
+    columns = np.arange(x_start, x_stop)[np.newaxis, :] - center_x
+    mask[y_start:y_stop, x_start:x_stop] |= rows**2 + columns**2 <= radius * radius
+
+
+def _rectangle_mask(
+    image: _ImageArray, first: _Point, second: _Point, thickness: int
+) -> npt.NDArray[np.bool_]:
+    """Rasterize an OpenCV rectangle, filled or stroked, into a boolean mask."""
+    height, width = image.shape[:2]
+    (left, top), (right, bottom) = first, second
+    mask = np.zeros((height, width), dtype=bool)
+
+    def fill(x1: int, y1: int, x2: int, y2: int) -> None:
+        """Set an inclusive box, clipped to the image."""
+        x1, y1 = max(x1, 0), max(y1, 0)
+        x2, y2 = min(x2, width - 1), min(y2, height - 1)
+        if x1 <= x2 and y1 <= y2:
+            mask[y1 : y2 + 1, x1 : x2 + 1] = True
+
+    if thickness < 0:
+        fill(left, top, right, bottom)
+        return mask
+
+    # OpenCV centers each edge's band on the edge and rounds the four joints
+    # with a filled disc, so a thick border spreads outside the rectangle as
+    # well as inside. Pillow's `width=` only ever grows inward.
+    radius = 0 if thickness <= 1 else (thickness + 1) // 2
+    fill(left, top - radius, right, top + radius)
+    fill(left, bottom - radius, right, bottom + radius)
+    fill(left - radius, top, left + radius, bottom)
+    fill(right - radius, top, right + radius, bottom)
+    if radius:
+        for corner in ((left, top), (right, top), (left, bottom), (right, bottom)):
+            _paint_disc(mask, corner, radius)
+    return mask
+
+
 def _rectangle(
     img: _ImageArray,
     pt1: Sequence[int | float],
@@ -94,21 +149,34 @@ def _rectangle(
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
-    """Draw or fill an inclusive-axis-aligned rectangle in place."""
+    """Draw or fill an inclusive-axis-aligned rectangle in place.
+
+    A border of `thickness` 2 or more is centered on the rectangle's edges, as in
+    OpenCV, so it extends outside the rectangle as well as inside. A negative
+    `thickness` fills the rectangle.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767.
+    """
     del lineType
     _validate_shift(shift)
-    first_point, second_point = _point(pt1), _point(pt2)
-    first = tuple(min(left, right) for left, right in zip(first_point, second_point))
-    second = tuple(max(left, right) for left, right in zip(first_point, second_point))
-    if thickness < 0:
-        mask = _drawing_mask(img, lambda draw: draw.rectangle([first, second], fill=1))
-    else:
-        width = max(1, thickness)
-        mask = _drawing_mask(
-            img,
-            lambda draw: draw.rectangle([first, second], outline=1, width=width),
+    # A Python int, so a NumPy integer scalar cannot wrap around in `radius` below.
+    thickness = operator.index(thickness)
+    if thickness > _MAX_THICKNESS:
+        raise ValueError(
+            f"Rectangle thickness must be at most {_MAX_THICKNESS}, got {thickness}"
         )
-    return _paint(img, mask, color)
+    first_point, second_point = _point(pt1), _point(pt2)
+    first = (
+        min(first_point[0], second_point[0]),
+        min(first_point[1], second_point[1]),
+    )
+    second = (
+        max(first_point[0], second_point[0]),
+        max(first_point[1], second_point[1]),
+    )
+    return _paint(img, _rectangle_mask(img, first, second, thickness), color)
 
 
 def _circle(
