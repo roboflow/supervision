@@ -7,7 +7,7 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
-- Added `sv.DepthMap` and `sv.DepthAnnotator` to colour depth maps over images. `sv.DepthMap` holds a stereo disparity, metric depth or relative depth array for one frame together with what its values measure (`sv.DepthKind`), and treats `NaN`, infinities and values at or below 0 (below 0 for relative maps) as pixels without depth. `sv.DepthAnnotator` colours a map over NumPy or Pillow images without OpenCV, near objects warm and pixels without depth unpainted, with Turbo, Viridis, Cividis, Inferno, Magma or grayscale tables (`sv.DepthColormap`), over the map's own 2nd to 98th percentile or a fixed `(low, high)` range. [#2691](https://github.com/roboflow/supervision/pull/2691)
+- Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))
 
 - `sv.DetectionsSmoother` now ages cached track history on frames without `tracker_id`, as it already does on tracked empty frames. Expired boxes and confidence scores no longer affect a returning track. Short gaps still preserve smoothing, and untracked detections retain the existing warning and unchanged return value. ([#2676](https://github.com/roboflow/supervision/pull/2676))
 
