@@ -772,9 +772,8 @@ def test_inject_tracking_carrier_falls_back_to_body_close_without_segment_tag(
 ) -> None:
     """Insert the carrier before `</body>` when a page has no `segment.js` tag.
 
-    A custom error page, for example, may never have picked up the `segment.js`
-    include at all; it still deserves the tracking carrier rather than being skipped
-    outright.
+    A custom error page, for example, may never have picked up the `segment.js` include
+    at all; it still deserves the tracking carrier rather than being skipped outright.
     """
     module = load_script("inject_tracking_carrier")
     page = tmp_path / "latest" / "404.html"
@@ -1016,10 +1015,10 @@ def test_mkdocs_config_loads_utm_js_immediately_before_segment_js(
     """Assert `utm.js` is present exactly once and sits right before `segment.js`.
 
     This is the adjacency `inject_tracking_carrier.py` replicates on already-published
-    static HTML (see its module docstring and `TRACKING_STEP` above): a genuine
-    `mkdocs` build only puts the carrier ahead of Segment because `extra_javascript`
-    orders them that way, so if this list ever drifts, the backfill script's output and
-    a real rebuild's output would silently diverge.
+    static HTML (see its module docstring and `TRACKING_STEP` above): a genuine `mkdocs`
+    build only puts the carrier ahead of Segment because `extra_javascript` orders them
+    that way, so if this list ever drifts, the backfill script's output and a real
+    rebuild's output would silently diverge.
     """
     extra_javascript = _load_mkdocs_extra_javascript(repo_root / "mkdocs.yml")
     utm_url = "https://app.roboflow.com/scripts/utm.js"

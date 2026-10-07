@@ -401,8 +401,8 @@ def _with_poly_mask(obj: Element) -> bool:
 def _parse_coordinate(text: str, tag: str) -> float:
     """Parse one Pascal VOC coordinate written as an integer or a decimal.
 
-    Exporters that keep sub-pixel boxes write values such as ``48.5`` or ``48.0``,
-    which ``int()`` rejects. Anything that is not a finite number still raises.
+    Exporters that keep sub-pixel boxes write values such as ``48.5`` or ``48.0``, which
+    ``int()`` rejects. Anything that is not a finite number still raises.
     """
     try:
         value = float(text)

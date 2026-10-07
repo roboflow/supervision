@@ -1655,9 +1655,9 @@ class TestIconAnnotator:
     ) -> None:
         """A grayscale PNG icon without alpha is drawn as its gray pixels.
 
-        When the icon's own shape does not match `icon_resolution_wh`, the
-        post-GRAY2BGR-conversion array must still go through the letterbox
-        resize and padding correctly, not just an already-matching pad-only case.
+        When the icon's own shape does not match `icon_resolution_wh`, the post-
+        GRAY2BGR-conversion array must still go through the letterbox resize and padding
+        correctly, not just an already-matching pad-only case.
         """
         icon_path = tmp_path / "gray.png"
         Image.fromarray(np.full(icon_shape_hw, 200, dtype=np.uint8)).save(icon_path)
@@ -1807,9 +1807,9 @@ class TestIconAnnotator:
         path+resolution.
 
         `_load_icon_from_path` is `@lru_cache`-wrapped, so its own `cache_info()`
-        hit/miss counters prove the `cv2.cvtColor(GRAY2BGR)` conversion — which
-        only executes on a cache miss — runs exactly once across repeated
-        `annotate()` calls sharing the same icon path and resolution.
+        hit/miss counters prove the `cv2.cvtColor(GRAY2BGR)` conversion — which only
+        executes on a cache miss — runs exactly once across repeated `annotate()` calls
+        sharing the same icon path and resolution.
         """
         icon_path = str(tmp_path / "gray_icon.png")
         Image.fromarray(np.full((20, 20), 128, dtype=np.uint8)).save(icon_path)
