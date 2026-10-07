@@ -31,7 +31,8 @@ class VideoInfo:
         fps: frames per second of the video as a float. Common values include
             23.976, 24.0, 25.0, 29.97, 30.0, 59.94, and 60.0.
         total_frames: total number of frames in the video,
-            default is None
+            default is None. An estimate from container metadata that can be zero,
+            negative, or lower than the number of frames the video holds.
 
     Examples:
         ```python
@@ -166,25 +167,39 @@ class VideoSink:
 
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
-) -> tuple[cv2.VideoCapture, int, int]:
-    """Open a video, position it at `start`, and return it with the clamped range."""
+) -> tuple[cv2.VideoCapture, int, int | None]:
+    """Open a video, position it at `start`, and return it with the frame range.
+
+    An `end` of `None` is kept, so the caller reads until the stream runs out.
+    """
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if end is not None and end > total_frames:
-        raise Exception("Requested frames are outbound")
+    # OpenCV estimates the frame count from container metadata. A WebM without a
+    # duration, as browsers record it, reports a huge negative count, and a
+    # variable frame rate video can report fewer frames than it holds, so the
+    # count only rejects an `end` when it is positive and never bounds the read.
+    # It is read only when needed: the PyAV fallback decodes the whole video a
+    # second time when the container metadata lacks a count.
     start = max(start, 0)
-    end = min(end, total_frames) if end is not None else total_frames
+    needs_frame_count = end is not None or (start > 0 and not iterative_seek)
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
+    if end is not None and 0 < total_frames < end:
+        raise Exception("Requested frames are outbound")
+    # `set()` cannot be trusted past a positive frame count: the PyAV fallback
+    # returns False without moving when `start` exceeds the count, and OpenCV
+    # returns True without moving on a duration-less WebM. Grabbing frames lands
+    # on `start` or runs out with the stream, so the first read is labelled right.
+    seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
 
-    if iterative_seek:
+    if seek_by_grabbing:
         # Count grabs separately: `start` is returned as the position of the first
         # frame read, and the caller measures `end` from it.
         for _ in range(start):
             success = video.grab()
             if not success:
                 break
-    elif start > 0:
+    else:
         video.set(cv2.CAP_PROP_POS_FRAMES, start)
 
     return video, start, end
@@ -208,6 +223,9 @@ def get_video_frames_generator(
             video should generate frames
         end: Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+            A zero or negative frame count reported by the container means the
+            count is unknown: `end` is not checked and reading stops at the
+            stream end.
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
@@ -227,6 +245,9 @@ def get_video_frames_generator(
         A generator that yields the frames of the video.
 
     Raises:
+        Exception: If `end` exceeds a positive frame count reported by the
+            container (raised on first iteration; wrapped in `RuntimeError` when
+            `prefetch` > 0).
         ValueError: If `prefetch` is negative.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
@@ -292,7 +313,7 @@ def get_video_frames_generator(
     try:
         while True:
             success, frame = video.read()
-            if not success or frame_position >= end:
+            if not success or (end is not None and frame_position >= end):
                 break
             if frame is not None:
                 yield cast(npt.NDArray[np.uint8], frame)
