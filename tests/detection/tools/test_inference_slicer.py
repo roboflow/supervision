@@ -982,11 +982,10 @@ class TestInferenceSlicerMetadata:
     def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
         """A metadata key present in only some slices is dropped from the merge.
 
-        Each slice is stamped with its own index so the callback keys its
-        per-slice-only metadata off the physical slice content, matching the
-        content-keyed pattern used by ``TestInferenceSlicerDroppedMetadataWarning``
-        — never off callback invocation order, which threaded execution does not
-        guarantee.
+        Each slice is stamped with its own index so the callback keys its per-slice-only
+        metadata off the physical slice content, matching the content-keyed pattern used
+        by ``TestInferenceSlicerDroppedMetadataWarning`` — never off callback invocation
+        order, which threaded execution does not guarantee.
         """
         slice_wh = (100, 100)
         overlap_wh = (20, 20)
@@ -1129,10 +1128,10 @@ class TestInferenceSlicerMetadata:
         """All-empty per-slice results merge to an empty `Detections`, cleanly.
 
         Every slice's callback returns zero detections, so the `non_empty` filter in
-        `_merge_slice_detections` collapses to an empty list before any
-        `source_image` recovery or `merge_metadata_lenient` call runs. This must not
-        crash, and `source_image` must be genuinely absent from the merged result
-        rather than silently expected but missing.
+        `_merge_slice_detections` collapses to an empty list before any `source_image`
+        recovery or `merge_metadata_lenient` call runs. This must not crash, and
+        `source_image` must be genuinely absent from the merged result rather than
+        silently expected but missing.
         """
         rng = np.random.default_rng(9)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
@@ -1164,8 +1163,8 @@ class TestInferenceSlicerMetadata:
 
         `slice_wh` at least as large as the image produces exactly one slice, so
         `_merge_slice_detections` sees a single-element `non_empty` list — the path
-        `merge_metadata_lenient` handles via its single-dictionary case. ndarray and
-        PIL inputs must behave identically here.
+        `merge_metadata_lenient` handles via its single-dictionary case. ndarray and PIL
+        inputs must behave identically here.
         """
         rng = np.random.default_rng(8)
         array = rng.integers(0, 255, (100, 100, 3), dtype=np.uint8)
@@ -1199,9 +1198,9 @@ class TestInferenceSlicerMetadata:
 
         Combines `thread_workers > 1` (concurrent slice execution) with
         `OverlapFilter.NON_MAX_MERGE` and metadata that conflicts across slices — a
-        combination no existing test exercises. `source_image` must still be
-        restored, and the dropped-key warning must still fire exactly once, despite
-        detections arriving from multiple worker threads.
+        combination no existing test exercises. `source_image` must still be restored,
+        and the dropped-key warning must still fire exactly once, despite detections
+        arriving from multiple worker threads.
         """
         rng = np.random.default_rng(11)
         image = rng.integers(0, 255, (512, 512, 3), dtype=np.uint8)
