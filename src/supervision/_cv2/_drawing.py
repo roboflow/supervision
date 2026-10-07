@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -11,6 +12,9 @@ from PIL import Image, ImageDraw
 
 _ImageArray = npt.NDArray[Any]
 _Point = tuple[int, int]
+
+#: Largest border thickness OpenCV accepts (its `MAX_THICKNESS`).
+_MAX_THICKNESS = 32767
 
 
 def _drawing_mask(
@@ -85,10 +89,22 @@ def _line(
     return _paint(img, mask, color)
 
 
-def _disc(radius: int) -> npt.NDArray[np.bool_]:
-    """Return OpenCV's filled circle of `radius`, which is the integer disc."""
-    offsets = np.arange(-radius, radius + 1)
-    return offsets[:, np.newaxis] ** 2 + offsets[np.newaxis, :] ** 2 <= radius * radius
+def _paint_disc(mask: npt.NDArray[np.bool_], center: _Point, radius: int) -> None:
+    """Set OpenCV's filled circle of `radius`, the integer disc, in `mask`.
+
+    The disc is evaluated only over the part of its bounding square that falls inside
+    the mask, so a huge radius on a small canvas allocates canvas-sized arrays rather
+    than radius-sized ones.
+    """
+    height, width = mask.shape
+    center_x, center_y = center
+    x_start, x_stop = max(center_x - radius, 0), min(center_x + radius + 1, width)
+    y_start, y_stop = max(center_y - radius, 0), min(center_y + radius + 1, height)
+    if x_start >= x_stop or y_start >= y_stop:
+        return
+    rows = np.arange(y_start, y_stop)[:, np.newaxis] - center_y
+    columns = np.arange(x_start, x_stop)[np.newaxis, :] - center_x
+    mask[y_start:y_stop, x_start:x_stop] |= rows**2 + columns**2 <= radius * radius
 
 
 def _rectangle_mask(
@@ -119,22 +135,8 @@ def _rectangle_mask(
     fill(left - radius, top, left + radius, bottom)
     fill(right - radius, top, right + radius, bottom)
     if radius:
-        disc = _disc(radius)
-        for center_x, center_y in (
-            (left, top),
-            (right, top),
-            (left, bottom),
-            (right, bottom),
-        ):
-            x1, y1 = center_x - radius, center_y - radius
-            row_start, column_start = max(-y1, 0), max(-x1, 0)
-            row_stop = min(disc.shape[0], height - y1)
-            column_stop = min(disc.shape[1], width - x1)
-            if row_start >= row_stop or column_start >= column_stop:
-                continue
-            mask[
-                y1 + row_start : y1 + row_stop, x1 + column_start : x1 + column_stop
-            ] |= disc[row_start:row_stop, column_start:column_stop]
+        for corner in ((left, top), (right, top), (left, bottom), (right, bottom)):
+            _paint_disc(mask, corner, radius)
     return mask
 
 
@@ -147,9 +149,24 @@ def _rectangle(
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
-    """Draw or fill an inclusive-axis-aligned rectangle in place."""
+    """Draw or fill an inclusive-axis-aligned rectangle in place.
+
+    A border of `thickness` 2 or more is centered on the rectangle's edges, as in
+    OpenCV, so it extends outside the rectangle as well as inside. A negative
+    `thickness` fills the rectangle.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767.
+    """
     del lineType
     _validate_shift(shift)
+    # A Python int, so a NumPy integer scalar cannot wrap around in `radius` below.
+    thickness = operator.index(thickness)
+    if thickness > _MAX_THICKNESS:
+        raise ValueError(
+            f"Rectangle thickness must be at most {_MAX_THICKNESS}, got {thickness}"
+        )
     first_point, second_point = _point(pt1), _point(pt2)
     first = (
         min(first_point[0], second_point[0]),
