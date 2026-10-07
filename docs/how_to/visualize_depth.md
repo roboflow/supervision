@@ -27,9 +27,9 @@ A depth map is a float array with one value per pixel and the kind of value it h
 ```python
 import numpy as np
 import supervision as sv
-from supervision import _cv2 as cv2
+from PIL import Image
 
-image = cv2.imread("<SOURCE_IMAGE_PATH>")
+image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
 disparity = np.load("<DISPARITY_NPY_PATH>")  # float32 pixels, left view
 
 depth_map = sv.DepthMap(
