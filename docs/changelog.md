@@ -7,7 +7,7 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DepthMap` now measures distance. `sv.DepthCamera` holds a stereo rig's focal length and baseline, so `to_depth` converts disparity to metres; `resize` and `crop` change a map's size without blending holes into depth; `value_at` reads the value under one point; and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]` for `sv.LabelAnnotator`. `sv.DepthAnnotator(quantity="depth")` colours metres instead of disparity (`sv.DepthQuantity`).
+- `sv.DepthMap` now measures distance. `sv.DepthCamera` holds a stereo rig's focal length and baseline, so `to_depth` converts disparity to metres; `resize` and `crop` change a map's size without blending holes into depth; `value_at` reads the value under one point; and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]` for `sv.LabelAnnotator`. `sv.DepthAnnotator(quantity="depth")` colours metres instead of disparity (`sv.DepthQuantity`). [#2693](https://github.com/roboflow/supervision/pull/2693)
 
 - Added `sv.DepthMap` and `sv.DepthAnnotator` to colour depth maps over images. `sv.DepthMap` holds a stereo disparity, metric depth or relative depth array for one frame together with what its values measure (`sv.DepthKind`), and treats `NaN`, infinities and values at or below 0 (below 0 for relative maps) as pixels without depth. `sv.DepthAnnotator` colours a map over NumPy or Pillow images without OpenCV, near objects warm and pixels without depth unpainted, with Turbo, Viridis, Cividis, Inferno, Magma or grayscale tables (`sv.DepthColormap`), over the map's own 2nd to 98th percentile or a fixed `(low, high)` range.
 
