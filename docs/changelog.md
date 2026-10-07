@@ -7,7 +7,7 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DepthMap` now loads depth from models and dataset files: `from_inference` (Roboflow depth models, every `depth_map_format`), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers` (the `depth-estimation` pipeline or a model output, with the kind you name), `from_png16` (KITTI, DrivingStereo, InStereo2K and Ultralytics depth datasets) and `from_pfm` (Middlebury, SceneFlow). [#2694](https://github.com/roboflow/supervision/pull/2694)
+- Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
 - Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))
 

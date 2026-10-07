@@ -173,69 +173,14 @@ def _squeeze_to_2d(
 class DepthMap:
     """A per-pixel depth, disparity or relative depth map for one frame.
 
-    `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container with
-    its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)), its own
-    model connectors. It belongs to the whole frame, so it is not a `sv.Detections`
-    field.
+    `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container, with
+    its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)) and model
+    connectors. It belongs to the whole frame, so it is not a `sv.Detections` field.
 
     `values` are float32 in the kind's unit. For `disparity_px` and `depth_m`,
     non-finite values and values `<= 0` are no depth; for `relative_inverse`,
     non-finite and negative values are no depth, because a normalised map puts its
     farthest real pixel at exactly 0.
-
-    === "Inference"
-
-        Roboflow depth models return a normalised map where 1 is nearest; it loads as
-        `relative_inverse`.
-
-        ```python
-        import supervision as sv
-        from inference import get_model
-
-        model = get_model(model_id="depth-anything-v3/small")
-        result = model.infer("<SOURCE_IMAGE_PATH>")[0]
-        depth_map = sv.DepthMap.from_inference(result)
-        ```
-
-    === "Ultralytics"
-
-        YOLO26 depth models predict metric depth in metres.
-
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-
-        model = YOLO("yolo26n-depth.pt")
-        result = model("<SOURCE_IMAGE_PATH>")[0]
-        depth_map = sv.DepthMap.from_ultralytics(result)
-        ```
-
-    === "Transformers"
-
-        The `depth-estimation` pipeline returns whatever the model predicts, so name
-        the kind: `relative_inverse` for Depth Anything, `depth_m` for metric models.
-
-        ```python
-        import supervision as sv
-        from transformers import pipeline
-
-        estimator = pipeline(
-            "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
-        )
-        result = estimator("<SOURCE_IMAGE_PATH>")
-        depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
-        ```
-
-    === "Datasets"
-
-        ```python
-        import supervision as sv
-
-        kitti = sv.DepthMap.from_png16(
-            "disp_occ_0/000000_10.png", scale=256, kind="disparity_px"
-        )
-        middlebury = sv.DepthMap.from_pfm("disp0.pfm")
-        ```
 
     Attributes:
         values: `(H, W)` float32 values in the kind's unit.
@@ -366,11 +311,12 @@ class DepthMap:
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from a Roboflow depth estimation result.
+        """Create a `sv.DepthMap` from a depth model served by Roboflow Inference.
 
-        Accepts the `normalized_depth` of every `depth_map_format` (`json` nested
-        lists, `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK
-        and Workflows decode them to). The map is normalised per image with 1 for
+        Reads the `normalized_depth` that Inference's depth models (Depth Anything,
+        YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
+        `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK and
+        Workflows decode them to). The map is normalised per image with 1 for
         the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
         V3 maps are linear in depth, not inverse depth). It loads as
         `relative_inverse` float32; values from different images are not comparable.
@@ -518,10 +464,9 @@ class DepthMap:
     ) -> DepthMap:
         """Load a 16-bit PNG whose value divided by `scale` is the map, 0 for none.
 
-        This is the layout of KITTI stereo and depth (`scale=256`), DrivingStereo
-        (256, or 128 at full resolution), InStereo2K (100) and Ultralytics depth
-        datasets (1000 by default). Values load as float32 `code / scale`, with `NaN`
-        where the code is 0.
+        KITTI disparity uses `scale=256`; Ultralytics depth datasets use 1000 by
+        default. Values load as float32 `code / scale`, with `NaN` where the code
+        is 0.
 
         Args:
             path: Path to the PNG.

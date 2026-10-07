@@ -1,6 +1,6 @@
 ---
 comments: true
-description: Load depth maps from Roboflow Inference, Ultralytics YOLO26 depth, Hugging Face or stereo datasets and colour them over images with sv.DepthAnnotator.
+description: Load depth maps from Roboflow Inference, Ultralytics, Hugging Face Transformers or stereo datasets and colour them over images with sv.DepthAnnotator.
 authors:
   - name: Caio Viotti
     role: Roboflow
@@ -16,16 +16,22 @@ A depth map holds a distance for every pixel of an image: stereo disparity in pi
 
 ## Load a Depth Map
 
+Open the image, then load its depth map from a model or a file.
+
+```python
+import supervision as sv
+from PIL import Image
+
+image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
+```
+
 === "Inference"
 
-    Roboflow depth models return a map normalised per image, 1 for the nearest pixel and 0 for the farthest. It loads as `relative_inverse`: good for pictures, not for distances.
+    Depth models served by Roboflow Inference (Depth Anything, YOLO26 depth) return a map normalised per image, 1 for the nearest pixel and 0 for the farthest. It loads as `relative_inverse`: good for pictures, not for distances.
 
     ```python
-    import supervision as sv
     from inference import get_model
-    from PIL import Image
 
-    image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
     model = get_model(model_id="depth-anything-v3/small")
 
     depth_map = sv.DepthMap.from_inference(model.infer(image)[0])
@@ -36,13 +42,11 @@ A depth map holds a distance for every pixel of an image: stereo disparity in pi
     YOLO26 depth models predict metric depth in metres.
 
     ```python
-    import supervision as sv
     from ultralytics import YOLO
 
     model = YOLO("yolo26n-depth.pt")
-    result = model("<SOURCE_IMAGE_PATH>")[0]
 
-    depth_map = sv.DepthMap.from_ultralytics(result)
+    depth_map = sv.DepthMap.from_ultralytics(model(image)[0])
     ```
 
 === "Transformers"
@@ -50,13 +54,12 @@ A depth map holds a distance for every pixel of an image: stereo disparity in pi
     The pipeline does not say what its model predicts, so name the kind.
 
     ```python
-    import supervision as sv
     from transformers import pipeline
 
     estimator = pipeline(
         "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
     )
-    result = estimator("<SOURCE_IMAGE_PATH>")
+    result = estimator(sv.cv2_to_pillow(image))
 
     depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
     ```
@@ -67,7 +70,6 @@ A depth map holds a distance for every pixel of an image: stereo disparity in pi
 
     ```python
     import numpy as np
-    import supervision as sv
 
     disparity = np.load("<DISPARITY_NPY_PATH>")  # float32 pixels, left view
 
