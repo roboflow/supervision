@@ -7,7 +7,7 @@ date_modified: 2026-10-06
 
 ### Unreleased <small>upcoming</small>
 
-- Added `sv.DepthClipRange` to keep one colour range across a video, so colours mean the same distance on every frame written with `sv.VideoSink` instead of shifting whenever something enters the frame. `DepthClipRange.from_depth_maps` computes a clip's percentile range in one pass, reads a generator, and holds a bounded number of randomly drawn samples however long the clip; pass it to `sv.DepthAnnotator(display_range=clip_range)`. [#2692](https://github.com/roboflow/supervision/pull/2692)
+- Added `sv.DepthClipRange`, which keeps the colour scale of `sv.DepthAnnotator` fixed across a video. `DepthClipRange.from_depth_maps` computes one percentile range over a clip's maps, read once from a list or a generator, with bounded memory. ([#2692](https://github.com/roboflow/supervision/pull/2692))
 
 - Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))
 

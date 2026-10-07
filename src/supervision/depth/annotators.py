@@ -40,17 +40,6 @@ class DepthAnnotator:
         depth_annotator = sv.DepthAnnotator(display_range="auto", opacity=0.6)
         annotated_image = depth_annotator.annotate(image.copy(), depth_map)
         ```
-
-    === "Video with one range"
-
-        ```python
-        import supervision as sv
-
-        frames = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
-        depth_maps = [estimate_depth(frame) for frame in frames]
-        clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
-        depth_annotator = sv.DepthAnnotator(display_range=clip_range)
-        ```
     """
 
     def __init__(

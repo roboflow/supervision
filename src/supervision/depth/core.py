@@ -299,7 +299,9 @@ class DepthClipRange:
 
     Colouring each frame with its own range makes a still wall change colour as
     things enter and leave the frame. A clip range, computed in a first pass over the
-    clip, keeps colours meaning the same distance on every frame.
+    clip, keeps the colour scale fixed on every frame. Colours then stay put only
+    where the depth values are steady, as in ground truth or calibrated stereo; a
+    model's own frame-to-frame wobble becomes more visible.
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' kind unit.

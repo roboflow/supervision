@@ -53,7 +53,13 @@ annotated_image[~depth_map.valid_mask] = sv.Color.BLACK.as_bgr()
 Colouring each frame with its own range makes a still wall change colour whenever something enters the frame. Compute one range for the whole clip in a first pass, then colour every frame with it:
 
 ```python
+import numpy as np
 import supervision as sv
+
+
+def estimate_depth(frame: np.ndarray) -> sv.DepthMap:
+    raise NotImplementedError("return your depth model's map for this frame")
+
 
 source = "<SOURCE_VIDEO_PATH>"
 depth_maps = [estimate_depth(frame) for frame in sv.get_video_frames_generator(source)]
@@ -67,7 +73,7 @@ with sv.VideoSink("<TARGET_VIDEO_PATH>", sv.VideoInfo.from_video_path(source)) a
         sink.write_frame(depth_annotator.annotate(frame, depth_map))
 ```
 
-`DepthClipRange.from_depth_maps` reads a generator too, so for long clips you can estimate depth twice instead of holding every map. Relative maps from monocular models change scale from frame to frame by design, so a locked range still flickers with them; metric and stereo maps do not.
+`DepthClipRange.from_depth_maps` reads a generator too, so for long clips you can estimate depth twice instead of holding every map. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.
 
 ## Attribution
 
