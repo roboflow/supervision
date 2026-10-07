@@ -2986,6 +2986,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0308-oct-6-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.8 Oct 6, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0307-oct-4-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3569,6 +3580,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0308-oct-6-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.30.8 Oct 6, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0307-oct-4-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4094,48 +4116,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.QWEN_2_5_VL</code> or <code>sv.VLM.QWEN_3_VL</code> now recovers every complete detection from a response that was cut off before its closing <code>]</code>, such as inside the last box's <code>bbox_2d</code> array or right after a complete object. The parser cut the text at its last <code>]</code>, which in a cut-off response can sit before the last complete object's closing <code>}</code>, so the truncation recovery never saw that <code>}</code> and dropped the object: a cut-off response with two complete detections returned one. Recovery now reads the text before that cut, and the cut text when that fails. (<a href="https://github.com/roboflow/supervision/pull/2666">#2666</a>)</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_yolo</code> now names a malformed annotation line instead of failing on an array shape. A line with fewer than five tokens contributed a class id but no box, so the mismatch surfaced as <code>operands could not be broadcast together with shapes (0,) (4,)</code>, or — when the file also held valid rows — as a <code>class_id</code> shape error that blamed the wrong column. With <code>is_obb=True</code>, a line that was not nine tokens failed with an array shape or length error. A malformed line now raises a <code>ValueError</code> naming the offending line. (<a href="https://github.com/roboflow/supervision/pull/2665">#2665</a>)</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_yolo</code> now rejects a label whose width or height is negative, instead of building a box with <code>x_min</code> past <code>x_max</code>. Such a box made <code>box_iou_batch</code> score two boxes covering the identical region at <code>0.0</code> and stopped <code>with_nms</code> suppressing, and made <code>Detections.area</code> negative when only one extent was negative, so a corrupt label skewed evaluation silently. <code>sv.DetectionDataset.as_yolo</code> now orders the corners of a reversed <code>Detections</code> box before measuring its width and height, so it no longer exports a file the loader refuses to read; the exported box describes the same rectangle and normal boxes are unchanged. The error names the offending annotation file. (<a href="https://github.com/roboflow/supervision/pull/2663">#2663</a>)</p>
-</li>
-<li>
-<p><code>sv.VideoSink</code> and <code>sv.process_video</code> now write video at OpenCV's quality when OpenCV is not installed. The PyAV fallback left the encoder's bit rate unset, so <code>mp4v</code>, the default codec, and <code>MJPG</code> came out at well under half the bit rate <code>cv2.VideoWriter</code> uses: 30 frames of a 1280x720 texture scored 27.9 dB PSNR instead of 32.4 dB with <code>mp4v</code>, and 27.0 dB instead of 33.4 dB with <code>MJPG</code>. The fallback now sets the bit rate, rate tolerance, minimum quantizer and keyframe interval that OpenCV's FFmpeg writer uses for every codec except H.264, which already encoded at libx264's CRF 23 default in both backends. Output files grow with the bit rate, to the sizes OpenCV writes, and <code>vp09</code> now encodes several times slower into much larger files, as it does with OpenCV; <code>codec="avc1"</code> keeps files small. A frame rate of zero or less now leaves the fallback writer closed, so <code>sv.VideoSink</code> raises <code>RuntimeError</code> as it does with OpenCV, where the fallback used to write at PyAV's default frame rate. <a href="https://github.com/roboflow/supervision/pull/2661">#2661</a></p>
-</li>
-<li>
-<p><code>sv.Detections.get_anchors_coordinates</code> now computes axis-aligned midpoint anchors without integer overflow. Signed and unsigned boxes whose corner sums exceeded their coordinate dtype could previously place the anchor outside the box, affecting annotators and zone tools. Direct-corner, oriented-box, and mask-centroid anchors are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2660">#2660</a>)</p>
-</li>
-<li>
-<p><code>sv.LineZoneAnnotator(text_orient_to_line=True)</code> no longer raises <code>TypeError: _flip() got an unexpected keyword argument 'flipCode'</code> without OpenCV for lines drawn right to left. The NumPy fallback for <code>cv2.flip</code> now uses OpenCV's parameter names <code>src</code> and <code>flipCode</code>; behavior with OpenCV installed is unchanged. The fallback also accepts any positive or negative flip code, as OpenCV does, instead of raising <code>ValueError</code> for codes other than <code>0</code>, <code>1</code> and <code>-1</code>. (<a href="https://github.com/roboflow/supervision/pull/2659">#2659</a>)</p>
-</li>
-<li>
-<p>The Ultralytics, Inference and YOLO-NAS speed estimation examples (<code>examples/speed_estimation/</code>) now measure elapsed time from source-frame indices, as the RF-DETR example already does. They divided the distance by the number of stored positions over the frame rate, which assumed the vehicle was detected in every frame and counted N positions as N frame intervals instead of N - 1. A vehicle missed in one frame of three was reported about 44% too fast, and even a vehicle detected in every frame was reported about 4% too slow at 25 fps. Each tracked position is now stored with its frame index, speed is shown once the positions span at least half a second of source frames, and the RF-DETR example is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2654">#2654</a>)</p>
-</li>
-<li>
-<p><code>examples/speed_estimation/rfdetr_example.py</code> raised <code>AttributeError</code> when building its <code>ViewTransformer</code>, with or without OpenCV installed, because the private <code>supervision._cv2</code> layer did not provide <code>getPerspectiveTransform</code> or <code>perspectiveTransform</code>. <code>supervision._cv2</code> now provides both: OpenCV's functions when OpenCV is installed, and NumPy fallbacks otherwise. The NumPy fallback <code>getPerspectiveTransform</code> solves OpenCV's eight-equation system in float64, so it agrees with OpenCV to within OpenCV's float32 rounding of that system's product terms rather than bit for bit. It raises <code>ValueError</code> for invalid points and for an exactly singular system, but does not detect near-singular ones, where OpenCV switches to an SVD null-space solution. The fallbacks cover only OpenCV's default 2-D usage: <code>getPerspectiveTransform</code> takes no <code>solveMethod</code>, and <code>perspectiveTransform</code> rejects 3-D points, affine <code>(2, 3)</code> matrices and bool matrices. The public <code>sv</code> API is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2652">#2652</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAveragePrecision(class_agnostic=True)</code> now treats detections without class IDs as the same class as labeled detections. A perfect match previously scored zero mAP when only one side supplied class IDs, such as SAM proposals evaluated against labeled ground truth. Unsigned class ID arrays no longer raise <code>OverflowError</code> with <code>class_agnostic=True</code> on NumPy 2. Class-aware scoring and the original input detections are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2650">#2650</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.FLORENCE_2</code> now returns one detection per instance for <code>&lt;REFERRING_EXPRESSION_SEGMENTATION&gt;</code> and <code>&lt;REGION_TO_SEGMENTATION&gt;</code>. Florence-2 returns each instance as a list of polygons, one per connected region, but every polygon became its own detection, so an object split into two regions came back as two detections. The polygons of an instance are now merged into one mask with one box around all of them. Instances made of a single polygon load as before. Polygons with fewer than three vertices are ignored, and an instance without any usable polygon is skipped, so it no longer yields an empty-mask detection or raises. (<a href="https://github.com/roboflow/supervision/pull/2648">#2648</a>)</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.from_yolo</code> now reads the box of Ultralytics pose labels, a box followed by the keypoint values that <code>kpt_shape</code> in <code>data.yaml</code> declares, instead of parsing the whole row as a polygon, which gave wrong boxes and unrequested masks. The keypoints are skipped, as Ultralytics does for box tasks. A polygon row with that same number of values, with or without a trailing confidence, is read as a box too, as Ultralytics does. A <code>kpt_shape</code> other than <code>[K, 2]</code> or <code>[K, 3]</code> now raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2655">#2655</a>)</p>
-</li>
-<li>
-<p><code>sv.xyxy_to_mask</code> now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction. Previously, converting that coordinate to <code>int</code> rounded it toward zero and incorrectly filled pixels along the image edge. (<a href="https://github.com/roboflow/supervision/pull/2646">#2646</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.from_inference</code> now rounds polygon vertices to the nearest pixel before rasterising masks. Roboflow returns sub-pixel float vertices, and casting them to <code>int</code> truncated every coordinate, moving each mask up and to the left by up to one pixel. A square with corners at 2.6 and 7.6 now fills rows and columns 3-8 instead of 2-7, as <code>from_coco</code>, <code>from_yolo</code>, <code>from_labelme</code> and <code>from_pascal_voc</code> load the same polygon. A vertex that is NaN or infinite raises a <code>ValueError</code>, as it does in <code>from_coco</code>. RLE masks and box-only predictions are unchanged. <a href="https://github.com/roboflow/supervision/pull/2649">#2649</a></p>
-</li>
-<li>
-<p><code>sv.LineZone.trigger</code> now ages tracker crossing history on nonempty frames whose detections lack <code>tracker_id</code>, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing. A shorter gap still preserves the track's crossing state. (<a href="https://github.com/roboflow/supervision/pull/2644">#2644</a>)</p>
-</li>
-<li>
 <p><code>sv.ConfusionMatrix</code> now supports <code>MetricTarget.MASKS</code>, scoring instance segmentation on predicted shapes rather than bounding boxes. <code>from_detections</code> and <code>benchmark</code> accept <code>metric_target=MetricTarget.MASKS</code> and match predictions to targets by mask IoU, computed with <code>mask_iou_batch</code> on dense <code>(N, H, W)</code> arrays or <code>CompactMask</code>. It was the only metric that raised <code>MetricTarget.MASKS is not currently supported</code>. Two instances that share a box but not a shape are no longer matched, and the validation grids written by <code>benchmark(save_directory_path=...)</code> fill each mask to show the geometry the outcome was decided on. A non-empty <code>Detections</code> without <code>mask</code>, or predictions and targets with different mask resolutions, raise <code>ValueError</code>; <code>Detections.empty()</code> needs no masks. <code>from_tensors</code>, <code>evaluate_detection_batch</code> and <code>detections_to_tensor</code> keep rejecting masks, which have no tensor row layout, and now point at <code>from_detections</code>. <code>from_detections</code> also raises when <code>predictions</code> and <code>targets</code> differ in length instead of silently scoring the shorter list. (<a href="https://github.com/roboflow/supervision/pull/2612">#2612</a>)</p>
 </li>
 <li>
@@ -4171,6 +4151,23 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.Detections.from_vlm</code> now keeps <code>class_id</code> integer-typed when a <code>classes</code> filter removes every detection. The empty index array defaulted to <code>float64</code> for <code>sv.VLM.PALIGEMMA</code>, <code>sv.VLM.DEEPSEEK_VL_2</code> and <code>sv.VLM.GOOGLE_GEMINI_2_0</code>; <code>sv.VLM.QWEN_2_5_VL</code> and <code>sv.VLM.QWEN_3_VL</code> already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.</p>
 </li>
+</ul>
+<h3 id="0308-oct-6-2026">0.30.8 <small>Oct 6, 2026</small><a class="headerlink" href="#0308-oct-6-2026" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.QWEN_2_5_VL</code> or <code>sv.VLM.QWEN_3_VL</code> now recovers complete detections from a response cut off before its closing <code>]</code>, such as inside the last box's <code>bbox_2d</code> array or right after a complete object. The parser cut the text at its last <code>]</code>, which in a cut-off response can sit before the last complete object's closing <code>}</code>, so that object was dropped: two complete detections returned one. Recovery now reads the text before that cut, then the cut text if that fails. A <code>}</code> inside the cut-off object's label can still drop the detection before it. (<a href="https://github.com/roboflow/supervision/pull/2666">#2666</a>)</li>
+<li><code>sv.DetectionDataset.from_yolo</code> now raises a <code>ValueError</code> naming the malformed annotation line. A line with fewer than five tokens gave a class id but no box and failed with <code>operands could not be broadcast together with shapes (0,) (4,)</code>, or, when the file also held valid rows, a <code>class_id</code> shape error blaming the wrong column. With <code>is_obb=True</code>, a line that was not nine tokens failed with an array shape or length error. A non-numeric token is reported with the token and file name. (<a href="https://github.com/roboflow/supervision/pull/2665">#2665</a>)</li>
+<li><code>sv.DetectionDataset.from_yolo</code> now rejects a label with a negative width or height, which built a box with <code>x_min</code> past <code>x_max</code>: <code>box_iou_batch</code> scored two boxes covering the identical region at <code>0.0</code>, <code>with_nms</code> stopped suppressing, and <code>Detections.area</code> went negative when only one extent was negative. The error names the annotation file. <code>sv.DetectionDataset.as_yolo</code> now orders the corners of a reversed <code>Detections</code> box before measuring width and height, so it no longer exports a file the loader refuses; the box describes the same rectangle and normal boxes are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2663">#2663</a>)</li>
+<li><code>sv.VideoSink</code> and <code>sv.process_video</code> now write video at OpenCV's quality when OpenCV is not installed. The PyAV fallback left the bit rate unset, so <code>mp4v</code>, the default codec, and <code>MJPG</code> came out at well under half the bit rate <code>cv2.VideoWriter</code> uses, at visibly lower quality. The fallback now sets the bit rate, rate tolerance, minimum quantizer and keyframe interval of OpenCV's FFmpeg writer for every codec except H.264, which already used libx264's CRF 23 default in both backends. Files grow with the bit rate, and <code>vp09</code> may encode more slowly into larger files; <code>codec="avc1"</code> keeps files small where an H.264 encoder is available. A frame rate of zero or less now leaves the fallback writer closed, so <code>sv.VideoSink</code> raises <code>RuntimeError</code> as with OpenCV; it used to write at PyAV's default frame rate. <a href="https://github.com/roboflow/supervision/pull/2661">#2661</a></li>
+<li><code>sv.Detections.get_anchors_coordinates</code> now computes axis-aligned midpoint anchors without integer overflow. Signed and unsigned boxes whose corner sums exceeded their dtype could place the anchor outside the box, affecting annotators and zone tools. Direct-corner, oriented-box and mask-centroid anchors are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2660">#2660</a>)</li>
+<li><code>sv.LineZoneAnnotator(text_orient_to_line=True)</code> no longer raises <code>TypeError: _flip() got an unexpected keyword argument 'flipCode'</code> without OpenCV for lines drawn right to left. The NumPy <code>cv2.flip</code> fallback now uses OpenCV's parameter names <code>src</code> and <code>flipCode</code>, and accepts any positive or negative flip code instead of raising <code>ValueError</code> for codes other than <code>0</code>, <code>1</code> and <code>-1</code>. Behavior with OpenCV is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2659">#2659</a>)</li>
+<li><code>sv.DetectionDataset.from_yolo</code> now reads the box of Ultralytics pose labels, a box followed by the keypoint values that <code>kpt_shape</code> in <code>data.yaml</code> declares, instead of parsing the row as a polygon, which gave wrong boxes and unrequested masks. Keypoints are skipped, as in Ultralytics. A polygon row with that same number of values, with or without a trailing confidence, is also read as a box. A <code>kpt_shape</code> other than <code>[K, 2]</code> or <code>[K, 3]</code> now raises <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2655">#2655</a>)</li>
+<li>The Ultralytics, Inference and YOLO-NAS speed estimation examples now measure elapsed time from source-frame indices, as the RF-DETR example does. They divided the distance by the number of stored positions over the frame rate, which assumes a detection in every frame and counts N positions as N frame intervals instead of N - 1: a vehicle missed in one frame of three was reported about 44% too fast, and one detected in every frame about 4% too slow at 25 fps. Each position is now stored with its frame index, and speed is shown once the positions span at least half a second of source frames. The RF-DETR example is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2654">#2654</a>)</li>
+<li><code>examples/speed_estimation/rfdetr_example.py</code> raised <code>AttributeError</code> when building its <code>ViewTransformer</code>, with or without OpenCV, because the private <code>supervision._cv2</code> layer lacked <code>getPerspectiveTransform</code> and <code>perspectiveTransform</code>. <code>supervision._cv2</code> now provides both: OpenCV's when installed, NumPy fallbacks otherwise. The fallback <code>getPerspectiveTransform</code> solves OpenCV's eight-equation system in float64, so it agrees with OpenCV to within OpenCV's float32 rounding of the system's product terms, not bit for bit. It raises <code>ValueError</code> for invalid points and an exactly singular system, but does not detect near-singular ones, where OpenCV switches to an SVD null-space solution. The fallbacks cover only OpenCV's default 2-D usage: <code>getPerspectiveTransform</code> takes no <code>solveMethod</code>, and <code>perspectiveTransform</code> rejects 3-D points, affine <code>(2, 3)</code> matrices and bool matrices. The public <code>sv</code> API is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2652">#2652</a>)</li>
+<li><code>sv.metrics.MeanAveragePrecision(class_agnostic=True)</code> now treats detections without class IDs as the same class as labeled detections. A perfect match scored zero mAP when only one side supplied class IDs, such as SAM proposals against labeled ground truth. Unsigned class ID arrays no longer raise <code>OverflowError</code> with <code>class_agnostic=True</code> on NumPy 2. Class-aware scoring and the input detections are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2650">#2650</a>)</li>
+<li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.FLORENCE_2</code> now returns one detection per instance for <code>&lt;REFERRING_EXPRESSION_SEGMENTATION&gt;</code> and <code>&lt;REGION_TO_SEGMENTATION&gt;</code>. Florence-2 returns each instance as a list of polygons, one per connected region, and every polygon became its own detection, so an object split in two came back as two. An instance's polygons are now merged into one mask with one box around all of them. Single-polygon instances load as before. Polygons with fewer than three vertices are ignored, and an instance without a usable polygon is skipped instead of yielding an empty-mask detection or raising. (<a href="https://github.com/roboflow/supervision/pull/2648">#2648</a>)</li>
+<li><code>sv.xyxy_to_mask</code> now returns an empty mask for an inclusive box entirely left of or above the image when its maximum coordinate is a negative fraction; converting that coordinate to <code>int</code> rounded toward zero and filled pixels along the image edge. (<a href="https://github.com/roboflow/supervision/pull/2646">#2646</a>)</li>
+<li><code>sv.Detections.from_inference</code> now rounds polygon vertices to the nearest pixel before rasterising masks. Roboflow returns sub-pixel float vertices, and casting to <code>int</code> truncated them, moving each mask up and left by up to one pixel: a square with corners at 2.6 and 7.6 now fills rows and columns 3-8 instead of 2-7, as <code>from_coco</code>, <code>from_yolo</code>, <code>from_labelme</code> and <code>from_pascal_voc</code> load the same polygon. A NaN or infinite vertex raises <code>ValueError</code>, as in <code>from_coco</code>. RLE masks and box-only predictions are unchanged. <a href="https://github.com/roboflow/supervision/pull/2649">#2649</a></li>
+<li><code>sv.LineZone.trigger</code> now ages tracker crossing history on nonempty frames whose detections lack <code>tracker_id</code>, as it already does on empty frames. After enough untracked frames to expire a track, reusing its ID on the other side of the line no longer creates a false crossing; a shorter gap still preserves the track's crossing state. (<a href="https://github.com/roboflow/supervision/pull/2644">#2644</a>)</li>
 </ul>
 <h3 id="0307-oct-4-2026">0.30.7 <small>Oct 4, 2026</small><a class="headerlink" href="#0307-oct-4-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6229,7 +6226,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 16:17:04 UTC">October 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 6, 2026 19:28:47 UTC">October 6, 2026</span>
   </span>
 
     
@@ -6257,9 +6254,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6267,21 +6264,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+          
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+        </a>
+      
         <a href="https://github.com/aminmiral" class="md-author" title="@aminmiral">
           
           <img src="https://avatars.githubusercontent.com/u/146321254?v=4&size=72" alt="aminmiral">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +30
           </a>
         
       
