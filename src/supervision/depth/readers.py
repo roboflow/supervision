@@ -10,7 +10,7 @@ import numpy.typing as npt
 _UINT16_MAX = 65535
 
 
-def read_png16(path: str | Path) -> npt.NDArray[np.uint16]:
+def _read_png16(path: str | Path) -> npt.NDArray[np.uint16]:
     """Read a single-channel 16-bit grayscale PNG as `uint16`.
 
     Raises:
@@ -32,7 +32,7 @@ def read_png16(path: str | Path) -> npt.NDArray[np.uint16]:
     return np.ascontiguousarray(values)
 
 
-def read_pfm(path: str | Path) -> npt.NDArray[np.float32]:
+def _read_pfm(path: str | Path) -> npt.NDArray[np.float32]:
     """Read a single-channel PFM (`Pf`) as float32, top row first.
 
     PFM stores rows bottom to top, and the sign of its scale line gives the byte

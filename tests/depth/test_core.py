@@ -24,6 +24,7 @@ class _FakeUltralyticsDepth:
     """Ultralytics-like `DepthMap` exposing a tensor in `data`."""
 
     def __init__(self, depth: np.ndarray) -> None:
+        """Wrap the depth array in a fake tensor."""
         self.data = _FakeTensor(depth)
 
 
@@ -31,6 +32,7 @@ class _FakeUltralyticsResult:
     """Ultralytics-like `Results` with an optional `depth` attribute."""
 
     def __init__(self, depth: np.ndarray | None) -> None:
+        """Attach a depth map, or none when `depth` is None."""
         self.depth = None if depth is None else _FakeUltralyticsDepth(depth)
 
 
@@ -38,6 +40,7 @@ class _FakeDepthEstimatorOutput:
     """Transformers-like model output exposing `predicted_depth`."""
 
     def __init__(self, predicted_depth: Any) -> None:
+        """Store the prediction as `predicted_depth`."""
         self.predicted_depth = predicted_depth
 
 

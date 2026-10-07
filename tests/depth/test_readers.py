@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from supervision.depth.readers import read_pfm
+from supervision.depth.readers import _read_pfm
 
 
 class TestReadPfm:
@@ -27,7 +27,7 @@ class TestReadPfm:
         values = np.array([[1.0, 2.0, np.inf], [3.0, 4.0, 5.5]], dtype=np.float32)
         self._write(tmp_path / "disp0.pfm", values, little_endian)
 
-        loaded = read_pfm(tmp_path / "disp0.pfm")
+        loaded = _read_pfm(tmp_path / "disp0.pfm")
 
         np.testing.assert_array_equal(loaded, values)
 
@@ -55,4 +55,4 @@ class TestReadPfm:
         (tmp_path / "file.pfm").write_bytes(content)
 
         with pytest.raises(ValueError, match=match):
-            read_pfm(tmp_path / "file.pfm")
+            _read_pfm(tmp_path / "file.pfm")

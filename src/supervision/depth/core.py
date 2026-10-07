@@ -11,9 +11,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from supervision.depth.readers import read_pfm, read_png16
-
-_UINT16_MAX = 65535
+from supervision.depth.readers import _UINT16_MAX, _read_pfm, _read_png16
 
 
 class DepthKind(Enum):
@@ -550,7 +548,7 @@ class DepthMap:
             raise ValueError(
                 f"from_png16 scale must be a positive number, got {scale}."
             )
-        codes = read_png16(path)
+        codes = _read_png16(path)
         values = codes.astype(np.float32) / np.float32(scale)
         values[codes == 0] = np.nan
         return cls(values, kind=kind)
@@ -581,7 +579,7 @@ class DepthMap:
             depth_map = sv.DepthMap.from_pfm("Adirondack/disp0.pfm")
             ```
         """
-        return cls(read_pfm(path), kind=kind)
+        return cls(_read_pfm(path), kind=kind)
 
 
 def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
