@@ -80,7 +80,7 @@ class _Conversion:
         if not self.reciprocal:
             return values
         dtype = values.dtype.type
-        with np.errstate(divide="ignore", invalid="ignore"):
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
             converted: npt.NDArray[np.floating] = dtype(1.0) / values
         return converted
 

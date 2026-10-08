@@ -126,11 +126,28 @@ class TestDepthAnnotatorColors:
         # Turbo's near end is (122, 4, 3) in RGB; the scene pixel is (100, 100, 101).
         assert _rgb(scene) == [[[9, 9, 9], [111, 52, 52]]]
 
+    def test_partial_opacity_blends_a_map_without_holes(self) -> None:
+        """A map with depth at every pixel blends all of them, not only some.
+
+        Grayscale paints 0 and 255 at the ends of (1, 2); a quarter of each over a scene
+        of 100 is 0.25 * 0 + 0.75 * 100 = 75 and 0.25 * 255 + 75 = 138.75 -> 139.
+        """
+        depth_map = sv.DepthMap(np.array([[1.0, 2.0]], np.float32), kind="disparity_px")
+        scene = np.full((1, 2, 3), 100, dtype=np.uint8)
+
+        sv.DepthAnnotator(
+            colormap="grayscale", display_range=(1.0, 2.0), opacity=0.25
+        ).annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[[75, 75, 75], [139, 139, 139]]]
+
     @pytest.mark.parametrize(
         ("opacity", "expected"),
         [
             pytest.param(0.0, [100, 100, 100], id="zero-draws-nothing"),
             pytest.param(1.0, TURBO[255], id="one-replaces-the-scene"),
+            pytest.param(-0.5, [100, 100, 100], id="below-zero-draws-nothing"),
+            pytest.param(2.0, TURBO[255], id="above-one-replaces-the-scene"),
         ],
     )
     def test_opacity_extremes(self, opacity: float, expected: list[int]) -> None:
@@ -230,12 +247,47 @@ class TestDepthAnnotatorRange:
             pytest.param((0.0, np.inf), id="inf-bound"),
             pytest.param((5.0, 1.0), id="low-above-high"),
             pytest.param((-3e38, 3e38), id="span-overflow"),
+            pytest.param(5, id="number"),
+            pytest.param(None, id="none"),
+            pytest.param("12", id="digit-string"),
+            pytest.param(("near", "far"), id="non-numeric-bounds"),
         ],
     )
     def test_rejects_invalid_display_range(self, display_range: Any) -> None:
-        """Unknown modes, wrong lengths and unusable spans fail at construction."""
+        """Unknown modes, wrong shapes and unusable spans fail at construction.
+
+        Every kind of bad value raises `ValueError` naming the parameter, including
+        the ones that are not a sequence at all.
+        """
         with pytest.raises(ValueError, match="display_range"):
             sv.DepthAnnotator(display_range=display_range)
+
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param([1, 3], id="list"),
+            pytest.param((1, 3), id="int-tuple"),
+            pytest.param(np.array([1.0, 3.0]), id="array"),
+        ],
+    )
+    def test_accepts_any_pair_of_numbers(self, display_range: Any) -> None:
+        """A list, integers or an array are normalised to a tuple of floats."""
+        annotator = sv.DepthAnnotator(display_range=display_range)
+
+        assert annotator.display_range == (1.0, 3.0)
+        assert all(isinstance(bound, float) for bound in annotator.display_range)
+
+    def test_rejects_metric_range_whose_inverse_has_no_span(self) -> None:
+        """A range valid in metres can still overflow float32 once inverted.
+
+        1e-45 m and 3e-45 m differ in float32, but their inverses, 1e45 and 3.3e44, do
+        not fit in it, so the colours would have no range.
+        """
+        depth_map = sv.DepthMap(np.ones((1, 1), np.float32), kind="depth_m")
+        annotator = sv.DepthAnnotator(display_range=(1e-45, 3e-45))
+
+        with pytest.raises(ValueError, match="display_range"):
+            annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
 
     def test_accepts_auto_in_any_case(self) -> None:
         """'AUTO' reads as 'auto', as colormap and kind names ignore case."""
@@ -398,6 +450,39 @@ class TestDepthAnnotatorScene:
 
         with pytest.raises(ValueError, match="3-channel"):
             sv.DepthAnnotator().annotate(scene, depth_map)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.uint16, id="uint16"),
+            pytest.param(np.int32, id="int32"),
+        ],
+    )
+    def test_rejects_a_scene_that_is_not_uint8(self, dtype: Any) -> None:
+        """Only 8-bit scenes can be drawn on, so both backends see the same input."""
+        depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="disparity_px")
+        scene = np.zeros((2, 2, 3), dtype=dtype)
+
+        with pytest.raises(ValueError, match="uint8"):
+            sv.DepthAnnotator().annotate(scene, depth_map)
+
+    def test_stretches_the_holes_of_a_smaller_map_with_its_colours(self) -> None:
+        """The valid-depth mask is resampled with the colours, so holes stay holes.
+
+        The left map pixel has no depth and the right one is the near end; stretched
+        over four columns, the left two keep the scene and the right two are painted.
+        """
+        depth_map = sv.DepthMap(
+            np.array([[np.nan, 2.0]], np.float32), kind="disparity_px"
+        )
+        scene = np.full((2, 4, 3), 7, dtype=np.uint8)
+        annotator = sv.DepthAnnotator(colormap="grayscale", display_range=(1.0, 2.0))
+
+        annotator.annotate(scene, depth_map)
+
+        kept, painted = [7, 7, 7], [255, 255, 255]
+        assert _rgb(scene) == [[kept, kept, painted, painted]] * 2
 
     @pytest.mark.parametrize("kind", ["disparity_px", "depth_m", "relative_inverse"])
     def test_leaves_the_scene_unchanged_when_the_map_has_no_depth(

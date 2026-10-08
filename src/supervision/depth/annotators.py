@@ -86,8 +86,8 @@ class DepthAnnotator:
         cropped frame, undo that on the map before annotating.
 
         Args:
-            scene: The image to draw on, a 3-channel `numpy.ndarray` (BGR) or a
-                `PIL.Image.Image`. It is drawn on in place.
+            scene: The image to draw on, a 3-channel `uint8` `numpy.ndarray` (BGR) or
+                a `PIL.Image.Image`. It is drawn on in place.
             depth_map: The depth map to colour.
 
         Returns:
@@ -96,9 +96,9 @@ class DepthAnnotator:
 
         Raises:
             TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
-            ValueError: If `scene` is not a 3-channel image, or if `display_range`
-                gives no usable colour range for this map's kind, such as a
-                `depth_m` range with `low <= 0`.
+            ValueError: If `scene` is not a 3-channel `uint8` image, or if
+                `display_range` gives no usable colour range for this map's kind,
+                such as a `depth_m` range with `low <= 0`.
 
         Examples:
             ```pycon
@@ -119,6 +119,12 @@ class DepthAnnotator:
         if scene.ndim != 3 or scene.shape[2] != 3:
             raise ValueError(
                 f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
+            )
+        # The colours are uint8; a wider scene would blend differently on OpenCV and
+        # on the NumPy fallback, and `opacity >= 1` would write 0-255 into a float one.
+        if scene.dtype != np.uint8:
+            raise ValueError(
+                f"DepthAnnotator draws on uint8 images, got dtype {scene.dtype}."
             )
         conversion = _resolve_conversion(depth_map.kind)
         valid = depth_map.valid_mask
@@ -161,12 +167,16 @@ def _check_display_range_option(
     """Validate the annotator's `display_range` option and normalise it."""
     if isinstance(display_range, str) and display_range.lower() == "auto":
         return "auto"
-    if isinstance(display_range, str) or len(display_range) != 2:
+    # A string would unpack into characters and `"12"` pass as (1.0, 2.0).
+    try:
+        if isinstance(display_range, str):
+            raise TypeError("a string is not a (low, high) pair")
+        low, high = (float(bound) for bound in display_range)
+    except (TypeError, ValueError) as error:
         raise ValueError(
-            "display_range must be 'auto' or a (low, high) tuple, got "
+            "display_range must be 'auto' or a (low, high) pair of numbers, got "
             f"{display_range!r}."
-        )
-    low, high = (float(bound) for bound in display_range)
+        ) from error
     if not _has_usable_span(low, high):
         raise ValueError(
             "display_range must have finite bounds with low < high and a span that "

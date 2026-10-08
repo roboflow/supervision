@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.depth.core import _Conversion
 
 
 class TestDepthMapInit:
@@ -221,3 +223,19 @@ class TestDepthKind:
         """Anything other than a member or a kind name raises and lists the kinds."""
         with pytest.raises(ValueError, match="Invalid depth kind"):
             sv.DepthKind.from_value(value)
+
+
+class TestConversionApply:
+    def test_reciprocal_overflow_is_silent_and_infinite(self) -> None:
+        """A float32 depth near zero inverts to infinity without a warning.
+
+        1e-45 m is the smallest float32 above zero; its inverse does not fit, and the
+        annotator clamps an infinite coordinate to the near end rather than failing.
+        """
+        values = np.array([1e-45, 2.0], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            converted = _Conversion(reciprocal=True).apply(values)
+
+        assert converted.tolist() == [np.inf, 0.5]
