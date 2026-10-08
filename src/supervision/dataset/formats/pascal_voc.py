@@ -70,16 +70,20 @@ def object_to_pascal_voc(
     # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
     # would corrupt the caller's detections by +1 on every export.
     xyxy = xyxy + 1
+    # Order the corners so a reversed box is written as the same rectangle
+    # rather than with xmin past xmax.
+    x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
+    y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(xyxy[0]))
+    xmin.text = str(int(x_min))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(xyxy[1]))
+    ymin.text = str(int(y_min))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(xyxy[2]))
+    xmax.text = str(int(x_max))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(xyxy[3]))
+    ymax.text = str(int(y_max))
 
     if polygon is not None:
         # 1-indexed, rebound to avoid mutating the caller's array (see above).
@@ -330,6 +334,11 @@ def detections_from_xml_obj(
         x2 = _parse_coordinate(_get_required_text(bbox, "xmax"), "xmax")
         y2 = _parse_coordinate(_get_required_text(bbox, "ymax"), "ymax")
 
+        # Order the corners, as the LabelMe loader does for its rectangles: a
+        # Pascal VOC box names two corners explicitly, so a reversed pair
+        # describes the same rectangle rather than being malformed input.
+        x1, x2 = min(x1, x2), max(x1, x2)
+        y1, y2 = min(y1, y2), max(y1, y2)
         xyxy.append([x1, y1, x2, y2])
 
         object_mask: npt.NDArray[np.bool_] = np.zeros(
