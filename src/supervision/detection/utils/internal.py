@@ -97,11 +97,11 @@ def _resolve_rle_mask(
     image_height: int,
     image_width: int,
     compact_masks: bool,
-) -> tuple[npt.NDArray[np.bool_] | None, dict[str, Any] | None]:
-    """Decode one RLE prediction into (dense_mask, compact_pending).
+) -> tuple[npt.NDArray[np.bool_] | CompactMask | None, dict[str, Any] | None]:
+    """Resolve one RLE prediction into (mask, compact_pending).
 
-    Returns ``(dense_mask, None)`` when ``compact_masks=False`` or when the
-    RLE size does not match the image size (fall back to dense decode).
+    Returns ``(dense_mask, None)`` when ``compact_masks=False``.
+    Returns ``(compact_mask, None)`` for size-mismatched compact RLE.
     Returns ``(None, rle_data)`` when ``compact_masks=True`` and the RLE size
     matches, deferring the item to the post-loop batch call.
     Returns ``(None, None)`` on decode failure (caller should skip mask).
@@ -113,7 +113,7 @@ def _resolve_rle_mask(
         compact_masks: Whether to return a deferred item for batch processing.
 
     Returns:
-        A 2-tuple ``(dense_mask, pending)`` where at most one element is
+        A 2-tuple ``(mask, pending)`` where at most one element is
         non-``None``.
     """
     try:
@@ -122,13 +122,10 @@ def _resolve_rle_mask(
             # Sizes match; defer to the post-loop CompactMask.from_coco_rle call.
             return None, rle_data
         if compact_masks and (h, w) != (image_height, image_width):
-            logger.debug(
-                "compact_masks=True: RLE size %s does not match image "
-                "size (%d, %d); falling back to dense decode.",
-                (h, w),
-                image_height,
-                image_width,
+            compact = CompactMask.from_coco_rle_resized(
+                [rle_data], image_shape=(image_height, image_width)
             )
+            return compact, None
         mask: npt.NDArray[np.bool_] = rle_to_mask(rle_data["counts"], (w, h))
         if (h, w) != (image_height, image_width):
             mask = cv2.resize(
@@ -380,15 +377,16 @@ def process_roboflow_result(
         mask: npt.NDArray[np.bool_] | None = None
         compact_mask: CompactMask | None = None
         if rle_data is not None:
-            _dense, _pending = _resolve_rle_mask(
+            _resolved_mask, _pending = _resolve_rle_mask(
                 rle_data, image_height, image_width, compact_masks
             )
-            if _dense is None and _pending is None:
+            if _resolved_mask is None and _pending is None:
                 # Decode failed; treat as no-mask prediction.
                 rle_data = None
+            elif isinstance(_resolved_mask, CompactMask):
+                compact_mask = _resolved_mask
             elif _pending is None:
-                # Dense result: compact_masks=False, or size-mismatch fallback.
-                mask = _dense
+                mask = _resolved_mask
                 if compact_masks and mask is not None:
                     compact_mask = CompactMask.from_dense(
                         masks=mask[np.newaxis, ...],
@@ -404,7 +402,7 @@ def process_roboflow_result(
             confidence.append(prediction["confidence"])
             if compact_masks:
                 if compact_mask is not None:
-                    # Fallback dense path (size mismatch): compact_mask always set.
+                    # Reduced RLE is already on the target image grid.
                     _polygon_compact_map[xyxy_idx] = compact_mask
                 else:
                     # Main COCO-RLE path: (h, w) == image size; defer to batch.

@@ -759,7 +759,7 @@ class Detections:
                       box may not tightly bound the mask, so pixels beyond the
                       box boundary are silently dropped.
                     - Polygon-derived masks (`points`) and size-mismatched
-                      COCO-RLE masks (decoded, then resized to the image) are
+                      COCO-RLE masks (resized directly in RLE space) are
                       retained **full-frame** and lose no pixels.
 
                     Because only the box-cropped path is lossy,

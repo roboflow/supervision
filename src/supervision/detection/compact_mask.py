@@ -28,7 +28,9 @@ import numpy.typing as npt
 # in that module.
 from supervision.detection.utils.converters import (
     _base48_decode,
+    _base48_encode,
     _delta_decode,
+    _delta_encode,
     _mask_to_rle_counts,
     _rle_counts_to_mask,
 )
@@ -924,6 +926,24 @@ def _resize_crop(
     return _mask_to_rle_counts(resized)
 
 
+def _validate_rle_image_shape(shape: Sequence[int]) -> tuple[int, int]:
+    """Validate dimensions before allocating RLE resize tables."""
+    try:
+        valid = len(shape) == 2 and all(
+            isinstance(value, (int, np.integer))
+            and not isinstance(value, (bool, np.bool_))
+            and 0 < value <= _MAX_IMAGE_DIMENSION
+            for value in shape
+        )
+    except TypeError as exc:
+        raise ValueError("Expected (height, width) integer dimensions.") from exc
+    if not valid:
+        raise ValueError(
+            f"Image dimensions must be positive integers <= {_MAX_IMAGE_DIMENSION}."
+        )
+    return int(shape[0]), int(shape[1])
+
+
 class CompactMask:
     """Memory-efficient crop-RLE mask storage for instance segmentation.
 
@@ -1257,6 +1277,134 @@ class CompactMask:
         crop_shapes = np.array(crop_shapes_list, dtype=np.int32)
         offsets = np.array(offsets_list, dtype=np.int32)
         return cls(crop_rles, crop_shapes, offsets, (img_h, img_w))
+
+    @classmethod
+    def from_coco_rle_resized(
+        cls,
+        rles: Sequence[Mapping[str, Any]],
+        *,
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Resize full-frame COCO RLE masks without materializing dense pixels.
+
+        Source grids must represent the same complete image as ``image_shape``;
+        crop-local masks must first be placed on their source image canvas.
+        Each source grid is sampled with nearest-neighbor floor indexing. The
+        resulting compact masks retain the full target frame, including foreground
+        outside detector boxes. This avoids dense allocations, but the Python RLE
+        processing is not a guarantee of lower latency for fragmented masks.
+
+        Args:
+            rles: Full-frame COCO masks, each with its own ``size`` and ``counts``.
+                Counts may be compressed strings/bytes or uncompressed run lengths.
+            image_shape: Exact target dimensions as ``(height, width)``. Each
+                dimension must be a positive integer no larger than 32768.
+
+        Returns:
+            Compact masks on the target image grid, with zero crop offsets.
+
+        Raises:
+            ValueError: Dimensions or RLE counts are invalid.
+
+        Example:
+            ```pycon
+            >>> import supervision as sv
+            >>> rles = [{"size": [2, 2], "counts": [0, 4]}]
+            >>> masks = sv.CompactMask.from_coco_rle_resized(
+            ...     rles, image_shape=(4, 6)
+            ... )
+            >>> masks.shape
+            (1, 4, 6)
+            >>> masks.area.tolist()
+            [24]
+
+            ```
+        """
+        target_h, target_w = _validate_rle_image_shape(image_shape)
+        output_runs: list[npt.NDArray[np.int32]] = []
+        for rle in rles:
+            if not isinstance(rle, Mapping) or not {"size", "counts"} <= rle.keys():
+                raise ValueError("Each RLE must supply size and counts.")
+            source_h, source_w = _validate_rle_image_shape(rle["size"])
+            counts = _coco_rle_counts_to_array(rle["counts"])
+            if int(counts.sum(dtype=np.int64)) != source_h * source_w:
+                raise ValueError("RLE counts must cover the source grid exactly.")
+
+            if (source_h, source_w) != (target_h, target_w):
+                counts = _rle_resize(counts, source_h, source_w, target_h, target_w)
+            output_runs.append(counts)
+
+        result = cls(
+            output_runs,
+            np.tile(np.array([[target_h, target_w]], dtype=np.int32), (len(rles), 1)),
+            np.zeros((len(rles), 2), dtype=np.int32),
+            (target_h, target_w),
+        )
+        return result
+
+    def to_coco_rle(self, *, compressed: bool = True) -> list[dict[str, Any]]:
+        """Export full-image COCO RLE masks without materializing dense pixels.
+
+        Restore crop offsets as background runs. Export preserves the foreground
+        stored in this object; it cannot recover pixels discarded when constructing
+        a box-cropped compact mask. Work scales with runs and foreground columns,
+        rather than allocating a full image mask.
+
+        Args:
+            compressed: Return COCO compressed strings when True, or integer run
+                lists when False.
+
+        Returns:
+            One independent ``size``/``counts`` dictionary per mask. ``size`` is
+            the full image size, not the stored crop size.
+
+        Raises:
+            ValueError: A stored crop lies outside the image canvas.
+
+        Example:
+            ```pycon
+            >>> import supervision as sv
+            >>> masks = sv.CompactMask.from_coco_rle_resized(
+            ...     [{"size": [2, 2], "counts": [0, 4]}], image_shape=(4, 6)
+            ... )
+            >>> masks.to_coco_rle(compressed=False)
+            [{'size': [4, 6], 'counts': [0, 24]}]
+
+            ```
+        """
+        height, width = self._image_shape
+        output: list[dict[str, Any]] = []
+        for index, runs in enumerate(self._rles):
+            crop_h, crop_w = map(int, self._crop_shapes[index])
+            x, y = map(int, self._offsets[index])
+            if (
+                crop_h <= 0
+                or crop_w <= 0
+                or x < 0
+                or y < 0
+                or x + crop_w > width
+                or y + crop_h > height
+            ):
+                raise ValueError("Mask crop must fit inside the image canvas.")
+
+            if (x, y, crop_h, crop_w) == (0, 0, height, width):
+                counts = runs.tolist()
+            else:
+                intervals = _rle_to_column_intervals(runs, crop_h, self._offsets[index])
+                starts = intervals[:, 0] * height + intervals[:, 1]
+                stops = intervals[:, 0] * height + intervals[:, 2]
+                full_counts = np.empty(2 * len(starts) + 1, dtype=np.int64)
+                full_counts[::2] = np.concatenate((starts, [height * width])) - (
+                    np.concatenate(([0], stops))
+                )
+                full_counts[1::2] = stops - starts
+                if full_counts[-1] == 0:
+                    full_counts = full_counts[:-1]
+                counts = _rle_counts_int32(full_counts).tolist()
+
+            payload = _base48_encode(_delta_encode(counts)) if compressed else counts
+            output.append({"size": [height, width], "counts": payload})
+        return output
 
     # ------------------------------------------------------------------
     # Materialisation
