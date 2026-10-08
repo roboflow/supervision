@@ -163,6 +163,25 @@ def coco_annotations_to_masks(
     return np.asarray(masks, dtype=bool)
 
 
+def _check_box_extent(image_annotation: CocoDict) -> list[float]:
+    """Return a COCO ``bbox``, rejecting a negative width or height.
+
+    COCO stores a box as ``[x, y, width, height]``, so a negative extent would
+    place ``x_max`` before ``x_min`` once the corners are formed. Such a box
+    makes ``Detections.area`` negative and scores two boxes covering the same
+    region at ``0.0`` under ``box_iou_batch``.
+    """
+    bbox = image_annotation["bbox"]
+    box_width, box_height = float(bbox[2]), float(bbox[3])
+    if box_width < 0 or box_height < 0:
+        raise ValueError(
+            f"Invalid box extent ({bbox[2]}, {bbox[3]}) in COCO annotation "
+            f"{image_annotation.get('id', '<no id>')}; expected a non-negative "
+            "width and height."
+        )
+    return list(bbox)
+
+
 def coco_annotations_to_detections(
     image_annotations: list[CocoDict],
     resolution_wh: tuple[int, int],
@@ -194,6 +213,11 @@ def coco_annotations_to_detections(
         populated as an object array (shape ``(N,)``) holding the raw polygon list or
         RLE dict per annotation; consumed by :func:`detections_to_coco_annotations`
         for a coordinate-preserving round-trip.
+
+    Raises:
+        ValueError: If an annotation's ``bbox`` has a negative width or height.
+            A negative extent would place ``x_max`` before ``x_min`` once the
+            corners are formed; a zero extent is accepted.
     """
     if not image_annotations:
         return Detections.empty()
@@ -201,7 +225,9 @@ def coco_annotations_to_detections(
     class_ids = [
         image_annotation["category_id"] for image_annotation in image_annotations
     ]
-    xyxy_list = [image_annotation["bbox"] for image_annotation in image_annotations]
+    xyxy_list = [
+        _check_box_extent(image_annotation) for image_annotation in image_annotations
+    ]
     xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
@@ -312,7 +338,11 @@ def detections_to_coco_annotations(
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
-        box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
+        # Order the corners first: a reversed box would otherwise be written
+        # with a negative width or height, which the loader now rejects.
+        x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
+        y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
+        box_width, box_height = x_max - x_min, y_max - y_min
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
             mask_bool = mask
@@ -383,7 +413,7 @@ def detections_to_coco_annotations(
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id) + 1,
-            "bbox": [xyxy[0], xyxy[1], box_width, box_height],
+            "bbox": [x_min, y_min, box_width, box_height],
             "area": area,
             "segmentation": segmentation,
             "iscrowd": iscrowd,
