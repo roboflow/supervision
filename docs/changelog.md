@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-06
+date_modified: 2026-10-07
 ---
 
 # Changelog
@@ -16,6 +16,8 @@ date_modified: 2026-10-06
 - `sv.get_video_frames_generator` now reads a video until the stream ends when no `end` is given, instead of stopping at OpenCV's `CAP_PROP_FRAME_COUNT`. OpenCV estimates that count from container metadata: a WebM without a duration, as recorded by browsers, reports a huge negative count, so no frames were yielded and `end` always raised `Requested frames are outbound`, and a variable frame rate MKV or WebM can report fewer frames than it holds, so the video was cut short. `sv.process_video` without `max_frames` was affected the same way and now also reads to the stream end; with `max_frames`, a positive frame count that is too low still caps the frames processed. A positive frame count still rejects an `end` past it. Videos read without OpenCV were not affected. ([#2672](https://github.com/roboflow/supervision/pull/2672))
 
 - `sv.KeyPoints.from_transformers` now returns an empty `KeyPoints` object when pose post-processing returns no instances for an image, instead of raising `IndexError`. This lets callers handle frames with no detected people without stopping the pose pipeline. ([#2671](https://github.com/roboflow/supervision/pull/2671))
+
+- `sv.DetectionDataset.from_coco`, `from_pascal_voc` and `from_createml` no longer build a box with `x_min` past `x_max`, completing the fix [#2663](https://github.com/roboflow/supervision/pull/2663) started for `from_yolo`. `coco` and `createml` name an extent, so a negative width or height is now rejected; `pascal_voc` names two corners, so a reversed pair is now ordered, as the LabelMe loader already did. The three exporters measured the extent from raw corner values, so a reversed `Detections` was written as a file the loader refuses to read; each now orders the corners first and the COCO exporter writes the ordered origin. The exported box describes the same rectangle and normal boxes are unchanged. [#2683](https://github.com/roboflow/supervision/pull/2683)
 
 ### 0.30.8 <small>Oct 6, 2026</small>
 
