@@ -318,7 +318,8 @@ class InferenceSlicer:
         inspected before committing to a threading strategy. Detections are
         merged in a deterministic order: the first slice is always at index 0,
         followed by any probe slices, then the remaining slices in source order.
-        If oriented bounding boxes are detected, all remaining slices are
+        Empty slices or batches are probed synchronously until the output geometry
+        is known. If oriented bounding boxes are detected, all remaining slices are
         processed sequentially and a ``SupervisionWarnings`` warning is emitted
         once per slicer instance.
 
@@ -370,13 +371,17 @@ class InferenceSlicer:
         )
 
         if self.batch_size > 1:
-            batched = list(create_batches(offsets, self.batch_size))
-            # Run first batch synchronously: fail-fast type validation + OBB probe.
-            first_batch_results = self._run_callback_batch(image, batched[0])
-            detections_list.extend(first_batch_results)
-            obb_detected = any(
-                ORIENTED_BOX_COORDINATES in det.data for det in first_batch_results
-            )
+            remaining_batches = create_batches(offsets, self.batch_size)
+            obb_detected = False
+            # Empty batches cannot identify geometry, so keep probing as for slices.
+            for offset_batch in remaining_batches:
+                batch_results = self._run_callback_batch(image, offset_batch)
+                detections_list.extend(batch_results)
+                obb_detected = any(
+                    ORIENTED_BOX_COORDINATES in det.data for det in batch_results
+                )
+                if obb_detected or any(len(det) > 0 for det in batch_results):
+                    break
             if obb_detected and self.thread_workers > 1:
                 with self._obb_thread_workers_lock:
                     if not self._obb_thread_workers_warned:
@@ -389,7 +394,6 @@ class InferenceSlicer:
                             category=SupervisionWarnings,
                             stacklevel=2,
                         )
-            remaining_batches = batched[1:]
             if self.thread_workers == 1 or obb_detected:
                 for offset_batch in remaining_batches:
                     detections_list.extend(
