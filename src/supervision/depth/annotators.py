@@ -113,8 +113,9 @@ class DepthAnnotator:
 
             ```
         """
-        if not isinstance(scene, np.ndarray):
-            raise TypeError(f"Unsupported image type: {type(scene)}")
+        # The conversion decorator rejects other types and turns a Pillow image into
+        # an array, so this always holds; it narrows `ImageType` for the type checker.
+        assert isinstance(scene, np.ndarray)
         if scene.ndim != 3 or scene.shape[2] != 3:
             raise ValueError(
                 f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
