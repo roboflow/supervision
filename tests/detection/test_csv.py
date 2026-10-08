@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 from functools import partial
 from pathlib import Path
@@ -9,6 +10,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.tools import csv_sink as csv_sink_module
 from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
@@ -848,3 +850,169 @@ class TestCSVSinkEmptyBatches:
             "class_name",
             "frame_number",
         ]
+
+
+class TestCSVSinkArrayData:
+    """Tests for writing array-valued detection data to CSV cells."""
+
+    @staticmethod
+    def _write_rows(path: Path, detections: sv.Detections) -> list[dict[str, str]]:
+        """Write detections through CSVSink and return the rows read back."""
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections)
+        with path.open(newline="") as file:
+            return list(csv.DictReader(file))
+
+    def test_high_dimensional_embedding_round_trips_exactly(
+        self, tmp_path: Path
+    ) -> None:
+        """A 1536-d float32 embedding per detection is recoverable from its cell."""
+        embedding = np.random.default_rng(0).random((2, 1536), dtype=np.float32)
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"embedding": embedding},
+        )
+
+        rows = self._write_rows(tmp_path / "embedding.csv", detections)
+
+        for row, expected in zip(rows, embedding):
+            restored = np.array(json.loads(row["embedding"]), dtype=np.float32)
+            np.testing.assert_array_equal(restored, expected)
+
+    def test_oriented_box_corners_written_without_newlines(
+        self, tmp_path: Path
+    ) -> None:
+        """Each detection's (4, 2) corner array is a single-line JSON list."""
+        corners = np.array(
+            [
+                [[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]],
+                [[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]],
+            ]
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 5], [1, 1, 2, 2]]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        rows = self._write_rows(tmp_path / "obb.csv", detections)
+
+        assert [row[ORIENTED_BOX_COORDINATES] for row in rows] == [
+            "[[0.5, 0.25], [10.0, 0.0], [10.0, 5.0], [0.0, 5.0]]",
+            "[[1.0, 1.0], [2.0, 1.0], [2.0, 2.0], [1.0, 2.0]]",
+        ]
+
+    @pytest.mark.parametrize(
+        ("array", "expected_cells"),
+        [
+            pytest.param(
+                np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int16),
+                ["[1, 2, 3]", "[4, 5, 6]"],
+                id="int",
+            ),
+            pytest.param(
+                np.array([[True, False], [False, True]]),
+                ["[true, false]", "[false, true]"],
+                id="bool",
+            ),
+            pytest.param(
+                np.array([["a", "b"], ["c", "d"]]),
+                ['["a", "b"]', '["c", "d"]'],
+                id="str",
+            ),
+            pytest.param(np.zeros((2, 0)), ["[]", "[]"], id="empty"),
+        ],
+    )
+    def test_non_float_arrays_written_as_json_lists(
+        self, tmp_path: Path, array: np.ndarray, expected_cells: list[str]
+    ) -> None:
+        """Integer, boolean, string and empty per-detection arrays become JSON."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={"values": array},
+        )
+
+        rows = self._write_rows(tmp_path / "values.csv", detections)
+
+        assert [row["values"] for row in rows] == expected_cells
+
+    def test_non_finite_floats_round_trip(self, tmp_path: Path) -> None:
+        """NaN and infinities are written as JSON tokens and parse back."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[np.nan, np.inf, -np.inf, 1.5]])},
+        )
+
+        rows = self._write_rows(tmp_path / "non_finite.csv", detections)
+
+        restored = np.array(json.loads(rows[0]["values"]))
+        np.testing.assert_array_equal(restored, detections.data["values"][0])
+
+    def test_broadcast_array_written_in_full_to_every_row(self, tmp_path: Path) -> None:
+        """A custom array whose length differs from the batch size is not sliced."""
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "broadcast.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(
+                detections, custom_data={"embedding": np.array([1.5, 2.5, 3.5])}
+            )
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["embedding"] for row in rows] == ["[1.5, 2.5, 3.5]"] * 2
+
+    def test_unserializable_array_does_not_raise(self, tmp_path: Path) -> None:
+        """An array JSON cannot represent falls back to its string form."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={"values": np.array([[1 + 2j, 3 + 4j]])},
+        )
+
+        rows = self._write_rows(tmp_path / "complex.csv", detections)
+
+        assert rows[0]["values"] == str(np.array([1 + 2j, 3 + 4j]))
+
+    def test_scalar_and_string_data_output_is_unchanged(self, tmp_path: Path) -> None:
+        """Per-detection scalars and strings keep their plain str() output."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            data={
+                "class_name": np.array(["person"]),
+                "score": np.array([0.85], dtype=np.float32),
+                "flag": np.array([True]),
+                "zero_dim": np.array(7),
+            },
+        )
+
+        rows = self._write_rows(tmp_path / "scalars.csv", detections)
+
+        assert (
+            rows[0]["class_name"],
+            rows[0]["score"],
+            rows[0]["flag"],
+            rows[0]["zero_dim"],
+        ) == ("person", "0.85", "True", "7")
+
+    def test_matches_json_sink_values(self, tmp_path: Path) -> None:
+        """Array cells parse to the same values JSONSink writes for them."""
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]),
+            data={
+                "embedding": np.random.default_rng(1).random((2, 8), dtype=np.float32),
+                ORIENTED_BOX_COORDINATES: np.arange(16.0).reshape(2, 4, 2),
+            },
+        )
+        json_path = tmp_path / "output.json"
+
+        rows = self._write_rows(tmp_path / "output.csv", detections)
+        with sv.JSONSink(str(json_path)) as sink:
+            sink.append(detections)
+        with json_path.open() as file:
+            json_rows = json.load(file)
+
+        for row, json_row in zip(rows, json_rows):
+            assert json.loads(row["embedding"]) == json_row["embedding"]
+            assert (
+                json.loads(row[ORIENTED_BOX_COORDINATES])
+                == json_row[ORIENTED_BOX_COORDINATES]
+            )
