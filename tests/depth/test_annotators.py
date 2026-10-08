@@ -234,6 +234,16 @@ class TestDepthAnnotatorScene:
         far, near = TURBO[0].tolist(), TURBO[255].tolist()
         assert _rgb(scene) == [[far, far, near, near], [far, far, near, near]]
 
+    def test_leaves_the_map_values_untouched(self) -> None:
+        """Annotating never writes to the map's values, which alias a float32 input."""
+        values = np.array([[np.nan, 1.0, 2.0]], np.float32)
+        depth_map = sv.DepthMap(values, kind="disparity_px")
+        scene = np.zeros((1, 3, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=(1.0, 2.0)).annotate(scene, depth_map)
+
+        np.testing.assert_array_equal(values, [[np.nan, 1.0, 2.0]])
+
     def test_annotates_pillow_images(self) -> None:
         """A Pillow scene is annotated and returned as a Pillow image in RGB."""
         depth_map = sv.DepthMap(np.array([[2.0]], np.float32), kind="disparity_px")

@@ -5,6 +5,7 @@ import math
 import numpy as np
 import numpy.typing as npt
 
+from supervision import _cv2 as cv2
 from supervision.depth.colormaps import DepthColormap, _colorize
 from supervision.depth.core import (
     DepthKind,
@@ -119,34 +120,37 @@ class DepthAnnotator:
                 f"DepthAnnotator draws on 3-channel images, got shape {scene.shape}."
             )
         conversion = _resolve_conversion(depth_map.kind)
-        low, high = self._resolve_range(depth_map)
-        coordinates = _color_coordinates(depth_map, conversion, low, high)
-        colors = _colorize(coordinates, self.colormap)
         valid = depth_map.valid_mask
+        value_range = self._resolve_range(depth_map, valid)
+        coordinates = _color_coordinates(depth_map, valid, conversion, value_range)
+        colors = _colorize(coordinates, self.colormap)
 
         scene_height, scene_width = scene.shape[:2]
         map_width, map_height = depth_map.resolution_wh
         if (map_height, map_width) != (scene_height, scene_width):
-            rows = _index_map(map_height, scene_height)[:, np.newaxis]
-            columns = _index_map(map_width, scene_width)[np.newaxis, :]
-            colors = colors[rows, columns]
-            valid = valid[rows, columns]
+            rows = _index_map(map_height, scene_height)
+            columns = _index_map(map_width, scene_width)
+            # One 1-D take per axis is several times faster than a broadcast
+            # `[rows[:, None], columns]` fancy index and samples the same pixels.
+            colors = colors.take(rows, axis=0).take(columns, axis=1)
+            valid = valid.take(rows, axis=0).take(columns, axis=1)
 
         _blend(scene, valid, colors, self.opacity)
         return scene
 
-    def _resolve_range(self, depth_map: DepthMap) -> tuple[float, float]:
+    def _resolve_range(
+        self, depth_map: DepthMap, valid: npt.NDArray[np.bool_]
+    ) -> tuple[float, float]:
         """Return the colour range in the quantity's unit for this map.
 
-        An explicit range is converted from the map's unit. A map without any depth
-        falls back to `(0, 1)`.
+        An explicit range is converted from the map's unit. `"auto"` spans the
+        pixels set in `valid`; a map without any depth falls back to `(0, 1)`.
         """
         option = self.display_range
         if isinstance(option, tuple):
             return _convert_display_range(option, depth_map.kind)
-        valid_values = depth_map.values[depth_map.valid_mask]
         conversion = _resolve_conversion(depth_map.kind)
-        percentile = _percentile_range(valid_values, conversion)
+        percentile = _percentile_range(depth_map.values[valid], conversion)
         return percentile if percentile is not None else _FALLBACK_RANGE
 
 
@@ -254,22 +258,28 @@ def _nearest_rank(count: int, fraction: float) -> int:
 
 
 def _color_coordinates(
-    depth_map: DepthMap, conversion: _Conversion, low: float, high: float
+    depth_map: DepthMap,
+    valid: npt.NDArray[np.bool_],
+    conversion: _Conversion,
+    value_range: tuple[float, float],
 ) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
     `t = clamp((v - low) / (high - low))`. A flat range, `low == high`, maps every
-    pixel to 0, as matplotlib's `Normalize` does. Pixels without depth get 0; they
-    are not painted.
+    pixel to 0, as matplotlib's `Normalize` does. Pixels not set in `valid` get 0;
+    they are not painted.
     """
+    low, high = value_range
     if low == high:
         return np.zeros(depth_map.values.shape, dtype=np.float32)
-    converted = conversion.apply(depth_map.to_float())
+    converted = conversion.apply(depth_map.values)
     span = np.float32(high - low)
-    with np.errstate(divide="ignore", invalid="ignore"):
+    # The subtraction allocates the result, so the map's values are never written;
+    # pixels without depth may hold any float until they are zeroed below.
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
         coordinates: npt.NDArray[np.floating] = (converted - np.float32(low)) / span
     np.clip(coordinates, 0.0, 1.0, out=coordinates)
-    coordinates[np.isnan(coordinates)] = 0.0
+    coordinates[~valid] = 0.0
     return coordinates
 
 
@@ -281,16 +291,21 @@ def _blend(
 ) -> None:
     """Blend `colors` into `scene` at `opacity`, only where `where` is set.
 
-    `colors` is `(H, W, 3)`. Whole-image arithmetic and a masked copy are several
-    times faster than gathering and scattering the masked pixels.
+    `colors` is `(H, W, 3)`. The blend is `addWeighted`, as in the other annotators.
+    Blending the whole image and copying it through the mask is several times faster
+    than gathering and scattering the masked pixels.
     """
     if opacity <= 0 or not where.any():
         return
-    mask = where[..., np.newaxis]
+    painted: npt.NDArray[np.uint8]
     if opacity >= 1:
-        np.copyto(scene, colors, where=mask)
+        painted = colors
+    else:
+        painted = cv2.addWeighted(colors, opacity, scene, 1 - opacity, 0)
+    if where.all():
+        scene[...] = painted
         return
-    blended = scene.astype(np.float32)
-    blended *= np.float32(1 - opacity)
-    blended += colors.astype(np.float32) * np.float32(opacity)
-    np.copyto(scene, np.rint(blended).astype(np.uint8), where=mask)
+    # `np.copyto` runs faster with a mask spelled out per channel than with a
+    # broadcast `(H, W, 1)` one, so the mask is repeated over the channels.
+    channel_mask = np.repeat(where[..., np.newaxis], scene.shape[2], axis=2)
+    np.copyto(scene, painted, where=channel_mask)
