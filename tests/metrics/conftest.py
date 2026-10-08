@@ -206,7 +206,7 @@ def yolo_dataset_two_classes(tmp_path):
     - 2-4 objects per image
 
     Use this for tests that specifically need 2-class scenarios or depend on
-    specific class distributions (e.g., mAR @ K per-image limiting tests).
+    specific class distributions (e.g., mAR @ K per-class limiting tests).
 
     Returns:
         dict with dataset paths and metadata

@@ -46,11 +46,11 @@ class MeanAverageRecallResult(MetricResult):
         metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
         mAR_at_1: the Mean Average Recall, when considering only the top
-            highest confidence detection for each image.
+            highest confidence detection for each class in each image.
         mAR_at_10: the Mean Average Recall, when considering top 10
-            highest confidence detections for each image.
+            highest confidence detections for each class in each image.
         mAR_at_100: the Mean Average Recall, when considering top 100
-            highest confidence detections for each image.
+            highest confidence detections for each class in each image.
         recall_per_class: the recall scores per max detection count, class and
             IoU threshold. Shape:
             `(num_max_detections, num_target_classes, num_iou_thresholds)`.
@@ -275,9 +275,11 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
     Intuitively, while Recall measures the ability to find all relevant
     objects, mAR narrows down how many detections are considered for each
-    image. For example, mAR @ 100 considers the top 100 highest confidence
-    detections for each image. mAR @ 1 considers only the highest
-    confidence detection for each image.
+    image and class. For example, mAR @ 100 considers the top 100 highest
+    confidence detections of each class in each image. mAR @ 1 considers only
+    the highest confidence detection of each class in each image. This matches
+    the `maxDets` limit of COCO evaluation, so with a single class the limit
+    applies to the whole image.
 
     Examples:
         ```pycon
@@ -453,8 +455,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         )
 
                     sorted_indices = np.argsort(-prediction_confidence)
+                    sorted_class_ids = prediction_class_ids[sorted_indices]
+                    # COCO applies the detection limit to each (image, class) pair,
+                    # so every prediction is ranked among its own class only.
+                    class_ranks = self._rank_within_class(sorted_class_ids)
                     matches = self._match_top_predictions(
-                        prediction_class_ids[sorted_indices],
+                        sorted_class_ids,
+                        class_ranks,
                         target_class_ids,
                         iou[:, sorted_indices],
                         iou_thresholds,
@@ -467,8 +474,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         (
                             matches,
                             ignored_matches,
-                            np.arange(len(prediction_confidence)),
-                            prediction_class_ids[sorted_indices],
+                            class_ranks,
+                            sorted_class_ids,
                             target_class_ids,
                         )
                     )
@@ -506,9 +513,50 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             large_objects=None,
         )
 
+    @staticmethod
+    def _rank_within_class(
+        sorted_class_ids: npt.NDArray[np.int32],
+    ) -> npt.NDArray[np.int64]:
+        """Rank each prediction among the predictions of its own class.
+
+        COCO evaluates every (image, category) pair on its own and keeps the top
+        `maxDets` detections of that category, so the detection limit has to count
+        predictions per class rather than per image.
+
+        Args:
+            sorted_class_ids: shape (P,), prediction class ids sorted by descending
+                confidence.
+
+        Returns:
+            shape (P,), the zero-based rank of each prediction within its class,
+                where rank 0 is that class's highest confidence prediction.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.metrics import MeanAverageRecall
+            >>> class_ids = np.array([0, 1, 0, 0, 1])
+            >>> MeanAverageRecall._rank_within_class(class_ids).tolist()
+            [0, 0, 1, 2, 1]
+
+            ```
+        """
+        positions = np.arange(sorted_class_ids.shape[0])
+        # A stable sort groups each class while keeping its confidence order intact.
+        grouped_order = np.argsort(sorted_class_ids, kind="stable")
+        grouped_class_ids = sorted_class_ids[grouped_order]
+        is_group_start = np.ones(positions.shape, dtype=bool)
+        is_group_start[1:] = grouped_class_ids[1:] != grouped_class_ids[:-1]
+        group_start = np.maximum.accumulate(np.where(is_group_start, positions, 0))
+
+        class_ranks = np.empty(positions.shape, dtype=np.int64)
+        class_ranks[grouped_order] = positions - group_start
+        return class_ranks
+
     def _match_top_predictions(
         self,
         sorted_prediction_class_ids: npt.NDArray[np.int32],
+        class_ranks: npt.NDArray[np.int64],
         target_class_ids: npt.NDArray[np.int32],
         sorted_iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
@@ -517,20 +565,24 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
         The matcher pairs by highest IoU rather than by confidence, so matching every
         prediction and then keeping the top K would let a prediction ranked below K
-        take a target from one ranked within it. Each limit therefore matches only its
-        own top K predictions.
+        take a target from one ranked within it. Each limit therefore matches only the
+        top K predictions of each class, as COCO does for every (image, class) pair.
+        Matching never pairs predictions with targets of another class, so dropping
+        one class's excess predictions cannot change how another class is matched.
 
         Args:
             sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
                 descending confidence.
+            class_ranks: shape (P,), rank of each prediction within its own class, in
+                the same order.
             target_class_ids: shape (T,), target class ids.
             sorted_iou: shape (T, P), IoU with prediction columns in the same order.
             iou_thresholds: shape (Th,), IoU thresholds.
 
         Returns:
             shape (P, Th, K), whether each prediction is a true positive when only
-                the top `max_detections[k]` predictions are matched; predictions
-                ranked below that limit are `False`.
+                the top `max_detections[k]` predictions of each class are matched;
+                predictions ranked below that limit within their class are `False`.
         """
         prediction_count = sorted_prediction_class_ids.shape[0]
         matches = np.zeros(
@@ -538,21 +590,22 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             dtype=bool,
         )
         for limit_index, max_detections in enumerate(self.max_detections):
-            top_count = min(int(max_detections), prediction_count)
+            # Ascending indices keep the confidence order the matcher relies on.
+            within_limit = np.flatnonzero(class_ranks < max_detections)
             limit_matches, _ = _match_detection_batch_with_target_indices(
-                sorted_prediction_class_ids[:top_count],
+                sorted_prediction_class_ids[within_limit],
                 target_class_ids,
-                sorted_iou[:, :top_count],
+                sorted_iou[:, within_limit],
                 iou_thresholds,
             )
-            matches[:top_count, :, limit_index] = limit_matches
+            matches[within_limit, :, limit_index] = limit_matches
         return matches
 
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
         ignored_matches: npt.NDArray[np.bool_],
-        prediction_indices: npt.NDArray[np.int32],
+        class_ranks: npt.NDArray[np.int64],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
     ) -> tuple[
@@ -563,8 +616,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         """Compute recall per detection limit and class from all images' matches.
 
         `matches` has shape (P, Th, K) and holds, for each detection limit, the matches
-        of that limit's own top predictions; the other arrays have one row or entry per
-        prediction, or per target for `true_class_ids`.
+        of that limit's own top predictions of each class; the other arrays have one
+        row or entry per prediction, or per target for `true_class_ids`.
+        `class_ranks` is each prediction's rank within its class in its own image.
         """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
@@ -580,7 +634,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         recalls_at_k: list[npt.NDArray[np.float64]] = []
         for limit_index, max_detections in enumerate(self.max_detections):
             # Shape: PxThxK,P,C,C -> CxThx3
-            is_within_limit = prediction_indices < max_detections
+            is_within_limit = class_ranks < max_detections
             confusion_matrix = self._compute_confusion_matrix(
                 matches[is_within_limit, :, limit_index],
                 ignored_matches[is_within_limit],
