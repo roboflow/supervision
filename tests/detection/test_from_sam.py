@@ -232,10 +232,10 @@ def test_from_sam3(
 def test_from_sam3_keeps_degenerate_polygon_fragments() -> None:
     """Preserve single-point pixels and complete two-point edges in SAM3 masks.
 
-    SAM3's PVS polygon format can emit a fragment with only one or two
-    vertices alongside regular fillable polygons. A single vertex must be
-    written directly, while a two-vertex contour must retain the line pixels
-    produced by `fillPoly` so neither mask pixels nor the resulting box shrink.
+    SAM3's PVS polygon format can emit a fragment with only one or two vertices
+    alongside regular fillable polygons. A single vertex must be written directly, while
+    a two-vertex contour must retain the line pixels produced by `fillPoly` so neither
+    mask pixels nor the resulting box shrink.
     """
     sam3_result = {
         "prompt_results": [

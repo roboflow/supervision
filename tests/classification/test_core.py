@@ -92,6 +92,16 @@ def test_top_k(
         assert np.array_equal(result[1], expected_result[1])
 
 
+def test_top_k_rejects_negative_count() -> None:
+    """Rejects negative counts instead of applying NumPy negative slicing."""
+    classifications = Classifications(
+        class_id=np.array([0, 1, 2]), confidence=np.array([0.1, 0.9, 0.5])
+    )
+
+    with pytest.raises(ValueError, match="k must be non-negative"):
+        classifications.get_top_k(-1)
+
+
 def test_from_clip_empty_output_dtypes() -> None:
     """Empty CLIP logits produce typed empty classification arrays."""
     result = Classifications.from_clip(_MockTensor(np.empty((1, 0), dtype=np.float32)))
