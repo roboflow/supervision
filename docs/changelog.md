@@ -7,7 +7,7 @@ date_modified: 2026-10-07
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.CompactMask.resize` now samples each crop on the full image's nearest-neighbor grid, matching dense mask resizing. Upscaling no longer shortens foreground regions, and downscaling drops crops that the destination grid does not sample. Sparse RLE processing, dense crop processing, and threaded batches use the same grid.
+- `sv.CompactMask.resize` now samples each crop on the full image's nearest-neighbor grid, matching dense mask resizing. Upscaling no longer shortens foreground regions, and downscaling drops crops that the destination grid does not sample. Sparse RLE processing, dense crop processing, and threaded batches use the same grid. ([#2697](https://github.com/roboflow/supervision/pull/2697))
 
 - `sv.Classifications.get_top_k` now rejects a negative `k` with `ValueError`. It previously passed the value to NumPy slicing, so `get_top_k(-1)` silently returned every classification except the lowest-confidence one. `k=0` and values larger than the number of classifications are unchanged. ([#2695](https://github.com/roboflow/supervision/pull/2695))
 
