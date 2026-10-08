@@ -5,7 +5,7 @@ authors:
   - name: Borda
     role: Open Source Engineer, Roboflow
     github: https://github.com/borda
-date_modified: 2026-07-01
+date_modified: 2026-10-08
 ---
 
 # Use Compact Masks for Memory-Efficient Segmentation
@@ -64,7 +64,7 @@ detections = sv.Detections(
 
 ## Parse Inference Results
 
-`Detections.from_inference` accepts a `compact_masks=True` flag that routes the Roboflow RLE payload through `CompactMask.from_coco_rle` instead of decoding to a dense stack:
+`Detections.from_inference` accepts a `compact_masks=True` flag. Image-sized RLE uses `CompactMask.from_coco_rle`; RLE on a different grid uses `CompactMask.from_coco_rle_resized` to resize the runs directly, without decoding a dense image:
 
 ```python
 import supervision as sv
@@ -79,7 +79,26 @@ assert isinstance(detections.mask, CompactMask)
 
 !!! Warning
 
-    `compact_masks=True` crops each mask to its detector bounding box. Pixels outside the box are silently dropped. For masks that extend meaningfully beyond the reported bounding box, use the default `compact_masks=False` (dense decode) to preserve all pixels.
+    Native image-sized RLE with `compact_masks=True` is cropped to the detector bounding box, so pixels outside that box are dropped. Size-mismatched RLE retains the full image frame. The default `compact_masks=False` preserves all mask pixels in both cases.
+
+### Resize and export RLE without dense masks
+
+Use [CompactMask.from_coco_rle_resized][supervision.detection.compact_mask.CompactMask.from_coco_rle_resized] when the source mask describes the complete image on a different grid. The target shape is exact, sampling uses nearest-neighbor floor indexing, and foreground is preserved outside detector boxes. Crop-local masks must first be aligned to a complete source-image canvas.
+
+```python
+import supervision as sv
+
+masks = sv.CompactMask.from_coco_rle_resized(
+    [{"size": [2, 2], "counts": [0, 4]}],
+    image_shape=(4, 6),
+)
+normalized_rles = masks.to_coco_rle()
+assert normalized_rles[0]["size"] == [4, 6]
+```
+
+[CompactMask.to_coco_rle][supervision.detection.compact_mask.CompactMask.to_coco_rle] exports compressed COCO counts without dense decoding, restoring stored crop offsets as background runs. Pass `compressed=False` for integer count lists. Export preserves stored pixels; it cannot recover foreground discarded by an earlier box crop. Both APIs handle empty batches.
+
+For parsed results, call `detections.mask.to_coco_rle()` after checking that `detections.mask` is a `sv.CompactMask`. Consumers requiring NumPy masks can explicitly call `to_dense()`. RLE processing avoids full-image pixel allocations during normalization and export; latency still depends on run fragmentation and must be benchmarked for the workload.
 
 To convert an existing dense-mask `Detections` to compact at any point:
 

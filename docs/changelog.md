@@ -7,6 +7,8 @@ date_modified: 2026-10-07
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_inference(..., compact_masks=True)` now resizes size-mismatched COCO RLE directly in run space instead of decoding and re-encoding a full-image mask. Added `sv.CompactMask.from_coco_rle_resized()` for lossless full-frame normalization and `sv.CompactMask.to_coco_rle()` for COCO export with crop offsets preserved. The dense default and native image-sized compact crop policy are unchanged. These changes avoid dense pixel allocations; they do not establish a latency improvement.
+
 - `sv.InferenceSlicer` now probes past leading empty batches before choosing threaded or sequential execution. Batched callbacks producing oriented boxes retain the sequential fallback and warning even when the first batch contains no detections, matching the single-slice path. ([#2685](https://github.com/roboflow/supervision/pull/2685))
 
 - `sv.DetectionsSmoother` now ages cached track history on frames without `tracker_id`, as it already does on tracked empty frames. Expired boxes and confidence scores no longer affect a returning track. Short gaps still preserve smoothing, and untracked detections retain the existing warning and unchanged return value. ([#2676](https://github.com/roboflow/supervision/pull/2676))
