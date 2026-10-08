@@ -5,7 +5,7 @@ authors:
   - name: Caio Viotti
     role: Roboflow
     github: https://github.com/cfviotti
-date_modified: 2026-10-05
+date_modified: 2026-10-08
 ---
 
 # Visualize Depth Maps
@@ -30,6 +30,14 @@ depth_map = sv.DepthMap(disparity, kind="disparity_px")
 ```
 
 `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels without depth; `depth_map.valid_mask` marks the rest.
+
+For `"relative_inverse"`, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to `NaN`. Invert a relative map that grows with distance, such as Depth Anything V3's, before wrapping it; negating it instead would leave every pixel negative, and so without depth:
+
+```python
+relative_depth = np.load("<RELATIVE_DEPTH_NPY_PATH>")  # float32, grows with distance
+relative_depth[relative_depth <= 0] = np.nan  # pixels without depth
+depth_map = sv.DepthMap(1 / relative_depth, kind="relative_inverse")
+```
 
 ## Colour a Depth Map
 

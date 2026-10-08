@@ -7,7 +7,9 @@ import pytest
 from PIL import Image
 
 import supervision as sv
+from supervision.depth.annotators import _percentile_range
 from supervision.depth.colormaps import _rgb_lut
+from supervision.depth.core import _Conversion
 
 TURBO = _rgb_lut(sv.DepthColormap.TURBO)
 
@@ -194,6 +196,31 @@ class TestDepthAnnotatorRange:
 
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
+
+
+class TestPercentileRange:
+    def test_returns_none_without_values(self) -> None:
+        """A map that is all holes has no percentile range."""
+        values = np.zeros(0, dtype=np.float32)
+
+        value_range = _percentile_range(values, _Conversion(reciprocal=True))
+
+        assert value_range is None
+
+    @pytest.mark.parametrize(
+        ("low", "high"),
+        [
+            pytest.param(50, 50, id="equal"),
+            pytest.param(-1, 50, id="below-zero"),
+            pytest.param(2, 101, id="above-hundred"),
+        ],
+    )
+    def test_rejects_invalid_percentiles(self, low: float, high: float) -> None:
+        """Percentiles must satisfy 0 <= low < high <= 100."""
+        values = np.ones(4, np.float32)
+
+        with pytest.raises(ValueError, match="percentiles"):
+            _percentile_range(values, _Conversion(), low, high)
 
 
 class TestDepthAnnotatorScene:

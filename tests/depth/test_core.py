@@ -68,24 +68,6 @@ class TestDepthMapToFloat:
         assert depth_map.values[0, 0] == 1.0
 
 
-class TestDepthMapPercentileRange:
-    def test_returns_none_without_depth(self) -> None:
-        """A map that is all holes has no percentile range."""
-        values = np.zeros((40, 40), dtype=np.float32)
-
-        value_range = sv.DepthMap(values, kind="depth_m")._percentile_range()
-
-        assert value_range is None
-
-    @pytest.mark.parametrize(("low", "high"), [(50, 50), (-1, 50), (2, 101)])
-    def test_rejects_invalid_percentiles(self, low: float, high: float) -> None:
-        """Percentiles must satisfy 0 <= low < high <= 100."""
-        depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m")
-
-        with pytest.raises(ValueError, match="percentiles"):
-            depth_map._percentile_range(low, high)
-
-
 class TestDepthMapEquality:
     def test_float_maps_with_nan_compare_equal(self) -> None:
         """NaN holes compare equal, so maps with missing pixels compare equal."""

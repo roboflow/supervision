@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import numpy.typing as npt
 
@@ -14,6 +16,7 @@ from supervision.depth.core import (
 from supervision.draw.base import ImageType
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
 
+#: Colour range, in the coloured quantity's unit, for a map that holds no depth.
 _FALLBACK_RANGE = (0.0, 1.0)
 
 
@@ -77,7 +80,9 @@ class DepthAnnotator:
 
         A map whose size differs from the scene's is stretched over the whole scene,
         each scene pixel showing the map pixel under its centre, so a smaller map
-        with the scene's aspect ratio lines up.
+        with the scene's aspect ratio lines up. A map with another aspect ratio is
+        stretched along each axis on its own; if the model saw a letterboxed or
+        cropped frame, undo that on the map before annotating.
 
         Args:
             scene: The image to draw on, a 3-channel `numpy.ndarray` (BGR) or a
@@ -139,7 +144,9 @@ class DepthAnnotator:
         option = self.display_range
         if isinstance(option, tuple):
             return _convert_display_range(option, depth_map.kind)
-        percentile = depth_map._percentile_range()
+        valid_values = depth_map.values[depth_map.valid_mask]
+        conversion = _resolve_conversion(depth_map.kind)
+        percentile = _percentile_range(valid_values, conversion)
         return percentile if percentile is not None else _FALLBACK_RANGE
 
 
@@ -191,6 +198,59 @@ def _has_usable_span(low: float, high: float) -> bool:
     with np.errstate(over="ignore"):
         span = np.float32(high) - np.float32(low)
     return bool(np.isfinite(span) and span > 0)
+
+
+def _percentile_range(
+    values: npt.NDArray[np.float32],
+    conversion: _Conversion,
+    low: float = 2.0,
+    high: float = 98.0,
+) -> tuple[float, float] | None:
+    """Return the nearest-rank percentile range of a map's valid values.
+
+    It is the range `display_range="auto"` uses, converted to the coloured quantity,
+    so inverse depth for a metric map.
+
+    Args:
+        values: The map's valid values in the kind's unit, as a 1D array.
+        conversion: The conversion from the kind's unit to the coloured quantity.
+        low: Lower percentile, from 0 to 100.
+        high: Upper percentile, from 0 to 100.
+
+    Returns:
+        `(low, high)` in the coloured quantity's unit, equal ends for a flat map, or
+        `None` when there are no values or a converted end is not finite.
+
+    Raises:
+        ValueError: If the percentiles are out of order.
+    """
+    _check_percentiles(low, high)
+    if values.size == 0:
+        return None
+    return conversion.apply_range(_values_at_ranks(values, low, high))
+
+
+def _check_percentiles(low: float, high: float) -> None:
+    """Reject percentiles outside `0 <= low < high <= 100`."""
+    if not (math.isfinite(low) and math.isfinite(high) and 0 <= low < high <= 100):
+        raise ValueError(
+            f"Depth percentiles need 0 <= low < high <= 100, got {low} and {high}."
+        )
+
+
+def _values_at_ranks(
+    values: npt.NDArray[np.float32], low: float, high: float
+) -> tuple[float, float]:
+    """Return the values at the low and high nearest ranks of an unsorted array."""
+    low_rank = _nearest_rank(values.size, low / 100)
+    high_rank = _nearest_rank(values.size, high / 100)
+    ordered = np.partition(values, [low_rank, high_rank])
+    return float(ordered[low_rank]), float(ordered[high_rank])
+
+
+def _nearest_rank(count: int, fraction: float) -> int:
+    """Return the nearest rank `round(fraction * (count - 1))`, rounding half up."""
+    return math.floor(fraction * (count - 1) + 0.5)
 
 
 def _color_coordinates(
