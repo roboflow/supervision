@@ -855,14 +855,12 @@ class TestPascalVocBoxExtent:
         assert detections.area[0] > 0
 
     def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
-        """Export must not write xmin past xmax."""
+        """Export preserves the rectangle with ordered, one-indexed corners."""
         xyxy = np.array([70, 70, 30, 30], dtype=np.float32)
 
         element = object_to_pascal_voc(xyxy=xyxy, name="thing")
 
-        assert int(element.find("bndbox/xmin").text) < int(
-            element.find("bndbox/xmax").text
-        )
-        assert int(element.find("bndbox/ymin").text) < int(
-            element.find("bndbox/ymax").text
-        )
+        assert [
+            int(element.find(f"bndbox/{coordinate}").text)
+            for coordinate in ("xmin", "ymin", "xmax", "ymax")
+        ] == [31, 31, 71, 71]

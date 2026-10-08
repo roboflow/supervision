@@ -2596,7 +2596,9 @@ class TestCocoBoxExtent:
             pytest.param(-40, -40, id="negative-both"),
         ],
     )
-    def test_rejects_a_negative_box_extent(self, box_width, box_height) -> None:
+    def test_rejects_a_negative_box_extent(
+        self, box_width: int, box_height: int
+    ) -> None:
         """A negative extent puts x_min past x_max once corners are formed."""
         annotations = [
             mock_coco_annotation(

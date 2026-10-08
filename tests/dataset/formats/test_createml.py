@@ -449,7 +449,7 @@ class TestCreatemlBoxExtent:
             pytest.param(-40, -40, id="negative-both"),
         ],
     )
-    def test_rejects_a_negative_box_extent(self, width, height) -> None:
+    def test_rejects_a_negative_box_extent(self, width: int, height: int) -> None:
         """A negative extent puts x_min past x_max once corners are formed."""
         annotations = [
             {
