@@ -1477,6 +1477,53 @@ class TestCompactMaskResize:
     collections, invalid dimensions, and dense parity with cv2.
     """
 
+    @pytest.mark.parametrize("num_masks", [1, 8])
+    @pytest.mark.parametrize("pattern", ["solid", "checkerboard"])
+    @pytest.mark.parametrize(
+        ("src_shape", "crop", "target_shape"),
+        [
+            pytest.param((10, 10), (2, 3, 3, 4), (100, 100), id="singleton-upscale"),
+            pytest.param((10, 10), (0, 10, 0, 10), (100, 100), id="full-upscale"),
+            pytest.param((4, 4), (1, 2, 1, 2), (2, 2), id="unsampled-singleton"),
+            pytest.param((7, 9), (1, 6, 2, 8), (13, 5), id="offset-anisotropic"),
+            pytest.param((6, 6), (1, 5, 2, 6), (34, 34), id="fractional-upscale"),
+        ],
+    )
+    def test_image_grid_sampling(
+        self,
+        src_shape: tuple[int, int],
+        crop: tuple[int, int, int, int],
+        target_shape: tuple[int, int],
+        pattern: str,
+        num_masks: int,
+    ) -> None:
+        """Resize compact crops on the same sampling grid as the full image."""
+        masks = np.zeros((num_masks, *src_shape), dtype=bool)
+        y1, y2, x1, x2 = crop
+        rows, cols = np.indices((y2 - y1, x2 - x1))
+        region = np.ones(rows.shape, dtype=bool)
+        if pattern == "checkerboard":
+            region = (rows + cols) % 2 == 0
+        masks[:, y1:y2, x1:x2] = region
+        cm = CompactMask.from_dense(masks, mask_to_xyxy(masks), src_shape)
+        original = cm.to_dense()
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (target_shape[1], target_shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
+
+        resized = cm.resize(target_shape)
+
+        np.testing.assert_array_equal(resized.to_dense(), expected)
+        np.testing.assert_array_equal(resized.area, expected.sum(axis=(1, 2)))
+        np.testing.assert_array_equal(cm.to_dense(), original)
+
     @pytest.mark.parametrize(
         ("src_shape", "mask_slice", "target_shape", "description"),
         [
@@ -1612,7 +1659,7 @@ class TestCompactMaskResize:
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_dense_parity_roundtrip(self, seed: int) -> None:
-        """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
+        """Resized CompactMask matches OpenCV-resized dense masks pixel for pixel."""
         rng = np.random.default_rng(seed + 500)
         img_h, img_w = 80, 120
         target_h, target_w = 40, 60
@@ -1630,10 +1677,10 @@ class TestCompactMaskResize:
                 interpolation=cv2.INTER_NEAREST,
             ).astype(bool)
             actual = resized_dense[i]
-            diff = np.abs(actual.astype(int) - expected.astype(int)).max()
-            assert int(diff) <= 1, (
-                f"Dense parity mismatch for seed={seed}, mask={i}: "
-                f"max pixel diff={diff}"
+            np.testing.assert_array_equal(
+                actual,
+                expected,
+                err_msg=f"Dense parity mismatch for seed={seed}, mask={i}",
             )
 
 
