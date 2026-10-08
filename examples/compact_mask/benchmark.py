@@ -42,7 +42,7 @@ from rich.progress import (
 from rich.table import Table
 
 import supervision as sv
-from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask, _nearest_source_index
 
 console = Console(width=240, force_terminal=True)
 
@@ -332,13 +332,13 @@ def stage_build(
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
     """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
 
-    Uses floor-division indexing (``arange * src // dst``) to match the strategy in
-    ``_rle_resize``, ensuring pixel-exact parity for correctness comparisons in
+    Gathers pixels with the same per-axis sampling map as ``CompactMask.resize``, so
+    the result is the dense reference for the exact-equality check in
     :func:`stage_resize`.
     """
     orig_h, orig_w = masks.shape[1], masks.shape[2]
-    x = np.arange(new_w) * orig_w // new_w
-    y = np.arange(new_h) * orig_h // new_h
+    x = _nearest_source_index(orig_w, new_w)
+    y = _nearest_source_index(orig_h, new_h)
     xv, yv = np.meshgrid(x, y)
     return masks[:, yv, xv]
 
@@ -590,10 +590,9 @@ def stage_resize(
     """Time resize to half resolution; check pixel-level correctness.
 
     Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``. Compact path
-    times ``CompactMask.resize()``, which uses direct RLE arithmetic for sparse masks
-    (below ``_L3_DENSITY_THRESHOLD``) and falls back to ``cv2.INTER_NEAREST``
-    decode/resize/re-encode for dense masks.  The two nearest-neighbour strategies can
-    differ by 1 px at bbox boundaries, so correctness is checked with 1-pixel tolerance.
+    times ``CompactMask.resize()``, which decodes each crop, gathers the sampled pixels,
+    and re-encodes. Both paths implement the same nearest-neighbour resize, so
+    correctness requires exact equality.
     """
     new_h, new_w = image_height // 2, image_width // 2
     new_shape = (new_h, new_w)
@@ -607,10 +606,7 @@ def stage_resize(
 
     resized_dense = _resize_dense_to_shape(masks_dense, new_h, new_w)
     resized_compact = compact_mask.resize(new_shape).to_dense()
-    resize_ok = bool(
-        np.abs(resized_dense.astype(np.int8) - resized_compact.astype(np.int8)).max()
-        <= 1
-    )
+    resize_ok = bool(np.array_equal(resized_dense, resized_compact))
     dense_resize_s = time_reps(
         lambda: _resize_dense_to_shape(masks_dense, new_h, new_w)
     )
