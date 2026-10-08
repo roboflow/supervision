@@ -4116,6 +4116,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Classifications.get_top_k</code> now rejects a negative <code>k</code> with <code>ValueError</code>. It previously passed the value to NumPy slicing, so <code>get_top_k(-1)</code> silently returned every classification except the lowest-confidence one. <code>k=0</code> and values larger than the number of classifications are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2695">#2695</a>)</p>
+</li>
+<li>
 <p><code>sv.InferenceSlicer</code> now probes past leading empty batches before choosing threaded or sequential execution. Batched callbacks producing oriented boxes retain the sequential fallback and warning even when the first batch contains no detections, matching the single-slice path. (<a href="https://github.com/roboflow/supervision/pull/2685">#2685</a>)</p>
 </li>
 <li>
@@ -6250,7 +6253,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 14:03:48 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 14:26:50 UTC">October 8, 2026</span>
   </span>
 
     
@@ -6278,9 +6281,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/raashish1601" class="md-author" title="@raashish1601">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/94279692?v=4&size=72" alt="raashish1601">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6288,14 +6291,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/raashish1601" class="md-author" title="@raashish1601">
+          
+          <img src="https://avatars.githubusercontent.com/u/94279692?v=4&size=72" alt="raashish1601">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/aminmiral" class="md-author" title="@aminmiral">
-          
-          <img src="https://avatars.githubusercontent.com/u/146321254?v=4&size=72" alt="aminmiral">
         </a>
       
       
