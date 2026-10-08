@@ -203,6 +203,21 @@ class TestKeypointOksBatch:
         expected = (np.exp(-25.0 / (2 * area * (2 * sigma) ** 2)) + 1.0) / 2
         assert oks == pytest.approx(np.array([[expected]]))
 
+    def test_non_finite_visible_keypoint_contributes_zero(self) -> None:
+        """A non-finite visible point scores zero while finite points still count."""
+        keypoints_true = np.array([[[0, 0], [10, 0]]], dtype=np.float32)
+        keypoints_detection = np.array([[[np.nan, 0], [10, 0]]], dtype=np.float32)
+
+        oks = _keypoint_oks_batch(
+            keypoints_true,
+            keypoints_detection,
+            area_true=np.array([50.0]),
+            sigmas=[0.1, 0.1],
+            visible_true=np.ones((1, 2), dtype=bool),
+        )
+
+        assert oks == pytest.approx(np.array([[0.5]]))
+
     def test_target_without_visible_keypoints_has_zero_oks(self) -> None:
         """A target with every keypoint unlabelled matches nothing."""
         keypoints = np.array([[[0, 0], [10, 0], [5, 10]]], dtype=np.float32)

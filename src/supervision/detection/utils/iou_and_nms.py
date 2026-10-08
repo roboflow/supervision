@@ -843,7 +843,10 @@ def _keypoint_oks_batch(
     # threshold round the same way there and here.
     error = (dx**2 + dy**2) / variances / (area[:, None, None] + np.spacing(1)) / 2
     counted = visible | use_box[:, None]
-    similarity = np.where(counted[:, None, :], np.exp(-error), 0.0).sum(axis=2)
+    finite_coordinates = np.isfinite(dx) & np.isfinite(dy)
+    similarity = np.where(
+        counted[:, None, :] & finite_coordinates, np.exp(-error), 0.0
+    ).sum(axis=2)
     num_counted = counted.sum(axis=1)[:, None]
     oks = np.zeros((count_true, count_det), dtype=np.float64)
     np.divide(similarity, num_counted, out=oks, where=num_counted > 0)
