@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, TypeVar, cast
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from scipy.spatial import cKDTree
 from tqdm.auto import tqdm
 
 from supervision import _cv2 as cv2
@@ -49,16 +50,100 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def _is_hole_contour(polygon: npt.NDArray[np.number]) -> bool:
+    """Return whether a traced contour borders a hole rather than an outer boundary.
+
+    Contour tracing walks hole borders in the opposite direction to outer borders, so
+    the shoelace sum has a positive sign only for holes.
+    """
+    x, y = polygon[:, 0].astype(np.int64), polygon[:, 1].astype(np.int64)
+    return bool(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y) > 0)
+
+
+def _group_holes_by_outer(
+    mask: npt.NDArray[np.bool_], polygons: list[npt.NDArray[np.number]]
+) -> list[tuple[npt.NDArray[np.number], list[npt.NDArray[np.number]]]]:
+    """Pair every outer contour with the hole contours of its connected component.
+
+    A contour lies on foreground pixels, so its first point carries the label of the
+    component it belongs to. Holes whose outer contour is absent from `polygons`
+    (for example, filtered out by area) are dropped with it.
+    """
+    _, labels = cv2.connectedComponents(mask.astype(np.uint8), connectivity=8)
+    outers: dict[int, npt.NDArray[np.number]] = {}
+    holes: dict[int, list[npt.NDArray[np.number]]] = {}
+    for polygon in polygons:
+        x, y = polygon[0]
+        label = int(labels[y, x])
+        if _is_hole_contour(polygon):
+            holes.setdefault(label, []).append(polygon)
+        else:
+            outers[label] = polygon
+    return [(outer, holes.get(label, [])) for label, outer in outers.items()]
+
+
+def _bridge_hole(
+    outer: npt.NDArray[np.number], hole: npt.NDArray[np.number]
+) -> npt.NDArray[np.number]:
+    """Splice a hole contour into an outer contour along their shortest seam.
+
+    The seam is walked out and back, so the result is one closed polygon whose filled
+    area excludes the hole under both even-odd and non-zero fill rules.
+    """
+    distances, outer_indices = cKDTree(outer).query(hole)
+    hole_start = int(np.argmin(distances))
+    outer_index = int(outer_indices[hole_start])
+    return np.concatenate(
+        [
+            outer[: outer_index + 1],
+            np.roll(hole, -hole_start, axis=0),
+            hole[hole_start : hole_start + 1],
+            outer[outer_index:],
+        ]
+    )
+
+
 def approximate_mask_with_polygons(
     mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.0,
+    bridge_holes: bool = False,
 ) -> list[npt.NDArray[np.number]]:
     """Filter mask polygons by area and optionally simplify them.
 
     The default `approximation_percentage=0.0` preserves the original contour unless
-    callers explicitly ask for simplification.
+    callers explicitly ask for simplification. Hole contours are filtered and
+    simplified like any other polygon, then either returned as extra polygons or,
+    with `bridge_holes=True`, spliced into their outer contour.
+
+    Args:
+        mask: Boolean mask of shape `(H, W)`.
+        min_image_area_percentage: Minimum polygon area as a fraction of the image
+            area. Ignored when the mask yields a single polygon.
+        max_image_area_percentage: Maximum polygon area as a fraction of the image
+            area.
+        approximation_percentage: Fraction of polygon points to remove.
+        bridge_holes: If `True`, each hole is joined to its outer contour by a
+            zero-width seam, so a mask with holes yields one polygon per connected
+            component instead of one extra polygon per hole.
+
+    Returns:
+        A list of polygons, each of shape `(N, 2)`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.dataset.utils import approximate_mask_with_polygons
+        >>> mask = np.zeros((9, 9), dtype=bool)
+        >>> mask[1:8, 1:8] = True
+        >>> mask[3:6, 3:6] = False
+        >>> len(approximate_mask_with_polygons(mask))
+        2
+        >>> len(approximate_mask_with_polygons(mask, bridge_holes=True))
+        1
+
+        ```
     """
     height, width = mask.shape
     image_area = height * width
@@ -76,6 +161,19 @@ def approximate_mask_with_polygons(
             min_area=minimum_detection_area,
             max_area=maximum_detection_area,
         )
+    if bridge_holes and any(_is_hole_contour(polygon) for polygon in polygons):
+        bridged_polygons = []
+        for outer, holes in _group_holes_by_outer(mask=mask, polygons=polygons):
+            bridged = approximate_polygon(
+                polygon=outer, percentage=approximation_percentage
+            )
+            for hole in holes:
+                simplified_hole = approximate_polygon(
+                    polygon=hole, percentage=approximation_percentage
+                )
+                bridged = _bridge_hole(outer=bridged, hole=simplified_hole)
+            bridged_polygons.append(bridged)
+        return bridged_polygons
     return [
         approximate_polygon(polygon=polygon, percentage=approximation_percentage)
         for polygon in polygons

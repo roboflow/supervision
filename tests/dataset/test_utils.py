@@ -16,6 +16,7 @@ from supervision.dataset.utils import (
     merge_class_lists,
     train_test_split,
 )
+from supervision.detection.utils.converters import mask_to_polygons, polygon_to_mask
 from tests.helpers import _create_detections
 
 T = TypeVar("T")
@@ -109,6 +110,136 @@ def test_approximate_mask_with_polygons_default_preserves_polygon(
     approximate_mask_with_polygons(np.ones((3, 3), dtype=bool))
 
     assert percentages == [0.0]
+
+
+def _ring_mask(resolution_wh: tuple[int, int] = (150, 100)) -> np.ndarray:
+    """Build a 50x50 square at (10, 10) with a 20x20 hole; its area is 2100 pixels."""
+    width, height = resolution_wh
+    mask = np.zeros((height, width), dtype=bool)
+    mask[10:60, 10:60] = True
+    mask[25:45, 25:45] = False
+    return mask
+
+
+def _fill_polygons(
+    polygons: list[np.ndarray], resolution_wh: tuple[int, int]
+) -> np.ndarray:
+    """Rasterize each polygon on its own and return the union of the filled masks."""
+    width, height = resolution_wh
+    filled = np.zeros((height, width), dtype=bool)
+    for polygon in polygons:
+        filled |= polygon_to_mask(polygon, resolution_wh=resolution_wh).astype(bool)
+    return filled
+
+
+class TestApproximateMaskWithPolygons:
+    """Tests for `approximate_mask_with_polygons`, with and without hole bridging."""
+
+    def test_returns_hole_as_extra_polygon_by_default(self) -> None:
+        """Without `bridge_holes`, a hole is still returned as its own polygon."""
+        mask = _ring_mask()
+
+        polygons = approximate_mask_with_polygons(mask)
+
+        assert len(polygons) == 2
+
+    def test_bridges_hole_into_single_polygon(self) -> None:
+        """With `bridge_holes`, a ring becomes one polygon that fills to the ring."""
+        mask = _ring_mask()
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
+
+    def test_bridges_every_hole_of_one_region(self) -> None:
+        """Several holes in one region are all spliced into a single polygon."""
+        mask = _ring_mask()
+        mask[25:45, 40:55] = False
+        mask[47:57, 20:30] = False
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
+
+    def test_keeps_island_inside_hole_as_separate_polygon(self) -> None:
+        """A filled island inside a hole stays its own polygon beside the ring."""
+        mask = _ring_mask()
+        mask[30:40, 30:40] = True
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 2
+        np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
+
+    def test_keeps_separate_polygon_per_component(self) -> None:
+        """A ring and a disjoint square stay two polygons, each with its own outline."""
+        mask = _ring_mask()
+        mask[70:90, 70:90] = True
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 2
+        np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
+
+    @pytest.mark.parametrize("bridge_holes", [False, True])
+    def test_matches_mask_to_polygons_when_mask_has_no_hole(
+        self, bridge_holes: bool
+    ) -> None:
+        """Masks without holes produce exactly the polygons `mask_to_polygons` finds."""
+        mask = np.zeros((100, 150), dtype=bool)
+        mask[10:60, 10:60] = True
+        mask[70:90, 70:130] = True
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=bridge_holes)
+
+        expected = mask_to_polygons(mask)
+        assert len(polygons) == len(expected)
+        for polygon, expected_polygon in zip(polygons, expected):
+            assert polygon.dtype == expected_polygon.dtype
+            np.testing.assert_array_equal(polygon, expected_polygon)
+
+    def test_drops_hole_with_its_outer_contour_when_below_min_area(self) -> None:
+        """A small ring removed by the minimum area leaves no stray hole polygon."""
+        mask = np.zeros((100, 150), dtype=bool)
+        mask[10:20, 10:20] = True
+        mask[13:17, 13:17] = False
+        mask[40:90, 40:90] = True
+
+        polygons = approximate_mask_with_polygons(
+            mask, min_image_area_percentage=0.01, bridge_holes=True
+        )
+
+        assert len(polygons) == 1
+        assert polygons[0].min() >= 40
+
+    def test_drops_hole_with_its_outer_contour_when_above_max_area(self) -> None:
+        """A large ring removed by the maximum area leaves no stray hole polygon."""
+        mask = _ring_mask()
+        mask[70:80, 70:80] = True
+
+        polygons = approximate_mask_with_polygons(
+            mask, max_image_area_percentage=0.05, bridge_holes=True
+        )
+
+        assert len(polygons) == 1
+        assert polygons[0].min() >= 70
+
+    def test_approximation_reduces_points_of_bridged_polygon(self) -> None:
+        """Simplification still applies, and the ring stays one polygon."""
+        mask = np.zeros((100, 150), dtype=bool)
+        yy, xx = np.ogrid[:100, :150]
+        mask[(yy - 50) ** 2 + (xx - 60) ** 2 <= 40**2] = True
+        mask[(yy - 50) ** 2 + (xx - 60) ** 2 <= 15**2] = False
+        exact = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        simplified = approximate_mask_with_polygons(
+            mask, approximation_percentage=0.5, bridge_holes=True
+        )
+
+        assert len(simplified) == len(exact) == 1
+        assert len(simplified[0]) < len(exact[0])
 
 
 @pytest.mark.parametrize(
