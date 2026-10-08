@@ -58,6 +58,7 @@ nav:
       - Benchmark a Model: how_to/benchmark_a_model.md
       - Count in Zone: how_to/count_in_zone.md
       - Use Compact Masks: how_to/use_compact_masks.md
+      - Visualize Depth Maps: how_to/visualize_depth.md
       - OpenCV Migration: how_to/opencv_migration.md
   - Reference:
       - Detection and Segmentation:
@@ -73,6 +74,9 @@ nav:
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
+      - Depth Estimation:
+          - Core: depth/core.md
+          - Annotators: depth/annotators.md
       - Classification:
           - Core: classification/core.md
       - Tools:
