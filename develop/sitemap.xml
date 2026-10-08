@@ -53,6 +53,14 @@
          <lastmod>2026-10-08</lastmod>
     </url>
     <url>
+         <loc>https://supervision.roboflow.com/latest/depth/annotators/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/depth/core/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
          <loc>https://supervision.roboflow.com/latest/detection/annotators/</loc>
          <lastmod>2026-10-08</lastmod>
     </url>
@@ -150,6 +158,10 @@
     </url>
     <url>
          <loc>https://supervision.roboflow.com/latest/how_to/use_compact_masks/</loc>
+         <lastmod>2026-10-08</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/latest/how_to/visualize_depth/</loc>
          <lastmod>2026-10-08</lastmod>
     </url>
     <url>
