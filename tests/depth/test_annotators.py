@@ -40,6 +40,19 @@ class TestDepthAnnotatorColors:
             [TURBO[255].tolist(), TURBO[85].tolist(), TURBO[0].tolist()]
         ]
 
+    def test_metric_range_is_read_in_metres(self) -> None:
+        """A metric range in metres spreads 1 to 10 m over the table, near end warm."""
+        depth_map = sv.DepthMap(
+            np.array([[1.0, 2.0, 5.0, 10.0]], np.float32), kind="depth_m"
+        )
+        scene = np.zeros((1, 4, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=(1.0, 10.0)).annotate(scene, depth_map)
+
+        assert _rgb(scene)[0][0] == TURBO[255].tolist()
+        assert _rgb(scene)[0][3] == TURBO[0].tolist()
+        assert len(np.unique(scene.reshape(-1, 3), axis=0)) == 4
+
     def test_values_outside_range_clamp(self) -> None:
         """Values beyond the range take the end colours."""
         depth_map = sv.DepthMap(
@@ -117,17 +130,70 @@ class TestDepthAnnotatorRange:
 
         assert len(np.unique(scene[1::2, 1::2].reshape(-1, 3), axis=0)) > 1
 
+    @pytest.mark.parametrize("kind", ["disparity_px", "depth_m", "relative_inverse"])
+    @pytest.mark.parametrize(
+        ("values", "painted"),
+        [
+            pytest.param(
+                [[2.0, 2.0], [2.0, 2.0]], [[True, True], [True, True]], id="flat-map"
+            ),
+            pytest.param(
+                [[2.0, np.nan], [np.nan, np.nan]],
+                [[True, False], [False, False]],
+                id="single-valid-pixel",
+            ),
+        ],
+    )
+    def test_flat_range_paints_the_far_end_for_every_kind(
+        self, kind: str, values: list[list[float]], painted: list[list[bool]]
+    ) -> None:
+        """A map with one distinct valid value takes the far-end colour, any kind."""
+        depth_map = sv.DepthMap(np.array(values, np.float32), kind=kind)
+        scene = np.full((2, 2, 3), 7, dtype=np.uint8)
+        expected = np.where(np.array(painted)[..., np.newaxis], TURBO[0], 7)
+
+        sv.DepthAnnotator(display_range="auto").annotate(scene, depth_map)
+
+        assert _rgb(scene) == expected.tolist()
+
     @pytest.mark.parametrize(
         "display_range",
         [
             pytest.param("percentile", id="unknown-mode"),
             pytest.param((5.0, 5.0), id="empty-range"),
+            pytest.param((1.0, 2.0, 3.0), id="wrong-length"),
+            pytest.param((0.0, np.inf), id="inf-bound"),
+            pytest.param((5.0, 1.0), id="low-above-high"),
+            pytest.param((-3e38, 3e38), id="span-overflow"),
         ],
     )
     def test_rejects_invalid_display_range(self, display_range: Any) -> None:
-        """Unknown modes and empty ranges are refused at construction."""
+        """Unknown modes, wrong lengths and unusable spans fail at construction."""
         with pytest.raises(ValueError, match="display_range"):
             sv.DepthAnnotator(display_range=display_range)
+
+    def test_accepts_auto_in_any_case(self) -> None:
+        """'AUTO' reads as 'auto', as colormap and kind names ignore case."""
+        annotator = sv.DepthAnnotator(display_range="AUTO")
+
+        assert annotator.display_range == "auto"
+
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 5.0), id="zero-metres"),
+            pytest.param((-1.0, 5.0), id="negative-metres"),
+        ],
+    )
+    def test_rejects_non_positive_metric_range_at_annotate(
+        self, display_range: tuple[float, float]
+    ) -> None:
+        """A metric range must start above 0 m, checked once the map's kind is known."""
+        depth_map = sv.DepthMap(np.ones((1, 1), np.float32), kind="depth_m")
+        annotator = sv.DepthAnnotator(display_range=display_range)
+
+        with pytest.raises(ValueError, match="display_range"):
+            annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
 
 
 class TestDepthAnnotatorScene:

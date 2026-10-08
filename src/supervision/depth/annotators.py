@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import math
-
 import numpy as np
 import numpy.typing as npt
 
 from supervision.depth.colormaps import DepthColormap, _colorize
 from supervision.depth.core import (
+    DepthKind,
     DepthMap,
     _Conversion,
     _index_map,
@@ -54,10 +53,16 @@ class DepthAnnotator:
                 warm or bright end.
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
-                `"auto"` (default) uses this map's 2nd to 98th percentile.
-                A `(low, high)` tuple fixes the range in the coloured unit (pixels
-                for disparity, 1 / metres for a metric map).
-            opacity: Opacity of the colours over the scene, from 0 to 1.
+                `"auto"` (default) uses this map's 2nd to 98th percentile. When
+                they coincide, as on a flat map, every pixel takes the far-end
+                colour.
+                A `(low, high)` tuple fixes the range in the map's own unit: metres
+                for `depth_m`, pixels for `disparity_px` and the raw values for
+                `relative_inverse`. Whatever the unit, the near end of the range
+                takes the warm colour.
+            opacity: Opacity of the colours over the scene, from 0 to 1. Values
+                outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
+                the pixels that have depth.
 
         Raises:
             ValueError: If `colormap` or `display_range` is invalid.
@@ -85,6 +90,9 @@ class DepthAnnotator:
 
         Raises:
             TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+            ValueError: If `scene` is not a 3-channel image, or if `display_range`
+                gives no usable colour range for this map's kind, such as a
+                `depth_m` range with `low <= 0`.
 
         Examples:
             ```pycon
@@ -125,11 +133,12 @@ class DepthAnnotator:
     def _resolve_range(self, depth_map: DepthMap) -> tuple[float, float]:
         """Return the colour range in the quantity's unit for this map.
 
-        A map without any depth falls back to `(0, 1)`.
+        An explicit range is converted from the map's unit. A map without any depth
+        falls back to `(0, 1)`.
         """
         option = self.display_range
         if isinstance(option, tuple):
-            return option
+            return _convert_display_range(option, depth_map.kind)
         percentile = depth_map._percentile_range()
         return percentile if percentile is not None else _FALLBACK_RANGE
 
@@ -137,21 +146,51 @@ class DepthAnnotator:
 def _check_display_range_option(
     display_range: str | tuple[float, float],
 ) -> str | tuple[float, float]:
-    """Validate the annotator's `display_range` option and normalise tuples."""
-    if isinstance(display_range, str):
-        if display_range != "auto":
-            raise ValueError(
-                "display_range must be 'auto' or a (low, high) tuple, got "
-                f"{display_range!r}."
-            )
-        return display_range
-    low, high = (float(bound) for bound in display_range)
-    if not (math.isfinite(low) and math.isfinite(high) and low < high):
+    """Validate the annotator's `display_range` option and normalise it."""
+    if isinstance(display_range, str) and display_range.lower() == "auto":
+        return "auto"
+    if isinstance(display_range, str) or len(display_range) != 2:
         raise ValueError(
-            "display_range must have finite bounds with low < high, got "
-            f"{display_range}."
+            "display_range must be 'auto' or a (low, high) tuple, got "
+            f"{display_range!r}."
+        )
+    low, high = (float(bound) for bound in display_range)
+    if not _has_usable_span(low, high):
+        raise ValueError(
+            "display_range must have finite bounds with low < high and a span that "
+            f"fits in float32, got {display_range}."
         )
     return low, high
+
+
+def _convert_display_range(
+    display_range: tuple[float, float], kind: DepthKind
+) -> tuple[float, float]:
+    """Convert an explicit display range from the map's unit to the coloured unit.
+
+    Raises:
+        ValueError: If the converted range is not finite, has no float32 span, or the
+            kind is coloured as a reciprocal and `low <= 0`.
+    """
+    conversion = _resolve_conversion(kind)
+    converted = conversion.apply_range(display_range)
+    # A reciprocal sends low <= 0 to infinity or flips its sign, so it bounds nothing.
+    if conversion.reciprocal and display_range[0] <= 0:
+        converted = None
+    if converted is None or not _has_usable_span(*converted):
+        raise ValueError(
+            f"display_range {display_range} gives no usable colour range for a "
+            f"{kind.value!r} map. The range is in the map's own unit; a 'depth_m' "
+            "range is in metres and needs 0 < low < high."
+        )
+    return converted
+
+
+def _has_usable_span(low: float, high: float) -> bool:
+    """Tell whether `high - low` is finite and positive in float32, as maps colour."""
+    with np.errstate(over="ignore"):
+        span = np.float32(high) - np.float32(low)
+    return bool(np.isfinite(span) and span > 0)
 
 
 def _color_coordinates(
@@ -159,9 +198,12 @@ def _color_coordinates(
 ) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
-    `t = clamp((v - low) / (high - low))`. Pixels without depth get 0; they are not
-    painted.
+    `t = clamp((v - low) / (high - low))`. A flat range, `low == high`, maps every
+    pixel to 0, as matplotlib's `Normalize` does. Pixels without depth get 0; they
+    are not painted.
     """
+    if low == high:
+        return np.zeros(depth_map.values.shape, dtype=np.float32)
     converted = conversion.apply(depth_map.to_float())
     span = np.float32(high - low)
     with np.errstate(divide="ignore", invalid="ignore"):

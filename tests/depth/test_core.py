@@ -69,14 +69,6 @@ class TestDepthMapToFloat:
 
 
 class TestDepthMapPercentileRange:
-    def test_widens_a_flat_map_by_one_float32_step(self) -> None:
-        """Coinciding ends are widened by one float32 step so the range stays usable."""
-        values = np.full((4, 4), 2.0, dtype=np.float32)
-
-        value_range = sv.DepthMap(values, kind="disparity_px")._percentile_range()
-
-        assert value_range == (2.0, float(np.nextafter(np.float32(2.0), np.inf)))
-
     def test_returns_none_without_depth(self) -> None:
         """A map that is all holes has no percentile range."""
         values = np.zeros((40, 40), dtype=np.float32)

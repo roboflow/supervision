@@ -39,7 +39,7 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 ```
 
 - `colormap="turbo"` separates the most depth steps; `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers.
-- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range.
+- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the map's own unit, such as `(1.0, 10.0)` metres for a metric map.
 - A metric map is coloured as inverse depth, which gives near detail most of the colours.
 
 To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour, for a map the size of the image:

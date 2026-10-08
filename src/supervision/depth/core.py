@@ -85,10 +85,13 @@ class _Conversion:
     def apply_range(
         self, value_range: tuple[float, float]
     ) -> tuple[float, float] | None:
-        """Convert a range, swapping its ends under a reciprocal; None if degenerate."""
+        """Convert a range, swapping its ends under a reciprocal; None if not finite.
+
+        Equal ends stay equal; colouring handles a flat range.
+        """
         converted = self.apply(np.array(value_range, dtype=np.float64))
         low, high = float(converted.min()), float(converted.max())
-        if math.isfinite(low) and math.isfinite(high) and low < high:
+        if math.isfinite(low) and math.isfinite(high):
             return low, high
         return None
 
@@ -118,18 +121,11 @@ def _check_percentiles(low: float, high: float) -> None:
 def _values_at_ranks(
     values: npt.NDArray[Any], low: float, high: float
 ) -> tuple[float, float]:
-    """Return the values at the low and high nearest ranks of an unsorted array.
-
-    Ends that coincide are widened by one float32 step, so the range stays usable as an
-    explicit range.
-    """
+    """Return the values at the low and high nearest ranks of an unsorted array."""
     low_rank = _nearest_rank(values.size, low / 100)
     high_rank = _nearest_rank(values.size, high / 100)
     ordered = np.partition(values, [low_rank, high_rank])
-    low_value, high_value = float(ordered[low_rank]), float(ordered[high_rank])
-    if low_value == high_value:
-        high_value = float(np.nextafter(np.float32(high_value), np.float32(np.inf)))
-    return low_value, high_value
+    return float(ordered[low_rank]), float(ordered[high_rank])
 
 
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
@@ -263,8 +259,8 @@ class DepthMap:
             high: Upper percentile, from 0 to 100.
 
         Returns:
-            `(low, high)` in the coloured quantity's unit, or `None` when no pixel
-            holds depth.
+            `(low, high)` in the coloured quantity's unit, equal ends for a flat
+            map, or `None` when no pixel holds depth.
 
         Raises:
             ValueError: If the percentiles are out of order.
