@@ -391,6 +391,22 @@ class TestDepthMapValueAt:
 
         assert value == expected
 
+    @pytest.mark.parametrize(
+        "resolution_wh",
+        [
+            pytest.param((0, 1), id="zero-width"),
+            pytest.param((-3, 1), id="negative-width"),
+        ],
+    )
+    def test_rejects_non_positive_resolution(
+        self, resolution_wh: tuple[int, int]
+    ) -> None:
+        """A zero or negative size has no pixels to map the point from."""
+        depth_map = sv.DepthMap(np.ones((1, 3), np.float32), kind="disparity_px")
+
+        with pytest.raises(ValueError, match="positive integers"):
+            depth_map.value_at(0, 0, resolution_wh=resolution_wh)
+
 
 class TestDepthMapMeasureDetections:
     @staticmethod

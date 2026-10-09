@@ -144,7 +144,12 @@ class DepthAnnotator:
         conversion = _resolve_conversion(
             depth_map.kind, depth_map.camera, self.quantity
         )
-        valid = depth_map.valid_mask
+        # A disparity with `disparity + doffs_px <= 0` has no distance, so colouring
+        # metres keeps only the pixels `to_depth` keeps.
+        coloured = (
+            depth_map.to_depth() if self.quantity is DepthQuantity.DEPTH else depth_map
+        )
+        valid = coloured.valid_mask
         value_range = self._resolve_range(depth_map, valid, conversion)
         coordinates = _color_coordinates(depth_map, valid, conversion, value_range)
         colors = _colorize(coordinates, self.colormap)
