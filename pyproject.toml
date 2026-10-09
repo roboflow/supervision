@@ -72,7 +72,7 @@ urls.Repository = "https://github.com/roboflow/supervision"
 [dependency-groups]
 dev = [
   "docutils!=0.21",
-  "faster-coco-eval>=1.8.0",
+  "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
   "jupytext>=1.16.1",
   "nbconvert>=7.14.2",
