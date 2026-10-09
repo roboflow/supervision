@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
+from faster_coco_eval import COCO, COCOeval_faster
 import numpy as np
 import numpy.typing as npt
 import pytest
@@ -179,6 +181,61 @@ def _make_synthetic_pose_images(seed: int = 7) -> list[SyntheticPoseImage]:
         )
         images.append(SyntheticPoseImage(targets=targets, predictions=predictions))
     return images
+
+
+def _flat_keypoints(xy: np.ndarray, visibility: np.ndarray) -> list[float]:
+    """Flatten `(K, 2)` coordinates and `(K,)` flags into COCO keypoints."""
+    return [float(value) for (x, y), v in zip(xy, visibility) for value in (x, y, v)]
+
+
+def _keypoints_span(xy: np.ndarray) -> list[float]:
+    """Return the `[x, y, width, height]` box spanning `(K, 2)` keypoints."""
+    x_min, y_min = xy.min(axis=0)
+    x_max, y_max = xy.max(axis=0)
+    return [float(x_min), float(y_min), float(x_max - x_min), float(y_max - y_min)]
+
+
+def _to_coco(
+    images: list[SyntheticPoseImage],
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    """Convert synthetic pose data to COCO ground truth and result dictionaries."""
+    annotations: list[dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
+    for index, image in enumerate(images):
+        image_id = index + 1
+        targets, predictions = image.targets, image.predictions
+        for target_index in range(len(targets)):
+            xy = targets.xy[target_index].astype(np.float64)
+            visible = np.asarray(targets.visible)[target_index]
+            annotations.append(
+                {
+                    "id": len(annotations) + 1,
+                    "image_id": image_id,
+                    "category_id": int(targets.class_id[target_index]),
+                    "iscrowd": 0,
+                    "area": float(targets.data["area"][target_index]),
+                    "bbox": _keypoints_span(xy),
+                    "num_keypoints": int(visible.sum()),
+                    "keypoints": _flat_keypoints(xy, 2 * visible.astype(int)),
+                }
+            )
+        for pred_index in range(len(predictions)):
+            xy = predictions.xy[pred_index].astype(np.float64)
+            results.append(
+                {
+                    "image_id": image_id,
+                    "category_id": int(predictions.class_id[pred_index]),
+                    "score": float(predictions.detection_confidence[pred_index]),
+                    "keypoints": _flat_keypoints(xy, np.ones(len(xy), dtype=int)),
+                }
+            )
+    categories = [{"id": class_id, "name": str(class_id)} for class_id in (0, 1)]
+    dataset = {
+        "images": [{"id": index + 1} for index in range(len(images))],
+        "annotations": annotations,
+        "categories": categories,
+    }
+    return dataset, results
 
 
 class TestKeyPointOksBatch:
@@ -966,6 +1023,53 @@ class TestKeyPointMeanAveragePrecisionPycocotoolsParity:
         )
         assert result.ap_per_class == pytest.approx(
             EXPECTED_AP_PER_CLASS, abs=PARITY_TOLERANCE
+        )
+
+    @pytest.mark.parametrize("seed", [7, 17, 42])
+    def test_scores_match_faster_coco_eval(self, seed: int) -> None:
+        """Overall and per-class scores match Faster COCO Eval on synthetic batches."""
+        images = _make_synthetic_pose_images(seed)
+        dataset, predictions = _to_coco(images)
+        coco_targets = COCO()
+        coco_targets.dataset = dataset
+        coco_targets.createIndex()
+        coco_predictions = coco_targets.loadRes(predictions)
+        evaluator = COCOeval_faster(
+            coco_targets,
+            coco_predictions,
+            iouType="keypoints",
+            print_function=lambda *_: None,
+        )
+        evaluator.evaluate()
+        evaluator.accumulate()
+        evaluator.summarize()
+
+        result = KeyPointMeanAveragePrecision().update(
+            [image.predictions for image in images],
+            [image.targets for image in images],
+        ).compute()
+
+        expected_stats = evaluator.stats
+        actual_stats = np.array(
+            [
+                result.map50_95,
+                result.map50,
+                result.map75,
+                result.medium_objects.map50_95,
+                result.large_objects.map50_95,
+            ]
+        )
+        np.testing.assert_allclose(
+            actual_stats, expected_stats[:5], atol=PARITY_TOLERANCE, rtol=0
+        )
+        expected_ap_per_class = (
+            evaluator.eval["precision"][:, :, :, 0, -1].mean(axis=1).T
+        )
+        np.testing.assert_allclose(
+            result.ap_per_class,
+            expected_ap_per_class,
+            atol=PARITY_TOLERANCE,
+            rtol=0,
         )
 
     def test_evaluates_only_pycocotools_keypoint_area_ranges(self) -> None:
