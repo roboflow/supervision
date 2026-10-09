@@ -70,18 +70,19 @@ def estimate_depth(frame: np.ndarray) -> sv.DepthMap:
 
 
 source = "<SOURCE_VIDEO_PATH>"
-depth_maps = [estimate_depth(frame) for frame in sv.get_video_frames_generator(source)]
-clip_range = sv.DepthClipRange.from_depth_maps(depth_maps)
+clip_range = sv.DepthClipRange.from_depth_maps(
+    estimate_depth(frame) for frame in sv.get_video_frames_generator(source)
+)
 
 depth_annotator = sv.DepthAnnotator(display_range=clip_range, opacity=0.65)
-frames = sv.get_video_frames_generator(source)
 
 with sv.VideoSink("<TARGET_VIDEO_PATH>", sv.VideoInfo.from_video_path(source)) as sink:
-    for frame, depth_map in zip(frames, depth_maps):
+    for frame in sv.get_video_frames_generator(source):
+        depth_map = estimate_depth(frame)
         sink.write_frame(depth_annotator.annotate(frame, depth_map))
 ```
 
-`DepthClipRange.from_depth_maps` reads a generator too, so for long clips you can estimate depth twice instead of holding every map. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.
+The first pass reads one map at a time, so memory stays bounded however long the clip is, at the cost of estimating depth twice per frame. For a short clip, keep the maps in a list, pass it to `DepthClipRange.from_depth_maps` and colour the frames from it to avoid the second inference pass. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.
 
 ## Attribution
 

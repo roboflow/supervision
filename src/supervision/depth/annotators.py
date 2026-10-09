@@ -226,13 +226,16 @@ class DepthClipRange:
     ) -> DepthClipRange:
         """Compute a clip's percentile range in one pass.
 
-        Each map contributes its valid values, thinned at random to about 65,536
-        values when it has more, so a large frame weighs no more than a small one.
-        Whenever the clip's samples pass 4,194,304, each one is kept with probability
-        1/2 and later maps are kept at half the previous rate, so memory stays bounded
-        however long the clip is and early and late frames are sampled alike. The
-        random draws are seeded, so the result is reproducible. Pass a generator to
-        read the clip once without holding it.
+        Each map contributes up to about 65,536 valid values, thinned at random when
+        it has more. Frames with at least that many valid values weigh equally, and
+        sparser frames weigh by their count of valid values. Whenever the clip's
+        samples pass 4,194,304, each one is kept with probability 1/2 and later maps
+        are kept at half the previous rate, so memory stays bounded however long the
+        clip is and early and late frames are sampled alike. Once thinning starts, the
+        percentiles are estimates from the samples, so 0 and 100 only approximate the
+        clip's minimum and maximum. The random draws are seeded, so the result is
+        reproducible for a given NumPy version. Pass a generator to read the clip once
+        without holding it.
 
         Args:
             depth_maps: The clip's maps, all of one kind.
@@ -243,7 +246,8 @@ class DepthClipRange:
             The clip's `sv.DepthClipRange`, in the maps' own unit.
 
         Raises:
-            ValueError: If the maps mix kinds or hold no depth at all.
+            ValueError: If the percentiles are not `0 <= low < high <= 100`, or the
+                maps mix kinds or hold no depth at all.
         """
         _check_percentiles(low, high)
         kind: DepthKind | None = None
