@@ -212,10 +212,7 @@ class DepthClipRange:
 
     def __post_init__(self) -> None:
         """Store plain floats and reject a reversed or unusable range."""
-        low, high = (
-            _plain_float(bound, "DepthClipRange display_range")
-            for bound in self.display_range
-        )
+        low, high = _display_range_pair(self.display_range)
         object.__setattr__(self, "display_range", (low, high))
         finite = math.isfinite(low) and math.isfinite(high)
         if not (finite and (low == high or _has_usable_span(low, high))):
@@ -290,16 +287,6 @@ class DepthClipRange:
         return cls(display_range=display_range)
 
 
-def _plain_float(value: Any, field: str) -> float:
-    """Return a Python, NumPy or one-value tensor number as a plain float."""
-    if not isinstance(value, (str, bytes, bool, np.bool_)):
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            pass
-    raise TypeError(f"{field} must be a real number, got {value!r}.")
-
-
 def _check_display_range_option(
     display_range: str | tuple[float, float] | DepthClipRange,
 ) -> str | tuple[float, float] | DepthClipRange:
@@ -308,6 +295,17 @@ def _check_display_range_option(
         return display_range
     if isinstance(display_range, str) and display_range.lower() == "auto":
         return "auto"
+    low, high = _display_range_pair(display_range)
+    if not _has_usable_span(low, high):
+        raise ValueError(
+            "display_range must have finite bounds with low < high and a span that "
+            f"fits in float32, got {display_range}."
+        )
+    return low, high
+
+
+def _display_range_pair(display_range: Any) -> tuple[float, float]:
+    """Read a `(low, high)` pair of numbers as plain floats, or raise `ValueError`."""
     # A string would unpack into characters and `"12"` pass as (1.0, 2.0).
     try:
         if isinstance(display_range, str):
@@ -315,14 +313,9 @@ def _check_display_range_option(
         low, high = (float(bound) for bound in display_range)
     except (TypeError, ValueError) as error:
         raise ValueError(
-            "display_range must be 'auto', a (low, high) pair of numbers or a "
-            f"sv.DepthClipRange, got {display_range!r}."
+            "display_range must be a (low, high) pair of numbers, got "
+            f"{display_range!r}."
         ) from error
-    if not _has_usable_span(low, high):
-        raise ValueError(
-            "display_range must have finite bounds with low < high and a span that "
-            f"fits in float32, got {display_range}."
-        )
     return low, high
 
 

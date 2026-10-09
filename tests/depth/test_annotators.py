@@ -511,13 +511,12 @@ class TestDepthClipRange:
             pytest.param((2.0, 1.0), id="low-above-high"),
             pytest.param((0.0, np.inf), id="inf-bound"),
             pytest.param((-3e38, 3e38), id="span-overflow"),
+            pytest.param(("near", "far"), id="non-numeric-bounds"),
         ],
     )
-    def test_rejects_an_unusable_range(
-        self, display_range: tuple[float, float]
-    ) -> None:
-        """The range must be finite, ordered low to high and fit in float32."""
-        with pytest.raises(ValueError, match="DepthClipRange"):
+    def test_rejects_an_unusable_range(self, display_range: Any) -> None:
+        """The range must be two finite numbers, low to high, that fit in float32."""
+        with pytest.raises(ValueError, match="display_range"):
             sv.DepthClipRange(display_range=display_range)
 
 
