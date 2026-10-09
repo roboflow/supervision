@@ -44,11 +44,10 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.depth.annotators import DepthAnnotator
+from supervision.depth.annotators import DepthAnnotator, DepthClipRange
 from supervision.depth.colormaps import DepthColormap
 from supervision.depth.core import (
     DepthCamera,
-    DepthClipRange,
     DepthKind,
     DepthMap,
     DepthQuantity,

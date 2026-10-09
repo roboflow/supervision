@@ -758,9 +758,11 @@ class Detections:
                       (`xyxy`). For instance-segmentation models the detector
                       box may not tightly bound the mask, so pixels beyond the
                       box boundary are silently dropped.
-                    - Polygon-derived masks (`points`) and size-mismatched
-                      COCO-RLE masks (decoded, then resized to the image) are
-                      retained **full-frame** and lose no pixels.
+                    - Polygon-derived masks (`points`) are cropped to the
+                      axis-aligned bounds of their rounded vertices, clipped
+                      to the image. Every filled polygon pixel is retained.
+                    - Size-mismatched COCO-RLE masks are decoded, resized to
+                      the image, and retained full-frame.
 
                     Because only the box-cropped path is lossy,
                     `from_inference(r)` and

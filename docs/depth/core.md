@@ -22,9 +22,3 @@ description: Load depth, disparity and relative depth maps from Inference, Ultra
 </div>
 
 :::supervision.depth.core.DepthKind
-
-<div class="md-typeset">
-    <h2><a href="#supervision.depth.core.DepthClipRange">DepthClipRange</a></h2>
-</div>
-
-:::supervision.depth.core.DepthClipRange

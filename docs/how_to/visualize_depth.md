@@ -5,7 +5,7 @@ authors:
   - name: Caio Viotti
     role: Roboflow
     github: https://github.com/cfviotti
-date_modified: 2026-10-05
+date_modified: 2026-10-08
 ---
 
 # Visualize Depth Maps
@@ -86,6 +86,16 @@ image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
 
 `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels without depth; `depth_map.valid_mask` marks the rest.
 
+For `"relative_inverse"`, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to `NaN`. Invert a relative map that grows with distance, such as raw Depth Anything V3 output, before wrapping it (`from_inference` maps need no inverting); negating it instead would leave every pixel negative, and so without depth:
+
+```python
+import numpy as np
+
+relative_depth = np.load("<RELATIVE_DEPTH_NPY_PATH>")  # float32, grows with distance
+relative_depth[relative_depth <= 0] = np.nan  # pixels without depth
+depth_map = sv.DepthMap(1 / relative_depth, kind="relative_inverse")
+```
+
 ## Colour a Depth Map
 
 ```python
@@ -95,7 +105,7 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 
 - `colormap="turbo"` separates the most depth steps; `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers.
 - `quantity="disparity"` colours inverse depth, which gives near detail most of the colours; `quantity="depth"` colours metres and needs a metric map or a stereo camera.
-- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the coloured unit: pixels for disparity, metres for depth, and 1 / metres for a metric map without a camera coloured as disparity (the default). `sv.DepthClipRange` holds one range across a video.
+- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the map's own unit, whatever the quantity, such as `(1.0, 10.0)` metres for a metric map, and `sv.DepthClipRange` holds one range across a video.
 
 To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
@@ -106,7 +116,7 @@ annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.
 
 ## Label Objects with Their Distance
 
-[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator].
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map), and it must have the image's size; resize it first otherwise.
 
 ```python
 from inference import get_model
