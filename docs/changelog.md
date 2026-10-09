@@ -7,7 +7,7 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(quantity="depth")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
+- `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`, also from a map of another size than the image with `resolution_wh`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(scale="metric")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
 
 - Added `sv.DepthClipRange`, which keeps the colour scale of `sv.DepthAnnotator` fixed across a video. `DepthClipRange.from_depth_maps` computes one percentile range over a clip's maps, read once from a list or a generator, with bounded memory. ([#2692](https://github.com/roboflow/supervision/pull/2692))
 

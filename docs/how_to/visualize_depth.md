@@ -53,8 +53,8 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 ```
 
 - `colormap="turbo"` separates the most depth steps; `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers.
-- `quantity="disparity"` (default) colours a disparity or relative map as it is and a metric map as inverse depth, which gives near detail most of the colours; `quantity="depth"` colours metres and needs a metric map or a stereo camera.
-- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the map's own unit, whatever the quantity, such as `(1.0, 10.0)` metres for a metric map, and `sv.DepthClipRange` holds one range across a video.
+- `scale="inverse"` (default) colours a disparity or relative map as it is and a metric map as inverse depth, which gives near detail most of the colours; `scale="metric"` colours metres and needs a metric map or a stereo camera.
+- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the map's own unit, whatever the scale, such as `(1.0, 10.0)` metres for a metric map (a disparity range is in pixels of that map, so it changes meaning if you `resize` the map), and `sv.DepthClipRange` holds one range across a video.
 
 To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
@@ -94,23 +94,29 @@ The first pass reads one map at a time, so memory stays bounded however long the
 
 ## Label Objects with Their Distance
 
-[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map), and it must have the image's size; resize it first otherwise.
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map). When the map has another size than the image, such as a monocular model's output, pass the image's size as `resolution_wh`: the map is stretched over the image as `sv.DepthAnnotator` draws it, and its values keep their unit.
 
 ```python
+import numpy as np
 from inference import get_model
 
 model = get_model(model_id="rfdetr-small")
 detections = sv.Detections.from_inference(model.infer(image)[0])
-detections = depth_map.measure_detections(detections)
+height, width = image.shape[:2]
+detections = depth_map.measure_detections(detections, resolution_wh=(width, height))
 
 labels = [
-    f"{name} {depth:.1f} m"
+    f"{name} {depth:.1f} m" if np.isfinite(depth) else f"{name} no depth"
     for name, depth in zip(detections.data["class_name"], detections.data["depth_m"])
 ]
 annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
 ```
 
-A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. For one pixel, `depth_map.value_at(x, y)` returns the value or `None` where there is no depth.
+An object whose region holds no depth gets `NaN`, so the labels above check `np.isfinite` instead of printing `nan m`.
+
+`measure_detections` names its column after what the map can give: `"depth_m"` for a `depth_m` map or a disparity map with a camera, and the map's own kind otherwise, `"disparity_px"` for a disparity map without a camera. A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. A column of the same name already in `detections.data` is replaced.
+
+For one pixel, `depth_map.value_at(x, y)` returns the value in the map's own unit, not in metres unless the map is `depth_m`: pixels for a disparity map, so call `depth_map.to_depth().value_at(x, y)` for metres, and `None` where there is no depth.
 
 ## Attribution
 

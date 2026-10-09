@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -14,7 +14,10 @@ from supervision.config import (
     DISPARITY_PX_DATA_FIELD,
     RELATIVE_INVERSE_DATA_FIELD,
 )
-from supervision.detection.core import Detections
+from supervision.detection.utils.boxes import clip_boxes
+
+if TYPE_CHECKING:
+    from supervision.detection.core import Detections
 
 
 class DepthKind(Enum):
@@ -75,38 +78,45 @@ class DepthKind(Enum):
         raise ValueError(f"Invalid depth kind: {value!r}. Must be one of {cls.list()}.")
 
 
-class DepthQuantity(Enum):
-    """The quantity a depth map is coloured by.
+#: The `detections.data` key `DepthMap.measure_detections` writes for each kind.
+_DATA_FIELD_BY_KIND: dict[DepthKind, str] = {
+    DepthKind.DEPTH_M: DEPTH_M_DATA_FIELD,
+    DepthKind.DISPARITY_PX: DISPARITY_PX_DATA_FIELD,
+    DepthKind.RELATIVE_INVERSE: RELATIVE_INVERSE_DATA_FIELD,
+}
 
-    An explicit `display_range` stays in the map's own unit whatever the quantity.
+
+class DepthResizeMethod(Enum):
+    """How `sv.DepthMap.resize` picks the value of each target pixel.
+
+    Both methods only pick existing values and never blend them.
 
     Attributes:
-        DISPARITY: Disparity, or inverse depth for a metric map without a camera. It
-            spends colour on near detail, the way stereo measures it.
-        DEPTH: Metric depth in metres. Needs a `depth_m` map, or a `disparity_px`
-            map with a camera.
+        NEAREST: The pixel under each target pixel's centre.
+        FOREGROUND: In each group of source pixels a target pixel covers, the valid
+            value nearest the camera, so thin near objects survive shrinking.
     """
 
-    DISPARITY = "disparity"
-    DEPTH = "depth"
+    NEAREST = "nearest"
+    FOREGROUND = "foreground"
 
     @classmethod
     def list(cls) -> list[str]:
-        """Return the string value of every quantity."""
+        """Return the string value of every resize method."""
         return [member.value for member in cls]
 
     @classmethod
-    def from_value(cls, value: DepthQuantity | str) -> DepthQuantity:
-        """Resolve a quantity from an enum member or its case-insensitive value.
+    def from_value(cls, value: DepthResizeMethod | str) -> DepthResizeMethod:
+        """Resolve a resize method from an enum member or its case-insensitive value.
 
         Args:
-            value: A `DepthQuantity` member or one of its string values.
+            value: A `DepthResizeMethod` member or one of its string values.
 
         Returns:
-            The matching `DepthQuantity`.
+            The matching `DepthResizeMethod`.
 
         Raises:
-            ValueError: If `value` names no quantity.
+            ValueError: If `value` names no resize method.
         """
         if isinstance(value, cls):
             return value
@@ -116,7 +126,53 @@ class DepthQuantity(Enum):
             except ValueError:
                 pass
         raise ValueError(
-            f"Invalid depth quantity: {value!r}. Must be one of {cls.list()}."
+            f"Unknown resize method: {value!r}. Must be one of {cls.list()}."
+        )
+
+
+class DepthScale(Enum):
+    """The scale a depth map is coloured on: inverse depth or metric depth.
+
+    An explicit `display_range` stays in the map's own unit whatever the scale.
+
+    Attributes:
+        INVERSE: Inverse depth, where larger is nearer: a disparity or relative map
+            as it is, and a metric map as 1 / depth (disparity with a camera). It
+            spends colour on near detail, the way stereo measures it.
+        METRIC: Metric depth in metres, linear in distance. Needs a `depth_m` map,
+            or a `disparity_px` map with a camera.
+    """
+
+    INVERSE = "inverse"
+    METRIC = "metric"
+
+    @classmethod
+    def list(cls) -> list[str]:
+        """Return the string value of every scale."""
+        return [member.value for member in cls]
+
+    @classmethod
+    def from_value(cls, value: DepthScale | str) -> DepthScale:
+        """Resolve a scale from an enum member or its case-insensitive value.
+
+        Args:
+            value: A `DepthScale` member or one of its string values.
+
+        Returns:
+            The matching `DepthScale`.
+
+        Raises:
+            ValueError: If `value` names no scale.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value.lower())
+            except ValueError:
+                pass
+        raise ValueError(
+            f"Invalid depth scale: {value!r}. Must be one of {cls.list()}."
         )
 
 
@@ -162,16 +218,14 @@ class DepthCamera:
 
     def _scaled(self, scale_x: float) -> DepthCamera:
         """Return the camera for the map resized to `scale_x` times its width."""
-        return DepthCamera(
-            fx_px=self.fx_px * scale_x,
-            baseline_m=self.baseline_m,
-            doffs_px=self.doffs_px * scale_x,
+        return replace(
+            self, fx_px=self.fx_px * scale_x, doffs_px=self.doffs_px * scale_x
         )
 
 
 @dataclass(frozen=True)
 class _Conversion:
-    """How a value in the map kind's unit becomes the ranged or coloured quantity.
+    """How a value in the map kind's unit becomes the ranged or coloured scale.
 
     `reciprocal ? numerator / (x + inner_offset) + outer_offset : x`. Depth grows
     away from the camera, so for depth the low end of a range is the near, warm end
@@ -210,13 +264,12 @@ class _Conversion:
 
 
 def _resolve_conversion(
-    kind: DepthKind, camera: DepthCamera | None, quantity: DepthQuantity
+    kind: DepthKind, camera: DepthCamera | None, scale: DepthScale
 ) -> _Conversion:
-    """Return the conversion from `kind` values to `quantity`, or raise if
-    impossible."""
+    """Return the conversion from `kind` values to `scale`, or raise if impossible."""
     focal_baseline = 1.0 if camera is None else camera.fx_px * camera.baseline_m
     doffs = 0.0 if camera is None else camera.doffs_px
-    if quantity is DepthQuantity.DISPARITY:
+    if scale is DepthScale.INVERSE:
         if kind is DepthKind.DEPTH_M:
             # d = fx * B / Z - doffs, or plain inverse depth without a camera.
             return _Conversion(
@@ -238,7 +291,7 @@ def _resolve_conversion(
         if kind is DepthKind.DISPARITY_PX
         else "relative inverse depth has no metric scale"
     )
-    raise ValueError(f"Cannot use quantity 'depth' for a {kind.value} map: {reason}.")
+    raise ValueError(f"Cannot use scale 'metric' for a {kind.value} map: {reason}.")
 
 
 def _plain_float(value: Any, field: str) -> float:
@@ -249,6 +302,18 @@ def _plain_float(value: Any, field: str) -> float:
         except (TypeError, ValueError):
             pass
     raise ValueError(f"{field} must be a real number, got {value!r}.")
+
+
+def _holds_depth(
+    values: npt.NDArray[np.floating] | np.floating[Any], kind: DepthKind
+) -> npt.NDArray[np.bool_]:
+    """Return where values of `kind` are depth: finite and `> 0`, or `>= 0` if relative.
+
+    The one statement of the no-depth rule, shared by the full-frame mask, single
+    pixels and the regions `DepthMap.measure_detections` gathers.
+    """
+    lowest_ok = values >= 0 if kind is DepthKind.RELATIVE_INVERSE else values > 0
+    return np.asarray(np.isfinite(values) & lowest_ok)
 
 
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
@@ -278,14 +343,44 @@ def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[An
     return pooled
 
 
-def _values_in_box(
-    values: npt.NDArray[np.float32], xyxy: npt.NDArray[np.floating]
+def _stretch(
+    values: npt.NDArray[np.float32], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.float32]:
-    """Return the values inside a box, rounded and clipped as in `sv.crop_image`."""
-    x_min, y_min, x_max, y_max = xyxy.round().astype(np.int64)
-    region: npt.NDArray[np.float32] = values[
-        max(y_min, 0) : max(y_max, 0), max(x_min, 0) : max(x_max, 0)
-    ].ravel()
+    """Return the values stretched over an image of `resolution_wh`, unscaled.
+
+    Each image pixel takes the map pixel under its centre, as `sv.DepthAnnotator`
+    draws the map, so the values keep the map's unit, unlike `DepthMap.resize`,
+    which rescales disparity with the width.
+    """
+    width, height = _check_resolution(resolution_wh)
+    source_height, source_width = values.shape
+    if (width, height) == (source_width, source_height):
+        return values
+    stretched: npt.NDArray[np.float32] = values.take(
+        _index_map(source_height, height), axis=0
+    ).take(_index_map(source_width, width), axis=1)
+    return stretched
+
+
+def _pixel_boxes(
+    xyxy: npt.ArrayLike, resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.int64]:
+    """Return `(N, 4)` boxes as whole pixels inside the map, as `sv.crop_image` does.
+
+    Boxes are clipped in float before the cast, so a huge coordinate cannot overflow
+    int64. Coordinates must be finite, as `sv.Detections` already ensures.
+    """
+    clipped = np.round(clip_boxes(np.asarray(xyxy, dtype=np.float64), resolution_wh))
+    pixel_boxes: npt.NDArray[np.int64] = clipped.astype(np.int64)
+    return pixel_boxes
+
+
+def _values_in_box(
+    values: npt.NDArray[np.float32], box: npt.NDArray[np.int64]
+) -> npt.NDArray[np.float32]:
+    """Return the values inside a whole-pixel box already clipped to the map."""
+    x_min, y_min, x_max, y_max = box
+    region: npt.NDArray[np.float32] = values[y_min:y_max, x_min:x_max].ravel()
     return region
 
 
@@ -308,15 +403,19 @@ def _values_under_mask(
 
 def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
     """Return a `(width, height)` pair of positive integers, else raise."""
-    width, height = resolution_wh
+    message = f"resolution_wh must be two positive integers, got {resolution_wh!r}."
+    try:
+        width, height = resolution_wh
+    except (TypeError, ValueError):
+        # None, a scalar or a sequence of another length is not a pair, and would
+        # otherwise escape as a TypeError or a generic unpacking error.
+        raise ValueError(message) from None
     for side in (width, height):
         # The type is checked before any comparison, so None or infinity raise
         # ValueError here rather than TypeError or OverflowError.
         is_integer = isinstance(side, (int, np.integer)) and not isinstance(side, bool)
         if not (is_integer and side > 0):
-            raise ValueError(
-                f"resolution_wh must be two positive integers, got {resolution_wh}."
-            )
+            raise ValueError(message)
     return int(width), int(height)
 
 
@@ -331,7 +430,9 @@ class DepthMap:
     `values` are float32 in the kind's unit. For `disparity_px` and `depth_m`,
     non-finite values and values `<= 0` are no depth; for `relative_inverse`,
     non-finite and negative values are no depth, because a normalised map puts its
-    farthest real pixel at exactly 0.
+    farthest real pixel at exactly 0. A disparity of 0 or less stays no depth even
+    when `camera.doffs_px > 0` would make a value in `(-doffs_px, 0]` convert to a
+    finite distance, so such pixels become `NaN` in metres instead.
 
     Attributes:
         values: `(H, W)` float32 values in the kind's unit.
@@ -377,11 +478,12 @@ class DepthMap:
                 ignored: mark missing depth with `NaN`, an infinity or a value the
                 kind treats as no depth.
             kind: What the values measure, as a `sv.DepthKind` or its string value.
-            camera: Optional stereo camera parameters.
+            camera: Optional stereo camera parameters. A `relative_inverse` map has
+                no metric scale for a camera to give, so it takes none.
 
         Raises:
-            ValueError: If the values are not a 2D float array or the camera is
-                invalid.
+            ValueError: If the values are not a 2D float array, or the camera is
+                invalid or given for a `relative_inverse` map.
         """
         array = np.asarray(values)
         if array.ndim != 2 or array.size == 0:
@@ -395,8 +497,14 @@ class DepthMap:
             )
         if camera is not None and not isinstance(camera, DepthCamera):
             raise ValueError("DepthMap camera must be a sv.DepthCamera or None.")
+        depth_kind = DepthKind.from_value(kind)
+        if camera is not None and depth_kind is DepthKind.RELATIVE_INVERSE:
+            raise ValueError(
+                "A relative_inverse map has no metric scale, so no DepthCamera can "
+                "convert it; pass camera=None."
+            )
         self.values = array.astype(np.float32, copy=False)
-        self.kind = DepthKind.from_value(kind)
+        self.kind = depth_kind
         self.camera = camera
 
     def __repr__(self) -> str:
@@ -426,9 +534,7 @@ class DepthMap:
     @property
     def valid_mask(self) -> npt.NDArray[np.bool_]:
         """A boolean `(H, W)` array, `True` where the map holds depth."""
-        if self.kind is DepthKind.RELATIVE_INVERSE:
-            return np.asarray(np.isfinite(self.values) & (self.values >= 0))
-        return np.asarray(np.isfinite(self.values) & (self.values > 0))
+        return _holds_depth(self.values, self.kind)
 
     def to_float(self, no_depth_value: float = np.nan) -> npt.NDArray[np.float32]:
         """Return the values in the kind's unit as a new float32 array.
@@ -469,18 +575,35 @@ class DepthMap:
         """
         if self.kind is DepthKind.DEPTH_M:
             return self
-        conversion = _resolve_conversion(self.kind, self.camera, DepthQuantity.DEPTH)
+        conversion = _resolve_conversion(self.kind, self.camera, DepthScale.METRIC)
         return self._converted(DepthKind.DEPTH_M, conversion)
 
     def _converted(self, kind: DepthKind, conversion: _Conversion) -> DepthMap:
         """Apply a reciprocal conversion, keeping only positive finite results."""
         converted = conversion.apply(self.to_float())
         with np.errstate(invalid="ignore"):
-            converted[~(np.isfinite(converted) & (converted > 0))] = np.nan
+            converted[~_holds_depth(converted, kind)] = np.nan
         return DepthMap(converted, kind=kind, camera=self.camera)
 
+    def _region_depths(
+        self, region: npt.NDArray[np.float32], conversion: _Conversion | None
+    ) -> npt.NDArray[np.float32]:
+        """Return a region's depth values, converted to metres by `conversion` if any.
+
+        Keeps the pixels `to_depth().to_float()` would keep: valid in the map, then,
+        after the conversion, a positive finite distance.
+        """
+        depths = region[_holds_depth(region, self.kind)]
+        if conversion is not None:
+            depths = conversion.apply(depths)
+            with np.errstate(invalid="ignore"):
+                depths = depths[_holds_depth(depths, DepthKind.DEPTH_M)]
+        return depths
+
     def resize(
-        self, resolution_wh: tuple[int, int], method: str = "nearest"
+        self,
+        resolution_wh: tuple[int, int],
+        method: DepthResizeMethod | str = DepthResizeMethod.NEAREST,
     ) -> DepthMap:
         """Return the map resized to `resolution_wh` without blending any pixels.
 
@@ -499,7 +622,8 @@ class DepthMap:
 
         Args:
             resolution_wh: Target `(width, height)`.
-            method: `"nearest"` or `"foreground"`.
+            method: A `sv.DepthResizeMethod` or its case-insensitive string value,
+                `"nearest"` (default) or `"foreground"`.
 
         Returns:
             A new `sv.DepthMap`.
@@ -519,12 +643,9 @@ class DepthMap:
             ```
         """
         width, height = _check_resolution(resolution_wh)
-        if method not in ("nearest", "foreground"):
-            raise ValueError(
-                f"Unknown resize method {method!r}; use 'nearest' or 'foreground'."
-            )
+        resize_method = DepthResizeMethod.from_value(method)
         source_width, source_height = self.resolution_wh
-        if method == "nearest":
+        if resize_method is DepthResizeMethod.NEAREST:
             rows = _index_map(source_height, height)
             columns = _index_map(source_width, width)
             values = self.values.take(rows, axis=0).take(columns, axis=1)
@@ -538,13 +659,25 @@ class DepthMap:
 
     def _pool_foreground(self, width: int, height: int) -> npt.NDArray[np.float32]:
         """Pool each target pixel's source block to its nearest valid value."""
+        source_width, source_height = self.resolution_wh
+        if width >= source_width and height >= source_height:
+            # Neither axis shrinks, so there is nothing to pool: a nearest take on
+            # the values with holes as NaN gives the same map without the full-size
+            # key temporaries.
+            filled = self.to_float()
+            return filled.take(_index_map(source_height, height), axis=0).take(
+                _index_map(source_width, width), axis=1
+            )
         valid = self.valid_mask
         near_is_low = self.kind is DepthKind.DEPTH_M
         signed = -self.values if near_is_low else self.values
-        keys = np.where(valid, signed, -np.inf).astype(np.float32)
+        keys = np.where(valid, signed, -np.inf).astype(np.float32, copy=False)
         pooled = _pool_axis(_pool_axis(keys, height, axis=0), width, axis=1)
         restored = -pooled if near_is_low else pooled
-        return np.where(np.isfinite(pooled), restored, np.nan).astype(np.float32)
+        foreground: npt.NDArray[np.float32] = np.where(
+            np.isfinite(pooled), restored, np.nan
+        ).astype(np.float32, copy=False)
+        return foreground
 
     def crop(self, xyxy: npt.ArrayLike) -> DepthMap:
         """Return the part of the map inside a box.
@@ -559,7 +692,8 @@ class DepthMap:
             A new `sv.DepthMap`.
 
         Raises:
-            ValueError: If the box does not overlap the map.
+            ValueError: If the box is not four finite numbers or does not overlap
+                the map.
 
         Examples:
             ```pycon
@@ -572,11 +706,14 @@ class DepthMap:
             ```
         """
         width, height = self.resolution_wh
-        x_min, y_min, x_max, y_max = (
-            np.asarray(xyxy, dtype=np.float64).round().astype(np.int64).flatten()
-        )
-        x_min, x_max = int(np.clip(x_min, 0, width)), int(np.clip(x_max, 0, width))
-        y_min, y_max = int(np.clip(y_min, 0, height)), int(np.clip(y_max, 0, height))
+        box = np.asarray(xyxy, dtype=np.float64).flatten()
+        if box.shape != (4,) or not np.isfinite(box).all():
+            raise ValueError(
+                "Crop box must be four finite numbers (x_min, y_min, x_max, y_max), "
+                f"got {np.asarray(xyxy).tolist()}."
+            )
+        pixel_box = _pixel_boxes(box[np.newaxis], (width, height))[0]
+        x_min, y_min, x_max, y_max = pixel_box.tolist()
         if x_max <= x_min or y_max <= y_min:
             raise ValueError(
                 f"Crop box {np.asarray(xyxy).tolist()} does not overlap the "
@@ -596,12 +733,20 @@ class DepthMap:
     ) -> float | None:
         """Return the value in the kind's unit under a point, or `None`.
 
+        The unit is the map's own: metres for `depth_m`, pixels for `disparity_px`.
+        Call `to_depth` first for metres from a disparity map with a camera.
+        Missing values are `None` here, but `NaN` in `to_float` and in the columns
+        `measure_detections` writes.
+
         Args:
             x: Column of the point.
             y: Row of the point.
             resolution_wh: Size of the space the point is measured in, normally the
                 image's, when the map is stretched over an image of another size.
-                Without it the point is in map pixels.
+                Without it the point is in map pixels. The point is a continuous
+                coordinate, where pixel `i` spans `[i, i + 1)`: for a pixel index,
+                pass its centre, `x + 0.5` and `y + 0.5`, to read the value that
+                `resize` and `sv.DepthAnnotator` show at that pixel.
 
         Returns:
             The value, or `None` where the map has no depth or the point is outside
@@ -620,6 +765,12 @@ class DepthMap:
             (10.0, None)
             >>> depth_map.value_at(300, 100, resolution_wh=(400, 200))
             10.0
+            >>> metric = np.array([[1.0, 2.0, 3.0, 4.0]], dtype=np.float32)
+            >>> depth_map = sv.DepthMap(metric, kind="depth_m")
+            >>> depth_map.resize((3, 1)).value_at(1, 0)
+            3.0
+            >>> depth_map.value_at(1 + 0.5, 0 + 0.5, resolution_wh=(3, 1))
+            3.0
 
             ```
         """
@@ -634,11 +785,17 @@ class DepthMap:
         column_index, row_index = math.floor(column), math.floor(row)
         if not (0 <= column_index < width and 0 <= row_index < height):
             return None
-        if not self.valid_mask[row_index, column_index]:
+        # Only this pixel is checked; `valid_mask` would test the whole frame.
+        value = self.values[row_index, column_index]
+        if not _holds_depth(value, self.kind):
             return None
-        return float(self.values[row_index, column_index])
+        return float(value)
 
-    def measure_detections(self, detections: Detections) -> Detections:
+    def measure_detections(
+        self,
+        detections: Detections,
+        resolution_wh: tuple[int, int] | None = None,
+    ) -> Detections:
         """Return the detections with the median depth under each object in `data`.
 
         For each detection, the median of the valid depth pixels inside its mask
@@ -647,19 +804,33 @@ class DepthMap:
         in metres, under `"depth_m"`, when the map can give them (a `depth_m` map, or
         a disparity map with a camera), and in the map's own kind otherwise, under
         `"disparity_px"` or `"relative_inverse"`
-        (`supervision.config.DEPTH_M_DATA_FIELD` and its siblings). Objects whose
-        region holds no depth get `NaN`. The map must have the detections' image
-        size; resize it first otherwise.
+        (`supervision.config.DEPTH_M_DATA_FIELD` and its siblings), so a disparity
+        map without a camera never writes `"depth_m"`. A column of the same name
+        already in `data` is replaced. Objects whose
+        region holds no depth get `NaN`.
+
+        Pass `resolution_wh` when the detections come from an image of another size
+        than the map, such as a monocular model's output: the map is then stretched
+        over the image as `sv.DepthAnnotator` draws it, each image pixel taking the
+        map value under its centre, so even a small box gets depth. The values keep
+        the map's own unit; unlike `resize`, a disparity map's values are not
+        rescaled.
 
         Args:
-            detections: Detections in the map's pixel coordinates.
+            detections: Detections in the map's pixel coordinates, or in the
+                coordinates of an image of `resolution_wh`.
+            resolution_wh: Size of the image the detections and their masks belong
+                to, when it differs from the map's. Without it they are in map
+                pixels.
 
         Returns:
-            A copy of `detections` with the new `data` column, float32 of shape
-            `(N,)`.
+            A new `sv.Detections` with the added `data` column, float32 of shape
+            `(N,)`. It shares the input's arrays (`xyxy`, `mask` and the other `data`
+            columns) rather than copying them.
 
         Raises:
-            ValueError: If the masks do not match the map's size.
+            ValueError: If `resolution_wh` is not two positive integers, or the masks
+                do not match the map's size or `resolution_wh`.
 
         Examples:
             ```pycon
@@ -678,12 +849,16 @@ class DepthMap:
 
             ```
         """
-        measured = (
-            self.to_depth()
-            if self.kind is DepthKind.DISPARITY_PX and self.camera is not None
-            else self
-        )
-        values = measured.to_float()
+        # Only the gathered pixels are converted to metres, not the whole frame;
+        # the conversion is elementwise, so the medians match `to_depth()` exactly.
+        conversion = None
+        kind = self.kind
+        if kind is DepthKind.DISPARITY_PX and self.camera is not None:
+            conversion = _resolve_conversion(kind, self.camera, DepthScale.METRIC)
+            kind = DepthKind.DEPTH_M
+        values = self.values
+        if resolution_wh is not None:
+            values = _stretch(values, resolution_wh)
         height, width = values.shape
         medians = np.full(len(detections), np.nan, dtype=np.float32)
         mask = detections.mask
@@ -692,13 +867,17 @@ class DepthMap:
             if tuple(mask_shape) != (height, width):
                 raise ValueError(
                     f"Detection masks are {mask_shape[1]}x{mask_shape[0]} but the "
-                    f"depth map is {width}x{height}; resize the map with "
+                    f"depth map is measured at {width}x{height}; pass the masks' "
+                    "image size as resolution_wh, or resize the map with "
                     "depth_map.resize(...) first."
                 )
         # A CompactMask yields each crop with its origin, so no full-frame mask is
         # decoded per detection.
         regions = (
-            (_values_in_box(values, box) for box in detections.xyxy)
+            (
+                _values_in_box(values, box)
+                for box in _pixel_boxes(detections.xyxy, (width, height))
+            )
             if mask is None
             else (
                 _values_under_mask(values, crop, offset)
@@ -706,12 +885,8 @@ class DepthMap:
             )
         )
         for index, region in enumerate(regions):
-            region = region[np.isfinite(region)]
-            if region.size:
-                medians[index] = np.median(region)
-        field = {
-            DepthKind.DEPTH_M: DEPTH_M_DATA_FIELD,
-            DepthKind.DISPARITY_PX: DISPARITY_PX_DATA_FIELD,
-            DepthKind.RELATIVE_INVERSE: RELATIVE_INVERSE_DATA_FIELD,
-        }[measured.kind]
+            depths = self._region_depths(region, conversion)
+            if depths.size:
+                medians[index] = np.median(depths)
+        field = _DATA_FIELD_BY_KIND[kind]
         return replace(detections, data={**detections.data, field: medians})
