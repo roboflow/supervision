@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.10
+  python: python3
 
 ci:
   autofix_prs: true
