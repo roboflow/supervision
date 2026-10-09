@@ -11,6 +11,7 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
+from supervision.utils.internal import _to_numpy
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     bottom, right = int(inference_shape[0] - pad[1]), int(inference_shape[1] - pad[0])
 
     mask_maps = []
-    masks = yolov8_results.masks.data.cpu().numpy()
+    masks = _to_numpy(yolov8_results.masks.data)
     for i in range(masks.shape[0]):
         mask = masks[i]
         mask = mask[top:bottom, left:right]
