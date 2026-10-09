@@ -454,7 +454,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                             "Unsupported metric target for IoU calculation"
                         )
 
-                    sorted_indices = np.argsort(-prediction_confidence)
+                    # A stable sort keeps tied scores in input order, as COCO's
+                    # mergesort does, so equal-score boxes cross the K cutoff alike.
+                    sorted_indices = np.argsort(-prediction_confidence, kind="stable")
                     sorted_class_ids = prediction_class_ids[sorted_indices]
                     # COCO applies the detection limit to each (image, class) pair,
                     # so every prediction is ranked among its own class only.

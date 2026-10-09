@@ -644,6 +644,31 @@ def test_mar_at_k_limits_each_class_separately_in_one_image() -> None:
     np.testing.assert_allclose(result.recall_scores, [0.5, 1.0, 1.0])
 
 
+def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
+    """Equal-confidence predictions rank in input order, as COCO's stable sort does."""
+    # Two score levels in an irregular order; NumPy's default sort reorders these ties.
+    confidence = np.full(24, 0.5, dtype=np.float32)
+    confidence[[5, 6, 8, 9, 11, 12, 13, 15, 20]] = 0.9
+    boxes = np.tile(np.array([[500, 500, 510, 510]], dtype=np.float32), (24, 1))
+    first_top_scored = int(np.argmax(confidence))
+    boxes[first_top_scored] = [0, 0, 10, 10]
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=np.zeros(24, dtype=np.int32),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    # Only the first of the tied top-scored boxes hits the target. Among the equal
+    # scores it ranks first, so it is the top-1 detection; pycocotools agrees.
+    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+
+
 @pytest.mark.parametrize(
     ("sorted_class_ids", "expected_ranks"),
     [
