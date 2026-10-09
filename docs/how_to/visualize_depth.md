@@ -65,7 +65,7 @@ annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.
 
 ## Label Objects with Their Distance
 
-[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator].
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map), and it must have the image's size; resize it first otherwise.
 
 ```python
 from inference import get_model
