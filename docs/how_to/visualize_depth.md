@@ -80,7 +80,7 @@ image = sv.pillow_to_cv2(Image.open("<SOURCE_IMAGE_PATH>"))
 
 `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels without depth; `depth_map.valid_mask` marks the rest.
 
-For `"relative_inverse"`, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to `NaN`. Invert a relative map that grows with distance, such as Depth Anything V3's, before wrapping it; negating it instead would leave every pixel negative, and so without depth:
+For `"relative_inverse"`, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to `NaN`. Invert a relative map that grows with distance, such as raw Depth Anything V3 output, before wrapping it (`from_inference` maps need no inverting); negating it instead would leave every pixel negative, and so without depth:
 
 ```python
 import numpy as np
