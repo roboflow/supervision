@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from supervision.annotators.core import _iter_mask_crops
 from supervision.config import (
     DEPTH_M_DATA_FIELD,
     DISPARITY_PX_DATA_FIELD,
@@ -275,6 +276,34 @@ def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[An
     starts = np.searchsorted(groups, np.arange(target))
     pooled: npt.NDArray[Any] = np.maximum.reduceat(keys, starts, axis=axis)
     return pooled
+
+
+def _values_in_box(
+    values: npt.NDArray[np.float32], xyxy: npt.NDArray[np.floating]
+) -> npt.NDArray[np.float32]:
+    """Return the values inside a box, rounded and clipped as in `sv.crop_image`."""
+    x_min, y_min, x_max, y_max = xyxy.round().astype(np.int64)
+    region: npt.NDArray[np.float32] = values[
+        max(y_min, 0) : max(y_max, 0), max(x_min, 0) : max(x_max, 0)
+    ].ravel()
+    return region
+
+
+def _values_under_mask(
+    values: npt.NDArray[np.float32],
+    mask: npt.NDArray[Any],
+    offset: npt.NDArray[np.int32] | None,
+) -> npt.NDArray[np.float32]:
+    """Return the values under a full-frame mask, or under a crop placed at `offset`.
+
+    `offset` is the crop's `(x1, y1)` origin in the map, as `CompactMask` gives it.
+    """
+    if offset is not None:
+        x_min, y_min = int(offset[0]), int(offset[1])
+        crop_height, crop_width = mask.shape
+        values = values[y_min : y_min + crop_height, x_min : x_min + crop_width]
+    region: npt.NDArray[np.float32] = values[np.asarray(mask, dtype=bool)]
+    return region
 
 
 def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
@@ -666,16 +695,17 @@ class DepthMap:
                     f"depth map is {width}x{height}; resize the map with "
                     "depth_map.resize(...) first."
                 )
-        for index in range(len(detections)):
-            if mask is not None:
-                region = values[np.asarray(mask[index], dtype=bool)]
-            else:
-                x_min, y_min, x_max, y_max = (
-                    detections.xyxy[index].round().astype(np.int64)
-                )
-                region = values[
-                    max(y_min, 0) : max(y_max, 0), max(x_min, 0) : max(x_max, 0)
-                ].ravel()
+        # A CompactMask yields each crop with its origin, so no full-frame mask is
+        # decoded per detection.
+        regions = (
+            (_values_in_box(values, box) for box in detections.xyxy)
+            if mask is None
+            else (
+                _values_under_mask(values, crop, offset)
+                for _, crop, offset in _iter_mask_crops(detections)
+            )
+        )
+        for index, region in enumerate(regions):
             region = region[np.isfinite(region)]
             if region.size:
                 medians[index] = np.median(region)

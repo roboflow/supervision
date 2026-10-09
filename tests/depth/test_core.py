@@ -396,17 +396,28 @@ class TestDepthMapMeasureDetections:
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
 
     def test_measures_inside_compact_masks(self) -> None:
-        """A CompactMask gives the same result as dense masks."""
-        mask = np.zeros((2, 20, 20), dtype=bool)
+        """A CompactMask gives the same result as dense masks.
+
+        The third mask straddles the edge of the 2 m square, half on it, so reading its
+        crop at the wrong origin would change the median.
+        """
+        mask = np.zeros((3, 20, 20), dtype=bool)
         mask[0, 2:6, 2:4] = True
         mask[1, 8:10, 8:12] = True
-        xyxy = np.array([[2, 2, 3, 5], [8, 8, 11, 9]], dtype=float)
+        mask[2, 4:6, 5:7] = True
+        xyxy = np.array([[2, 2, 3, 5], [8, 8, 11, 9], [5, 4, 6, 5]], dtype=float)
         compact = CompactMask.from_dense(mask, xyxy, image_shape=(20, 20))
         detections = sv.Detections(xyxy=xyxy, mask=compact)
+        dense = self._depth_map().measure_detections(
+            sv.Detections(xyxy=xyxy, mask=mask)
+        )
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 10.0]
+        np.testing.assert_array_equal(
+            measured.data[DEPTH_M_DATA_FIELD], dense.data[DEPTH_M_DATA_FIELD]
+        )
+        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 10.0, 6.0]
 
     @pytest.mark.parametrize(
         ("camera", "field", "expected"),
