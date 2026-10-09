@@ -65,8 +65,9 @@ import numpy as np
 import supervision as sv
 
 
-def estimate_depth(frame: np.ndarray) -> sv.DepthMap:
-    ...  # return your depth model's map for this frame
+def estimate_depth(
+    frame: np.ndarray,
+) -> sv.DepthMap: ...  # return your depth model's map for this frame
 
 
 source = "<SOURCE_VIDEO_PATH>"
