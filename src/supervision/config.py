@@ -6,7 +6,7 @@ AREA_DATA_FIELD: str = "area"
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4)`` in
 #: ``(x_min, y_min, x_max, y_max)`` format, one box per skeleton. Read by
-#: ``KeypointMeanAveragePrecision``.
+#: ``KeyPointMeanAveragePrecision``.
 XYXY_DATA_FIELD: str = "xyxy"
 #: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
 #:

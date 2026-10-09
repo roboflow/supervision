@@ -12,9 +12,9 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.keypoint_mean_average_precision import (
-    KeypointMeanAveragePrecision,
-    KeypointMeanAveragePrecisionResult,
-    _KeypointCOCOEvaluator,
+    KeyPointMeanAveragePrecision,
+    KeyPointMeanAveragePrecisionResult,
+    _KeyPointCOCOEvaluator,
 )
 from supervision.metrics.mean_average_precision import EvaluationDataset
 
@@ -181,7 +181,7 @@ def _make_synthetic_pose_images(seed: int = 7) -> list[SyntheticPoseImage]:
     return images
 
 
-class TestKeypointOksBatch:
+class TestKeyPointOksBatch:
     """Pairwise OKS between target and detected keypoint sets, and its input checks."""
 
     def test_identical_keypoints_have_oks_one(self) -> None:
@@ -419,12 +419,12 @@ def _triangle_key_points(
 TRIANGLE_SIGMAS = [0.25, 0.25, 0.25]
 
 
-class TestKeypointMeanAveragePrecision:
+class TestKeyPointMeanAveragePrecision:
     """COCO keypoint mAP over `sv.KeyPoints` predictions and targets."""
 
     def test_exact_prediction_scores_one(self) -> None:
         """A prediction on top of its target scores 1 at every OKS threshold."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             _triangle_key_points(confidence=0.9), _triangle_key_points()
@@ -434,7 +434,7 @@ class TestKeypointMeanAveragePrecision:
 
     def test_empty_predictions_score_zero(self) -> None:
         """Targets without any prediction give AP 0."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(KeyPoints.empty(), _triangle_key_points()).compute()
 
@@ -442,7 +442,7 @@ class TestKeypointMeanAveragePrecision:
 
     def test_empty_targets_give_sentinel(self) -> None:
         """Without targets there is nothing to score, so mAP is -1."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(_triangle_key_points(confidence=0.9), KeyPoints.empty())
 
@@ -475,12 +475,12 @@ class TestKeypointMeanAveragePrecision:
         prediction = _triangle_key_points(offset=2.0, confidence=0.9)
 
         planar = (
-            KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+            KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
             .update(prediction, target)
             .compute()
         )
         spatial = (
-            KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+            KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
             .update(with_z(prediction), with_z(target))
             .compute()
         )
@@ -492,7 +492,7 @@ class TestKeypointMeanAveragePrecision:
         hidden_target = _triangle_key_points(
             offset=300.0, visible=np.zeros((1, 3), dtype=bool)
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), KeyPoints.empty()],
@@ -524,7 +524,7 @@ class TestKeypointMeanAveragePrecision:
         hidden_target.data["xyxy"] = np.array([[310.0, 310.0, 360.0, 380.0]])
         hidden_target.data.update(area_data)
         prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), prediction_on_hidden],
@@ -543,7 +543,7 @@ class TestKeypointMeanAveragePrecision:
             offset=300.0, visible=np.zeros((1, 3), dtype=bool)
         )
         prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), prediction_on_hidden],
@@ -559,7 +559,7 @@ class TestKeypointMeanAveragePrecision:
         target = _triangle_key_points()
         inputs = {"predictions": prediction, "targets": target}
         inputs[side].data["xyxy"] = np.zeros((1, 2))
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match=f"{side}.data"):
             metric.update(prediction, target)
@@ -592,7 +592,7 @@ class TestKeypointMeanAveragePrecision:
         target.data["area"] = np.array([5000.0])
         false_positive = _triangle_key_points(offset=500.0, confidence=0.95)
         false_positive.data.update(false_positive_data)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [false_positive, _triangle_key_points(confidence=0.9)],
@@ -625,7 +625,7 @@ class TestKeypointMeanAveragePrecision:
             class_id=np.zeros(3, dtype=int),
             detection_confidence=np.array([0.97, 0.96, 0.95]),
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), on_crowd],
@@ -638,7 +638,7 @@ class TestKeypointMeanAveragePrecision:
         """`targets.data["iscrowd"]` must hold one flag per target."""
         target = _triangle_key_points()
         target.data["iscrowd"] = np.zeros((1, 2))
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match="iscrowd"):
             metric.update(_triangle_key_points(confidence=0.9), target)
@@ -648,7 +648,7 @@ class TestKeypointMeanAveragePrecision:
         prediction = _triangle_key_points(confidence=0.9)
         prediction.xy[0, 2] = [500, 500]
         target = _triangle_key_points(visible=np.array([[True, True, False]]))
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 
@@ -659,7 +659,7 @@ class TestKeypointMeanAveragePrecision:
         prediction = _triangle_key_points(offset=4.0, confidence=0.9)
         target = _triangle_key_points()
         target.data["area"] = np.array([100_000.0])
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 
@@ -667,7 +667,7 @@ class TestKeypointMeanAveragePrecision:
 
     def test_raises_without_sigmas_for_non_coco_skeleton(self) -> None:
         """A 3-point skeleton without sigmas is rejected on update."""
-        metric = KeypointMeanAveragePrecision()
+        metric = KeyPointMeanAveragePrecision()
 
         with pytest.raises(ValueError, match="sigmas"):
             metric.update(_triangle_key_points(confidence=0.9), _triangle_key_points())
@@ -675,20 +675,20 @@ class TestKeypointMeanAveragePrecision:
     def test_raises_for_mixed_skeletons(self) -> None:
         """Every skeleton evaluated together must have the same keypoint count."""
         other_skeleton = KeyPoints(xy=np.zeros((1, 4, 2), dtype=np.float32))
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match="same number of keypoints"):
             metric.update(_triangle_key_points(confidence=0.9), other_skeleton)
 
     def test_raises_for_mismatched_image_counts(self) -> None:
         """Predictions and targets must be given for the same images."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match="must be the same"):
             metric.update([KeyPoints.empty()], [KeyPoints.empty()] * 2)
 
 
-class TestKeypointMeanAveragePrecisionTargetArea:
+class TestKeyPointMeanAveragePrecisionTargetArea:
     """OKS is normalized by a target area that falls back to a box when absent."""
 
     def test_fallback_area_spans_only_visible_keypoints(self) -> None:
@@ -701,7 +701,7 @@ class TestKeypointMeanAveragePrecisionTargetArea:
         """
         target = _triangle_key_points(visible=np.array([[True, False, True]]))
         prediction = _triangle_key_points(offset=10.0, confidence=0.9)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 
@@ -726,7 +726,7 @@ class TestKeypointMeanAveragePrecisionTargetArea:
         prediction = _triangle_key_points(confidence=0.9)
         prediction.xy[0, 1:] += 200.0
         prediction.xy[0, 0] += shift
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 
@@ -749,7 +749,7 @@ class TestKeypointMeanAveragePrecisionTargetArea:
             class_id=np.array([0]),
             detection_confidence=np.array([0.95]),
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), prediction_near_hidden],
@@ -759,7 +759,7 @@ class TestKeypointMeanAveragePrecisionTargetArea:
         assert result.mAP_scores == pytest.approx([1.0] * 4 + [0.5] * 6)
 
 
-class TestKeypointMeanAveragePrecisionIgnoreRegions:
+class TestKeyPointMeanAveragePrecisionIgnoreRegions:
     """Ignore regions and crowd targets absorb predictions differently."""
 
     @pytest.mark.parametrize(
@@ -790,7 +790,7 @@ class TestKeypointMeanAveragePrecisionIgnoreRegions:
             class_id=np.zeros(2, dtype=int),
             detection_confidence=np.array([0.96, 0.95]),
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), two_on_hidden],
@@ -811,7 +811,7 @@ class TestKeypointMeanAveragePrecisionIgnoreRegions:
             class_id=np.zeros(2, dtype=int),
             data={"iscrowd": np.array([True, False])},
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(_triangle_key_points(confidence=0.9), targets).compute()
 
@@ -821,7 +821,7 @@ class TestKeypointMeanAveragePrecisionIgnoreRegions:
         """With only a crowd target there is nothing to score, so mAP is -1."""
         crowd = _triangle_key_points()
         crowd.data["iscrowd"] = np.array([True])
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(_triangle_key_points(confidence=0.9), crowd).compute()
 
@@ -840,7 +840,7 @@ def _false_positives(
     )
 
 
-class TestKeypointMeanAveragePrecisionMaxDetections:
+class TestKeyPointMeanAveragePrecisionMaxDetections:
     """At most 20 predictions per image and class are scored, highest score first."""
 
     @pytest.mark.parametrize(
@@ -866,7 +866,7 @@ class TestKeypointMeanAveragePrecisionMaxDetections:
             class_id=np.zeros(num_false_positives + 1, dtype=int),
             detection_confidence=np.append(false_positives.detection_confidence, 0.5),
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(predictions, _triangle_key_points()).compute()
 
@@ -891,7 +891,7 @@ class TestKeypointMeanAveragePrecisionMaxDetections:
             xy=np.concatenate([_triangle_key_points().xy, class_one_target.xy]),
             class_id=np.array([0, 1]),
         )
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(predictions, targets).compute()
 
@@ -905,7 +905,7 @@ class TestKeypointMeanAveragePrecisionMaxDetections:
         The match is within its own image's cap but ranks 21st overall, so precision at
         full recall is 1/21. A cap shared by all images would cut it.
         """
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_false_positives(20), _triangle_key_points(confidence=0.5)],
@@ -923,7 +923,7 @@ class TestKeypointMeanAveragePrecisionMaxDetections:
         The match scores 0, below a false positive (0.1) in another image, so precision
         at full recall is 1/2 and AP is 0.5. An explicit 0.0 agrees.
         """
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [
@@ -936,13 +936,13 @@ class TestKeypointMeanAveragePrecisionMaxDetections:
         assert result.map50_95 == pytest.approx(0.5)
 
 
-class TestKeypointMeanAveragePrecisionPycocotoolsParity:
+class TestKeyPointMeanAveragePrecisionPycocotoolsParity:
     """Scores match `COCOeval(..., iouType="keypoints")` on synthetic data."""
 
     def test_scores_match_pycocotools(self) -> None:
         """Overall, per-size and per-class AP equal pycocotools 2.0.11."""
         images = _make_synthetic_pose_images()
-        metric = KeypointMeanAveragePrecision()
+        metric = KeyPointMeanAveragePrecision()
 
         result = metric.update(
             [image.predictions for image in images],
@@ -976,7 +976,7 @@ class TestKeypointMeanAveragePrecisionPycocotoolsParity:
         )
 
         # Act
-        evaluator = _KeypointCOCOEvaluator(
+        evaluator = _KeyPointCOCOEvaluator(
             dataset, dataset, sigmas=np.ones(17), target_boxes={}
         )
 
@@ -990,22 +990,22 @@ class TestKeypointMeanAveragePrecisionPycocotoolsParity:
         ]
 
 
-def _exact_match_result() -> KeypointMeanAveragePrecisionResult:
+def _exact_match_result() -> KeyPointMeanAveragePrecisionResult:
     """Compute the result for one prediction on top of its target."""
-    metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+    metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
     return metric.update(
         _triangle_key_points(confidence=0.9), _triangle_key_points()
     ).compute()
 
 
-class TestKeypointMeanAveragePrecisionCategories:
+class TestKeyPointMeanAveragePrecisionCategories:
     """Skeletons are grouped by class unless the metric is class agnostic."""
 
     def test_class_agnostic_matches_across_classes(self) -> None:
         """A class-agnostic metric matches a prediction of another class."""
         prediction = _triangle_key_points(confidence=0.9)
         prediction.class_id = np.array([1])
-        metric = KeypointMeanAveragePrecision(
+        metric = KeyPointMeanAveragePrecision(
             sigmas=TRIANGLE_SIGMAS, class_agnostic=True
         )
 
@@ -1020,7 +1020,7 @@ class TestKeypointMeanAveragePrecisionCategories:
         target = _triangle_key_points()
         prediction.class_id = None
         target.class_id = None
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 
@@ -1048,7 +1048,7 @@ class TestKeypointMeanAveragePrecisionCategories:
         prediction.class_id = prediction_class_id
         target = _triangle_key_points()
         target.class_id = None
-        metric = KeypointMeanAveragePrecision(
+        metric = KeyPointMeanAveragePrecision(
             sigmas=TRIANGLE_SIGMAS, class_agnostic=True
         )
 
@@ -1058,12 +1058,12 @@ class TestKeypointMeanAveragePrecisionCategories:
         assert result.map50_95 == pytest.approx(1.0)
 
 
-class TestKeypointMeanAveragePrecisionReset:
+class TestKeyPointMeanAveragePrecisionReset:
     """`reset` discards everything stored by earlier updates."""
 
     def test_reset_clears_stored_data(self) -> None:
         """After `reset`, earlier updates no longer contribute to the score."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
         metric.update(_triangle_key_points(confidence=0.9), _triangle_key_points())
 
         metric.reset()
@@ -1072,7 +1072,7 @@ class TestKeypointMeanAveragePrecisionReset:
         assert result.map50_95 == pytest.approx(0.0)
 
 
-class TestKeypointMeanAveragePrecisionResult:
+class TestKeyPointMeanAveragePrecisionResult:
     """Summary, DataFrame and plot helpers of the keypoint mAP result."""
 
     def test_str_lists_overall_and_size_scores(self) -> None:
@@ -1136,7 +1136,7 @@ class TestKeypointMeanAveragePrecisionResult:
         assert shown == [True]
 
 
-class TestKeypointMeanAveragePrecisionInputValidation:
+class TestKeyPointMeanAveragePrecisionInputValidation:
     """Invalid inputs are rejected up front and leave the metric unchanged."""
 
     @pytest.mark.parametrize(
@@ -1151,7 +1151,7 @@ class TestKeypointMeanAveragePrecisionInputValidation:
     def test_constructor_raises_for_invalid_sigmas(self, sigmas: list[float]) -> None:
         """Sigmas that are not positive and finite are rejected before any update."""
         with pytest.raises(ValueError, match="positive and finite"):
-            KeypointMeanAveragePrecision(sigmas=sigmas)
+            KeyPointMeanAveragePrecision(sigmas=sigmas)
 
     @pytest.mark.parametrize(
         ("area", "match"),
@@ -1169,7 +1169,7 @@ class TestKeypointMeanAveragePrecisionInputValidation:
         """`targets.data["area"]` must hold one finite, non-negative area per target."""
         target = _triangle_key_points()
         target.data["area"] = np.array(area)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match=rf"targets\.data\['area'\]` {match}"):
             metric.update(_triangle_key_points(confidence=0.9), target)
@@ -1178,7 +1178,7 @@ class TestKeypointMeanAveragePrecisionInputValidation:
         """A zero area is accepted, and an exact match then still scores 1."""
         target = _triangle_key_points()
         target.data["area"] = np.array([0.0])
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(_triangle_key_points(confidence=0.9), target).compute()
 
@@ -1193,7 +1193,7 @@ class TestKeypointMeanAveragePrecisionInputValidation:
         bad_target = _triangle_key_points()
         bad_target.data["iscrowd"] = np.zeros((1, 2))
         four_points = KeyPoints(xy=np.zeros((1, 4, 2), dtype=np.float32))
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
         with pytest.raises(ValueError, match="iscrowd"):
             metric.update(_triangle_key_points(confidence=0.9), bad_target)
 
@@ -1215,13 +1215,13 @@ class TestKeypointMeanAveragePrecisionInputValidation:
         Empty sigmas pass the constructor check, so `update` is where it must fail.
         """
         no_keypoints = KeyPoints(xy=np.zeros((1, 0, 2), dtype=np.float32))
-        metric = KeypointMeanAveragePrecision(sigmas=sigmas)
+        metric = KeyPointMeanAveragePrecision(sigmas=sigmas)
 
         with pytest.raises(ValueError, match="at least one keypoint"):
             metric.update(no_keypoints, no_keypoints)
 
 
-class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
+class TestKeyPointMeanAveragePrecisionNonFiniteKeypoints:
     """Non-finite target keypoints are unlabelled; non-finite predictions add 0."""
 
     @pytest.mark.parametrize(
@@ -1244,7 +1244,7 @@ class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
         target = _triangle_key_points()
         target.xy[0, 1, 0] = value
         target.data = data
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(_triangle_key_points(confidence=0.9), target).compute()
 
@@ -1280,7 +1280,7 @@ class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
             data=data,
         )
         prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
             [_triangle_key_points(confidence=0.9), prediction_on_hidden],
@@ -1300,7 +1300,7 @@ class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
         prediction.xy[0, 1, 0] = value
         target = _triangle_key_points()
         target.data["area"] = np.array([2000.0])
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(prediction, target).compute()
 

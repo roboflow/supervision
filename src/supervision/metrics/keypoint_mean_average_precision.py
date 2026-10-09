@@ -47,7 +47,7 @@ _ISCROWD_DATA_FIELD = ISCROWD_DATA_FIELD
 
 
 @dataclass
-class KeypointMeanAveragePrecisionResult(MetricResult):
+class KeyPointMeanAveragePrecisionResult(MetricResult):
     """The result of the keypoint Mean Average Precision calculation.
 
     Scores are `-1` when there are no targets to evaluate. COCO keypoint
@@ -92,8 +92,8 @@ class KeypointMeanAveragePrecisionResult(MetricResult):
     ap_per_class: npt.NDArray[np.float64]
     oks_thresholds: npt.NDArray[np.float64]
     matched_classes: npt.NDArray[np.int32]
-    medium_objects: KeypointMeanAveragePrecisionResult | None = None
-    large_objects: KeypointMeanAveragePrecisionResult | None = None
+    medium_objects: KeyPointMeanAveragePrecisionResult | None = None
+    large_objects: KeyPointMeanAveragePrecisionResult | None = None
 
     def __str__(self) -> str:
         """Format the scores like the `pycocotools` keypoint summary.
@@ -102,13 +102,13 @@ class KeypointMeanAveragePrecisionResult(MetricResult):
             ```pycon
             >>> import numpy as np
             >>> import supervision as sv
-            >>> from supervision.metrics import KeypointMeanAveragePrecision
+            >>> from supervision.metrics import KeyPointMeanAveragePrecision
             >>> xy = np.array([[[10, 10], [60, 10], [35, 80]]], dtype=np.float32)
             >>> targets = sv.KeyPoints(xy=xy, class_id=np.array([0]))
             >>> predictions = sv.KeyPoints(
             ...     xy=xy, class_id=np.array([0]), detection_confidence=np.array([0.9])
             ... )
-            >>> metric = KeypointMeanAveragePrecision(sigmas=[0.5, 0.5, 0.5])
+            >>> metric = KeyPointMeanAveragePrecision(sigmas=[0.5, 0.5, 0.5])
             >>> print(metric.update(predictions, targets).compute())
             Average Precision (AP) @[ OKS=0.50:0.95 | area=   all | ... ] = 1.000
             Average Precision (AP) @[ OKS=0.50      | area=   all | ... ] = 1.000
@@ -184,7 +184,7 @@ class KeypointMeanAveragePrecisionResult(MetricResult):
         _show_bar_plot(self._get_plot_details())
 
 
-class _KeypointCOCOEvaluator(COCOEvaluator):
+class _KeyPointCOCOEvaluator(COCOEvaluator):
     """COCO evaluator that matches by OKS instead of IoU.
 
     Matching, accumulation and the 101-point interpolation are inherited, so
@@ -311,7 +311,7 @@ def _check_target_areas(targets: KeyPoints) -> None:
         )
 
 
-class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
+class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
     """Keypoint Mean Average Precision based on Object Keypoint Similarity (OKS).
 
     This is the COCO keypoint metric: predictions are matched to targets by OKS
@@ -373,7 +373,7 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         ```pycon
         >>> import numpy as np
         >>> import supervision as sv
-        >>> from supervision.metrics import KeypointMeanAveragePrecision
+        >>> from supervision.metrics import KeyPointMeanAveragePrecision
         >>> targets = sv.KeyPoints(
         ...     xy=np.array([[[10, 10], [60, 10], [35, 80]]], dtype=np.float32),
         ...     class_id=np.array([0]),
@@ -384,7 +384,7 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         ...     class_id=np.array([0]),
         ...     detection_confidence=np.array([0.9]),
         ... )
-        >>> metric = KeypointMeanAveragePrecision(sigmas=[0.25, 0.25, 0.25])
+        >>> metric = KeyPointMeanAveragePrecision(sigmas=[0.25, 0.25, 0.25])
         >>> result = metric.update(predictions, targets).compute()
         >>> round(result.map50, 2)
         1.0
@@ -431,7 +431,7 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         self,
         predictions: KeyPoints | list[KeyPoints],
         targets: KeyPoints | list[KeyPoints],
-    ) -> KeypointMeanAveragePrecision:
+    ) -> KeyPointMeanAveragePrecision:
         """Add predictions and targets of one or more images to the metric.
 
         Args:
@@ -684,7 +684,7 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                 )
         return coco_predictions
 
-    def compute(self) -> KeypointMeanAveragePrecisionResult:
+    def compute(self) -> KeyPointMeanAveragePrecisionResult:
         """Compute keypoint mAP from the stored predictions and targets.
 
         Returns:
@@ -701,16 +701,16 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         coco_predictions = coco_targets.load_predictions(
             self._prepare_predictions(agnostic_id)
         )
-        evaluator = _KeypointCOCOEvaluator(
+        evaluator = _KeyPointCOCOEvaluator(
             coco_targets, coco_predictions, sigmas, target_boxes
         )
         evaluator.evaluate()
 
         def make_result(
             size: str,
-        ) -> KeypointMeanAveragePrecisionResult:
+        ) -> KeyPointMeanAveragePrecisionResult:
             """Build the result for one object-size bucket."""
-            return KeypointMeanAveragePrecisionResult(
+            return KeyPointMeanAveragePrecisionResult(
                 is_class_agnostic=self._class_agnostic,
                 mAP_scores=np.asarray(
                     evaluator.results[f"mAP_scores_{size}"], dtype=np.float64
