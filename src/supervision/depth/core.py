@@ -325,7 +325,7 @@ class DepthMap:
         if isinstance(normalized, str):
             values = _decode_normalized_png(normalized)
         else:
-            values = np.asarray(normalized, dtype=np.float32)
+            values = _to_numpy(normalized)
         return cls(_squeeze_to_2d(values, "Inference"), kind=DepthKind.RELATIVE_INVERSE)
 
     @classmethod
@@ -461,7 +461,8 @@ class DepthMap:
         """Load a single-channel PFM file, the Middlebury and SceneFlow format.
 
         Rows are flipped to top first. Infinite values (Middlebury's unknown
-        disparity) are no depth.
+        disparity) are no depth. The sign of the header's scale gives the byte
+        order; its magnitude is not applied.
 
         Args:
             path: Path to the `.pfm` file.
@@ -490,10 +491,12 @@ def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
     data = base64.b64decode(payload, validate=True)
     try:
         with Image.open(BytesIO(data)) as image:
-            mode = image.mode
+            image_format, mode = image.format, image.mode
             values = np.asarray(image)
     except OSError as error:
         raise ValueError("normalized_depth is not a decodable PNG.") from error
+    if image_format != "PNG":
+        raise ValueError(f"normalized_depth must be a PNG, got {image_format}.")
     if mode == "L":
         top = np.float32(255)
     elif mode in {"I", "I;16", "I;16B", "I;16L"}:

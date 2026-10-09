@@ -15,10 +15,10 @@ from supervision.depth.core import _Conversion
 from tests.helpers import _FakeTensor
 
 
-def _png_base64(values: np.ndarray) -> str:
+def _png_base64(values: np.ndarray, image_format: str = "PNG") -> str:
     """Encode a grayscale array as a base64 PNG, as the inference server does."""
     buffer = io.BytesIO()
-    Image.fromarray(values).save(buffer, format="PNG")
+    Image.fromarray(values).save(buffer, format=image_format)
     return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
@@ -245,12 +245,17 @@ class TestDepthMapFromInference:
                 [[0.0, 0.5]],
                 id="response-object",
             ),
+            pytest.param(
+                {"normalized_depth": _FakeBfloat16GradTensor(np.array([[0.0, 0.5]]))},
+                [[0.0, 0.5]],
+                id="tensor",
+            ),
         ],
     )
     def test_loads_every_depth_map_format(
         self, result: Any, expected: list[list[float]]
     ) -> None:
-        """Json, png16, png8 and response objects load as relative inverse depth."""
+        """Json, png16, png8, response objects and tensors load as relative depth."""
         depth_map = sv.DepthMap.from_inference(result)
 
         assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
@@ -281,10 +286,15 @@ class TestDepthMapFromInference:
                 "decodable",
                 id="undecodable-png",
             ),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2), np.uint8), "JPEG")},
+                "must be a PNG",
+                id="jpeg",
+            ),
         ],
     )
     def test_rejects_invalid_results(self, result: Any, match: str) -> None:
-        """Lists, results without depth and non-grayscale PNGs are refused."""
+        """Lists, results without depth and non-grayscale or non-PNG images fail."""
         with pytest.raises(ValueError, match=match):
             sv.DepthMap.from_inference(result)
 
@@ -404,6 +414,7 @@ class TestDepthMapFromFiles:
             pytest.param(b"P6\n1 1\n255\n\0\0\0", "not a PFM", id="ppm"),
             pytest.param(b"Pf\n2 2\n-1.0\n\0\0\0\0", "truncated", id="truncated"),
             pytest.param(b"Pf\n2 2", "incomplete", id="incomplete-header"),
+            pytest.param(b"Pf\n1 1\n0\n\0\0\0\0", "scale", id="zero-scale"),
         ],
     )
     def test_from_pfm_rejects_other_files(
