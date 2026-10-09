@@ -759,10 +759,10 @@ class TestDepthMapMeasureDetections:
     ) -> None:
         """Dense, uint8 and compact masks all select the pixels the median is over.
 
-        The first mask covers the 2 m square only, but its box also takes in 10 m
-        pixels (box median 6 m), so a measurement that ignored the mask would give 6.
-        The second mask straddles the edge of the square, half on it, so reading a
-        compact crop at the wrong origin would change the median.
+        The first mask covers the 2 m square only, but its box also takes in 10 m pixels
+        (box median 6 m), so a measurement that ignored the mask would give 6. The
+        second mask straddles the edge of the square, half on it, so reading a compact
+        crop at the wrong origin would change the median.
         """
         mask = np.zeros((2, 20, 20), dtype=bool)
         mask[0, 2:6, 2:4] = True
