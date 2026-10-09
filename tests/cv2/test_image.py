@@ -201,6 +201,40 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
     np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
 
 
+@pytest.mark.parametrize(
+    ("interpolation", "atol"),
+    [
+        pytest.param(cv2.INTER_NEAREST, 0, id="nearest"),
+        pytest.param(cv2.INTER_LINEAR, 1, id="linear"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("fx", "fy"),
+    [
+        pytest.param(0.5, 0.5, id="half"),
+        pytest.param(0.6, 0.6, id="non-integer-downscale"),
+        pytest.param(1.5, 1.5, id="non-integer-upscale"),
+        pytest.param(0.3, 3.7, id="mixed"),
+        pytest.param(1 / 7, 1 / 7, id="pixelate"),
+        pytest.param(1.03, 1.03, id="rounds-to-same-size"),
+    ],
+)
+@pytest.mark.parametrize("shape", [(13, 10, 3), (13, 10)], ids=["bgr", "gray"])
+def test_fallback_resize_with_scale_factors_matches_opencv(
+    interpolation: int, atol: int, fx: float, fy: float, shape: tuple[int, ...]
+) -> None:
+    """Map pixels with `fx`/`fy` like OpenCV when `dsize` is not given."""
+    rng = np.random.default_rng(20260717)
+    source = rng.integers(0, 256, shape, dtype=np.uint8)
+
+    actual = _resize(source, None, fx=fx, fy=fy, interpolation=interpolation)
+    expected = cv2.resize(source, None, fx=fx, fy=fy, interpolation=interpolation)
+
+    assert actual.shape == expected.shape
+    assert actual.dtype == expected.dtype
+    np.testing.assert_allclose(actual, expected, atol=atol, rtol=0)
+
+
 def test_fallback_linear_resize_preserves_random_uint8_contract() -> None:
     """Preserve dtype, contiguity, and the one-LSB visual interpolation budget."""
     rng = np.random.default_rng(20260717)

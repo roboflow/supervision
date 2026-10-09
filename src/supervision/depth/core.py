@@ -21,12 +21,15 @@ class DepthKind(Enum):
         DISPARITY_PX: Stereo disparity in pixels of the map. Larger is nearer.
             Metric depth is `fx_px * baseline_m / (disparity + doffs_px)`.
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
-        RELATIVE_INVERSE: Unitless relative depth from a monocular model,
-            normalised so larger is nearer, with no metric scale. The kind promises
-            only that larger is nearer: Depth Anything V1, V2 and DPT output inverse
-            depth up to an unknown scale and shift, while Depth Anything V3 output is
-            linear in depth. Roboflow Inference's maps run from 0 for the farthest
-            pixel to 1 for the nearest.
+        RELATIVE_INVERSE: Unitless relative depth from a monocular model, with no
+            metric scale, where larger is nearer and 0 is the farthest valid value.
+            Depth Anything V1, V2 and DPT output inverse depth up to an unknown scale
+            and shift, which fits as it is; Roboflow Inference's maps run from 0 for
+            the farthest pixel to 1 for the nearest. Invert a relative map that
+            grows with distance, such as Depth Anything V3's, which is linear in
+            depth: pass `1 / values`, not `-values`, whose pixels would all be
+            negative and so without depth. Set pixels without depth to `NaN` first,
+            because 0 is a valid value of this kind.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -83,17 +86,20 @@ class _Conversion:
         if not self.reciprocal:
             return values
         dtype = values.dtype.type
-        with np.errstate(divide="ignore", invalid="ignore"):
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
             converted: npt.NDArray[np.floating] = dtype(1.0) / values
         return converted
 
     def apply_range(
         self, value_range: tuple[float, float]
     ) -> tuple[float, float] | None:
-        """Convert a range, swapping its ends under a reciprocal; None if degenerate."""
+        """Convert a range, swapping its ends under a reciprocal; None if not finite.
+
+        Equal ends stay equal; colouring handles a flat range.
+        """
         converted = self.apply(np.array(value_range, dtype=np.float64))
         low, high = float(converted.min()), float(converted.max())
-        if math.isfinite(low) and math.isfinite(high) and low < high:
+        if math.isfinite(low) and math.isfinite(high):
             return low, high
         return None
 
@@ -107,38 +113,13 @@ def _resolve_conversion(kind: DepthKind) -> _Conversion:
     return _Conversion(reciprocal=kind is DepthKind.DEPTH_M)
 
 
-def _nearest_rank(count: int, fraction: float) -> int:
-    """Return the nearest rank `round(fraction * (count - 1))`, rounding half up."""
-    return math.floor(fraction * (count - 1) + 0.5)
-
-
-def _check_percentiles(low: float, high: float) -> None:
-    """Reject percentiles outside `0 <= low < high <= 100`."""
-    if not (math.isfinite(low) and math.isfinite(high) and 0 <= low < high <= 100):
-        raise ValueError(
-            f"Depth percentiles need 0 <= low < high <= 100, got {low} and {high}."
-        )
-
-
-def _values_at_ranks(
-    values: npt.NDArray[Any], low: float, high: float
-) -> tuple[float, float]:
-    """Return the values at the low and high nearest ranks of an unsorted array.
-
-    Ends that coincide are widened by one float32 step, so the range stays usable as an
-    explicit range.
-    """
-    low_rank = _nearest_rank(values.size, low / 100)
-    high_rank = _nearest_rank(values.size, high / 100)
-    ordered = np.partition(values, [low_rank, high_rank])
-    low_value, high_value = float(ordered[low_rank]), float(ordered[high_rank])
-    if low_value == high_value:
-        high_value = float(np.nextafter(np.float32(high_value), np.float32(np.inf)))
-    return low_value, high_value
-
-
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
-    """Return the source index under each target pixel centre (nearest sampling)."""
+    """Return the source index under each target pixel centre (nearest sampling).
+
+    Sampling at pixel centres keeps the scaled map aligned with the scene and lets
+    the valid-depth mask be resampled as plain booleans, which `sv.resize_image`
+    does not offer.
+    """
     positions = (np.arange(target, dtype=np.float64) + 0.5) * source / target
     return np.minimum(positions.astype(np.intp), source - 1)
 
@@ -211,7 +192,10 @@ class DepthMap:
 
         Args:
             values: `(H, W)` float array in the kind's unit; any float dtype is
-                stored as float32.
+                stored as float32. A float32 array is stored without a copy, so
+                later changes to it show in the map. Masked-array masks are
+                ignored: mark missing depth with `NaN`, an infinity or a value the
+                kind treats as no depth.
             kind: What the values measure, as a `sv.DepthKind` or its string value.
 
         Raises:
@@ -279,35 +263,6 @@ class DepthMap:
         result: npt.NDArray[np.float32] = self.values.copy()
         result[~self.valid_mask] = no_depth_value
         return result
-
-    def _percentile_range(
-        self,
-        low: float = 2.0,
-        high: float = 98.0,
-    ) -> tuple[float, float] | None:
-        """Return this map's own percentile range in the coloured quantity's unit.
-
-        It is the range `sv.DepthAnnotator` uses with `display_range="auto"`: the
-        nearest-rank percentiles of every valid value, converted to inverse depth for
-        a metric map.
-
-        Args:
-            low: Lower percentile, from 0 to 100.
-            high: Upper percentile, from 0 to 100.
-
-        Returns:
-            `(low, high)` in the coloured quantity's unit, or `None` when no pixel
-            holds depth.
-
-        Raises:
-            ValueError: If the percentiles are out of order.
-        """
-        _check_percentiles(low, high)
-        conversion = _resolve_conversion(self.kind)
-        values = self.values[self.valid_mask]
-        if values.size == 0:
-            return None
-        return conversion.apply_range(_values_at_ranks(values, low, high)) or (0.0, 1.0)
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> DepthMap:
@@ -418,8 +373,9 @@ class DepthMap:
         `post_process_depth_estimation` entry, or from a model output. The pipeline's
         `depth` image is an 8-bit per-image stretch for display and is ignored.
         Transformers does not say what the model predicts, so `kind` is required:
-        `relative_inverse` for Depth Anything and DPT relative models, `depth_m` for
-        metric models such as Depth Pro, ZoeDepth or Depth Anything metric.
+        `relative_inverse` for Depth Anything V1 and V2 and DPT relative models,
+        `depth_m` for metric models such as Depth Pro, ZoeDepth or Depth Anything
+        metric.
 
         Args:
             transformers_results: One result holding `predicted_depth` of shape

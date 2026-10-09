@@ -575,6 +575,72 @@ def test_polygon_prediction_compact_masks_true() -> None:
     assert len(masks) == 1
 
 
+@pytest.mark.parametrize(
+    ("points", "expected_offset", "expected_crop_shape"),
+    [
+        pytest.param(
+            [(10, 20), (40, 20), (40, 30), (10, 30)],
+            [10, 20],
+            (11, 31),
+            id="inside-image",
+        ),
+        pytest.param(
+            [(-5, -5), (8, -5), (8, 6), (-5, 6)],
+            [0, 0],
+            (7, 9),
+            id="crosses-top-left-corner",
+        ),
+        pytest.param(
+            [(40, 50), (70, 50), (70, 70), (40, 70)],
+            [40, 50],
+            (10, 24),
+            id="crosses-bottom-right-corner",
+        ),
+    ],
+)
+def test_polygon_prediction_compact_mask_is_cropped_to_polygon(
+    points: list[tuple[int, int]],
+    expected_offset: list[int],
+    expected_crop_shape: tuple[int, int],
+) -> None:
+    """A compact polygon mask covers the polygon's own box, not the whole image."""
+    roboflow_result = _result(
+        _pred(points=[{"x": x, "y": y} for x, y in points]),
+        img_w=64,
+        img_h=60,
+    )
+
+    _, _, _, masks, _, _ = process_roboflow_result(roboflow_result, compact_masks=True)
+
+    assert isinstance(masks, CompactMask)
+    assert masks.offsets[0].tolist() == expected_offset
+    assert masks.crop(0).shape == expected_crop_shape
+
+
+def test_polygon_prediction_compact_masks_match_dense_masks() -> None:
+    """Compact polygon masks hold the same pixels as dense ones, at the borders too."""
+    rng = np.random.default_rng(0)
+    predictions = []
+    for _ in range(25):
+        center_x, center_y = rng.uniform(-10, 74), rng.uniform(-10, 70)
+        radius = rng.uniform(2, 20)
+        angles = np.sort(rng.uniform(0, 2 * np.pi, rng.integers(3, 12)))
+        points = [
+            {"x": center_x + radius * np.cos(a), "y": center_y + radius * np.sin(a)}
+            for a in angles
+        ]
+        predictions.append(_pred(points=points))
+    roboflow_result = _result(*predictions, img_w=64, img_h=60)
+
+    _, _, _, compact, _, _ = process_roboflow_result(
+        roboflow_result, compact_masks=True
+    )
+    _, _, _, dense, _, _ = process_roboflow_result(roboflow_result)
+
+    assert isinstance(compact, CompactMask)
+    np.testing.assert_array_equal(compact.to_dense(), dense)
+
+
 @pytest.mark.parametrize("compact_masks", [False, True])
 def test_polygon_prediction_rounds_decimal_vertices(compact_masks: bool) -> None:
     """Sub-pixel polygon vertices are rounded to the nearest pixel, not truncated."""
