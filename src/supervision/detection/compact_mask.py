@@ -848,20 +848,20 @@ def _rle_resize(
     per_col = _rle_split_cols(rle, crop_h, crop_w)
 
     if row_map is None or col_map is None:
-        from supervision import _cv2 as cv2
+        from supervision._cv2 import INTER_NEAREST, resize
 
         # Integer division can disagree with the backend at sampling boundaries.
         if col_map is None:
-            col_map = cv2.resize(
+            col_map = resize(
                 np.arange(crop_w, dtype=np.int32)[None, :],
                 (new_crop_w, 1),
-                interpolation=cv2.INTER_NEAREST,
+                interpolation=INTER_NEAREST,
             ).ravel()
         if row_map is None:
-            row_map = cv2.resize(
+            row_map = resize(
                 np.arange(crop_h, dtype=np.int32)[:, None],
                 (1, new_crop_h),
-                interpolation=cv2.INTER_NEAREST,
+                interpolation=INTER_NEAREST,
             ).ravel()
 
     # Scale each unique source column once; reuse via cache for repeated cols.
