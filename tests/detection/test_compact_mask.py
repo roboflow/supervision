@@ -1,5 +1,6 @@
 """Unit tests for CompactMask and its private RLE helpers."""
 
+from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -745,6 +746,86 @@ class TestArrayProtocol:
         arr = np.asarray(cm, dtype=np.uint8)
         assert arr.dtype == np.uint8
         assert arr.sum() == 25
+
+    @pytest.mark.parametrize(
+        ("converter", "kwargs"),
+        [
+            pytest.param(np.array, {}, id="array-default"),
+            pytest.param(np.array, {"copy": True}, id="array-copy"),
+            pytest.param(np.asarray, {}, id="asarray-default"),
+            pytest.param(
+                np.asarray,
+                {"copy": True},
+                id="asarray-copy",
+                marks=pytest.mark.skipif(
+                    np.lib.NumpyVersion(np.__version__) < "2.0.0",
+                    reason="np.asarray gained copy in NumPy 2",
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            None,
+            pytest.param(np.dtype(bool), id="bool"),
+            pytest.param(np.dtype(np.uint8), id="uint8"),
+        ],
+    )
+    def test_returns_dense_pixels_without_warnings(
+        self,
+        converter: Callable[..., np.ndarray],
+        kwargs: dict[str, bool],
+        dtype: np.dtype | None,
+    ) -> None:
+        """Default and explicit copies retain the mask pixels and requested dtype."""
+        masks = np.eye(3, dtype=bool)[None, ...]
+        cm = _make_cm(masks, (3, 3))
+
+        result = converter(cm, dtype=dtype, **kwargs)
+
+        np.testing.assert_array_equal(result, masks)
+        assert result.dtype == (np.dtype(bool) if dtype is None else dtype)
+
+    @pytest.mark.skipif(
+        np.lib.NumpyVersion(np.__version__) < "2.0.0",
+        reason="NumPy 1 allows allocation when copy=False",
+    )
+    @pytest.mark.parametrize(
+        "converter",
+        [pytest.param(np.array, id="array"), pytest.param(np.asarray, id="asarray")],
+    )
+    def test_rejects_zero_copy_before_materializing(
+        self, converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A zero-copy request fails before allocating the dense mask tensor."""
+        cm = _make_cm(np.ones((1, 3, 3), dtype=bool), (3, 3))
+        monkeypatch.setattr(
+            CompactMask, "to_dense", lambda self: pytest.fail("Unexpected allocation")
+        )
+
+        with pytest.raises(ValueError, match="copy=False"):
+            converter(cm, copy=False)
+
+    def test_copies_empty_masks(self) -> None:
+        """Explicit copies retain the spatial dimensions of empty mask collections."""
+        masks = np.empty((0, 3, 4), dtype=bool)
+        cm = _make_cm(masks, (3, 4))
+
+        result = np.array(cm, copy=True)
+
+        np.testing.assert_array_equal(result, masks)
+        assert result.dtype == bool
+
+    def test_copy_mutation_leaves_compact_masks_unchanged(self) -> None:
+        """Mutating the copied dense array leaves the source RLE masks intact."""
+        masks = np.ones((1, 3, 3), dtype=bool)
+        cm = _make_cm(masks, (3, 3))
+        result = np.array(cm, copy=True)
+
+        result[:] = False
+
+        np.testing.assert_array_equal(cm.to_dense(), masks)
 
 
 class TestMerge:

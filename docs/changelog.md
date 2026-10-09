@@ -7,6 +7,8 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.CompactMask` now accepts NumPy's array-protocol `copy` keyword. Default `np.array` and explicit-copy conversions no longer emit a NumPy 2 deprecation warning. Zero-copy requests raise `ValueError` before allocating a dense mask tensor; default `np.asarray` and dtype conversion remain unchanged.
+
 - `sv.CompactMask.resize` now samples each crop on the full image's nearest-neighbor grid, matching dense mask resizing. Upscaling no longer shortens foreground regions, and downscaling makes crops all-False when the destination grid does not sample them. Sparse RLE processing, dense crop processing, and threaded batches use the same grid. Direct RLE resizing also preserves the active backend's rounding at sampling boundaries. ([#2697](https://github.com/roboflow/supervision/pull/2697))
 
 - Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))

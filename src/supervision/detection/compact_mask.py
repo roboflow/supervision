@@ -1647,7 +1647,7 @@ class CompactMask:
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 
     def __array__(
-        self, dtype: np.dtype[np.generic] | None = None
+        self, dtype: np.dtype[np.generic] | None = None, copy: bool | None = None
     ) -> npt.NDArray[np.generic]:
         """NumPy interop: materialise as a dense ``(N, H, W)`` array.
 
@@ -1655,9 +1655,14 @@ class CompactMask:
 
         Args:
             dtype: Optional dtype to cast the result to.
+            copy: ``None`` and ``True`` materialise a fresh dense array.
+                ``False`` raises because RLE storage cannot be shared as a dense array.
 
         Returns:
             Dense boolean array of shape ``(N, H, W)``.
+
+        Raises:
+            ValueError: If ``copy`` is ``False``.
 
         Examples:
             ```pycon
@@ -1671,6 +1676,8 @@ class CompactMask:
 
             ```
         """
+        if copy is False:
+            raise ValueError("Cannot convert CompactMask to an array with copy=False.")
         result = self.to_dense()
         if dtype is not None:
             return result.astype(dtype)
