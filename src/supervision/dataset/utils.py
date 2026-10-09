@@ -49,6 +49,14 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+# Per search pass: nearest indexed vertices queried per hole vertex and seam candidates
+# that may be tested for a straight line on foreground. The second pass runs only
+# when the first finds none.
+_SEAM_SEARCH_PASSES = ((8, 64), (64, 1024))
+# Vertices attached since the spatial index was built that are searched directly
+# instead of triggering an index rebuild.
+_RECENT_VERTEX_LIMIT = 512
+
 
 def _is_hole_contour(polygon: npt.NDArray[np.number]) -> bool:
     """Return whether a traced contour borders a hole rather than an outer boundary.
@@ -66,8 +74,8 @@ def _group_holes_by_outer(
     """Pair every outer contour with the hole contours of its connected component.
 
     A contour lies on foreground pixels, so its first point carries the label of the
-    component it belongs to. Holes whose outer contour is absent from `polygons`
-    (for example, filtered out by area) are dropped with it.
+    component it belongs to. Holes whose outer contour is absent from `polygons` (for
+    example, filtered out by area) are dropped with it.
     """
     _, labels = cv2.connectedComponents(mask.astype(np.uint8), connectivity=8)
     outers: dict[int, npt.NDArray[np.number]] = {}
@@ -82,25 +90,157 @@ def _group_holes_by_outer(
     return [(outer, holes.get(label, [])) for label, outer in outers.items()]
 
 
-def _bridge_hole(
-    outer: npt.NDArray[np.number], hole: npt.NDArray[np.number]
-) -> npt.NDArray[np.number]:
-    """Splice a hole contour into an outer contour along their shortest seam.
+def _is_segment_inside_mask(
+    mask: npt.NDArray[np.bool_],
+    start: npt.NDArray[np.number],
+    end: npt.NDArray[np.number],
+) -> bool:
+    """Return whether every pixel under the segment `start`-`end` is foreground.
 
-    The seam is walked out and back, so the result is one closed polygon whose filled
-    area excludes the hole under both even-odd and non-zero fill rules.
+    A point that falls on a pixel border is rounded both ways and must pass for both, so
+    the answer does not depend on how a rasterizer breaks ties.
     """
-    distances, outer_indices = cKDTree(outer).query(hole)
-    hole_start = int(np.argmin(distances))
-    outer_index = int(outer_indices[hole_start])
-    return np.concatenate(
-        [
-            outer[: outer_index + 1],
-            np.roll(hole, -hole_start, axis=0),
-            hole[hole_start : hole_start + 1],
-            outer[outer_index:],
-        ]
+    (x0, y0), (x1, y1) = start.tolist(), end.tolist()
+    steps = int(max(abs(x1 - x0), abs(y1 - y0)))
+    ratios = np.arange(steps + 1) / max(steps, 1)
+    xs, ys = x0 + (x1 - x0) * ratios, y0 + (y1 - y0) * ratios
+    low_x = np.floor(xs + (0.5 - 1e-6)).astype(np.intp)
+    low_y = np.floor(ys + (0.5 - 1e-6)).astype(np.intp)
+    if not mask[low_y, low_x].all():
+        return False
+    high_x = np.floor(xs + (0.5 + 1e-6)).astype(np.intp)
+    high_y = np.floor(ys + (0.5 + 1e-6)).astype(np.intp)
+    return bool(
+        mask[high_y, high_x].all()
+        and mask[low_y, high_x].all()
+        and mask[high_y, low_x].all()
     )
+
+
+def _seam_candidates(
+    points: npt.NDArray[np.number],
+    hole: npt.NDArray[np.intp],
+    tree: cKDTree,
+    members: npt.NDArray[np.intp],
+    recent: list[int],
+    neighbour_count: int,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], npt.NDArray[np.float64]]:
+    """Pair each vertex of `hole` with its nearest already attached vertices.
+
+    The attached vertices are `members`, held in `tree`, and the `recent` ones added
+    since, which are measured directly. Returns the hole vertex, the attached vertex
+    (both as indices into `points`) and the length of every candidate seam.
+    """
+    count = min(neighbour_count, len(members))
+    distances, neighbours = tree.query(points[hole].astype(np.float64), k=count)
+    distances = np.asarray(distances).reshape(len(hole), count)
+    targets = members[np.asarray(neighbours).reshape(len(hole), count)]
+    sources = np.broadcast_to(hole[:, np.newaxis], targets.shape)
+    if not recent:
+        return sources.ravel(), targets.ravel(), distances.ravel()
+    recent_targets = np.asarray(recent)
+    offsets = points[hole][:, np.newaxis, :] - points[recent_targets][np.newaxis, :, :]
+    recent_distances = np.hypot(offsets[..., 0], offsets[..., 1])
+    return (
+        np.concatenate([sources.ravel(), np.repeat(hole, len(recent))]),
+        np.concatenate([targets.ravel(), np.tile(recent_targets, len(hole))]),
+        np.concatenate([distances.ravel(), recent_distances.ravel()]),
+    )
+
+
+def _find_seam(
+    mask: npt.NDArray[np.bool_],
+    points: npt.NDArray[np.number],
+    hole: npt.NDArray[np.intp],
+    tree: cKDTree,
+    members: npt.NDArray[np.intp],
+    recent: list[int],
+) -> tuple[int, int]:
+    """Find the shortest seam from `hole` to the attached vertices on foreground.
+
+    Candidates are tried in order of length. When none passes the straight-line test,
+    the nearest pair is returned, so a hole is always attached.
+    """
+    for neighbour_count, max_checks in _SEAM_SEARCH_PASSES:
+        sources, targets, lengths = _seam_candidates(
+            points, hole, tree, members, recent, neighbour_count
+        )
+        for index in np.argsort(lengths, kind="stable")[:max_checks]:
+            source, target = int(sources[index]), int(targets[index])
+            if _is_segment_inside_mask(mask, points[source], points[target]):
+                return source, target
+    sources, targets, lengths = _seam_candidates(points, hole, tree, members, recent, 1)
+    nearest = int(np.argmin(lengths))
+    return int(sources[nearest]), int(targets[nearest])
+
+
+def _bridge_holes(
+    mask: npt.NDArray[np.bool_],
+    outer: npt.NDArray[np.number],
+    holes: list[npt.NDArray[np.number]],
+) -> npt.NDArray[np.number]:
+    """Splice hole contours into an outer contour along seams that stay on foreground.
+
+    Holes are attached in order, each along the shortest straight seam on foreground
+    pixels of `mask` to the outer contour or to a hole attached before it. A seam is
+    walked out and back, so it adds no area and the result is one closed polygon whose
+    filled area excludes the holes under both even-odd and non-zero fill rules. The
+    attached vertices stay in one spatial index that is rebuilt only after
+    `_RECENT_VERTEX_LIMIT` new vertices, not once per hole.
+    """
+    contours = [outer, *holes]
+    sizes = np.array([len(contour) for contour in contours])
+    starts = np.concatenate([[0], np.cumsum(sizes)])
+    points = np.concatenate(contours)
+    owners = np.repeat(np.arange(len(contours)), sizes)
+
+    members = np.arange(sizes[0])
+    tree = cKDTree(points[members])
+    recent: list[int] = []
+    # entry[c] is the vertex where hole c joins its parent, and children[p] lists the
+    # (vertex of p, hole) pairs hanging from contour p.
+    entry = {0: 0}
+    children: dict[int, list[tuple[int, int]]] = {}
+    for contour in range(1, len(contours)):
+        hole = np.arange(starts[contour], starts[contour + 1])
+        source, target = _find_seam(mask, points, hole, tree, members, recent)
+        entry[contour] = source
+        children.setdefault(int(owners[target]), []).append((target, contour))
+        recent.extend(hole.tolist())
+        if len(recent) > _RECENT_VERTEX_LIMIT:
+            members = np.concatenate([members, recent])
+            tree = cKDTree(points[members])
+            recent = []
+
+    # Walk each contour from its entry vertex; right after a vertex that a child hangs
+    # from, walk the child's tour and return to that vertex. Tours expand on a stack
+    # instead of by recursion, so a long chain of holes cannot hit the recursion limit.
+    chunks: list[npt.NDArray[np.intp]] = []
+    stack: list[npt.NDArray[np.intp] | int] = [0]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, np.ndarray):
+            chunks.append(item)
+            continue
+        size = int(sizes[item])
+        first_vertex = entry[item] - int(starts[item])
+        ring = (np.arange(size) + first_vertex) % size + starts[item]
+        if item:
+            ring = np.append(ring, ring[0])
+        hanging = sorted(
+            ((vertex - int(starts[item]) - first_vertex) % size, child)
+            for vertex, child in children.get(item, [])
+        )
+        tour: list[npt.NDArray[np.intp] | int] = []
+        cursor = 0
+        for position, child in hanging:
+            tour.extend(
+                [ring[cursor : position + 1], child, ring[position : position + 1]]
+            )
+            cursor = position + 1
+        tour.append(ring[cursor:])
+        stack.extend(reversed(tour))
+    return points[np.concatenate(chunks)]
 
 
 def approximate_mask_with_polygons(
@@ -124,9 +264,10 @@ def approximate_mask_with_polygons(
         max_image_area_percentage: Maximum polygon area as a fraction of the image
             area.
         approximation_percentage: Fraction of polygon points to remove.
-        bridge_holes: If `True`, each hole is joined to its outer contour by a
-            zero-width seam, so a mask with holes yields one polygon per connected
-            component instead of one extra polygon per hole.
+        bridge_holes: If `True`, each hole is joined to its outer contour, or to a
+            hole already joined, by a zero-width seam along foreground pixels, so a
+            mask with holes yields one polygon per connected component instead of
+            one extra polygon per hole.
 
     Returns:
         A list of polygons, each of shape `(N, 2)`.
@@ -164,14 +305,18 @@ def approximate_mask_with_polygons(
     if bridge_holes and any(_is_hole_contour(polygon) for polygon in polygons):
         bridged_polygons = []
         for outer, holes in _group_holes_by_outer(mask=mask, polygons=polygons):
-            bridged = approximate_polygon(
+            simplified_outer = approximate_polygon(
                 polygon=outer, percentage=approximation_percentage
             )
-            for hole in holes:
-                simplified_hole = approximate_polygon(
-                    polygon=hole, percentage=approximation_percentage
+            simplified_holes = [
+                approximate_polygon(polygon=hole, percentage=approximation_percentage)
+                for hole in holes
+            ]
+            bridged = simplified_outer
+            if simplified_holes:
+                bridged = _bridge_holes(
+                    mask=mask, outer=simplified_outer, holes=simplified_holes
                 )
-                bridged = _bridge_hole(outer=bridged, hole=simplified_hole)
             bridged_polygons.append(bridged)
         return bridged_polygons
     return [

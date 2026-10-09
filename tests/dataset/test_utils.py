@@ -132,6 +132,32 @@ def _fill_polygons(
     return filled
 
 
+def _c_shape_mask() -> np.ndarray:
+    """Build a C whose upper arm holds a hole that a spike on the lower arm faces.
+
+    The spike tip is the outer vertex nearest to the hole, but a straight seam to it
+    crosses six background rows of the opening between the arms.
+    """
+    mask = np.zeros((80, 80), dtype=bool)
+    mask[10:30, 10:70] = True
+    mask[50:70, 10:70] = True
+    mask[10:70, 10:20] = True
+    mask[36:50, 40:42] = True
+    mask[6:10, 39:41] = True
+    mask[24:27, 38:44] = False
+    return mask
+
+
+def _grid_of_holes_mask(rows: int, columns: int) -> np.ndarray:
+    """Build a solid block with a `rows` x `columns` grid of 3x3 holes, 6 apart."""
+    mask = np.zeros((rows * 6 + 10, columns * 6 + 10), dtype=bool)
+    mask[4:-4, 4:-4] = True
+    for row in range(rows):
+        for column in range(columns):
+            mask[8 + row * 6 : 11 + row * 6, 8 + column * 6 : 11 + column * 6] = False
+    return mask
+
+
 class TestApproximateMaskWithPolygons:
     """Tests for `approximate_mask_with_polygons`, with and without hole bridging."""
 
@@ -157,6 +183,59 @@ class TestApproximateMaskWithPolygons:
         mask = _ring_mask()
         mask[25:45, 40:55] = False
         mask[47:57, 20:30] = False
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
+
+    def test_keeps_seam_on_foreground_when_nearest_vertex_is_across_background(
+        self,
+    ) -> None:
+        """The seam skips the nearest outer vertex when a line to it leaves the mask."""
+        mask = _c_shape_mask()
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 1
+        np.testing.assert_array_equal(_fill_polygons(polygons, (80, 80)), mask)
+
+    def test_bridges_many_holes_into_single_polygon(self) -> None:
+        """Two hundred holes still give one polygon that fills to the original mask."""
+        mask = _grid_of_holes_mask(rows=10, columns=20)
+
+        polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(polygons) == 1
+        filled = _fill_polygons(polygons, (mask.shape[1], mask.shape[0]))
+        assert filled.sum() == mask.sum()
+        np.testing.assert_array_equal(filled, mask)
+
+    def test_builds_one_spatial_index_for_all_holes_of_a_region(
+        self, monkeypatch
+    ) -> None:
+        """Seams are found against one index, not one rebuilt index per hole."""
+        builds: list[int] = []
+        build_tree = dataset_utils.cKDTree
+
+        def counting_tree(points: np.ndarray) -> object:
+            """Record the size of every spatial index built, then build it."""
+            builds.append(len(points))
+            return build_tree(points)
+
+        monkeypatch.setattr(dataset_utils, "cKDTree", counting_tree)
+        mask = _grid_of_holes_mask(rows=10, columns=10)
+
+        approximate_mask_with_polygons(mask, bridge_holes=True)
+
+        assert len(builds) <= 3
+
+    def test_joins_hole_to_nearest_outer_vertex_when_no_seam_is_searched(
+        self, monkeypatch
+    ) -> None:
+        """Without any clear seam a hole is still bridged, never dropped or raised."""
+        monkeypatch.setattr(dataset_utils, "_SEAM_SEARCH_PASSES", ())
+        mask = _ring_mask()
 
         polygons = approximate_mask_with_polygons(mask, bridge_holes=True)
 
@@ -240,6 +319,45 @@ class TestApproximateMaskWithPolygons:
 
         assert len(simplified) == len(exact) == 1
         assert len(simplified[0]) < len(exact[0])
+
+
+class TestIsSegmentInsideMask:
+    """Tests for `_is_segment_inside_mask`."""
+
+    @pytest.mark.parametrize(
+        ("start", "end", "expected"),
+        [
+            pytest.param((1, 1), (8, 1), True, id="horizontal-inside"),
+            pytest.param((0, 0), (3, 3), True, id="diagonal-inside"),
+            pytest.param((1, 1), (1, 1), True, id="single-point"),
+            pytest.param((1, 1), (8, 5), False, id="crosses-hole"),
+            pytest.param((1, 8), (8, 8), False, id="leaves-mask"),
+        ],
+    )
+    def test_reports_whether_every_pixel_is_foreground(
+        self, start: tuple[int, int], end: tuple[int, int], expected: bool
+    ) -> None:
+        """A segment passes only if all pixels under it are foreground."""
+        mask = np.zeros((10, 10), dtype=bool)
+        mask[:8, :] = True
+        mask[3:6, 4:6] = False
+
+        result = dataset_utils._is_segment_inside_mask(
+            mask, np.array(start), np.array(end)
+        )
+
+        assert result is expected
+
+    def test_rejects_segment_that_grazes_a_background_pixel_border(self) -> None:
+        """A point on a pixel border must be foreground whichever way it rounds."""
+        mask = np.ones((6, 6), dtype=bool)
+        mask[2, 1] = False
+
+        result = dataset_utils._is_segment_inside_mask(
+            mask, np.array([0, 1]), np.array([2, 2])
+        )
+
+        assert result is False
 
 
 @pytest.mark.parametrize(
