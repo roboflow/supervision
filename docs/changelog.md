@@ -47,6 +47,8 @@ date_modified: 2026-10-09
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The empty index array defaulted to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0`; `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.
 
+- `sv.Detections.from_ultralytics`, `sv.KeyPoints.from_ultralytics`, and `sv.Classifications.from_ultralytics` now accept NumPy-backed results, including `Results.numpy()`. Detection, segmentation, oriented boxes, tracking IDs, pose visibility, and classification retain the same values as tensor-backed results. ([#2710](https://github.com/roboflow/supervision/pull/2710))
+
 ### 0.30.9 <small>Oct 8, 2026</small>
 
 - `sv.Classifications.get_top_k` now raises `ValueError` for a negative `k`. It was passed to NumPy slicing, so `get_top_k(-1)` silently returned all but the lowest-confidence classification. `k=0` and `k` larger than the number of classifications are unchanged. ([#2695](https://github.com/roboflow/supervision/pull/2695))
