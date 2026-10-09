@@ -52,7 +52,9 @@ ORIENTED_BOX_COORDINATES: str = "xyxyxyxy"
 DEPTH_M_DATA_FIELD: str = "depth_m"
 #: Key for per-detection stereo disparity in ``Detections.data``.
 #:
-#: Same layout as ``DEPTH_M_DATA_FIELD``, in pixels of the depth map.
+#: Same layout as ``DEPTH_M_DATA_FIELD``, in pixels of the depth map. Unlike metres,
+#: the values depend on the map's resolution: the same scene resized to half the
+#: width stores half the disparity.
 DISPARITY_PX_DATA_FIELD: str = "disparity_px"
 #: Key for per-detection relative inverse depth in ``Detections.data``.
 #:
