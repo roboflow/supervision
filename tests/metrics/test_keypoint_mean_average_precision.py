@@ -182,7 +182,7 @@ def _make_synthetic_pose_images(seed: int = 7) -> list[SyntheticPoseImage]:
 
 
 class TestKeypointOksBatch:
-    """Pairwise OKS between target and detected keypoint sets."""
+    """Pairwise OKS between target and detected keypoint sets, and its input checks."""
 
     def test_identical_keypoints_have_oks_one(self) -> None:
         """A detection placed exactly on the target scores OKS 1."""
@@ -377,6 +377,28 @@ class TestKeypointOksBatch:
                 sigmas=[0.1, 0.1, 0.1],
             )
 
+    def test_raises_for_invalid_area_shape(self) -> None:
+        """`area_true` must hold one area per target."""
+        keypoints = np.zeros((1, 3, 2))
+
+        with pytest.raises(ValueError, match="area_true"):
+            _keypoint_oks_batch(
+                keypoints, keypoints, area_true=np.ones(2), sigmas=[0.1, 0.1, 0.1]
+            )
+
+    def test_raises_for_invalid_visible_shape(self) -> None:
+        """`visible_true` must hold one flag per target keypoint."""
+        keypoints = np.zeros((1, 3, 2))
+
+        with pytest.raises(ValueError, match="visible_true"):
+            _keypoint_oks_batch(
+                keypoints,
+                keypoints,
+                area_true=np.array([1.0]),
+                sigmas=[0.1, 0.1, 0.1],
+                visible_true=np.ones((1, 2), dtype=bool),
+            )
+
 
 def _triangle_key_points(
     offset: float = 0.0,
@@ -426,8 +448,16 @@ class TestKeypointMeanAveragePrecision:
 
         assert result.compute().map50_95 == -1
 
-    @pytest.mark.parametrize("with_area", [False, True])
-    def test_three_column_xy_matches_planar_xy(self, with_area: bool) -> None:
+    @pytest.mark.parametrize(
+        "target_data",
+        [
+            pytest.param({}, id="fallback-area"),
+            pytest.param({"area": np.array([2000.0])}, id="data-area"),
+        ],
+    )
+    def test_three_column_xy_matches_planar_xy(
+        self, target_data: dict[str, npt.NDArray[np.float64]]
+    ) -> None:
         """A z column in `xy` is ignored, so scores match the `(N, K, 2)` input."""
 
         def with_z(key_points: KeyPoints) -> KeyPoints:
@@ -441,8 +471,7 @@ class TestKeypointMeanAveragePrecision:
             )
 
         target = _triangle_key_points()
-        if with_area:
-            target.data = {"area": np.array([2000.0])}
+        target.data = dict(target_data)
         prediction = _triangle_key_points(offset=2.0, confidence=0.9)
 
         planar = (
@@ -473,16 +502,16 @@ class TestKeypointMeanAveragePrecision:
         assert result.map50_95 == pytest.approx(1.0)
 
     @pytest.mark.parametrize(
-        "area",
+        "area_data",
         [
-            pytest.param(None, id="box-area"),
-            pytest.param(100.0, id="small-area"),
-            pytest.param(5000.0, id="medium-area"),
-            pytest.param(20000.0, id="large-area"),
+            pytest.param({}, id="box-area"),
+            pytest.param({"area": np.array([100.0])}, id="small-area"),
+            pytest.param({"area": np.array([5000.0])}, id="medium-area"),
+            pytest.param({"area": np.array([20000.0])}, id="large-area"),
         ],
     )
     def test_target_without_visible_points_with_box_is_ignore_region(
-        self, area: float | None
+        self, area_data: dict[str, npt.NDArray[np.float64]]
     ) -> None:
         """With a box, a prediction on a hidden target is ignored, not a false positive.
 
@@ -493,8 +522,7 @@ class TestKeypointMeanAveragePrecision:
             offset=300.0, visible=np.zeros((1, 3), dtype=bool)
         )
         hidden_target.data["xyxy"] = np.array([[310.0, 310.0, 360.0, 380.0]])
-        if area is not None:
-            hidden_target.data["area"] = np.array([area])
+        hidden_target.data.update(area_data)
         prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
         metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
@@ -522,30 +550,34 @@ class TestKeypointMeanAveragePrecision:
             [_triangle_key_points(), hidden_target],
         ).compute()
 
-        assert result.map50 == pytest.approx(0.5, abs=0.01)
+        assert result.map50 == pytest.approx(0.5)
 
     @pytest.mark.parametrize("side", ["predictions", "targets"])
     def test_raises_for_invalid_box_shape(self, side: str) -> None:
         """`data["xyxy"]` must hold one box per skeleton on either side."""
         prediction = _triangle_key_points(confidence=0.9)
         target = _triangle_key_points()
-        bad = prediction if side == "predictions" else target
-        bad.data["xyxy"] = np.zeros((1, 2))
+        inputs = {"predictions": prediction, "targets": target}
+        inputs[side].data["xyxy"] = np.zeros((1, 2))
         metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         with pytest.raises(ValueError, match=f"{side}.data"):
             metric.update(prediction, target)
 
     @pytest.mark.parametrize(
-        ("false_positive_xyxy", "expected_medium_map50"),
+        ("false_positive_data", "expected_medium_map50"),
         [
-            pytest.param(None, 0.5, id="keypoint-span-medium"),
-            pytest.param([[500.0, 500.0, 700.0, 700.0]], 1.0, id="box-large"),
+            pytest.param({}, 0.5, id="keypoint-span-medium"),
+            pytest.param(
+                {"xyxy": np.array([[500.0, 500.0, 700.0, 700.0]])},
+                1.0,
+                id="box-large",
+            ),
         ],
     )
     def test_prediction_box_sets_object_size_bucket(
         self,
-        false_positive_xyxy: list[list[float]] | None,
+        false_positive_data: dict[str, npt.NDArray[np.float64]],
         expected_medium_map50: float,
     ) -> None:
         """An unmatched prediction is bucketed by its `data["xyxy"]` box area.
@@ -559,8 +591,7 @@ class TestKeypointMeanAveragePrecision:
         target = _triangle_key_points()
         target.data["area"] = np.array([5000.0])
         false_positive = _triangle_key_points(offset=500.0, confidence=0.95)
-        if false_positive_xyxy is not None:
-            false_positive.data["xyxy"] = np.array(false_positive_xyxy)
+        false_positive.data.update(false_positive_data)
         metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
 
         result = metric.update(
@@ -569,20 +600,24 @@ class TestKeypointMeanAveragePrecision:
         ).compute()
 
         assert result.medium_objects is not None
-        assert result.medium_objects.map50 == pytest.approx(
-            expected_medium_map50, abs=0.01
-        )
+        assert result.medium_objects.map50 == pytest.approx(expected_medium_map50)
 
-    @pytest.mark.parametrize("hidden", [False, True])
-    def test_crowd_target_absorbs_any_number_of_predictions(self, hidden: bool) -> None:
+    @pytest.mark.parametrize(
+        "visible",
+        [
+            pytest.param(None, id="visible-keypoints"),
+            pytest.param(np.zeros((1, 3), dtype=bool), id="hidden-keypoints"),
+        ],
+    )
+    def test_crowd_target_absorbs_any_number_of_predictions(
+        self, visible: npt.NDArray[np.bool_] | None
+    ) -> None:
         """Predictions matching a crowd target are ignored, however many there are.
 
         A crowd target is never a miss, and unlike a regular ignore target it can match
         several predictions, with or without visible keypoints.
         """
-        crowd = _triangle_key_points(offset=300.0)
-        if hidden:
-            crowd.visible = np.zeros((1, 3), dtype=bool)
+        crowd = _triangle_key_points(offset=300.0, visible=visible)
         crowd.data["iscrowd"] = np.array([True])
         crowd.data["xyxy"] = np.array([[310.0, 310.0, 360.0, 380.0]])
         on_crowd = KeyPoints(
@@ -955,32 +990,6 @@ class TestKeypointMeanAveragePrecisionPycocotoolsParity:
         ]
 
 
-class TestKeypointOksBatchShapeValidation:
-    """Per-target inputs of `_keypoint_oks_batch` must match the target count."""
-
-    def test_raises_for_invalid_area_shape(self) -> None:
-        """`area_true` must hold one area per target."""
-        keypoints = np.zeros((1, 3, 2))
-
-        with pytest.raises(ValueError, match="area_true"):
-            _keypoint_oks_batch(
-                keypoints, keypoints, area_true=np.ones(2), sigmas=[0.1, 0.1, 0.1]
-            )
-
-    def test_raises_for_invalid_visible_shape(self) -> None:
-        """`visible_true` must hold one flag per target keypoint."""
-        keypoints = np.zeros((1, 3, 2))
-
-        with pytest.raises(ValueError, match="visible_true"):
-            _keypoint_oks_batch(
-                keypoints,
-                keypoints,
-                area_true=np.array([1.0]),
-                sigmas=[0.1, 0.1, 0.1],
-                visible_true=np.ones((1, 2), dtype=bool),
-            )
-
-
 def _exact_match_result() -> KeypointMeanAveragePrecisionResult:
     """Compute the result for one prediction on top of its target."""
     metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
@@ -1018,16 +1027,6 @@ class TestKeypointMeanAveragePrecisionCategories:
         assert result.map50_95 == pytest.approx(1.0)
         assert list(result.matched_classes) == [0]
 
-    def test_reset_clears_stored_data(self) -> None:
-        """After `reset`, earlier updates no longer contribute to the score."""
-        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
-        metric.update(_triangle_key_points(confidence=0.9), _triangle_key_points())
-
-        metric.reset()
-        result = metric.update(KeyPoints.empty(), _triangle_key_points()).compute()
-
-        assert result.map50_95 == pytest.approx(0.0)
-
     @pytest.mark.parametrize(
         ("prediction_class_id", "expected_classes"),
         [
@@ -1059,20 +1058,43 @@ class TestKeypointMeanAveragePrecisionCategories:
         assert result.map50_95 == pytest.approx(1.0)
 
 
+class TestKeypointMeanAveragePrecisionReset:
+    """`reset` discards everything stored by earlier updates."""
+
+    def test_reset_clears_stored_data(self) -> None:
+        """After `reset`, earlier updates no longer contribute to the score."""
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        metric.update(_triangle_key_points(confidence=0.9), _triangle_key_points())
+
+        metric.reset()
+        result = metric.update(KeyPoints.empty(), _triangle_key_points()).compute()
+
+        assert result.map50_95 == pytest.approx(0.0)
+
+
 class TestKeypointMeanAveragePrecisionResult:
     """Summary, DataFrame and plot helpers of the keypoint mAP result."""
 
-    def test_str_lists_overall_scores(self) -> None:
-        """The summary starts with the three overall OKS lines."""
+    def test_str_lists_overall_and_size_scores(self) -> None:
+        """The summary prints three overall OKS lines, then medium and large.
+
+        An exact match scores 1 overall and for the medium bucket its keypoints span,
+        and -1 for the large bucket, which holds no target. This is the example in
+        the `__str__` docstring.
+        """
         result = _exact_match_result()
 
         lines = str(result).splitlines()
 
-        assert lines[0].startswith("Average Precision (AP) @[ OKS=0.50:0.95")
-        assert lines[0].endswith("= 1.000")
-        assert len(lines) == 3 + (result.medium_objects is not None) + (
-            result.large_objects is not None
-        )
+        prefix = "Average Precision (AP) @[ OKS="
+        suffix = "maxDets= 20 ] = "
+        assert lines == [
+            f"{prefix}0.50:0.95 | area=   all | {suffix}1.000",
+            f"{prefix}0.50      | area=   all | {suffix}1.000",
+            f"{prefix}0.75      | area=   all | {suffix}1.000",
+            f"{prefix}0.50:0.95 | area=medium | {suffix}1.000",
+            f"{prefix}0.50:0.95 | area= large | {suffix}-1.000",
+        ]
 
     def test_to_pandas_holds_overall_scores(self) -> None:
         """The DataFrame has one row with the overall mAP columns."""
@@ -1265,7 +1287,7 @@ class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
             [_triangle_key_points(), hidden_target],
         ).compute()
 
-        assert result.map50 == pytest.approx(expected_map50, abs=0.01)
+        assert result.map50 == pytest.approx(expected_map50)
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     def test_non_finite_prediction_keypoint_adds_zero(self, value: float) -> None:
