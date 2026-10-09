@@ -13,15 +13,16 @@ from supervision.depth.colormaps import DepthColormap, _colorize
 from supervision.depth.core import (
     DepthKind,
     DepthMap,
-    DepthQuantity,
+    DepthScale,
     _Conversion,
+    _holds_depth,
     _index_map,
     _resolve_conversion,
 )
 from supervision.draw.base import ImageType
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
 
-#: Colour range, in the coloured quantity's unit, for a map that holds no depth.
+#: Colour range, in the coloured scale's unit, for a map that holds no depth.
 _FALLBACK_RANGE = (0.0, 1.0)
 #: Percentile of the valid values at a computed colour range's low end, shared by
 #: `display_range="auto"` and `DepthClipRange.from_depth_maps`.
@@ -60,39 +61,42 @@ class DepthAnnotator:
     def __init__(
         self,
         colormap: DepthColormap | str = DepthColormap.TURBO,
-        quantity: DepthQuantity | str = DepthQuantity.DISPARITY,
         display_range: str | tuple[float, float] | DepthClipRange = "auto",
         opacity: float = 1.0,
+        scale: DepthScale | str = DepthScale.INVERSE,
     ) -> None:
         """
         Args:
             colormap: Colour table: `"turbo"` (default), `"viridis"`, `"cividis"`,
                 `"inferno"`, `"magma"` or `"grayscale"`. The near end is always the
                 warm or bright end.
-            quantity: `"disparity"` (default) colours disparity, or inverse depth for a
-                metric map, which spends colour on near detail the way stereo
-                measures it. `"depth"` colours metres; it needs a `depth_m` map or a
-                disparity map with a camera.
             display_range: The values the colour table spans; values outside clamp
                 to its ends.
                 `"auto"` (default) uses this map's 2nd to 98th percentile. When
                 they coincide, as on a flat map, every pixel takes the far-end
                 colour.
                 A `(low, high)` tuple fixes the range in the map's own unit,
-                whatever the `quantity`: metres for `depth_m`, pixels for
+                whatever the `scale`: metres for `depth_m`, pixels for
                 `disparity_px` and the raw values for `relative_inverse`. Whatever
                 the unit, the near end of the range takes the warm colour.
+                Pixels of a `disparity_px` range belong to the map's resolution:
+                disparity scales with width, so the same tuple means another
+                depth after `resize`.
                 A `sv.DepthClipRange` uses one range, in the maps' own unit like a
                 tuple, for every frame of a clip.
             opacity: Opacity of the colours over the scene, from 0 to 1. Values
                 outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
                 the pixels that have depth.
+            scale: `"inverse"` (default) colours disparity, or inverse depth for a
+                metric map, which spends colour on near detail the way stereo
+                measures it. `"metric"` colours metres; it needs a `depth_m` map or a
+                disparity map with a camera.
 
         Raises:
-            ValueError: If `colormap`, `quantity` or `display_range` is invalid.
+            ValueError: If `colormap`, `scale` or `display_range` is invalid.
         """
         self.colormap = DepthColormap.from_value(colormap)
-        self.quantity = DepthQuantity.from_value(quantity)
+        self.scale = DepthScale.from_value(scale)
         self.display_range = _check_display_range_option(display_range)
         self.opacity = opacity
 
@@ -117,8 +121,8 @@ class DepthAnnotator:
 
         Raises:
             TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
-            ValueError: If `scene` is not a 3-channel `uint8` image, if the quantity
-                is impossible for this map, for example `"depth"` for a relative
+            ValueError: If `scene` is not a 3-channel `uint8` image, if the scale
+                is impossible for this map, for example `"metric"` for a relative
                 map, or if `display_range` gives no usable colour range for this
                 map's kind, such as a `depth_m` range with `low <= 0`.
 
@@ -148,17 +152,18 @@ class DepthAnnotator:
             raise ValueError(
                 f"DepthAnnotator draws on uint8 images, got dtype {scene.dtype}."
             )
-        conversion = _resolve_conversion(
-            depth_map.kind, depth_map.camera, self.quantity
-        )
-        # A disparity with `disparity + doffs_px <= 0` has no distance, so colouring
-        # metres keeps only the pixels `to_depth` keeps.
-        coloured = (
-            depth_map.to_depth() if self.quantity is DepthQuantity.DEPTH else depth_map
-        )
-        valid = coloured.valid_mask
+        conversion = _resolve_conversion(depth_map.kind, depth_map.camera, self.scale)
+        # The frame is converted once, for both the mask and the colours.
+        converted = conversion.apply(depth_map.values)
+        valid = depth_map.valid_mask
+        if self.scale is DepthScale.METRIC and depth_map.kind is DepthKind.DISPARITY_PX:
+            # A disparity with `disparity + doffs_px <= 0`, or one whose distance
+            # overflows, has no distance, so colouring metres keeps only the pixels
+            # `to_depth` keeps.
+            with np.errstate(invalid="ignore"):
+                valid &= _holds_depth(converted, DepthKind.DEPTH_M)
         value_range = self._resolve_range(depth_map, valid, conversion)
-        coordinates = _color_coordinates(depth_map, valid, conversion, value_range)
+        coordinates = _color_coordinates(converted, valid, conversion, value_range)
         colors = _colorize(coordinates, self.colormap)
 
         scene_height, scene_width = scene.shape[:2]
@@ -180,7 +185,7 @@ class DepthAnnotator:
         valid: npt.NDArray[np.bool_],
         conversion: _Conversion,
     ) -> tuple[float, float]:
-        """Return the colour range in the quantity's unit for this map.
+        """Return the colour range in the scale's unit for this map.
 
         An explicit range or clip range is converted from the map's unit. `"auto"`
         spans the pixels set in `valid`; a map without any depth falls back to
@@ -206,7 +211,9 @@ class DepthClipRange:
     model's own frame-to-frame wobble becomes more visible.
 
     A clip range applies to maps of the kind it was computed from; on maps of another
-    kind its values would be read in the wrong unit.
+    kind its values would be read in the wrong unit. A `disparity_px` clip range also
+    applies to maps of the resolution it was computed at, because disparity scales
+    with the map's width.
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' own unit, read like a
@@ -433,17 +440,17 @@ def _percentile_range(
 ) -> tuple[float, float] | None:
     """Return the nearest-rank percentile range of a map's valid values.
 
-    It is the range `display_range="auto"` uses, converted to the coloured quantity,
+    It is the range `display_range="auto"` uses, converted to the coloured scale,
     such as inverse depth for a metric map coloured as `"disparity"`.
 
     Args:
         values: The map's valid values in the kind's unit, as a 1D array.
-        conversion: The conversion from the kind's unit to the coloured quantity.
+        conversion: The conversion from the kind's unit to the coloured scale.
         low: Lower percentile, from 0 to 100.
         high: Upper percentile, from 0 to 100.
 
     Returns:
-        `(low, high)` in the coloured quantity's unit, equal ends for a flat map, or
+        `(low, high)` in the coloured scale's unit, equal ends for a flat map, or
         `None` when there are no values or a converted end is not finite.
 
     Raises:
@@ -479,22 +486,21 @@ def _nearest_rank(count: int, fraction: float) -> int:
 
 
 def _color_coordinates(
-    depth_map: DepthMap,
+    converted: npt.NDArray[np.floating],
     valid: npt.NDArray[np.bool_],
     conversion: _Conversion,
     value_range: tuple[float, float],
 ) -> npt.NDArray[np.floating]:
     """Return each pixel's colour coordinate in `[0, 1]`, 1 at the near end.
 
-    `t = clamp((v - low) / (high - low))`, flipped when the quantity's low end is
+    `t = clamp((v - low) / (high - low))`, flipped when the scale's low end is
     near. A flat range, `low == high`, maps every pixel to 0, the far end, as
     matplotlib's `Normalize` does. Pixels not set in `valid` get 0; they are not
-    painted.
+    painted. `converted` holds the map's values already in the coloured scale.
     """
     low, high = value_range
     if low == high:
-        return np.zeros(depth_map.values.shape, dtype=np.float32)
-    converted = conversion.apply(depth_map.values)
+        return np.zeros(converted.shape, dtype=np.float32)
     span = np.float32(high - low)
     # The subtraction allocates the result, so the map's values are never written;
     # pixels without depth may hold any float until they are zeroed below.

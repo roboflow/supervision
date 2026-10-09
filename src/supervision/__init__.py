@@ -50,7 +50,8 @@ from supervision.depth.core import (
     DepthCamera,
     DepthKind,
     DepthMap,
-    DepthQuantity,
+    DepthResizeMethod,
+    DepthScale,
 )
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
@@ -195,7 +196,8 @@ __all__ = [
     "DepthColormap",
     "DepthKind",
     "DepthMap",
-    "DepthQuantity",
+    "DepthResizeMethod",
+    "DepthScale",
     "DetectionDataset",
     "Detections",
     "DetectionsSmoother",

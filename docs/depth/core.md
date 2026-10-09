@@ -22,3 +22,9 @@ description: Hold depth, disparity and relative depth maps in sv.DepthMap, conve
 </div>
 
 :::supervision.depth.core.DepthKind
+
+<div class="md-typeset">
+    <h2><a href="#supervision.depth.core.DepthResizeMethod">DepthResizeMethod</a></h2>
+</div>
+
+:::supervision.depth.core.DepthResizeMethod
