@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+import numpy as np
+import numpy.typing as npt
+
 from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -41,6 +45,73 @@ def _append_object_size_plot_details(
         labels.extend(f"{name}: {metric_label}" for metric_label in metric_labels)
         values.extend(value_getter(object_sizes))
         colors.extend([LEGACY_COLOR_PALETTE[palette_index]] * len(metric_labels))
+
+
+def _mean_valid_score(scores: npt.NDArray[np.float64]) -> float:
+    """Average the scores that are not the `-1` sentinel, or return `-1`."""
+    valid_scores = scores[scores > -1]
+    if len(valid_scores) > 0:
+        return float(valid_scores.mean())
+    return -1
+
+
+def _scores_to_pandas(
+    scores: dict[str, float],
+    object_sizes: list[tuple[str, MetricResult | None]],
+) -> pd.DataFrame:
+    """Build a one-row DataFrame of scores and prefixed per-size scores.
+
+    Args:
+        scores: Column name to score for the overall result.
+        object_sizes: `(prefix, result)` pairs; each present result's own
+            `to_pandas` columns are added as `{prefix}_{column}`.
+
+    Returns:
+        A DataFrame with a single row.
+    """
+    ensure_pandas_installed()
+    import pandas as pd
+
+    pandas_data: dict[str, object] = dict(scores)
+    for prefix, result in object_sizes:
+        if result is None:
+            continue
+        for key, value in result.to_pandas().items():
+            pandas_data[f"{prefix}_{key}"] = value
+    return pd.DataFrame(pandas_data, index=[0])
+
+
+def _show_bar_plot(details: PlotDetails) -> None:
+    """Draw score bars with their values on a `[0, 1]` axis and show them."""
+    from matplotlib import pyplot as plt
+
+    plt.rcParams["font.family"] = "monospace"
+
+    _, ax = plt.subplots(figsize=(10, 6))
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Value", fontweight="bold")
+    ax.set_title(details.title, fontweight="bold")
+
+    x_positions = range(len(details.labels))
+    bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(details.labels, rotation=45, ha="right")
+
+    for bar in bars:
+        y_value = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            y_value + 0.02,
+            f"{y_value:.2f}",
+            ha="center",
+            va="bottom",
+        )
+
+    plt.rcParams["font.family"] = "sans-serif"
+
+    plt.tight_layout()
+    plt.show()
 
 
 @dataclass
