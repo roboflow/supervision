@@ -1263,8 +1263,12 @@ class COCOEvaluator:
                 if iou_thr is None
                 else f"{iou_thr:0.2f}"
             )
-            all_object_sizes = list(ObjectSize)
-            area_range_idx = all_object_sizes.index(area_range)
+            # Look the size up by its area range, not its enum position, since
+            # an evaluator may keep only some sizes (keypoints have no small one).
+            evaluated_area_ranges = [tuple(area) for area in self.params.area_range]
+            area_range_idx = evaluated_area_ranges.index(
+                _OBJECT_SIZE_AREA_RANGES[area_range]
+            )
             max_detections_idx = self.params.max_dets.index(max_dets)
             if use_ap:
                 # Dimension of precision:

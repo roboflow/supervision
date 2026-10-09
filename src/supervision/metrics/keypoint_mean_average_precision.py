@@ -40,11 +40,6 @@ _KEYPOINT_MAX_DETECTIONS = 20
 #: Object sizes COCO keypoint evaluation reports, as `pycocotools` `setKpParams`.
 _KEYPOINT_OBJECT_SIZES = (ObjectSize.ALL, ObjectSize.MEDIUM, ObjectSize.LARGE)
 
-# Local aliases of the public `config.py` keys, so the functions that read them
-# need no edit; inline the public names when those functions next change.
-_XYXY_DATA_FIELD = XYXY_DATA_FIELD
-_ISCROWD_DATA_FIELD = ISCROWD_DATA_FIELD
-
 
 @dataclass
 class KeyPointMeanAveragePrecisionResult(MetricResult):
@@ -337,7 +332,8 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
       rather than counted, and it is never a miss, in every size bucket. Its
       area is `targets.data["area"]` or, if absent, the box area. Without
       boxes the target is skipped, so a prediction that lands on it counts as
-      a false positive. Boxes of targets with visible keypoints are not used.
+      a false positive; if it was the class's only target, the class has no
+      targets and scores `-1`. Boxes of targets with visible keypoints are not used.
     - **Area.** OKS is normalized by the target's object area. Pass it as
       `targets.data["area"]` (the same key `MeanAveragePrecision` reads) to
       reproduce COCO, which uses the annotated segmentation area. Without it,
@@ -471,17 +467,17 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             ("targets", targets),
         ):
             for key_points in key_points_list:
-                boxes = key_points.data.get(_XYXY_DATA_FIELD)
+                boxes = key_points.data.get(XYXY_DATA_FIELD)
                 if boxes is not None and np.shape(boxes) != (len(key_points), 4):
                     raise ValueError(
-                        f"`{name}.data['{_XYXY_DATA_FIELD}']` must have shape "
+                        f"`{name}.data['{XYXY_DATA_FIELD}']` must have shape "
                         f"({len(key_points)}, 4); got {np.shape(boxes)}."
                     )
         for key_points in targets:
-            iscrowd = key_points.data.get(_ISCROWD_DATA_FIELD)
+            iscrowd = key_points.data.get(ISCROWD_DATA_FIELD)
             if iscrowd is not None and np.shape(iscrowd) != (len(key_points),):
                 raise ValueError(
-                    f"`targets.data['{_ISCROWD_DATA_FIELD}']` must have shape "
+                    f"`targets.data['{ISCROWD_DATA_FIELD}']` must have shape "
                     f"({len(key_points)},); got {np.shape(iscrowd)}."
                 )
             _check_target_areas(key_points)
@@ -595,10 +591,10 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
             # may be the caller's array.
             visible = visible & np.isfinite(xy).all(axis=-1)
             areas = image_targets.data.get(AREA_DATA_FIELD)
-            boxes = image_targets.data.get(_XYXY_DATA_FIELD)
+            boxes = image_targets.data.get(XYXY_DATA_FIELD)
             if boxes is not None:
                 boxes = np.asarray(boxes, dtype=np.float64)
-            iscrowd = image_targets.data.get(_ISCROWD_DATA_FIELD)
+            iscrowd = image_targets.data.get(ISCROWD_DATA_FIELD)
             # Per-image arrays, so that the loop below only picks rows. Rows of
             # targets without visible keypoints are infinite and never read.
             span_boxes = _keypoints_xywh(xy, visible)
@@ -654,7 +650,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
                 continue
             xy = image_predictions.xy[..., :2].astype(np.float64)
             confidence = image_predictions.detection_confidence
-            boxes = image_predictions.data.get(_XYXY_DATA_FIELD)
+            boxes = image_predictions.data.get(XYXY_DATA_FIELD)
             # Per-image arrays, so that the loop below only picks rows.
             if boxes is None:
                 bboxes = _keypoints_xywh(xy)
