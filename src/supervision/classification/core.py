@@ -181,6 +181,9 @@ class Classifications:
         Returns:
             A tuple containing the top k class IDs and confidences.
 
+        Raises:
+            ValueError: If confidence is missing or `k` is negative.
+
         Example:
             ```pycon
             >>> import numpy as np
@@ -196,6 +199,8 @@ class Classifications:
         """
         if self.confidence is None:
             raise ValueError("top_k could not be calculated, confidence is None")
+        if k < 0:
+            raise ValueError("k must be non-negative")
 
         order = np.argsort(self.confidence)[::-1]
         top_k_order = order[:k]

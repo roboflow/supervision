@@ -449,9 +449,15 @@ def process_roboflow_result(
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if compact_masks:
+                # Every filled pixel lies within the polygon's vertex extent, so
+                # cropping to it is lossless and encodes the object, not the frame.
+                # from_dense clips the box to the image.
+                polygon_xyxy = np.concatenate(
+                    [polygon.min(axis=0), polygon.max(axis=0)]
+                ).astype(np.float64)
                 _polygon_compact_map[xyxy_idx] = CompactMask.from_dense(
                     masks=mask[np.newaxis, ...],
-                    xyxy=_full_image_xyxy(1, image_height, image_width),
+                    xyxy=polygon_xyxy[np.newaxis, :],
                     image_shape=(image_height, image_width),
                 )
             else:

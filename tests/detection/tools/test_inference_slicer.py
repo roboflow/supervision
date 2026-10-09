@@ -505,6 +505,60 @@ def test_inference_slicer_keeps_crossed_obb_detections(
 class TestInferenceSlicerBatch:
     """Tests for InferenceSlicer batch_size > 1 path."""
 
+    @pytest.mark.parametrize("empty_batches", [1, 2])
+    @pytest.mark.parametrize("batch_size", [2, 3])
+    def test_probes_empty_batches_before_serializing_obb(
+        self, empty_batches: int, batch_size: int
+    ) -> None:
+        """OBB callbacks stay on the caller thread after leading empty batches."""
+        tile_count = (empty_batches + 3) * batch_size - 1
+        empty_tiles = empty_batches * batch_size
+        image = np.repeat(np.arange(tile_count, dtype=np.uint8), 16)[None, :]
+        image = np.repeat(image, 16, axis=0)
+        caller_thread = threading.get_ident()
+        callback_threads: list[int] = []
+
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Return empty results before oriented detections in source order."""
+            callback_threads.append(threading.get_ident())
+            results = []
+            for tile in tiles:
+                index = int(tile[0, 0])
+                if index < empty_tiles:
+                    results.append(Detections.empty())
+                else:
+                    results.append(
+                        Detections(
+                            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+                            confidence=np.array([0.9]),
+                            class_id=np.array([index]),
+                            data={
+                                ORIENTED_BOX_COORDINATES: np.array(
+                                    [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+                                    dtype=float,
+                                )
+                            },
+                        )
+                    )
+            return results
+
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=16,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
+            detections = slicer(image)
+
+        assert callback_threads == [caller_thread] * (empty_batches + 3)
+        np.testing.assert_array_equal(
+            detections.class_id, np.arange(empty_tiles, tile_count)
+        )
+
     @pytest.mark.parametrize(
         "batch_size",
         [
@@ -829,6 +883,71 @@ class TestInferenceSlicerOrdering:
         assert detections.class_id is not None
         assert detections.class_id.tolist() == list(range(slice_count))
 
+    @pytest.mark.parametrize("empty_batches", [1, 2])
+    @pytest.mark.parametrize("batch_size", [2, 3])
+    def test_empty_batches_resume_threading_in_source_order(
+        self, empty_batches: int, batch_size: int
+    ) -> None:
+        """Empty probes precede exactly-once worker callbacks and ordered output."""
+        empty_tiles = empty_batches * batch_size
+        first_worker_tile = empty_tiles + batch_size
+        tile_count = first_worker_tile + 3 * batch_size - 1
+        caller_thread = threading.get_ident()
+        calls: list[tuple[tuple[int, ...], int]] = []
+        completed: list[int] = []
+        record_lock = threading.Lock()
+        last_batch_started = threading.Event()
+
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
+            """Record real callback threads and force a later worker to finish first."""
+            indexes = tuple(int(tile[0, 0, 0]) for tile in tiles)
+            with record_lock:
+                calls.append((indexes, threading.get_ident()))
+            # With two workers, starting the third worker batch proves the second
+            # batch's Future completed while the first was still blocked.
+            if indexes[0] == first_worker_tile:
+                assert last_batch_started.wait(timeout=self.GATE_TIMEOUT_SECONDS)
+            elif indexes[0] == first_worker_tile + 2 * batch_size:
+                last_batch_started.set()
+            results = [
+                Detections.empty()
+                if index < empty_tiles
+                else self._detections_for(index)
+                for index in indexes
+            ]
+            with record_lock:
+                completed.append(indexes[0])
+            return results
+
+        image = self._striped_image(tile_count)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=2,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        detections = slicer(image)
+
+        assert sorted(index for indexes, _ in calls for index in indexes) == list(
+            range(tile_count)
+        )
+        assert sorted(len(indexes) for indexes, _ in calls) == [batch_size - 1] + [
+            batch_size
+        ] * (empty_batches + 3)
+        assert all(
+            (thread == caller_thread) == (indexes[0] < first_worker_tile)
+            for indexes, thread in calls
+        )
+        assert completed.index(first_worker_tile + batch_size) < completed.index(
+            first_worker_tile
+        )
+        np.testing.assert_array_equal(
+            detections.class_id, np.arange(empty_tiles, tile_count)
+        )
+
     def test_threaded_batches_merge_in_source_order(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -980,11 +1099,10 @@ class TestInferenceSlicerMetadata:
     def test_metadata_keys_missing_across_slices_are_dropped(self) -> None:
         """A metadata key present in only some slices is dropped from the merge.
 
-        Each slice is stamped with its own index so the callback keys its
-        per-slice-only metadata off the physical slice content, matching the
-        content-keyed pattern used by ``TestInferenceSlicerDroppedMetadataWarning``
-        — never off callback invocation order, which threaded execution does not
-        guarantee.
+        Each slice is stamped with its own index so the callback keys its per-slice-only
+        metadata off the physical slice content, matching the content-keyed pattern used
+        by ``TestInferenceSlicerDroppedMetadataWarning`` — never off callback invocation
+        order, which threaded execution does not guarantee.
         """
         slice_wh = (100, 100)
         overlap_wh = (20, 20)
@@ -1127,10 +1245,10 @@ class TestInferenceSlicerMetadata:
         """All-empty per-slice results merge to an empty `Detections`, cleanly.
 
         Every slice's callback returns zero detections, so the `non_empty` filter in
-        `_merge_slice_detections` collapses to an empty list before any
-        `source_image` recovery or `merge_metadata_lenient` call runs. This must not
-        crash, and `source_image` must be genuinely absent from the merged result
-        rather than silently expected but missing.
+        `_merge_slice_detections` collapses to an empty list before any `source_image`
+        recovery or `merge_metadata_lenient` call runs. This must not crash, and
+        `source_image` must be genuinely absent from the merged result rather than
+        silently expected but missing.
         """
         rng = np.random.default_rng(9)
         image = rng.integers(0, 255, (200, 200, 3), dtype=np.uint8)
@@ -1162,8 +1280,8 @@ class TestInferenceSlicerMetadata:
 
         `slice_wh` at least as large as the image produces exactly one slice, so
         `_merge_slice_detections` sees a single-element `non_empty` list — the path
-        `merge_metadata_lenient` handles via its single-dictionary case. ndarray and
-        PIL inputs must behave identically here.
+        `merge_metadata_lenient` handles via its single-dictionary case. ndarray and PIL
+        inputs must behave identically here.
         """
         rng = np.random.default_rng(8)
         array = rng.integers(0, 255, (100, 100, 3), dtype=np.uint8)
@@ -1197,9 +1315,9 @@ class TestInferenceSlicerMetadata:
 
         Combines `thread_workers > 1` (concurrent slice execution) with
         `OverlapFilter.NON_MAX_MERGE` and metadata that conflicts across slices — a
-        combination no existing test exercises. `source_image` must still be
-        restored, and the dropped-key warning must still fire exactly once, despite
-        detections arriving from multiple worker threads.
+        combination no existing test exercises. `source_image` must still be restored,
+        and the dropped-key warning must still fire exactly once, despite detections
+        arriving from multiple worker threads.
         """
         rng = np.random.default_rng(11)
         image = rng.integers(0, 255, (512, 512, 3), dtype=np.uint8)

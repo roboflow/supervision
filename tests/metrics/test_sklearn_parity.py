@@ -1,8 +1,8 @@
 """Compare detection-style metric outcomes with live scikit-learn results.
 
-Unmatched targets and predictions are represented by ``BACKGROUND_CLASS_ID`` in
-the sklearn event stream, while evaluated labels contain only foreground classes.
-This produces the same per-class TP, FP, and FN counts as Supervision's metrics.
+Unmatched targets and predictions are represented by ``BACKGROUND_CLASS_ID`` in the
+sklearn event stream, while evaluated labels contain only foreground classes. This
+produces the same per-class TP, FP, and FN counts as Supervision's metrics.
 """
 
 from collections.abc import Callable

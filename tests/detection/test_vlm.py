@@ -1190,7 +1190,6 @@ class TestFromFlorence2Segmentation:
         detections = Detections.from_vlm(
             vlm=VLM.FLORENCE_2, result=florence_result, resolution_wh=(10, 10)
         )
-
         assert len(detections) == 0
         assert detections.xyxy.shape == (0, 4)
 
@@ -1224,7 +1223,6 @@ class TestFromFlorence2Segmentation:
         expected_mask[0, 3:8, 3:8] = True
 
         _, _, masks, _ = from_florence_2(florence_result, (10, 10))
-
         np.testing.assert_array_equal(masks, expected_mask)
 
     def test_accepts_float_resolution(self) -> None:
@@ -1237,7 +1235,6 @@ class TestFromFlorence2Segmentation:
         }
 
         _, _, masks, _ = from_florence_2(florence_result, (10.0, 10.0))  # type: ignore[arg-type]
-
         assert masks is not None
         assert masks.shape == (1, 10, 10)
 
@@ -1676,7 +1673,6 @@ def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability() -
     )
 
     _, _, _, _, masks = from_google_gemini_2_5(result=result, resolution_wh=(2, 2))
-
     assert masks is not None
     np.testing.assert_array_equal(masks, [[[True, True], [False, False]]])
 
@@ -1847,7 +1843,6 @@ def test_from_google_gemini_3_5_recovers_malformed_array():
     xyxy, _, class_name, _, _ = from_google_gemini_3_5(
         result=result, resolution_wh=(640, 480)
     )
-
     assert xyxy.shape == (2, 4)
     assert list(class_name) == ["cat", "dog"]
 
@@ -1865,7 +1860,6 @@ def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation() -> None:
         result=result,
         resolution_wh=(100, 80),
     )
-
     np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
     np.testing.assert_array_equal(detections.class_id, [0])
     np.testing.assert_array_equal(
@@ -1893,7 +1887,6 @@ def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items() -> None:
         resolution_wh=(100, 80),
         classes=["dog"],
     )
-
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
     assert detections.mask is not None
@@ -1913,7 +1906,6 @@ def test_from_vlm_google_gemini_3_7_parses_structured_output() -> None:
         result=result,
         resolution_wh=(100, 80),
     )
-
     np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
     np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["glass"])
     assert detections.mask is not None
@@ -1943,7 +1935,6 @@ def test_from_vlm_google_gemini_3_6_masks_survive_when_filtered_item_lacks_mask(
         resolution_wh=(100, 80),
         classes=["cat"],
     )
-
     assert detections.mask is not None
     assert detections.mask.shape == (1, 80, 100)
 
@@ -2019,7 +2010,6 @@ def test_from_vlm_google_gemini_3_6_malformed_polygon_degrades_to_empty_mask(
         result=result,
         resolution_wh=(100, 80),
     )
-
     assert detections.mask is not None
     assert detections.mask.shape == (1, 80, 100)
     assert not detections.mask.any()
@@ -2045,7 +2035,6 @@ def test_from_vlm_google_gemini_3_7_class_filter_can_remove_all_items() -> None:
         resolution_wh=(100, 80),
         classes=["dog"],
     )
-
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
     assert detections.mask is not None
@@ -2163,7 +2152,6 @@ class TestFromVlmCornerOrdering:
             '[{"box_2d": [100, 200, 400, 300], "label": "cat"}]',
             resolution_wh=(1000, 800),
         )
-
         assert np.array_equal(transposed.xyxy, upright.xyxy)
 
     def test_ordered_model_corners_are_unchanged(self) -> None:
@@ -2173,7 +2161,6 @@ class TestFromVlmCornerOrdering:
             {"<OD>": {"bboxes": [[10.0, 20.0, 30.0, 40.0]], "labels": ["cat"]}},
             resolution_wh=(1000, 800),
         )
-
         assert np.array_equal(detections.xyxy, np.array([[10.0, 20.0, 30.0, 40.0]]))
         assert detections.xyxy.dtype == np.float32
 
@@ -2231,7 +2218,6 @@ class TestFromKosmos2:
         detections = Detections.from_vlm(
             vlm=VLM.KOSMOS_2, result=result, resolution_wh=resolution_wh
         )
-
         assert np.allclose(detections.xyxy, expected_xyxy)
         np.testing.assert_array_equal(
             detections.data[CLASS_NAME_DATA_FIELD], expected_class_name
@@ -2247,7 +2233,6 @@ class TestFromKosmos2:
         detections = Detections.from_vlm(
             vlm=VLM.KOSMOS_2, result=result, resolution_wh=(100, 100)
         )
-
         assert np.allclose(
             detections.xyxy,
             np.array([[10.0, 10.0, 30.0, 30.0], [50.0, 50.0, 70.0, 70.0]]),
@@ -2270,7 +2255,6 @@ class TestFromKosmos2:
         detections = Detections.from_vlm(
             vlm=VLM.KOSMOS_2, result=result, resolution_wh=(100, 100)
         )
-
         np.testing.assert_array_equal(detections.class_id, np.array([0, 1, 0]))
 
     def test_classes_filter_assigns_index_into_classes(self) -> None:
@@ -2317,7 +2301,6 @@ class TestFromKosmos2:
             resolution_wh=(100, 100),
             classes=classes,
         )
-
         assert len(detections) == 0
         assert detections.class_id is not None
         assert detections.class_id.dtype == int
