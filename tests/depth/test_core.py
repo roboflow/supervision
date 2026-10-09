@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import base64
+import io
 import warnings
 from collections.abc import Callable
 from dataclasses import FrozenInstanceError
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision as sv
 from supervision.config import (
@@ -16,9 +20,89 @@ from supervision.config import (
 )
 from supervision.depth.core import _DATA_FIELD_BY_KIND, _Conversion
 from supervision.detection.compact_mask import CompactMask
+from tests.helpers import _FakeTensor
 
 #: A stereo rig whose `fx_px * baseline_m` is 100, so 100 px of disparity is 1 m.
 CAMERA = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1)
+
+
+def _png_bytes(
+    values: np.ndarray, image_format: str = "PNG", mode: str | None = None
+) -> bytes:
+    """Encode an array as an image file, converted to the PIL `mode` when given."""
+    image = Image.fromarray(values)
+    if mode is not None:
+        image = image.convert(mode)
+    buffer = io.BytesIO()
+    image.save(buffer, format=image_format)
+    return buffer.getvalue()
+
+
+def _png_base64(
+    values: np.ndarray, image_format: str = "PNG", mode: str | None = None
+) -> str:
+    """Encode a grayscale array as a base64 PNG, as the inference server does."""
+    return base64.b64encode(_png_bytes(values, image_format, mode)).decode("ascii")
+
+
+#: A valid 16-bit grayscale PNG, long enough to be cut inside its header or its data.
+_DEPTH_PNG = _png_bytes((np.arange(1024) * 61).astype(np.uint16).reshape(32, 32))
+
+
+class _FakeDtypeTensor(_FakeTensor):
+    """Fake tensor that reports its `dtype`, as a torch tensor does."""
+
+    @property
+    def dtype(self) -> np.dtype:
+        """Return the dtype of the wrapped array."""
+        return self._arr.dtype
+
+
+class _FakeUltralyticsDepth:
+    """Ultralytics-like `DepthMap` exposing a tensor in `data`."""
+
+    def __init__(self, depth: np.ndarray) -> None:
+        """Wrap the depth array in a fake tensor that reports its dtype."""
+        self.data = _FakeDtypeTensor(depth)
+
+
+class _FakeUltralyticsResult:
+    """Ultralytics-like `Results` with an optional `depth` attribute."""
+
+    def __init__(self, depth: np.ndarray | None) -> None:
+        """Attach a depth map, or none when `depth` is None."""
+        self.depth = None if depth is None else _FakeUltralyticsDepth(depth)
+
+
+class _FakeBfloat16GradTensor(_FakeTensor):
+    """Torch-like bfloat16 tensor with grad: `numpy()` needs `detach` and `float`."""
+
+    def __init__(self, arr: np.ndarray, pending: frozenset[str] | None = None) -> None:
+        """Wrap the array with the calls still owed before `numpy()`."""
+        super().__init__(arr)
+        self._pending = frozenset({"detach", "float"}) if pending is None else pending
+
+    def detach(self) -> _FakeBfloat16GradTensor:
+        """Drop the grad, as `torch.Tensor.detach` does."""
+        return _FakeBfloat16GradTensor(self._arr, self._pending - {"detach"})
+
+    def float(self) -> _FakeBfloat16GradTensor:
+        """Widen to float32, as `torch.Tensor.float` does."""
+        return _FakeBfloat16GradTensor(self._arr, self._pending - {"float"})
+
+    def numpy(self) -> np.ndarray:
+        """Refuse like torch while the tensor still has grad or is bfloat16."""
+        if self._pending:
+            raise RuntimeError(f"call {sorted(self._pending)} before numpy()")
+        return self._arr
+
+
+class _FakeDepthEstimatorOutput:
+    """Transformers-like model output exposing `predicted_depth`."""
+
+    def __init__(self, predicted_depth: Any) -> None:
+        """Store the prediction as `predicted_depth`."""
+        self.predicted_depth = predicted_depth
 
 
 def _dense_masks(masks: np.ndarray, xyxy: np.ndarray) -> np.ndarray:
@@ -242,6 +326,405 @@ class TestDepthMapToFloat:
         result = sv.DepthMap(values, kind=kind).to_float(no_depth_value=9.0)
 
         assert result.tolist() == [expected]
+
+
+class _FakeLMMInferenceResponse:
+    """Inference-like in-process response holding the depth in a `response` dict."""
+
+    def __init__(self, normalized_depth: np.ndarray) -> None:
+        """Hold the depth under `response`, as Inference's depth models return it."""
+        self.response = {"normalized_depth": normalized_depth}
+
+
+class TestDepthMapFromInference:
+    @pytest.mark.parametrize(
+        ("result", "expected"),
+        [
+            pytest.param(
+                {"normalized_depth": [[0.0, 0.5], [1.0, 0.25]]},
+                [[0.0, 0.5], [1.0, 0.25]],
+                id="json",
+            ),
+            pytest.param(
+                {
+                    "normalized_depth": _png_base64(
+                        np.array([[0, 65535], [32768, 0]], dtype=np.uint16)
+                    ),
+                    "depth_map_format": "png16",
+                },
+                [[0.0, 1.0], [32768 / 65535, 0.0]],
+                id="png16",
+            ),
+            pytest.param(
+                {
+                    "normalized_depth": _png_base64(
+                        np.array([[0, 255], [51, 0]], dtype=np.uint8)
+                    ),
+                    "depth_map_format": "png8",
+                },
+                [[0.0, 1.0], [0.2, 0.0]],
+                id="png8",
+            ),
+            pytest.param(
+                SimpleNamespace(normalized_depth=[[0.0, 0.5]]),
+                [[0.0, 0.5]],
+                id="response-object",
+            ),
+            pytest.param(
+                {"normalized_depth": [[[0.0, 0.5], [1.0, 0.25]]]},
+                [[0.0, 0.5], [1.0, 0.25]],
+                id="json-with-leading-unit-axis",
+            ),
+            pytest.param(
+                {"normalized_depth": _FakeBfloat16GradTensor(np.array([[0.0, 0.5]]))},
+                [[0.0, 0.5]],
+                id="tensor",
+            ),
+        ],
+    )
+    def test_loads_every_depth_map_format(
+        self, result: Any, expected: list[list[float]]
+    ) -> None:
+        """Json, png16, png8, response objects and tensors load as relative depth."""
+        depth_map = sv.DepthMap.from_inference(result)
+
+        assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
+        assert depth_map.valid_mask.all()
+        np.testing.assert_allclose(depth_map.to_float(), expected, rtol=1e-6)
+
+    def test_loads_json_null_as_a_pixel_without_depth(self) -> None:
+        """A `null` in a json depth map, how JSON spells NaN, is no depth."""
+        result = {"normalized_depth": [[None, 0.5]]}
+
+        depth_map = sv.DepthMap.from_inference(result)
+
+        assert depth_map.valid_mask.tolist() == [[False, True]]
+        np.testing.assert_array_equal(depth_map.to_float(), [[np.nan, 0.5]])
+
+    def test_unwraps_an_in_process_model_response(self) -> None:
+        """`get_model(...).infer(image)[0]` keeps its depth in a `response` dict."""
+        result = _FakeLMMInferenceResponse(np.array([[0.0, 1.0]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_inference(result)
+
+        np.testing.assert_array_equal(depth_map.to_float(), [[0.0, 1.0]])
+
+    @pytest.mark.parametrize(
+        ("result", "match"),
+        [
+            pytest.param([{"normalized_depth": [[0.0]]}], "single result", id="list"),
+            pytest.param({"predictions": []}, "normalized_depth", id="no-depth"),
+            pytest.param(object(), "normalized_depth", id="not-a-depth-result"),
+            pytest.param(
+                {"normalized_depth": np.ones((2, 2), np.int32)},
+                "int32",
+                id="integer-dtype",
+            ),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2, 3), dtype=np.uint8))},
+                "grayscale",
+                id="rgb-png",
+            ),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2, 2), np.uint8))},
+                "grayscale",
+                id="gray-alpha-png",
+            ),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2), np.uint8), mode="P")},
+                "grayscale",
+                id="palette-png",
+            ),
+            pytest.param({"normalized_depth": "@@@@"}, "base64", id="invalid-base64"),
+            pytest.param(
+                {"normalized_depth": base64.b64encode(b"not a png").decode()},
+                "decodable",
+                id="undecodable-png",
+            ),
+            pytest.param(
+                {"normalized_depth": _png_base64(np.zeros((2, 2), np.uint8), "JPEG")},
+                "must be a PNG",
+                id="jpeg",
+            ),
+        ],
+    )
+    def test_rejects_invalid_results(self, result: Any, match: str) -> None:
+        """Lists, results without depth and non-grayscale or non-PNG images fail."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_inference(result)
+
+
+class TestDepthMapFromUltralytics:
+    def test_loads_metric_depth(self) -> None:
+        """YOLO26 depth is metric, and its 0 pixels are no depth."""
+        result = _FakeUltralyticsResult(np.array([[0.0, 2.5]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_ultralytics(result)
+
+        assert depth_map.kind is sv.DepthKind.DEPTH_M
+        np.testing.assert_array_equal(depth_map.to_float(), [[np.nan, 2.5]])
+
+    def test_loads_a_raw_array_without_a_data_attribute(self) -> None:
+        """A `depth` holding the metres directly, not wrapped in `.data`, also loads."""
+        result = SimpleNamespace(depth=np.array([[0.0, 2.5]], dtype=np.float32))
+
+        depth_map = sv.DepthMap.from_ultralytics(result)
+
+        np.testing.assert_array_equal(depth_map.to_float(), [[np.nan, 2.5]])
+
+    @pytest.mark.parametrize(
+        ("result", "match"),
+        [
+            pytest.param(_FakeUltralyticsResult(None), "no depth map", id="no-depth"),
+            pytest.param(
+                _FakeUltralyticsResult(np.ones((2, 1, 2, 2), np.float32)),
+                "single",
+                id="batch-of-maps",
+            ),
+            pytest.param(
+                _FakeUltralyticsResult(np.ones((2, 2), np.int32)),
+                "int32",
+                id="integer-dtype",
+            ),
+            pytest.param(
+                [_FakeUltralyticsResult(np.ones((2, 2), np.float32))],
+                r"single result.*results\[0\]",
+                id="list-of-results",
+            ),
+        ],
+    )
+    def test_rejects_invalid_results(self, result: Any, match: str) -> None:
+        """Results without depth, batches, integer maps and lists are refused."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_ultralytics(result)
+
+
+class TestDepthMapFromTransformers:
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pytest.param(
+                {"predicted_depth": _FakeTensor(np.ones((1, 2, 3)))}, id="pipeline"
+            ),
+            pytest.param(
+                _FakeDepthEstimatorOutput(np.ones((1, 1, 2, 3))), id="model-output"
+            ),
+            pytest.param(
+                _FakeDepthEstimatorOutput(_FakeBfloat16GradTensor(np.ones((1, 2, 3)))),
+                id="bfloat16-output-with-grad",
+            ),
+        ],
+    )
+    def test_loads_predicted_depth_with_given_kind(self, result: Any) -> None:
+        """predicted_depth is squeezed to (H, W) and takes the given kind."""
+        depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
+
+        assert depth_map.kind is sv.DepthKind.RELATIVE_INVERSE
+        assert depth_map.resolution_wh == (3, 2)
+
+    @pytest.mark.parametrize(
+        ("result", "match"),
+        [
+            pytest.param(
+                [{"predicted_depth": np.ones((2, 2))}], "single result", id="list"
+            ),
+            pytest.param({"depth": None}, "no 'predicted_depth'", id="no-depth"),
+            pytest.param({"predicted_depth": np.ones((2, 2, 2))}, "single", id="batch"),
+            pytest.param(
+                {"predicted_depth": np.ones((2, 2), np.int32)},
+                "int32",
+                id="integer-dtype",
+            ),
+        ],
+    )
+    def test_rejects_invalid_results(self, result: Any, match: str) -> None:
+        """Lists, batches and results without predicted_depth are refused."""
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_transformers(result, kind="depth_m")
+
+
+def _write_pfm(
+    path: Any, values: np.ndarray, little_endian: bool, scale: float = 1.0
+) -> None:
+    """Write a grayscale PFM, rows bottom to top; the byte order is the scale sign."""
+    height, width = values.shape
+    signed_scale = -scale if little_endian else scale
+    dtype = "<f4" if little_endian else ">f4"
+    header = f"Pf\n{width} {height}\n{signed_scale}\n".encode()
+    path.write_bytes(header + values[::-1].astype(dtype).tobytes())
+
+
+class TestDepthMapFromFiles:
+    def test_from_png16_divides_by_scale(self, tmp_path: Any) -> None:
+        """A KITTI-style PNG loads as float32 code / scale, with NaN for code 0."""
+        codes = np.array([[0, 256], [5120, 65535]], dtype=np.uint16)
+        Image.fromarray(codes).save(tmp_path / "kitti.png")
+
+        depth_map = sv.DepthMap.from_png16(
+            tmp_path / "kitti.png", scale=256, kind="disparity_px"
+        )
+
+        assert depth_map.values.dtype == np.float32
+        np.testing.assert_array_equal(
+            depth_map.values, [[np.nan, 1.0], [20.0, 65535 / 256]]
+        )
+
+    @pytest.mark.parametrize(
+        ("codes", "image_format", "match"),
+        [
+            pytest.param(np.zeros((2, 2), np.uint8), "PNG", "16-bit", id="8-bit-png"),
+            pytest.param(
+                np.zeros((2, 2), np.uint16), "TIFF", "16-bit", id="16-bit-tiff"
+            ),
+            pytest.param(np.zeros((2, 2), np.uint8), "JPEG", "16-bit", id="jpeg"),
+            pytest.param(np.zeros((2, 2, 4), np.uint8), "PNG", "16-bit", id="rgba-png"),
+        ],
+    )
+    def test_from_png16_rejects_files_that_are_not_16_bit_grayscale_pngs(
+        self, tmp_path: Any, codes: np.ndarray, image_format: str, match: str
+    ) -> None:
+        """TIFF, JPEG, RGBA and 8-bit files are refused even when named `.png`."""
+        (tmp_path / "depth.png").write_bytes(_png_bytes(codes, image_format))
+
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_png16(tmp_path / "depth.png", scale=256, kind="depth_m")
+
+    @pytest.mark.parametrize(
+        "scale",
+        [
+            pytest.param(0, id="zero"),
+            pytest.param(-256, id="negative"),
+            pytest.param(float("nan"), id="nan"),
+            pytest.param(float("inf"), id="inf"),
+            pytest.param(1e-50, id="too-small-for-float32"),
+            pytest.param(1e39, id="too-large-for-float32"),
+            pytest.param("256", id="string"),
+            pytest.param(True, id="bool"),
+        ],
+    )
+    def test_from_png16_rejects_scale_that_is_not_a_float32_safe_positive_number(
+        self, tmp_path: Any, scale: Any
+    ) -> None:
+        """The scale must be a positive, finite number that float32 can divide by."""
+        Image.fromarray(np.ones((2, 2), np.uint16)).save(tmp_path / "depth.png")
+
+        with pytest.raises(ValueError, match="scale"):
+            sv.DepthMap.from_png16(tmp_path / "depth.png", scale=scale, kind="depth_m")
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            pytest.param(b"not a png", id="garbage"),
+            pytest.param(b"", id="empty"),
+            pytest.param(_DEPTH_PNG[:20], id="header-cut"),
+            pytest.param(_DEPTH_PNG[: len(_DEPTH_PNG) // 2], id="data-cut"),
+        ],
+    )
+    def test_from_png16_wraps_unreadable_files_in_value_error(
+        self, tmp_path: Any, content: bytes
+    ) -> None:
+        """A corrupt or truncated PNG raises `ValueError`, not a Pillow error."""
+        (tmp_path / "depth.png").write_bytes(content)
+
+        with pytest.raises(ValueError, match="PNG"):
+            sv.DepthMap.from_png16(tmp_path / "depth.png", scale=256, kind="depth_m")
+
+    def test_from_png16_scale_and_kind_are_keyword_only(self, tmp_path: Any) -> None:
+        """`scale` and `kind` are keyword-only, so they cannot be swapped."""
+        path = tmp_path / "depth.png"
+        Image.fromarray(np.ones((2, 2), np.uint16)).save(path)
+
+        with pytest.raises(TypeError):
+            sv.DepthMap.from_png16(path, 256, "depth_m")  # type: ignore[misc]
+
+    def test_from_pfm_takes_kind_by_keyword_only(self, tmp_path: Any) -> None:
+        """`kind` is keyword-only, so a stray second argument is not read as one."""
+        path = tmp_path / "disp0.pfm"
+        _write_pfm(path, np.ones((2, 2), np.float32), True)
+
+        with pytest.raises(TypeError):
+            sv.DepthMap.from_pfm(path, "depth_m")  # type: ignore[misc]
+
+    def test_from_png16_raises_file_not_found_for_a_missing_file(
+        self, tmp_path: Any
+    ) -> None:
+        """A path that does not exist stays a `FileNotFoundError`."""
+        with pytest.raises(FileNotFoundError):
+            sv.DepthMap.from_png16(tmp_path / "gone.png", scale=256, kind="depth_m")
+
+    @pytest.mark.parametrize(
+        ("little_endian", "scale"),
+        [
+            pytest.param(True, 1.0, id="little-endian"),
+            pytest.param(False, 1.0, id="big-endian"),
+            pytest.param(True, 0.25, id="little-endian-small-scale"),
+            pytest.param(False, 100.0, id="big-endian-large-scale"),
+        ],
+    )
+    def test_from_pfm_reads_rows_top_first_in_either_byte_order(
+        self, tmp_path: Any, little_endian: bool, scale: float
+    ) -> None:
+        """Rows are flipped, the scale sign picks the byte order, +inf is no depth.
+
+        The scale magnitude is not applied, and the kind defaults to disparity.
+        """
+        values = np.array([[1.0, 2.0, np.inf], [3.0, 4.0, 5.5]], dtype=np.float32)
+        _write_pfm(tmp_path / "disp0.pfm", values, little_endian, scale)
+
+        depth_map = sv.DepthMap.from_pfm(tmp_path / "disp0.pfm")
+
+        np.testing.assert_array_equal(depth_map.values, values)
+        assert depth_map.kind is sv.DepthKind.DISPARITY_PX
+        assert depth_map.valid_mask.tolist() == [[True, True, False], [True] * 3]
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            pytest.param(
+                b"Pf\n1 2\n1.0\n\x3f\x80\x00\x00\x40\x00\x00\x00", id="big-endian"
+            ),
+            pytest.param(
+                b"Pf\n1 2\n-1.0\n\x00\x00\x80\x3f\x00\x00\x00\x40", id="little-endian"
+            ),
+        ],
+    )
+    def test_from_pfm_reads_literal_file_bytes_bottom_row_first(
+        self, tmp_path: Any, content: bytes
+    ) -> None:
+        """A PFM written by hand stores 1.0 in its bottom row and 2.0 in its top row.
+
+        The bytes are spelled out rather than written by `_write_pfm`, so a reader and
+        a writer that misread the format the same way cannot cancel each other out.
+        """
+        (tmp_path / "file.pfm").write_bytes(content)
+
+        depth_map = sv.DepthMap.from_pfm(tmp_path / "file.pfm")
+
+        np.testing.assert_array_equal(depth_map.values, [[2.0], [1.0]])
+
+    @pytest.mark.parametrize(
+        ("content", "match"),
+        [
+            pytest.param(b"PF\n1 1\n-1.0\n" + b"\0" * 12, "colour", id="colour"),
+            pytest.param(b"P6\n1 1\n255\n\0\0\0", "not a PFM", id="ppm"),
+            pytest.param(b"Pf\n2 2\n-1.0\n\0\0\0\0", "truncated", id="truncated"),
+            pytest.param(b"Pf\n2 2", "incomplete", id="incomplete-header"),
+            pytest.param(b"Pf\n1 1\n0\n\0\0\0\0", "scale", id="zero-scale"),
+            pytest.param(b"Pf\n1 1\nnan\n\0\0\0\0", "scale", id="nan-scale"),
+            pytest.param(
+                b"Pf\n1 1\n-1.0", "incomplete|truncated", id="missing-scale-newline"
+            ),
+            pytest.param(b"Pf\n1 1\n", "incomplete|truncated", id="missing-scale-line"),
+        ],
+    )
+    def test_from_pfm_rejects_other_files(
+        self, tmp_path: Any, content: bytes, match: str
+    ) -> None:
+        """Only complete grayscale PFMs are depth maps."""
+        (tmp_path / "file.pfm").write_bytes(content)
+
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_pfm(tmp_path / "file.pfm")
 
 
 class TestDepthMapConversion:

@@ -46,12 +46,13 @@ class DepthAnnotator:
     === "Image"
 
         ```python
-        import numpy as np
         import supervision as sv
+        from inference import get_model
         from PIL import Image
 
         image = Image.open("<SOURCE_IMAGE_PATH>")
-        depth_map = sv.DepthMap(np.load("<DEPTH_NPY_PATH>"), kind="depth_m")
+        model = get_model(model_id="depth-anything-v3/small")
+        depth_map = sv.DepthMap.from_inference(model.infer(image)[0])
 
         depth_annotator = sv.DepthAnnotator(display_range="auto", opacity=0.6)
         annotated_image = depth_annotator.annotate(image.copy(), depth_map)
