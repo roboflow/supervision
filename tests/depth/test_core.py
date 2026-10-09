@@ -166,7 +166,7 @@ class TestDepthCamera:
         ] == [
             float,
             float,
-            float,
+            float
         ]
         assert camera == sv.DepthCamera(fx_px=700.0, baseline_m=0.5, doffs_px=3.0)
 
