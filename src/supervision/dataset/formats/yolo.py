@@ -562,6 +562,9 @@ def detections_to_yolo_annotations(
 ) -> list[str]:
     """Convert detections to YOLO annotation lines.
 
+    A mask is written as one polygon line per connected component, with each hole
+    joined to its outer contour by a zero-width seam.
+
     Args:
         detections: The detections to serialize. Each detection must have a
             valid integer ``class_id``. When ``is_obb=True``, each non-empty
@@ -667,6 +670,7 @@ def detections_to_yolo_annotations(
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                bridge_holes=True,
             )
             if not polygons and not mask_to_polygons(mask=mask):
                 # Preserve area-filtered omissions; only invalid contours fall back.

@@ -621,6 +621,22 @@ class TestDetectionsToLabelmeShapes:
         assert shapes[0]["group_id"] is not None
         assert shapes[0]["group_id"] == shapes[1]["group_id"]
 
+    def test_mask_with_hole_exports_single_polygon(self) -> None:
+        """A hole is spliced into its outer contour instead of becoming a shape."""
+        mask = np.zeros((1, 48, 64), dtype=bool)
+        mask[0, 5:40, 5:40] = True
+        mask[0, 15:30, 15:30] = False
+        detections = Detections(
+            xyxy=np.array([[5, 5, 39, 39]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask,
+        )
+
+        shapes = detections_to_labelme_shapes(detections=detections, classes=["dog"])
+
+        assert len(shapes) == 1
+        assert shapes[0]["group_id"] is None
+
     def test_empty_mask_falls_back_to_rectangle(self) -> None:
         """All-zero mask falls back to rectangle; detection is not silently dropped."""
         mask = np.zeros((1, 48, 64), dtype=bool)
@@ -743,6 +759,34 @@ class TestAsLabelmeRoundTrip:
         np.testing.assert_array_equal(result.class_id, detections.class_id)
         np.testing.assert_array_equal(result.xyxy, detections.xyxy)
         np.testing.assert_array_equal(result.mask, masks)
+
+    def test_mask_with_hole_round_trip(self, tmp_path: Path) -> None:
+        """A ring mask reloads as one instance with its hole intact."""
+        images_dir = tmp_path / "images"
+        annotations_dir = tmp_path / "annotations"
+        _write_image(images_dir / "a.jpg", 64, 48)
+        image_path = str(images_dir / "a.jpg")
+        mask = np.zeros((1, 48, 64), dtype=bool)
+        mask[0, 5:40, 5:40] = True
+        mask[0, 15:30, 15:30] = False
+        detections = Detections(
+            xyxy=np.array([[5, 5, 39, 39]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["dog"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_labelme(annotations_directory_path=str(annotations_dir))
+        loaded = DetectionDataset.from_labelme(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        result = loaded.annotations[image_path]
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)
 
     def test_masks_round_trip(self, tmp_path: Path) -> None:
         """Masked detections survive a save-load cycle with approximate coordinates."""

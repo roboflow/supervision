@@ -1175,6 +1175,17 @@ def test_mask_to_polygons_two_regions() -> None:
     assert len(result) == 2
 
 
+def test_mask_to_polygons_returns_hole_contour_as_extra_polygon() -> None:
+    """A mask with a hole yields the outer contour plus one polygon for the hole."""
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[2:18, 2:18] = True
+    mask[7:13, 7:13] = False
+
+    result = mask_to_polygons(mask)
+
+    assert len(result) == 2
+
+
 def test_mask_to_polygons_polygon_to_mask_round_trip() -> None:
     """mask_to_polygons -> polygon_to_mask recovers most of the original mask area."""
     h, w = 20, 20
