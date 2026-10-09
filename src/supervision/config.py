@@ -43,3 +43,21 @@ SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
 #: (``is_obb=True``).
 #: Also triggers sequential mode in ``InferenceSlicer`` when present.
 ORIENTED_BOX_COORDINATES: str = "xyxyxyxy"
+#: Key for per-detection metric depth in ``Detections.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, the median depth
+#: in metres of the valid depth pixels inside each detection's mask (or box, when the
+#: detections carry no masks), ``NaN`` where the region holds no depth. Written by
+#: :meth:`~supervision.depth.core.DepthMap.measure_detections`.
+DEPTH_M_DATA_FIELD: str = "depth_m"
+#: Key for per-detection stereo disparity in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, in pixels of the depth map. Unlike metres,
+#: the values depend on the map's resolution: the same scene resized to half the
+#: width stores half the disparity.
+DISPARITY_PX_DATA_FIELD: str = "disparity_px"
+#: Key for per-detection relative inverse depth in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, unitless; larger is nearer. Monocular models
+#: such as Depth Anything produce it, and it has no metric scale.
+RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"
