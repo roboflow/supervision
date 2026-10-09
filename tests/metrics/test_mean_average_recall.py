@@ -283,10 +283,10 @@ def complex_scenario_predictions():
 
 @pytest.fixture
 def two_class_two_image_detections():
-    """Scenario: 2 images with 2 classes with varying confidence levels.
+    """Scenario: 2 images, each with one perfect detection per class.
 
-    Tests that `mAR @ K` limits per image (not per class) by creating a case where
-    the highest confidence detection differs between images.
+    The most confident class differs between the images, so an image-wide
+    detection limit would keep a different class in each image.
 
     Returns:
         tuple: `(predictions, targets)`
@@ -322,11 +322,10 @@ def two_class_two_image_detections():
 
 @pytest.fixture
 def three_class_single_image_detections():
-    """
-    Scenario: 1 image with 3 classes - explicit bug reproduction.
+    """Scenario: 1 image with 3 classes, one perfect detection per class.
 
-    Demonstrates the N x K vs K issue: with 3 classes, the bug would allow
-    3 detections for `mAR @ 1` (one per class) instead of just 1.
+    An image-wide detection limit would count only the most confident of them,
+    while COCO counts the top detection of every class.
 
     Returns:
         tuple: `(predictions, targets)`
@@ -454,11 +453,11 @@ def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
     """Per-class recall must expose @1, @10 and @100 instead of only @100."""
     predictions = Detections(
         xyxy=np.array(
-            [[0, 0, 10, 10], [20, 20, 30, 30]],
+            [[0, 0, 10, 10], [100, 100, 110, 110], [20, 20, 30, 30]],
             dtype=np.float32,
         ),
-        confidence=np.array([0.9, 0.8], dtype=np.float32),
-        class_id=np.array([0, 1], dtype=np.int32),
+        confidence=np.array([0.5, 0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 1, 1], dtype=np.int32),
     )
     targets = Detections(
         xyxy=np.array(
@@ -471,6 +470,8 @@ def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
 
     result = metric.update([predictions], [targets]).compute()
 
+    # Class 1 ranks a false positive first, so only its top-2 contain the true
+    # positive. Class 0 is recalled at every cutoff although it scores lowest.
     assert result.recall_per_class.shape == (3, 2, 10)
     np.testing.assert_allclose(result.recall_per_class[0, :, 0], [1.0, 0.0])
     np.testing.assert_allclose(result.recall_per_class[1, :, 0], [1.0, 1.0])
@@ -586,113 +587,106 @@ def test_complex_integration_scenario(
     metric.update(predictions_list, targets_list)
     result = metric.compute()
 
-    # Expected mAR at K = 1, 10, 100
-    expected_result = np.array([0.2874613, 0.63622291, 0.63622291])
+    # Expected mAR at K = 1, 10, 100; equal to pycocotools AR@1, AR@10, AR@100
+    # on the same data, because the limit applies per image and per class.
+    expected_result = np.array([0.44845201, 0.63622291, 0.63622291])
 
     np.testing.assert_almost_equal(result.recall_scores, expected_result, decimal=6)
 
 
-def test_mar_at_k_limits_per_image_not_per_class(
+def test_mar_at_k_applies_limit_per_class_across_images(
     two_class_two_image_detections,
 ) -> None:
-    """Test that `mAR @ K` limits detections per image, not per class.
-
-    BUG SCENARIO (what was wrong):
-    The previous implementation would limit detections per CLASS per image,
-    meaning `mAR@1` would take the top-1 prediction for EACH class in each image.
-    With 2 classes and `mAR@1`, this incorrectly allowed 2 detections per image.
-
-    This test uses a scenario where the bug would produce different results:
-    - 2 images, each with 2 GT objects (one of each class)
-    - Predictions perfectly match GT with varying confidences
-    - Image 1: `class_0` (conf=0.9) > `class_1` (conf=0.8)
-    - Image 2: `class_1` (conf=0.95) > `class_0` (conf=0.7)
-
-    BUGGY BEHAVIOR (if bug were present):
-    - `mAR@1` would take top-1 per class → both detections per image count
-    - Recall for `class_0`: 2/2 = 1.0
-    - Recall for `class_1`: 2/2 = 1.0
-    - `mAR@1` would incorrectly = 1.0 (same as `mAR@10`)
-
-    CORRECT BEHAVIOR (with fix):
-    - `mAR@1` takes top-1 per image → only highest confidence per image counts
-    - Image 1: only `class_0` counts (conf=0.9)
-    - Image 2: only `class_1` counts (conf=0.95)
-    - Recall for `class_0`: 1/2 = 0.5
-    - Recall for `class_1`: 1/2 = 0.5
-    - `mAR@1` = 0.5 (correctly < `mAR@10` = 1.0)
-    """
+    """`mAR @ K` keeps the top detection of each class in each image, as COCO does."""
     predictions, targets = two_class_two_image_detections
-
     metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
-    metric.update(predictions, targets)
-    result = metric.compute()
 
-    # Expected results with correct behavior
-    expected_mar_at_1 = 0.5  # Only top detection per image
-    expected_mar_at_10 = 1.0  # All detections count
-    expected_mar_at_100 = 1.0
-    # Note: Bug would produce mAR @ 1 = 1.0
+    result = metric.update(predictions, targets).compute()
 
-    # Test correct behavior (this would fail with the bug)
-    np.testing.assert_almost_equal(result.mAR_at_1, expected_mar_at_1, decimal=6)
-    np.testing.assert_almost_equal(result.mAR_at_10, expected_mar_at_10, decimal=6)
-    np.testing.assert_almost_equal(result.mAR_at_100, expected_mar_at_100, decimal=6)
-
-    # Critical assertion: mAR @ 1 must be less than mAR @ 10
-    # With the bug, both would equal 1.0
-    assert result.mAR_at_1 < result.mAR_at_10, (
-        f"Bug detected: mAR @ 1 ({result.mAR_at_1}) should be < mAR @ 10 "
-        f"({result.mAR_at_10}) when images have multiple objects. "
-        "If they're equal, K is being applied per-class instead of per-image."
-    )
+    # Every class has one detection per image, so it is the top detection of its
+    # class at K=1 even when another class scores higher in that image.
+    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
 
 
-def test_three_class_single_image_scenario(three_class_single_image_detections) -> None:
-    """
-    Test with 3 classes on single image - explicit N x K bug reproduction.
-
-    THE BUG:
-    mAR @ K was limiting detections per class per image, not per image globally.
-    This meant with N classes, up to N x K detections could count per image
-    instead of just K detections.
-
-    REPRODUCTION SCENARIO:
-    Image with 3 GT objects: `[class_0, class_1, class_2]`
-    Model predicts all 3 correctly with confidences: `[0.9, 0.8, 0.7]`
-
-    With mAR @ 1 (max 1 detection per image):
-
-    BUGGY: Would take top-1 per class → all 3 detections count
-    → Recall per class: `[1/1, 1/1, 1/1]` → mAR @ 1 = 1.0
-
-    CORRECT: Takes top-1 globally → only `class_0` (conf=0.9) counts
-    → Recall per class: `[1/1, 0/1, 0/1]` → mAR @ 1 = 0.33
-
-    This test would PASS with the bug (incorrectly) if mAR @ 1 ≈ 1.0
-    and PASS with the fix (correctly) if mAR @ 1 ≈ 0.33
-    """
+def test_mar_at_k_applies_limit_per_class_within_one_image(
+    three_class_single_image_detections,
+) -> None:
+    """With one detection per class in one image, `mAR @ 1` already reaches 1.0."""
     predictions, targets = three_class_single_image_detections
-
     metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
-    metric.update(predictions, targets)
-    result = metric.compute()
 
-    # Expected results with correct behavior
-    expected_mar_at_1 = 1.0 / 3.0  # Only highest confidence (class_0) counts
-    expected_mar_at_10 = 1.0  # All detections count
-    # Note: Bug would produce mAR @ 1 = 1.0 (all 3 counted, one per class)
+    result = metric.update(predictions, targets).compute()
 
-    # Test correct behavior
-    np.testing.assert_almost_equal(result.mAR_at_1, expected_mar_at_1, decimal=6)
-    np.testing.assert_almost_equal(result.mAR_at_10, expected_mar_at_10, decimal=6)
+    # pycocotools reports AR@1 = 1.0 for this data; an image-wide limit would
+    # keep only the 0.9 detection and give 1/3.
+    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
 
-    # Sanity check: if this fails, the bug is present
-    # Bug would produce mAR @ 1 ≈ 1.0, correct is ≈ 0.333
-    assert result.mAR_at_1 < 0.5, (
-        f"Bug detected: mAR @ 1 = {result.mAR_at_1:.4f}, expected ≈ 0.333. "
-        "The bug would produce mAR @ 1 ≈ 1.0 by counting all detections."
+
+def test_mar_at_k_limits_each_class_separately_in_one_image() -> None:
+    """`mAR @ 1` keeps one detection per class, so classes with two targets get half."""
+    boxes = np.array(
+        [[0, 0, 10, 10], [20, 20, 30, 30], [100, 0, 110, 10], [120, 20, 130, 30]],
+        dtype=np.float32,
     )
+    class_ids = np.array([0, 0, 1, 1], dtype=np.int32)
+    targets = Detections(xyxy=boxes, class_id=class_ids)
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=np.array([0.9, 0.8, 0.7, 0.6], dtype=np.float32),
+        class_id=class_ids,
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update(predictions, targets).compute()
+
+    # pycocotools reports AR@1 = 0.5 and AR@10 = AR@100 = 1.0. An image-wide limit
+    # would count only class 0's top detection and give 0.25 at K=1.
+    np.testing.assert_allclose(result.recall_scores, [0.5, 1.0, 1.0])
+
+
+def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
+    """Equal-confidence predictions rank in input order, as COCO's stable sort does."""
+    # Two score levels in an irregular order; NumPy's default sort reorders these ties.
+    confidence = np.full(24, 0.5, dtype=np.float32)
+    confidence[[5, 6, 8, 9, 11, 12, 13, 15, 20]] = 0.9
+    boxes = np.tile(np.array([[500, 500, 510, 510]], dtype=np.float32), (24, 1))
+    first_top_scored = int(np.argmax(confidence))
+    boxes[first_top_scored] = [0, 0, 10, 10]
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=np.zeros(24, dtype=np.int32),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    # Only the first of the tied top-scored boxes hits the target. Among the equal
+    # scores it ranks first, so it is the top-1 detection; pycocotools agrees.
+    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+
+
+@pytest.mark.parametrize(
+    ("sorted_class_ids", "expected_ranks"),
+    [
+        pytest.param([0, 1, 0, 0, 1], [0, 0, 1, 2, 1], id="interleaved-classes"),
+        pytest.param([3, 3, 3], [0, 1, 2], id="single-class"),
+        pytest.param([2, 0, 1], [0, 0, 0], id="all-distinct-classes"),
+        pytest.param([5], [0], id="single-prediction"),
+    ],
+)
+def test_rank_within_class_counts_predictions_of_the_same_class(
+    sorted_class_ids: list[int], expected_ranks: list[int]
+) -> None:
+    """Each prediction is ranked only among predictions of its own class."""
+    class_ids = np.array(sorted_class_ids, dtype=np.int32)
+
+    ranks = MeanAverageRecall._rank_within_class(class_ids)
+
+    assert ranks.tolist() == expected_ranks
 
 
 def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
@@ -706,7 +700,7 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     - Multiple images with varying object counts
     - Two classes with different distributions
     - Predictions with different confidence levels
-    - mAR @ K correctly limits per image (not per class)
+    - mAR @ K correctly limits detections per class in each image
     """
     from supervision import DetectionDataset
 
@@ -771,8 +765,8 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     # With good predictions (small offsets), expect high recall
     assert result.mAR_at_100 > expected_min_mar_at_100
 
-    # mAR@1 should be significantly lower than mAR@10 for multi-object images
-    # This validates that K limits detections per image (not per class)
+    # mAR@1 should be lower than mAR@10 because images hold several objects of the
+    # same class, and K=1 keeps only the top detection of each class
     assert result.mAR_at_1 < result.mAR_at_10
 
 
