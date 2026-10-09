@@ -344,6 +344,15 @@ class TestDepthMapFromTransformers:
             sv.DepthMap.from_transformers(result, kind="depth_m")
 
 
+def _write_pfm(path: Any, values: np.ndarray, little_endian: bool) -> None:
+    """Write a grayscale PFM, rows bottom to top, in the given byte order."""
+    height, width = values.shape
+    scale = -1.0 if little_endian else 1.0
+    dtype = "<f4" if little_endian else ">f4"
+    header = f"Pf\n{width} {height}\n{scale}\n".encode()
+    path.write_bytes(header + values[::-1].astype(dtype).tobytes())
+
+
 class TestDepthMapFromFiles:
     def test_from_png16_divides_by_scale(self, tmp_path: Any) -> None:
         """A KITTI-style PNG loads as float32 code / scale, with NaN for code 0."""
@@ -374,6 +383,37 @@ class TestDepthMapFromFiles:
 
         with pytest.raises(ValueError, match=match):
             sv.DepthMap.from_png16(tmp_path / "depth.png", scale=scale, kind="depth_m")
+
+    @pytest.mark.parametrize("little_endian", [True, False])
+    def test_from_pfm_reads_rows_top_first_in_either_byte_order(
+        self, tmp_path: Any, little_endian: bool
+    ) -> None:
+        """Rows are flipped, the scale sign picks the byte order, +inf is no depth."""
+        values = np.array([[1.0, 2.0, np.inf], [3.0, 4.0, 5.5]], dtype=np.float32)
+        _write_pfm(tmp_path / "disp0.pfm", values, little_endian)
+
+        depth_map = sv.DepthMap.from_pfm(tmp_path / "disp0.pfm")
+
+        np.testing.assert_array_equal(depth_map.values, values)
+        assert depth_map.valid_mask.tolist() == [[True, True, False], [True] * 3]
+
+    @pytest.mark.parametrize(
+        ("content", "match"),
+        [
+            pytest.param(b"PF\n1 1\n-1.0\n" + b"\0" * 12, "colour", id="colour"),
+            pytest.param(b"P6\n1 1\n255\n\0\0\0", "not a PFM", id="ppm"),
+            pytest.param(b"Pf\n2 2\n-1.0\n\0\0\0\0", "truncated", id="truncated"),
+            pytest.param(b"Pf\n2 2", "incomplete", id="incomplete-header"),
+        ],
+    )
+    def test_from_pfm_rejects_other_files(
+        self, tmp_path: Any, content: bytes, match: str
+    ) -> None:
+        """Only complete grayscale PFMs are depth maps."""
+        (tmp_path / "file.pfm").write_bytes(content)
+
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_pfm(tmp_path / "file.pfm")
 
 
 class TestDepthMapEquality:
