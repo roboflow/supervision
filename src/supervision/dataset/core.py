@@ -282,9 +282,8 @@ class DetectionDataset(BaseDataset):
 
     @classmethod
     def merge(cls, dataset_list: list[DetectionDataset]) -> DetectionDataset:
-        """Merge a list of :class:`~supervision.dataset.core.DetectionDataset` objects into a single
-        :class:`~supervision.dataset.core.DetectionDataset`
-        object.
+        """Merge a list of :class:`~supervision.dataset.core.DetectionDataset` objects
+        into a single :class:`~supervision.dataset.core.DetectionDataset` object.
 
         This method takes a list of :class:`~supervision.dataset.core.DetectionDataset` objects and combines
         their respective fields (`classes`, `images`,

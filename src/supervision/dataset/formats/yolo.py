@@ -322,7 +322,8 @@ def yolo_annotations_to_detections(
     with_masks: bool,
     is_obb: bool = False,
 ) -> Detections:
-    """Convert YOLO annotation lines into :class:`~supervision.detection.core.Detections`.
+    """Convert YOLO annotation lines into
+    :class:`~supervision.detection.core.Detections`.
 
     When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
     lines add a trailing confidence or tracker id, which is ignored. Lines with

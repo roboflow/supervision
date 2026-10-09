@@ -194,7 +194,8 @@ class DetectionsSmoother:
                 del self.tracks[track_id]
 
     def get_track(self, track_id: int) -> Detections | None:
-        """Return the smoothed :class:`~supervision.detection.core.Detections` for a single track.
+        """Return the smoothed :class:`~supervision.detection.core.Detections` for a
+        single track.
 
         Averages `xyxy` over all valid (non-`None`) frames in the track window.
         `confidence` is averaged only over frames that carry it; frames with

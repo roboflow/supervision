@@ -339,7 +339,8 @@ def _dense_union(
 
 
 def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
-    """Reduce a list of :class:`~supervision.detection.compact_mask.CompactMask` objects to one tight union mask.
+    """Reduce a list of :class:`~supervision.detection.compact_mask.CompactMask` objects
+    to one tight union mask.
 
     Used by NMM for both its evolving candidate and its final output, and by
     detection-group merging for the final per-group mask. Works directly on
@@ -1051,7 +1052,8 @@ class CompactMask:
         xyxy: npt.NDArray[np.number],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from a dense ``(N, H, W)`` bool array.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from a
+        dense ``(N, H, W)`` bool array.
 
         Bounding boxes are clipped to image bounds and interpreted in the
         supervision ``xyxy`` convention (inclusive max coordinates). A
@@ -1135,7 +1137,8 @@ class CompactMask:
         xyxy: npt.NDArray[np.floating],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from full-frame COCO RLE masks.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from full-
+        frame COCO RLE masks.
 
         Transcodes full-image COCO RLE payloads into the crop-scoped RLE format
         used by :class:`~supervision.detection.compact_mask.CompactMask`. The conversion uses run-length arithmetic
@@ -1685,7 +1688,8 @@ class CompactMask:
         return result
 
     def __eq__(self, other: object) -> bool:
-        """Element-wise equality with another :class:`~supervision.detection.compact_mask.CompactMask` or ndarray.
+        """Element-wise equality with another
+        :class:`~supervision.detection.compact_mask.CompactMask` or ndarray.
 
         Args:
             other: Another :class:`~supervision.detection.compact_mask.CompactMask` or ``np.ndarray``.
@@ -1718,7 +1722,8 @@ class CompactMask:
 
     @staticmethod
     def merge(masks_list: list[CompactMask]) -> CompactMask:
-        """Concatenate multiple :class:`~supervision.detection.compact_mask.CompactMask` objects into one.
+        """Concatenate multiple :class:`~supervision.detection.compact_mask.CompactMask`
+        objects into one.
 
         All inputs must have the same ``image_shape``.
 
@@ -1857,7 +1862,8 @@ class CompactMask:
         dy: int,
         new_image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Return a new :class:`~supervision.detection.compact_mask.CompactMask` with adjusted offsets and image shape.
+        """Return a new :class:`~supervision.detection.compact_mask.CompactMask` with
+        adjusted offsets and image shape.
 
         Used by :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
         to relocate tile-local masks into full-image coordinates without

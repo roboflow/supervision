@@ -131,7 +131,8 @@ def resolve_text_background_xyxy(
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    """Resolve a color-like object to a concrete :class:`~supervision.draw.color.Color` for an index."""
+    """Resolve a color-like object to a concrete :class:`~supervision.draw.color.Color`
+    for an index."""
     color_like = cast(Any, color)
     # Accept ColorPalette-like objects without depending on their exact concrete class.
     if callable(getattr(color_like, "by_idx", None)):
@@ -366,9 +367,8 @@ def snap_boxes(
 ) -> npt.NDArray[np.float32]:
     """Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge. Unlike
-    :func:`~supervision.detection.utils.boxes.clip_boxes`,
-    this function does not crop boxes. It moves them entirely if they exceed the frame
-    boundaries.
+    :func:`~supervision.detection.utils.boxes.clip_boxes`, this function does not crop
+    boxes. It moves them entirely if they exceed the frame boundaries.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each

@@ -540,7 +540,8 @@ class _ResultView:
 
 
 class _SupportsResultView(Protocol):
-    """    A metric result able to describe itself as a :class:`~supervision.metrics._confusion_matrix_metric._ResultView`."""
+    """A metric result able to describe itself as a
+    :class:`~supervision.metrics._confusion_matrix_metric._ResultView`."""
 
     def _result_view(self) -> _ResultView:
         """Return the field-name-agnostic view of this result."""

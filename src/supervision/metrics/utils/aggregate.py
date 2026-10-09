@@ -18,7 +18,8 @@ def aggregate_metric_results(
     model_names: list[str] | None = None,
     include_object_sizes: bool = False,
 ) -> pd.DataFrame:
-    """Combine several :class:`~supervision.metrics.core.MetricResult` objects into a single DataFrame.
+    """Combine several :class:`~supervision.metrics.core.MetricResult` objects into a
+    single DataFrame.
 
     Each row corresponds to one result (one model). All results must be of the
     same concrete type (e.g. all :class:`~supervision.metrics.f1_score.F1ScoreResult`).
@@ -82,7 +83,8 @@ def plot_aggregate_metric_results(
     include_object_sizes: bool = False,
     show: bool = False,
 ) -> None:
-    """Plot multiple :class:`~supervision.metrics.core.MetricResult` objects on a single grouped bar chart.
+    """Plot multiple :class:`~supervision.metrics.core.MetricResult` objects on a single
+    grouped bar chart.
 
     Each group of bars corresponds to a metric label (e.g. ``"F1@50"``), and
     each bar within the group corresponds to one model.

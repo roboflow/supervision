@@ -404,7 +404,8 @@ class LineZone:
 
 
 class LineZoneAnnotator:
-    """Draw a :class:`~supervision.detection.line_zone.LineZone` and its in/out counts on a video frame.
+    """Draw a :class:`~supervision.detection.line_zone.LineZone` and its in/out counts
+    on a video frame.
 
     Use this annotator after calling :meth:`~supervision.detection.line_zone.LineZone.trigger` so the rendered counts reflect
     the latest tracked detections.
@@ -427,7 +428,8 @@ class LineZoneAnnotator:
         text_orient_to_line: bool = False,
         text_centered: bool = True,
     ) -> None:
-        """A class for drawing the :class:`~supervision.detection.line_zone.LineZone` and its detected object count on an image.
+        """A class for drawing the :class:`~supervision.detection.line_zone.LineZone`
+        and its detected object count on an image.
 
         Args:
             thickness: Line thickness.
@@ -794,7 +796,8 @@ class LineZoneAnnotator:
 
 
 class LineZoneAnnotatorMulticlass:
-    """Draw per-class crossing counts for one or more :class:`~supervision.detection.line_zone.LineZone` instances.
+    """Draw per-class crossing counts for one or more
+    :class:`~supervision.detection.line_zone.LineZone` instances.
 
     The annotator renders a table with one row per line zone and one column per class
     observed by the zones.

@@ -873,7 +873,8 @@ def compact_mask_iou_batch(
     masks_detection: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """Compute pairwise overlap between two :class:`~supervision.detection.compact_mask.CompactMask` collections.
+    """Compute pairwise overlap between two
+    :class:`~supervision.detection.compact_mask.CompactMask` collections.
 
     Avoids materialising full ``(N, H, W)`` arrays by:
 

@@ -188,7 +188,8 @@ def coco_annotations_to_detections(
     with_masks: bool,
     use_iscrowd: bool = True,
 ) -> Detections:
-    """Convert COCO annotation dicts for a single image into a :class:`~supervision.detection.core.Detections` object.
+    """Convert COCO annotation dicts for a single image into a
+    :class:`~supervision.detection.core.Detections` object.
 
     .. warning::
         The returned ``Detections.class_id`` contains **raw COCO** ``category_id``
@@ -277,7 +278,8 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> tuple[list[CocoDict], int]:
-    """Convert :class:`~supervision.detection.core.Detections` to COCO ``annotations`` entries.
+    """Convert :class:`~supervision.detection.core.Detections` to COCO ``annotations``
+    entries.
 
     The internal 0-indexed ``Detections.class_id`` is serialized as a 1-indexed
     COCO ``category_id`` (``category_id = class_id + 1``). This complies with the
@@ -501,7 +503,8 @@ def load_coco_annotations(
     use_iscrowd: bool = True,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load COCO annotations and convert them to :class:`~supervision.detection.core.Detections`.
+    """Load COCO annotations and convert them to
+    :class:`~supervision.detection.core.Detections`.
 
     If `force_masks` is `False`, masks are still loaded for images whose annotations
     include a `segmentation` field. This keeps mask handling consistent with other

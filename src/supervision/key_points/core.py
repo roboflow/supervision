@@ -1392,7 +1392,8 @@ class KeyPoints:
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
-        """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object is considered empty.
+        """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object
+        is considered empty.
 
         Returns:
             `True` if the object is empty, `False` otherwise.

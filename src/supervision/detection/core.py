@@ -1961,7 +1961,8 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """Check whether the :class:`~supervision.detection.core.Detections` object has zero bounding boxes.
+        """Check whether the :class:`~supervision.detection.core.Detections` object has
+        zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.

@@ -1,4 +1,5 @@
-"""Provide reusable greedy one-to-one matching for :class:`~supervision.detection.core.Detections` collections.
+"""Provide reusable greedy one-to-one matching for
+:class:`~supervision.detection.core.Detections` collections.
 
 Purpose:
     Expose the metrics package's highest-IoU-first matching primitive as a
