@@ -471,8 +471,15 @@ class TestDepthAnnotatorRange:
 
         np.testing.assert_array_equal(annotated, expected)
 
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((10.0, 100.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((10.0, 100.0)), id="clip-range"),
+        ],
+    )
     def test_depth_quantity_converts_a_disparity_range_through_the_camera(
-        self,
+        self, display_range: tuple[float, float] | sv.DepthClipRange
     ) -> None:
         """A (10, 100) px range spans 1 to 10 m, so 10 px is far and 100 px near."""
         depth_map = sv.DepthMap(
@@ -480,7 +487,7 @@ class TestDepthAnnotatorRange:
         )
         scene = np.zeros((1, 2, 3), dtype=np.uint8)
 
-        sv.DepthAnnotator(quantity="depth", display_range=(10.0, 100.0)).annotate(
+        sv.DepthAnnotator(quantity="depth", display_range=display_range).annotate(
             scene, depth_map
         )
 
@@ -509,12 +516,22 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[0], TURBO[0]], [TURBO[0], TURBO[0]]]
 
-    def test_rejects_disparity_range_that_reaches_infinite_depth(self) -> None:
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 10.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((0.0, 10.0)), id="clip-range"),
+            pytest.param(sv.DepthClipRange((0.0, 0.0)), id="flat-clip-range"),
+        ],
+    )
+    def test_rejects_disparity_range_that_reaches_infinite_depth(
+        self, display_range: tuple[float, float] | sv.DepthClipRange
+    ) -> None:
         """Coloured as metres, a disparity range must start above -doffs_px."""
         depth_map = sv.DepthMap(
             np.ones((1, 1), np.float32), kind="disparity_px", camera=CAMERA
         )
-        annotator = sv.DepthAnnotator(quantity="depth", display_range=(0.0, 10.0))
+        annotator = sv.DepthAnnotator(quantity="depth", display_range=display_range)
 
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)

@@ -63,26 +63,6 @@ height, width = annotated_image.shape[:2]
 annotated_image[~depth_map.resize((width, height)).valid_mask] = sv.Color.BLACK.as_bgr()
 ```
 
-## Label Objects with Their Distance
-
-[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map), and it must have the image's size; resize it first otherwise.
-
-```python
-from inference import get_model
-
-model = get_model(model_id="rfdetr-small")
-detections = sv.Detections.from_inference(model.infer(image)[0])
-detections = depth_map.measure_detections(detections)
-
-labels = [
-    f"{name} {depth:.1f} m"
-    for name, depth in zip(detections.data["class_name"], detections.data["depth_m"])
-]
-annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
-```
-
-A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. For one pixel, `depth_map.value_at(x, y)` returns the value or `None` where there is no depth.
-
 ## Colour a Video with One Range
 
 Colouring each frame with its own range makes a still wall change colour whenever something enters the frame. Compute one range for the whole clip in a first pass, then colour every frame with it:
@@ -111,6 +91,26 @@ with sv.VideoSink("<TARGET_VIDEO_PATH>", sv.VideoInfo.from_video_path(source)) a
 ```
 
 The first pass reads one map at a time, so memory stays bounded however long the clip is, at the cost of estimating depth twice per frame. For a short clip, keep the maps in a list, pass it to `DepthClipRange.from_depth_maps` and colour the frames from it to avoid the second inference pass. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.
+
+## Label Objects with Their Distance
+
+[measure_detections][supervision.depth.core.DepthMap.measure_detections] stores the median depth inside each mask, or each box without masks, in `detections.data["depth_m"]`, ready for labels drawn with [sv.LabelAnnotator][supervision.annotators.core.LabelAnnotator]. Here `depth_map` is the stereo map with a camera from [Load a Depth Map](#load-a-depth-map), and it must have the image's size; resize it first otherwise.
+
+```python
+from inference import get_model
+
+model = get_model(model_id="rfdetr-small")
+detections = sv.Detections.from_inference(model.infer(image)[0])
+detections = depth_map.measure_detections(detections)
+
+labels = [
+    f"{name} {depth:.1f} m"
+    for name, depth in zip(detections.data["class_name"], detections.data["depth_m"])
+]
+annotated_image = sv.LabelAnnotator().annotate(annotated_image, detections, labels)
+```
+
+A relative map has no metres, so it fills `detections.data["relative_inverse"]` instead: useful to sort objects from near to far within one image, not to compare images. For one pixel, `depth_map.value_at(x, y)` returns the value or `None` where there is no depth.
 
 ## Attribution
 
