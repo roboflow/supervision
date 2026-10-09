@@ -562,9 +562,8 @@ def _rle_scale_col(
         col_runs: Per-column run list starting with a ``False``-run count.
         src_h: Height of the source column (sum of ``col_runs``).
         row_map: int32 array of length ``new_crop_h``; ``row_map[r']`` is the
-            source row index for output row ``r'``.  Use
-            ``(np.arange(new_crop_h) * src_h // new_crop_h)`` for
-            ``cv2.INTER_NEAREST``-compatible mapping.
+            source row index for output row ``r'``. Use the active backend's
+            nearest-neighbour source-row map to preserve its sampling rounding.
 
     Returns:
         Scaled run list of total length ``len(row_map)``, always starting
@@ -792,8 +791,8 @@ def _rle_resize(
     and :func:`_rle_join_cols`.
 
     Explicit source mappings follow the full image's sampling grid. Without
-    them, resampling uses ``src = floor(dst * src_size / dst_size)`` within
-    the crop.
+    them, resampling follows the active backend's ``INTER_NEAREST`` grid
+    within the crop, including its sampling rounding.
 
     Args:
         rle: int32 array of F-order run lengths as produced by
@@ -848,13 +847,22 @@ def _rle_resize(
 
     per_col = _rle_split_cols(rle, crop_h, crop_w)
 
-    # cv2.INTER_NEAREST column mapping: src = floor(dst * src_w / dst_w)
-    if col_map is None:
-        col_map = (np.arange(new_crop_w) * crop_w // new_crop_w).astype(np.int32)
+    if row_map is None or col_map is None:
+        from supervision import _cv2 as cv2
 
-    # cv2.INTER_NEAREST row mapping: src = floor(dst * src_h / dst_h)
-    if row_map is None:
-        row_map = (np.arange(new_crop_h) * crop_h // new_crop_h).astype(np.int32)
+        # Integer division can disagree with the backend at sampling boundaries.
+        if col_map is None:
+            col_map = cv2.resize(
+                np.arange(crop_w, dtype=np.int32)[None, :],
+                (new_crop_w, 1),
+                interpolation=cv2.INTER_NEAREST,
+            ).ravel()
+        if row_map is None:
+            row_map = cv2.resize(
+                np.arange(crop_h, dtype=np.int32)[:, None],
+                (1, new_crop_h),
+                interpolation=cv2.INTER_NEAREST,
+            ).ravel()
 
     # Scale each unique source column once; reuse via cache for repeated cols.
     col_cache: dict[int, list[int]] = {}

@@ -10,6 +10,7 @@ from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
     _rle_counts_int32,
+    _rle_resize,
 )
 from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
@@ -1881,9 +1882,65 @@ class TestRleResize:
         ).astype(bool)
         np.testing.assert_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        ("src_shape", "dst_shape"),
+        [
+            pytest.param((1, 28), (1, 18), id="column-rounding-boundary"),
+            pytest.param((28, 1), (18, 1), id="row-rounding-boundary"),
+        ],
+    )
+    def test_backend_sampling_rounding_boundary(
+        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
+    ) -> None:
+        """Default maps preserve the backend's rounding at a sampling boundary."""
+        mask = np.zeros(src_shape, dtype=bool)
+        mask.flat[14] = True
+        rle = _mask_to_rle_counts(mask)
+        expected = cv2.resize(
+            mask.astype(np.uint8),
+            (dst_shape[1], dst_shape[0]),
+            interpolation=cv2.INTER_NEAREST,
+        ).astype(bool)
+
+        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
+        result = _rle_counts_to_mask(result_rle, *dst_shape)
+
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("supplied_axis", ["rows", "columns"])
+    def test_supplied_map_preserved_when_other_map_is_default(
+        self, supplied_axis: str
+    ) -> None:
+        """Generating one default map preserves the other caller-supplied map."""
+        mask = np.eye(3, dtype=bool)
+        rle = _mask_to_rle_counts(mask)
+        supplied_map = np.array([2, 0], dtype=np.int32)
+        row_map = supplied_map if supplied_axis == "rows" else None
+        col_map = supplied_map if supplied_axis == "columns" else None
+        source_rows = cv2.resize(
+            np.arange(3, dtype=np.int32)[:, None],
+            (1, 2),
+            interpolation=cv2.INTER_NEAREST,
+        ).ravel()
+        source_cols = cv2.resize(
+            np.arange(3, dtype=np.int32)[None, :],
+            (2, 1),
+            interpolation=cv2.INTER_NEAREST,
+        ).ravel()
+        if row_map is not None:
+            source_rows = row_map
+        if col_map is not None:
+            source_cols = col_map
+        expected = mask[np.ix_(source_rows, source_cols)]
+
+        result_rle = _rle_resize(rle, 3, 3, 2, 2, row_map, col_map)
+        result = _rle_counts_to_mask(result_rle, 2, 2)
+
+        np.testing.assert_array_equal(result, expected)
+
     @pytest.mark.parametrize("seed", list(range(45)))
     def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
-        """_rle_resize matches cv2.resize(INTER_NEAREST) within 1-pixel tolerance."""
+        """_rle_resize exactly matches cv2.resize(INTER_NEAREST)."""
         from supervision.detection.compact_mask import _rle_resize
 
         rng = np.random.default_rng(seed + 7000)
