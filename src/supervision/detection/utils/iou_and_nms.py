@@ -523,8 +523,8 @@ def oriented_box_iou_batch(
             column count other than 8.
         ValueError: If ``boxes_true`` or ``boxes_detection`` is not 2-D or 3-D.
         ValueError: If ``overlap_metric`` is not
-            :attr:`~supervision.config.OverlapMetric.IOU` or
-            :attr:`~supervision.config.OverlapMetric.IOS`.
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOU` or
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOS`.
 
     Examples:
         ```pycon

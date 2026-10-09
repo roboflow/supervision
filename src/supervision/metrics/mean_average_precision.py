@@ -579,7 +579,8 @@ def _mask_iou_with_jaccard(
     Calculate the IoU between detection masks (dt) and ground-truth masks (gt),
     following the COCO convention: a detection may match any subregion of a
     crowd ground truth, so for crowd rows the union collapses to the detection
-    area (mask counterpart of :func:`~supervision.metrics.detection.box_iou_batch_with_jaccard`).
+    area (mask counterpart of
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch_with_jaccard`).
 
     Args:
         masks_true: List of ground-truth masks of shape `(H, W)`.

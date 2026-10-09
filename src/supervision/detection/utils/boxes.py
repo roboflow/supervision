@@ -188,7 +188,7 @@ def _sort_box_corners(
 
     `Detections.xyxy` is defined as `(x_min, y_min, x_max, y_max)`, and every
     box operation in the library relies on that ordering:
-    :func:`~supervision.detection.utils.boxes.box_iou_batch`
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
     clamps its intersection widths at zero, so a box whose corners arrive
     swapped scores an IoU of `0` even against itself. `box_area` hides the
     problem rather than surfacing it, because negating both sides leaves their

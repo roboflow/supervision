@@ -1203,7 +1203,7 @@ class ConfusionMatrix:
             iou_threshold: Detection iou threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
-                Determines IoU function (:func:`~supervision.detection.utils.boxes.box_iou_batch` vs
+                Determines IoU function (:func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` vs
                 :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`) and coordinate column count. Masks
                 have no tensor row layout, so `MetricTarget.MASKS` is rejected
                 here; use `from_detections` for masks.
