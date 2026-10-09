@@ -574,6 +574,9 @@ class DepthMap:
             The value, or `None` where the map has no depth or the point is outside
             the map.
 
+        Raises:
+            ValueError: If `resolution_wh` is not two positive integers.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -588,8 +591,10 @@ class DepthMap:
             ```
         """
         width, height = self.resolution_wh
-        scale_x = 1.0 if resolution_wh is None else width / resolution_wh[0]
-        scale_y = 1.0 if resolution_wh is None else height / resolution_wh[1]
+        scale_x = scale_y = 1.0
+        if resolution_wh is not None:
+            target_width, target_height = _check_resolution(resolution_wh)
+            scale_x, scale_y = width / target_width, height / target_height
         column, row = x * scale_x, y * scale_y
         if not (math.isfinite(column) and math.isfinite(row)):
             return None

@@ -364,6 +364,20 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[0], TURBO[255]]]
 
+    def test_depth_quantity_skips_disparity_without_a_distance(self) -> None:
+        """With doffs_px = -5, 2 px has no distance: unpainted and out of the range."""
+        camera = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1, doffs_px=-5.0)
+        depth_map = sv.DepthMap(
+            np.array([[2.0, 10.0, 105.0]], np.float32),
+            kind="disparity_px",
+            camera=camera,
+        )
+        scene = np.full((1, 3, 3), 7, dtype=np.uint8)
+
+        sv.DepthAnnotator(quantity="depth").annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[[7, 7, 7], TURBO[0], TURBO[255]]]
+
     def test_depth_quantity_paints_a_flat_map_at_the_far_end(self) -> None:
         """Flipping the ramp for metres does not move a flat map to the near end."""
         depth_map = sv.DepthMap(np.full((2, 2), 2.0, np.float32), kind="depth_m")
