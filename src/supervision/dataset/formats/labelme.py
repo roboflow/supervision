@@ -80,7 +80,7 @@ def labelme_shapes_to_detections(
         with_masks: If ``True``, produce a binary mask for every detection.
 
     Returns:
-        A :class:`Detections` instance with ``xyxy``, ``class_id``, and
+        A :class:`~supervision.detection.core.Detections` instance with ``xyxy``, ``class_id``, and
         optionally ``mask`` populated.
 
     Raises:
