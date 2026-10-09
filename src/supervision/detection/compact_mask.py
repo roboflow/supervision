@@ -1,7 +1,7 @@
 """Crop-RLE compact mask storage for memory-efficient instance segmentation.
 
 Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes prohibitive for
-aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB). :class:`CompactMask` stores each
+aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB). :class:`~supervision.detection.compact_mask.CompactMask` stores each
 mask as a run-length encoding of its bounding-box crop, reducing typical usage to tens
 of MB.
 
@@ -38,7 +38,7 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     """Return the number of ``True`` pixels in a run-length encoded mask.
 
     Args:
-        rle: int32 array of run lengths as produced by :func:`_mask_to_rle_counts`.
+        rle: int32 array of run lengths as produced by :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
 
     Returns:
         Total number of ``True`` pixels.
@@ -67,7 +67,7 @@ def _rle_to_column_intervals(
     empty columns, are skipped without allocating pixels or per-column lists. Work and
     storage scale with foreground runs plus the columns they cross.
 
-    Use :func:`_rle_split_cols` for resize or crop work that needs per-column run
+    Use :func:`~supervision.detection.compact_mask._rle_split_cols` for resize or crop work that needs per-column run
     lists; use this helper when vectorized ``(K, 3)`` foreground intervals are needed.
 
     Examples:
@@ -150,11 +150,11 @@ def _validate_uniform_image_shape(
 ) -> tuple[int, int]:
     """Ensure every mask in a list shares one image shape before a collection op.
 
-    Shared by :meth:`CompactMask.merge` and :func:`_compact_mask_union` so both
+    Shared by :meth:`~supervision.detection.compact_mask.CompactMask.merge` and :func:`~supervision.detection.compact_mask._compact_mask_union` so both
     raise the same error for an empty list or mismatched shapes.
 
     Args:
-        masks_list: List of :class:`CompactMask` objects to validate.
+        masks_list: List of :class:`~supervision.detection.compact_mask.CompactMask` objects to validate.
         action: Present-tense verb naming the caller's operation, used in the
             raised error message (e.g. ``"merge"`` or ``"union"``).
 
@@ -339,12 +339,12 @@ def _dense_union(
 
 
 def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
-    """Reduce a list of :class:`CompactMask` objects to one tight union mask.
+    """Reduce a list of :class:`~supervision.detection.compact_mask.CompactMask` objects to one tight union mask.
 
     Used by NMM for both its evolving candidate and its final output, and by
     detection-group merging for the final per-group mask. Works directly on
     ``masks_list`` instead of first allocating an intermediate merged
-    :class:`CompactMask`, since only the union is ever needed. All stored
+    :class:`~supervision.detection.compact_mask.CompactMask`, since only the union is ever needed. All stored
     foreground is retained regardless of the detection boxes. An empty list,
     or a list whose masks are all all-background, produces one all-background
     mask with a 1x1 crop at the image origin.
@@ -359,11 +359,11 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     memory guarantee this function exists for.
 
     Args:
-        masks_list: Non-empty list of :class:`CompactMask` objects. All must
+        masks_list: Non-empty list of :class:`~supervision.detection.compact_mask.CompactMask` objects. All must
             share the same ``image_shape``.
 
     Returns:
-        A new :class:`CompactMask` containing a single tight union mask.
+        A new :class:`~supervision.detection.compact_mask.CompactMask` containing a single tight union mask.
 
     Raises:
         ValueError: If ``masks_list`` is empty or image shapes differ.
@@ -430,14 +430,14 @@ def _rle_split_cols(
 
     Runs that cross column boundaries are split at the boundary.  Each
     returned list starts with a ``False``-run count (possibly 0), matching
-    the convention of :func:`_mask_to_rle_counts`.
+    the convention of :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
 
     When ``x_start`` and ``x_stop`` are provided, only columns in the closed
     range ``[x_start, x_stop]`` are collected.  Pixels in skipped columns
     are consumed without being stored, which avoids O(W) allocation when
     only a small crop of a wide image is needed.
 
-    Use :func:`_rle_to_column_intervals` when vectorized ``(K, 3)`` foreground
+    Use :func:`~supervision.detection.compact_mask._rle_to_column_intervals` when vectorized ``(K, 3)`` foreground
     intervals are sufficient; use this helper for resize or crop work on run lists.
 
     Note:
@@ -627,7 +627,7 @@ def _rle_join_cols(
       next column's leading False count is zero (column starts with True), the
       two True runs are merged to avoid inserting a zero-length False run that
       would inflate ``len(rle)`` and skew the density metric in
-      :func:`_resize_crop`.
+      :func:`~supervision.detection.compact_mask._resize_crop`.
 
     Args:
         scaled_cols: List of per-column run lists, each starting with a
@@ -787,8 +787,9 @@ def _rle_resize(
     """Resize an F-order RLE-encoded crop via nearest-neighbour resampling.
 
     Manipulates run lengths directly without decoding to a full 2D boolean
-    array.  Delegates to :func:`_rle_split_cols`, :func:`_rle_scale_col`,
-    and :func:`_rle_join_cols`.
+    array.  Delegates to :func:`~supervision.detection.compact_mask._rle_split_cols`,
+    :func:`~supervision.detection.compact_mask._rle_scale_col`, and
+    :func:`~supervision.detection.compact_mask._rle_join_cols`.
 
     Explicit source mappings follow the full image's sampling grid. Without
     them, resampling follows the active backend's ``INTER_NEAREST`` grid
@@ -953,7 +954,7 @@ def _resize_crop(
 class CompactMask:
     """Memory-efficient crop-RLE mask storage for instance segmentation.
 
-    Instead of storing N full ``(H, W)`` boolean arrays, :class:`CompactMask`
+    Instead of storing N full ``(H, W)`` boolean arrays, :class:`~supervision.detection.compact_mask.CompactMask`
     encodes each mask as a run-length sequence of its bounding-box crop.  This
     reduces memory from O(N·H·W) to roughly O(N·bbox_area), which is orders of
     magnitude smaller for sparse masks on high-resolution images.
@@ -962,38 +963,45 @@ class CompactMask:
     masks used elsewhere in ``supervision``:
 
     * ``mask[int]`` → dense ``(H, W)`` bool array (annotators, converters).
-    * ``mask[slice | list | ndarray]`` → new :class:`CompactMask` (filtering).
+    * ``mask[slice | list | ndarray]`` → new :class:`~supervision.detection.compact_mask.CompactMask` (filtering).
     * ``np.asarray(mask)`` → dense ``(N, H, W)`` bool array (numpy interop).
     * ``mask.shape``, ``mask.dtype``, ``mask.area`` — match the dense API.
 
-    :class:`CompactMask` is **not** a drop-in ``np.ndarray`` replacement.
+    :class:`~supervision.detection.compact_mask.CompactMask` is **not** a drop-in ``np.ndarray`` replacement.
     When you need to call arbitrary ndarray methods (``astype``, ``reshape``,
-    ``ravel``, ``any``, ``all``, …) call :meth:`to_dense` first:
-    ``cm.to_dense().astype(np.uint8)``.  :meth:`to_dense` is the single
+    ``ravel``, ``any``, ``all``, …) call :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` first:
+    ``cm.to_dense().astype(np.uint8)``.  :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` is the single
     explicit materialisation boundary.
 
     .. note:: **RLE encoding — COCO / pycocotools pixel-scan order**
 
-        :class:`CompactMask` uses **column-major (Fortran-order, F-order)**
+        :class:`~supervision.detection.compact_mask.CompactMask` uses **column-major
+        (Fortran-order, F-order)**
         run-lengths scoped to each mask's bounding-box crop, matching the
         pixel-scan order used by the COCO API (pycocotools).  The crop scope
         still differs from the full-image scope used by pycocotools, so a
-        :class:`CompactMask` RLE cannot be passed directly to
+        :class:`~supervision.detection.compact_mask.CompactMask` RLE cannot be passed
+        directly to
         ``maskUtils.iou()`` or ``maskUtils.decode()`` without re-scoping to
-        the full canvas.  Use :meth:`to_dense` to obtain a standard boolean
+        the full canvas. Use
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` to obtain a
+        standard boolean
         array for pycocotools interop.
 
         This scan order is part of CompactMask's internal RLE representation.
         Switching from row-major (C-order) to column-major (F-order) is a
         backward-incompatible format change for any persisted or serialized
-        :class:`CompactMask` state, including pickled objects and any
+        :class:`~supervision.detection.compact_mask.CompactMask` state, including
+        pickled objects and any
         external storage of ``._rles``.  Older stored RLE arrays will decode
         incorrectly under the new convention.
 
         Migration note: load or decode legacy masks with the older version,
         materialize them to dense boolean arrays, and then re-encode them
-        with the current version (for example via :meth:`to_dense` followed
-        by :meth:`from_dense`) before persisting them again.
+        with the current version (for example via
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` followed by
+        :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`) before
+        persisting them again.
 
     Args:
         rles: List of N int32 run-length arrays.
@@ -1043,7 +1051,7 @@ class CompactMask:
         xyxy: npt.NDArray[np.number],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from a dense ``(N, H, W)`` bool array.
 
         Bounding boxes are clipped to image bounds and interpreted in the
         supervision ``xyxy`` convention (inclusive max coordinates). A
@@ -1057,7 +1065,7 @@ class CompactMask:
             image_shape: ``(H, W)`` of the full image.
 
         Returns:
-            A new :class:`CompactMask` instance.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Examples:
             ```pycon
@@ -1127,10 +1135,10 @@ class CompactMask:
         xyxy: npt.NDArray[np.floating],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`CompactMask` from full-frame COCO RLE masks.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from full-frame COCO RLE masks.
 
         Transcodes full-image COCO RLE payloads into the crop-scoped RLE format
-        used by :class:`CompactMask`. The conversion uses run-length arithmetic
+        used by :class:`~supervision.detection.compact_mask.CompactMask`. The conversion uses run-length arithmetic
         scoped by ``xyxy`` boxes and does not materialise a dense ``(N, H, W)``
         mask stack.
 
@@ -1144,7 +1152,7 @@ class CompactMask:
                 ``"size"`` value.
 
         Returns:
-            A new :class:`CompactMask` instance.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Raises:
             ValueError: If the RLE payloads are malformed, are not aligned with
@@ -1503,7 +1511,7 @@ class CompactMask:
 
         Note:
             The implementation iterates over the N individual RLE arrays in a
-            Python loop (one :func:`_rle_area` call per mask). This is negligible
+            Python loop (one :func:`~supervision.detection.compact_mask._rle_area` call per mask). This is negligible
             for typical N, but callers processing thousands of detections per
             frame should be aware of the per-mask Python-level overhead.
 
@@ -1532,7 +1540,7 @@ class CompactMask:
         """NumPy-compatible sum with a fast path for per-mask area.
 
         When ``axis=(1, 2)``, returns the per-mask True-pixel count via
-        :attr:`area` without materialising the full dense array.
+        :attr:`~supervision.detection.compact_mask.CompactMask.area` without materialising the full dense array.
 
         Args:
             axis: Axis or axes to sum over.
@@ -1585,15 +1593,15 @@ class CompactMask:
         """Index into the mask collection.
 
         * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
-        * ``slice | list | ndarray`` → new :class:`CompactMask` (for filtering).
+        * ``slice | list | ndarray`` → new :class:`~supervision.detection.compact_mask.CompactMask` (for filtering).
 
         Args:
             index: An integer returns a dense ``(H, W)`` mask.  Any other
-                supported index type returns a new :class:`CompactMask`.
+                supported index type returns a new :class:`~supervision.detection.compact_mask.CompactMask`.
 
         Returns:
             Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
-            :class:`CompactMask` for all other index types.
+            :class:`~supervision.detection.compact_mask.CompactMask` for all other index types.
 
         Examples:
             ```pycon
@@ -1677,10 +1685,10 @@ class CompactMask:
         return result
 
     def __eq__(self, other: object) -> bool:
-        """Element-wise equality with another :class:`CompactMask` or ndarray.
+        """Element-wise equality with another :class:`~supervision.detection.compact_mask.CompactMask` or ndarray.
 
         Args:
-            other: Another :class:`CompactMask` or ``np.ndarray``.
+            other: Another :class:`~supervision.detection.compact_mask.CompactMask` or ``np.ndarray``.
 
         Returns:
             ``True`` if all masks are pixel-identical.
@@ -1710,15 +1718,15 @@ class CompactMask:
 
     @staticmethod
     def merge(masks_list: list[CompactMask]) -> CompactMask:
-        """Concatenate multiple :class:`CompactMask` objects into one.
+        """Concatenate multiple :class:`~supervision.detection.compact_mask.CompactMask` objects into one.
 
         All inputs must have the same ``image_shape``.
 
         Args:
-            masks_list: Non-empty list of :class:`CompactMask` objects.
+            masks_list: Non-empty list of :class:`~supervision.detection.compact_mask.CompactMask` objects.
 
         Returns:
-            A new :class:`CompactMask` containing every mask from the inputs,
+            A new :class:`~supervision.detection.compact_mask.CompactMask` containing every mask from the inputs,
             in order.
 
         Raises:
@@ -1776,7 +1784,7 @@ class CompactMask:
         tiles are merged).
 
         Returns:
-            A new :class:`CompactMask` with minimal-area crops and updated
+            A new :class:`~supervision.detection.compact_mask.CompactMask` with minimal-area crops and updated
             offsets.
 
         Examples:
@@ -1849,7 +1857,7 @@ class CompactMask:
         dy: int,
         new_image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Return a new :class:`CompactMask` with adjusted offsets and image shape.
+        """Return a new :class:`~supervision.detection.compact_mask.CompactMask` with adjusted offsets and image shape.
 
         Used by :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
         to relocate tile-local masks into full-image coordinates without
@@ -1861,7 +1869,7 @@ class CompactMask:
             new_image_shape: ``(H, W)`` of the full (destination) image.
 
         Returns:
-            New :class:`CompactMask` with updated offsets and image shape.
+            New :class:`~supervision.detection.compact_mask.CompactMask` with updated offsets and image shape.
             Crops are clipped to stay inside ``new_image_shape``; masks fully
             outside are represented as ``1x1`` all-False crops.
 
@@ -1973,7 +1981,7 @@ class CompactMask:
 
         Each crop uses the full image's nearest-neighbour sampling grid, matching
         a dense ``cv2.resize(INTER_NEAREST)``. Sparse masks use direct RLE
-        arithmetic (:func:`_rle_resize`); dense masks sample decoded crops.
+        arithmetic (:func:`~supervision.detection.compact_mask._rle_resize`); dense masks sample decoded crops.
         Crops with no sampled pixels become all-False.
 
         Performance notes:
@@ -1987,7 +1995,7 @@ class CompactMask:
             new_image_shape: ``(H, W)`` of the target image.
 
         Returns:
-            New :class:`CompactMask` with updated ``image_shape``, scaled
+            New :class:`~supervision.detection.compact_mask.CompactMask` with updated ``image_shape``, scaled
             offsets, scaled crop shapes, and re-encoded RLE crops.
 
         Raises:

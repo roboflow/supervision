@@ -514,7 +514,7 @@ def oriented_box_iou_batch(
     Returns:
         Overlap matrix of shape `(N, M)`, where entry `[i, j]` is the overlap
         score between `boxes_true[i]` and `boxes_detection[j]`, in the range
-        `[0, 1]` under the configured :attr:`overlap_metric`.
+        `[0, 1]` under the configured ``overlap_metric``.
 
     Raises:
         ValueError: If ``boxes_true`` or ``boxes_detection`` is 3-D with inner

@@ -64,7 +64,7 @@ def labelme_shapes_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
 ) -> Detections:
-    """Convert a single image's LabelMe shapes into ``Detections``.
+    """Convert a single image's LabelMe shapes into :class:`~supervision.detection.core.Detections`.
 
     Only ``rectangle`` and ``polygon`` shapes are imported; other shape types
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
@@ -180,7 +180,7 @@ def load_labelme_annotations(
     annotations_directory_path: str,
     force_masks: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load LabelMe annotations and convert them to ``Detections``.
+    """Load LabelMe annotations and convert them to :class:`~supervision.detection.core.Detections`.
 
     LabelMe stores one JSON file per image, each containing a list of ``shapes``.
     ``rectangle`` shapes become bounding boxes; ``polygon`` shapes become masks
@@ -321,7 +321,7 @@ def _build_shape(
 def detections_to_labelme_shapes(
     detections: Detections, classes: list[str]
 ) -> list[LabelMeDict]:
-    """Convert ``Detections`` into a list of LabelMe shape dicts.
+    """Convert :class:`~supervision.detection.core.Detections` into a list of LabelMe shape dicts.
 
     Masked detections are exported as ``polygon`` shapes (one per connected
     component); box-only detections — and masked detections whose mask yields no
@@ -380,12 +380,12 @@ def save_labelme_annotations(
     dataset: DetectionDataset,
     annotations_directory_path: str,
 ) -> None:
-    """Export a ``DetectionDataset`` to per-image LabelMe ``.json`` files.
+    """Export a :class:`~supervision.dataset.core.DetectionDataset` to per-image LabelMe ``.json`` files.
 
     Image dimensions are read from grayscale or color arrays without changing pixels.
 
     Args:
-        dataset: The ``DetectionDataset`` to write.
+        dataset: The :class:`~supervision.dataset.core.DetectionDataset` to write.
         annotations_directory_path: Directory where the LabelMe ``.json`` files
             are written (created if it does not exist).
 

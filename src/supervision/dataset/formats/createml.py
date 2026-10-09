@@ -57,7 +57,7 @@ def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
 def createml_annotations_to_detections(
     image_annotations: list[CreateMLDict], class_to_index: dict[str, int]
 ) -> Detections:
-    """Convert a single image's CreateML annotations into ``Detections``.
+    """Convert a single image's CreateML annotations into :class:`~supervision.detection.core.Detections`.
 
     CreateML stores each box as a pixel-space centre point plus width/height
     (``{"x", "y", "width", "height"}``); they are converted to ``xyxy`` corners.
@@ -69,7 +69,7 @@ def createml_annotations_to_detections(
         class_to_index: Mapping from class name to zero-based integer id.
 
     Returns:
-        A ``Detections`` instance with ``xyxy`` boxes and ``class_id`` set.
+        A :class:`~supervision.detection.core.Detections` instance with ``xyxy`` boxes and ``class_id`` set.
         Returns ``Detections.empty()`` when ``image_annotations`` is empty.
 
     Raises:
@@ -142,7 +142,7 @@ def load_createml_annotations(
     annotations_path: str,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load CreateML object-detection annotations and convert them to ``Detections``.
+    """Load CreateML object-detection annotations and convert them to :class:`~supervision.detection.core.Detections`.
 
     CreateML uses a single JSON file containing a list of per-image entries, each
     holding axis-aligned bounding boxes. Class names are inferred from the labels
@@ -164,7 +164,7 @@ def load_createml_annotations(
         - ``image_paths`` (``list[str]``): canonical resolved path for every
           entry in the JSON, in file order.
         - ``annotations`` (``dict[str, Detections]``): mapping from canonical
-          resolved image path to its ``Detections``.
+          resolved image path to its :class:`~supervision.detection.core.Detections`.
 
     Raises:
         ValueError: If the JSON root is not a list.
@@ -232,7 +232,7 @@ def load_createml_annotations(
 def detections_to_createml_annotations(
     detections: Detections, classes: list[str]
 ) -> list[CreateMLDict]:
-    """Convert ``Detections`` into a list of CreateML annotation dicts.
+    """Convert :class:`~supervision.detection.core.Detections` into a list of CreateML annotation dicts.
 
     Each bounding box is stored as a pixel-space centre point plus width and
     height, which is the CreateML object-detection convention.
@@ -298,7 +298,7 @@ def save_createml_annotations(
     dataset: DetectionDataset,
     annotations_path: str,
 ) -> None:
-    """Export a ``DetectionDataset`` to a CreateML object-detection JSON file.
+    """Export a :class:`~supervision.dataset.core.DetectionDataset` to a CreateML object-detection JSON file.
 
     Only the filename component of each image path is stored in the JSON (e.g.
     ``"img.jpg"`` rather than ``"/data/train/img.jpg"``). This matches CreateML
@@ -308,7 +308,7 @@ def save_createml_annotations(
     key, so the exporter rejects that case before writing.
 
     Args:
-        dataset: The ``DetectionDataset`` to write.
+        dataset: The :class:`~supervision.dataset.core.DetectionDataset` to write.
         annotations_path: Output path for the CreateML JSON file. Parent
             directories are created if they do not already exist.
 
