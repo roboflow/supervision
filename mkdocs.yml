@@ -88,7 +88,7 @@ nav:
       - Datasets:
           - Core: datasets/core.md
       - Metrics:
-          - mAP: metrics/mean_average_precision.md
+          - mAP (Detections): metrics/mean_average_precision.md
           - mAP (KeyPoints): metrics/keypoint_mean_average_precision.md
           - mAR: metrics/mean_average_recall.md
           - Precision: metrics/precision.md
