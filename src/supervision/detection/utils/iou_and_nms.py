@@ -687,6 +687,22 @@ _COCO_KEYPOINT_SIGMAS: npt.NDArray[np.float64] = (
 `pycocotools`."""
 
 
+def _validate_keypoint_sigmas(sigmas: npt.NDArray[np.float64]) -> None:
+    """Check that every per-keypoint OKS sigma is positive and finite.
+
+    The shape is not checked, so callers that do not know the skeleton yet can
+    reject bad values early.
+
+    Args:
+        sigmas: Per-keypoint OKS sigmas.
+
+    Raises:
+        ValueError: If any sigma is zero, negative, NaN or infinite.
+    """
+    if not np.all(np.isfinite(sigmas) & (sigmas > 0)):
+        raise ValueError("`sigmas` must be positive and finite.")
+
+
 def _resolve_keypoint_sigmas(
     sigmas: npt.ArrayLike | None, num_keypoints: int
 ) -> npt.NDArray[np.float64]:
@@ -710,8 +726,7 @@ def _resolve_keypoint_sigmas(
             f"`sigmas` must have shape ({num_keypoints},) to match the number of "
             f"keypoints; got {resolved.shape}."
         )
-    if not np.all(np.isfinite(resolved) & (resolved > 0)):
-        raise ValueError("`sigmas` must be positive and finite.")
+    _validate_keypoint_sigmas(resolved)
     return resolved
 
 

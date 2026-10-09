@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import AREA_DATA_FIELD
+from supervision.config import AREA_DATA_FIELD, ISCROWD_DATA_FIELD, XYXY_DATA_FIELD
 from supervision.detection.utils.iou_and_nms import (
     _keypoint_oks_batch,
     _resolve_keypoint_sigmas,
+    _validate_keypoint_sigmas,
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.key_points.core import KeyPoints
@@ -18,13 +19,15 @@ from supervision.metrics.core import (
     MetricResult,
     PlotDetails,
     _append_object_size_plot_details,
-)
-from supervision.metrics.mean_average_precision import (
-    COCOEvaluator,
-    EvaluationDataset,
     _mean_valid_score,
     _scores_to_pandas,
     _show_bar_plot,
+)
+from supervision.metrics.mean_average_precision import (
+    _OBJECT_SIZE_AREA_RANGES,
+    COCOEvaluator,
+    EvaluationDataset,
+    ObjectSize,
     _TypeCocoDict,
 )
 
@@ -34,12 +37,13 @@ if TYPE_CHECKING:
 _KEYPOINT_MAX_DETECTIONS = 20
 """Maximum detections per image and class in COCO keypoint evaluation."""
 
-_XYXY_DATA_FIELD = "xyxy"
-"""`KeyPoints.data` key of per-object `(N, 4)` boxes in `(x_min, y_min, x_max, y_max)`
-format."""
+#: Object sizes COCO keypoint evaluation reports, as `pycocotools` `setKpParams`.
+_KEYPOINT_OBJECT_SIZES = (ObjectSize.ALL, ObjectSize.MEDIUM, ObjectSize.LARGE)
 
-_ISCROWD_DATA_FIELD = "iscrowd"
-"""`targets.data` key of per-target COCO crowd flags of shape `(N,)`."""
+# Local aliases of the public `config.py` keys, so the functions that read them
+# need no edit; inline the public names when those functions next change.
+_XYXY_DATA_FIELD = XYXY_DATA_FIELD
+_ISCROWD_DATA_FIELD = ISCROWD_DATA_FIELD
 
 
 @dataclass
@@ -51,8 +55,10 @@ class KeypointMeanAveragePrecisionResult(MetricResult):
     annotated with keypoints in COCO, so only medium and large results exist.
 
     Attributes:
-        is_class_agnostic: When computing class-agnostic results, class ID
-            is set to `-1`.
+        is_class_agnostic: When computing class-agnostic results, every
+            skeleton gets class ID `-1` when any input has class IDs, and
+            otherwise keeps the default class `0`, as in
+            `MeanAveragePrecision`.
         mAP_scores: the mAP scores at each OKS threshold.
             Shape: `(num_oks_thresholds,)`
         ap_per_class: the average precision scores per class and OKS threshold.
@@ -182,7 +188,10 @@ class _KeypointCOCOEvaluator(COCOEvaluator):
     """COCO evaluator that matches by OKS instead of IoU.
 
     Matching, accumulation and the 101-point interpolation are inherited, so
-    keypoint mAP shares them with box, mask and oriented-box mAP. Each
+    keypoint mAP shares them with box, mask and oriented-box mAP. As in
+    `pycocotools`, only the all, medium and large area ranges are evaluated:
+    small people carry no keypoint labels in COCO, so there is no small bucket
+    to compute. Each
     annotation's `content` holds its keypoints as `(K, 3)` rows of
     `(x, y, visible)`. Boxes of targets without visible keypoints are kept in a
     separate mapping by annotation id, so the shared COCO dictionaries hold no
@@ -196,7 +205,7 @@ class _KeypointCOCOEvaluator(COCOEvaluator):
         sigmas: npt.NDArray[np.float64],
         target_boxes: dict[int, npt.NDArray[np.float64]],
     ) -> None:
-        """Set up the evaluator with COCO keypoint max detections.
+        """Set up the evaluator with COCO keypoint max detections and area ranges.
 
         Args:
             coco_targets: The dataset with the ground truths.
@@ -207,6 +216,9 @@ class _KeypointCOCOEvaluator(COCOEvaluator):
         """
         super().__init__(coco_targets, coco_predictions)
         self.params.max_dets = [_KEYPOINT_MAX_DETECTIONS]
+        self.params.area_range = [
+            list(_OBJECT_SIZE_AREA_RANGES[size]) for size in _KEYPOINT_OBJECT_SIZES
+        ]
         self._sigmas = sigmas
         self._target_boxes = target_boxes
 
@@ -250,18 +262,53 @@ class _KeypointCOCOEvaluator(COCOEvaluator):
         return cast(npt.NDArray[np.float64], oks.T)
 
 
-def _keypoints_bbox(xy: npt.NDArray[np.float64]) -> list[float]:
-    """Return the COCO `[x, y, w, h]` box spanning the given `(K, 2)` keypoints.
+def _keypoints_xywh(
+    xy: npt.NDArray[np.float64], visible: npt.NDArray[np.bool_] | None = None
+) -> npt.NDArray[np.float64]:
+    """Return the COCO `[x, y, w, h]` box spanning each skeleton's keypoints.
 
     Args:
-        xy: Keypoint coordinates of shape `(K, 2)`, with `K >= 1`.
+        xy: Keypoint coordinates of shape `(N, K, 2)`, with `K >= 1`.
+        visible: Mask of shape `(N, K)` of the keypoints to span; all of them
+            when `None`. A skeleton with none gets an infinite box.
 
     Returns:
-        The box as `[x_min, y_min, width, height]`.
+        The boxes as `(N, 4)` rows of `[x_min, y_min, width, height]`.
     """
-    x_min, y_min = xy.min(axis=0)
-    x_max, y_max = xy.max(axis=0)
-    return [float(x_min), float(y_min), float(x_max - x_min), float(y_max - y_min)]
+    if visible is None:
+        low, high = xy.min(axis=1), xy.max(axis=1)
+    else:
+        # Masked keypoints are moved past every coordinate, so min and max skip
+        # them without a per-skeleton loop.
+        mask = visible[..., None]
+        low = np.where(mask, xy, np.inf).min(axis=1)
+        high = np.where(mask, xy, -np.inf).max(axis=1)
+    return np.concatenate([low, high - low], axis=1)
+
+
+def _check_target_areas(targets: KeyPoints) -> None:
+    """Check that `targets.data["area"]` holds one usable area per target.
+
+    Args:
+        targets: The ground-truth skeletons of one image.
+
+    Raises:
+        ValueError: If the areas are not of shape `(N,)`, or any is negative or
+            not finite. An area of `0` is accepted.
+    """
+    areas = targets.data.get(AREA_DATA_FIELD)
+    if areas is None:
+        return
+    area_values = np.asarray(areas, dtype=np.float64)
+    if area_values.shape != (len(targets),):
+        raise ValueError(
+            f"`targets.data['{AREA_DATA_FIELD}']` must have shape "
+            f"({len(targets)},); got {area_values.shape}."
+        )
+    if not np.all(np.isfinite(area_values) & (area_values >= 0)):
+        raise ValueError(
+            f"`targets.data['{AREA_DATA_FIELD}']` must be finite and non-negative."
+        )
 
 
 class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
@@ -277,8 +324,11 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
     Inputs are one `sv.KeyPoints` per image for predictions and targets:
 
     - **Visibility.** Target keypoints with `visible` set to `False` are
-      unlabelled, like COCO `v=0`, and do not enter the OKS. `visible=None`
-      means every keypoint is labelled. Prediction visibility is not used.
+      unlabelled, like COCO `v=0`, and do not enter the OKS. COCO `v=1`
+      (labelled but occluded) and `v=2` (labelled and visible) both map to
+      `visible=True`, because `pycocotools` counts every keypoint with `v>0`.
+      `visible=None` means every keypoint is labelled. Prediction visibility
+      is not used.
     - **Targets without visible keypoints** (COCO `num_keypoints == 0`). When
       `targets.data["xyxy"]` holds the target boxes as `(N, 4)`
       `(x_min, y_min, x_max, y_max)`, such a target is kept as an ignore
@@ -309,11 +359,15 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
       any number of predictions may match it and are then ignored. OKS against
       it is computed like any other target, using its box when it has no
       visible keypoint. Without the key, every target is a regular instance.
-    - **Invalid values.** NaN coordinates and a target area of `0` are not
-      rejected. A NaN keypoint adds `0` to the OKS while the pair's finite
-      keypoints still count; `pycocotools` instead returns a NaN OKS for the
-      pair. With a zero area only keypoints at exactly zero distance add to
-      the OKS, so such pairs score low or `0`. Clean such labels beforehand.
+    - **Invalid values.** Non-finite (NaN or infinite) coordinates are not
+      rejected. A non-finite target keypoint counts as unlabelled, like
+      `visible=False`, so a target with only non-finite keypoints is a target
+      without visible keypoints. A non-finite prediction keypoint adds `0` to
+      the OKS while its finite keypoints still count. `pycocotools` instead
+      returns a NaN OKS when a labelled keypoint of the pair is NaN. A target
+      area must be finite and non-negative. With an area of `0` only
+      keypoints at exactly zero distance add to the OKS, so such pairs score
+      low or `0`. Clean such labels beforehand.
 
     Examples:
         ```pycon
@@ -351,9 +405,17 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                 the COCO 17-point sigmas. There is no generic default: sigmas
                 encode how precisely each keypoint can be annotated, so COCO
                 values are wrong for other skeletons.
-            class_agnostic: Whether to treat all data as a single class.
+            class_agnostic: Whether to treat all data as a single class with ID
+                `-1`. As in `MeanAveragePrecision`, when no input has class IDs
+                that class keeps the default ID `0`.
+
+        Raises:
+            ValueError: If `sigmas` holds a value that is not positive and
+                finite. Its length is checked against the skeleton on `update`.
         """
         self._sigmas = None if sigmas is None else np.asarray(sigmas, np.float64)
+        if self._sigmas is not None:
+            _validate_keypoint_sigmas(self._sigmas)
         self._class_agnostic = class_agnostic
         self._num_keypoints: int | None = None
         self._predictions_list: list[KeyPoints] = []
@@ -381,11 +443,14 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
 
         Raises:
             ValueError: If the numbers of predictions and targets differ, a
-                skeleton's number of keypoints differs from earlier ones or
-                from the length of `sigmas`, `sigmas` is missing for a skeleton
-                that is not 17 points long, `data["xyxy"]` of predictions or
-                targets is not of shape `(N, 4)`, or `targets.data["iscrowd"]`
-                is not of shape `(N,)`.
+                skeleton has no keypoints, a skeleton's number of keypoints
+                differs from earlier ones or from the length of `sigmas`,
+                `sigmas` is missing for a skeleton that is not 17 points long,
+                `data["xyxy"]` of predictions or targets is not of shape
+                `(N, 4)`, `targets.data["iscrowd"]` is not of shape `(N,)`, or
+                `targets.data["area"]` is not of shape `(N,)` or holds a
+                negative or non-finite area. A rejected update leaves the
+                metric unchanged.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -398,8 +463,9 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                 f" targets ({len(targets)}) during the update must be the same."
             )
 
+        num_keypoints = self._num_keypoints
         for key_points in [*predictions, *targets]:
-            self._check_num_keypoints(key_points)
+            num_keypoints = self._check_num_keypoints(key_points, num_keypoints)
         for name, key_points_list in (
             ("predictions", predictions),
             ("targets", targets),
@@ -418,56 +484,92 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                     f"`targets.data['{_ISCROWD_DATA_FIELD}']` must have shape "
                     f"({len(key_points)},); got {np.shape(iscrowd)}."
                 )
+            _check_target_areas(key_points)
 
+        # Store anything only once every check passed, so that a rejected update
+        # does not pin the skeleton size for later updates.
+        self._num_keypoints = num_keypoints
         self._predictions_list.extend(predictions)
         self._targets_list.extend(targets)
         return self
 
-    def _check_num_keypoints(self, key_points: KeyPoints) -> None:
+    def _check_num_keypoints(
+        self, key_points: KeyPoints, num_keypoints: int | None
+    ) -> int | None:
         """Check that a skeleton matches earlier ones and the given sigmas.
 
         Args:
             key_points: The skeletons of one image.
+            num_keypoints: The number of keypoints of earlier skeletons, or
+                `None` if there were none.
+
+        Returns:
+            The number of keypoints of these and earlier skeletons, or `None`
+            while there are none.
 
         Raises:
-            ValueError: If the number of keypoints differs from earlier
-                skeletons or from the length of `sigmas`, or `sigmas` is
-                missing for a skeleton that is not 17 points long.
+            ValueError: If the skeletons have no keypoints, the number of
+                keypoints differs from earlier skeletons or from the length of
+                `sigmas`, or `sigmas` is missing for a skeleton that is not 17
+                points long.
         """
         if len(key_points) == 0:
-            return
-        num_keypoints = key_points.xy.shape[1]
-        if self._num_keypoints is None:
-            _resolve_keypoint_sigmas(self._sigmas, num_keypoints)
-            self._num_keypoints = num_keypoints
-        elif num_keypoints != self._num_keypoints:
+            return num_keypoints
+        skeleton_size = int(key_points.xy.shape[1])
+        if skeleton_size == 0:
             raise ValueError(
-                f"Skeletons have {num_keypoints} keypoints, but earlier skeletons "
+                "Skeletons must have at least one keypoint; got `xy` of shape "
+                f"{key_points.xy.shape}."
+            )
+        if num_keypoints is None:
+            _resolve_keypoint_sigmas(self._sigmas, skeleton_size)
+            return skeleton_size
+        if skeleton_size != num_keypoints:
+            raise ValueError(
+                f"Skeletons have {skeleton_size} keypoints, but earlier skeletons "
                 f"passed to `update` since the last `reset` have "
-                f"{self._num_keypoints}; all skeletons must have the same "
+                f"{num_keypoints}; all skeletons must have the same "
                 f"number of keypoints."
             )
+        return num_keypoints
 
-    def _category_id(self, key_points: KeyPoints, index: int) -> int:
+    def _agnostic_category_id(self) -> int:
+        """Return the single category of all skeletons when class agnostic.
+
+        As in `MeanAveragePrecision`, it is `-1` when any stored skeleton has a
+        class ID, and otherwise the default class `0`.
+        """
+        has_class_ids = any(
+            key_points.class_id is not None and len(key_points) > 0
+            for key_points in [*self._predictions_list, *self._targets_list]
+        )
+        return -1 if has_class_ids else 0
+
+    def _category_id(self, key_points: KeyPoints, index: int, agnostic_id: int) -> int:
         """Return the evaluation category of one skeleton.
 
         Args:
             key_points: The skeletons of one image.
             index: The skeleton's index in `key_points`.
+            agnostic_id: The category of every skeleton when class agnostic.
 
         Returns:
-            `-1` when class agnostic, `0` without `class_id`, else its class.
+            `agnostic_id` when class agnostic, `0` without `class_id`, else its
+            class.
         """
         if self._class_agnostic:
-            return -1
+            return agnostic_id
         if key_points.class_id is None:
             return 0
         return int(key_points.class_id[index])
 
     def _prepare_targets(
-        self,
+        self, agnostic_id: int
     ) -> tuple[dict[str, list[_TypeCocoDict]], dict[int, npt.NDArray[np.float64]]]:
         """Transform targets into the COCO dictionary used by the evaluator.
+
+        Args:
+            agnostic_id: The category of every target when class agnostic.
 
         Returns:
             The COCO dataset dictionary, and the xyxy box by annotation id of
@@ -488,11 +590,20 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                 if image_targets.visible is None
                 else np.asarray(image_targets.visible, dtype=bool)
             )
+            # A non-finite target keypoint is unlabelled, like COCO `v=0`, so it
+            # stays out of the OKS and the fallback area. Not in place: `visible`
+            # may be the caller's array.
+            visible = visible & np.isfinite(xy).all(axis=-1)
             areas = image_targets.data.get(AREA_DATA_FIELD)
             boxes = image_targets.data.get(_XYXY_DATA_FIELD)
             if boxes is not None:
                 boxes = np.asarray(boxes, dtype=np.float64)
             iscrowd = image_targets.data.get(_ISCROWD_DATA_FIELD)
+            # Per-image arrays, so that the loop below only picks rows. Rows of
+            # targets without visible keypoints are infinite and never read.
+            span_boxes = _keypoints_xywh(xy, visible)
+            span_areas = span_boxes[:, 2] * span_boxes[:, 3]
+            contents = np.concatenate([xy, visible[..., None]], axis=2)
             for index in range(len(image_targets)):
                 is_ignored = not visible[index].any()
                 if is_ignored and boxes is None:
@@ -503,9 +614,8 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                 elif xyxy is not None:
                     area = float((xyxy[2] - xyxy[0]) * (xyxy[3] - xyxy[1]))
                 else:
-                    _, _, width, height = _keypoints_bbox(xy[index][visible[index]])
-                    area = width * height
-                content = np.column_stack([xy[index], visible[index]])
+                    area = float(span_areas[index])
+                content = contents[index]
                 annotation_id = len(annotations) + 1  # 0 means no match
                 if xyxy is not None:
                     target_boxes[annotation_id] = xyxy
@@ -514,7 +624,9 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
                     {
                         "id": annotation_id,
                         "image_id": image_id,
-                        "category_id": self._category_id(image_targets, index),
+                        "category_id": self._category_id(
+                            image_targets, index, agnostic_id
+                        ),
                         "area": area,
                         "iscrowd": int(is_crowd),
                         "ignore": int(is_ignored),
@@ -530,8 +642,12 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
         }
         return dataset, target_boxes
 
-    def _prepare_predictions(self) -> list[_TypeCocoDict]:
-        """Transform predictions into the COCO result list used by the evaluator."""
+    def _prepare_predictions(self, agnostic_id: int) -> list[_TypeCocoDict]:
+        """Transform predictions into the COCO result list used by the evaluator.
+
+        Args:
+            agnostic_id: The category of every prediction when class agnostic.
+        """
         coco_predictions: list[_TypeCocoDict] = []
         for image_id, image_predictions in enumerate(self._predictions_list):
             if len(image_predictions) == 0:
@@ -539,23 +655,31 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
             xy = image_predictions.xy[..., :2].astype(np.float64)
             confidence = image_predictions.detection_confidence
             boxes = image_predictions.data.get(_XYXY_DATA_FIELD)
-            for index in range(len(image_predictions)):
-                if boxes is None:
-                    bbox = _keypoints_bbox(xy[index])
-                else:
-                    x_min, y_min, x_max, y_max = (float(v) for v in boxes[index])
-                    bbox = [x_min, y_min, x_max - x_min, y_max - y_min]
-                score = 0.0 if confidence is None else float(confidence[index])
+            # Per-image arrays, so that the loop below only picks rows.
+            if boxes is None:
+                bboxes = _keypoints_xywh(xy)
+            else:
+                xyxy = np.asarray(boxes, dtype=np.float64)
+                bboxes = np.concatenate([xyxy[:, :2], xyxy[:, 2:] - xyxy[:, :2]], 1)
+            scores = (
+                np.zeros(len(image_predictions))
+                if confidence is None
+                else np.asarray(confidence, dtype=np.float64)
+            )
+            areas = bboxes[:, 2] * bboxes[:, 3]
+            contents = np.concatenate([xy, np.ones((*xy.shape[:2], 1))], axis=2)
+            rows = zip(bboxes.tolist(), areas.tolist(), scores.tolist())
+            for index, (bbox, area, score) in enumerate(rows):
                 coco_predictions.append(
                     {
                         "image_id": image_id,
-                        "category_id": self._category_id(image_predictions, index),
-                        "bbox": bbox,
-                        "area": bbox[2] * bbox[3],
-                        "score": score,
-                        "content": np.column_stack(
-                            [xy[index], np.ones(len(xy[index]))]
+                        "category_id": self._category_id(
+                            image_predictions, index, agnostic_id
                         ),
+                        "bbox": bbox,
+                        "area": area,
+                        "score": score,
+                        "content": contents[index],
                     }
                 )
         return coco_predictions
@@ -571,9 +695,12 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
             if self._num_keypoints is not None
             else np.empty(0, dtype=np.float64)
         )
-        dataset, target_boxes = self._prepare_targets()
+        agnostic_id = self._agnostic_category_id()
+        dataset, target_boxes = self._prepare_targets(agnostic_id)
         coco_targets = EvaluationDataset(targets=dataset)
-        coco_predictions = coco_targets.load_predictions(self._prepare_predictions())
+        coco_predictions = coco_targets.load_predictions(
+            self._prepare_predictions(agnostic_id)
+        )
         evaluator = _KeypointCOCOEvaluator(
             coco_targets, coco_predictions, sigmas, target_boxes
         )

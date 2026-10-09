@@ -14,7 +14,9 @@ from supervision.key_points.core import KeyPoints
 from supervision.metrics.keypoint_mean_average_precision import (
     KeypointMeanAveragePrecision,
     KeypointMeanAveragePrecisionResult,
+    _KeypointCOCOEvaluator,
 )
+from supervision.metrics.mean_average_precision import EvaluationDataset
 
 PERSON_TEMPLATE = np.array(
     [
@@ -39,7 +41,14 @@ PERSON_TEMPLATE = np.array(
 )
 
 
-# pycocotools 2.0.11 results for `_make_synthetic_pose_images()`.
+# Parity with pycocotools holds to about 1e-7, not to float64 precision: the shared
+# accumulator stores precision as float32, which leaves up to ~1e-8 of drift here.
+PARITY_TOLERANCE = 1e-7
+
+# pycocotools 2.0.11 results for `_make_synthetic_pose_images()`. pycocotools is not a
+# dependency, so regenerate them with
+# `uv run --with pycocotools python -m tests.metrics.generate_keypoint_map_parity`
+# after any change to the synthetic data, such as its RNG call order.
 EXPECTED_STATS = [
     0.2508697518103459,
     0.3701084394153701,
@@ -544,8 +553,8 @@ class TestKeypointMeanAveragePrecision:
         The false positive sits in its own image, next to one with a match.
 
         Its keypoints span a medium box, so without a box it is a medium false
-        positive. A large box moves it out of the medium bucket, as a result
-        `bbox` does in `pycocotools`.
+        positive. A large box moves it out of the medium bucket, as the
+        `bbox` of a COCO result entry does in `pycocotools`.
         """
         target = _triangle_key_points()
         target.data["area"] = np.array([5000.0])
@@ -644,6 +653,254 @@ class TestKeypointMeanAveragePrecision:
             metric.update([KeyPoints.empty()], [KeyPoints.empty()] * 2)
 
 
+class TestKeypointMeanAveragePrecisionTargetArea:
+    """OKS is normalized by a target area that falls back to a box when absent."""
+
+    def test_fallback_area_spans_only_visible_keypoints(self) -> None:
+        """Without `data["area"]`, the area is that of the visible keypoints' box.
+
+        With the first and last triangle points visible the box is 25 x 70 = 1750, so a
+        (10, 10) offset gives OKS = exp(-4 * 10**2 / 1750) = 0.796, which passes the OKS
+        thresholds up to 0.75. Spanning all three points (area 3500) would give OKS
+        0.892 and pass up to 0.85, so the unlabelled point must not count.
+        """
+        target = _triangle_key_points(visible=np.array([[True, False, True]]))
+        prediction = _triangle_key_points(offset=10.0, confidence=0.9)
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(prediction, target).compute()
+
+        assert result.mAP_scores == pytest.approx([1.0] * 6 + [0.0] * 4)
+
+    @pytest.mark.parametrize(
+        ("shift", "expected_map"),
+        [
+            pytest.param(0.0, 1.0, id="exact-keypoint-matches"),
+            pytest.param(1.0, 0.0, id="one-pixel-off-keypoint-misses"),
+        ],
+    )
+    def test_single_visible_keypoint_has_zero_area(
+        self, shift: float, expected_map: float
+    ) -> None:
+        """A single visible keypoint gives area 0, so only an exact hit adds to OKS.
+
+        The prediction is far off on the two unlabelled keypoints, which must not matter
+        either way.
+        """
+        target = _triangle_key_points(visible=np.array([[True, False, False]]))
+        prediction = _triangle_key_points(confidence=0.9)
+        prediction.xy[0, 1:] += 200.0
+        prediction.xy[0, 0] += shift
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(prediction, target).compute()
+
+        assert result.map50_95 == pytest.approx(expected_map)
+
+    def test_hidden_target_area_falls_back_to_box_area(self) -> None:
+        """A hidden target without `data["area"]` is normalized by its box area.
+
+        The box `(300, 300, 400, 380)` has area 8000 and expands to `[200, 500] x [220,
+        460]`. A prediction with all keypoints 40 px right of the expansion has OKS =
+        exp(-40**2 / (0.5 * 8000)) = 0.670: it is ignored at OKS thresholds up to 0.65
+        and a false positive ranked above the match after that.
+        """
+        hidden_target = _triangle_key_points(
+            offset=300.0, visible=np.zeros((1, 3), dtype=bool)
+        )
+        hidden_target.data["xyxy"] = np.array([[300.0, 300.0, 400.0, 380.0]])
+        prediction_near_hidden = KeyPoints(
+            xy=np.full((1, 3, 2), [540.0, 300.0], dtype=np.float32),
+            class_id=np.array([0]),
+            detection_confidence=np.array([0.95]),
+        )
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(
+            [_triangle_key_points(confidence=0.9), prediction_near_hidden],
+            [_triangle_key_points(), hidden_target],
+        ).compute()
+
+        assert result.mAP_scores == pytest.approx([1.0] * 4 + [0.5] * 6)
+
+
+class TestKeypointMeanAveragePrecisionIgnoreRegions:
+    """Ignore regions and crowd targets absorb predictions differently."""
+
+    @pytest.mark.parametrize(
+        ("is_crowd", "expected_map"),
+        [
+            pytest.param(False, 0.5, id="regular-second-is-false-positive"),
+            pytest.param(True, 1.0, id="crowd-absorbs-both"),
+        ],
+    )
+    def test_second_prediction_on_ignore_region(
+        self, is_crowd: bool, expected_map: float
+    ) -> None:
+        """Only a crowd target absorbs a second prediction; a regular one does not.
+
+        Two predictions (0.96, 0.95) sit on a hidden target with a box, next to an image
+        holding one match (0.9). The first prediction is ignored by either kind of
+        target. The second is ignored by a crowd target but unmatched, so a false
+        positive ranked above the match, for a regular one: precision 1/2 at full recall
+        gives AP 0.5.
+        """
+        hidden_target = _triangle_key_points(
+            offset=300.0, visible=np.zeros((1, 3), dtype=bool)
+        )
+        hidden_target.data["xyxy"] = np.array([[310.0, 310.0, 360.0, 380.0]])
+        hidden_target.data["iscrowd"] = np.array([is_crowd])
+        two_on_hidden = KeyPoints(
+            xy=np.repeat(hidden_target.xy, 2, axis=0),
+            class_id=np.zeros(2, dtype=int),
+            detection_confidence=np.array([0.96, 0.95]),
+        )
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(
+            [_triangle_key_points(confidence=0.9), two_on_hidden],
+            [_triangle_key_points(), hidden_target],
+        ).compute()
+
+        assert result.mAP_scores == pytest.approx([expected_map] * 10)
+
+    def test_crowd_and_regular_target_compete_for_one_prediction(self) -> None:
+        """A prediction fitting a crowd and a regular target goes to the regular one.
+
+        The crowd target is listed first and fits equally well, yet matching it would
+        ignore the prediction and leave the regular target a miss (AP 0).
+        """
+        xy = np.repeat(_triangle_key_points().xy, 2, axis=0)
+        targets = KeyPoints(
+            xy=xy,
+            class_id=np.zeros(2, dtype=int),
+            data={"iscrowd": np.array([True, False])},
+        )
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(_triangle_key_points(confidence=0.9), targets).compute()
+
+        assert result.mAP_scores == pytest.approx(np.ones(10))
+
+    def test_crowd_only_image_gives_sentinel(self) -> None:
+        """With only a crowd target there is nothing to score, so mAP is -1."""
+        crowd = _triangle_key_points()
+        crowd.data["iscrowd"] = np.array([True])
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(_triangle_key_points(confidence=0.9), crowd).compute()
+
+        assert result.map50_95 == -1
+        assert result.map50 == -1
+
+
+def _false_positives(
+    count: int, class_id: int = 0, confidence: float = 0.9
+) -> KeyPoints:
+    """Build `count` predictions of one class, all far from every triangle target."""
+    return KeyPoints(
+        xy=np.repeat(_triangle_key_points(offset=500.0).xy, count, axis=0),
+        class_id=np.full(count, class_id),
+        detection_confidence=np.full(count, confidence),
+    )
+
+
+class TestKeypointMeanAveragePrecisionMaxDetections:
+    """At most 20 predictions per image and class are scored, highest score first."""
+
+    @pytest.mark.parametrize(
+        ("num_false_positives", "expected_map"),
+        [
+            pytest.param(19, 1 / 20, id="match-at-rank-20-counts"),
+            pytest.param(20, 0.0, id="match-at-rank-21-is-dropped"),
+        ],
+    )
+    def test_prediction_ranked_past_the_cap_is_dropped(
+        self, num_false_positives: int, expected_map: float
+    ) -> None:
+        """A match counts at rank 20 and is lost at rank 21.
+
+        Higher-scored false positives precede a lone match (0.5). At rank 20 the
+        precision at full recall is 1/20, so AP is 0.05. At rank 21 the match is cut
+        before it can be counted, so the target is a miss and AP is 0.
+        """
+        false_positives = _false_positives(num_false_positives)
+        match = _triangle_key_points(confidence=0.5)
+        predictions = KeyPoints(
+            xy=np.concatenate([false_positives.xy, match.xy]),
+            class_id=np.zeros(num_false_positives + 1, dtype=int),
+            detection_confidence=np.append(false_positives.detection_confidence, 0.5),
+        )
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(predictions, _triangle_key_points()).compute()
+
+        assert result.map50_95 == pytest.approx(expected_map)
+
+    def test_cap_applies_per_class(self) -> None:
+        """Twenty higher-scored predictions of another class do not push a match out.
+
+        Class 1 holds 20 false positives (0.9) and class 0 one match (0.5) in the same
+        image. Counted per image, the match would be the 21st prediction and be cut.
+        """
+        match = _triangle_key_points(confidence=0.5)
+        false_positives = _false_positives(20, class_id=1)
+        predictions = KeyPoints(
+            xy=np.concatenate([false_positives.xy, match.xy]),
+            class_id=np.append(false_positives.class_id, 0),
+            detection_confidence=np.append(false_positives.detection_confidence, 0.5),
+        )
+        class_one_target = _triangle_key_points(offset=1000.0)
+        class_one_target.class_id = np.array([1])
+        targets = KeyPoints(
+            xy=np.concatenate([_triangle_key_points().xy, class_one_target.xy]),
+            class_id=np.array([0, 1]),
+        )
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(predictions, targets).compute()
+
+        assert list(result.matched_classes) == [0, 1]
+        assert result.ap_per_class[0] == pytest.approx(np.ones(10))
+
+    def test_cap_applies_per_image(self) -> None:
+        """Twenty higher-scored predictions in another image do not push a match out.
+
+        Image 0 has 20 false positives (0.9) and no target, image 1 has one match (0.5).
+        The match is within its own image's cap but ranks 21st overall, so precision at
+        full recall is 1/21. A cap shared by all images would cut it.
+        """
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(
+            [_false_positives(20), _triangle_key_points(confidence=0.5)],
+            [KeyPoints.empty(), _triangle_key_points()],
+        ).compute()
+
+        assert result.map50_95 == pytest.approx(1 / 21)
+
+    @pytest.mark.parametrize("match_confidence", [None, 0.0])
+    def test_missing_detection_confidence_scores_zero(
+        self, match_confidence: float | None
+    ) -> None:
+        """Predictions without `detection_confidence` rank like score 0.
+
+        The match scores 0, below a false positive (0.1) in another image, so precision
+        at full recall is 1/2 and AP is 0.5. An explicit 0.0 agrees.
+        """
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(
+            [
+                _triangle_key_points(confidence=match_confidence),
+                _false_positives(1, confidence=0.1),
+            ],
+            [_triangle_key_points(), KeyPoints.empty()],
+        ).compute()
+
+        assert result.map50_95 == pytest.approx(0.5)
+
+
 class TestKeypointMeanAveragePrecisionPycocotoolsParity:
     """Scores match `COCOeval(..., iouType="keypoints")` on synthetic data."""
 
@@ -661,18 +918,41 @@ class TestKeypointMeanAveragePrecisionPycocotoolsParity:
         # `area` from `targets.data["area"]`, v=2 for visible target points and
         # v=0 otherwise: stats[0:5] and the per-category mean of
         # `eval["precision"]` over recall thresholds (area all, maxDets 20).
-        assert result.map50_95 == pytest.approx(EXPECTED_STATS[0], abs=1e-6)
-        assert result.map50 == pytest.approx(EXPECTED_STATS[1], abs=1e-6)
-        assert result.map75 == pytest.approx(EXPECTED_STATS[2], abs=1e-6)
+        assert result.map50_95 == pytest.approx(EXPECTED_STATS[0], abs=PARITY_TOLERANCE)
+        assert result.map50 == pytest.approx(EXPECTED_STATS[1], abs=PARITY_TOLERANCE)
+        assert result.map75 == pytest.approx(EXPECTED_STATS[2], abs=PARITY_TOLERANCE)
         assert result.medium_objects is not None
         assert result.large_objects is not None
         assert result.medium_objects.map50_95 == pytest.approx(
-            EXPECTED_STATS[3], abs=1e-6
+            EXPECTED_STATS[3], abs=PARITY_TOLERANCE
         )
         assert result.large_objects.map50_95 == pytest.approx(
-            EXPECTED_STATS[4], abs=1e-6
+            EXPECTED_STATS[4], abs=PARITY_TOLERANCE
         )
-        assert result.ap_per_class == pytest.approx(EXPECTED_AP_PER_CLASS, abs=1e-6)
+        assert result.ap_per_class == pytest.approx(
+            EXPECTED_AP_PER_CLASS, abs=PARITY_TOLERANCE
+        )
+
+    def test_evaluates_only_pycocotools_keypoint_area_ranges(self) -> None:
+        """The evaluator keeps the all, medium and large ranges of `setKpParams`."""
+        # Arrange
+        dataset = EvaluationDataset(
+            targets={"images": [], "annotations": [], "categories": []}
+        )
+
+        # Act
+        evaluator = _KeypointCOCOEvaluator(
+            dataset, dataset, sigmas=np.ones(17), target_boxes={}
+        )
+
+        # Assert
+        # pycocotools `Params.setKpParams` sets `areaRng` to these ranges; the
+        # small bucket of box evaluation is not computed.
+        assert evaluator.params.area_range == [
+            [0**2, 1e5**2],
+            [32**2, 96**2],
+            [96**2, 1e5**2],
+        ]
 
 
 class TestKeypointOksBatchShapeValidation:
@@ -748,6 +1028,36 @@ class TestKeypointMeanAveragePrecisionCategories:
 
         assert result.map50_95 == pytest.approx(0.0)
 
+    @pytest.mark.parametrize(
+        ("prediction_class_id", "expected_classes"),
+        [
+            pytest.param(None, [0], id="no-class-ids-keep-class-zero"),
+            pytest.param(np.array([1]), [-1], id="any-class-id-joins-minus-one"),
+        ],
+    )
+    def test_class_agnostic_category_follows_mean_average_precision(
+        self,
+        prediction_class_id: npt.NDArray[np.int_] | None,
+        expected_classes: list[int],
+    ) -> None:
+        """Class-agnostic skeletons share class -1, or keep 0 when no input has IDs.
+
+        This mirrors `MeanAveragePrecision`, and an unlabelled target still matches
+        a labelled prediction in the mixed case.
+        """
+        prediction = _triangle_key_points(confidence=0.9)
+        prediction.class_id = prediction_class_id
+        target = _triangle_key_points()
+        target.class_id = None
+        metric = KeypointMeanAveragePrecision(
+            sigmas=TRIANGLE_SIGMAS, class_agnostic=True
+        )
+
+        result = metric.update(prediction, target).compute()
+
+        assert list(result.matched_classes) == expected_classes
+        assert result.map50_95 == pytest.approx(1.0)
+
 
 class TestKeypointMeanAveragePrecisionResult:
     """Summary, DataFrame and plot helpers of the keypoint mAP result."""
@@ -802,3 +1112,174 @@ class TestKeypointMeanAveragePrecisionResult:
         plt.close("all")
 
         assert shown == [True]
+
+
+class TestKeypointMeanAveragePrecisionInputValidation:
+    """Invalid inputs are rejected up front and leave the metric unchanged."""
+
+    @pytest.mark.parametrize(
+        "sigmas",
+        [
+            pytest.param([0.1, 0.0, 0.1], id="zero"),
+            pytest.param([0.1, -0.1, 0.1], id="negative"),
+            pytest.param([0.1, np.nan, 0.1], id="nan"),
+            pytest.param([0.1, np.inf, 0.1], id="infinite"),
+        ],
+    )
+    def test_constructor_raises_for_invalid_sigmas(self, sigmas: list[float]) -> None:
+        """Sigmas that are not positive and finite are rejected before any update."""
+        with pytest.raises(ValueError, match="positive and finite"):
+            KeypointMeanAveragePrecision(sigmas=sigmas)
+
+    @pytest.mark.parametrize(
+        ("area", "match"),
+        [
+            pytest.param([[2000.0]], "must have shape", id="column-vector"),
+            pytest.param([2000.0, 2000.0], "must have shape", id="one-too-many"),
+            pytest.param([np.nan], "must be finite and non-negative", id="nan"),
+            pytest.param([np.inf], "must be finite and non-negative", id="infinite"),
+            pytest.param([-5.0], "must be finite and non-negative", id="negative"),
+        ],
+    )
+    def test_update_raises_for_invalid_target_area(
+        self, area: list[float] | list[list[float]], match: str
+    ) -> None:
+        """`targets.data["area"]` must hold one finite, non-negative area per target."""
+        target = _triangle_key_points()
+        target.data["area"] = np.array(area)
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        with pytest.raises(ValueError, match=rf"targets\.data\['area'\]` {match}"):
+            metric.update(_triangle_key_points(confidence=0.9), target)
+
+    def test_update_accepts_zero_target_area(self) -> None:
+        """A zero area is accepted, and an exact match then still scores 1."""
+        target = _triangle_key_points()
+        target.data["area"] = np.array([0.0])
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(_triangle_key_points(confidence=0.9), target).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+
+    def test_rejected_update_does_not_pin_skeleton_size(self) -> None:
+        """A rejected update records no skeleton size for later updates.
+
+        The 4-point skeleton must then fail on its own sigma length, not with the
+        misleading "earlier skeletons" error that a leaked 3-point size gave.
+        """
+        bad_target = _triangle_key_points()
+        bad_target.data["iscrowd"] = np.zeros((1, 2))
+        four_points = KeyPoints(xy=np.zeros((1, 4, 2), dtype=np.float32))
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        with pytest.raises(ValueError, match="iscrowd"):
+            metric.update(_triangle_key_points(confidence=0.9), bad_target)
+
+        with pytest.raises(ValueError, match=r"`sigmas` must have shape \(4,\)"):
+            metric.update(four_points, four_points)
+
+    @pytest.mark.parametrize(
+        "sigmas",
+        [
+            pytest.param([], id="explicit-empty-sigmas"),
+            pytest.param(None, id="default-sigmas"),
+        ],
+    )
+    def test_update_raises_for_skeleton_without_keypoints(
+        self, sigmas: list[float] | None
+    ) -> None:
+        """A skeleton with zero keypoints is rejected on update, not deep in compute.
+
+        Empty sigmas pass the constructor check, so `update` is where it must fail.
+        """
+        no_keypoints = KeyPoints(xy=np.zeros((1, 0, 2), dtype=np.float32))
+        metric = KeypointMeanAveragePrecision(sigmas=sigmas)
+
+        with pytest.raises(ValueError, match="at least one keypoint"):
+            metric.update(no_keypoints, no_keypoints)
+
+
+class TestKeypointMeanAveragePrecisionNonFiniteKeypoints:
+    """Non-finite target keypoints are unlabelled; non-finite predictions add 0."""
+
+    @pytest.mark.parametrize(
+        ("value", "data"),
+        [
+            pytest.param(np.nan, {}, id="nan-without-area"),
+            pytest.param(np.inf, {}, id="inf-without-area"),
+            pytest.param(np.nan, {"area": np.array([2000.0])}, id="nan-with-area"),
+            pytest.param(np.inf, {"area": np.array([2000.0])}, id="inf-with-area"),
+        ],
+    )
+    def test_non_finite_target_keypoint_is_unlabelled(
+        self, value: float, data: dict[str, npt.NDArray[np.float64]]
+    ) -> None:
+        """A non-finite target keypoint is left out, like one with `visible=False`.
+
+        The remaining keypoints then decide the OKS and, without `data["area"]`, the
+        fallback area, so an exact prediction scores 1 at every threshold.
+        """
+        target = _triangle_key_points()
+        target.xy[0, 1, 0] = value
+        target.data = data
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(_triangle_key_points(confidence=0.9), target).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+
+    @pytest.mark.parametrize(
+        ("data", "expected_map50"),
+        [
+            pytest.param(
+                {"area": np.array([2000.0])}, 0.5, id="without-box-is-skipped"
+            ),
+            pytest.param(
+                {
+                    "area": np.array([2000.0]),
+                    "xyxy": np.array([[310.0, 310.0, 360.0, 380.0]]),
+                },
+                1.0,
+                id="with-box-is-ignore-region",
+            ),
+        ],
+    )
+    def test_target_with_only_non_finite_keypoints_is_hidden(
+        self, data: dict[str, npt.NDArray[np.float64]], expected_map50: float
+    ) -> None:
+        """A target with only non-finite keypoints counts as one without visible ones.
+
+        With a box it is an ignore region, so a prediction on it is ignored. Without one
+        it is skipped, so that prediction counts as a false positive.
+        """
+        hidden_target = KeyPoints(
+            xy=np.full((1, 3, 2), np.nan, dtype=np.float32),
+            class_id=np.array([0]),
+            data=data,
+        )
+        prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(
+            [_triangle_key_points(confidence=0.9), prediction_on_hidden],
+            [_triangle_key_points(), hidden_target],
+        ).compute()
+
+        assert result.map50 == pytest.approx(expected_map50, abs=0.01)
+
+    @pytest.mark.parametrize("value", [np.nan, np.inf])
+    def test_non_finite_prediction_keypoint_adds_zero(self, value: float) -> None:
+        """A non-finite prediction keypoint adds 0 while its finite keypoints count.
+
+        Two of three exact keypoints give OKS 2/3, which clears the thresholds up to
+        0.65 and none above.
+        """
+        prediction = _triangle_key_points(confidence=0.9)
+        prediction.xy[0, 1, 0] = value
+        target = _triangle_key_points()
+        target.data["area"] = np.array([2000.0])
+        metric = KeypointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+
+        result = metric.update(prediction, target).compute()
+
+        assert result.mAP_scores == pytest.approx([1.0] * 4 + [0.0] * 6)

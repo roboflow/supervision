@@ -12,7 +12,11 @@ from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import (
+    AREA_DATA_FIELD,
+    ISCROWD_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch_with_jaccard,
@@ -25,8 +29,10 @@ from supervision.metrics.core import (
     MetricTarget,
     PlotDetails,
     _append_object_size_plot_details,
+    _mean_valid_score,
+    _scores_to_pandas,
+    _show_bar_plot,
 )
-from supervision.metrics.utils.utils import ensure_pandas_installed
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
@@ -50,11 +56,13 @@ class _TypeCocoDict(TypedDict, total=False):
     supercategory: str
     caption: str
     keypoints: list[float]
-    # Metric-target-specific content: a boolean mask of shape (H, W) for
-    # `MetricTarget.MASKS` or an oriented box of shape (4, 2) for
-    # `MetricTarget.ORIENTED_BOUNDING_BOXES`. Absent for `MetricTarget.BOXES`.
-    # Invariant: shape/dtype match `metric_target` of the owning COCOEvaluator.
-    # The keypoint evaluator stores `(K, 3)` rows of `(x, y, visible)` instead.
+    # Evaluator-specific content, read only by the owning evaluator's
+    # `_compute_iou`. Invariant, per evaluator: shape and dtype are what that
+    # evaluator's `_compute_iou` expects. For `COCOEvaluator` it is a boolean
+    # mask of shape (H, W) for `MetricTarget.MASKS`, an oriented box of shape
+    # (4, 2) for `MetricTarget.ORIENTED_BOUNDING_BOXES`, and absent for
+    # `MetricTarget.BOXES`; for the keypoint evaluator it is `(K, 3)` rows of
+    # `(x, y, visible)`.
     content: npt.NDArray[Any]
 
 
@@ -73,73 +81,6 @@ class _TypeEvaluationImageResult(TypedDict):
     dtScores: list[float]
     gtIgnore: npt.NDArray[np.int64]
     dtIgnore: npt.NDArray[np.bool_]
-
-
-def _mean_valid_score(scores: npt.NDArray[np.float64]) -> float:
-    """Average the scores that are not the `-1` sentinel, or return `-1`."""
-    valid_scores = scores[scores > -1]
-    if len(valid_scores) > 0:
-        return float(valid_scores.mean())
-    return -1
-
-
-def _scores_to_pandas(
-    scores: dict[str, float],
-    object_sizes: list[tuple[str, MetricResult | None]],
-) -> pd.DataFrame:
-    """Build a one-row DataFrame of scores and prefixed per-size scores.
-
-    Args:
-        scores: Column name to score for the overall result.
-        object_sizes: `(prefix, result)` pairs; each present result's own
-            `to_pandas` columns are added as `{prefix}_{column}`.
-
-    Returns:
-        A DataFrame with a single row.
-    """
-    ensure_pandas_installed()
-    import pandas as pd
-
-    pandas_data: dict[str, object] = dict(scores)
-    for prefix, result in object_sizes:
-        if result is None:
-            continue
-        for key, value in result.to_pandas().items():
-            pandas_data[f"{prefix}_{key}"] = value
-    return pd.DataFrame(pandas_data, index=[0])
-
-
-def _show_bar_plot(details: PlotDetails) -> None:
-    """Draw score bars with their values on a `[0, 1]` axis and show them."""
-    from matplotlib import pyplot as plt
-
-    plt.rcParams["font.family"] = "monospace"
-
-    _, ax = plt.subplots(figsize=(10, 6))
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Value", fontweight="bold")
-    ax.set_title(details.title, fontweight="bold")
-
-    x_positions = range(len(details.labels))
-    bars = ax.bar(x_positions, details.values, color=details.colors, align="center")
-
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(details.labels, rotation=45, ha="right")
-
-    for bar in bars:
-        y_value = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            y_value + 0.02,
-            f"{y_value:.2f}",
-            ha="center",
-            va="bottom",
-        )
-
-    plt.rcParams["font.family"] = "sans-serif"
-
-    plt.tight_layout()
-    plt.show()
 
 
 @dataclass
@@ -731,6 +672,23 @@ class ObjectSize(Enum):
     LARGE = "large"
 
 
+#: COCO area range `(min, max)` of each object size, in square pixels.
+_OBJECT_SIZE_AREA_RANGES: dict[ObjectSize, tuple[float, float]] = {
+    ObjectSize.ALL: (0, MAX_ALL_OBJECT_AREA),
+    ObjectSize.SMALL: (0, SMALL_OBJECT_AREA),
+    ObjectSize.MEDIUM: (SMALL_OBJECT_AREA, MEDIUM_OBJECT_AREA),
+    ObjectSize.LARGE: (MEDIUM_OBJECT_AREA, MAX_ALL_OBJECT_AREA),
+}
+
+#: Suffix of the `COCOEvaluator.results` keys holding each object size's scores.
+_OBJECT_SIZE_RESULT_KEYS: dict[ObjectSize, str] = {
+    ObjectSize.ALL: "all_sizes",
+    ObjectSize.SMALL: "small",
+    ObjectSize.MEDIUM: "medium",
+    ObjectSize.LARGE: "large",
+}
+
+
 class COCOEvaluatorParameters:
     """Parameters for COCOEvaluator."""
 
@@ -761,17 +719,26 @@ class COCOEvaluatorParameters:
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
-        # Area ranges [0, 1e5], [0, 32], [32, 96], [96, 1e5]
+        # Area ranges [0, 1e5²], [0, 32²], [32², 96²], [96², 1e5²] of all, small,
+        # medium and large objects. An evaluator may keep only some of them; the
+        # results of each size are found by its range, not by its position.
         self.area_range: list[list[float]] = [
-            [0, MAX_ALL_OBJECT_AREA],
-            [0, SMALL_OBJECT_AREA],
-            [SMALL_OBJECT_AREA, MEDIUM_OBJECT_AREA],
-            [MEDIUM_OBJECT_AREA, MAX_ALL_OBJECT_AREA],
+            list(_OBJECT_SIZE_AREA_RANGES[size]) for size in ObjectSize
         ]
 
 
 class COCOEvaluator:
-    """Evaluator class to compute COCO metrics."""
+    """Evaluator class to compute COCO metrics.
+
+    Matching, accumulation and the 101-point interpolation are shared by every
+    evaluator. The similarity between targets and predictions is the subclass
+    hook: override `_compute_iou` to match by another similarity in `[0, 1]`,
+    as the keypoint evaluator does with OKS. The override reads each
+    annotation's `content` and returns a `(predictions, targets)` matrix whose
+    rows are the predictions sorted by descending score (stable) and cut to
+    `params.max_dets[-1]`, and whose columns keep the order of the targets, as
+    `_evaluate_image` indexes it that way.
+    """
 
     def __init__(
         self,
@@ -1240,46 +1207,28 @@ class COCOEvaluator:
             ap_per_class = mean_with_mask(1).transpose(1, 0)
             return mAP_scores, ap_per_class
 
-        # Average precision over all sizes at the largest max detections (100 for
-        # boxes, masks and oriented boxes; `max_dets` is sorted in `evaluate`)
-        area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
+        # Average precision per object size at the largest max detections (100 for
+        # boxes, masks and oriented boxes; `max_dets` is sorted in `evaluate`).
+        # Each size is looked up by its area range, because an evaluator may keep
+        # only some sizes (keypoints have no small one); a size that was not
+        # evaluated gets `-1` sentinel scores, so every results key exists.
         largest_max_dets_idx = len(self.params.max_dets) - 1
-        # Average precision  [threshold, recall, classes]
-        average_precision_all_sizes = precision[
-            :, :, :, area_range_idx, largest_max_dets_idx
-        ]
-        # mAP over thresholds (dimension=num_thresholds)
-        # Exclude -1 sentinel values when computing mean
-        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
-            average_precision_all_sizes
-        )
-
-        # Average precision for SMALL objects at the largest max detections
-        small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
-        average_precision_small = precision[
-            :, :, :, small_area_range_idx, largest_max_dets_idx
-        ]
-        mAP_scores_small, ap_per_class_small = compute_average_precision(
-            average_precision_small
-        )
-
-        # Average precision for MEDIUM objects at the largest max detections
-        medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
-        average_precision_medium = precision[
-            :, :, :, medium_area_range_idx, largest_max_dets_idx
-        ]
-        mAP_scores_medium, ap_per_class_medium = compute_average_precision(
-            average_precision_medium
-        )
-
-        # Average precision for LARGE objects at the largest max detections
-        large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
-        average_precision_large = precision[
-            :, :, :, large_area_range_idx, largest_max_dets_idx
-        ]
-        mAP_scores_large, ap_per_class_large = compute_average_precision(
-            average_precision_large
-        )
+        evaluated_area_ranges = [tuple(area) for area in self.params.area_range]
+        size_scores: dict[str, npt.NDArray[np.float64]] = {}
+        for size, key in _OBJECT_SIZE_RESULT_KEYS.items():
+            area_range = _OBJECT_SIZE_AREA_RANGES[size]
+            if area_range in evaluated_area_ranges:
+                # Average precision [threshold, recall, classes]; the means skip
+                # the -1 sentinel of absent classes.
+                area_range_idx = evaluated_area_ranges.index(area_range)
+                mAP_scores, ap_per_class = compute_average_precision(
+                    precision[:, :, :, area_range_idx, largest_max_dets_idx]
+                )
+            else:
+                mAP_scores = np.full(num_iou_thresholds, -1.0)
+                ap_per_class = np.full((num_categories, num_iou_thresholds), -1.0)
+            size_scores[f"mAP_scores_{key}"] = mAP_scores
+            size_scores[f"ap_per_class_{key}"] = ap_per_class
 
         self.results = {
             "params": self.params,
@@ -1294,14 +1243,7 @@ class COCOEvaluator:
             "precision": precision,
             "recall": recall,
             "scores": scores,
-            "mAP_scores_all_sizes": mAP_scores_all_sizes,
-            "ap_per_class_all_sizes": ap_per_class_all_sizes,
-            "mAP_scores_small": mAP_scores_small,
-            "ap_per_class_small": ap_per_class_small,
-            "mAP_scores_medium": mAP_scores_medium,
-            "ap_per_class_medium": ap_per_class_medium,
-            "mAP_scores_large": mAP_scores_large,
-            "ap_per_class_large": ap_per_class_large,
+            **size_scores,
         }
 
     def _pycocotools_summarize(self) -> None:
@@ -1629,9 +1571,12 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     area = self._content_area(xywh, content, target_idx)
 
                 iscrowd = 0
-                if image_targets.data is not None and "iscrowd" in image_targets.data:
+                if (
+                    image_targets.data is not None
+                    and ISCROWD_DATA_FIELD in image_targets.data
+                ):
                     iscrowd_data: npt.NDArray[np.int64] = np.asarray(
-                        image_targets.data["iscrowd"], dtype=np.int64
+                        image_targets.data[ISCROWD_DATA_FIELD], dtype=np.int64
                     )
                     iscrowd = int(iscrowd_data[target_idx])
 
