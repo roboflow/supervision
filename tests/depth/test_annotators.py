@@ -10,7 +10,7 @@ from PIL import Image
 import supervision as sv
 from supervision.depth import annotators as depth_annotators
 from supervision.depth.annotators import _CLIP_SAMPLE_ARRAYS, _percentile_range
-from supervision.depth.core import _Conversion
+from supervision.depth.core import _Conversion, _resolve_conversion
 
 #: Entries of matplotlib's Turbo table in RGB, written out as literals so that colour
 #: assertions do not depend on how the library builds its own table. Entries 0 and 255
@@ -34,6 +34,9 @@ COLORMAP_ENDS = {
     "grayscale": ([0, 0, 0], [255, 255, 255]),
 }
 
+
+#: A stereo rig whose `fx_px * baseline_m` is 100, so 100 px of disparity is 1 m.
+CAMERA = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1)
 
 #: Percentile pairs outside `0 <= low < high <= 100`, shared by every test that
 #: checks how percentiles are rejected.
@@ -98,6 +101,17 @@ class TestDepthAnnotatorColors:
         sv.DepthAnnotator(display_range=(10.0, 20.0)).annotate(scene, depth_map)
 
         assert _rgb(scene) == [[[7, 7, 7], TURBO[0], TURBO[255]]]
+
+    def test_metric_scale_keeps_near_warm(self) -> None:
+        """Colouring metres flips the ramp so the nearest pixel is still warm."""
+        depth_map = sv.DepthMap(np.array([[1.0, 5.0]], np.float32), kind="depth_m")
+        scene = np.zeros((1, 2, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(scale="metric", display_range=(1.0, 5.0)).annotate(
+            scene, depth_map
+        )
+
+        assert _rgb(scene) == [[TURBO[255], TURBO[0]]]
 
     def test_metric_map_is_coloured_as_inverse_depth(self) -> None:
         """A metric map is coloured as inverse depth, 1 / Z."""
@@ -435,6 +449,110 @@ class TestDepthAnnotatorRange:
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
 
+    @pytest.mark.parametrize(
+        ("kind", "camera"),
+        [
+            pytest.param("depth_m", None, id="metric"),
+            pytest.param("disparity_px", CAMERA, id="disparity-with-camera"),
+        ],
+    )
+    def test_metric_scale_reads_display_range_in_the_maps_unit(
+        self, kind: str, camera: sv.DepthCamera | None
+    ) -> None:
+        """Coloured as metres, auto still renders like (3, 98) in the map's unit."""
+        values = np.tile(np.arange(1, 101, dtype=np.float32), (2, 1))
+        depth_map = sv.DepthMap(values, kind=kind, camera=camera)
+        explicit = sv.DepthAnnotator(scale="metric", display_range=(3.0, 98.0))
+        expected = explicit.annotate(np.zeros((2, 100, 3), np.uint8), depth_map)
+
+        annotated = sv.DepthAnnotator(scale="metric").annotate(
+            np.zeros((2, 100, 3), np.uint8), depth_map
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((10.0, 100.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((10.0, 100.0)), id="clip-range"),
+        ],
+    )
+    def test_metric_scale_converts_a_disparity_range_through_the_camera(
+        self, display_range: tuple[float, float] | sv.DepthClipRange
+    ) -> None:
+        """A (10, 100) px range spans 1 to 10 m, so 10 px is far and 100 px near."""
+        depth_map = sv.DepthMap(
+            np.array([[10.0, 100.0]], np.float32), kind="disparity_px", camera=CAMERA
+        )
+        scene = np.zeros((1, 2, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(scale="metric", display_range=display_range).annotate(
+            scene, depth_map
+        )
+
+        assert _rgb(scene) == [[TURBO[0], TURBO[255]]]
+
+    def test_metric_scale_skips_disparity_without_a_distance(self) -> None:
+        """With doffs_px = -5, 2 px has no distance: unpainted and out of the range."""
+        camera = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1, doffs_px=-5.0)
+        depth_map = sv.DepthMap(
+            np.array([[2.0, 10.0, 105.0]], np.float32),
+            kind="disparity_px",
+            camera=camera,
+        )
+        scene = np.full((1, 3, 3), 7, dtype=np.uint8)
+
+        sv.DepthAnnotator(scale="metric").annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[[7, 7, 7], TURBO[0], TURBO[255]]]
+
+    def test_metric_scale_skips_disparity_whose_distance_overflows(self) -> None:
+        """A tiny disparity whose distance overflows float32 is not painted.
+
+        `to_depth` drops a distance that converts to infinity, so colouring metres from
+        the converted frame must drop it too, not only `disparity + doffs_px <= 0`.
+        """
+        depth_map = sv.DepthMap(
+            np.array([[1e-44, 10.0, 100.0]], np.float32),
+            kind="disparity_px",
+            camera=CAMERA,
+        )
+        scene = np.full((1, 3, 3), 7, dtype=np.uint8)
+
+        sv.DepthAnnotator(scale="metric").annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[[7, 7, 7], TURBO[0], TURBO[255]]]
+
+    def test_metric_scale_paints_a_flat_map_at_the_far_end(self) -> None:
+        """Flipping the ramp for metres does not move a flat map to the near end."""
+        depth_map = sv.DepthMap(np.full((2, 2), 2.0, np.float32), kind="depth_m")
+        scene = np.zeros((2, 2, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(scale="metric").annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[TURBO[0], TURBO[0]], [TURBO[0], TURBO[0]]]
+
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 10.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((0.0, 10.0)), id="clip-range"),
+            pytest.param(sv.DepthClipRange((0.0, 0.0)), id="flat-clip-range"),
+        ],
+    )
+    def test_rejects_disparity_range_that_reaches_infinite_depth(
+        self, display_range: tuple[float, float] | sv.DepthClipRange
+    ) -> None:
+        """Coloured as metres, a disparity range must start above -doffs_px."""
+        depth_map = sv.DepthMap(
+            np.ones((1, 1), np.float32), kind="disparity_px", camera=CAMERA
+        )
+        annotator = sv.DepthAnnotator(scale="metric", display_range=display_range)
+
+        with pytest.raises(ValueError, match="display_range"):
+            annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
+
 
 class TestDepthAnnotatorKinds:
     @pytest.mark.parametrize(
@@ -508,6 +626,41 @@ class TestPercentileRange:
 
         with pytest.raises(ValueError, match="percentiles"):
             _percentile_range(values, _Conversion(), low, high)
+
+    def test_converts_to_depth_with_swapped_ends(self) -> None:
+        """A depth range comes from the disparity ranks through the camera."""
+        disparity = np.arange(10, 110, 10, dtype=np.float32)
+        conversion = _resolve_conversion(
+            sv.DepthKind.DISPARITY_PX, CAMERA, sv.DepthScale.METRIC
+        )
+
+        value_range = _percentile_range(disparity, conversion, 0, 100)
+
+        assert value_range == pytest.approx((1.0, 10.0))
+
+
+class TestInverseScaleOfMetricMap:
+    @pytest.mark.parametrize("doffs_px", [-5.0, 0.0, 5.0])
+    def test_inverse_of_depth_is_the_disparity_it_came_from(
+        self, doffs_px: float
+    ) -> None:
+        """Colouring metres on the inverse scale gives disparity, `doffs_px` included.
+
+        Disparity is fx * B / Z - doffs_px, the inverse of what `to_depth` applies, so
+        a map converted to metres and back keeps its disparities.
+        """
+        camera = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1, doffs_px=doffs_px)
+        disparity = np.array([[20.0, 50.0, 100.0]], np.float32)
+        depth_map = sv.DepthMap(
+            disparity, kind="disparity_px", camera=camera
+        ).to_depth()
+        conversion = _resolve_conversion(
+            sv.DepthKind.DEPTH_M, camera, sv.DepthScale.INVERSE
+        )
+
+        converted = conversion.apply(depth_map.values)
+
+        np.testing.assert_allclose(converted, disparity, rtol=1e-5)
 
 
 class TestDepthClipRange:
@@ -981,3 +1134,17 @@ class TestDepthAnnotatorScene:
 
         with pytest.raises(TypeError, match="Unsupported image type"):
             annotator.annotate("not_an_image", depth_map)
+
+    def test_rejects_unknown_scale(self) -> None:
+        """The scale must be inverse or metric."""
+        with pytest.raises(ValueError, match="Invalid depth scale"):
+            sv.DepthAnnotator(scale="metres")
+
+    def test_raises_for_depth_on_relative_map(self) -> None:
+        """Relative inverse depth has no metres to colour."""
+        depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="relative_inverse")
+
+        with pytest.raises(ValueError, match="no metric scale"):
+            sv.DepthAnnotator(scale="metric").annotate(
+                np.zeros((2, 2, 3), np.uint8), depth_map
+            )
