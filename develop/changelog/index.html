@@ -4339,6 +4339,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.Detections.from_vlm</code> now keeps <code>class_id</code> integer-typed when a <code>classes</code> filter removes every detection. The empty index array defaulted to <code>float64</code> for <code>sv.VLM.PALIGEMMA</code>, <code>sv.VLM.DEEPSEEK_VL_2</code> and <code>sv.VLM.GOOGLE_GEMINI_2_0</code>; <code>sv.VLM.QWEN_2_5_VL</code> and <code>sv.VLM.QWEN_3_VL</code> already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.</p>
 </li>
+<li>
+<p><code>sv.Detections.from_ultralytics</code>, <code>sv.KeyPoints.from_ultralytics</code>, and <code>sv.Classifications.from_ultralytics</code> now accept NumPy-backed results, including <code>Results.numpy()</code>. Detection, segmentation, oriented boxes, tracking IDs, pose visibility, and classification retain the same values as tensor-backed results. (<a href="https://github.com/roboflow/supervision/pull/2710">#2710</a>)</p>
+</li>
 </ul>
 <h3 id="0309-oct-8-2026">0.30.9 <small>Oct 8, 2026</small><a class="headerlink" href="#0309-oct-8-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6426,7 +6429,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 19:37:01 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 23:01:52 UTC">October 9, 2026</span>
   </span>
 
     
@@ -6454,9 +6457,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/cfviotti" class="md-author" title="@cfviotti">
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
-          <img src="https://avatars.githubusercontent.com/u/6797129?v=4&size=72" alt="cfviotti">
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6464,21 +6467,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/cfviotti" class="md-author" title="@cfviotti">
+          
+          <img src="https://avatars.githubusercontent.com/u/6797129?v=4&size=72" alt="cfviotti">
+        </a>
+      
         <a href="https://github.com/8rulerstar" class="md-author" title="@8rulerstar">
           
           <img src="https://avatars.githubusercontent.com/u/190670431?v=4&size=72" alt="8rulerstar">
-        </a>
-      
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
-          
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +29
+            +28
           </a>
         
       
