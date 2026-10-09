@@ -2,6 +2,17 @@ CLASS_NAME_DATA_FIELD: str = "class_name"
 COCO_RAW_SEGMENTATION: str = "coco_raw_segmentation"
 #: Key for per-detection area metadata in ``Detections.data``.
 AREA_DATA_FIELD: str = "area"
+#: Key for per-object axis-aligned boxes in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N, 4)`` in
+#: ``(x_min, y_min, x_max, y_max)`` format, one box per skeleton. Read by
+#: ``KeyPointMeanAveragePrecision``.
+XYXY_DATA_FIELD: str = "xyxy"
+#: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``; a non-zero value marks a
+#: crowd region, as COCO ``iscrowd=1``. Read by the mAP metrics.
+ISCROWD_DATA_FIELD: str = "iscrowd"
 #: Key for the MediaPipe hand-handedness score in ``KeyPoints.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, holding the

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import numpy as np
@@ -7,7 +8,8 @@ import pytest
 from PIL import Image
 
 import supervision as sv
-from supervision.depth.annotators import _percentile_range
+from supervision.depth import annotators as depth_annotators
+from supervision.depth.annotators import _CLIP_SAMPLE_ARRAYS, _percentile_range
 from supervision.depth.core import _Conversion, _resolve_conversion
 
 #: Entries of matplotlib's Turbo table in RGB, written out as literals so that colour
@@ -35,6 +37,53 @@ COLORMAP_ENDS = {
 
 #: A stereo rig whose `fx_px * baseline_m` is 100, so 100 px of disparity is 1 m.
 CAMERA = sv.DepthCamera(fx_px=1000.0, baseline_m=0.1)
+
+
+#: Percentile pairs outside `0 <= low < high <= 100`, shared by every test that
+#: checks how percentiles are rejected.
+INVALID_PERCENTILE_PAIRS = [
+    pytest.param(98, 2, id="swapped"),
+    pytest.param(2, 2, id="equal"),
+    pytest.param(-1, 50, id="below-zero"),
+    pytest.param(0, 101, id="above-hundred"),
+    pytest.param(float("nan"), 50, id="nan-low"),
+    pytest.param(2, float("nan"), id="nan-high"),
+    pytest.param(2, float("inf"), id="infinite-high"),
+]
+
+
+class _SinglePassFrames:
+    """A clip of depth maps that can be iterated once, counting its iterations."""
+
+    def __init__(self, frames: list[sv.DepthMap]) -> None:
+        """Hold the frames to hand out and start counting from zero."""
+        self.frames = frames
+        self.iterations = 0
+
+    def __iter__(self) -> Iterator[sv.DepthMap]:
+        """Hand out the frames, failing if the clip is iterated a second time."""
+        self.iterations += 1
+        if self.iterations > 1:
+            raise RuntimeError("The clip was iterated more than once.")
+        return iter(self.frames)
+
+
+def _spread_frames(count: int, side: int = 400) -> list[sv.DepthMap]:
+    """Build `count` square `depth_m` maps whose values spread evenly over 1 to 100.
+
+    Each frame holds more valid values than a frame may add to a clip estimate, so it is
+    thinned. The values come from a golden-ratio sequence, which fills 1 to 100 evenly
+    with no random generator and a different order in every frame.
+    """
+    golden = 0.6180339887498949
+    steps = np.arange(side * side, dtype=np.float64)
+    return [
+        sv.DepthMap(
+            (1 + 99 * ((steps + 1000 * index) * golden % 1)).reshape(side, side),
+            kind="depth_m",
+        )
+        for index in range(count)
+    ]
 
 
 def _rgb(image: np.ndarray) -> list[list[list[int]]]:
@@ -224,20 +273,6 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[255], TURBO[0]]]
 
-    def test_clip_range_is_read_in_pixels_for_depth_quantity(self) -> None:
-        """A disparity clip range stays in pixels and spans metres via the camera."""
-        depth_map = sv.DepthMap(
-            np.array([[10.0, 100.0]], np.float32), kind="disparity_px", camera=CAMERA
-        )
-        clip_range = sv.DepthClipRange(display_range=(10.0, 100.0))
-        scene = np.zeros((1, 2, 3), dtype=np.uint8)
-
-        sv.DepthAnnotator(quantity="depth", display_range=clip_range).annotate(
-            scene, depth_map
-        )
-
-        assert _rgb(scene) == [[TURBO[0], TURBO[255]]]
-
     @pytest.mark.parametrize("kind", ["disparity_px", "depth_m", "relative_inverse"])
     def test_flat_clip_range_paints_the_far_end_for_every_kind(self, kind: str) -> None:
         """A clip range with equal ends takes the far-end colour, as auto does."""
@@ -249,15 +284,42 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[0], TURBO[0]]]
 
-    def test_rejects_non_positive_metric_clip_range_at_annotate(self) -> None:
-        """A clip range is checked against the map's kind like a tuple."""
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 5.0), id="zero-low"),
+            pytest.param((0.0, 0.0), id="flat-zero"),
+            pytest.param((-5.0, -5.0), id="flat-negative"),
+        ],
+    )
+    def test_rejects_non_positive_metric_clip_range_at_annotate(
+        self, display_range: tuple[float, float]
+    ) -> None:
+        """A clip range is checked against the map's kind like a tuple, flat or not."""
         depth_map = sv.DepthMap(np.ones((1, 1), np.float32), kind="depth_m")
         annotator = sv.DepthAnnotator(
-            display_range=sv.DepthClipRange(display_range=(0.0, 5.0))
+            display_range=sv.DepthClipRange(display_range=display_range)
         )
 
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
+
+    def test_metric_clip_range_flat_in_inverse_depth_paints_the_far_end(self) -> None:
+        """Depths one float32 step apart whose inverses round to one value are flat.
+
+        1.7 m and the next float32 up have the same float32 inverse depth, so the
+        range spans nothing once converted; it colours like a flat range, as "auto"
+        does on such a map, rather than failing.
+        """
+        low = np.float32(1.7)
+        high = np.nextafter(low, np.float32(2.0))
+        clip_range = sv.DepthClipRange(display_range=(float(low), float(high)))
+        depth_map = sv.DepthMap(np.array([[1.0, 1.7, 3.0]], np.float32), kind="depth_m")
+        scene = np.zeros((1, 3, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=clip_range).annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[TURBO[0], TURBO[0], TURBO[0]]]
 
     def test_sparse_map_spans_its_few_values(self) -> None:
         """With two valid pixels, auto spans the values that exist."""
@@ -313,27 +375,29 @@ class TestDepthAnnotatorRange:
         assert _rgb(scene) == expected.tolist()
 
     @pytest.mark.parametrize(
-        "display_range",
+        ("display_range", "match"),
         [
-            pytest.param("percentile", id="unknown-mode"),
-            pytest.param((5.0, 5.0), id="empty-range"),
-            pytest.param((1.0, 2.0, 3.0), id="wrong-length"),
-            pytest.param((0.0, np.inf), id="inf-bound"),
-            pytest.param((5.0, 1.0), id="low-above-high"),
-            pytest.param((-3e38, 3e38), id="span-overflow"),
-            pytest.param(5, id="number"),
-            pytest.param(None, id="none"),
-            pytest.param("12", id="digit-string"),
-            pytest.param(("near", "far"), id="non-numeric-bounds"),
+            pytest.param("percentile", "'auto'", id="unknown-mode"),
+            pytest.param((5.0, 5.0), "low < high", id="empty-range"),
+            pytest.param((1.0, 2.0, 3.0), "'auto'", id="wrong-length"),
+            pytest.param((0.0, np.inf), "low < high", id="inf-bound"),
+            pytest.param((5.0, 1.0), "low < high", id="low-above-high"),
+            pytest.param((-3e38, 3e38), "low < high", id="span-overflow"),
+            pytest.param(5, "'auto'", id="number"),
+            pytest.param(None, "'auto'", id="none"),
+            pytest.param("12", "'auto'", id="digit-string"),
+            pytest.param(("near", "far"), "'auto'", id="non-numeric-bounds"),
         ],
     )
-    def test_rejects_invalid_display_range(self, display_range: Any) -> None:
+    def test_rejects_invalid_display_range(
+        self, display_range: Any, match: str
+    ) -> None:
         """Unknown modes, wrong shapes and unusable spans fail at construction.
 
-        Every kind of bad value raises `ValueError` naming the parameter, including
-        the ones that are not a sequence at all.
+        A value that is not an option at all lists the accepted ones, starting with
+        'auto', and a pair without a usable span states what the pair needs.
         """
-        with pytest.raises(ValueError, match="display_range"):
+        with pytest.raises(ValueError, match=match):
             sv.DepthAnnotator(display_range=display_range)
 
     @pytest.mark.parametrize(
@@ -408,8 +472,15 @@ class TestDepthAnnotatorRange:
 
         np.testing.assert_array_equal(annotated, expected)
 
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((10.0, 100.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((10.0, 100.0)), id="clip-range"),
+        ],
+    )
     def test_depth_quantity_converts_a_disparity_range_through_the_camera(
-        self,
+        self, display_range: tuple[float, float] | sv.DepthClipRange
     ) -> None:
         """A (10, 100) px range spans 1 to 10 m, so 10 px is far and 100 px near."""
         depth_map = sv.DepthMap(
@@ -417,7 +488,7 @@ class TestDepthAnnotatorRange:
         )
         scene = np.zeros((1, 2, 3), dtype=np.uint8)
 
-        sv.DepthAnnotator(quantity="depth", display_range=(10.0, 100.0)).annotate(
+        sv.DepthAnnotator(quantity="depth", display_range=display_range).annotate(
             scene, depth_map
         )
 
@@ -446,12 +517,22 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[0], TURBO[0]], [TURBO[0], TURBO[0]]]
 
-    def test_rejects_disparity_range_that_reaches_infinite_depth(self) -> None:
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 10.0), id="tuple"),
+            pytest.param(sv.DepthClipRange((0.0, 10.0)), id="clip-range"),
+            pytest.param(sv.DepthClipRange((0.0, 0.0)), id="flat-clip-range"),
+        ],
+    )
+    def test_rejects_disparity_range_that_reaches_infinite_depth(
+        self, display_range: tuple[float, float] | sv.DepthClipRange
+    ) -> None:
         """Coloured as metres, a disparity range must start above -doffs_px."""
         depth_map = sv.DepthMap(
             np.ones((1, 1), np.float32), kind="disparity_px", camera=CAMERA
         )
-        annotator = sv.DepthAnnotator(quantity="depth", display_range=(0.0, 10.0))
+        annotator = sv.DepthAnnotator(quantity="depth", display_range=display_range)
 
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
@@ -522,14 +603,7 @@ class TestDepthAnnotatorKinds:
 
 
 class TestPercentileRange:
-    @pytest.mark.parametrize(
-        ("low", "high"),
-        [
-            pytest.param(50, 50, id="equal"),
-            pytest.param(-1, 50, id="below-zero"),
-            pytest.param(2, 101, id="above-hundred"),
-        ],
-    )
+    @pytest.mark.parametrize(("low", "high"), INVALID_PERCENTILE_PAIRS)
     def test_rejects_invalid_percentiles(self, low: float, high: float) -> None:
         """Percentiles must satisfy 0 <= low < high <= 100."""
         values = np.ones(4, np.float32)
@@ -550,6 +624,113 @@ class TestPercentileRange:
 
 
 class TestDepthClipRange:
+    @pytest.mark.parametrize(
+        ("count", "percentiles", "expected"),
+        [
+            pytest.param(100, {}, (3.0, 98.0), id="default-2-98"),
+            pytest.param(
+                100,
+                {"low_percentile": 10, "high_percentile": 90},
+                (11.0, 90.0),
+                id="custom-10-90",
+            ),
+            pytest.param(
+                100,
+                {"low_percentile": 25, "high_percentile": 75},
+                (26.0, 75.0),
+                id="custom-25-75",
+            ),
+            pytest.param(
+                100,
+                {"low_percentile": 0, "high_percentile": 100},
+                (1.0, 100.0),
+                id="extremes",
+            ),
+            pytest.param(
+                10,
+                {"low_percentile": 50, "high_percentile": 100},
+                (6.0, 10.0),
+                id="half-rank-rounds-up",
+            ),
+        ],
+    )
+    def test_below_the_sample_cap_takes_the_nearest_rank_values(
+        self,
+        count: int,
+        percentiles: dict[str, float],
+        expected: tuple[float, float],
+    ) -> None:
+        """Without thinning the range is the nearest-rank values of all the maps.
+
+        Over the values 1 to `count` the value at rank `floor(p / 100 * (count - 1) +
+        0.5)` (0-based, halves rounding up) is worked out by hand: 2 and 98 give 3
+        and 98 of 1..100, and the 50th of 1..10 is rank 4.5 -> 5, the value 6. The
+        values are split over three maps in descending order to show that maps merge.
+        """
+        values = np.arange(count, 0, -1, dtype=np.float32)
+        frames = [
+            sv.DepthMap(part.reshape(1, -1), kind="depth_m")
+            for part in np.array_split(values, 3)
+        ]
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames, **percentiles)
+
+        assert clip_range.display_range == expected
+
+    @pytest.mark.parametrize(
+        "percentiles",
+        [
+            pytest.param({}, id="default-2-98"),
+            pytest.param(
+                {"low_percentile": 10, "high_percentile": 90}, id="custom-10-90"
+            ),
+        ],
+    )
+    def test_thinned_clip_approximates_the_percentiles_of_all_values(
+        self, percentiles: dict[str, float]
+    ) -> None:
+        """Past the per-map sample cap the range estimates the clip's percentiles.
+
+        Three maps of 160,000 evenly spread values are each thinned to about 65,536; the
+        estimate must land within a quarter unit of NumPy's percentiles of every value.
+        """
+        frames = _spread_frames(3)
+        every_value = np.concatenate([frame.values.ravel() for frame in frames])
+        low = percentiles.get("low_percentile", 2)
+        high = percentiles.get("high_percentile", 98)
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames, **percentiles)
+
+        assert clip_range.display_range == pytest.approx(
+            tuple(np.percentile(every_value, [low, high])), abs=0.25
+        )
+
+    def test_thinned_clip_gives_the_same_range_on_every_call(self) -> None:
+        """The thinning is seeded, so one clip always yields one range."""
+        frames = _spread_frames(3)
+        first = sv.DepthClipRange.from_depth_maps(frames)
+
+        second = sv.DepthClipRange.from_depth_maps(frames)
+
+        assert second == first
+
+    def test_generator_gives_the_same_range_as_a_list(self) -> None:
+        """A clip read from a generator is estimated like the same clip as a list."""
+        frames = _spread_frames(3)
+        from_list = sv.DepthClipRange.from_depth_maps(frames)
+
+        from_generator = sv.DepthClipRange.from_depth_maps(frame for frame in frames)
+
+        assert from_generator == from_list
+
+    def test_reads_the_clip_in_one_pass(self) -> None:
+        """The clip is iterated exactly once, so a one-shot source is not lost."""
+        frames = _SinglePassFrames(_spread_frames(2))
+
+        sv.DepthClipRange.from_depth_maps(frames)
+
+        assert frames.iterations == 1
+
     def test_reads_a_generator(self) -> None:
         """Maps are read once from an iterator."""
         frames = (
@@ -557,9 +738,31 @@ class TestDepthClipRange:
             for depth in (1.0, 3.0)
         )
 
-        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
 
         assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0))
+
+    @pytest.mark.parametrize(("low", "high"), INVALID_PERCENTILE_PAIRS)
+    def test_rejects_invalid_percentiles_before_reading_the_clip(
+        self, low: float, high: float
+    ) -> None:
+        """Percentiles outside 0 <= low < high <= 100 fail before any map is read.
+
+        A generator is meant to be read once, so rejecting bad percentiles only after
+        consuming it would lose the clip.
+        """
+        frames = _SinglePassFrames(
+            [sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m")]
+        )
+
+        with pytest.raises(ValueError, match="percentiles"):
+            sv.DepthClipRange.from_depth_maps(
+                frames, low_percentile=low, high_percentile=high
+            )
+
+        assert frames.iterations == 0
 
     def test_counts_depth_on_odd_pixels_only(self) -> None:
         """Depth only on odd pixels still yields a range."""
@@ -567,7 +770,9 @@ class TestDepthClipRange:
         values[1, 1], values[3, 3] = 5.0, 7.0
         frames = [sv.DepthMap(values, kind="depth_m")]
 
-        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
 
         assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0))
 
@@ -582,6 +787,50 @@ class TestDepthClipRange:
 
         assert clip_range.display_range == (1.0, 100.0)
 
+    def test_many_one_pixel_frames_keep_every_value(self) -> None:
+        """Merging the per-frame samples of a long, sparse clip loses no value.
+
+        One pixel per frame never reaches a sample cap, so every value is kept; past the
+        limit on held sample arrays they are merged, and the clip's minimum and maximum
+        must survive that.
+        """
+        count = _CLIP_SAMPLE_ARRAYS + 1
+        frames = (
+            sv.DepthMap(np.full((1, 1), value, np.float32), kind="disparity_px")
+            for value in range(1, count + 1)
+        )
+
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
+
+        assert clip_range.display_range == (1.0, float(count))
+
+    def test_halving_keeps_early_and_late_frames_alike_on_a_drifting_clip(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Thinning repeatedly does not favour the clip's late frames over early ones.
+
+        Sixty-four maps of 10,000 values each drift upward, map `t` spreading evenly
+        over `t + 1` to `t + 2`. With the sample budget cut to 40,000 the clip's
+        samples are halved seven times, so later maps must be kept at the halved rate,
+        or they would be over-represented against the early maps. The range must
+        still match NumPy's percentiles of the full clip.
+        """
+        monkeypatch.setattr(depth_annotators, "_CLIP_SAMPLE_BUDGET", 40_000)
+        spread = np.arange(10_000, dtype=np.float64) / 10_000
+        frames = [
+            sv.DepthMap((index + 1 + spread).reshape(100, 100), kind="depth_m")
+            for index in range(64)
+        ]
+        every_value = np.concatenate([frame.values.ravel() for frame in frames])
+
+        clip_range = sv.DepthClipRange.from_depth_maps(frames)
+
+        assert clip_range.display_range == pytest.approx(
+            tuple(np.percentile(every_value, [2, 98])), abs=1.0
+        )
+
     def test_flat_clip_gives_equal_ends(self) -> None:
         """A clip of one value yields a flat range rather than failing."""
         frames = [sv.DepthMap(np.full((2, 2), 4.0, np.float32), kind="depth_m")]
@@ -593,10 +842,21 @@ class TestDepthClipRange:
     @pytest.mark.parametrize(
         ("frames", "match"),
         [
+            pytest.param([], "no depth", id="empty-clip"),
             pytest.param(
                 [sv.DepthMap(np.zeros((2, 2), np.float32), kind="depth_m")],
                 "no depth",
                 id="no-depth",
+            ),
+            pytest.param(
+                [sv.DepthMap(np.full((2, 2), np.nan, np.float32), kind="depth_m")],
+                "no depth",
+                id="all-nan",
+            ),
+            pytest.param(
+                [sv.DepthMap(np.full((2, 2), -np.inf, np.float32), kind="depth_m")],
+                "no depth",
+                id="all-negative-infinity",
             ),
             pytest.param(
                 [
@@ -606,28 +866,80 @@ class TestDepthClipRange:
                 "one kind",
                 id="mixed-kinds",
             ),
+            pytest.param(
+                [
+                    sv.DepthMap(np.zeros((2, 2), np.float32), kind="depth_m"),
+                    sv.DepthMap(np.ones((2, 2), np.float32), kind="disparity_px"),
+                ],
+                "one kind",
+                id="mixed-kinds-after-a-map-without-depth",
+            ),
         ],
     )
     def test_rejects_clips_without_one_kind_of_depth(
         self, frames: list[sv.DepthMap], match: str
     ) -> None:
-        """A clip needs depth, all of one kind."""
+        """A clip needs depth, all of one kind; a map without depth still has a kind."""
         with pytest.raises(ValueError, match=match):
             sv.DepthClipRange.from_depth_maps(frames)
 
     @pytest.mark.parametrize(
-        "display_range",
+        "no_depth_first",
         [
-            pytest.param((2.0, 1.0), id="low-above-high"),
-            pytest.param((0.0, np.inf), id="inf-bound"),
-            pytest.param((-3e38, 3e38), id="span-overflow"),
-            pytest.param(("near", "far"), id="non-numeric-bounds"),
+            pytest.param(True, id="no-depth-map-first"),
+            pytest.param(False, id="no-depth-map-last"),
         ],
     )
-    def test_rejects_an_unusable_range(self, display_range: Any) -> None:
+    def test_skips_maps_without_depth(self, no_depth_first: bool) -> None:
+        """A map without depth adds nothing, so the range comes from the other maps."""
+        no_depth = sv.DepthMap(np.full((2, 2), np.nan, np.float32), kind="depth_m")
+        with_depth = sv.DepthMap(np.array([[2.0, 8.0]], np.float32), kind="depth_m")
+        frames = [no_depth, with_depth] if no_depth_first else [with_depth, no_depth]
+
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
+
+        assert clip_range == sv.DepthClipRange(display_range=(2.0, 8.0))
+
+    @pytest.mark.parametrize(
+        ("display_range", "match"),
+        [
+            pytest.param((2.0, 1.0), "two finite numbers", id="low-above-high"),
+            pytest.param((0.0, np.inf), "two finite numbers", id="inf-bound"),
+            pytest.param((-np.inf, 1.0), "two finite numbers", id="negative-inf-bound"),
+            pytest.param((np.nan, 1.0), "two finite numbers", id="nan-low"),
+            pytest.param((0.0, np.nan), "two finite numbers", id="nan-high"),
+            pytest.param((-3e38, 3e38), "two finite numbers", id="span-overflow"),
+            pytest.param(
+                ("near", "far"),
+                r"\(low, high\) pair of numbers",
+                id="non-numeric-bounds",
+            ),
+            pytest.param(
+                (1.0, 2.0, 3.0), r"\(low, high\) pair of numbers", id="wrong-length"
+            ),
+        ],
+    )
+    def test_rejects_an_unusable_range(self, display_range: Any, match: str) -> None:
         """The range must be two finite numbers, low to high, that fit in float32."""
-        with pytest.raises(ValueError, match="display_range"):
+        with pytest.raises(ValueError, match=match):
             sv.DepthClipRange(display_range=display_range)
+
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param([1, 3], id="list"),
+            pytest.param((1, 3), id="int-tuple"),
+            pytest.param(np.array([1.0, 3.0]), id="array"),
+        ],
+    )
+    def test_accepts_any_pair_of_numbers(self, display_range: Any) -> None:
+        """A list, integers or an array are normalised to a tuple of floats."""
+        clip_range = sv.DepthClipRange(display_range=display_range)
+
+        assert clip_range.display_range == (1.0, 3.0)
+        assert all(isinstance(bound, float) for bound in clip_range.display_range)
 
 
 class TestDepthAnnotatorScene:

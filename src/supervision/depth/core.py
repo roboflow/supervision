@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from supervision.annotators.core import _iter_mask_crops
 from supervision.config import (
     DEPTH_M_DATA_FIELD,
     DISPARITY_PX_DATA_FIELD,
@@ -265,32 +266,6 @@ def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
     return np.minimum(positions.astype(np.intp), source - 1)
 
 
-def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[Any]:
-    """Keep the largest key in each group of source pixels covering a target pixel.
-
-    Source pixel `i` belongs to target pixel `floor(i * target / source)`; the groups
-    are contiguous and non-empty when shrinking, so one `reduceat` pools them. A
-    growing axis has nothing to pool and samples the nearest pixel instead.
-    """
-    source = keys.shape[axis]
-    if target >= source:
-        return np.take(keys, _index_map(source, target), axis=axis)
-    groups = (np.arange(source, dtype=np.int64) * target) // source
-    starts = np.searchsorted(groups, np.arange(target))
-    pooled: npt.NDArray[Any] = np.maximum.reduceat(keys, starts, axis=axis)
-    return pooled
-
-
-def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
-    """Return a `(width, height)` pair of positive integers, else raise."""
-    width, height = resolution_wh
-    if int(width) != width or int(height) != height or width <= 0 or height <= 0:
-        raise ValueError(
-            f"resolution_wh must be two positive integers, got {resolution_wh}."
-        )
-    return int(width), int(height)
-
-
 def _to_numpy(value: Any) -> npt.NDArray[np.float32]:
     """Turn a framework tensor or array-like into a float32 NumPy array."""
     if hasattr(value, "detach"):
@@ -316,6 +291,64 @@ def _squeeze_to_2d(
             f"{source} depth must be a single (H, W) map, got {values.shape}."
         )
     return values
+
+
+def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[Any]:
+    """Keep the largest key in each group of source pixels covering a target pixel.
+
+    Source pixel `i` belongs to target pixel `floor(i * target / source)`; the groups
+    are contiguous and non-empty when shrinking, so one `reduceat` pools them. A
+    growing axis has nothing to pool and samples the nearest pixel instead.
+    """
+    source = keys.shape[axis]
+    if target >= source:
+        return np.take(keys, _index_map(source, target), axis=axis)
+    groups = (np.arange(source, dtype=np.int64) * target) // source
+    starts = np.searchsorted(groups, np.arange(target))
+    pooled: npt.NDArray[Any] = np.maximum.reduceat(keys, starts, axis=axis)
+    return pooled
+
+
+def _values_in_box(
+    values: npt.NDArray[np.float32], xyxy: npt.NDArray[np.floating]
+) -> npt.NDArray[np.float32]:
+    """Return the values inside a box, rounded and clipped as in `sv.crop_image`."""
+    x_min, y_min, x_max, y_max = xyxy.round().astype(np.int64)
+    region: npt.NDArray[np.float32] = values[
+        max(y_min, 0) : max(y_max, 0), max(x_min, 0) : max(x_max, 0)
+    ].ravel()
+    return region
+
+
+def _values_under_mask(
+    values: npt.NDArray[np.float32],
+    mask: npt.NDArray[Any],
+    offset: npt.NDArray[np.int32] | None,
+) -> npt.NDArray[np.float32]:
+    """Return the values under a full-frame mask, or under a crop placed at `offset`.
+
+    `offset` is the crop's `(x1, y1)` origin in the map, as `CompactMask` gives it.
+    """
+    if offset is not None:
+        x_min, y_min = int(offset[0]), int(offset[1])
+        crop_height, crop_width = mask.shape
+        values = values[y_min : y_min + crop_height, x_min : x_min + crop_width]
+    region: npt.NDArray[np.float32] = values[np.asarray(mask, dtype=bool)]
+    return region
+
+
+def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
+    """Return a `(width, height)` pair of positive integers, else raise."""
+    width, height = resolution_wh
+    for side in (width, height):
+        # The type is checked before any comparison, so None or infinity raise
+        # ValueError here rather than TypeError or OverflowError.
+        is_integer = isinstance(side, (int, np.integer)) and not isinstance(side, bool)
+        if not (is_integer and side > 0):
+            raise ValueError(
+                f"resolution_wh must be two positive integers, got {resolution_wh}."
+            )
+    return int(width), int(height)
 
 
 class DepthMap:
@@ -451,225 +484,6 @@ class DepthMap:
         result: npt.NDArray[np.float32] = self.values.copy()
         result[~self.valid_mask] = no_depth_value
         return result
-
-    @classmethod
-    def from_inference(cls, inference_result: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from a depth model served by Roboflow Inference.
-
-        Reads the `normalized_depth` that Inference's depth models (Depth Anything,
-        YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
-        `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK and
-        Workflows decode them to). The map is normalised per image with 1 for
-        the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
-        V3 maps are linear in depth, not inverse depth). It loads as
-        `relative_inverse` float32; values from different images are not comparable.
-
-        Args:
-            inference_result: One result from Inference, the Inference SDK or a
-                Workflow's depth estimation step.
-
-        Returns:
-            A `relative_inverse` `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the result is a list, carries no `normalized_depth`, or
-                holds a PNG that is not 8- or 16-bit grayscale.
-
-        Examples:
-            ```python
-            import supervision as sv
-            from inference_sdk import InferenceHTTPClient
-
-            client = InferenceHTTPClient(
-                api_url="https://serverless.roboflow.com", api_key="<ROBOFLOW_API_KEY>"
-            )
-            result = client.depth_estimation(
-                "<SOURCE_IMAGE_PATH>",
-                model_id="depth-anything-v3/small",
-                depth_map_format="png16",
-            )
-            depth_map = sv.DepthMap.from_inference(result)
-            ```
-        """
-        if isinstance(inference_result, list):
-            raise ValueError(
-                "from_inference() operates on a single result at a time. You can "
-                "retrieve it like so: inference_result = model.infer(image)[0]"
-            )
-        # In-process models return an LMMInferenceResponse holding the depth in a
-        # `response` dict; Inference's DepthEstimationResponse holds it as a field.
-        response = getattr(inference_result, "response", None)
-        if isinstance(response, dict):
-            inference_result = response
-        if isinstance(inference_result, dict):
-            normalized = inference_result.get("normalized_depth")
-        else:
-            normalized = getattr(inference_result, "normalized_depth", None)
-        if normalized is None:
-            raise ValueError(
-                "The inference result has no 'normalized_depth'; pass the result of "
-                "a depth estimation model."
-            )
-        if isinstance(normalized, str):
-            values = _decode_normalized_png(normalized)
-        else:
-            values = _to_numpy(normalized)
-        return cls(_squeeze_to_2d(values, "Inference"), kind=DepthKind.RELATIVE_INVERSE)
-
-    @classmethod
-    def from_ultralytics(cls, ultralytics_results: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from an Ultralytics YOLO26 depth result.
-
-        `result.depth.data` holds metric depth in metres at the original image size,
-        with 0 where the model has no depth.
-
-        Args:
-            ultralytics_results: One `Results` object from a depth model.
-
-        Returns:
-            A `depth_m` `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the result carries no depth map.
-
-        Examples:
-            ```python
-            import supervision as sv
-            from ultralytics import YOLO
-
-            model = YOLO("yolo26n-depth.pt")
-            result = model("<SOURCE_IMAGE_PATH>")[0]
-            depth_map = sv.DepthMap.from_ultralytics(result)
-            ```
-        """
-        depth = getattr(ultralytics_results, "depth", None)
-        if depth is None:
-            raise ValueError(
-                "The Ultralytics result has no depth map; run a depth model such as "
-                "yolo26n-depth.pt."
-            )
-        values = _to_numpy(getattr(depth, "data", depth))
-        return cls(_squeeze_to_2d(values, "Ultralytics"), kind=DepthKind.DEPTH_M)
-
-    @classmethod
-    def from_transformers(
-        cls, transformers_results: Any, *, kind: DepthKind | str
-    ) -> DepthMap:
-        """Create a `sv.DepthMap` from a Hugging Face depth estimation result.
-
-        Reads `predicted_depth` from a `depth-estimation` pipeline result, from a
-        `post_process_depth_estimation` entry, or from a model output. The pipeline's
-        `depth` image is an 8-bit per-image stretch for display and is ignored.
-        Transformers does not say what the model predicts, so `kind` is required:
-        `relative_inverse` for Depth Anything V1 and V2 and DPT relative models,
-        `depth_m` for metric models such as Depth Pro, ZoeDepth or Depth Anything
-        metric.
-
-        Args:
-            transformers_results: One result holding `predicted_depth` of shape
-                `(H, W)` or `(1, H, W)`.
-            kind: What the model predicts.
-
-        Returns:
-            A float32 `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the result is a list or has no `predicted_depth`.
-
-        Examples:
-            ```python
-            import supervision as sv
-            from transformers import pipeline
-
-            estimator = pipeline(
-                "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
-            )
-            result = estimator("<SOURCE_IMAGE_PATH>")
-            depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
-            ```
-        """
-        if isinstance(transformers_results, list):
-            raise ValueError(
-                "from_transformers() operates on a single result at a time; pass "
-                "results[0]."
-            )
-        if isinstance(transformers_results, dict):
-            predicted = transformers_results.get("predicted_depth")
-        else:
-            predicted = getattr(transformers_results, "predicted_depth", None)
-        if predicted is None:
-            raise ValueError("The transformers result has no 'predicted_depth'.")
-        values = _squeeze_to_2d(_to_numpy(predicted), "Transformers")
-        return cls(values, kind=kind)
-
-    @classmethod
-    def from_png16(
-        cls, path: str | Path, scale: float, kind: DepthKind | str
-    ) -> DepthMap:
-        """Load a 16-bit PNG whose value divided by `scale` is the map, 0 for none.
-
-        KITTI disparity uses `scale=256`; Ultralytics depth datasets use 1000 by
-        default. Values load as float32 `code / scale`, with `NaN` where the code
-        is 0.
-
-        Args:
-            path: Path to the PNG.
-            scale: Divisor from stored value to the kind's unit.
-            kind: What the values measure.
-
-        Returns:
-            A float32 `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the file is not a single-channel 16-bit PNG or `scale` is
-                not a positive number.
-
-        Examples:
-            ```python
-            import supervision as sv
-
-            depth_map = sv.DepthMap.from_png16(
-                "disp_occ_0/000000_10.png", scale=256, kind="disparity_px"
-            )
-            ```
-        """
-        if not (math.isfinite(scale) and scale > 0):
-            raise ValueError(
-                f"from_png16 scale must be a positive number, got {scale}."
-            )
-        codes = _read_png16(path)
-        values = codes.astype(np.float32) / np.float32(scale)
-        values[codes == 0] = np.nan
-        return cls(values, kind=kind)
-
-    @classmethod
-    def from_pfm(
-        cls, path: str | Path, kind: DepthKind | str = DepthKind.DISPARITY_PX
-    ) -> DepthMap:
-        """Load a single-channel PFM file, the Middlebury and SceneFlow format.
-
-        Rows are flipped to top first. Infinite values (Middlebury's unknown
-        disparity) are no depth. The sign of the header's scale gives the byte
-        order; its magnitude is not applied.
-
-        Args:
-            path: Path to the `.pfm` file.
-            kind: What the values measure; disparity by default.
-
-        Returns:
-            A float32 `sv.DepthMap`.
-
-        Raises:
-            ValueError: If the file is not a grayscale PFM.
-
-        Examples:
-            ```python
-            import supervision as sv
-
-            depth_map = sv.DepthMap.from_pfm("Adirondack/disp0.pfm")
-            ```
-        """
-        return cls(_read_pfm(path), kind=kind)
 
     def to_depth(self) -> DepthMap:
         """Return the map as metric depth in metres.
@@ -913,16 +727,17 @@ class DepthMap:
                     f"depth map is {width}x{height}; resize the map with "
                     "depth_map.resize(...) first."
                 )
-        for index in range(len(detections)):
-            if mask is not None:
-                region = values[np.asarray(mask[index], dtype=bool)]
-            else:
-                x_min, y_min, x_max, y_max = (
-                    detections.xyxy[index].round().astype(np.int64)
-                )
-                region = values[
-                    max(y_min, 0) : max(y_max, 0), max(x_min, 0) : max(x_max, 0)
-                ].ravel()
+        # A CompactMask yields each crop with its origin, so no full-frame mask is
+        # decoded per detection.
+        regions = (
+            (_values_in_box(values, box) for box in detections.xyxy)
+            if mask is None
+            else (
+                _values_under_mask(values, crop, offset)
+                for _, crop, offset in _iter_mask_crops(detections)
+            )
+        )
+        for index, region in enumerate(regions):
             region = region[np.isfinite(region)]
             if region.size:
                 medians[index] = np.median(region)
@@ -932,6 +747,225 @@ class DepthMap:
             DepthKind.RELATIVE_INVERSE: RELATIVE_INVERSE_DATA_FIELD,
         }[measured.kind]
         return replace(detections, data={**detections.data, field: medians})
+
+    @classmethod
+    def from_inference(cls, inference_result: Any) -> DepthMap:
+        """Create a `sv.DepthMap` from a depth model served by Roboflow Inference.
+
+        Reads the `normalized_depth` that Inference's depth models (Depth Anything,
+        YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
+        `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK and
+        Workflows decode them to). The map is normalised per image with 1 for
+        the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
+        V3 maps are linear in depth, not inverse depth). It loads as
+        `relative_inverse` float32; values from different images are not comparable.
+
+        Args:
+            inference_result: One result from Inference, the Inference SDK or a
+                Workflow's depth estimation step.
+
+        Returns:
+            A `relative_inverse` `sv.DepthMap`.
+
+        Raises:
+            ValueError: If the result is a list, carries no `normalized_depth`, or
+                holds a PNG that is not 8- or 16-bit grayscale.
+
+        Examples:
+            ```python
+            import supervision as sv
+            from inference_sdk import InferenceHTTPClient
+
+            client = InferenceHTTPClient(
+                api_url="https://serverless.roboflow.com", api_key="<ROBOFLOW_API_KEY>"
+            )
+            result = client.depth_estimation(
+                "<SOURCE_IMAGE_PATH>",
+                model_id="depth-anything-v3/small",
+                depth_map_format="png16",
+            )
+            depth_map = sv.DepthMap.from_inference(result)
+            ```
+        """
+        if isinstance(inference_result, list):
+            raise ValueError(
+                "from_inference() operates on a single result at a time. You can "
+                "retrieve it like so: inference_result = model.infer(image)[0]"
+            )
+        # In-process models return an LMMInferenceResponse holding the depth in a
+        # `response` dict; Inference's DepthEstimationResponse holds it as a field.
+        response = getattr(inference_result, "response", None)
+        if isinstance(response, dict):
+            inference_result = response
+        if isinstance(inference_result, dict):
+            normalized = inference_result.get("normalized_depth")
+        else:
+            normalized = getattr(inference_result, "normalized_depth", None)
+        if normalized is None:
+            raise ValueError(
+                "The inference result has no 'normalized_depth'; pass the result of "
+                "a depth estimation model."
+            )
+        if isinstance(normalized, str):
+            values = _decode_normalized_png(normalized)
+        else:
+            values = _to_numpy(normalized)
+        return cls(_squeeze_to_2d(values, "Inference"), kind=DepthKind.RELATIVE_INVERSE)
+
+    @classmethod
+    def from_ultralytics(cls, ultralytics_results: Any) -> DepthMap:
+        """Create a `sv.DepthMap` from an Ultralytics YOLO26 depth result.
+
+        `result.depth.data` holds metric depth in metres at the original image size,
+        with 0 where the model has no depth.
+
+        Args:
+            ultralytics_results: One `Results` object from a depth model.
+
+        Returns:
+            A `depth_m` `sv.DepthMap`.
+
+        Raises:
+            ValueError: If the result carries no depth map.
+
+        Examples:
+            ```python
+            import supervision as sv
+            from ultralytics import YOLO
+
+            model = YOLO("yolo26n-depth.pt")
+            result = model("<SOURCE_IMAGE_PATH>")[0]
+            depth_map = sv.DepthMap.from_ultralytics(result)
+            ```
+        """
+        depth = getattr(ultralytics_results, "depth", None)
+        if depth is None:
+            raise ValueError(
+                "The Ultralytics result has no depth map; run a depth model such as "
+                "yolo26n-depth.pt."
+            )
+        values = _to_numpy(getattr(depth, "data", depth))
+        return cls(_squeeze_to_2d(values, "Ultralytics"), kind=DepthKind.DEPTH_M)
+
+    @classmethod
+    def from_transformers(
+        cls, transformers_results: Any, *, kind: DepthKind | str
+    ) -> DepthMap:
+        """Create a `sv.DepthMap` from a Hugging Face depth estimation result.
+
+        Reads `predicted_depth` from a `depth-estimation` pipeline result, from a
+        `post_process_depth_estimation` entry, or from a model output. The pipeline's
+        `depth` image is an 8-bit per-image stretch for display and is ignored.
+        Transformers does not say what the model predicts, so `kind` is required:
+        `relative_inverse` for Depth Anything V1 and V2 and DPT relative models,
+        `depth_m` for metric models such as Depth Pro, ZoeDepth or Depth Anything
+        metric.
+
+        Args:
+            transformers_results: One result holding `predicted_depth` of shape
+                `(H, W)` or `(1, H, W)`.
+            kind: What the model predicts.
+
+        Returns:
+            A float32 `sv.DepthMap`.
+
+        Raises:
+            ValueError: If the result is a list or has no `predicted_depth`.
+
+        Examples:
+            ```python
+            import supervision as sv
+            from transformers import pipeline
+
+            estimator = pipeline(
+                "depth-estimation", model="depth-anything/Depth-Anything-V2-Small-hf"
+            )
+            result = estimator("<SOURCE_IMAGE_PATH>")
+            depth_map = sv.DepthMap.from_transformers(result, kind="relative_inverse")
+            ```
+        """
+        if isinstance(transformers_results, list):
+            raise ValueError(
+                "from_transformers() operates on a single result at a time; pass "
+                "results[0]."
+            )
+        if isinstance(transformers_results, dict):
+            predicted = transformers_results.get("predicted_depth")
+        else:
+            predicted = getattr(transformers_results, "predicted_depth", None)
+        if predicted is None:
+            raise ValueError("The transformers result has no 'predicted_depth'.")
+        values = _squeeze_to_2d(_to_numpy(predicted), "Transformers")
+        return cls(values, kind=kind)
+
+    @classmethod
+    def from_png16(
+        cls, path: str | Path, scale: float, kind: DepthKind | str
+    ) -> DepthMap:
+        """Load a 16-bit PNG whose value divided by `scale` is the map, 0 for none.
+
+        KITTI disparity uses `scale=256`; Ultralytics depth datasets use 1000 by
+        default. Values load as float32 `code / scale`, with `NaN` where the code
+        is 0.
+
+        Args:
+            path: Path to the PNG.
+            scale: Divisor from stored value to the kind's unit.
+            kind: What the values measure.
+
+        Returns:
+            A float32 `sv.DepthMap`.
+
+        Raises:
+            ValueError: If the file is not a single-channel 16-bit PNG or `scale` is
+                not a positive number.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            depth_map = sv.DepthMap.from_png16(
+                "disp_occ_0/000000_10.png", scale=256, kind="disparity_px"
+            )
+            ```
+        """
+        if not (math.isfinite(scale) and scale > 0):
+            raise ValueError(
+                f"from_png16 scale must be a positive number, got {scale}."
+            )
+        codes = _read_png16(path)
+        values = codes.astype(np.float32) / np.float32(scale)
+        values[codes == 0] = np.nan
+        return cls(values, kind=kind)
+
+    @classmethod
+    def from_pfm(
+        cls, path: str | Path, kind: DepthKind | str = DepthKind.DISPARITY_PX
+    ) -> DepthMap:
+        """Load a single-channel PFM file, the Middlebury and SceneFlow format.
+
+        Rows are flipped to top first. Infinite values (Middlebury's unknown
+        disparity) are no depth. The sign of the header's scale gives the byte
+        order; its magnitude is not applied.
+
+        Args:
+            path: Path to the `.pfm` file.
+            kind: What the values measure; disparity by default.
+
+        Returns:
+            A float32 `sv.DepthMap`.
+
+        Raises:
+            ValueError: If the file is not a grayscale PFM.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            depth_map = sv.DepthMap.from_pfm("Adirondack/disp0.pfm")
+            ```
+        """
+        return cls(_read_pfm(path), kind=kind)
 
 
 def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:

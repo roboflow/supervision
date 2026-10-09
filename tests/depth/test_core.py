@@ -396,12 +396,16 @@ class TestDepthMapValueAt:
         [
             pytest.param((0, 1), id="zero-width"),
             pytest.param((-3, 1), id="negative-width"),
+            pytest.param((None, 2), id="none-width"),
+            pytest.param((float("inf"), 2), id="infinite-width"),
+            pytest.param((2.0, 2), id="float-width"),
+            pytest.param((True, 2), id="bool-width"),
         ],
     )
-    def test_rejects_non_positive_resolution(
-        self, resolution_wh: tuple[int, int]
+    def test_rejects_resolution_that_is_not_positive_integers(
+        self, resolution_wh: tuple[Any, Any]
     ) -> None:
-        """A zero or negative size has no pixels to map the point from."""
+        """Only positive integer sizes have pixels to map the point from."""
         depth_map = sv.DepthMap(np.ones((1, 3), np.float32), kind="disparity_px")
 
         with pytest.raises(ValueError, match="positive integers"):
@@ -451,17 +455,28 @@ class TestDepthMapMeasureDetections:
         assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0]
 
     def test_measures_inside_compact_masks(self) -> None:
-        """A CompactMask gives the same result as dense masks."""
-        mask = np.zeros((2, 20, 20), dtype=bool)
+        """A CompactMask gives the same result as dense masks.
+
+        The third mask straddles the edge of the 2 m square, half on it, so reading its
+        crop at the wrong origin would change the median.
+        """
+        mask = np.zeros((3, 20, 20), dtype=bool)
         mask[0, 2:6, 2:4] = True
         mask[1, 8:10, 8:12] = True
-        xyxy = np.array([[2, 2, 3, 5], [8, 8, 11, 9]], dtype=float)
+        mask[2, 4:6, 5:7] = True
+        xyxy = np.array([[2, 2, 3, 5], [8, 8, 11, 9], [5, 4, 6, 5]], dtype=float)
         compact = CompactMask.from_dense(mask, xyxy, image_shape=(20, 20))
         detections = sv.Detections(xyxy=xyxy, mask=compact)
+        dense = self._depth_map().measure_detections(
+            sv.Detections(xyxy=xyxy, mask=mask)
+        )
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 10.0]
+        np.testing.assert_array_equal(
+            measured.data[DEPTH_M_DATA_FIELD], dense.data[DEPTH_M_DATA_FIELD]
+        )
+        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 10.0, 6.0]
 
     @pytest.mark.parametrize(
         ("camera", "field", "expected"),
