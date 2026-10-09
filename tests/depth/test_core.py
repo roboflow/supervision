@@ -337,12 +337,16 @@ class TestDepthMapValueAt:
         [
             pytest.param((0, 1), id="zero-width"),
             pytest.param((-3, 1), id="negative-width"),
+            pytest.param((None, 2), id="none-width"),
+            pytest.param((float("inf"), 2), id="infinite-width"),
+            pytest.param((2.0, 2), id="float-width"),
+            pytest.param((True, 2), id="bool-width"),
         ],
     )
-    def test_rejects_non_positive_resolution(
-        self, resolution_wh: tuple[int, int]
+    def test_rejects_resolution_that_is_not_positive_integers(
+        self, resolution_wh: tuple[Any, Any]
     ) -> None:
-        """A zero or negative size has no pixels to map the point from."""
+        """Only positive integer sizes have pixels to map the point from."""
         depth_map = sv.DepthMap(np.ones((1, 3), np.float32), kind="disparity_px")
 
         with pytest.raises(ValueError, match="positive integers"):

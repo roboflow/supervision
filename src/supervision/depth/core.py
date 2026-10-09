@@ -280,10 +280,14 @@ def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[An
 def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
     """Return a `(width, height)` pair of positive integers, else raise."""
     width, height = resolution_wh
-    if int(width) != width or int(height) != height or width <= 0 or height <= 0:
-        raise ValueError(
-            f"resolution_wh must be two positive integers, got {resolution_wh}."
-        )
+    for side in (width, height):
+        # The type is checked before any comparison, so None or infinity raise
+        # ValueError here rather than TypeError or OverflowError.
+        is_integer = isinstance(side, (int, np.integer)) and not isinstance(side, bool)
+        if not (is_integer and side > 0):
+            raise ValueError(
+                f"resolution_wh must be two positive integers, got {resolution_wh}."
+            )
     return int(width), int(height)
 
 
