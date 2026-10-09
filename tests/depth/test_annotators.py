@@ -7,7 +7,7 @@ import pytest
 from PIL import Image
 
 import supervision as sv
-from supervision.depth.annotators import _percentile_range
+from supervision.depth.annotators import _CLIP_SAMPLE_ARRAYS, _percentile_range
 from supervision.depth.core import _Conversion
 
 #: Entries of matplotlib's Turbo table in RGB, written out as literals so that colour
@@ -476,7 +476,9 @@ class TestDepthClipRange:
             for depth in (1.0, 3.0)
         )
 
-        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
 
         assert clip_range == sv.DepthClipRange(display_range=(1.0, 3.0))
 
@@ -486,7 +488,9 @@ class TestDepthClipRange:
         values[1, 1], values[3, 3] = 5.0, 7.0
         frames = [sv.DepthMap(values, kind="depth_m")]
 
-        clip_range = sv.DepthClipRange.from_depth_maps(frames, low=0, high=100)
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
 
         assert clip_range == sv.DepthClipRange(display_range=(5.0, 7.0))
 
@@ -500,6 +504,25 @@ class TestDepthClipRange:
         clip_range = sv.DepthClipRange.from_depth_maps([frame] * 70)
 
         assert clip_range.display_range == (1.0, 100.0)
+
+    def test_many_one_pixel_frames_keep_every_value(self) -> None:
+        """Merging the per-frame samples of a long, sparse clip loses no value.
+
+        One pixel per frame never reaches a sample cap, so every value is kept; past the
+        limit on held sample arrays they are merged, and the clip's minimum and maximum
+        must survive that.
+        """
+        count = _CLIP_SAMPLE_ARRAYS + 1
+        frames = (
+            sv.DepthMap(np.full((1, 1), value, np.float32), kind="disparity_px")
+            for value in range(1, count + 1)
+        )
+
+        clip_range = sv.DepthClipRange.from_depth_maps(
+            frames, low_percentile=0, high_percentile=100
+        )
+
+        assert clip_range.display_range == (1.0, float(count))
 
     def test_flat_clip_gives_equal_ends(self) -> None:
         """A clip of one value yields a flat range rather than failing."""

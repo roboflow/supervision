@@ -22,10 +22,18 @@ from supervision.utils.conversion import ensure_cv2_image_for_class_method
 
 #: Colour range, in the coloured quantity's unit, for a map that holds no depth.
 _FALLBACK_RANGE = (0.0, 1.0)
+#: Percentile of the valid values at a computed colour range's low end, shared by
+#: `display_range="auto"` and `DepthClipRange.from_depth_maps`.
+_DEFAULT_LOW_PERCENTILE = 2.0
+#: Percentile of the valid values at a computed colour range's high end.
+_DEFAULT_HIGH_PERCENTILE = 98.0
 #: A frame adds about this many samples, or fewer, to a clip-wide percentile estimate.
 _CLIP_SAMPLES_PER_FRAME = 65536
-#: A clip-wide percentile estimate keeps at most about this many float64 samples.
+#: A clip-wide percentile estimate keeps at most about this many float32 samples.
 _CLIP_SAMPLE_BUDGET = 1 << 22
+#: A clip-wide percentile estimate merges its per-frame sample arrays into one when
+#: it holds more than this many, so a long, sparse clip does not pile up arrays.
+_CLIP_SAMPLE_ARRAYS = 4096
 
 
 class DepthAnnotator:
@@ -183,6 +191,9 @@ class DepthClipRange:
     where the depth values are steady, as in ground truth or calibrated stereo; a
     model's own frame-to-frame wobble becomes more visible.
 
+    A clip range applies to maps of the kind it was computed from; on maps of another
+    kind its values would be read in the wrong unit.
+
     Attributes:
         display_range: `(low, high)` colour range in the maps' own unit, read like a
             `(low, high)` tuple passed to `sv.DepthAnnotator`. Equal ends, as from a
@@ -221,8 +232,8 @@ class DepthClipRange:
     def from_depth_maps(
         cls,
         depth_maps: Iterable[DepthMap],
-        low: float = 2.0,
-        high: float = 98.0,
+        low_percentile: float = _DEFAULT_LOW_PERCENTILE,
+        high_percentile: float = _DEFAULT_HIGH_PERCENTILE,
     ) -> DepthClipRange:
         """Compute a clip's percentile range in one pass.
 
@@ -239,19 +250,22 @@ class DepthClipRange:
 
         Args:
             depth_maps: The clip's maps, all of one kind.
-            low: Lower percentile, from 0 to 100.
-            high: Upper percentile, from 0 to 100.
+            low_percentile: Percentile of the clip's valid values at the range's low
+                end, from 0 to 100. Defaults to 2, as for `display_range="auto"`.
+            high_percentile: Percentile at the range's high end, from 0 to 100.
+                Defaults to 98, as for `display_range="auto"`.
 
         Returns:
             The clip's `sv.DepthClipRange`, in the maps' own unit.
 
         Raises:
-            ValueError: If the percentiles are not `0 <= low < high <= 100`, or the
-                maps mix kinds or hold no depth at all.
+            ValueError: If the percentiles are not
+                `0 <= low_percentile < high_percentile <= 100`, or the maps mix kinds
+                or hold no depth at all.
         """
-        _check_percentiles(low, high)
+        _check_percentiles(low_percentile, high_percentile)
         kind: DepthKind | None = None
-        samples: list[npt.NDArray[np.float64]] = []
+        samples: list[npt.NDArray[np.float32]] = []
         retained = 0
         keep_share = 1.0
         rng = np.random.default_rng(0)
@@ -270,20 +284,42 @@ class DepthClipRange:
             if share < 1.0:
                 # Random rather than every n-th sample: a fixed step aliases with
                 # structured frames and skews the percentiles.
-                values = values[rng.random(values.size) < share]
-            sample = values.astype(np.float64)
-            samples.append(sample)
-            retained += sample.size
+                values = _thin_at_random(values, share, rng)
+                # Once the share has been halved, a sparse frame may keep nothing.
+                if values.size == 0:
+                    continue
+            samples.append(values)
+            retained += values.size
             if retained > _CLIP_SAMPLE_BUDGET:
-                # Keeping each sample with probability 1/2 leaves every sample of the
-                # clip kept with probability `keep_share / 2`.
-                kept = np.concatenate(samples)
-                kept = kept[rng.random(kept.size) < 0.5]
+                # Thinning keeps each sample with probability 1/2, so every sample of
+                # the clip is now kept with probability `keep_share / 2`.
+                kept = _thin_at_random(np.concatenate(samples), 0.5, rng)
                 samples, retained, keep_share = [kept], kept.size, keep_share / 2
-        if not samples or sum(sample.size for sample in samples) == 0:
+            elif len(samples) > _CLIP_SAMPLE_ARRAYS:
+                # The budget bounds the values but not the arrays holding them; many
+                # sparse frames would each add one. Merging copies every retained
+                # value, so it runs only once per this many frames.
+                samples = [np.concatenate(samples)]
+        if retained == 0:
             raise ValueError("The clip holds no depth to compute a range from.")
-        display_range = _values_at_ranks(np.concatenate(samples), low, high)
+        display_range = _values_at_ranks(
+            np.concatenate(samples), low_percentile, high_percentile
+        )
         return cls(display_range=display_range)
+
+
+def _thin_at_random(
+    values: npt.NDArray[np.float32], share: float, rng: np.random.Generator
+) -> npt.NDArray[np.float32]:
+    """Keep each value with probability `share`, drawing only the kept positions.
+
+    A binomial count of distinct positions, drawn uniformly without replacement, has the
+    same distribution as one coin flip per value, and for a small share costs time in
+    the number of values kept rather than in the number given.
+    """
+    count = int(rng.binomial(values.size, share))
+    positions = rng.choice(values.size, size=count, replace=False, shuffle=False)
+    return values[positions]
 
 
 def _check_display_range_option(
@@ -376,8 +412,8 @@ def _float32_span(low: float, high: float) -> np.float32:
 def _percentile_range(
     values: npt.NDArray[np.float32],
     conversion: _Conversion,
-    low: float = 2.0,
-    high: float = 98.0,
+    low: float = _DEFAULT_LOW_PERCENTILE,
+    high: float = _DEFAULT_HIGH_PERCENTILE,
 ) -> tuple[float, float] | None:
     """Return the nearest-rank percentile range of a map's valid values.
 
