@@ -482,7 +482,7 @@ class Detections:
             normalized as ``[ymin, xmin, ymax, xmax]``. This method rescales
             them to absolute pixel coordinates and reorders them to ``xyxy``
             (``[xmin, ymin, xmax, ymax]``) before constructing the
-            :class:`Detections` object.
+            :class:`~supervision.detection.core.Detections` object.
 
         Example:
             ```python
@@ -2631,9 +2631,9 @@ class Detections:
     def to_compact_masks(self) -> Detections:
         """Return a copy of this Detections with masks converted to CompactMask.
 
-        The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
+        The dense :attr:`~supervision.detection.core.Detections.mask` field (``NDArray[np.bool_]``) is converted to a
         :class:`~supervision.detection.compact_mask.CompactMask` without changing
-        mask pixels. When :attr:`mask` is already a
+        mask pixels. When :attr:`~supervision.detection.core.Detections.mask` is already a
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
 
@@ -2649,7 +2649,7 @@ class Detections:
             of potential pixel loss outside those boxes.
 
         Returns:
-            A new :class:`Detections` instance with ``mask`` set to a
+            A new :class:`~supervision.detection.core.Detections` instance with ``mask`` set to a
             :class:`~supervision.detection.compact_mask.CompactMask`, or ``self``
             when conversion is not needed.
 
@@ -3014,7 +3014,7 @@ def _merge_obb_corners(
 def _merge_detection_group(detections: list[Detections]) -> Detections:
     """Merge a group of single-object Detections into one merged detection.
 
-    Used internally by :meth:`Detections.with_nmm` to combine each merge group
+    Used internally by :meth:`~supervision.detection.core.Detections.with_nmm` to combine each merge group
     into a single output detection. The highest-confidence detection is the
     "winner" whose class_id, tracker_id, and data fields are preserved.
 
