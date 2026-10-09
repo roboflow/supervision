@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +37,8 @@ def _read_pfm(path: str | Path) -> npt.NDArray[np.float32]:
     this format, with `+inf` for unknown disparity.
 
     Raises:
-        ValueError: If the file is not a grayscale PFM or is truncated.
+        ValueError: If the file is not a grayscale PFM, its scale is zero or not
+            finite, or it is truncated.
     """
     data = Path(path).read_bytes()
     header: list[bytes] = []
@@ -62,6 +64,8 @@ def _read_pfm(path: str | Path) -> npt.NDArray[np.float32]:
         header.append(data[position:end].strip())
         position = end + 1
     scale = float(header[3])
+    if scale == 0 or not math.isfinite(scale):
+        raise ValueError(f"{path} has an invalid PFM scale {scale}.")
     dtype = "<f4" if scale < 0 else ">f4"
     expected = width * height * 4
     payload = data[position : position + expected]
