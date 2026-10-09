@@ -52,7 +52,7 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **Doc headings**: `###` max in docstrings and docs. `####` renders identically to bold in mkdocs — use `**bold**` instead.
 
-**Docstring API references**: reference local classes, functions, and methods with Sphinx roles (`:class:`, `:func:`, or `:meth:`) and fully qualified targets rooted at `supervision.` rather than plain code literals or relative names. Use `~` to display a short name, for example, ``:class:`~supervision.detection.core.Detections```.
+**Docstring API references**: reference local classes, functions, and methods with Sphinx roles (`:class:`, `:func:`, or `:meth:`) and fully qualified targets rooted at `supervision.` rather than plain code literals or relative names. Use `~` to display a short name, for example, \`\`:class:\`~supervision.detection.core.Detections\`\`\`.
 
 **Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
