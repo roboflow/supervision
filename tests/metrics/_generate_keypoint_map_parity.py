@@ -16,77 +16,15 @@ The script also prints how far the stored constants are from the fresh results.
 from __future__ import annotations
 
 from importlib.metadata import version
-from typing import Any
 
 import numpy as np
 
 from tests.metrics.test_keypoint_mean_average_precision import (
     EXPECTED_AP_PER_CLASS,
     EXPECTED_STATS,
-    SyntheticPoseImage,
     _make_synthetic_pose_images,
+    _to_coco,
 )
-
-
-def _flat_keypoints(xy: np.ndarray, visibility: np.ndarray) -> list[float]:
-    """Flatten `(K, 2)` coordinates and `(K,)` flags into COCO `[x, y, v, ...]`."""
-    return [float(value) for (x, y), v in zip(xy, visibility) for value in (x, y, v)]
-
-
-def _keypoints_span(xy: np.ndarray) -> list[float]:
-    """Return the `[x, y, width, height]` box spanning `(K, 2)` coordinates."""
-    x_min, y_min = xy.min(axis=0)
-    x_max, y_max = xy.max(axis=0)
-    return [float(x_min), float(y_min), float(x_max - x_min), float(y_max - y_min)]
-
-
-def _to_coco(
-    images: list[SyntheticPoseImage],
-) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
-    """Convert synthetic images to a COCO keypoint dataset and a result list.
-
-    Target points carry `v=2` when visible and `v=0` otherwise, so a target without
-    visible points has `num_keypoints=0` and is an ignore region. Predicted points
-    carry `v=1`, which `computeOks` does not read. Target areas come from
-    `targets.data["area"]`, as in the test.
-    """
-    annotations: list[dict[str, Any]] = []
-    results: list[dict[str, Any]] = []
-    for index, image in enumerate(images):
-        image_id = index + 1  # ids start at 1, since 0 means "no match"
-        targets, predictions = image.targets, image.predictions
-        for target_index in range(len(targets)):
-            xy = targets.xy[target_index].astype(np.float64)
-            visible = np.asarray(targets.visible)[target_index]
-            annotations.append(
-                {
-                    "id": len(annotations) + 1,
-                    "image_id": image_id,
-                    "category_id": int(targets.class_id[target_index]),
-                    "iscrowd": 0,
-                    "area": float(targets.data["area"][target_index]),
-                    "bbox": _keypoints_span(xy),
-                    "num_keypoints": int(visible.sum()),
-                    "keypoints": _flat_keypoints(xy, 2 * visible.astype(int)),
-                }
-            )
-        for pred_index in range(len(predictions)):
-            xy = predictions.xy[pred_index].astype(np.float64)
-            results.append(
-                {
-                    "image_id": image_id,
-                    "category_id": int(predictions.class_id[pred_index]),
-                    "score": float(predictions.detection_confidence[pred_index]),
-                    "keypoints": _flat_keypoints(xy, np.ones(len(xy), dtype=int)),
-                }
-            )
-    categories = [{"id": class_id, "name": str(class_id)} for class_id in (0, 1)]
-    dataset = {
-        "images": [{"id": index + 1} for index in range(len(images))],
-        "annotations": annotations,
-        "categories": categories,
-    }
-    return dataset, results
 
 
 def main() -> None:

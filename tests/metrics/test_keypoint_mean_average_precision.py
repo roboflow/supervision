@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from faster_coco_eval import COCO, COCOeval_faster
 import numpy as np
 import numpy.typing as npt
 import pytest
+from faster_coco_eval import COCO, COCOeval_faster
 
 from supervision.detection.utils.iou_and_nms import (
     _COCO_KEYPOINT_SIGMAS,
@@ -993,8 +993,8 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
         assert result.map50_95 == pytest.approx(0.5)
 
 
-class TestKeyPointMeanAveragePrecisionPycocotoolsParity:
-    """Scores match `COCOeval(..., iouType="keypoints")` on synthetic data."""
+class TestKeyPointMeanAveragePrecisionParity:
+    """Scores match COCO keypoint evaluation on synthetic data."""
 
     def test_scores_match_pycocotools(self) -> None:
         """Overall, per-size and per-class AP equal pycocotools 2.0.11."""
@@ -1044,10 +1044,14 @@ class TestKeyPointMeanAveragePrecisionPycocotoolsParity:
         evaluator.accumulate()
         evaluator.summarize()
 
-        result = KeyPointMeanAveragePrecision().update(
-            [image.predictions for image in images],
-            [image.targets for image in images],
-        ).compute()
+        result = (
+            KeyPointMeanAveragePrecision()
+            .update(
+                [image.predictions for image in images],
+                [image.targets for image in images],
+            )
+            .compute()
+        )
 
         expected_stats = evaluator.stats
         actual_stats = np.array(
