@@ -310,9 +310,10 @@ class KeypointMeanAveragePrecision(Metric[KeypointMeanAveragePrecisionResult]):
       it is computed like any other target, using its box when it has no
       visible keypoint. Without the key, every target is a regular instance.
     - **Invalid values.** NaN coordinates and a target area of `0` are not
-      rejected. As in `pycocotools`, a NaN keypoint adds `0` to the OKS, and
-      with a zero area only keypoints at exactly zero distance add to it, so
-      such pairs score low or `0`. Clean such labels beforehand.
+      rejected. A NaN keypoint adds `0` to the OKS while the pair's finite
+      keypoints still count; `pycocotools` instead returns a NaN OKS for the
+      pair. With a zero area only keypoints at exactly zero distance add to
+      the OKS, so such pairs score low or `0`. Clean such labels beforehand.
 
     Examples:
         ```pycon
