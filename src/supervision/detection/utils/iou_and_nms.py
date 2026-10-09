@@ -1052,7 +1052,9 @@ def mask_iou_batch(
     Accepts both dense ``(N, H, W)`` boolean arrays and
     :class:`~supervision.detection.compact_mask.CompactMask` objects.
     When both inputs are :class:`~supervision.detection.compact_mask.CompactMask`,
-    The computation uses :func:`~supervision.detection.utils.iou_and_nms.compact_mask_iou_batch` to avoid materialising
+    the computation uses
+    :func:`~supervision.detection.utils.iou_and_nms.compact_mask_iou_batch`
+    to avoid materialising
     full ``(N, H, W)`` arrays.
 
     Args:
