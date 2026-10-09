@@ -35,10 +35,10 @@ def _has_finite_coordinates(point: npt.ArrayLike) -> bool:
     """Report whether a keypoint carries coordinates that can be rasterized.
 
     Pose estimators mark an undetected or occluded keypoint with `NaN` rather than
-    dropping it, and `KeyPoints` accepts those values, so annotators receive them
+    dropping it, and :class:`~supervision.key_points.core.KeyPoints` accepts those values, so annotators receive them
     routinely. Every drawing helper below converts a coordinate to `int`, which raises
     on `NaN` and on an infinity, and `np.allclose(point, 0)` does not catch either.
-    `KeyPoints.as_detections` already excludes non-finite coordinates; this keeps the
+    :meth:`~supervision.key_points.core.KeyPoints.as_detections` already excludes non-finite coordinates; this keeps the
     annotators on the same rule instead of aborting the whole frame.
     """
     return bool(np.isfinite(point).all())
@@ -422,7 +422,7 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Opacity of the overlay mask. Must be between ``0`` and
                 ``1``.
@@ -523,7 +523,7 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             thickness: Line thickness of the ellipse outlines.
             max_axis: Optional cap for ellipse semi-axis lengths in pixels.
@@ -626,7 +626,7 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
                 innermost.  Accepts a single float or a sequence of floats.
                 Defaults to ``(1.0, 2.0, 3.0)``.
             color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
+                :class:`~supervision.draw.color.Color` or a sequence of colors (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Peak opacity at the ellipse center. Must be between ``0``
                 and ``1``.

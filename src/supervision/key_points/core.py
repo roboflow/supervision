@@ -937,7 +937,8 @@ class KeyPoints:
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 class names, and confidences of each keypoint. An empty
-                `transformers_results` returns `KeyPoints.empty()`.
+                `transformers_results` returns
+                :meth:`~supervision.key_points.core.KeyPoints.empty`.
 
         Examples:
             ```python
@@ -1018,7 +1019,7 @@ class KeyPoints:
 
         This method selects the **same set of keypoints from every object**, so
         every row of `mask` must contain the same number of `True` values.  The
-        result is a new `KeyPoints` whose keypoint count is that uniform `k`.
+        result is a new :class:`~supervision.key_points.core.KeyPoints` whose keypoint count is that uniform `k`.
 
         This is suitable for use cases such as *"keep only the left-side joints for
         all persons"* — where the selected joint indices are identical across objects.
@@ -1039,7 +1040,7 @@ class KeyPoints:
                 stored in a uniform `(n, k, ...)` array.
 
         Returns:
-            A new `KeyPoints` instance containing only the keypoints selected by
+            A new :class:`~supervision.key_points.core.KeyPoints` instance containing only the keypoints selected by
             the mask for each object.
 
         Raises:
@@ -1145,7 +1146,7 @@ class KeyPoints:
             index: Index, indices, slice, or boolean mask selecting key points.
 
         Returns:
-            A new `KeyPoints` instance containing the selected rows or anchors.
+            A new :class:`~supervision.key_points.core.KeyPoints` instance containing the selected rows or anchors.
 
         Example:
             ```pycon
@@ -1283,7 +1284,7 @@ class KeyPoints:
             ...     data={'class_name': np.array(['person', 'person', 'dog'])},
             ... )
 
-            Detection-level filtering returns a `KeyPoints` subset:
+            Detection-level filtering returns a :class:`~supervision.key_points.core.KeyPoints` subset:
 
             >>> key_points[key_points.detection_confidence > 0.7].class_id
             array([0, 1])
@@ -1391,7 +1392,7 @@ class KeyPoints:
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
-        """Returns `True` if the `KeyPoints` object is considered empty.
+        """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object is considered empty.
 
         Returns:
             `True` if the object is empty, `False` otherwise.
@@ -1415,14 +1416,14 @@ class KeyPoints:
         respective fields (`xy`, `class_id`, `keypoint_confidence`,
         `detection_confidence`, and `visible`) into a single KeyPoints object.
         The `data` dictionaries are merged key-wise, following the same rules
-        as `Detections.merge`.
+        as :meth:`~supervision.detection.core.Detections.merge`.
 
         For example, if merging KeyPoints with 2 and 3 skeletons, this method
         will return a KeyPoints with 5 skeletons (5 entries in `xy`, etc).
 
         !!! Note
 
-            When merging, empty `KeyPoints` objects are ignored.
+            When merging, empty :class:`~supervision.key_points.core.KeyPoints` objects are ignored.
 
         Args:
             key_points_list: A list of KeyPoints objects to merge.

@@ -1,6 +1,7 @@
 """Shared implementation behind the confusion-matrix detection metrics.
 
-`Precision`, `Recall` and `F1Score` reduce detections to the very same per-class, per-
+:class:`~supervision.metrics.precision.Precision`, :class:`~supervision.metrics.recall.Recall` and
+:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very same per-class, per-
 IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied to that
 matrix, in the result dataclass they fill, and in the labels used when a result is
 rendered. This module owns everything they share.
@@ -539,7 +540,7 @@ class _ResultView:
 
 
 class _SupportsResultView(Protocol):
-    """A metric result able to describe itself as a `_ResultView`."""
+    """    A metric result able to describe itself as a :class:`~supervision.metrics._confusion_matrix_metric._ResultView`."""
 
     def _result_view(self) -> _ResultView:
         """Return the field-name-agnostic view of this result."""

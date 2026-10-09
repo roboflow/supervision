@@ -354,7 +354,7 @@ def letterbox_image(
             arrays of shape ``(H, W)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
         color: Padding color. If tuple, should be in BGR format.
-            Defaults to `Color.BLACK`.
+            Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
 
     Returns:
         Letterboxed image matching input type.
@@ -479,7 +479,7 @@ def tint_image(
     Args:
         image: The image to tint. Accepts BGR arrays of shape ``(H, W, 3)``,
             grayscale arrays of shape ``(H, W)``, or a PIL ``Image``.
-        color: Overlay tint color. Defaults to `Color.BLACK`.
+        color: Overlay tint color. Defaults to :attr:`~supervision.draw.color.Color.BLACK`.
         opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
 
@@ -612,7 +612,7 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 class ImageSink:
     """Save sequential images into a directory through a context manager.
 
-    `ImageSink` creates the target directory on entry and writes each image using
+    :class:`~supervision.utils.image.ImageSink` creates the target directory on entry and writes each image using
     `save_image`, incrementing the image name pattern after every save.
     """
 

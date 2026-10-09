@@ -40,10 +40,10 @@ class DepthKind(Enum):
         """Resolve a kind from an enum member or its case-insensitive value.
 
         Args:
-            value: A `DepthKind` member or one of its string values.
+            value: A :class:`~supervision.depth.core.DepthKind` member or one of its string values.
 
         Returns:
-            The matching `DepthKind`.
+            The matching :class:`~supervision.depth.core.DepthKind`.
 
         Raises:
             ValueError: If `value` names no kind.

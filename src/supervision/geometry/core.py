@@ -171,12 +171,12 @@ class Rect:
 
     @property
     def top_left(self) -> Point:
-        """Return the top-left corner as a `Point`."""
+        """        Return the top-left corner as a :class:`~supervision.geometry.core.Point`."""
         return Point(x=self.x, y=self.y)
 
     @property
     def bottom_right(self) -> Point:
-        """Return the bottom-right corner as a `Point`."""
+        """        Return the bottom-right corner as a :class:`~supervision.geometry.core.Point`."""
         return Point(x=self.x + self.width, y=self.y + self.height)
 
     def pad(self, padding: int) -> Rect:

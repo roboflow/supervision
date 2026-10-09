@@ -30,7 +30,8 @@ from supervision.utils.iterables import create_batches
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally by `_is_windowed_raster` rather than by import so `rasterio`
+    Matched structurally by :func:`~supervision.detection.tools.inference_slicer._is_windowed_raster`
+    rather than by import so `rasterio`
     stays an optional dependency — any object exposing these members works.
     `rasterio.io.DatasetReader` satisfies this protocol.
     """
@@ -336,7 +337,7 @@ class InferenceSlicer:
         raster dataset has no full in-memory image to give back, so its result
         carries no ``source_image``. Because the stored value is a reference,
         mutating the returned ``metadata["source_image"]`` mutates the caller's
-        own ``image``, and every ``Detections`` derived from the result via
+        own ``image``, and every :class:`~supervision.detection.core.Detections` derived from the result via
         ``select()``, ``__getitem__``, or ``with_nms()`` shares that same
         reference — a long-lived derived result (e.g. held across a video
         processing loop) keeps the full input frame alive.

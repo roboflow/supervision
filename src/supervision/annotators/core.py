@@ -95,8 +95,9 @@ def _load_icon_from_path(
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
     """Normalize accepted color inputs to internal color objects.
 
-    Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
-    `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
+    Accepts :class:`~supervision.draw.color.Color`, :class:`~supervision.draw.color.ColorPalette`,
+    or hex string input. Hex strings are parsed via :func:`~supervision.annotators.utils.hex_to_rgba`
+    and converted to :class:`~supervision.draw.color.Color` (alpha channel is ignored because annotator
     drawing uses RGB/BGR colors).
     """
     if isinstance(color, str):
@@ -399,8 +400,9 @@ def _iter_mask_crops(
 ) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
     """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
 
-    Encapsulates the ``CompactMask`` vs dense dispatch so individual annotators
-    do not need inline ``isinstance`` checks. For ``CompactMask`` inputs yields
+    Encapsulates the :class:`~supervision.detection.compact_mask.CompactMask` vs dense dispatch so individual annotators
+    do not need inline ``isinstance`` checks. For
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs yields
     the bbox crop and its ``(x1, y1)`` image-space origin; for dense masks
     yields the full-frame boolean slice with ``offset=None``.
 
@@ -409,7 +411,8 @@ def _iter_mask_crops(
 
     Yields:
         Tuple of ``(detection_idx, mask_or_crop, offset_or_None)``.
-        ``mask_or_crop`` is boolean (crop-sized for ``CompactMask``, full-frame
+        ``mask_or_crop`` is boolean (crop-sized for
+        :class:`~supervision.detection.compact_mask.CompactMask`, full-frame
         for dense). ``offset_or_None`` is an int32 ``(x1, y1)`` array for
         crop→image translation, or ``None`` for dense masks.
     """
@@ -443,7 +446,7 @@ def _paint_masks_by_area(
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
-    Smaller masks are drawn on top of larger ones. `CompactMask` detections
+    Smaller masks are drawn on top of larger ones. :class:`~supervision.detection.compact_mask.CompactMask` detections
     are painted into their bounding-box crop only, avoiding a full `(H, W)`
     allocation per mask; dense masks fall back to full-frame boolean indexing.
 
@@ -455,7 +458,7 @@ def _paint_masks_by_area(
         color_lookup: Strategy for mapping colors to detection indices.
         collect_union: When ``True``, allocate and return a ``(H, W)``
             boolean array that accumulates the union of all painted masks
-            (useful for callers like `HaloAnnotator` that need the combined
+            (useful for callers like :class:`~supervision.annotators.core.HaloAnnotator` that need the combined
             mask footprint). When ``False`` (default), returns ``None``.
         canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
             image. Use the default for full-frame painting.
@@ -690,7 +693,7 @@ class PolygonAnnotator(BaseAnnotator):
             ```
 
         Note:
-            When `detections.mask` is a `CompactMask`, each detection's polygon
+            When `detections.mask` is a :class:`~supervision.detection.compact_mask.CompactMask`, each detection's polygon
             is decoded from a bbox-sized crop (O(crop_area)) rather than a
             full-frame ``(H, W)`` allocation (O(H·W)). Polygon coordinates are
             shifted from crop-local space to image space via the stored
@@ -1309,7 +1312,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             text_thickness: Thickness of the text characters.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
+                Possible values are defined in the :class:`~supervision.geometry.core.Position` enum.
             text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
             border_radius: The radius to apply round edges. If the selected
@@ -1667,7 +1670,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             font_size: Font size for the text.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
+                Possible values are defined in the :class:`~supervision.geometry.core.Position` enum.
             text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
             border_radius: The radius to apply round edges. If the selected
@@ -2165,7 +2168,7 @@ class TraceAnnotator(BaseAnnotator):
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections: The detections which include coordinates for
-                which the traces will be drawn. An empty `Detections` batch
+                which the traces will be drawn. An empty :class:`~supervision.detection.core.Detections` batch
                 is a no-op: `scene` is returned unmodified.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.

@@ -190,8 +190,10 @@ def _filter_by_classes(
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
     """Keep detections whose class name is in `classes` and assign `class_id`.
 
-    Shared by the VLM parsers (`from_paligemma`, `from_qwen_2_5_vl`,
-    `from_deepseek_vl_2`, `from_google_gemini_2_0`) that all filter detections with
+    Shared by the VLM parsers (:func:`~supervision.detection.vlm.from_paligemma`,
+    :func:`~supervision.detection.vlm.from_qwen_2_5_vl`,
+    :func:`~supervision.detection.vlm.from_deepseek_vl_2`,
+    :func:`~supervision.detection.vlm.from_google_gemini_2_0`) that all filter detections with
     an identical `name in classes` mask and then derive `class_id` from
     `classes.index(name)` - extracting it once keeps that mask/index pairing from
     drifting between callers.
@@ -682,7 +684,7 @@ def _recover_gemini_json_objects(text: str) -> list[Any]:
 def _recover_gemini_boxes_payload(text: str) -> dict[str, Any] | None:
     """Salvage the `boxes` array from a malformed Gemini structured response.
 
-    `_recover_gemini_json_objects` collects `{...}` spans that balance at depth 0, so
+    :func:`~supervision.detection.vlm._recover_gemini_json_objects` collects `{...}` spans that balance at depth 0, so
     it recovers nothing from a truncated `{"boxes": [...` response: the wrapper's own
     brace never closes, the scan never returns to depth 0, and every detection stays
     nested inside it. Slicing the text down to the `boxes` array first puts those
@@ -709,8 +711,9 @@ def _recover_gemini_boxes_payload(text: str) -> dict[str, Any] | None:
 def _parse_gemini_json(result: str, recover: Callable[[str], Any]) -> Any:
     """Strip a Gemini response's markdown fence and decode its JSON payload.
 
-    Shared by the Gemini parsers (`from_google_gemini_2_0`, `from_google_gemini_2_5`,
-    `from_google_gemini_3_6`) that all fence-strip then `json.loads`, falling back to
+    Shared by the Gemini parsers (:func:`~supervision.detection.vlm.from_google_gemini_2_0`,
+    :func:`~supervision.detection.vlm.from_google_gemini_2_5`,
+    :func:`~supervision.detection.vlm.from_google_gemini_3_6`) that all fence-strip then `json.loads`, falling back to
     a recovery function on `JSONDecodeError` - extracting it once keeps that
     strip/decode/recover sequence from drifting between callers as each targets a
     different malformed-response shape.
@@ -1046,7 +1049,8 @@ def from_google_gemini_3_5(
 
     Gemini 3.5 emits the same detection JSON as Gemini 2.5 (`box_2d` in
     `[y_min, x_min, y_max, x_max]` normalized to 0-1000, plus `label` and optional
-    `mask`/`confidence`), so parsing delegates to `from_google_gemini_2_5`.
+    `mask`/`confidence`), so parsing delegates to
+    :func:`~supervision.detection.vlm.from_google_gemini_2_5`.
 
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
@@ -1056,7 +1060,7 @@ def from_google_gemini_3_5(
 
     Returns:
         A tuple of `(xyxy, class_id, class_name, confidence, masks)` matching the
-            `from_google_gemini_2_5` return contract.
+            :func:`~supervision.detection.vlm.from_google_gemini_2_5` return contract.
     """
     return from_google_gemini_2_5(result, resolution_wh, classes)
 
@@ -1167,7 +1171,8 @@ def from_google_gemini_3_7(
     """Parse Google Gemini 3.7 structured detection and segmentation output.
 
     Gemini 3.7 uses the same top-level `boxes` object and polygon mask format as
-    Gemini 3.6, so parsing delegates to `from_google_gemini_3_6`.
+    Gemini 3.6, so parsing delegates to
+    :func:`~supervision.detection.vlm.from_google_gemini_3_6`.
 
     Args:
         result: String containing the structured JSON response.
@@ -1177,7 +1182,7 @@ def from_google_gemini_3_7(
 
     Returns:
         A tuple of `(xyxy, class_id, class_name, confidence, masks)` matching the
-            `from_google_gemini_3_6` return contract, including its all-or-nothing
+            :func:`~supervision.detection.vlm.from_google_gemini_3_6` return contract, including its all-or-nothing
             mask behavior.
     """
     return from_google_gemini_3_6(result, resolution_wh, classes)

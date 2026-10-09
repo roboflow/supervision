@@ -61,7 +61,7 @@ class VideoInfo:
             video_path: Path to the video file.
 
         Returns:
-            A `VideoInfo` instance with width, height, fps, and total_frames.
+            A :class:`~supervision.utils.video.VideoInfo` instance with width, height, fps, and total_frames.
 
         Examples:
             ```python
@@ -258,7 +258,7 @@ def get_video_frames_generator(
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
-        index directly. `get_video_frames_generator` is designed for file-based
+        index directly. :func:`~supervision.utils.video.get_video_frames_generator` is designed for file-based
         sources; `cv2.VideoCapture` must be released by the caller when done.
         This requires OpenCV to be installed — the PyAV-based fallback used
         when OpenCV is unavailable only supports file paths, not webcam device

@@ -257,7 +257,7 @@ class MeanAveragePrecisionResult(MetricResult):
 
 class EvaluationDataset:
     """Class used representing a dataset in the right format needed by the
-    `COCOEvaluator` class."""
+    :class:`~supervision.metrics.mean_average_precision.COCOEvaluator` class."""
 
     def __init__(self, targets: _TypeCocoDataset | None = None) -> None:
         """Constructor of EvaluationDataset object used to evaluate models with Mean
@@ -561,7 +561,7 @@ def _with_agnostic_class_id(detections: Detections) -> Detections:
     Returns:
         `detections` itself when it already has class IDs, otherwise a shallow copy
         labeled with the class-agnostic class ID. The input is never modified, so
-        repeated calls to `MeanAveragePrecision.compute` leave stored state untouched.
+        repeated calls to :meth:`~supervision.metrics.mean_average_precision.MeanAveragePrecision.compute` leave stored state untouched.
     """
     if detections.class_id is not None:
         return detections
@@ -579,7 +579,7 @@ def _mask_iou_with_jaccard(
     Calculate the IoU between detection masks (dt) and ground-truth masks (gt),
     following the COCO convention: a detection may match any subregion of a
     crowd ground truth, so for crowd rows the union collapses to the detection
-    area (mask counterpart of `box_iou_batch_with_jaccard`).
+    area (mask counterpart of :func:`~supervision.metrics.detection.box_iou_batch_with_jaccard`).
 
     Args:
         masks_true: List of ground-truth masks of shape `(H, W)`.

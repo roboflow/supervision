@@ -72,7 +72,7 @@ def detection_iou(
     2. Else, if both operands have oriented-box coordinates, use OBB IoU.
     3. Otherwise, use axis-aligned box IoU.
 
-    This is a **shared**-geometry dispatch, unlike `detection_area`'s
+    This is a **shared**-geometry dispatch, unlike :func:`~supervision.detection._geometry_dispatch.detection_area`'s
     per-operand dispatch: if the two operands carry different kinds of
     richer geometry (e.g. one has only a mask, the other only oriented-box
     coordinates), neither is used and the axis-aligned box IoU is computed

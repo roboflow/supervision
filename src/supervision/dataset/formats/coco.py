@@ -57,7 +57,7 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
     and tools such as CVAT, which require ``category_id`` values to start at
     ``1``. The id assigned to the class at position ``class_index`` is
     ``class_index + 1``, keeping it consistent with the ``category_id`` written
-    by [`detections_to_coco_annotations`](#detections_to_coco_annotations).
+    by :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`.
 
     Args:
         classes: Class names ordered by their internal (0-indexed) class id.
@@ -281,7 +281,7 @@ def detections_to_coco_annotations(
     The internal 0-indexed ``Detections.class_id`` is serialized as a 1-indexed
     COCO ``category_id`` (``category_id = class_id + 1``). This complies with the
     COCO specification and tools such as CVAT, and stays consistent with the ids
-    emitted by [`classes_to_coco_categories`](#classes_to_coco_categories), so a
+    emitted by :func:`~supervision.dataset.formats.coco.classes_to_coco_categories`, so a
     detection with internal ``class_id=k`` maps to ``category_id=k + 1``.
 
     Args:

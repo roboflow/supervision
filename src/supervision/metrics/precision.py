@@ -164,7 +164,7 @@ class Precision(_ConfusionMatrixMetric["PrecisionResult"]):
         iou_thresholds: npt.NDArray[np.float32],
         matched_classes: npt.NDArray[np.int32],
     ) -> PrecisionResult:
-        """Wrap the computed precision scores in a `PrecisionResult`."""
+        """Wrap the computed precision scores in a :class:`~supervision.metrics.precision.PrecisionResult`."""
         return PrecisionResult(
             metric_target=self._metric_target,
             averaging_method=self.averaging_method,

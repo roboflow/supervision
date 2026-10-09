@@ -191,7 +191,7 @@ def _decode_compact_masks(
             mixed-modality alignment guard.
 
     Returns:
-        A merged ``CompactMask`` when all predictions that carry masks decoded
+        A merged :class:`~supervision.detection.compact_mask.CompactMask` when all predictions that carry masks decoded
         successfully, or ``None`` when no masks are present or the
         mixed-modality guard triggers.
 
