@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.">
+        <meta name="description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.">
       
       
         <meta name="author" content="Roboflow">
@@ -182,7 +182,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "name": "Visualize Depth Maps",
-  "description": "Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.",
+  "description": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.",
   "url": "https://supervision.roboflow.com/latest/how_to/visualize_depth/",
   "publisher": {
     "@type": "Organization",
@@ -207,7 +207,7 @@
   "dateModified": "2026-10-08",
   
   
-  "articleBody": "Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator.",
+  "articleBody": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.",
   "speakable": {
     "@type": "SpeakableSpecification",
     "cssSelector": [".md-content h1", ".md-content h2", ".md-typeset > p"]
@@ -228,7 +228,7 @@
       "name": "How do I visualize depth maps with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator."
+        "text": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator."
       }
     }
   ]
@@ -263,7 +263,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
 <meta property="og:title" content="Visualize Depth Maps" />
-<meta property="og:description" content="Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator." />
+<meta property="og:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator." />
 <meta property="og:url" content="https://supervision.roboflow.com/latest/how_to/visualize_depth/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -273,7 +273,7 @@
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
 <meta name="twitter:title" content="Visualize Depth Maps" />
-<meta name="twitter:description" content="Colour depth, disparity and relative depth maps over images with sv.DepthMap and sv.DepthAnnotator." />
+<meta name="twitter:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta name="twitter:image:width" content="1200" />
@@ -1311,6 +1311,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-ellipsis">
       
         Colour a Depth Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#colour-a-video-with-one-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Colour a Video with One Range
       
     </span>
   </a>
@@ -3304,6 +3315,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#colour-a-video-with-one-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Colour a Video with One Range
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#attribution" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3367,12 +3389,36 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 <ul>
 <li><code>colormap="turbo"</code> separates the most depth steps; <code>"viridis"</code> and <code>"cividis"</code> keep their order in grayscale and for colour-blind readers.</li>
-<li><code>display_range="auto"</code> uses the map's 2nd to 98th percentile; a <code>(low, high)</code> tuple fixes the range in the map's own unit, such as <code>(1.0, 10.0)</code> metres for a metric map.</li>
+<li><code>display_range="auto"</code> uses the map's 2nd to 98th percentile; a <code>(low, high)</code> tuple fixes the range in the map's own unit, such as <code>(1.0, 10.0)</code> metres for a metric map, and <code>sv.DepthClipRange</code> holds one range across a video.</li>
 <li>A metric map is coloured as inverse depth, which gives near detail most of the colours.</li>
 </ul>
 <p>To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour, for a map the size of the image:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">annotated_image</span><span class="p">[</span><span class="o">~</span><span class="n">depth_map</span><span class="o">.</span><span class="n">valid_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">()</span>
 </span></code></pre></div>
+<h2 id="colour-a-video-with-one-range">Colour a Video with One Range<a class="headerlink" href="#colour-a-video-with-one-range" title="Permanent link">&para;</a></h2>
+<p>Colouring each frame with its own range makes a still wall change colour whenever something enters the frame. Compute one range for the whole clip in a first pass, then colour every frame with it:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">estimate_depth</span><span class="p">(</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">frame</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sv</span><span class="o">.</span><span class="n">DepthMap</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># return your depth model&#39;s map for this frame</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">source</span> <span class="o">=</span> <span class="s2">&quot;&lt;SOURCE_VIDEO_PATH&gt;&quot;</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">clip_range</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DepthClipRange</span><span class="o">.</span><span class="n">from_depth_maps</span><span class="p">(</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">estimate_depth</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span> <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">depth_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DepthAnnotator</span><span class="p">(</span><span class="n">display_range</span><span class="o">=</span><span class="n">clip_range</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.65</span><span class="p">)</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="s2">&quot;&lt;TARGET_VIDEO_PATH&gt;&quot;</span><span class="p">,</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">source</span><span class="p">))</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="n">depth_map</span> <span class="o">=</span> <span class="n">estimate_depth</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">depth_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">depth_map</span><span class="p">))</span>
+</span></code></pre></div>
+<p>The first pass reads one map at a time, so memory stays bounded however long the clip is, at the cost of estimating depth twice per frame. For a short clip, keep the maps in a list, pass it to <code>DepthClipRange.from_depth_maps</code> and colour the frames from it to avoid the second inference pass. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.</p>
 <h2 id="attribution">Attribution<a class="headerlink" href="#attribution" title="Permanent link">&para;</a></h2>
 <p>Image: frame 96 of sequence 0021 of the Spring dataset (Mehl et al., CVPR 2023, <a href="https://doi.org/10.18419/darus-3376">doi:10.18419/darus-3376</a>) and the Spring open movie by Blender Foundation, both <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; downscaled, with an OpenCV StereoSGBM disparity layer coloured by <code>sv.DepthAnnotator</code>.</p>
 
@@ -3397,7 +3443,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 8, 2026 22:28:32 UTC">October 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 14:49:56 UTC">October 9, 2026</span>
   </span>
 
     
@@ -3449,7 +3495,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/visualize_depth.md" class="md-author md-author--more">
-            +1
+            +2
           </a>
         
       
