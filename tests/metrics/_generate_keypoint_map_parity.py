@@ -8,7 +8,7 @@ the synthetic data changes, for example when the RNG call order in
 `_make_synthetic_pose_images` is edited, and paste the printed constants into the test
 module:
 
-    uv run --with pycocotools python -m tests.metrics.generate_keypoint_map_parity
+    uv run --with pycocotools python -m tests.metrics._generate_keypoint_map_parity
 
 The script also prints how far the stored constants are from the fresh results.
 """

@@ -47,7 +47,7 @@ PARITY_TOLERANCE = 1e-7
 
 # pycocotools 2.0.11 results for `_make_synthetic_pose_images()`. pycocotools is not a
 # dependency, so regenerate them with
-# `uv run --with pycocotools python -m tests.metrics.generate_keypoint_map_parity`
+# `uv run --with pycocotools python -m tests.metrics._generate_keypoint_map_parity`
 # after any change to the synthetic data, such as its RNG call order.
 EXPECTED_STATS = [
     0.2508697518103459,
