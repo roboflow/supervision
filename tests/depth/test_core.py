@@ -87,6 +87,11 @@ class TestDepthMapInit:
         with pytest.raises(ValueError, match="Invalid depth kind"):
             sv.DepthMap(np.ones((2, 2), np.float32), kind="height")
 
+    def test_rejects_a_camera_that_is_not_a_depth_camera(self) -> None:
+        """Camera parameters must come wrapped in a `sv.DepthCamera`."""
+        with pytest.raises(ValueError, match="camera must be"):
+            sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m", camera=(700, 0.1))
+
 
 class TestDepthCamera:
     @pytest.mark.parametrize(
@@ -98,10 +103,12 @@ class TestDepthCamera:
                 {"fx_px": 700.0, "baseline_m": 0.1, "doffs_px": float("nan")},
                 id="nan-doffs",
             ),
+            pytest.param({"fx_px": "700", "baseline_m": 0.1}, id="string-focal"),
+            pytest.param({"fx_px": None, "baseline_m": 0.1}, id="missing-focal"),
         ],
     )
-    def test_rejects_invalid_parameters(self, parameters: dict[str, float]) -> None:
-        """Focal length and baseline must be positive, offsets finite."""
+    def test_rejects_invalid_parameters(self, parameters: dict[str, Any]) -> None:
+        """Fields are numbers; focal length and baseline positive, offsets finite."""
         with pytest.raises(ValueError, match="DepthCamera"):
             sv.DepthCamera(**parameters)
 

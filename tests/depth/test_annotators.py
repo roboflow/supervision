@@ -629,6 +629,11 @@ class TestDepthAnnotatorScene:
         with pytest.raises(TypeError, match="Unsupported image type"):
             annotator.annotate("not_an_image", depth_map)
 
+    def test_rejects_unknown_quantity(self) -> None:
+        """The quantity must be disparity or depth."""
+        with pytest.raises(ValueError, match="Invalid depth quantity"):
+            sv.DepthAnnotator(quantity="metres")
+
     def test_raises_for_depth_on_relative_map(self) -> None:
         """Relative inverse depth has no metres to colour."""
         depth_map = sv.DepthMap(np.ones((2, 2), np.float32), kind="relative_inverse")

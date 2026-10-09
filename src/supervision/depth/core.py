@@ -247,7 +247,7 @@ def _plain_float(value: Any, field: str) -> float:
             return float(value)
         except (TypeError, ValueError):
             pass
-    raise TypeError(f"{field} must be a real number, got {value!r}.")
+    raise ValueError(f"{field} must be a real number, got {value!r}.")
 
 
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:

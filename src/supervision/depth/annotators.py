@@ -72,7 +72,7 @@ class DepthAnnotator:
                 the pixels that have depth.
 
         Raises:
-            ValueError: If `colormap` or `display_range` is invalid.
+            ValueError: If `colormap`, `quantity` or `display_range` is invalid.
         """
         self.colormap = DepthColormap.from_value(colormap)
         self.quantity = DepthQuantity.from_value(quantity)
