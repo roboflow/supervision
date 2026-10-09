@@ -828,3 +828,39 @@ class TestDetectionDatasetPascalVocImageShapes:
         else:
             assert polygon is None
         np.testing.assert_array_equal(image, original_image)
+
+
+class TestPascalVocBoxExtent:
+    """Tests for how the Pascal VOC loader and exporter handle a reversed box."""
+
+    def test_orders_reversed_corners_on_load(self) -> None:
+        """Two corners name the same rectangle in either order.
+
+        This matches how the LabelMe loader reads its rectangles.
+        """
+        xml = (
+            "<annotation><size><width>100</width><height>100</height>"
+            "<depth>3</depth></size><object><name>thing</name><bndbox>"
+            "<xmin>70</xmin><ymin>70</ymin><xmax>30</xmax><ymax>30</ymax>"
+            "</bndbox></object></annotation>"
+        )
+
+        detections, _ = detections_from_xml_obj(
+            ElementTree.fromstring(xml),
+            classes=["thing"],
+            resolution_wh=(100, 100),
+        )
+
+        assert detections.xyxy[0].tolist() == [29.0, 29.0, 69.0, 69.0]
+        assert detections.area[0] > 0
+
+    def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
+        """Export preserves the rectangle with ordered, one-indexed corners."""
+        xyxy = np.array([70, 70, 30, 30], dtype=np.float32)
+
+        element = object_to_pascal_voc(xyxy=xyxy, name="thing")
+
+        assert [
+            int(element.find(f"bndbox/{coordinate}").text)
+            for coordinate in ("xmin", "ymin", "xmax", "ymax")
+        ] == [31, 31, 71, 71]
