@@ -34,8 +34,8 @@ from supervision.metrics.mean_average_precision import (
 if TYPE_CHECKING:
     import pandas as pd
 
+#: Maximum detections per image and class in COCO keypoint evaluation.
 _KEYPOINT_MAX_DETECTIONS = 20
-"""Maximum detections per image and class in COCO keypoint evaluation."""
 
 #: Object sizes COCO keypoint evaluation reports, as `pycocotools` `setKpParams`.
 _KEYPOINT_OBJECT_SIZES = (ObjectSize.ALL, ObjectSize.MEDIUM, ObjectSize.LARGE)

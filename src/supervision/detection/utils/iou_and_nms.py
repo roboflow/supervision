@@ -657,6 +657,9 @@ def oriented_box_iou_batch(
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
 
 
+#: Per-keypoint OKS sigmas of the 17-point COCO person skeleton, in COCO keypoint
+#: order (nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles), as
+#: used by `pycocotools`.
 _COCO_KEYPOINT_SIGMAS: npt.NDArray[np.float64] = (
     np.array(
         [
@@ -682,9 +685,6 @@ _COCO_KEYPOINT_SIGMAS: npt.NDArray[np.float64] = (
     )
     / 10.0
 )
-"""Per-keypoint OKS sigmas of the 17-point COCO person skeleton, in COCO keypoint order
-(nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles), as used by
-`pycocotools`."""
 
 
 def _validate_keypoint_sigmas(sigmas: npt.NDArray[np.float64]) -> None:
