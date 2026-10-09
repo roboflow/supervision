@@ -5,7 +5,7 @@ authors:
   - name: Caio Viotti
     role: Roboflow
     github: https://github.com/cfviotti
-date_modified: 2026-10-05
+date_modified: 2026-10-08
 ---
 
 # Visualize Depth Maps
@@ -37,6 +37,14 @@ The camera is optional: with the rig's focal length and baseline, a stereo match
 
 `NaN`, infinities and values at or below 0 (below 0 for relative maps) are pixels without depth; `depth_map.valid_mask` marks the rest.
 
+For `"relative_inverse"`, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to `NaN`. Invert a relative map that grows with distance, such as Depth Anything V3's, before wrapping it; negating it instead would leave every pixel negative, and so without depth:
+
+```python
+relative_depth = np.load("<RELATIVE_DEPTH_NPY_PATH>")  # float32, grows with distance
+relative_depth[relative_depth <= 0] = np.nan  # pixels without depth
+depth_map = sv.DepthMap(1 / relative_depth, kind="relative_inverse")
+```
+
 ## Colour a Depth Map
 
 ```python
@@ -46,7 +54,7 @@ annotated_image = depth_annotator.annotate(image.copy(), depth_map)
 
 - `colormap="turbo"` separates the most depth steps; `"viridis"` and `"cividis"` keep their order in grayscale and for colour-blind readers.
 - `quantity="disparity"` colours inverse depth, which gives near detail most of the colours; `quantity="depth"` colours metres and needs a metric map or a stereo camera.
-- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the coloured unit: pixels for disparity, metres for depth, and 1 / metres for a metric map without a camera coloured as disparity (the default).
+- `display_range="auto"` uses the map's 2nd to 98th percentile; a `(low, high)` tuple fixes the range in the map's own unit, whatever the quantity, such as `(1.0, 10.0)` metres for a metric map.
 
 To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:
 
