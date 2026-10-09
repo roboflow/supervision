@@ -38,6 +38,29 @@ class _FakeUltralyticsResult:
         self.depth = None if depth is None else _FakeUltralyticsDepth(depth)
 
 
+class _FakeBfloat16GradTensor(_FakeTensor):
+    """Torch-like bfloat16 tensor with grad: `numpy()` needs `detach` and `float`."""
+
+    def __init__(self, arr: np.ndarray, pending: frozenset[str] | None = None) -> None:
+        """Wrap the array with the calls still owed before `numpy()`."""
+        super().__init__(arr)
+        self._pending = frozenset({"detach", "float"}) if pending is None else pending
+
+    def detach(self) -> _FakeBfloat16GradTensor:
+        """Drop the grad, as `torch.Tensor.detach` does."""
+        return _FakeBfloat16GradTensor(self._arr, self._pending - {"detach"})
+
+    def float(self) -> _FakeBfloat16GradTensor:
+        """Widen to float32, as `torch.Tensor.float` does."""
+        return _FakeBfloat16GradTensor(self._arr, self._pending - {"float"})
+
+    def numpy(self) -> np.ndarray:
+        """Refuse like torch while the tensor still has grad or is bfloat16."""
+        if self._pending:
+            raise RuntimeError(f"call {sorted(self._pending)} before numpy()")
+        return self._arr
+
+
 class _FakeDepthEstimatorOutput:
     """Transformers-like model output exposing `predicted_depth`."""
 
@@ -253,6 +276,11 @@ class TestDepthMapFromInference:
                 "grayscale",
                 id="rgb-png",
             ),
+            pytest.param(
+                {"normalized_depth": base64.b64encode(b"not a png").decode()},
+                "decodable",
+                id="undecodable-png",
+            ),
         ],
     )
     def test_rejects_invalid_results(self, result: Any, match: str) -> None:
@@ -286,6 +314,10 @@ class TestDepthMapFromTransformers:
             ),
             pytest.param(
                 _FakeDepthEstimatorOutput(np.ones((1, 1, 2, 3))), id="model-output"
+            ),
+            pytest.param(
+                _FakeDepthEstimatorOutput(_FakeBfloat16GradTensor(np.ones((1, 2, 3)))),
+                id="bfloat16-output-with-grad",
             ),
         ],
     )
@@ -327,12 +359,21 @@ class TestDepthMapFromFiles:
             depth_map.values, [[np.nan, 1.0], [20.0, 65535 / 256]]
         )
 
-    def test_from_png16_rejects_8_bit_png(self, tmp_path: Any) -> None:
-        """An 8-bit PNG is not a depth PNG."""
-        Image.fromarray(np.zeros((2, 2), np.uint8)).save(tmp_path / "gray.png")
+    @pytest.mark.parametrize(
+        ("codes", "scale", "match"),
+        [
+            pytest.param(np.zeros((2, 2), np.uint8), 256, "16-bit", id="8-bit-png"),
+            pytest.param(np.zeros((2, 2), np.uint16), 0, "positive", id="zero-scale"),
+        ],
+    )
+    def test_from_png16_rejects_bad_input(
+        self, tmp_path: Any, codes: np.ndarray, scale: float, match: str
+    ) -> None:
+        """An 8-bit PNG is not a depth PNG, and the scale must be positive."""
+        Image.fromarray(codes).save(tmp_path / "depth.png")
 
-        with pytest.raises(ValueError, match="16-bit"):
-            sv.DepthMap.from_png16(tmp_path / "gray.png", scale=256, kind="depth_m")
+        with pytest.raises(ValueError, match=match):
+            sv.DepthMap.from_png16(tmp_path / "depth.png", scale=scale, kind="depth_m")
 
 
 class TestDepthMapEquality:

@@ -24,12 +24,8 @@ def _read_png16(path: str | Path) -> npt.NDArray[np.uint16]:
                 "Depth PNG must be a single-channel 16-bit grayscale PNG, got "
                 f"format {image.format} mode {image.mode}."
             )
-        values = np.asarray(image)
-    if values.dtype != np.uint16:
-        if values.min(initial=0) < 0 or values.max(initial=0) > _UINT16_MAX:
-            raise ValueError("Depth PNG values must fit in 16 bits.")
-        values = values.astype(np.uint16)
-    return np.ascontiguousarray(values)
+        # Pillow before 10.3 opens a 16-bit PNG as int32 mode "I".
+        return np.ascontiguousarray(image, dtype=np.uint16)
 
 
 def _read_pfm(path: str | Path) -> npt.NDArray[np.float32]:

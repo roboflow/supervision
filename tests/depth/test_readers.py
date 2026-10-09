@@ -46,6 +46,7 @@ class TestReadPfm:
             pytest.param(b"PF\n1 1\n-1.0\n" + b"\0" * 12, "colour", id="colour"),
             pytest.param(b"P6\n1 1\n255\n\0\0\0", "not a PFM", id="ppm"),
             pytest.param(b"Pf\n2 2\n-1.0\n\0\0\0\0", "truncated", id="truncated"),
+            pytest.param(b"Pf\n2 2", "incomplete", id="incomplete-header"),
         ],
     )
     def test_rejects_other_files(
