@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.">
+        <meta name="description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance.">
       
       
         <meta name="author" content="Roboflow">
@@ -182,7 +182,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "name": "Visualize Depth Maps",
-  "description": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.",
+  "description": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance.",
   "url": "https://supervision.roboflow.com/latest/how_to/visualize_depth/",
   "publisher": {
     "@type": "Organization",
@@ -207,7 +207,7 @@
   "dateModified": "2026-10-08",
   
   
-  "articleBody": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator.",
+  "articleBody": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance.",
   "speakable": {
     "@type": "SpeakableSpecification",
     "cssSelector": [".md-content h1", ".md-content h2", ".md-typeset > p"]
@@ -228,7 +228,7 @@
       "name": "How do I visualize depth maps with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator."
+        "text": "Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance."
       }
     }
   ]
@@ -263,7 +263,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Supervision" />
 <meta property="og:title" content="Visualize Depth Maps" />
-<meta property="og:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator." />
+<meta property="og:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance." />
 <meta property="og:url" content="https://supervision.roboflow.com/latest/how_to/visualize_depth/" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
@@ -273,7 +273,7 @@
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:creator" content="@roboflow" />
 <meta name="twitter:title" content="Visualize Depth Maps" />
-<meta name="twitter:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator." />
+<meta name="twitter:description" content="Colour depth, disparity and relative depth maps over images and video with sv.DepthMap and sv.DepthAnnotator, convert disparity to metres and label objects with their distance." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
 <meta name="twitter:image:width" content="1200" />
@@ -1322,6 +1322,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-ellipsis">
       
         Colour a Video with One Range
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#label-objects-with-their-distance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label Objects with Their Distance
       
     </span>
   </a>
@@ -3326,6 +3337,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#label-objects-with-their-distance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Label Objects with Their Distance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#attribution" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3375,8 +3397,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">pillow_to_cv2</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">))</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">disparity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;&lt;DISPARITY_NPY_PATH&gt;&quot;</span><span class="p">)</span>  <span class="c1"># float32 pixels, left view</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">depth_map</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DepthMap</span><span class="p">(</span><span class="n">disparity</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;disparity_px&quot;</span><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">depth_map</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DepthMap</span><span class="p">(</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">disparity</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;disparity_px&quot;</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">camera</span><span class="o">=</span><span class="n">sv</span><span class="o">.</span><span class="n">DepthCamera</span><span class="p">(</span><span class="n">fx_px</span><span class="o">=</span><span class="mf">1050.0</span><span class="p">,</span> <span class="n">baseline_m</span><span class="o">=</span><span class="mf">0.12</span><span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
 </span></code></pre></div>
+<p>The camera is optional: with the rig's focal length and baseline, a stereo matcher's disparity gives metric depth too.</p>
 <p><code>NaN</code>, infinities and values at or below 0 (below 0 for relative maps) are pixels without depth; <code>depth_map.valid_mask</code> marks the rest.</p>
 <p>For <code>"relative_inverse"</code>, larger values are nearer and 0 is the farthest valid value, so set pixels without depth to <code>NaN</code>. Invert a relative map that grows with distance, such as Depth Anything V3's, before wrapping it; negating it instead would leave every pixel negative, and so without depth:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">relative_depth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;&lt;RELATIVE_DEPTH_NPY_PATH&gt;&quot;</span><span class="p">)</span>  <span class="c1"># float32, grows with distance</span>
@@ -3389,11 +3416,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 <ul>
 <li><code>colormap="turbo"</code> separates the most depth steps; <code>"viridis"</code> and <code>"cividis"</code> keep their order in grayscale and for colour-blind readers.</li>
-<li><code>display_range="auto"</code> uses the map's 2nd to 98th percentile; a <code>(low, high)</code> tuple fixes the range in the map's own unit, such as <code>(1.0, 10.0)</code> metres for a metric map, and <code>sv.DepthClipRange</code> holds one range across a video.</li>
-<li>A metric map is coloured as inverse depth, which gives near detail most of the colours.</li>
+<li><code>scale="inverse"</code> (default) colours a disparity or relative map as it is and a metric map as inverse depth, which gives near detail most of the colours; <code>scale="metric"</code> colours metres and needs a metric map or a stereo camera.</li>
+<li><code>display_range="auto"</code> uses the map's 2nd to 98th percentile; a <code>(low, high)</code> tuple fixes the range in the map's own unit, whatever the scale, such as <code>(1.0, 10.0)</code> metres for a metric map (a disparity range is in pixels of that map, so it changes meaning if you <code>resize</code> the map), and <code>sv.DepthClipRange</code> holds one range across a video.</li>
 </ul>
-<p>To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour, for a map the size of the image:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">annotated_image</span><span class="p">[</span><span class="o">~</span><span class="n">depth_map</span><span class="o">.</span><span class="n">valid_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">()</span>
+<p>To show the depth alone, annotate a blank canvas instead of the image. To paint the pixels without depth in one colour:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">annotated_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">annotated_image</span><span class="p">[</span><span class="o">~</span><span class="n">depth_map</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span><span class="o">.</span><span class="n">valid_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="o">.</span><span class="n">as_bgr</span><span class="p">()</span>
 </span></code></pre></div>
 <h2 id="colour-a-video-with-one-range">Colour a Video with One Range<a class="headerlink" href="#colour-a-video-with-one-range" title="Permanent link">&para;</a></h2>
 <p>Colouring each frame with its own range makes a still wall change colour whenever something enters the frame. Compute one range for the whole clip in a first pass, then colour every frame with it:</p>
@@ -3419,6 +3447,25 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">depth_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">depth_map</span><span class="p">))</span>
 </span></code></pre></div>
 <p>The first pass reads one map at a time, so memory stays bounded however long the clip is, at the cost of estimating depth twice per frame. For a short clip, keep the maps in a list, pass it to <code>DepthClipRange.from_depth_maps</code> and colour the frames from it to avoid the second inference pass. A locked range keeps the colour scale fixed: colours stay put only where the depth values are steady, as in ground truth or calibrated stereo, and a model's own frame-to-frame wobble becomes more visible.</p>
+<h2 id="label-objects-with-their-distance">Label Objects with Their Distance<a class="headerlink" href="#label-objects-with-their-distance" title="Permanent link">&para;</a></h2>
+<p><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;measure_detections&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;detections&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Detections&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;resolution_wh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;tuple&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Detections&lt;/span&gt;&lt;/code&gt;" href="../../depth/core/#supervision.depth.core.DepthMap.measure_detections">measure_detections</a> stores the median depth inside each mask, or each box without masks, in <code>detections.data["depth_m"]</code>, ready for labels drawn with <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.annotators.core.LabelAnnotator&lt;/code&gt;" href="../../detection/annotators/#supervision.annotators.core.LabelAnnotator">sv.LabelAnnotator</a>. Here <code>depth_map</code> is the stereo map with a camera from <a href="#load-a-depth-map">Load a Depth Map</a>. When the map has another size than the image, such as a monocular model's output, pass the image's size as <code>resolution_wh</code>: the map is stretched over the image as <code>sv.DepthAnnotator</code> draws it, and its values keep their unit.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;rfdetr-small&quot;</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">depth_map</span><span class="o">.</span><span class="n">measure_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="o">=</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">depth</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> m&quot;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> no depth&quot;</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">depth</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;depth_m&quot;</span><span class="p">])</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">]</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">annotated_image</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">()</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">annotated_image</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</span></code></pre></div>
+<p>An object whose region holds no depth gets <code>NaN</code>, so the labels above check <code>np.isfinite</code> instead of printing <code>nan m</code>.</p>
+<p><code>measure_detections</code> names its column after what the map can give: <code>"depth_m"</code> for a <code>depth_m</code> map or a disparity map with a camera, and the map's own kind otherwise, <code>"disparity_px"</code> for a disparity map without a camera. A relative map has no metres, so it fills <code>detections.data["relative_inverse"]</code> instead: useful to sort objects from near to far within one image, not to compare images. A column of the same name already in <code>detections.data</code> is replaced.</p>
+<p>For one pixel, <code>depth_map.value_at(x, y)</code> returns the value in the map's own unit, not in metres unless the map is <code>depth_m</code>: pixels for a disparity map, so call <code>depth_map.to_depth().value_at(x, y)</code> for metres, and <code>None</code> where there is no depth.</p>
 <h2 id="attribution">Attribution<a class="headerlink" href="#attribution" title="Permanent link">&para;</a></h2>
 <p>Image: frame 96 of sequence 0021 of the Spring dataset (Mehl et al., CVPR 2023, <a href="https://doi.org/10.18419/darus-3376">doi:10.18419/darus-3376</a>) and the Spring open movie by Blender Foundation, both <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; downscaled, with an OpenCV StereoSGBM disparity layer coloured by <code>sv.DepthAnnotator</code>.</p>
 
@@ -3443,7 +3490,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 14:49:56 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 17:53:09 UTC">October 9, 2026</span>
   </span>
 
     

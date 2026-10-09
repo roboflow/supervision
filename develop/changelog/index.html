@@ -4280,6 +4280,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DepthMap</code> now measures distance: <code>sv.DepthCamera</code> turns disparity into metres (<code>to_depth</code>), and <code>measure_detections</code> stores the median depth under each object in <code>detections.data["depth_m"]</code>, also from a map of another size than the image with <code>resolution_wh</code>. Also adds <code>resize</code>, <code>crop</code>, <code>value_at</code> and <code>sv.DepthAnnotator(scale="metric")</code>. (<a href="https://github.com/roboflow/supervision/pull/2693">#2693</a>)</p>
+</li>
+<li>
 <p>Added <code>sv.DepthClipRange</code>, which keeps the colour scale of <code>sv.DepthAnnotator</code> fixed across a video. <code>DepthClipRange.from_depth_maps</code> computes one percentile range over a clip's maps, read once from a list or a generator, with bounded memory. (<a href="https://github.com/roboflow/supervision/pull/2692">#2692</a>)</p>
 </li>
 <li>
@@ -6420,7 +6423,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 14:49:56 UTC">October 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 9, 2026 17:53:09 UTC">October 9, 2026</span>
   </span>
 
     
