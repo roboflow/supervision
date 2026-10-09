@@ -240,6 +240,8 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 `supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
+When a docstring refers to a local class, function, or method, use the Sphinx cross-reference role (`:class:`, `:func:`, or `:meth:`) with a fully qualified target rooted at `supervision.` instead of a plain code literal or relative name. Prefix the target with `~` to display only its short name, for example, \`\`:class:\`~supervision.detection.core.Detections\`\`\`.
+
 Every docstring should include a usage example. When the example only uses `supervision`, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer `>>>` doctest format so it is automatically verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for when fenced ```` ```python ```` blocks are appropriate instead.
 
 ### Type checking

@@ -161,7 +161,8 @@ class F1Score(_ConfusionMatrixMetric["F1ScoreResult"]):
         iou_thresholds: npt.NDArray[np.float32],
         matched_classes: npt.NDArray[np.int32],
     ) -> F1ScoreResult:
-        """Wrap the computed F1 scores in an `F1ScoreResult`."""
+        """Wrap the computed F1 scores in a
+        :class:`~supervision.metrics.f1_score.F1ScoreResult`."""
         return F1ScoreResult(
             metric_target=self._metric_target,
             averaging_method=self.averaging_method,

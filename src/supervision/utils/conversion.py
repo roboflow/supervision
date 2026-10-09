@@ -15,8 +15,9 @@ F = TypeVar("F", bound=Callable[..., Any])
 def ensure_cv2_image_for_class_method(
     annotate_func: F,
 ) -> F:
-    """Decorates `BaseAnnotator.annotate` implementations, converts scene to an image
-    type used internally by the annotators, converts back when annotation is complete.
+    """Decorates :meth:`~supervision.annotators.base.BaseAnnotator.annotate`
+    implementations, converts scene to an image type used internally by the annotators,
+    converts back when annotation is complete.
 
     Assumes the annotators modify the scene in-place.
 

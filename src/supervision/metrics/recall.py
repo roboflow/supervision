@@ -189,7 +189,8 @@ class Recall(_ConfusionMatrixMetric["RecallResult"]):
         iou_thresholds: npt.NDArray[np.float32],
         matched_classes: npt.NDArray[np.int32],
     ) -> RecallResult:
-        """Wrap the computed recall scores in a `RecallResult`."""
+        """Wrap the computed recall scores in a
+        :class:`~supervision.metrics.recall.RecallResult`."""
         return RecallResult(
             metric_target=self._metric_target,
             averaging_method=self.averaging_method,

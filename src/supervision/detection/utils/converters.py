@@ -443,7 +443,7 @@ def _base48_decode(s: str) -> list[int]:
     characters: bits 0-4 carry data; bit 5 signals continuation; bit 4
     of the final character signals a negative value.
 
-    This is the pure codec layer — call :func:`_delta_decode` on the
+    This is the pure codec layer — call :func:`~supervision.detection.utils.converters._delta_decode` on the
     result to obtain absolute run-length counts.
 
     Args:
@@ -488,10 +488,10 @@ def _base48_decode(s: str) -> list[int]:
 def _base48_encode(values: list[int]) -> str:
     """Encode raw (delta-encoded) integers to a COCO base-48 string.
 
-    The inverse of :func:`_base48_decode`. Applies the same variable-length
+    The inverse of :func:`~supervision.detection.utils.converters._base48_decode`. Applies the same variable-length
     base-48 codec used by pycocotools.
 
-    Apply :func:`_delta_encode` to absolute run-length counts before calling
+    Apply :func:`~supervision.detection.utils.converters._delta_encode` to absolute run-length counts before calling
     this function to produce a valid COCO compressed RLE string.
 
     Args:
@@ -529,7 +529,7 @@ def _delta_decode(values: list[int]) -> list[int]:
     converts those relative values back to absolute run lengths.
 
     Args:
-        values: Raw delta-encoded integers from :func:`_base48_decode`.
+        values: Raw delta-encoded integers from :func:`~supervision.detection.utils.converters._base48_decode`.
 
     Returns:
         Absolute run-length counts (alternating background / foreground).
@@ -556,14 +556,14 @@ def _delta_decode(values: list[int]) -> list[int]:
 def _delta_encode(counts: list[int]) -> list[int]:
     """Apply COCO delta encoding: ``d[i] = counts[i] - counts[i - 2]`` for ``i > 2``.
 
-    The inverse of :func:`_delta_decode`. Converts absolute run lengths to
+    The inverse of :func:`~supervision.detection.utils.converters._delta_decode`. Converts absolute run lengths to
     the relative representation required by the COCO compressed RLE format.
 
     Args:
         counts: Absolute run-length counts (alternating background / foreground).
 
     Returns:
-        Delta-encoded integers ready for :func:`_base48_encode`.
+        Delta-encoded integers ready for :func:`~supervision.detection.utils.converters._base48_encode`.
 
     Examples:
         ```pycon
@@ -583,8 +583,8 @@ def is_compressed_rle(rle: object) -> bool:
     """Return ``True`` if ``rle`` is a COCO compressed RLE (``str`` or ``bytes``).
 
     Use this to branch between the compressed-string pipeline
-    (:func:`_base48_decode` → :func:`_delta_decode`) and the uncompressed
-    integer-list / array pipeline before calling :func:`rle_to_mask`.
+    (:func:`~supervision.detection.utils.converters._base48_decode` → :func:`~supervision.detection.utils.converters._delta_decode`) and the uncompressed
+    integer-list / array pipeline before calling :func:`~supervision.detection.utils.converters.rle_to_mask`.
 
     Args:
         rle: Candidate RLE value to inspect.
@@ -612,7 +612,7 @@ def _mask_to_rle_counts(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
     pycocotools RLE convention. The first value is always the count of leading
     ``False`` pixels (may be 0 if the mask starts with ``True``).
 
-    This is the shared low-level encoder used by both :func:`mask_to_rle` and
+    This is the shared low-level encoder used by both :func:`~supervision.detection.utils.converters.mask_to_rle` and
     :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Args:
@@ -651,11 +651,11 @@ def _rle_counts_to_mask(
 ) -> npt.NDArray[np.bool_]:
     """Decode COCO F-order run lengths back to a 2D boolean mask.
 
-    This is the shared low-level decoder used by both :func:`rle_to_mask` and
+    This is the shared low-level decoder used by both :func:`~supervision.detection.utils.converters.rle_to_mask` and
     :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Args:
-        rle: int32 array of run lengths as produced by :func:`_mask_to_rle_counts`.
+        rle: int32 array of run lengths as produced by :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
         height: Height of the output mask.
         width: Width of the output mask.
 

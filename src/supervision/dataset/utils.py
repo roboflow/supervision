@@ -138,7 +138,7 @@ def check_no_basename_collisions(
     """Raise if two image paths would be written to the same output file.
 
     Dataset image paths may share a basename when they originate from different
-    directories (a legal, common state after :meth:`DetectionDataset.merge`).
+    directories (a legal, common state after :meth:`~supervision.dataset.core.DetectionDataset.merge`).
     Exporting them into a single flat output directory keyed on the basename or
     stem would silently overwrite one file with another and mispair images with
     their annotations. This guard detects such collisions before any file is

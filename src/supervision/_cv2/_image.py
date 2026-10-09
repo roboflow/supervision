@@ -343,7 +343,7 @@ def _imwrite(
 
     `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
     ignored: the file is encoded with the OpenCV defaults that
-    `_opencv_default_save_options` returns, not with the quality or compression the
+    :func:`~supervision._cv2._image._opencv_default_save_options` returns, not with the quality or compression the
     caller asked for.
     """
     from PIL import Image
@@ -366,7 +366,7 @@ def _imencode(
 
     `params` is accepted for compatibility with `cv2.imencode`'s signature and is
     ignored: the image is encoded with the OpenCV defaults that
-    `_opencv_default_save_options` returns, not with the quality or compression the
+    :func:`~supervision._cv2._image._opencv_default_save_options` returns, not with the quality or compression the
     caller asked for.
     """
     import io

@@ -53,7 +53,7 @@ class KeyPointMeanAveragePrecisionResult(MetricResult):
         is_class_agnostic: When computing class-agnostic results, every
             skeleton gets class ID `-1` when any input has class IDs, and
             otherwise keeps the default class `0`, as in
-            `MeanAveragePrecision`.
+            :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`.
         mAP_scores: the mAP scores at each OKS threshold.
             Shape: `(num_oks_thresholds,)`
         ap_per_class: the average precision scores per class and OKS threshold.
@@ -312,7 +312,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
     This is the COCO keypoint metric: predictions are matched to targets by OKS
     instead of IoU, at 10 OKS thresholds from `0.5` to `0.95`, with 101-point
     recall interpolation and at most 20 predictions per image and class. The
-    matching and accumulation are shared with `MeanAveragePrecision`, and the
+    matching and accumulation are shared with :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`, and the
     result matches `pycocotools` `COCOeval(..., iouType="keypoints")` when the
     target areas match.
 
@@ -335,7 +335,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
       a false positive; if it was the class's only target, the class has no
       targets and scores `-1`. Boxes of targets with visible keypoints are not used.
     - **Area.** OKS is normalized by the target's object area. Pass it as
-      `targets.data["area"]` (the same key `MeanAveragePrecision` reads) to
+      `targets.data["area"]` (the same key :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision` reads) to
       reproduce COCO, which uses the annotated segmentation area. Without it,
       the area of the box spanning the target's visible keypoints is used. That
       box is usually tighter than the person's outline, so each pair's OKS
@@ -344,7 +344,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
       the metric usable on keypoint-only labels.
     - **Scores.** Predictions are ranked by `detection_confidence`; keypoint
       `confidence` is not used. When `detection_confidence` is `None`, every
-      prediction of that image scores `0`, as in `MeanAveragePrecision`.
+      prediction of that image scores `0`, as in :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`.
     - **Object size.** Targets fall into the medium and large buckets by that
       same area. Predictions fall in by the area of their box in
       `predictions.data["xyxy"]` when given, else of the box spanning all
@@ -402,7 +402,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
                 encode how precisely each keypoint can be annotated, so COCO
                 values are wrong for other skeletons.
             class_agnostic: Whether to treat all data as a single class with ID
-                `-1`. As in `MeanAveragePrecision`, when no input has class IDs
+                `-1`. As in :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`, when no input has class IDs
                 that class keeps the default ID `0`.
 
         Raises:
@@ -532,7 +532,7 @@ class KeyPointMeanAveragePrecision(Metric[KeyPointMeanAveragePrecisionResult]):
     def _agnostic_category_id(self) -> int:
         """Return the single category of all skeletons when class agnostic.
 
-        As in `MeanAveragePrecision`, it is `-1` when any stored skeleton has a
+        As in :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`, it is `-1` when any stored skeleton has a
         class ID, and otherwise the default class `0`.
         """
         has_class_ids = any(

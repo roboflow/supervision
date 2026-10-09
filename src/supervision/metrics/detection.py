@@ -81,7 +81,7 @@ def _mask_iou_batch_for_matching(
     targets: Detections, predictions: Detections
 ) -> npt.NDArray[np.floating]:
     """Pairwise mask IoU between non-empty `targets` (rows) and `predictions` (columns)
-    that `_validate_masks` has already accepted."""
+    that :func:`~supervision.metrics.detection._validate_masks` has already accepted."""
     return mask_iou_batch(
         _detections_masks(targets, "targets"),
         _detections_masks(predictions, "predictions"),
@@ -212,10 +212,10 @@ def _evaluate_mask_batch(
 ) -> npt.NDArray[np.int32]:
     """Calculate the confusion matrix of a single image from mask IoU.
 
-    Counterpart of `ConfusionMatrix.evaluate_detection_batch` for
+    Counterpart of :meth:`~supervision.metrics.detection.ConfusionMatrix.evaluate_detection_batch` for
     `MetricTarget.MASKS`: masks cannot be laid out as tensor rows, so the
     matching reads `Detections.mask` directly. Dense `(N, H, W)` arrays and
-    `CompactMask` are both accepted.
+    :class:`~supervision.detection.compact_mask.CompactMask` are both accepted.
 
     Args:
         predictions: Predicted detections for a single image. Must carry
@@ -285,7 +285,7 @@ def detections_to_tensor(
             Supports `MetricTarget.BOXES` and
             `MetricTarget.ORIENTED_BOUNDING_BOXES`. Masks have no tensor row
             layout, so `MetricTarget.MASKS` is rejected here; use
-            `ConfusionMatrix.from_detections` for masks.
+            :meth:`~supervision.metrics.detection.ConfusionMatrix.from_detections` for masks.
 
     Returns:
         Detections as a float32 numpy array. Shape depends on `metric_target`
@@ -462,7 +462,7 @@ def _split_detections_by_outcome(
 
     Returns:
         A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
-        each element is a ``Detections`` instance sliced from the input arrays.
+        each element is a :class:`~supervision.detection.core.Detections` instance sliced from the input arrays.
     """
     if predictions.class_id is None:
         raise ValueError("Predictions must contain class_id values.")
@@ -894,7 +894,7 @@ class ConfusionMatrix:
             `MetricTarget.BOXES`, `MetricTarget.ORIENTED_BOUNDING_BOXES` or
             `MetricTarget.MASKS`. Informational metadata set by
             `from_detections`, `from_tensors` and `benchmark`.
-            Excluded from `__eq__` comparisons — two `ConfusionMatrix` instances
+            Excluded from `__eq__` comparisons — two :class:`~supervision.metrics.detection.ConfusionMatrix` instances
             with identical `matrix`, `classes`, `conf_threshold`, and
             `iou_threshold` compare as equal regardless of `metric_target`.
     """
@@ -941,13 +941,13 @@ class ConfusionMatrix:
                 Supports `MetricTarget.BOXES` (default),
                 `MetricTarget.ORIENTED_BOUNDING_BOXES` and `MetricTarget.MASKS`.
                 When using `MetricTarget.ORIENTED_BOUNDING_BOXES`, each
-                `Detections` object must include OBB coordinates in
+                :class:`~supervision.detection.core.Detections` object must include OBB coordinates in
                 `detections.data[ORIENTED_BOX_COORDINATES]` as a float32
                 array of shape `(N, 8)` (flat) or `(N, 4, 2)` (as stored by
                 `from_ultralytics`); both are normalised to `(N, 8)` internally.
-                When using `MetricTarget.MASKS`, every non-empty `Detections`
+                When using `MetricTarget.MASKS`, every non-empty :class:`~supervision.detection.core.Detections`
                 object must carry `mask`, either a dense `(N, H, W)` boolean
-                array or a `CompactMask`, and predictions and targets of one
+                array or a :class:`~supervision.detection.compact_mask.CompactMask`, and predictions and targets of one
                 image must share the mask resolution. IoU is then computed on
                 the masks, so two instances that share a box but not a shape
                 are not matched.
@@ -957,9 +957,9 @@ class ConfusionMatrix:
 
         Raises:
             ValueError: If `predictions` and `targets` differ in length, if any
-                `Detections` lacks `class_id`, if a prediction lacks
+                :class:`~supervision.detection.core.Detections` lacks `class_id`, if a prediction lacks
                 `confidence`, or if `MetricTarget.MASKS` is requested and a
-                non-empty `Detections` lacks `mask` or the masks of one image
+                non-empty :class:`~supervision.detection.core.Detections` lacks `mask` or the masks of one image
                 differ in resolution.
 
         Examples:
@@ -1203,8 +1203,8 @@ class ConfusionMatrix:
             iou_threshold: Detection iou threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
             metric_target: The type of detection data to use.
-                Determines IoU function (`box_iou_batch` vs
-                `oriented_box_iou_batch`) and coordinate column count. Masks
+                Determines IoU function (:func:`~supervision.detection.utils.iou_and_nms.box_iou_batch` vs
+                :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`) and coordinate column count. Masks
                 have no tensor row layout, so `MetricTarget.MASKS` is rejected
                 here; use `from_detections` for masks.
 

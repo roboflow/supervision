@@ -57,7 +57,7 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
     and tools such as CVAT, which require ``category_id`` values to start at
     ``1``. The id assigned to the class at position ``class_index`` is
     ``class_index + 1``, keeping it consistent with the ``category_id`` written
-    by [`detections_to_coco_annotations`](#detections_to_coco_annotations).
+    by :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`.
 
     Args:
         classes: Class names ordered by their internal (0-indexed) class id.
@@ -188,14 +188,16 @@ def coco_annotations_to_detections(
     with_masks: bool,
     use_iscrowd: bool = True,
 ) -> Detections:
-    """Convert COCO annotation dicts for a single image into a `Detections` object.
+    """Convert COCO annotation dicts for a single image into a
+    :class:`~supervision.detection.core.Detections` object.
 
     .. warning::
         The returned ``Detections.class_id`` contains **raw COCO** ``category_id``
         values, not the final 0-indexed internal class ids.  Callers **must** pass
-        the result through :func:`map_detections_class_id` with the appropriate
+        the result through :func:`~supervision.dataset.utils.map_detections_class_id`
+        with the appropriate
         ``source_to_target_mapping`` (built by
-        :func:`build_coco_class_index_mapping`) before the ``class_id`` values are
+        :func:`~supervision.dataset.formats.coco.build_coco_class_index_mapping`) before the ``class_id`` values are
         meaningful.  Skipping the remap step yields 1-based ids in a field that the
         rest of supervision treats as 0-based.
 
@@ -208,10 +210,10 @@ def coco_annotations_to_detections(
 
     Returns:
         Detections with ``class_id`` set to raw COCO ``category_id`` values.
-        Call :func:`map_detections_class_id` on the result before use.
+        Call :func:`~supervision.dataset.utils.map_detections_class_id` on the result before use.
         When ``with_masks=False``, ``detections.data[COCO_RAW_SEGMENTATION]`` is
         populated as an object array (shape ``(N,)``) holding the raw polygon list or
-        RLE dict per annotation; consumed by :func:`detections_to_coco_annotations`
+        RLE dict per annotation; consumed by :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`
         for a coordinate-preserving round-trip.
 
     Raises:
@@ -276,12 +278,13 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> tuple[list[CocoDict], int]:
-    """Convert `Detections` to COCO ``annotations`` entries.
+    """Convert :class:`~supervision.detection.core.Detections` to COCO ``annotations``
+    entries.
 
     The internal 0-indexed ``Detections.class_id`` is serialized as a 1-indexed
     COCO ``category_id`` (``category_id = class_id + 1``). This complies with the
     COCO specification and tools such as CVAT, and stays consistent with the ids
-    emitted by [`classes_to_coco_categories`](#classes_to_coco_categories), so a
+    emitted by :func:`~supervision.dataset.formats.coco.classes_to_coco_categories`, so a
     detection with internal ``class_id=k`` maps to ``category_id=k + 1``.
 
     Args:
@@ -500,7 +503,8 @@ def load_coco_annotations(
     use_iscrowd: bool = True,
     show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load COCO annotations and convert them to `Detections`.
+    """Load COCO annotations and convert them to
+    :class:`~supervision.detection.core.Detections`.
 
     If `force_masks` is `False`, masks are still loaded for images whose annotations
     include a `segmentation` field. This keeps mask handling consistent with other

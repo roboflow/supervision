@@ -131,7 +131,8 @@ def resolve_text_background_xyxy(
 
 
 def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    """Resolve a color-like object to a concrete `Color` for an index."""
+    """Resolve a color-like object to a concrete :class:`~supervision.draw.color.Color`
+    for an index."""
     color_like = cast(Any, color)
     # Accept ColorPalette-like objects without depending on their exact concrete class.
     if callable(getattr(color_like, "by_idx", None)):
@@ -178,7 +179,7 @@ def _resolve_annotator_color(
     Every annotator accepts an optional `custom_color_lookup` on `annotate()` that
     takes precedence over the lookup it was constructed with. Holding that precedence
     rule here gives it one definition instead of restating the same conditional at
-    each of the annotators' `resolve_color` call sites.
+    each of the annotators' :func:`~supervision.annotators.utils.resolve_color` call sites.
 
     Args:
         color: The annotator's color or palette.
@@ -331,7 +332,7 @@ def get_labels_text(
     Raises:
         ValueError: If `class_name` or `class_id` is present but its length
             does not match the number of detections (e.g. `detections.data`
-            was mutated directly, bypassing `Detections` alignment checks).
+            was mutated directly, bypassing :class:`~supervision.detection.core.Detections` alignment checks).
     """
     if custom_labels is not None:
         return custom_labels
@@ -365,9 +366,9 @@ def snap_boxes(
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.float32]:
     """Shifts `label` bounding boxes into the frame so that they are fully contained
-    within the given resolution, prioritizing the top/left edge. Unlike `clip_boxes`,
-    this function does not crop boxes. It moves them entirely if they exceed the frame
-    boundaries.
+    within the given resolution, prioritizing the top/left edge. Unlike
+    :func:`~supervision.detection.utils.boxes.clip_boxes`, this function does not crop
+    boxes. It moves them entirely if they exceed the frame boundaries.
 
     Args:
         xyxy: A numpy array of shape `(N, 4)` where each

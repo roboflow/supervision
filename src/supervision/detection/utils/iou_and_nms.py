@@ -514,7 +514,7 @@ def oriented_box_iou_batch(
     Returns:
         Overlap matrix of shape `(N, M)`, where entry `[i, j]` is the overlap
         score between `boxes_true[i]` and `boxes_detection[j]`, in the range
-        `[0, 1]` under the configured :attr:`overlap_metric`.
+        `[0, 1]` under the configured ``overlap_metric``.
 
     Raises:
         ValueError: If ``boxes_true`` or ``boxes_detection`` is 3-D with inner
@@ -523,8 +523,8 @@ def oriented_box_iou_batch(
             column count other than 8.
         ValueError: If ``boxes_true`` or ``boxes_detection`` is not 2-D or 3-D.
         ValueError: If ``overlap_metric`` is not
-            :attr:`~supervision.config.OverlapMetric.IOU` or
-            :attr:`~supervision.config.OverlapMetric.IOS`.
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOU` or
+            :attr:`~supervision.detection.utils.iou_and_nms.OverlapMetric.IOS`.
 
     Examples:
         ```pycon
@@ -873,7 +873,8 @@ def compact_mask_iou_batch(
     masks_detection: Any,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
-    """Compute pairwise overlap between two :class:`CompactMask` collections.
+    """Compute pairwise overlap between two
+    :class:`~supervision.detection.compact_mask.CompactMask` collections.
 
     Avoids materialising full ``(N, H, W)`` arrays by:
 
@@ -885,7 +886,7 @@ def compact_mask_iou_batch(
        participates in many pairs.
 
     The result is numerically identical to running the dense
-    :func:`mask_iou_batch` on ``np.asarray(masks_true)`` /
+    :func:`~supervision.detection.utils.iou_and_nms.mask_iou_batch` on ``np.asarray(masks_true)`` /
     ``np.asarray(masks_detection)``.
 
     Args:
@@ -893,7 +894,7 @@ def compact_mask_iou_batch(
             holding the ground-truth masks.
         masks_detection: :class:`~supervision.detection.compact_mask.CompactMask`
             holding the detection masks.
-        overlap_metric: :class:`OverlapMetric` — ``IOU`` or ``IOS``.
+        overlap_metric: :class:`~supervision.detection.utils.iou_and_nms.OverlapMetric` — ``IOU`` or ``IOS``.
 
     Returns:
         Float array of shape ``(N1, N2)`` with pairwise overlap values.
@@ -1051,7 +1052,9 @@ def mask_iou_batch(
     Accepts both dense ``(N, H, W)`` boolean arrays and
     :class:`~supervision.detection.compact_mask.CompactMask` objects.
     When both inputs are :class:`~supervision.detection.compact_mask.CompactMask`,
-    the computation uses :func:`compact_mask_iou_batch` to avoid materialising
+    the computation uses
+    :func:`~supervision.detection.utils.iou_and_nms.compact_mask_iou_batch`
+    to avoid materialising
     full ``(N, H, W)`` arrays.
 
     Args:
@@ -1234,21 +1237,21 @@ def mask_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
 
-    Unlike `mask_non_max_suppression`, which discards overlapping masks outright,
+    Unlike :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`, which discards overlapping masks outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
     `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
     overlap — the caller decides whether and where to threshold the result.
     A smaller `sigma` produces a stronger decay.
 
     The 3rd positional parameter here is `sigma`, not `iou_threshold` as in
-    `mask_non_max_suppression` — Soft-NMS has no threshold to suppress at, only
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` — Soft-NMS has no threshold to suppress at, only
     a decay strength, so the two signatures intentionally diverge at that
     position.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs. The
     `mask_dimension` parameter is kept for signature parity with
-    `mask_non_max_suppression` but is not used — dense masks are **not** resized
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` but is not used — dense masks are **not** resized
     before IoU computation.
 
     Args:
@@ -1261,12 +1264,12 @@ def mask_soft_non_max_suppression(
             dimensions of each mask.
         sigma: Controls the strength of the confidence decay; must be greater
             than `0`. No value of `sigma` reproduces hard
-            `mask_non_max_suppression` output — Soft-NMS never drops masks, only
+            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` output — Soft-NMS never drops masks, only
             rescales confidence.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         mask_dimension: Deprecated, unused. Kept for signature parity with
-            `mask_non_max_suppression`.
+            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`.
 
     Returns:
         An array containing the updated (decayed) confidence scores, in the
@@ -1363,7 +1366,7 @@ def _soft_nms_decay_from_iou_matrix(
     """Vectorized Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
 
     Assumes `ious`, `categories`, and `scores` are all sorted by descending score
-    (as produced by `_prepare_predictions_for_nms`), and that `ious` is square with
+    (as produced by :func:`~supervision.detection.utils.iou_and_nms._prepare_predictions_for_nms`), and that `ious` is square with
     row/column order matching `categories`. Each detection's score is decayed once
     per higher-scoring, same-category detection that precedes it — equivalent to
     the reference single-pass (no re-sort) Soft-NMS loop, computed as a single
@@ -1430,7 +1433,7 @@ def box_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
 
-    Unlike `box_non_max_suppression`, which discards overlapping boxes outright,
+    Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`, which discards overlapping boxes outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
     `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
     overlap — the caller decides whether and where to threshold the result.
@@ -1442,7 +1445,7 @@ def box_soft_non_max_suppression(
             or `(x_min, y_min, x_max, y_max, score, class)`.
         sigma: Controls the strength of the confidence decay; must be greater
             than `0`. No value of `sigma` reproduces hard
-            `box_non_max_suppression` output — Soft-NMS never drops boxes, only
+            :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression` output — Soft-NMS never drops boxes, only
             rescales confidence.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
@@ -1822,10 +1825,10 @@ def oriented_box_non_max_suppression(
 ) -> npt.NDArray[np.bool_]:
     """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
-    Overlap is computed via :func:`oriented_box_iou_batch` on the four
+    Overlap is computed via :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on the four
     corners of each box, so detections whose axis-aligned bounding boxes
     overlap heavily but whose oriented bodies do not are kept — unlike
-    :func:`box_non_max_suppression`, which would suppress them.
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`, which would suppress them.
 
     Args:
         predictions: An array of object detection predictions in the
@@ -1918,7 +1921,7 @@ def _group_overlapping_oriented_boxes(
     """Greedy non-maximum merging on oriented boxes.
 
     Mirrors
-    :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.
+    :func:`~supervision.detection.utils.iou_and_nms._group_overlapping_boxes` but uses :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`.
     """
     merge_groups: list[list[int]] = []
     scores = predictions[:, 4]
@@ -1950,7 +1953,7 @@ def oriented_box_non_max_merge(
     """Perform Non-Maximum Merging on oriented bounding box predictions, grouped per
     category.
 
-    Mirrors :func:`box_non_max_merge` but uses oriented-box IoU, so groups
+    Mirrors :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge` but uses oriented-box IoU, so groups
     of rotated detections sharing the same body — rather than the same
     axis-aligned bounding box — are merged.
 
