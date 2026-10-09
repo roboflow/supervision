@@ -163,11 +163,7 @@ class TestDepthCamera:
 
         assert [
             type(v) for v in (camera.fx_px, camera.baseline_m, camera.doffs_px)
-        ] == [
-            float,
-            float,
-            float
-        ]
+        ] == [float, float, float]
         assert camera == sv.DepthCamera(fx_px=700.0, baseline_m=0.5, doffs_px=3.0)
 
     def test_accepts_a_negative_doffs(self) -> None:
