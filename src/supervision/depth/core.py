@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import math
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -33,13 +34,16 @@ class DepthKind(Enum):
         DEPTH_M: Metric depth along the optical axis, in metres. Smaller is nearer.
         RELATIVE_INVERSE: Unitless relative depth from a monocular model, with no
             metric scale, where larger is nearer and 0 is the farthest valid value.
+            Only the order of values is meaningful: maps from different models share
+            no scale or geometry.
             Depth Anything V1, V2 and DPT output inverse depth up to an unknown scale
             and shift, which fits as it is; Roboflow Inference's maps run from 0 for
             the farthest pixel to 1 for the nearest. Invert a relative map that
-            grows with distance, such as Depth Anything V3's, which is linear in
-            depth: pass `1 / values`, not `-values`, whose pixels would all be
-            negative and so without depth. Set pixels without depth to `NaN` first,
-            because 0 is a valid value of this kind.
+            grows with distance, such as raw Depth Anything V3 output, which is
+            linear in depth: pass `1 / values`, not `-values`, whose pixels would
+            all be negative and so without depth. Maps from `from_inference` need
+            no inverting. Set pixels without depth to `NaN` first, because 0 is a
+            valid value of this kind.
     """
 
     DISPARITY_PX = "disparity_px"
@@ -332,7 +336,23 @@ def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
 
 
 def _to_numpy(value: Any) -> npt.NDArray[np.float32]:
-    """Turn a framework tensor or array-like into a float32 NumPy array."""
+    """Turn a framework tensor or array-like into a float32 NumPy array.
+
+    Raises:
+        ValueError: If a NumPy array or tensor holds integers, whose casting to
+            float32 would turn codes into depth. Nested lists are not checked.
+    """
+    dtype = getattr(value, "dtype", None)
+    # Check before any cast: `.float()` below would hide a torch integer dtype.
+    if isinstance(dtype, np.dtype):
+        is_integer = np.issubdtype(dtype, np.integer)
+    else:
+        is_integer = getattr(dtype, "is_floating_point", True) is False
+    if is_integer:
+        raise ValueError(
+            f"Model depth must be a float array, got {dtype}. Divide integer codes "
+            "by their scale to get depth before loading them."
+        )
     if hasattr(value, "detach"):
         value = value.detach()
     if hasattr(value, "float") and not isinstance(value, np.ndarray):
@@ -599,9 +619,11 @@ class DepthMap:
         YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
         `png16` or `png8` base64 PNGs, or the NumPy array the Inference SDK and
         Workflows decode them to). The map is normalised per image with 1 for
-        the nearest pixel and 0 for the farthest, so larger is nearer (Depth Anything
-        V3 maps are linear in depth, not inverse depth). It loads as
-        `relative_inverse` float32; values from different images are not comparable.
+        the nearest pixel and 0 for the farthest, so larger is nearer. It loads as
+        `relative_inverse` float32, as it is and with nothing inverted: Inference
+        returns larger-is-nearer for every model, Depth Anything V3 included, so do
+        not invert it again. Values from different images are not comparable. A
+        float32 array is shared with the map, not copied.
 
         Args:
             inference_result: One result from Inference, the Inference SDK or a
@@ -611,8 +633,8 @@ class DepthMap:
             A `relative_inverse` `sv.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list, carries no `normalized_depth`, or
-                holds a PNG that is not 8- or 16-bit grayscale.
+            ValueError: If the result is a list or carries no `normalized_depth`, or
+                the depth is not a decodable single (H, W) map.
 
         Examples:
             ```python
@@ -660,7 +682,8 @@ class DepthMap:
         """Create a `sv.DepthMap` from an Ultralytics YOLO26 depth result.
 
         `result.depth.data` holds metric depth in metres at the original image size,
-        with 0 where the model has no depth.
+        where values `<= 0` are no depth. A float32 depth is shared with the map,
+        not copied.
 
         Args:
             ultralytics_results: One `Results` object from a depth model.
@@ -669,7 +692,8 @@ class DepthMap:
             A `depth_m` `sv.DepthMap`.
 
         Raises:
-            ValueError: If the result carries no depth map.
+            ValueError: If the result is a list or carries no depth map, or the depth
+                is not a single (H, W) map.
 
         Examples:
             ```python
@@ -681,6 +705,11 @@ class DepthMap:
             depth_map = sv.DepthMap.from_ultralytics(result)
             ```
         """
+        if isinstance(ultralytics_results, list):
+            raise ValueError(
+                "from_ultralytics() operates on a single result at a time; pass "
+                "results[0]."
+            )
         depth = getattr(ultralytics_results, "depth", None)
         if depth is None:
             raise ValueError(
@@ -696,13 +725,16 @@ class DepthMap:
     ) -> DepthMap:
         """Create a `sv.DepthMap` from a Hugging Face depth estimation result.
 
-        Reads `predicted_depth` from a `depth-estimation` pipeline result, from a
-        `post_process_depth_estimation` entry, or from a model output. The pipeline's
-        `depth` image is an 8-bit per-image stretch for display and is ignored.
+        Reads `predicted_depth` from a `depth-estimation` pipeline result or from a
+        `post_process_depth_estimation(outputs, target_sizes=...)` entry. A raw model
+        output is not supported: it is not resized to the image, and for some models,
+        such as Depth Pro, post-processing also converts the prediction. The
+        pipeline's `depth` image is an 8-bit per-image stretch for display and is
+        ignored.
         Transformers does not say what the model predicts, so `kind` is required:
         `relative_inverse` for Depth Anything V1 and V2 and DPT relative models,
         `depth_m` for metric models such as Depth Pro, ZoeDepth or Depth Anything
-        metric.
+        metric. A float32 `predicted_depth` is shared with the map, not copied.
 
         Args:
             transformers_results: One result holding `predicted_depth` of shape
@@ -713,7 +745,8 @@ class DepthMap:
             A float32 `sv.DepthMap`.
 
         Raises:
-            ValueError: If the result is a list or has no `predicted_depth`.
+            ValueError: If the result is a list or has no `predicted_depth`, the depth
+                is not a single (H, W) map, or `kind` names no kind.
 
         Examples:
             ```python
@@ -743,13 +776,14 @@ class DepthMap:
 
     @classmethod
     def from_png16(
-        cls, path: str | Path, scale: float, kind: DepthKind | str
+        cls, path: str | Path, *, scale: float, kind: DepthKind | str
     ) -> DepthMap:
-        """Load a 16-bit PNG whose value divided by `scale` is the map, 0 for none.
+        """Load a depth map from a 16-bit grayscale PNG.
 
-        KITTI disparity uses `scale=256`; Ultralytics depth datasets use 1000 by
-        default. Values load as float32 `code / scale`, with `NaN` where the code
-        is 0.
+        Values load as float32 `code / scale`. Code 0 is no depth (`NaN`) for every
+        kind, including `relative_inverse`; load Inference responses with
+        `from_inference`. KITTI disparity uses `scale=256`; Ultralytics depth datasets
+        store millimetres (`scale=1000`) unless the dataset YAML sets `depth_scale`.
 
         Args:
             path: Path to the PNG.
@@ -760,8 +794,8 @@ class DepthMap:
             A float32 `sv.DepthMap`.
 
         Raises:
-            ValueError: If the file is not a single-channel 16-bit PNG or `scale` is
-                not a positive number.
+            ValueError: If the file is not a single-channel 16-bit PNG, `scale` is
+                not a usable positive number, or `kind` names no kind.
 
         Examples:
             ```python
@@ -772,18 +806,24 @@ class DepthMap:
             )
             ```
         """
-        if not (math.isfinite(scale) and scale > 0):
+        scale_value = _plain_float(scale, "from_png16 scale")
+        float32_max = float(np.finfo(np.float32).max)
+        # float64 bounds keep `code / scale` finite in float32 for every uint16 code;
+        # the chained comparison also rejects NaN.
+        if not _UINT16_MAX / float32_max <= scale_value <= float32_max:
             raise ValueError(
-                f"from_png16 scale must be a positive number, got {scale}."
+                "from_png16 scale must be a positive number whose float32 quotient "
+                f"with any 16-bit code is finite, got {scale}."
             )
+        DepthKind.from_value(kind)  # a bad kind fails before the file is read
         codes = _read_png16(path)
-        values = codes.astype(np.float32) / np.float32(scale)
+        values = codes.astype(np.float32) / np.float32(scale_value)
         values[codes == 0] = np.nan
         return cls(values, kind=kind)
 
     @classmethod
     def from_pfm(
-        cls, path: str | Path, kind: DepthKind | str = DepthKind.DISPARITY_PX
+        cls, path: str | Path, *, kind: DepthKind | str = DepthKind.DISPARITY_PX
     ) -> DepthMap:
         """Load a single-channel PFM file, the Middlebury and SceneFlow format.
 
@@ -799,7 +839,8 @@ class DepthMap:
             A float32 `sv.DepthMap`.
 
         Raises:
-            ValueError: If the file is not a grayscale PFM.
+            ValueError: If the file is not a valid grayscale PFM (bad header, scale
+                or truncated), or `kind` names no kind.
 
         Examples:
             ```python
@@ -808,6 +849,7 @@ class DepthMap:
             depth_map = sv.DepthMap.from_pfm("Adirondack/disp0.pfm")
             ```
         """
+        DepthKind.from_value(kind)  # a bad kind fails before the file is read
         return cls(_read_pfm(path), kind=kind)
 
     def to_depth(self) -> DepthMap:
@@ -1147,7 +1189,13 @@ def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
     """Decode a base64 8- or 16-bit grayscale PNG into floats from 0 to 1."""
     from PIL import Image
 
-    data = base64.b64decode(payload, validate=True)
+    try:
+        data = base64.b64decode(payload, validate=True)
+    except binascii.Error as error:
+        raise ValueError(
+            "normalized_depth is not valid base64; pass the raw base64 PNG that "
+            "Inference returns, without a data-URI prefix."
+        ) from error
     try:
         with Image.open(BytesIO(data)) as image:
             image_format, mode = image.format, image.mode
@@ -1164,5 +1212,5 @@ def _decode_normalized_png(payload: str) -> npt.NDArray[np.float32]:
         raise ValueError(
             f"normalized_depth must be an 8- or 16-bit grayscale PNG, got {mode}."
         )
-    normalized: npt.NDArray[np.float32] = values.astype(np.float32) / top
+    normalized: npt.NDArray[np.float32] = np.divide(values, top, dtype=np.float32)
     return normalized
