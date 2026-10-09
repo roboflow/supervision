@@ -220,15 +220,42 @@ class TestDepthAnnotatorRange:
 
         assert _rgb(scene) == [[TURBO[0], TURBO[0]]]
 
-    def test_rejects_non_positive_metric_clip_range_at_annotate(self) -> None:
-        """A clip range is checked against the map's kind like a tuple."""
+    @pytest.mark.parametrize(
+        "display_range",
+        [
+            pytest.param((0.0, 5.0), id="zero-low"),
+            pytest.param((0.0, 0.0), id="flat-zero"),
+            pytest.param((-5.0, -5.0), id="flat-negative"),
+        ],
+    )
+    def test_rejects_non_positive_metric_clip_range_at_annotate(
+        self, display_range: tuple[float, float]
+    ) -> None:
+        """A clip range is checked against the map's kind like a tuple, flat or not."""
         depth_map = sv.DepthMap(np.ones((1, 1), np.float32), kind="depth_m")
         annotator = sv.DepthAnnotator(
-            display_range=sv.DepthClipRange(display_range=(0.0, 5.0))
+            display_range=sv.DepthClipRange(display_range=display_range)
         )
 
         with pytest.raises(ValueError, match="display_range"):
             annotator.annotate(np.zeros((1, 1, 3), np.uint8), depth_map)
+
+    def test_metric_clip_range_flat_in_inverse_depth_paints_the_far_end(self) -> None:
+        """Depths one float32 step apart whose inverses round to one value are flat.
+
+        1.7 m and the next float32 up have the same float32 inverse depth, so the
+        range spans nothing once converted; it colours like a flat range, as "auto"
+        does on such a map, rather than failing.
+        """
+        low = np.float32(1.7)
+        high = np.nextafter(low, np.float32(2.0))
+        clip_range = sv.DepthClipRange(display_range=(float(low), float(high)))
+        depth_map = sv.DepthMap(np.array([[1.0, 1.7, 3.0]], np.float32), kind="depth_m")
+        scene = np.zeros((1, 3, 3), dtype=np.uint8)
+
+        sv.DepthAnnotator(display_range=clip_range).annotate(scene, depth_map)
+
+        assert _rgb(scene) == [[TURBO[0], TURBO[0], TURBO[0]]]
 
     def test_sparse_map_spans_its_few_values(self) -> None:
         """With two valid pixels, auto spans the values that exist."""
@@ -284,27 +311,29 @@ class TestDepthAnnotatorRange:
         assert _rgb(scene) == expected.tolist()
 
     @pytest.mark.parametrize(
-        "display_range",
+        ("display_range", "match"),
         [
-            pytest.param("percentile", id="unknown-mode"),
-            pytest.param((5.0, 5.0), id="empty-range"),
-            pytest.param((1.0, 2.0, 3.0), id="wrong-length"),
-            pytest.param((0.0, np.inf), id="inf-bound"),
-            pytest.param((5.0, 1.0), id="low-above-high"),
-            pytest.param((-3e38, 3e38), id="span-overflow"),
-            pytest.param(5, id="number"),
-            pytest.param(None, id="none"),
-            pytest.param("12", id="digit-string"),
-            pytest.param(("near", "far"), id="non-numeric-bounds"),
+            pytest.param("percentile", "'auto'", id="unknown-mode"),
+            pytest.param((5.0, 5.0), "low < high", id="empty-range"),
+            pytest.param((1.0, 2.0, 3.0), "'auto'", id="wrong-length"),
+            pytest.param((0.0, np.inf), "low < high", id="inf-bound"),
+            pytest.param((5.0, 1.0), "low < high", id="low-above-high"),
+            pytest.param((-3e38, 3e38), "low < high", id="span-overflow"),
+            pytest.param(5, "'auto'", id="number"),
+            pytest.param(None, "'auto'", id="none"),
+            pytest.param("12", "'auto'", id="digit-string"),
+            pytest.param(("near", "far"), "'auto'", id="non-numeric-bounds"),
         ],
     )
-    def test_rejects_invalid_display_range(self, display_range: Any) -> None:
+    def test_rejects_invalid_display_range(
+        self, display_range: Any, match: str
+    ) -> None:
         """Unknown modes, wrong shapes and unusable spans fail at construction.
 
-        Every kind of bad value raises `ValueError` naming the parameter, including
-        the ones that are not a sequence at all.
+        A value that is not an option at all lists the accepted ones, starting with
+        'auto', and a pair without a usable span states what the pair needs.
         """
-        with pytest.raises(ValueError, match="display_range"):
+        with pytest.raises(ValueError, match=match):
             sv.DepthAnnotator(display_range=display_range)
 
     @pytest.mark.parametrize(

@@ -164,15 +164,10 @@ class DepthAnnotator:
         `(0, 1)`.
         """
         option = self.display_range
+        if isinstance(option, DepthClipRange):
+            option = option.display_range
         if isinstance(option, tuple):
             return _convert_display_range(option, depth_map.kind)
-        if isinstance(option, DepthClipRange):
-            low, high = option.display_range
-            # A clip of one flat value: any equal pair paints every pixel at the far
-            # end, as "auto" does on a flat map.
-            if low == high:
-                return low, high
-            return _convert_display_range(option.display_range, depth_map.kind)
         conversion = _resolve_conversion(depth_map.kind)
         percentile = _percentile_range(depth_map.values[valid], conversion)
         return percentile if percentile is not None else _FALLBACK_RANGE
@@ -295,7 +290,15 @@ def _check_display_range_option(
         return display_range
     if isinstance(display_range, str) and display_range.lower() == "auto":
         return "auto"
-    low, high = _display_range_pair(display_range)
+    # The pair reader's own message names only pairs, as `DepthClipRange` takes
+    # nothing else; the annotator also takes "auto" and a clip range.
+    try:
+        low, high = _display_range_pair(display_range)
+    except ValueError as error:
+        raise ValueError(
+            "display_range must be 'auto', a (low, high) pair of numbers or an "
+            f"sv.DepthClipRange, got {display_range!r}."
+        ) from error
     if not _has_usable_span(low, high):
         raise ValueError(
             "display_range must have finite bounds with low < high and a span that "
@@ -324,29 +327,46 @@ def _convert_display_range(
 ) -> tuple[float, float]:
     """Convert an explicit display range from the map's unit to the coloured unit.
 
+    Equal ends stay a flat range, which paints every pixel the far-end colour. So do
+    ends a reciprocal brings to one float32 value.
+
     Raises:
-        ValueError: If the converted range is not finite, has no float32 span, or the
-            kind is coloured as a reciprocal and `low <= 0`.
+        ValueError: If the kind is coloured as a reciprocal and `low <= 0`, or the
+            converted range is not finite or its span does not fit in float32.
     """
     conversion = _resolve_conversion(kind)
-    converted = conversion.apply_range(display_range)
+    low, high = display_range
     # A reciprocal sends low <= 0 to infinity or flips its sign, so it bounds nothing.
-    if conversion.reciprocal and display_range[0] <= 0:
-        converted = None
-    if converted is None or not _has_usable_span(*converted):
-        raise ValueError(
-            f"display_range {display_range} gives no usable colour range for a "
-            f"{kind.value!r} map. The range is in the map's own unit; a 'depth_m' "
-            "range is in metres and needs 0 < low < high."
-        )
-    return converted
+    converted = None
+    if not (conversion.reciprocal and low <= 0):
+        converted = conversion.apply_range(display_range)
+    if converted is not None:
+        span = _float32_span(*converted)
+        if low == high or (np.isfinite(span) and span > 0):
+            return converted
+        # Depths a float32 step apart can share one float32 reciprocal. Every pixel
+        # between them converts to that value too, so the range is flat in the
+        # coloured unit, as on a flat map.
+        if span == 0:
+            return converted[0], converted[0]
+    raise ValueError(
+        f"display_range {display_range} gives no usable colour range for a "
+        f"{kind.value!r} map. The range is in the map's own unit; a 'depth_m' "
+        "range is in metres and needs 0 < low < high."
+    )
 
 
 def _has_usable_span(low: float, high: float) -> bool:
     """Tell whether `high - low` is finite and positive in float32, as maps colour."""
-    with np.errstate(over="ignore"):
-        span = np.float32(high) - np.float32(low)
+    span = _float32_span(low, high)
     return bool(np.isfinite(span) and span > 0)
+
+
+def _float32_span(low: float, high: float) -> np.float32:
+    """Return `high - low` in float32; not finite if an end or the span overflows."""
+    with np.errstate(over="ignore", invalid="ignore"):
+        span: np.float32 = np.float32(high) - np.float32(low)
+    return span
 
 
 def _percentile_range(
