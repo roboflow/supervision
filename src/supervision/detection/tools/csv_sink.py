@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import os
 from collections.abc import Iterable
 from typing import Any, Protocol
@@ -41,7 +42,10 @@ class CSVSink:
         When a NumPy array, list, or tuple value in custom_data (or
         detections.data) has the same length as the detection count, each
         element is written to the corresponding detection row; any other value
-        is broadcast to all rows.
+        is broadcast to all rows. A NumPy array that remains in a cell (for
+        example an embedding or the corners of an oriented box) is written as a
+        JSON list, as ``sv.JSONSink`` does, so it can be read back with
+        ``json.loads``.
 
     Args:
         file_name: The name of the CSV file where the detections will be stored.
@@ -157,6 +161,30 @@ class CSVSink:
         return value
 
     @staticmethod
+    def _format_cell(value: Any) -> Any:
+        """Return a CSV cell value, writing NumPy arrays as parseable JSON lists.
+
+        ``csv.writer`` calls ``str()``, which abbreviates arrays of more than 1000
+        elements with ``...`` and uses a space-separated, multi-line layout.
+        Arrays with at least one dimension are written as ``json.dumps`` of
+        ``tolist()``, matching ``sv.JSONSink``. Other values pass through
+        unchanged, as do arrays JSON cannot represent (e.g. object arrays).
+
+        Args:
+            value: Value of one cell in a detection row.
+
+        Returns:
+            A JSON string for an ``np.ndarray`` with ``ndim > 0``, otherwise
+            ``value`` unchanged.
+        """
+        if isinstance(value, np.ndarray) and value.ndim > 0:
+            try:
+                return json.dumps(value.tolist())
+            except TypeError:
+                return value
+        return value
+
+    @staticmethod
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
@@ -258,7 +286,10 @@ class CSVSink:
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
         for row in parsed_rows:
             self.writer.writerow(
-                [row.get(field_name, "") for field_name in self.field_names]
+                [
+                    CSVSink._format_cell(row.get(field_name, ""))
+                    for field_name in self.field_names
+                ]
             )
 
     @staticmethod
