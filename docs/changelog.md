@@ -7,6 +7,8 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints` now preserves all three coordinates when selecting a single keypoint with a NumPy integer or zero-dimensional array row index and an integer anchor index. The result keeps shape `(1, 1, 3)` instead of raising a reshape error. Two-coordinate points and the selected confidence, visibility, class IDs, and custom data are unchanged. ([#2715](https://github.com/roboflow/supervision/pull/2715))
+
 - Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
 - `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`, also from a map of another size than the image with `resolution_wh`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(scale="metric")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
