@@ -113,6 +113,24 @@ print(confusion_matrix.matrix)
 
 Keep low-confidence predictions when computing mAP: filtering at `0.5` before evaluation discards part of the precision-recall curve. The confusion matrix uses its own confidence threshold. Iterate over the complete loader, preserving one prediction/target pair per image even when either side is empty.
 
+## Dense scenes
+
+Detection AP uses COCO's default prediction limits `(1, 10, 100)`. The highest limit caps the highest-confidence predictions **per image and category**, after any class mapping or class-agnostic merging. Ground truths are not capped. A perfect prediction of 1,000 objects of one class therefore reaches about 0.109 AP@100. The same objects spread evenly over ten categories can reach 1.0.
+
+Use an explicit larger limit when evaluating dense scenes:
+
+```python
+from supervision.metrics import MeanAveragePrecision
+
+metric = MeanAveragePrecision(max_detection_thresholds=(1, 10, 1000))
+result = metric.update(predictions, targets).compute()
+print(result.max_detection_thresholds)  # (1, 10, 1000)
+```
+
+The sequence must contain exactly three strictly increasing positive integers. AP uses its largest value; the smaller values preserve the evaluator's COCO limit structure. The default remains unchanged. Higher limits also increase matching work and memory use, especially for masks.
+
+Custom-limit AP is a different metric from standard COCO AP@100: report the cap when comparing results. Text summaries and custom-limit plot titles display it; results, including each object-size result, retain `max_detection_thresholds`. `result.to_pandas().attrs["max_detection_thresholds"]` retains the limits in memory without changing the score columns. CSV export does not retain DataFrame attributes, so store the configuration alongside exported scores.
+
 ## Pose estimation
 
 `KeyPointMeanAveragePrecision` scores pose estimation models the way COCO keypoint evaluation does: predictions are matched to targets by Object Keypoint Similarity (OKS) instead of IoU. Pass one `sv.KeyPoints` per image for predictions and targets. COCO visibility `v=1` (occluded) and `v=2` (visible) both map to `KeyPoints.visible=True` and `v=0` to `False`, since `pycocotools` counts every keypoint with `v>0`. To reproduce COCO numbers, store each target's annotated area in `targets.data["area"]`; otherwise the area of the box spanning its visible keypoints is used. Targets with no visible keypoint are COCO ignore regions only when their boxes are given as `targets.data["xyxy"]` in `(x_min, y_min, x_max, y_max)`; without boxes they are skipped, so a prediction on one counts as a false positive, and a class whose only targets are skipped scores `-1`. A prediction box in `predictions.data["xyxy"]` sets its object-size bucket, as the `bbox` of a COCO result entry does in `pycocotools`. Mark COCO crowd targets with `targets.data["iscrowd"]`; like `pycocotools`, they are ignore regions that any number of predictions may match. Predictions are ranked by `detection_confidence`, not keypoint `confidence`. Non-finite (NaN or infinite) coordinates are not rejected: a non-finite target keypoint counts as unlabelled, like `visible=False`, and a non-finite prediction keypoint adds nothing to OKS while its finite keypoints still count; `pycocotools` instead returns a NaN OKS when a labelled keypoint of the pair is NaN. A target area must be finite and non-negative; a zero area is accepted but leaves only exact-match keypoints counting. Clean such labels first.

@@ -4,6 +4,7 @@ import copy
 import datetime
 import itertools
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
@@ -109,6 +110,8 @@ class MeanAveragePrecisionResult(MetricResult):
             for medium objects (32² ≤ area < 96²).
         large_objects: the mAP results
             for large objects (area ≥ 96²).
+        max_detection_thresholds: The three evaluation limits. AP uses the last
+            limit, per image and category after any class mapping.
     """
 
     metric_target: MetricTarget
@@ -136,6 +139,7 @@ class MeanAveragePrecisionResult(MetricResult):
     small_objects: MeanAveragePrecisionResult | None = None
     medium_objects: MeanAveragePrecisionResult | None = None
     large_objects: MeanAveragePrecisionResult | None = None
+    max_detection_thresholds: tuple[int, ...] = (1, 10, 100)
 
     def __str__(self) -> str:
         """Formats the evaluation output metrics to match the structure used by
@@ -167,6 +171,7 @@ class MeanAveragePrecisionResult(MetricResult):
 
            ```
         """
+        max_dets = self.max_detection_thresholds[-1]
         if (
             self.small_objects is None
             or self.medium_objects is None
@@ -174,36 +179,38 @@ class MeanAveragePrecisionResult(MetricResult):
         ):
             return (
                 f"Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
-                f"maxDets=100 ] = {self.map50_95:.3f}\n"
+                f"maxDets={max_dets} ] = {self.map50_95:.3f}\n"
                 f"Average Precision (AP) @[ IoU=0.50      | area=   all | "
-                f"maxDets=100 ] = {self.map50:.3f}\n"
+                f"maxDets={max_dets} ] = {self.map50:.3f}\n"
                 f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
-                f"maxDets=100 ] = {self.map75:.3f}"
+                f"maxDets={max_dets} ] = {self.map75:.3f}"
             )
 
         return (
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
-            f"maxDets=100 ] = {self.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50      | area=   all | "
-            f"maxDets=100 ] = {self.map50:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map50:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
-            f"maxDets=100 ] = {self.map75:.3f}\n"
+            f"maxDets={max_dets} ] = {self.map75:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | "
-            f"maxDets=100 ] = {self.small_objects.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.small_objects.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | "
-            f"maxDets=100 ] = {self.medium_objects.map50_95:.3f}\n"
+            f"maxDets={max_dets} ] = {self.medium_objects.map50_95:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | "
-            f"maxDets=100 ] = {self.large_objects.map50_95:.3f}"
+            f"maxDets={max_dets} ] = {self.large_objects.map50_95:.3f}"
         )
 
     def to_pandas(self) -> pd.DataFrame:
         """Convert the result to a pandas DataFrame.
 
         Returns:
-            The result as a DataFrame.
+            The result as a DataFrame. Its `attrs["max_detection_thresholds"]`
+            records the limits without changing the score columns. DataFrame
+            attributes are not preserved by CSV export.
         """
         # Average precisions are currently not included in the DataFrame.
-        return _scores_to_pandas(
+        dataframe = _scores_to_pandas(
             {"mAP@50:95": self.map50_95, "mAP@50": self.map50, "mAP@75": self.map75},
             [
                 ("small_objects", self.small_objects),
@@ -211,6 +218,9 @@ class MeanAveragePrecisionResult(MetricResult):
                 ("large_objects", self.large_objects),
             ],
         )
+
+        dataframe.attrs["max_detection_thresholds"] = self.max_detection_thresholds
+        return dataframe
 
     def _get_plot_details(self, include_object_sizes: bool = True) -> PlotDetails:
         """Return bar-chart data for mAP scores.
@@ -243,6 +253,8 @@ class MeanAveragePrecisionResult(MetricResult):
             f"(target: {self.metric_target.value}, "
             f"class agnostic: {self.is_class_agnostic})"
         )
+        if self.max_detection_thresholds[-1] != 100:
+            title += f"\nmaxDets={self.max_detection_thresholds[-1]}"
         return PlotDetails(labels=labels, values=values, colors=colors, title=title)
 
     def plot(self) -> None:
@@ -1300,7 +1312,7 @@ class COCOEvaluator:
 
         def _summarize_predictions() -> npt.NDArray[np.float32]:
             stats: npt.NDArray[np.float32] = np.zeros((12,), dtype=np.float32)
-            stats[0] = _summarize(use_ap=True)
+            stats[0] = _summarize(use_ap=True, max_dets=self.params.max_dets[2])
             stats[1] = _summarize(
                 use_ap=True, iou_thr=0.5, max_dets=self.params.max_dets[2]
             )
@@ -1362,7 +1374,7 @@ class COCOEvaluator:
             for cat_id in self.params.cat_ids
         }
 
-        # Select the largest max area (the last element containing 100 dets
+        # Evaluate at the largest configured prediction limit.
         max_det = self.params.max_dets[-1]
 
         # Evaluate each image with all categories, area range and max detections
@@ -1421,6 +1433,8 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         class_agnostic: bool = False,
         class_mapping: dict[int, int] | None = None,
         image_indices: list[int] | None = None,
+        *,
+        max_detection_thresholds: Sequence[int] = (1, 10, 100),
     ) -> None:
         """Initialize the Mean Average Precision metric.
 
@@ -1434,7 +1448,36 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 contain key `-1`, which maps the single merged class. It is not
                 used when no input has class IDs.
             image_indices: The indices of the images to use.
+            max_detection_thresholds: Exactly three strictly increasing positive
+                integer limits, defaulting to COCO's `(1, 10, 100)`. AP uses the
+                largest limit: the highest-confidence predictions per image and
+                category after class mapping or class-agnostic merging. Ground
+                truths are not capped. For dense scenes, use `(1, 10, 1000)`.
+                Results using different limits are different metrics and should
+                not be compared as standard COCO AP@100.
+
+        Raises:
+            ValueError: If `max_detection_thresholds` is not a sequence of three
+                strictly increasing positive integers.
+
+        Example:
+            ```python
+            from supervision.metrics import MeanAveragePrecision
+
+            metric = MeanAveragePrecision(max_detection_thresholds=(1, 10, 1000))
+            ```
         """
+        thresholds = tuple(max_detection_thresholds)
+        if (
+            len(thresholds) != 3
+            or any(type(limit) is not int or limit <= 0 for limit in thresholds)
+            or not thresholds[0] < thresholds[1] < thresholds[2]
+        ):
+            raise ValueError(
+                "max_detection_thresholds must contain exactly three strictly "
+                "increasing positive integers."
+            )
+        self._max_detection_thresholds = thresholds
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
 
@@ -1712,6 +1755,8 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         # Create a coco evaluator with the predictions
         cocoEval = COCOEvaluator(coco_gt, coco_det, metric_target=self._metric_target)
 
+        cocoEval.params.max_dets = list(self._max_detection_thresholds)
+
         # Evaluate on all images
         cocoEval.evaluate()
 
@@ -1719,6 +1764,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         mAP_small = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
+            max_detection_thresholds=self._max_detection_thresholds,
             mAP_scores=np.asarray(
                 cocoEval.results["mAP_scores_small"], dtype=np.float64
             ),
@@ -1732,6 +1778,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         mAP_medium = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
+            max_detection_thresholds=self._max_detection_thresholds,
             mAP_scores=np.asarray(
                 cocoEval.results["mAP_scores_medium"], dtype=np.float64
             ),
@@ -1745,6 +1792,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         mAP_large = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
+            max_detection_thresholds=self._max_detection_thresholds,
             mAP_scores=np.asarray(
                 cocoEval.results["mAP_scores_large"], dtype=np.float64
             ),
@@ -1759,6 +1807,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
         mAP_result = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
+            max_detection_thresholds=self._max_detection_thresholds,
             mAP_scores=np.asarray(
                 cocoEval.results["mAP_scores_all_sizes"], dtype=np.float64
             ),
