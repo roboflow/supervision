@@ -113,8 +113,17 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
         raise ValueError("Bounding boxes must be shaped (N, 4)")
 
-    width = xyxy[:, 2] - xyxy[:, 0]
-    height = xyxy[:, 3] - xyxy[:, 1]
+    width: npt.NDArray[np.number]
+    height: npt.NDArray[np.number]
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Wider integers preserve exact deltas before float area multiplication.
+        dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+        coordinates = xyxy.astype(dtype)
+        width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
+        height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
+    else:
+        width = xyxy[:, 2] - xyxy[:, 0]
+        height = xyxy[:, 3] - xyxy[:, 1]
     areas = width * height
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
@@ -233,9 +242,18 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
 
-    # Shoelace formula
-    x = xyxyxyxy[:, :, 0]
-    y = xyxyxyxy[:, :, 1]
+    coordinates: npt.NDArray[np.number]
+    if np.issubdtype(xyxyxyxy.dtype, np.integer):
+        # Translate exactly before multiplying to avoid overflow and precision loss.
+        dtype = np.int64 if xyxyxyxy.dtype.itemsize < 8 else object
+        exact_coordinates = xyxyxyxy.astype(dtype)
+        coordinates = np.asarray(
+            exact_coordinates - exact_coordinates[:, :1], dtype=np.float64
+        )
+    else:
+        coordinates = xyxyxyxy
+    x = coordinates[:, :, 0]
+    y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
     y1, y2, y3, y4 = y.T
     areas = 0.5 * np.abs(

@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-09
+date_modified: 2026-10-10
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
 
 - Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
