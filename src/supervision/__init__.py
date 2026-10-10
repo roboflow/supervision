@@ -135,7 +135,7 @@ from supervision.draw.utils import (
     draw_rectangle,
     draw_text,
 )
-from supervision.geometry.core import Point, Position, Rect
+from supervision.geometry.core import CoordinatesTransformation, Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
@@ -189,6 +189,7 @@ __all__ = [
     "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
+    "CoordinatesTransformation",
     "CropAnnotator",
     "DepthAnnotator",
     "DepthCamera",

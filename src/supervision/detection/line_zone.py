@@ -15,7 +15,14 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rectangle, draw_text
-from supervision.geometry.core import Point, Position, Rect, Vector
+from supervision.geometry.core import (
+    CoordinatesTransformation,
+    Point,
+    Position,
+    Rect,
+    Vector,
+    _transform_points,
+)
 from supervision.utils.image import _overlay_image
 from supervision.utils.internal import SupervisionWarnings
 
@@ -168,7 +175,9 @@ class LineZone:
         return dict(self._out_count_per_class)
 
     def trigger(
-        self, detections: Detections
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
         """Update the `in_count` and `out_count` based on the objects that cross the
         line.
@@ -181,12 +190,40 @@ class LineZone:
 
         Args:
             detections: A Detections object for which to update the counts.
+            coord_transform: Optional per-frame camera motion. Anchors are mapped
+                into the line's reference frame with `rel_to_abs` before the side
+                test; detections with a non-finite mapped anchor are skipped. The
+                crossing history is kept in reference coordinates, so pass a
+                transform on every call.
 
         Returns:
             A tuple of two boolean NumPy arrays. The first array indicates which
                 detections have crossed the line from outside to inside. The second
                 array indicates which detections have crossed the line from inside to
                 outside.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [0, 60]
+            ...     def rel_to_abs(self, points): return points - [0, 60]
+            >>> line = sv.LineZone(start=sv.Point(0, 100), end=sv.Point(200, 100))
+            >>> track_id = np.array([1])
+            >>> frame_1 = sv.Detections(
+            ...     xyxy=np.array([[10.0, 50.0, 20.0, 90.0]]), tracker_id=track_id
+            ... )
+            >>> # The camera tilts: the same parked object now appears 60 px lower.
+            >>> frame_2 = sv.Detections(
+            ...     xyxy=np.array([[10.0, 110.0, 20.0, 150.0]]), tracker_id=track_id
+            ... )
+            >>> _ = line.trigger(frame_1)  # frame 1 is the line's reference frame
+            >>> _ = line.trigger(frame_2, coord_transform=CameraShift())
+            >>> line.in_count + line.out_count
+            0
+
+            ```
         """
         crossed_in = np.full(len(detections), False)
         crossed_out = np.full(len(detections), False)
@@ -222,7 +259,7 @@ class LineZone:
         self._update_class_id_to_name(detections)
 
         in_limits, has_any_left_trigger, has_any_right_trigger = (
-            self._compute_anchor_sides(detections)
+            self._compute_anchor_sides(detections, coord_transform)
         )
 
         for i, (class_id, tracker_id) in enumerate(
@@ -324,7 +361,9 @@ class LineZone:
         return start_region_limit, end_region_limit
 
     def _compute_anchor_sides(
-        self, detections: Detections
+        self,
+        detections: Detections,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
         """Find if detections' anchors are within the limit of the line zone and which
         anchors are on its left and right side.
@@ -348,6 +387,9 @@ class LineZone:
 
         Args:
             detections: The detections to check.
+            coord_transform: Optional transform whose `rel_to_abs` maps the
+                anchors into the line's reference frame before the tests. A
+                detection with any non-finite mapped anchor is not in limits.
 
         Returns:
             All 3 arrays are boolean arrays of shape (N, ) where N is the
@@ -367,6 +409,15 @@ class LineZone:
                 for anchor in self.triggering_anchors
             ]
         )
+        is_mapped_finite = None
+        if coord_transform is not None:
+            all_anchors = _transform_points(all_anchors, coord_transform.rel_to_abs)
+            # NaN compares False on both limit tests, which would read as "in
+            # limits", so non-finite rows are excluded explicitly below. Zeroing
+            # them only gives the side test placeholders; their triggers are
+            # ignored because those rows are never in limits.
+            is_mapped_finite = np.all(np.isfinite(all_anchors), axis=(0, 2))
+            all_anchors = np.nan_to_num(all_anchors, nan=0.0, posinf=0.0, neginf=0.0)
 
         cross_products_1 = cross_product(all_anchors, self.limits[0])
         cross_products_2 = cross_product(all_anchors, self.limits[1])
@@ -374,6 +425,8 @@ class LineZone:
         # Works because limit vectors are pointing in opposite directions
         in_limits = (cross_products_1 > 0) == (cross_products_2 > 0)
         in_limits = np.all(in_limits, axis=0)
+        if is_mapped_finite is not None:
+            in_limits &= is_mapped_finite
 
         triggers = cross_product(all_anchors, self.vector) < 0
         has_any_left_trigger = np.any(triggers, axis=0)

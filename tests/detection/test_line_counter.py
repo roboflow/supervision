@@ -14,7 +14,12 @@ from supervision import (
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Position, Vector
 from supervision.utils.internal import SupervisionWarnings
-from tests.helpers import _create_detections
+from tests.helpers import (
+    _ConstantTransform,
+    _create_detections,
+    _ShiftTransform,
+    _WrongShapeTransform,
+)
 
 
 @pytest.mark.parametrize(
@@ -1453,3 +1458,172 @@ class TestLineZoneUnconfirmedTracks:
 
         assert crossed_in == [False, False, False, True, False]
         assert (line_zone.in_count, line_zone.out_count) == (1, 0)
+
+
+# Bottom centre y = 80, 95, 150, 165, 180: crosses y = 100 downwards at frame 2.
+TRACK_CROSSING_DOWN = [
+    [140.0, 40.0, 160.0, 80.0],
+    [140.0, 55.0, 160.0, 95.0],
+    [140.0, 110.0, 160.0, 150.0],
+    [140.0, 125.0, 160.0, 165.0],
+    [140.0, 140.0, 160.0, 180.0],
+]
+
+
+class TestLineZoneTriggerWithCoordTransform:
+    def test_counts_crossing_in_reference_coordinates(self) -> None:
+        """A track the camera follows still crosses the line in the reference frame."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        # The camera tilts with the object, so its box never moves in the frame,
+        # while it moves as TRACK_CROSSING_DOWN in the line's reference frame.
+        box_in_frame = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+        camera_shifts = [_ShiftTransform(0, dy) for dy in (0, -15, -70, -85, -100)]
+
+        results = [
+            line_zone.trigger(box_in_frame, coord_transform=shift)
+            for shift in camera_shifts
+        ]
+
+        assert [bool(crossed_in[0]) for crossed_in, _ in results] == [False] * 5
+        assert [bool(crossed_out[0]) for _, crossed_out in results] == [
+            False,
+            False,
+            True,
+            False,
+            False,
+        ]
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+
+    @pytest.mark.parametrize(
+        ("use_transform", "expected_counts"), [(True, (0, 0)), (False, (0, 1))]
+    )
+    def test_stationary_object_under_moving_line(
+        self, use_transform: bool, expected_counts: tuple[int, int]
+    ) -> None:
+        """A parked object is counted only when the camera motion is ignored."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        # The camera tilts, so the parked object appears 0, 20, 40 and 60 px
+        # lower in each frame and ends below the line drawn on the first frame.
+        # Its top and bottom (y = 61 + dy and 91 + dy) never lie exactly on y = 100.
+        camera_tilts = (0, 20, 40, 60)
+        frames = [
+            _create_detections(
+                xyxy=[[140.0, 61.0 + dy, 160.0, 91.0 + dy]], tracker_id=[7]
+            )
+            for dy in camera_tilts
+        ]
+        transforms = [
+            _ShiftTransform(0, dy) if use_transform else None for dy in camera_tilts
+        ]
+
+        for frame, transform in zip(frames, transforms):
+            line_zone.trigger(frame, coord_transform=transform)
+
+        assert (line_zone.in_count, line_zone.out_count) == expected_counts
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        "invalid_point",
+        [
+            pytest.param((np.nan, np.nan), id="nan"),
+            pytest.param((np.inf, 150.0), id="inf"),
+            pytest.param((1e30, 150.0), id="far-beyond-line-end"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("invalid_frames", "expected_crossed_out"),
+        [
+            pytest.param({0, 1, 2, 3, 4}, [False] * 5, id="all-frames"),
+            pytest.param({0, 1}, [False] * 5, id="frames-above-line"),
+            pytest.param({2}, [False, False, False, True, False], id="first-below"),
+        ],
+    )
+    def test_frames_mapped_outside_limits_are_skipped(
+        self,
+        invalid_point: tuple[float, float],
+        invalid_frames: set[int],
+        expected_crossed_out: list[bool],
+    ) -> None:
+        """Frames whose anchors map to non-finite or far points leave no state."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100), (Position.BOTTOM_CENTER,))
+        invalid = _ConstantTransform(*invalid_point)
+        identity = _ShiftTransform(0, 0)
+
+        crossed_out = []
+        for index, box in enumerate(TRACK_CROSSING_DOWN):
+            transform = invalid if index in invalid_frames else identity
+            _, frame_crossed_out = line_zone.trigger(
+                _create_detections(xyxy=[box], tracker_id=[1]),
+                coord_transform=transform,
+            )
+            crossed_out.append(bool(frame_crossed_out[0]))
+
+        assert crossed_out == expected_crossed_out
+        assert line_zone.out_count == sum(expected_crossed_out)
+        assert line_zone.in_count == 0
+        assert (1 in line_zone.crossing_state_history) == (len(invalid_frames) < 5)
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_detection_with_one_non_finite_anchor_is_skipped(self) -> None:
+        """One non-finite mapped anchor skips the detection even if others are fine."""
+        line_zone = LineZone(
+            Point(0, 100),
+            Point(300, 100),
+            (Position.BOTTOM_LEFT, Position.BOTTOM_RIGHT),
+        )
+        # Track 1 has both bottom corners at x <= 150; track 2 has its bottom-left
+        # corner at x = 140 and its bottom-right corner at x = 170, which maps to NaN.
+        frames = [
+            _create_detections(
+                xyxy=[
+                    [10.0, y_min, 30.0, y_min + 40.0],
+                    [140.0, y_min, 170.0, y_min + 40.0],
+                ],
+                tracker_id=[1, 2],
+            )
+            for y_min in (40.0, 55.0, 110.0, 125.0, 140.0)
+        ]
+
+        results = [
+            line_zone.trigger(frame, coord_transform=_NanBeyondX(150.0))
+            for frame in frames
+        ]
+
+        assert [crossed_out.tolist() for _, crossed_out in results] == [
+            [False, False],
+            [False, False],
+            [True, False],
+            [False, False],
+            [False, False],
+        ]
+        assert all(not crossed_in.any() for crossed_in, _ in results)
+        assert (line_zone.in_count, line_zone.out_count) == (0, 1)
+        assert 2 not in line_zone.crossing_state_history
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(0, 100), Point(300, 100))
+        detections = _create_detections(
+            xyxy=[[140.0, 40.0, 160.0, 80.0]], tracker_id=[1]
+        )
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            line_zone.trigger(detections, coord_transform=_WrongShapeTransform())
+
+
+class _NanBeyondX:
+    """An identity transform that maps points with `x > x_max` to NaN."""
+
+    def __init__(self, x_max: float) -> None:
+        """Store the largest x coordinate that maps to a finite point."""
+        self.x_max = x_max
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with NaN rows where `x > x_max`."""
+        return np.where(points[:, :1] > self.x_max, np.nan, points)

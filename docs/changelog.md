@@ -7,6 +7,8 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.PolygonZone.trigger` and `sv.LineZone.trigger` accept an optional per-frame `coord_transform`, which maps detection anchors into the frame the zone was drawn on before testing them, so counts stay attached to the scene while the camera moves. It is any object with `abs_to_rel` and `rel_to_abs`, typed by the new `sv.CoordinatesTransformation` protocol, such as the transformations returned by the `trackers` motion estimator. Only the in-zone and line-crossing checks change: drawing with `PolygonZoneAnnotator` and `LineZoneAnnotator` is unchanged, each zone expects transforms into one consistent reference frame, and `coord_transform=None`, the default, keeps current results. ([#2657](https://github.com/roboflow/supervision/pull/2657))
+
 - Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
 - `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`, also from a map of another size than the image with `resolution_wh`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(scale="metric")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))

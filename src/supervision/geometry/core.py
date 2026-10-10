@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from math import sqrt
+from typing import Protocol
+
+import numpy as np
+import numpy.typing as npt
 
 
 class Position(Enum):
@@ -196,3 +201,60 @@ class Rect:
             int(self.x + self.width),
             int(self.y + self.height),
         )
+
+
+class CoordinatesTransformation(Protocol):
+    """Map points between a reference frame and the current frame.
+
+    Zones and lines are defined in the coordinates of a reference frame
+    ("absolute"); `rel_to_abs` maps current-frame points into it and `abs_to_rel`
+    maps them back. Any object with these two methods satisfies the protocol.
+
+    Example:
+        ```pycon
+        >>> import numpy as np
+        >>> class Shift:
+        ...     def abs_to_rel(self, points): return points + [100, 0]
+        ...     def rel_to_abs(self, points): return points - [100, 0]
+        >>> Shift().rel_to_abs(np.array([[150.0, 50.0]]))
+        array([[50., 50.]])
+
+        ```
+    """
+
+    def abs_to_rel(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """Map points from reference-frame to current-frame coordinates.
+
+        Args:
+            points: Points of shape `(N, 2)` in reference-frame coordinates.
+
+        Returns:
+            Points of shape `(N, 2)` in current-frame coordinates.
+        """
+        ...
+
+    def rel_to_abs(self, points: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """Map points from current-frame to reference-frame coordinates.
+
+        Args:
+            points: Points of shape `(N, 2)` in current-frame coordinates.
+
+        Returns:
+            Points of shape `(N, 2)` in reference-frame coordinates.
+        """
+        ...
+
+
+def _transform_points(
+    points: npt.NDArray[np.number],
+    transform: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]],
+) -> npt.NDArray[np.float64]:
+    """Apply a transform method to `(..., 2)` points via `(N, 2)`, checking shape."""
+    flat_points = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+    mapped = np.asarray(transform(flat_points), dtype=np.float64)
+    if mapped.shape != flat_points.shape:
+        raise ValueError(
+            f"coord_transform must return points of shape {flat_points.shape}; "
+            f"got {mapped.shape}."
+        )
+    return mapped.reshape(np.shape(points))
