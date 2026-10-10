@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -904,6 +904,7 @@ class DetectionDataset(BaseDataset):
         show_progress: bool = False,
         *,
         use_iscrowd: bool = True,
+        mask_rasterizer: Literal["supervision", "pycocotools"] = "supervision",
     ) -> DetectionDataset:
         """Creates a Dataset instance from COCO formatted data.
 
@@ -917,9 +918,24 @@ class DetectionDataset(BaseDataset):
             show_progress: If True, display a progress bar during loading.
             use_iscrowd: If True, includes COCO ``iscrowd`` and ``area``
                 annotation fields in ``Detections.data``.
+            mask_rasterizer: ``"supervision"`` uses rounded vertices with
+                inclusive integer fill. ``"pycocotools"`` uses COCO's reference
+                polygon rasterization with continuous vertices. Install the
+                optional ``supervision[coco]`` extra for this mode. RLE masks
+                are decoded identically in both modes.
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
+
+        Note:
+            COCO polygon vertices describe continuous boundaries, while the
+            default rasterizer treats rounded vertices as inclusive pixel
+            indices. To match COCO evaluation masks, install
+            ``supervision[coco]`` and pass ``mask_rasterizer="pycocotools"``.
+            For example, a square from ``(1, 1)`` to ``(5, 5)`` covers 16
+            reference pixels instead of 25 inclusive pixels. This option does
+            not change polygon export: use RLE when exact mask preservation
+            across COCO tools is required.
 
         Examples:
             ```python
@@ -949,6 +965,7 @@ class DetectionDataset(BaseDataset):
             force_masks=force_masks,
             use_iscrowd=use_iscrowd,
             show_progress=show_progress,
+            mask_rasterizer=mask_rasterizer,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 

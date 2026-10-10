@@ -7,6 +7,8 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the reference rasterization convention. Install `supervision[coco]` for this optional mode. Continuous vertices are retained and disjoint parts are merged per object. The default inclusive integer fill, generic polygon rasterizer, and RLE decoding keep their existing behavior.
+
 - Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
 - `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`, also from a map of another size than the image with `resolution_wh`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(scale="metric")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
