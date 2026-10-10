@@ -19,6 +19,7 @@ from supervision.config import (
 )
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
+    _polygon_areas,
     box_iou_batch_with_jaccard,
     oriented_box_iou_batch,
 )
@@ -1492,7 +1493,11 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
 
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any] | None:
         """Return per-detection masks or oriented boxes for the metric target, or `None`
-        for the box target and for empty detections."""
+        for the box target and for empty detections.
+
+        Preserve oriented-box precision so IoU can translate large coordinates before
+        converting them to its local float32 geometry.
+        """
         if self._metric_target == MetricTarget.BOXES or len(detections) == 0:
             return None
         if self._metric_target == MetricTarget.MASKS:
@@ -1511,7 +1516,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                     f" `{ORIENTED_BOX_COORDINATES}` in `data` on both"
                     " predictions and targets."
                 )
-            return np.asarray(obb, dtype=np.float32).reshape(-1, 4, 2)
+            return np.asarray(obb).reshape(-1, 4, 2)
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _content_area(
@@ -1523,9 +1528,7 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
             return float(xywh[2] * xywh[3])
         if self._metric_target == MetricTarget.MASKS:
             return float(np.count_nonzero(content[idx]))
-        x, y = content[idx, :, 0], content[idx, :, 1]
-        # Shoelace formula
-        return float(0.5 * abs(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y)))
+        return float(_polygon_areas(content[idx : idx + 1])[0])
 
     def _prepare_targets(
         self, targets: list[Detections]
