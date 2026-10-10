@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 import pytest
 
@@ -11,8 +13,10 @@ from supervision.metrics.core import MetricTarget
 from supervision.metrics.utils.object_size import (
     SIZE_THRESHOLDS,
     ObjectSizeCategory,
+    get_bbox_size_category,
     get_detection_size_category,
     get_mask_size_category,
+    get_obb_size_category,
 )
 
 
@@ -64,6 +68,53 @@ class TestGetMaskSizeCategory:
                 ObjectSizeCategory.LARGE.value,
             ],
         )
+
+
+@pytest.mark.parametrize(
+    ("size_category_fn", "coordinates"),
+    [
+        pytest.param(
+            get_bbox_size_category,
+            np.array([[0, 0, 65536, 65536]], dtype=np.int32),
+            id="bounding-box-product-overflow",
+        ),
+        pytest.param(
+            get_bbox_size_category,
+            np.array([[2**60, 2**60, 2**60 + 100, 2**60 + 100]], dtype=np.int64),
+            id="bounding-box-offset-precision",
+        ),
+        pytest.param(
+            get_obb_size_category,
+            np.array(
+                [[[0, 0], [65536, 0], [65536, 65536], [0, 65536]]],
+                dtype=np.int32,
+            ),
+            id="oriented-bounding-box-product-overflow",
+        ),
+        pytest.param(
+            get_obb_size_category,
+            np.array(
+                [
+                    [
+                        [2**60, 2**60],
+                        [2**60 + 100, 2**60],
+                        [2**60 + 100, 2**60 + 100],
+                        [2**60, 2**60 + 100],
+                    ]
+                ],
+                dtype=np.int64,
+            ),
+            id="oriented-bounding-box-offset-precision",
+        ),
+    ],
+)
+def test_size_category_handles_integer_coordinates(
+    size_category_fn: Callable[[np.ndarray], np.ndarray], coordinates: np.ndarray
+) -> None:
+    """Integer-coordinate objects avoid overflow and precision loss."""
+    np.testing.assert_array_equal(
+        size_category_fn(coordinates), [ObjectSizeCategory.LARGE.value]
+    )
 
 
 def test_detection_size_category_prefers_explicit_area_metadata() -> None:
