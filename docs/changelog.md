@@ -7,7 +7,7 @@ date_modified: 2026-10-09
 
 ### Unreleased <small>upcoming</small>
 
-- Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation.
+- Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
 - Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
 
