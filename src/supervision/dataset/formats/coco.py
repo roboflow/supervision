@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -97,9 +97,25 @@ def group_coco_annotations_by_image_id(
 
 
 def coco_annotations_to_masks(
-    image_annotations: list[CocoDict], resolution_wh: tuple[int, int]
+    image_annotations: list[CocoDict],
+    resolution_wh: tuple[int, int],
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] = "supervision",
 ) -> npt.NDArray[np.bool_]:
-    """Rasterise each annotation's RLE or polygon segmentation into one bool mask."""
+    """Rasterise each annotation's RLE or polygon segmentation into one bool mask.
+
+    Args:
+        image_annotations: COCO annotations for a single image.
+        resolution_wh: Image size as ``(width, height)``.
+        mask_rasterizer: ``"supervision"`` rounds polygon vertices and fills
+            integer boundaries inclusively. ``"pycocotools"`` preserves continuous
+            vertices and uses COCO's reference rasterization; install
+            ``supervision[coco]`` to enable it. RLE decoding is unaffected.
+
+    Returns:
+        One boolean mask per annotation.
+    """
+    _validate_mask_rasterizer(mask_rasterizer)
     height, width = resolution_wh[1], resolution_wh[0]
     empty_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
     masks = []
@@ -133,6 +149,7 @@ def coco_annotations_to_masks(
         polygons = segmentation if isinstance(segmentation[0], list) else [segmentation]
 
         object_mask = empty_mask.copy()
+        reference_polygons = []
         for polygon in polygons:
             vertices = np.reshape(np.asarray(polygon, dtype=np.float64), (-1, 2))
             if vertices.size == 0:
@@ -148,6 +165,12 @@ def coco_annotations_to_masks(
                     f"id={image_annotation.get('id')} has a vertex that is not a "
                     "finite number."
                 )
+            if mask_rasterizer == "pycocotools":
+                # The native rasterizer requires at least three vertices. Keep
+                # degenerate parts empty rather than passing them to native code.
+                if len(vertices) >= 3:
+                    reference_polygons.append(vertices.reshape(-1).tolist())
+                continue
             # COCO vertices are sub-pixel floats. Round them to the nearest pixel, as
             # the YOLO, LabelMe and Pascal VOC loaders do; casting straight to int
             # truncates and shifts the mask up and to the left.
@@ -158,9 +181,29 @@ def coco_annotations_to_masks(
                 polygon=polygon_array, resolution_wh=resolution_wh
             ).astype(bool)
 
+        if reference_polygons:
+            try:
+                from pycocotools import mask as coco_mask
+            except ImportError as exc:
+                raise ImportError(
+                    'mask_rasterizer="pycocotools" requires supervision[coco]. '
+                    'Install it with: pip install "supervision[coco]"'
+                ) from exc
+            # Merge components as a union, retaining one mask per annotation.
+            rles = coco_mask.frPyObjects(reference_polygons, height, width)
+            object_mask = coco_mask.decode(coco_mask.merge(rles)).astype(bool)
         masks.append(object_mask)
 
     return np.asarray(masks, dtype=bool)
+
+
+def _validate_mask_rasterizer(mask_rasterizer: str) -> None:
+    """Reject unsupported COCO polygon rasterizers before reading annotations."""
+    if mask_rasterizer not in ("supervision", "pycocotools"):
+        raise ValueError(
+            "mask_rasterizer must be 'supervision' or 'pycocotools', "
+            f"got {mask_rasterizer!r}."
+        )
 
 
 def _check_box_extent(image_annotation: CocoDict) -> list[float]:
@@ -187,6 +230,8 @@ def coco_annotations_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
     use_iscrowd: bool = True,
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] = "supervision",
 ) -> Detections:
     """Convert COCO annotation dicts for a single image into a `Detections` object.
 
@@ -205,6 +250,8 @@ def coco_annotations_to_detections(
         with_masks: Whether to decode segmentation fields into binary masks.
         use_iscrowd: When ``True``, store ``iscrowd`` and ``area`` in
             ``Detections.data``.
+        mask_rasterizer: Polygon rasterization convention; see
+            :func:`coco_annotations_to_masks`.
 
     Returns:
         Detections with ``class_id`` set to raw COCO ``category_id`` values.
@@ -250,7 +297,9 @@ def coco_annotations_to_detections(
 
     if with_masks:
         mask = coco_annotations_to_masks(
-            image_annotations=image_annotations, resolution_wh=resolution_wh
+            image_annotations=image_annotations,
+            resolution_wh=resolution_wh,
+            mask_rasterizer=mask_rasterizer,
         )
     else:
         mask = None
@@ -499,6 +548,8 @@ def load_coco_annotations(
     force_masks: bool = False,
     use_iscrowd: bool = True,
     show_progress: bool = False,
+    *,
+    mask_rasterizer: Literal["supervision", "pycocotools"] = "supervision",
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """Load COCO annotations and convert them to `Detections`.
 
@@ -512,6 +563,8 @@ def load_coco_annotations(
         force_masks: If `True`, always attempt to load masks.
         use_iscrowd: If `True`, include `iscrowd` and `area` in detection data.
         show_progress: If `True`, display a progress bar during loading.
+        mask_rasterizer: Polygon rasterization convention; see
+            :func:`coco_annotations_to_masks`.
 
     Returns:
         A tuple of `(classes, image_paths, annotations)` where image paths are
@@ -531,6 +584,7 @@ def load_coco_annotations(
         attacks when loading user-supplied annotation files. Symlinked images
         pointing outside the resolved images directory are also rejected.
     """
+    _validate_mask_rasterizer(mask_rasterizer)
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
 
@@ -601,6 +655,7 @@ def load_coco_annotations(
             resolution_wh=(image_width, image_height),
             with_masks=with_masks,
             use_iscrowd=use_iscrowd,
+            mask_rasterizer=mask_rasterizer,
         )
 
         annotation = map_detections_class_id(
