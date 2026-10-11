@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-09
+date_modified: 2026-10-11
 ---
 
 # Changelog
@@ -8,6 +8,8 @@ date_modified: 2026-10-09
 ### Unreleased <small>upcoming</small>
 
 - `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. ([#2720](https://github.com/roboflow/supervision/pull/2720))
+
+- `DetectionDataset.as_yolo`, `as_pascal_voc` and `as_labelme` now export a mask with holes as one instance instead of one extra same-class instance per hole. Each hole contour was written as a separate polygon, so a 50×50 square with a 20×20 hole (2100 pixels) reloaded as two instances of 2500 and 480 pixels, and the outer polygon had lost the hole. Each hole is now joined to its outer contour, or to a hole already joined, by a zero-width straight seam that stays on foreground pixels, so the mask reloads as one instance of 2100 pixels. Disconnected components, including an island inside a hole, are still separate polygons, and masks without holes export exactly as before. `sv.mask_to_polygons` is unchanged, `approximate_mask_with_polygons` gains an opt-in `bridge_holes` parameter that defaults to `False`; if no foreground-contained seam can be found, it raises `ValueError` instead of changing mask pixels, and COCO export is unaffected. ([#2703](https://github.com/roboflow/supervision/pull/2703))
 
 - `sv.metrics.MeanAverageRecall` now applies the `mAR @ K` detection limit to each class in each image instead of to each image as a whole, matching the `maxDets` limit of COCO evaluation (`pycocotools`), where `COCOeval.evaluateImg` keeps the top `maxDet` detections of one category in one image. With more than one class, the image-wide limit dropped detections that COCO keeps, so `mAR_at_1`, `mAR_at_10` and `mAR_at_100` came out lower than the COCO `AR@1`, `AR@10` and `AR@100`: one image with two classes and one perfect prediction each scored `mAR_at_1 = 0.5` against `1.0` in `pycocotools`. The fix ranks each prediction within its own class and image before applying the limit, and the same ranking feeds the small, medium and large object results and `recall_per_class`. Stable sorting can also change results for a single class when tied confidences cross a K cutoff. The detection-limit scope follows COCO's per-class `maxDets`, but the shared highest-IoU matcher can still produce different mAR values. ([#2701](https://github.com/roboflow/supervision/pull/2701))
 
