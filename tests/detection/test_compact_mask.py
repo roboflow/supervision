@@ -1477,6 +1477,109 @@ class TestCompactMaskResize:
     collections, invalid dimensions, and dense parity with cv2.
     """
 
+    @pytest.mark.parametrize("num_masks", [1, 8])
+    @pytest.mark.parametrize("pattern", ["solid", "checkerboard"])
+    @pytest.mark.parametrize(
+        ("src_shape", "crop", "target_shape"),
+        [
+            pytest.param((10, 10), (2, 3, 3, 4), (100, 100), id="singleton-upscale"),
+            pytest.param((10, 10), (0, 10, 0, 10), (100, 100), id="full-upscale"),
+            pytest.param((4, 4), (1, 2, 1, 2), (2, 2), id="unsampled-singleton"),
+            pytest.param((7, 9), (1, 6, 2, 8), (13, 5), id="offset-anisotropic"),
+            pytest.param((6, 6), (1, 5, 2, 6), (34, 34), id="fractional-upscale"),
+        ],
+    )
+    def test_image_grid_sampling(
+        self,
+        src_shape: tuple[int, int],
+        crop: tuple[int, int, int, int],
+        target_shape: tuple[int, int],
+        pattern: str,
+        num_masks: int,
+    ) -> None:
+        """Resize compact crops on the same sampling grid as the full image."""
+        masks = np.zeros((num_masks, *src_shape), dtype=bool)
+        y1, y2, x1, x2 = crop
+        rows, cols = np.indices((y2 - y1, x2 - x1))
+        region = np.ones(rows.shape, dtype=bool)
+        if pattern == "checkerboard":
+            region = (rows + cols) % 2 == 0
+        crop_h, crop_w = y2 - y1, x2 - x1
+        origins = [(y1, x1)] + [
+            (row, col)
+            for row in range(src_shape[0] - crop_h + 1)
+            for col in range(src_shape[1] - crop_w + 1)
+            if (row, col) != (y1, x1)
+        ]
+        for mask_index in range(num_masks):
+            origin_y, origin_x = origins[mask_index % len(origins)]
+            mask_region = region
+            if mask_index >= len(origins):
+                mask_region = region.copy()
+                row, col = divmod(mask_index - len(origins), crop_w)
+                mask_region[row, col] = not mask_region[row, col]
+            masks[
+                mask_index,
+                origin_y : origin_y + crop_h,
+                origin_x : origin_x + crop_w,
+            ] = mask_region
+        cm = CompactMask.from_dense(masks, mask_to_xyxy(masks), src_shape)
+        original = cm.to_dense()
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (target_shape[1], target_shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
+
+        resized = cm.resize(target_shape)
+
+        np.testing.assert_array_equal(resized.to_dense(), expected)
+        np.testing.assert_array_equal(resized.area, expected.sum(axis=(1, 2)))
+        np.testing.assert_array_equal(cm.to_dense(), original)
+
+    @pytest.mark.parametrize("num_masks", [1, 8])
+    def test_sparse_image_grid_sampling(self, num_masks: int) -> None:
+        """Sparse crops follow full-image sampling in serial and threaded batches."""
+        image_shape = (17, 19)
+        masks = np.zeros((num_masks, *image_shape), dtype=bool)
+        region = np.zeros((9, 10), dtype=bool)
+        region[1:5, 1:4] = True
+        region[6:8, 7:9] = True
+        for mask_index in range(num_masks):
+            row_offset, col_offset = divmod(mask_index, 4)
+            masks[
+                mask_index,
+                row_offset : row_offset + region.shape[0],
+                col_offset : col_offset + region.shape[1],
+            ] = region
+
+        cm = CompactMask.from_dense(masks, mask_to_xyxy(masks), image_shape)
+        for rle, crop_shape in zip(cm._rles, cm._crop_shapes):
+            crop_area = int(crop_shape[0] * crop_shape[1])
+            assert len(rle) / crop_area < 0.25
+
+        target_shape = (11, 13)
+        expected = np.stack(
+            [
+                cv2.resize(
+                    mask.astype(np.uint8),
+                    (target_shape[1], target_shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+                for mask in masks
+            ]
+        )
+
+        resized = cm.resize(target_shape)
+
+        np.testing.assert_array_equal(resized.to_dense(), expected)
+        np.testing.assert_array_equal(resized.area, expected.sum(axis=(1, 2)))
+
     @pytest.mark.parametrize(
         ("src_shape", "mask_slice", "target_shape", "description"),
         [

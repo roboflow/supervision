@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.10
+  python: python3
 
 ci:
   autofix_prs: true
@@ -69,6 +69,8 @@ repos:
     rev: v1.7.7
     hooks:
       - id: docformatter
+        # untokenize 0.1.1 cannot build on Python 3.14 (removed ast.Constant.s).
+        language_version: python3.11
         additional_dependencies:
           - "tomli>=2.0.1"
 

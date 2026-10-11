@@ -44,6 +44,15 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
+from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.colormaps import DepthColormap
+from supervision.depth.core import (
+    DepthCamera,
+    DepthKind,
+    DepthMap,
+    DepthResizeMethod,
+    DepthScale,
+)
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -181,6 +190,14 @@ __all__ = [
     "ComparisonAnnotator",
     "ConfusionMatrix",
     "CropAnnotator",
+    "DepthAnnotator",
+    "DepthCamera",
+    "DepthClipRange",
+    "DepthColormap",
+    "DepthKind",
+    "DepthMap",
+    "DepthResizeMethod",
+    "DepthScale",
     "DetectionDataset",
     "Detections",
     "DetectionsSmoother",

@@ -23,7 +23,7 @@ from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     box_non_max_suppression,
 )
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.internal import _to_numpy, warn_deprecated
 from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
@@ -771,7 +771,8 @@ class KeyPoints:
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
 
         Args:
-            ultralytics_results: The output Results instance from YOLOv8.
+            ultralytics_results: The output Results instance from YOLOv8,
+                with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
@@ -790,18 +791,18 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_ultralytics(result)
             ```
         """
-        if ultralytics_results.keypoints.xy.numel() == 0:
+        xy = _to_numpy(ultralytics_results.keypoints.xy)
+        if xy.size == 0:
             return cls.empty()
 
-        xy = ultralytics_results.keypoints.xy.cpu().numpy()
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+        class_id = _to_numpy(ultralytics_results.boxes.cls).astype(int)
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         # Models trained with a two-value `kpt_shape` report no per-keypoint
         # visibility, and Ultralytics exposes `keypoints.conf` as `None` for them.
         keypoints_conf = ultralytics_results.keypoints.conf
-        confidence = None if keypoints_conf is None else keypoints_conf.cpu().numpy()
-        detection_confidence = ultralytics_results.boxes.conf.cpu().numpy()
+        confidence = None if keypoints_conf is None else _to_numpy(keypoints_conf)
+        detection_confidence = _to_numpy(ultralytics_results.boxes.conf)
         data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(
             xy=xy,

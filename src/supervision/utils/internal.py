@@ -5,6 +5,14 @@ import warnings
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
+import numpy as np
+import numpy.typing as npt
+
+
+def _to_numpy(value: Any) -> npt.NDArray[Any]:
+    """Return a NumPy property directly or convert a tensor through the CPU."""
+    return value if isinstance(value, np.ndarray) else value.cpu().numpy()
+
 
 class SupervisionWarnings(Warning):
     """Supervision warning category.

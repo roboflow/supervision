@@ -81,6 +81,7 @@ from supervision.detection.vlm import (
 from supervision.geometry.core import Position
 from supervision.utils.internal import (
     SupervisionWarnings,
+    _to_numpy,
     get_instance_variables,
 )
 from supervision.validators import (
@@ -345,7 +346,8 @@ class Detections:
             [OBB](https://docs.ultralytics.com/tasks/obb/) models.
 
         Args:
-            ultralytics_results: The output Results instance from Ultralytics.
+            ultralytics_results: The output Results instance from Ultralytics,
+                with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
             A new Detections object.
@@ -364,15 +366,15 @@ class Detections:
         """
 
         if hasattr(ultralytics_results, "obb") and ultralytics_results.obb is not None:
-            class_id = ultralytics_results.obb.cls.cpu().numpy().astype(int)
+            class_id = _to_numpy(ultralytics_results.obb.cls).astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
-            oriented_box_coordinates = ultralytics_results.obb.xyxyxyxy.cpu().numpy()
+            oriented_box_coordinates = _to_numpy(ultralytics_results.obb.xyxyxyxy)
             return cls(
-                xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
-                confidence=ultralytics_results.obb.conf.cpu().numpy(),
+                xyxy=_to_numpy(ultralytics_results.obb.xyxy),
+                confidence=_to_numpy(ultralytics_results.obb.conf),
                 class_id=class_id,
                 tracker_id=(
-                    ultralytics_results.obb.id.int().cpu().numpy()
+                    _to_numpy(ultralytics_results.obb.id).astype(np.int32)
                     if ultralytics_results.obb.id is not None
                     else None
                 ),
@@ -398,15 +400,15 @@ class Detections:
             hasattr(ultralytics_results, "boxes")
             and ultralytics_results.boxes is not None
         ):
-            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_id = _to_numpy(ultralytics_results.boxes.cls).astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             return cls(
-                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                xyxy=_to_numpy(ultralytics_results.boxes.xyxy),
+                confidence=_to_numpy(ultralytics_results.boxes.conf),
                 class_id=class_id,
                 mask=extract_ultralytics_masks(ultralytics_results),
                 tracker_id=(
-                    ultralytics_results.boxes.id.int().cpu().numpy()
+                    _to_numpy(ultralytics_results.boxes.id).astype(np.int32)
                     if ultralytics_results.boxes.id is not None
                     else None
                 ),

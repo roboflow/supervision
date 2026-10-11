@@ -2,6 +2,17 @@ CLASS_NAME_DATA_FIELD: str = "class_name"
 COCO_RAW_SEGMENTATION: str = "coco_raw_segmentation"
 #: Key for per-detection area metadata in ``Detections.data``.
 AREA_DATA_FIELD: str = "area"
+#: Key for per-object axis-aligned boxes in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N, 4)`` in
+#: ``(x_min, y_min, x_max, y_max)`` format, one box per skeleton. Read by
+#: ``KeyPointMeanAveragePrecision``.
+XYXY_DATA_FIELD: str = "xyxy"
+#: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``; a non-zero value marks a
+#: crowd region, as COCO ``iscrowd=1``. Read by the mAP metrics.
+ISCROWD_DATA_FIELD: str = "iscrowd"
 #: Key for the MediaPipe hand-handedness score in ``KeyPoints.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, holding the
@@ -32,3 +43,21 @@ SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
 #: (``is_obb=True``).
 #: Also triggers sequential mode in ``InferenceSlicer`` when present.
 ORIENTED_BOX_COORDINATES: str = "xyxyxyxy"
+#: Key for per-detection metric depth in ``Detections.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N,)``, dtype ``float32``, the median depth
+#: in metres of the valid depth pixels inside each detection's mask (or box, when the
+#: detections carry no masks), ``NaN`` where the region holds no depth. Written by
+#: :meth:`~supervision.depth.core.DepthMap.measure_detections`.
+DEPTH_M_DATA_FIELD: str = "depth_m"
+#: Key for per-detection stereo disparity in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, in pixels of the depth map. Unlike metres,
+#: the values depend on the map's resolution: the same scene resized to half the
+#: width stores half the disparity.
+DISPARITY_PX_DATA_FIELD: str = "disparity_px"
+#: Key for per-detection relative inverse depth in ``Detections.data``.
+#:
+#: Same layout as ``DEPTH_M_DATA_FIELD``, unitless; larger is nearer. Monocular models
+#: such as Depth Anything produce it, and it has no metric scale.
+RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"
