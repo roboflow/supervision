@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
+from supervision.utils.internal import _to_numpy
+
 if TYPE_CHECKING:
     import torch  # type: ignore[import-not-found, unused-ignore]
 
@@ -98,7 +100,8 @@ class Classifications:
         [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results: The inference result from ultralytics model.
+            ultralytics_results: The inference result from ultralytics model,
+                with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
             A new Classifications object.
@@ -116,7 +119,7 @@ class Classifications:
             classifications = sv.Classifications.from_ultralytics(output)
             ```
         """
-        confidence = ultralytics_results.probs.data.cpu().numpy()
+        confidence = _to_numpy(ultralytics_results.probs.data)
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
