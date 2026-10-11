@@ -491,6 +491,7 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
+            import supervision as sv
             from supervision import _cv2 as cv2
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"

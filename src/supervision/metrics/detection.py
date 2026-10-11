@@ -1340,6 +1340,7 @@ class ConfusionMatrix:
 
         Example:
             ```python
+            import numpy as np
             import supervision as sv
             from rfdetr import RFDETRMedium
 
