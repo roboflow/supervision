@@ -422,6 +422,10 @@ def process_video(
        them sequentially to the output video file. Shutdown waits for any active
        write to finish before releasing the output sink.
 
+    On a processing or writing failure, shutdown stops the reader instead of
+    decoding the rest of the source. An active decode is allowed to finish before
+    the capture is released; queued writes finish unless the writer itself fails.
+
     Args:
         source_path: Path to the input video file.
         target_path: Path where the processed video will be saved.
@@ -497,24 +501,50 @@ def process_video(
 
     reader_exception: Exception | None = None
     writer_exception: Exception | None = None
+    stop_reader = threading.Event()
 
     def reader_thread() -> None:
-        """Feed frames into the read queue, always ending with the sentinel."""
+        """Feed frames into the bounded queue until EOF, failure or cancellation."""
         nonlocal reader_exception
+        frame_generator = None
         try:
             frame_generator = get_video_frames_generator(
                 source_path=source_path,
                 end=frames_end,
             )
-            for frame_index, frame in enumerate(frame_generator):
-                frame_read_queue.put((frame_index, frame))
+            frame_index = 0
+            while not stop_reader.is_set():
+                try:
+                    frame = next(frame_generator)
+                except StopIteration:
+                    break
+                while not stop_reader.is_set():
+                    try:
+                        frame_read_queue.put((frame_index, frame), timeout=0.1)
+                        break
+                    except Full:
+                        pass
+                frame_index += 1
         except Exception as exc:
             # The main loop blocks on `frame_read_queue.get()` with no timeout,
             # so a reader failure must still enqueue the sentinel or the call
             # never returns. Surface the error once the pipeline has shut down.
             reader_exception = exc
         finally:
-            frame_read_queue.put(None)
+            if frame_generator is not None:
+                try:
+                    frame_generator.close()
+                except Exception as exc:
+                    if reader_exception is None:
+                        reader_exception = exc
+            # A cancelled consumer no longer drains the queue. Both frame and EOF
+            # puts must therefore be interruptible, even when the queue is full.
+            while not stop_reader.is_set():
+                try:
+                    frame_read_queue.put(None, timeout=0.1)
+                    break
+                except Full:
+                    pass
 
     def writer_thread(video_sink: VideoSink) -> None:
         """Write processed frames until the sentinel, keeping the first write error.
@@ -553,14 +583,11 @@ def process_video(
             desc=progress_message,
         )
 
-        exception_in_worker: Exception | None = None
-        read_finished = False
-
+        exception_in_worker: BaseException | None = None
         try:
             while True:
                 read_item = frame_read_queue.get()
                 if read_item is None:
-                    read_finished = True
                     break
 
                 frame_index, frame = read_item
@@ -575,29 +602,15 @@ def process_video(
                         )
                     frame_write_queue.put(processed_frame)
                     progress_bar.update(1)
-                except Exception as exc:
+                except BaseException as exc:
                     exception_in_worker = exc
                     break
                 if writer_exception is not None:
                     break
         finally:
+            stop_reader.set()
             frame_write_queue.put(None)
-            if not read_finished:
-                while True:
-                    # Use timeout to prevent indefinite blocking if reader thread fails
-                    try:
-                        read_item = frame_read_queue.get(timeout=1)
-                        if read_item is None:
-                            break
-                    # If we timeout waiting for a frame, only assume failure if reader
-                    # thread is no longer alive. Otherwise, keep waiting as the reader
-                    # may simply be slow (for example, due to a slow source).
-                    except Empty:
-                        if not reader_worker.is_alive():
-                            break
-                        # Reader is still alive; continue waiting for frames.
-                        continue
-            reader_worker.join(timeout=10)
+            reader_worker.join()
             writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:

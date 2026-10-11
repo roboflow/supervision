@@ -1,8 +1,8 @@
 import os
 import threading
 import time
+from collections.abc import Generator
 from pathlib import Path
-from queue import Empty
 from queue import Queue as StdQueue
 from types import SimpleNamespace, TracebackType
 from unittest.mock import patch
@@ -96,6 +96,174 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
             prefetch=1,
             writer_buffer=1,
         )
+
+
+class TestProcessVideoReaderCancellation:
+    @pytest.mark.parametrize("failure", [ValueError, KeyboardInterrupt, None])
+    def test_stops_decoding_and_releases_capture_after_callback_failure(
+        self,
+        dummy_video_path: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        failure: type[BaseException] | None,
+    ) -> None:
+        """A full reader queue is cancelled without decoding the remaining frames."""
+        reader_blocked = threading.Event()
+        decoded: list[int] = []
+        released: list[object] = []
+        reader_captures: list[object] = []
+        original_capture = cv2.VideoCapture
+
+        class RecordingCapture:
+            """Wrap either video backend without patching native capture methods."""
+
+            def __init__(self, path: str) -> None:
+                """Open the real source capture."""
+                self.capture = original_capture(path)
+
+            def __getattr__(self, name: str) -> object:
+                """Delegate metadata and seeking to the real capture."""
+                return getattr(self.capture, name)
+
+            def read(self) -> tuple[bool, np.ndarray | None]:
+                """Signal when the reader has a frame beyond the one-slot queue."""
+                result = self.capture.read()
+                if result[0]:
+                    decoded.append(1)
+                    if not reader_captures:
+                        reader_captures.append(self)
+                    if len(decoded) == 3:
+                        reader_blocked.set()
+                return result
+
+            def release(self) -> None:
+                """Record capture release so no reader retains the source."""
+                released.append(self)
+                self.capture.release()
+
+        def callback(frame: np.ndarray, index: int) -> None:
+            """Fail only after the reader has filled the bounded queue."""
+            assert reader_blocked.wait(timeout=5)
+            if failure is not None:
+                raise failure("callback failed")
+            return None
+
+        monkeypatch.setattr(cv2, "VideoCapture", RecordingCapture)
+        expected_error = failure if failure is not None else TypeError
+
+        with pytest.raises(expected_error):
+            _run_process_video_with_deadline(
+                deadline_seconds=10,
+                source_path=dummy_video_path,
+                target_path=str(tmp_path / "cancelled.mp4"),
+                callback=callback,
+                prefetch=1,
+                writer_buffer=1,
+            )
+
+        assert len(decoded) == 3
+        assert reader_captures[0] in released
+
+    @pytest.mark.parametrize("failure_path", ["writer", "eof"])
+    def test_cancels_blocked_reader_put_and_preserves_error(
+        self,
+        dummy_video_path: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        failure_path: str,
+    ) -> None:
+        """Writer failure and a blocked EOF sentinel both allow reader cleanup."""
+        reader_blocked = threading.Event()
+        writer_error_captured = threading.Event()
+        source_closed = threading.Event()
+        decoded: list[int] = []
+        writer_error = OSError("write failed")
+        callback_error = ValueError("callback failed")
+        frame_count = 50 if failure_path == "writer" else 2
+
+        class ReadQueue(StdQueue):
+            """Signal a frame or EOF put blocked by the one-slot read queue."""
+
+            def put(self, item: object, timeout: float | None = None) -> None:
+                """Keep real queue behavior while exposing the blocked put."""
+                awaited_put = (
+                    item is None if failure_path == "eof" else item is not None
+                )
+                if awaited_put and self.full():
+                    reader_blocked.set()
+                super().put(item, timeout=timeout)
+
+        class WriteQueue(StdQueue):
+            """Hold the processor until the writer has recorded its error."""
+
+            def __init__(self) -> None:
+                """Initialize a bounded queue and its receive count."""
+                super().__init__(maxsize=1)
+                self.get_count = 0
+
+            def put(self, item: object, timeout: float | None = None) -> None:
+                """Wait for error recording before returning the first frame put."""
+                super().put(item, timeout=timeout)
+                if item is not None:
+                    assert writer_error_captured.wait(timeout=5)
+
+            def get(self, timeout: float | None = None) -> object:
+                """The writer's second receive follows its exception handler."""
+                self.get_count += 1
+                if self.get_count == 2:
+                    writer_error_captured.set()
+                return super().get(timeout=timeout)
+
+        def frames(
+            source_path: str, end: int | None = None
+        ) -> Generator[np.ndarray, None, None]:
+            """Record synthetic frame reads and source cleanup without slow I/O."""
+            try:
+                for index in range(frame_count):
+                    decoded.append(index)
+                    yield np.zeros((480, 640, 3), dtype=np.uint8)
+            finally:
+                source_closed.set()
+
+        def fail_write(self: VideoSink, frame: np.ndarray) -> None:
+            """Raise a stable error from the writer thread."""
+            raise writer_error
+
+        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+            """Stop processing only after the producer has reached the blocked put."""
+            assert index == 0
+            assert reader_blocked.wait(timeout=5)
+            if failure_path == "eof":
+                raise callback_error
+            return frame
+
+        queues = iter([ReadQueue(maxsize=1), WriteQueue()])
+        monkeypatch.setattr(
+            "supervision.utils.video.Queue", lambda maxsize: next(queues)
+        )
+        monkeypatch.setattr(
+            "supervision.utils.video.get_video_frames_generator", frames
+        )
+        monkeypatch.setattr(VideoSink, "write_frame", fail_write)
+        expected_error = RuntimeError if failure_path == "writer" else ValueError
+
+        with pytest.raises(expected_error) as exc_info:
+            _run_process_video_with_deadline(
+                deadline_seconds=10,
+                source_path=dummy_video_path,
+                target_path=str(tmp_path / "blocked-put.mp4"),
+                callback=callback,
+                prefetch=1,
+                writer_buffer=1,
+            )
+
+        if failure_path == "writer":
+            assert exc_info.value.__cause__ is writer_error
+            assert len(decoded) == 3
+        else:
+            assert exc_info.value is callback_error
+            assert decoded == [0, 1]
+        assert source_closed.is_set()
 
 
 def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
@@ -195,7 +363,7 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
 
     assert write_queue.put_calls[-1] == (None, None)
     assert all(timeout is None for _item, timeout in write_queue.put_calls[:-1])
-    assert join_calls == [10, None]
+    assert join_calls == [None, None]
 
 
 def test_process_video_retries_full_queue_sentinel_after_writer_recovers(
@@ -284,13 +452,13 @@ def test_process_video_retries_full_queue_sentinel_after_writer_recovers(
     assert not writer_threads[0].is_alive()
 
 
-def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
+def test_process_video_does_not_drain_reader_queue_after_callback_failure(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """process_video should keep waiting briefly when the reader queue times out."""
+    """A failed callback waits for the cancelled reader without reading more frames."""
 
     class TimeoutReadQueue:
-        """Record the first frame read and then time out in shutdown."""
+        """Record the first frame read and reject any read during shutdown."""
 
         def __init__(self) -> None:
             """Initialize the queue call log."""
@@ -301,11 +469,11 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
             raise AssertionError("reader queue should not be written in this test")
 
         def get(self, timeout: object | None = None) -> object:
-            """Yield one frame during processing, then time out during shutdown."""
+            """Yield one frame during processing and fail if cleanup drains it."""
             self.get_calls.append(timeout)
-            if timeout is None:
+            if len(self.get_calls) == 1:
                 return (0, np.zeros((2, 2, 3), dtype=np.uint8))
-            raise Empty
+            raise AssertionError("shutdown must not drain the source")
 
     class RecordingWriteQueue:
         """Record writer queue puts so the shutdown path can be asserted."""
@@ -323,7 +491,6 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
             raise AssertionError("writer queue should not be read in this test")
 
     join_calls: list[object | None] = []
-    reader_alive_states = iter([True, False])
 
     class FakeThread:
         """Thread stand-in that keeps the test single-threaded."""
@@ -345,10 +512,6 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
         def join(self, timeout=None) -> None:
             """Record join timeouts for shutdown verification."""
             join_calls.append(timeout)
-
-        def is_alive(self) -> bool:
-            """Return a short-lived alive state so the timeout branch is hit."""
-            return next(reader_alive_states, False)
 
     class FakeVideoSink:
         """Minimal sink context manager used to verify shutdown ordering."""
@@ -397,8 +560,8 @@ def test_process_video_waits_for_reader_timeout_when_queue_is_empty(
             show_progress=False,
         )
 
-    assert read_queue.get_calls == [None, 1, 1]
-    assert join_calls == [10, None]
+    assert read_queue.get_calls == [None]
+    assert join_calls == [None, None]
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
