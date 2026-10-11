@@ -187,7 +187,9 @@ class TestProcessVideoReaderCancellation:
             def put(self, item: object, timeout: float | None = None) -> None:
                 """Keep real queue behavior while exposing the blocked put."""
                 awaited_put = (
-                    item is None if failure_path == "eof" else item is not None
+                    item is None
+                    if failure_path == "eof"
+                    else item is not None and item[0] == 2
                 )
                 if awaited_put and self.full():
                     reader_blocked.set()
