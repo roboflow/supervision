@@ -7,7 +7,7 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 
-from supervision.config import AREA_DATA_FIELD
+from supervision.config import AREA_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.utils.object_size import (
@@ -115,6 +115,24 @@ def test_size_category_handles_integer_coordinates(
     np.testing.assert_array_equal(
         size_category_fn(coordinates), [ObjectSizeCategory.LARGE.value]
     )
+
+
+def test_detection_size_category_preserves_integer_oriented_box_coordinates() -> None:
+    """Detection OBB fallback keeps integer coordinates exact at large offsets."""
+    offset = 2**60
+    oriented_boxes = (
+        np.array([[[0, 0], [100, 0], [100, 100], [0, 100]]], dtype=np.int64) + offset
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+    result = get_detection_size_category(
+        detections, MetricTarget.ORIENTED_BOUNDING_BOXES
+    )
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
 
 
 def test_detection_size_category_prefers_explicit_area_metadata() -> None:

@@ -326,10 +326,8 @@ def get_detection_size_category(
         oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
         if oriented_box_coordinates is None:
             raise ValueError("Detections oriented bounding boxes are not available")
+        # Keep the stored dtype so integer coordinates take the exact path.
         return get_obb_size_category(
-            cast(
-                npt.NDArray[np.number],
-                np.asarray(oriented_box_coordinates, dtype=np.float32),
-            )
+            cast(npt.NDArray[np.number], np.asarray(oriented_box_coordinates))
         )
     raise ValueError("Invalid metric type")
