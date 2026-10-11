@@ -562,9 +562,8 @@ def _rle_scale_col(
         col_runs: Per-column run list starting with a ``False``-run count.
         src_h: Height of the source column (sum of ``col_runs``).
         row_map: int32 array of length ``new_crop_h``; ``row_map[r']`` is the
-            source row index for output row ``r'``.  Use
-            ``(np.arange(new_crop_h) * src_h // new_crop_h)`` for
-            ``cv2.INTER_NEAREST``-compatible mapping.
+            source row index for output row ``r'``. Use the active backend's
+            nearest-neighbour source-row map to preserve its sampling rounding.
 
     Returns:
         Scaled run list of total length ``len(row_map)``, always starting
@@ -782,6 +781,8 @@ def _rle_resize(
     crop_w: int,
     new_crop_h: int,
     new_crop_w: int,
+    row_map: npt.NDArray[np.int32] | None = None,
+    col_map: npt.NDArray[np.int32] | None = None,
 ) -> npt.NDArray[np.int32]:
     """Resize an F-order RLE-encoded crop via nearest-neighbour resampling.
 
@@ -789,8 +790,9 @@ def _rle_resize(
     array.  Delegates to :func:`_rle_split_cols`, :func:`_rle_scale_col`,
     and :func:`_rle_join_cols`.
 
-    The nearest-neighbour mapping ``src = floor(dst * src_size / dst_size)``
-    is bit-exact with ``cv2.INTER_NEAREST``.
+    Explicit source mappings follow the full image's sampling grid. Without
+    them, resampling follows the active backend's ``INTER_NEAREST`` grid
+    within the crop, including its sampling rounding.
 
     Args:
         rle: int32 array of F-order run lengths as produced by
@@ -800,6 +802,8 @@ def _rle_resize(
         crop_w: Width of the original crop.
         new_crop_h: Height of the resized crop.
         new_crop_w: Width of the resized crop.
+        row_map: Optional source rows on the full image's sampling grid.
+        col_map: Optional source columns on the full image's sampling grid.
 
     Returns:
         int32 array of F-order run lengths for the resized crop, starting
@@ -843,11 +847,22 @@ def _rle_resize(
 
     per_col = _rle_split_cols(rle, crop_h, crop_w)
 
-    # cv2.INTER_NEAREST column mapping: src = floor(dst * src_w / dst_w)
-    col_map = (np.arange(new_crop_w) * crop_w // new_crop_w).astype(np.int32)
+    if row_map is None or col_map is None:
+        from supervision._cv2 import INTER_NEAREST, resize
 
-    # cv2.INTER_NEAREST row mapping: src = floor(dst * src_h / dst_h)
-    row_map = (np.arange(new_crop_h) * crop_h // new_crop_h).astype(np.int32)
+        # Integer division can disagree with the backend at sampling boundaries.
+        if col_map is None:
+            col_map = resize(
+                np.arange(crop_w, dtype=np.int32)[None, :],
+                (new_crop_w, 1),
+                interpolation=INTER_NEAREST,
+            ).ravel()
+        if row_map is None:
+            row_map = resize(
+                np.arange(crop_h, dtype=np.int32)[:, None],
+                (1, new_crop_h),
+                interpolation=INTER_NEAREST,
+            ).ravel()
 
     # Scale each unique source column once; reuse via cache for repeated cols.
     col_cache: dict[int, list[int]] = {}
@@ -882,6 +897,8 @@ def _resize_crop(
     orig_w: int,
     new_h: int,
     new_w: int,
+    row_map: npt.NDArray[np.int32] | None = None,
+    col_map: npt.NDArray[np.int32] | None = None,
 ) -> npt.NDArray[np.int32]:
     """Resize one RLE crop to ``(new_h, new_w)``, choosing the fastest path.
 
@@ -891,8 +908,8 @@ def _resize_crop(
     2. **L3 direct RLE path** — used when run density is below
        :data:`_L3_DENSITY_THRESHOLD`; manipulates run lengths without
        allocating a 2D array.
-    3. **cv2 fallback** — decodes to ``uint8``, calls
-       ``cv2.resize(INTER_NEAREST)``, re-encodes; used for dense masks.
+    3. **Dense path** — decodes the crop, samples source pixels, then re-encodes.
+       Without explicit sampling maps, uses ``cv2.resize(INTER_NEAREST)``.
 
     Args:
         rle: int32 run-length array for the source crop.
@@ -900,6 +917,8 @@ def _resize_crop(
         orig_w: Width of the source crop.
         new_h: Target height.
         new_w: Target width.
+        row_map: Optional source rows on the full image's sampling grid.
+        col_map: Optional source columns on the full image's sampling grid.
 
     Returns:
         int32 RLE array for the resized crop.
@@ -907,20 +926,27 @@ def _resize_crop(
     from supervision import _cv2 as cv2
 
     # All-False: skip decode entirely.
-    if _rle_area(rle) == 0:
+    if (
+        _rle_area(rle) == 0
+        or (row_map is not None and row_map.size == 0)
+        or (col_map is not None and col_map.size == 0)
+    ):
         return np.array([new_h * new_w], dtype=np.int32)
 
     # L3: direct RLE arithmetic for sparse masks.
     if len(rle) / max(1, orig_h * orig_w) < _L3_DENSITY_THRESHOLD:
-        return _rle_resize(rle, orig_h, orig_w, new_h, new_w)
+        return _rle_resize(rle, orig_h, orig_w, new_h, new_w, row_map, col_map)
 
-    # cv2 fallback for dense masks.
+    # Decode dense crops before resampling.
     crop = _rle_counts_to_mask(rle, orig_h, orig_w)
-    resized = cv2.resize(
-        crop.view(np.uint8),
-        (new_w, new_h),
-        interpolation=cv2.INTER_NEAREST,
-    ).astype(bool)
+    if row_map is not None and col_map is not None:
+        resized = crop[np.ix_(row_map, col_map)]
+    else:
+        resized = cv2.resize(
+            crop.view(np.uint8),
+            (new_w, new_h),
+            interpolation=cv2.INTER_NEAREST,
+        ).astype(bool)
     return _mask_to_rle_counts(resized)
 
 
@@ -1945,10 +1971,10 @@ class CompactMask:
     def resize(self, new_image_shape: tuple[int, int]) -> CompactMask:
         """Return a new CompactMask scaled to a different image resolution.
 
-        Each crop mask is resized with nearest-neighbour interpolation.
-        Sparse masks use direct RLE arithmetic (:func:`_rle_resize`); dense
-        masks fall back to ``cv2.resize(INTER_NEAREST)``.  Offsets and crop
-        dimensions are scaled proportionally to the new image size.
+        Each crop uses the full image's nearest-neighbour sampling grid, matching
+        a dense ``cv2.resize(INTER_NEAREST)``. Sparse masks use direct RLE
+        arithmetic (:func:`_rle_resize`); dense masks sample decoded crops.
+        Crops with no sampled pixels become all-False.
 
         Performance notes:
 
@@ -2010,25 +2036,35 @@ class CompactMask:
             )
 
         img_h, img_w = self._image_shape
-        sx = new_w / img_w
-        sy = new_h / img_h
+        from supervision import _cv2 as cv2
+
+        # Reuse the active backend's full-image grid, including its rounding.
+        row_map = cv2.resize(
+            np.arange(img_h, dtype=np.int32)[:, None],
+            (1, new_h),
+            interpolation=cv2.INTER_NEAREST,
+        ).ravel()
+        col_map = cv2.resize(
+            np.arange(img_w, dtype=np.int32)[None, :],
+            (new_w, 1),
+            interpolation=cv2.INTER_NEAREST,
+        ).ravel()
 
         # L1 — vectorised coordinate arithmetic; no Python loop over N masks.
-        x1s = self._offsets[:, 0].astype(np.float64)
-        y1s = self._offsets[:, 1].astype(np.float64)
-        x2s = x1s + self._crop_shapes[:, 1] - 1  # inclusive right edge
-        y2s = y1s + self._crop_shapes[:, 0] - 1  # inclusive bottom edge
+        x1s = self._offsets[:, 0]
+        y1s = self._offsets[:, 1]
+        x2s = x1s + self._crop_shapes[:, 1]  # exclusive crop end
+        y2s = y1s + self._crop_shapes[:, 0]
 
-        new_x1s = np.clip(np.round(x1s * sx), 0, new_w - 1).astype(np.int32)
-        new_y1s = np.clip(np.round(y1s * sy), 0, new_h - 1).astype(np.int32)
-        new_x2s = np.clip(np.round(x2s * sx), 0, new_w - 1).astype(np.int32)
-        new_y2s = np.clip(np.round(y2s * sy), 0, new_h - 1).astype(np.int32)
-        new_crop_ws: npt.NDArray[np.int32] = np.maximum(
-            1, new_x2s - new_x1s + 1
-        ).astype(np.int32)
-        new_crop_hs: npt.NDArray[np.int32] = np.maximum(
-            1, new_y2s - new_y1s + 1
-        ).astype(np.int32)
+        new_x1s = np.searchsorted(col_map, x1s).astype(np.int32)
+        new_y1s = np.searchsorted(row_map, y1s).astype(np.int32)
+        new_x2s = np.searchsorted(col_map, x2s).astype(np.int32)
+        new_y2s = np.searchsorted(row_map, y2s).astype(np.int32)
+        new_crop_ws = new_x2s - new_x1s
+        new_crop_hs = new_y2s - new_y1s
+        unsampled = (new_crop_ws == 0) | (new_crop_hs == 0)
+        new_crop_ws[unsampled] = 1
+        new_crop_hs[unsampled] = 1
 
         # L2b — parallel per-crop resize; NumPy and OpenCV release the GIL.
         orig_crop_hs = self._crop_shapes[:, 0]
@@ -2041,6 +2077,8 @@ class CompactMask:
                 int(orig_crop_ws[i]),
                 int(new_crop_hs[i]),
                 int(new_crop_ws[i]),
+                row_map[new_y1s[i] : new_y2s[i]] - y1s[i],
+                col_map[new_x1s[i] : new_x2s[i]] - x1s[i],
             )
             for i in range(len(self))
         ]
@@ -2055,5 +2093,7 @@ class CompactMask:
             new_rles = [_resize_crop(*a) for a in args]
 
         new_crop_shapes = np.column_stack((new_crop_hs, new_crop_ws)).astype(np.int32)
-        new_offsets = np.column_stack((new_x1s, new_y1s)).astype(np.int32)
+        new_offsets = np.column_stack(
+            (np.minimum(new_x1s, new_w - 1), np.minimum(new_y1s, new_h - 1))
+        ).astype(np.int32)
         return CompactMask(new_rles, new_crop_shapes, new_offsets, new_image_shape)
