@@ -99,7 +99,14 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
 
 
 class TestProcessVideoReaderCancellation:
-    @pytest.mark.parametrize("failure", [ValueError, KeyboardInterrupt, None])
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            pytest.param(ValueError, id="value-error"),
+            pytest.param(KeyboardInterrupt, id="keyboard-interrupt"),
+            None,
+        ],
+    )
     def test_stops_decoding_and_releases_capture_after_callback_failure(
         self,
         dummy_video_path: str,
