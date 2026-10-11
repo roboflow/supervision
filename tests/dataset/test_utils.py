@@ -242,6 +242,16 @@ class TestApproximateMaskWithPolygons:
         assert len(polygons) == 1
         np.testing.assert_array_equal(_fill_polygons(polygons, (150, 100)), mask)
 
+    def test_rejects_unsafe_nearest_fallback_when_no_seam_is_searched(
+        self, monkeypatch
+    ) -> None:
+        """An unsafe nearest fallback raises instead of corrupting the filled mask."""
+        monkeypatch.setattr(dataset_utils, "_SEAM_SEARCH_PASSES", ())
+        mask = _c_shape_mask()
+
+        with pytest.raises(ValueError, match="No foreground-contained seam found"):
+            approximate_mask_with_polygons(mask, bridge_holes=True)
+
     def test_keeps_island_inside_hole_as_separate_polygon(self) -> None:
         """A filled island inside a hole stays its own polygon beside the ring."""
         mask = _ring_mask()
@@ -355,6 +365,17 @@ class TestIsSegmentInsideMask:
 
         result = dataset_utils._is_segment_inside_mask(
             mask, np.array([0, 1]), np.array([2, 2])
+        )
+
+        assert result is False
+
+    def test_rejects_background_cell_crossed_between_sample_points(self) -> None:
+        """A crossed cell between integer samples makes the segment unsafe."""
+        mask = np.ones((3, 6), dtype=bool)
+        mask[1, 1] = False
+
+        result = dataset_utils._is_segment_inside_mask(
+            mask, np.array([0, 0]), np.array([5, 2])
         )
 
         assert result is False

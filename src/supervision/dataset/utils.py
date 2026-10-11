@@ -97,22 +97,40 @@ def _is_segment_inside_mask(
 ) -> bool:
     """Return whether every pixel under the segment `start`-`end` is foreground.
 
-    A point that falls on a pixel border is rounded both ways and must pass for both, so
-    the answer does not depend on how a rasterizer breaks ties.
+    Grid crossings split the line into intervals that each occupy one pixel cell. A
+    crossing or interval on a cell border checks both sides, independent of rasterizer
+    tie-breaking.
     """
-    (x0, y0), (x1, y1) = start.tolist(), end.tolist()
-    steps = int(max(abs(x1 - x0), abs(y1 - y0)))
-    ratios = np.arange(steps + 1) / max(steps, 1)
-    xs, ys = x0 + (x1 - x0) * ratios, y0 + (y1 - y0) * ratios
+    (x0, y0), (x1, y1) = np.asarray([start, end], dtype=np.float64)
+    dx, dy = x1 - x0, y1 - y0
+    first_x = int(np.floor(min(x0, x1) - 0.5)) + 1
+    stop_x = int(np.ceil(max(x0, x1) - 0.5))
+    first_y = int(np.floor(min(y0, y1) - 0.5)) + 1
+    stop_y = int(np.ceil(max(y0, y1) - 0.5))
+    x_boundaries = np.arange(first_x, stop_x, dtype=np.float64) + 0.5
+    y_boundaries = np.arange(first_y, stop_y, dtype=np.float64) + 0.5
+    x_crossings = (x_boundaries - x0) / dx if dx else np.empty(0)
+    y_crossings = (y_boundaries - y0) / dy if dy else np.empty(0)
+    events = np.unique(np.concatenate(([0.0, 1.0], x_crossings, y_crossings)))
+    midpoints = (events[:-1] + events[1:]) / 2
+    ratios = np.concatenate((events, midpoints))
+    xs, ys = x0 + dx * ratios, y0 + dy * ratios
     low_x = np.floor(xs + (0.5 - 1e-6)).astype(np.intp)
     low_y = np.floor(ys + (0.5 - 1e-6)).astype(np.intp)
-    if not mask[low_y, low_x].all():
-        return False
     high_x = np.floor(xs + (0.5 + 1e-6)).astype(np.intp)
     high_y = np.floor(ys + (0.5 + 1e-6)).astype(np.intp)
+    height, width = mask.shape
+    if (
+        (low_x < 0).any()
+        or (high_x >= width).any()
+        or (low_y < 0).any()
+        or (high_y >= height).any()
+    ):
+        return False
     return bool(
-        mask[high_y, high_x].all()
+        mask[low_y, low_x].all()
         and mask[low_y, high_x].all()
+        and mask[high_y, high_x].all()
         and mask[high_y, low_x].all()
     )
 
@@ -158,8 +176,11 @@ def _find_seam(
 ) -> tuple[int, int]:
     """Find the shortest seam from `hole` to the attached vertices on foreground.
 
-    Candidates are tried in order of length. When none passes the straight-line test,
-    the nearest pair is returned, so a hole is always attached.
+    Candidates are tried in order of length. The nearest fallback is validated by the
+    same straight-line test; unsafe candidates fail instead of corrupting the mask.
+
+    Raises:
+        ValueError: If no bounded candidate seam stays within foreground pixels.
     """
     for neighbour_count, max_checks in _SEAM_SEARCH_PASSES:
         sources, targets, lengths = _seam_candidates(
@@ -171,7 +192,10 @@ def _find_seam(
                 return source, target
     sources, targets, lengths = _seam_candidates(points, hole, tree, members, recent, 1)
     nearest = int(np.argmin(lengths))
-    return int(sources[nearest]), int(targets[nearest])
+    source, target = int(sources[nearest]), int(targets[nearest])
+    if _is_segment_inside_mask(mask, points[source], points[target]):
+        return source, target
+    raise ValueError("No foreground-contained seam found for a mask hole.")
 
 
 def _bridge_holes(
@@ -271,6 +295,10 @@ def approximate_mask_with_polygons(
 
     Returns:
         A list of polygons, each of shape `(N, 2)`.
+
+    Raises:
+        ValueError: If no candidate seam stays within foreground pixels when
+            `bridge_holes=True`.
 
     Examples:
         ```pycon
