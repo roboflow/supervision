@@ -1,6 +1,6 @@
 ---
 comments: true
-description: API reference for MeanAveragePrecision — compute mAP for object detection benchmarking with boxes, masks, and oriented boxes.
+description: API reference for MeanAveragePrecision and KeyPointMeanAveragePrecision — COCO mAP for detection (boxes, masks, oriented boxes) and pose estimation (keypoints, OKS).
 ---
 
 # Mean Average Precision
@@ -10,6 +10,8 @@ Install the metrics extra before using this API:
 ```bash
 pip install "supervision[metrics]"
 ```
+
+`MeanAveragePrecision` scores detection models on `sv.Detections` (boxes, masks or oriented boxes) matched by IoU. `KeyPointMeanAveragePrecision` scores pose estimation models on `sv.KeyPoints` matched by Object Keypoint Similarity (OKS); see [Pose estimation](#pose-estimation). Both follow COCO evaluation and return results with the same `map50_95`, `map50`, `map75`, `plot` and `to_pandas` interface.
 
 ## Evaluate targets from a PyTorch DataLoader
 
@@ -111,6 +113,22 @@ print(confusion_matrix.matrix)
 
 Keep low-confidence predictions when computing mAP: filtering at `0.5` before evaluation discards part of the precision-recall curve. The confusion matrix uses its own confidence threshold. Iterate over the complete loader, preserving one prediction/target pair per image even when either side is empty.
 
+## Pose estimation
+
+`KeyPointMeanAveragePrecision` scores pose estimation models the way COCO keypoint evaluation does: predictions are matched to targets by Object Keypoint Similarity (OKS) instead of IoU. Pass one `sv.KeyPoints` per image for predictions and targets. COCO visibility `v=1` (occluded) and `v=2` (visible) both map to `KeyPoints.visible=True` and `v=0` to `False`, since `pycocotools` counts every keypoint with `v>0`. To reproduce COCO numbers, store each target's annotated area in `targets.data["area"]`; otherwise the area of the box spanning its visible keypoints is used. Targets with no visible keypoint are COCO ignore regions only when their boxes are given as `targets.data["xyxy"]` in `(x_min, y_min, x_max, y_max)`; without boxes they are skipped, so a prediction on one counts as a false positive, and a class whose only targets are skipped scores `-1`. A prediction box in `predictions.data["xyxy"]` sets its object-size bucket, as the `bbox` of a COCO result entry does in `pycocotools`. Mark COCO crowd targets with `targets.data["iscrowd"]`; like `pycocotools`, they are ignore regions that any number of predictions may match. Predictions are ranked by `detection_confidence`, not keypoint `confidence`. Non-finite (NaN or infinite) coordinates are not rejected: a non-finite target keypoint counts as unlabelled, like `visible=False`, and a non-finite prediction keypoint adds nothing to OKS while its finite keypoints still count; `pycocotools` instead returns a NaN OKS when a labelled keypoint of the pair is NaN. A target area must be finite and non-negative; a zero area is accepted but leaves only exact-match keypoints counting. Clean such labels first.
+
+```python
+import supervision as sv
+from supervision.metrics import KeyPointMeanAveragePrecision
+
+metric = KeyPointMeanAveragePrecision()  # COCO sigmas for 17-point skeletons
+for predictions, targets in zip(PREDICTIONS, TARGETS):
+    metric.update(predictions, targets)
+
+result = metric.compute()
+print(result.map50_95)
+```
+
 ## API reference
 
 <div class="md-typeset">
@@ -130,3 +148,15 @@ Keep low-confidence predictions when computing mAP: filtering at `0.5` before ev
 </div>
 
 :::supervision.dataset.formats.coco.get_coco_class_index_mapping
+
+<div class="md-typeset">
+    <h2><a href="#supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision">KeyPointMeanAveragePrecision</a></h2>
+</div>
+
+:::supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecision
+
+<div class="md-typeset">
+    <h2><a href="#supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecisionResult">KeyPointMeanAveragePrecisionResult</a></h2>
+</div>
+
+:::supervision.metrics.keypoint_mean_average_precision.KeyPointMeanAveragePrecisionResult

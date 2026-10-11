@@ -6,6 +6,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import (
+    COCOEvaluator,
     EvaluationDataset,
     MeanAveragePrecision,
 )
@@ -653,6 +654,47 @@ class TestMeanAveragePrecision:
         assert result.medium_objects.map50_95 == -1
         assert result.large_objects.map50_95 == -1
 
+    def test_box_map_uses_100_max_detections_by_default(self) -> None:
+        """Box mAP reads the 100-detection slice, so a match ranked 12th counts.
+
+        Eleven higher-scored false positives push the only true positive past the 1 and
+        10 detection limits, so AP is `1/12` only at 100 max detections.
+        """
+        false_positives = np.array(
+            [[200 + 20 * i, 0, 210 + 20 * i, 10] for i in range(11)], dtype=float
+        )
+        predictions = Detections(
+            xyxy=np.vstack([false_positives, [[0, 0, 50, 50]]]),
+            class_id=np.zeros(12, dtype=int),
+            confidence=np.r_[np.linspace(0.99, 0.9, 11), 0.5],
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 50, 50]], dtype=float), class_id=np.array([0])
+        )
+
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1 / 12, abs=1e-6)
+        assert result.map50 == pytest.approx(1 / 12, abs=1e-6)
+
+    def test_box_map_plot_shows_figure(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Box mAP `plot` draws the bars and hands them to `plt.show` once."""
+        from matplotlib import pyplot as plt
+
+        shown: list[bool] = []
+        monkeypatch.setattr(plt, "show", lambda: shown.append(True))
+        detections = Detections(
+            xyxy=np.array([[0, 0, 50, 50]], dtype=float),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        result = MeanAveragePrecision().update(detections, detections).compute()
+
+        result.plot()
+        plt.close("all")
+
+        assert shown == [True]
+
 
 class TestMeanAveragePrecisionMasks:
     @pytest.mark.parametrize(
@@ -1051,8 +1093,133 @@ class TestEvaluationDatasetLoadPredictions:
         assert loaded_annotations[0]["bbox"] == [0, 0, 1, 1]
 
 
+class TestMeanAveragePrecisionObjectSizes:
+    """Box mAP per object size is pinned across changes to the shared evaluator."""
+
+    def test_size_bucket_scores_are_unchanged(self) -> None:
+        """One imperfect box per size bucket keeps its pinned bucket and overall mAP."""
+        # Arrange
+        targets = Detections(
+            xyxy=np.array(
+                [[0, 0, 20, 20], [100, 100, 150, 150], [200, 200, 320, 320]],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 0, 0]),
+        )
+        predictions = Detections(
+            xyxy=np.array(
+                [
+                    [1, 1, 21, 21],
+                    [105, 100, 155, 150],
+                    [200, 200, 320, 330],
+                    [400, 400, 450, 450],
+                ],
+                dtype=np.float32,
+            ),
+            confidence=np.array([0.9, 0.8, 0.7, 0.95]),
+            class_id=np.array([0, 0, 0, 0]),
+        )
+
+        # Act
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # Assert
+        # Every bucket scores differently, so reading one bucket's precision
+        # slice for another fails here.
+        scores = [
+            result.map50_95,
+            result.small_objects.map50_95,
+            result.medium_objects.map50_95,
+            result.large_objects.map50_95,
+        ]
+        assert scores == pytest.approx([0.5418316831683168, 0.7, 0.35, 0.9], abs=1e-6)
+
+
+class TestCOCOEvaluatorAreaRanges:
+    """The shared accumulator finds each object size by its area range."""
+
+    def test_sizes_outside_the_evaluated_area_ranges_score_sentinel(self) -> None:
+        """Without the small range, medium keeps its score and small scores -1."""
+        # Arrange
+        # One medium target and a prediction at IoU 0.82, which matches at the
+        # thresholds 0.5 to 0.8.
+        targets = EvaluationDataset(
+            targets={
+                "images": [{"id": 0}],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 0,
+                        "category_id": 0,
+                        "bbox": [100, 100, 50, 50],
+                        "area": 2500.0,
+                        "iscrowd": 0,
+                    }
+                ],
+                "categories": [{"id": 0}],
+            }
+        )
+        predictions = targets.load_predictions(
+            [
+                {
+                    "image_id": 0,
+                    "category_id": 0,
+                    "bbox": [105, 100, 50, 50],
+                    "score": 0.8,
+                }
+            ]
+        )
+        evaluator = COCOEvaluator(targets, predictions)
+        evaluator.params.area_range = [
+            [0, mean_average_precision.MAX_ALL_OBJECT_AREA],
+            [
+                mean_average_precision.SMALL_OBJECT_AREA,
+                mean_average_precision.MEDIUM_OBJECT_AREA,
+            ],
+            [
+                mean_average_precision.MEDIUM_OBJECT_AREA,
+                mean_average_precision.MAX_ALL_OBJECT_AREA,
+            ],
+        ]
+
+        # Act
+        evaluator.evaluate()
+
+        # Assert
+        matched = [1.0] * 7 + [0.0] * 3
+        np.testing.assert_allclose(evaluator.results["mAP_scores_all_sizes"], matched)
+        np.testing.assert_allclose(evaluator.results["mAP_scores_medium"], matched)
+        np.testing.assert_allclose(evaluator.results["mAP_scores_small"], [-1.0] * 10)
+        np.testing.assert_allclose(evaluator.results["mAP_scores_large"], [-1.0] * 10)
+        np.testing.assert_allclose(
+            evaluator.results["ap_per_class_small"], [[-1.0] * 10]
+        )
+
+
 class TestMeanAveragePrecisionPycocotoolsParity:
     """Scores match pycocotools where float32 rounding would move a threshold."""
+
+    @pytest.mark.parametrize("num_objects", [1, 2])
+    def test_perfect_predictions_score_exactly_one(self, num_objects: int) -> None:
+        """Perfect predictions score 1.0, not 1.0 minus the precision epsilon."""
+        # Arrange
+        xyxy = np.array([[i * 20, 0, i * 20 + 10, 10] for i in range(num_objects)])
+        targets = Detections(xyxy=xyxy, class_id=np.zeros(num_objects, dtype=int))
+        predictions = Detections(
+            xyxy=xyxy,
+            class_id=np.zeros(num_objects, dtype=int),
+            confidence=np.full(num_objects, 0.9),
+        )
+
+        # Act
+        result = MeanAveragePrecision().update(predictions, targets).compute()
+
+        # Assert
+        # pycocotools 2.0.11 gives 1.0 within 3e-16; a float32 epsilon gave
+        # 0.99999988.
+        assert result.map50_95 == 1.0
+        assert result.map50 == 1.0
+        assert result.map75 == 1.0
 
     def test_recall_landing_on_a_recall_threshold_matches_pycocotools(self) -> None:
         """Recall 0.7 of 10 targets samples precision where pycocotools does."""
