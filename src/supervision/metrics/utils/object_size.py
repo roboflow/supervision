@@ -242,30 +242,31 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
 
-    coordinates: npt.NDArray[np.number]
+    coordinates: npt.NDArray[np.number] | npt.NDArray[np.object_]
     if np.issubdtype(xyxyxyxy.dtype, np.integer):
-        # Translate exactly before multiplying to avoid overflow and precision loss.
-        dtype = np.int64 if xyxyxyxy.dtype.itemsize < 8 else object
-        exact_coordinates = xyxyxyxy.astype(dtype)
-        coordinates = np.asarray(
-            exact_coordinates - exact_coordinates[:, :1], dtype=np.float64
-        )
+        # Object arithmetic keeps both the translated coordinates and shoelace
+        # products exact when large terms nearly cancel.
+        exact_coordinates = xyxyxyxy.astype(object)
+        coordinates = exact_coordinates - exact_coordinates[:, :1]
     else:
-        coordinates = xyxyxyxy
+        calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
+        coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
     x = coordinates[:, :, 0]
     y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
     y1, y2, y3, y4 = y.T
-    areas = 0.5 * np.abs(
+    twice_areas = np.abs(
         (x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1)
         - (x2 * y1 + x3 * y2 + x4 * y3 + x1 * y4)
     )
 
-    result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
+    result = np.full(twice_areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
-    result[areas < SM] = ObjectSizeCategory.SMALL.value
-    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= LG] = ObjectSizeCategory.LARGE.value
+    result[twice_areas < 2 * SM] = ObjectSizeCategory.SMALL.value
+    result[(twice_areas >= 2 * SM) & (twice_areas < 2 * LG)] = (
+        ObjectSizeCategory.MEDIUM.value
+    )
+    result[twice_areas >= 2 * LG] = ObjectSizeCategory.LARGE.value
     return result
 
 

@@ -135,6 +135,64 @@ def test_detection_size_category_preserves_integer_oriented_box_coordinates() ->
     np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
 
 
+def test_obb_size_category_preserves_int64_skinny_polygon_area() -> None:
+    """A skinny int64 polygon keeps its exact area category after cancellation."""
+    size = 2**60
+    oriented_boxes = np.array(
+        [[[0, 0], [size, size], [size - 1, size + 1], [-1, 1]]], dtype=np.int64
+    )
+
+    result = get_obb_size_category(oriented_boxes)
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
+
+
+def test_detection_size_category_preserves_int64_skinny_polygon_area() -> None:
+    """Detection OBB categorization preserves exact large integer polygon area."""
+    size = 2**60
+    oriented_boxes = np.array(
+        [[[0, 0], [size, size], [size - 1, size + 1], [-1, 1]]], dtype=np.int64
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, size, size]], dtype=np.int64),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+    result = get_detection_size_category(
+        detections, MetricTarget.ORIENTED_BOUNDING_BOXES
+    )
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
+
+
+def test_obb_size_category_promotes_float16_area_products() -> None:
+    """Float16 coordinates are promoted before shoelace products overflow."""
+    oriented_boxes = np.array(
+        [[[100, 100], [200, 100], [200, 200], [100, 200]]], dtype=np.float16
+    )
+
+    result = get_obb_size_category(oriented_boxes)
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
+
+
+def test_detection_size_category_promotes_float16_area_products() -> None:
+    """Detection OBB categorization safely calculates float16 polygon area."""
+    oriented_boxes = np.array(
+        [[[100, 100], [200, 100], [200, 200], [100, 200]]], dtype=np.float16
+    )
+    detections = Detections(
+        xyxy=np.array([[100, 100, 200, 200]], dtype=np.float32),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+    result = get_detection_size_category(
+        detections, MetricTarget.ORIENTED_BOUNDING_BOXES
+    )
+
+    np.testing.assert_array_equal(result, [ObjectSizeCategory.LARGE.value])
+
+
 def test_detection_size_category_prefers_explicit_area_metadata() -> None:
     """Explicit area metadata overrides geometry for size categorization."""
     detections = Detections(
