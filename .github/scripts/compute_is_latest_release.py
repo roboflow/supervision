@@ -12,7 +12,8 @@ Scope:
     before calling this) against every tag in the local repository, applying the
     same two exclusions to each candidate before comparing. The repository must be
     checked out with full history (``fetch-depth: 0``) for the comparison to see
-    every prior release.
+    every prior release (``publish-docs.yml`` fetches tags explicitly instead of
+    using ``fetch-depth: 0``, which would also pull the multi-GB ``gh-pages`` branch).
 Usage:
     ``python .github/scripts/compute_is_latest_release.py <release_tag>`` prints
     ``true`` or ``false`` to stdout.
