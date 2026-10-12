@@ -180,7 +180,7 @@ class CSVSink:
         if isinstance(value, np.ndarray) and value.ndim > 0:
             try:
                 return json.dumps(value.tolist())
-            except TypeError:
+            except (TypeError, ValueError):
                 return value
         return value
 

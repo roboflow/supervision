@@ -1016,3 +1016,19 @@ class TestCSVSinkArrayData:
                 json.loads(row[ORIENTED_BOX_COORDINATES])
                 == json_row[ORIENTED_BOX_COORDINATES]
             )
+
+    def test_circular_object_array_falls_back_to_string(self, tmp_path: Path) -> None:
+        """Circular object arrays keep the CSV writer's string fallback."""
+        cycle: list[object] = []
+        cycle.append(cycle)
+        values = np.empty(1, dtype=object)
+        values[0] = cycle
+        detections = sv.Detections(xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]]))
+        path = tmp_path / "circular.csv"
+
+        with sv.CSVSink(str(path)) as sink:
+            sink.append(detections, custom_data={"values": values})
+        with path.open(newline="") as file:
+            rows = list(csv.DictReader(file))
+
+        assert [row["values"] for row in rows] == [str(values)] * 2
