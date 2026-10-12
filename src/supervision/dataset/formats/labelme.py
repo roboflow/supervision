@@ -7,10 +7,12 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
-from supervision.dataset.utils import check_no_basename_collisions
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
-    mask_to_polygons,
     polygon_to_mask,
     polygon_to_xyxy,
 )
@@ -324,9 +326,11 @@ def detections_to_labelme_shapes(
     """Convert ``Detections`` into a list of LabelMe shape dicts.
 
     Masked detections are exported as ``polygon`` shapes (one per connected
-    component); box-only detections — and masked detections whose mask yields no
-    polygon contour (e.g. an empty or sub-pixel mask) — are exported as
-    ``rectangle`` shapes, so no detection is silently dropped.
+    component, with each hole spliced into its outer contour by a zero-width seam
+    rather than exported as a shape of its own); box-only detections — and masked
+    detections whose mask yields no polygon contour (e.g. an empty or sub-pixel
+    mask) — are exported as ``rectangle`` shapes, so no detection is silently
+    dropped.
     Disconnected components of one mask share a ``group_id`` unique to that
     detection within the image.
 
@@ -359,7 +363,7 @@ def detections_to_labelme_shapes(
         label = classes[class_index]
         if masks is not None:
             mask_arr = np.asarray(masks[index], dtype=np.bool_)
-            polygons = mask_to_polygons(mask_arr)
+            polygons = approximate_mask_with_polygons(mask=mask_arr, bridge_holes=True)
         else:
             polygons = []
         if polygons:
