@@ -135,7 +135,7 @@ def get_area_size_category(
 
     Returns:
         The size category of each area, matching the enum values of
-        `ObjectSizeCategory`. Shaped (N,).
+        :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory`. Shaped (N,).
 
     Raises:
         ValueError: If `areas` is not one-dimensional.

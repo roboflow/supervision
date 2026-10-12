@@ -44,7 +44,8 @@ class CSVSink:
         element is written to the corresponding detection row; any other value
         is broadcast to all rows. A NumPy array that remains in a cell (for
         example an embedding or the corners of an oriented box) is written as a
-        JSON list, as ``sv.JSONSink`` does, so it can be read back with
+        JSON list, as :class:`~supervision.detection.tools.json_sink.JSONSink` does,
+        so it can be read back with
         ``json.loads``.
 
     Args:
@@ -167,7 +168,9 @@ class CSVSink:
         ``csv.writer`` calls ``str()``, which abbreviates arrays of more than 1000
         elements with ``...`` and uses a space-separated, multi-line layout.
         Arrays with at least one dimension are written as ``json.dumps`` of
-        ``tolist()``, matching ``sv.JSONSink``. Other values pass through
+        ``tolist()``, matching
+        :class:`~supervision.detection.tools.json_sink.JSONSink`. Other values pass
+        through
         unchanged, as do arrays JSON cannot represent (e.g. object arrays).
 
         Args:
