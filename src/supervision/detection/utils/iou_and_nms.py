@@ -886,15 +886,16 @@ def compact_mask_iou_batch(
        participates in many pairs.
 
     The result is numerically identical to running the dense
-    :func:`~supervision.detection.utils.iou_and_nms.mask_iou_batch` on ``np.asarray(masks_true)`` /
-    ``np.asarray(masks_detection)``.
+    :func:`~supervision.detection.utils.iou_and_nms.mask_iou_batch` on
+    ``np.asarray(masks_true)`` / ``np.asarray(masks_detection)``.
 
     Args:
         masks_true: :class:`~supervision.detection.compact_mask.CompactMask`
             holding the ground-truth masks.
         masks_detection: :class:`~supervision.detection.compact_mask.CompactMask`
             holding the detection masks.
-        overlap_metric: :class:`~supervision.detection.utils.iou_and_nms.OverlapMetric` — ``IOU`` or ``IOS``.
+        overlap_metric: :class:`~supervision.detection.utils.iou_and_nms.OverlapMetric`
+            — ``IOU`` or ``IOS``.
 
     Returns:
         Float array of shape ``(N1, N2)`` with pairwise overlap values.
@@ -1833,10 +1834,12 @@ def oriented_box_non_max_suppression(
 ) -> npt.NDArray[np.bool_]:
     """Perform Non-Maximum Suppression on oriented bounding box predictions.
 
-    Overlap is computed via :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on the four
-    corners of each box, so detections whose axis-aligned bounding boxes
+    Overlap is computed via
+    :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch` on
+    the four corners of each box, so detections whose axis-aligned bounding boxes
     overlap heavily but whose oriented bodies do not are kept — unlike
-    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`, which would suppress them.
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which would suppress them.
 
     Args:
         predictions: An array of object detection predictions in the
@@ -1929,7 +1932,8 @@ def _group_overlapping_oriented_boxes(
     """Greedy non-maximum merging on oriented boxes.
 
     Mirrors
-    :func:`~supervision.detection.utils.iou_and_nms._group_overlapping_boxes` but uses :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`.
+    :func:`~supervision.detection.utils.iou_and_nms._group_overlapping_boxes`
+    but uses :func:`~supervision.detection.utils.iou_and_nms.oriented_box_iou_batch`.
     """
     merge_groups: list[list[int]] = []
     scores = predictions[:, 4]
@@ -1961,8 +1965,9 @@ def oriented_box_non_max_merge(
     """Perform Non-Maximum Merging on oriented bounding box predictions, grouped per
     category.
 
-    Mirrors :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge` but uses oriented-box IoU, so groups
-    of rotated detections sharing the same body — rather than the same
+    Mirrors :func:`~supervision.detection.utils.iou_and_nms.box_non_max_merge`
+    but uses oriented-box IoU, so groups of rotated detections sharing the same
+    body — rather than the same
     axis-aligned bounding box — are merged.
 
     Args:

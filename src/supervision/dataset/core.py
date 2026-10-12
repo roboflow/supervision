@@ -285,17 +285,18 @@ class DetectionDataset(BaseDataset):
         """Merge a list of :class:`~supervision.dataset.core.DetectionDataset` objects
         into a single :class:`~supervision.dataset.core.DetectionDataset` object.
 
-        This method takes a list of :class:`~supervision.dataset.core.DetectionDataset` objects and combines
-        their respective fields (`classes`, `images`,
-        `annotations`) into a single :class:`~supervision.dataset.core.DetectionDataset` object.
+        This method takes a list of
+        :class:`~supervision.dataset.core.DetectionDataset` objects and combines
+        their respective fields (`classes`, `images`, `annotations`) into a
+        single :class:`~supervision.dataset.core.DetectionDataset` object.
 
         Args:
             dataset_list: A list of :class:`~supervision.dataset.core.DetectionDataset`
                 objects to merge.
 
         Returns:
-            A single :class:`~supervision.dataset.core.DetectionDataset` object containing
-            the merged data from the input list.
+            A single :class:`~supervision.dataset.core.DetectionDataset` object
+            containing the merged data from the input list.
 
         Examples:
             ```pycon

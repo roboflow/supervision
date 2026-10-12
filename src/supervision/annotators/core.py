@@ -701,8 +701,9 @@ class PolygonAnnotator(BaseAnnotator):
         Note:
             When `detections.mask` is a
             :class:`~supervision.detection.compact_mask.CompactMask`, each
-            detection's polygon is decoded from a bbox-sized crop (O(crop_area)) rather than a
-            full-frame ``(H, W)`` allocation (O(H·W)). Polygon coordinates are
+            detection's polygon is decoded from a bbox-sized crop (O(crop_area))
+            rather than a full-frame ``(H, W)`` allocation (O(H·W)). Polygon
+            coordinates are
             shifted from crop-local space to image space via the stored
             ``(x1, y1)`` bbox origin. Pixels outside the declared ``xyxy`` box
             are not represented in compact storage and will not be drawn.

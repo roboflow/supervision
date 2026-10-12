@@ -197,9 +197,10 @@ def coco_annotations_to_detections(
         the result through :func:`~supervision.dataset.utils.map_detections_class_id`
         with the appropriate
         ``source_to_target_mapping`` (built by
-        :func:`~supervision.dataset.formats.coco.build_coco_class_index_mapping`) before the ``class_id`` values are
-        meaningful.  Skipping the remap step yields 1-based ids in a field that the
-        rest of supervision treats as 0-based.
+        :func:`~supervision.dataset.formats.coco.build_coco_class_index_mapping`)
+        before the ``class_id`` values are meaningful. Skipping the remap step
+        yields 1-based ids in a field that the rest of supervision treats as
+        0-based.
 
     Args:
         image_annotations: List of COCO annotation dicts for one image.
@@ -210,10 +211,12 @@ def coco_annotations_to_detections(
 
     Returns:
         Detections with ``class_id`` set to raw COCO ``category_id`` values.
-        Call :func:`~supervision.dataset.utils.map_detections_class_id` on the result before use.
+        Call :func:`~supervision.dataset.utils.map_detections_class_id` on the
+        result before use.
         When ``with_masks=False``, ``detections.data[COCO_RAW_SEGMENTATION]`` is
         populated as an object array (shape ``(N,)``) holding the raw polygon list or
-        RLE dict per annotation; consumed by :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`
+        RLE dict per annotation; consumed by
+        :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`
         for a coordinate-preserving round-trip.
 
     Raises:

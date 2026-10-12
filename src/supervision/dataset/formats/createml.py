@@ -70,7 +70,8 @@ def createml_annotations_to_detections(
         class_to_index: Mapping from class name to zero-based integer id.
 
     Returns:
-        A :class:`~supervision.detection.core.Detections` instance with ``xyxy`` boxes and ``class_id`` set.
+        A :class:`~supervision.detection.core.Detections` instance with
+        ``xyxy`` boxes and ``class_id`` set.
         Returns ``Detections.empty()`` when ``image_annotations`` is empty.
 
     Raises:

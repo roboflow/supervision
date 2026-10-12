@@ -48,8 +48,8 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     reports no overlap between identical regions,
     :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
     and the :class:`~supervision.detection.core.Detections` ``area`` property
-    turns negative when only one of the two extents is negative. Reject both here rather than let a corrupt
-    label travel on.
+    turns negative when only one of the two extents is negative. Reject both
+    here rather than let a corrupt label travel on.
     """
     x_center, y_center, width, height = values
     numbers = [float(value) for value in values]

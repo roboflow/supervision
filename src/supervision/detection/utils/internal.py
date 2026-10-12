@@ -192,9 +192,9 @@ def _decode_compact_masks(
             mixed-modality alignment guard.
 
     Returns:
-        A merged :class:`~supervision.detection.compact_mask.CompactMask` when all
-        predictions that carry masks decoded successfully, or ``None`` when no masks are present or the
-        mixed-modality guard triggers.
+        A merged :class:`~supervision.detection.compact_mask.CompactMask` when
+        all predictions that carry masks decoded successfully, or ``None``
+        when no masks are present or the mixed-modality guard triggers.
 
     Examples:
         ```pycon
@@ -322,9 +322,10 @@ def process_roboflow_result(
         masks to be dropped from the result; the detection itself is kept as a
         box-only entry with a ``logger.warning``. When ``compact_masks=True``
         and masks are
-        present, ``masks`` is a :class:`~supervision.detection.compact_mask.CompactMask`; otherwise it is a dense
-        boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
-        tracker ID, or when only a subset do (mixed batch) — in that case all
+        present, ``masks`` is a
+        :class:`~supervision.detection.compact_mask.CompactMask`; otherwise it
+        is a dense boolean array. ``tracker_ids`` is ``None`` when no predictions
+        carry a tracker ID, or when only a subset do (mixed batch) — in that case all
         tracker IDs are dropped to preserve alignment with ``xyxy``.
 
     Raises:
@@ -689,11 +690,12 @@ def merge_metadata_lenient(
 ) -> tuple[_MetadataType, set[str]]:
     """Merge metadata dictionaries, dropping keys that cannot be reconciled.
 
-    Unlike :func:`~supervision.detection.utils.internal.merge_metadata`, which raises on any disagreement, this variant
-    applies a lenient policy: a key survives only when every dictionary carries it
+    Unlike :func:`~supervision.detection.utils.internal.merge_metadata`, which
+    raises on any disagreement, this variant applies a lenient policy: a key
+    survives only when every dictionary carries it
     and all of its values compare equal under
-    :func:`~supervision.detection.utils.internal.metadata_values_equal`. Every other key is dropped and reported back so
-    the caller can react to the loss.
+    :func:`~supervision.detection.utils.internal.metadata_values_equal`. Every
+    other key is dropped and reported back so the caller can react to the loss.
 
     A single traversal both detects conflicts and builds the merged dictionary;
     the surviving value is the one from the first dictionary that carried the key.
