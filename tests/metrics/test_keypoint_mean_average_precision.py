@@ -1044,10 +1044,14 @@ class TestKeyPointMeanAveragePrecisionParity:
         evaluator.accumulate()
         evaluator.summarize()
 
-        result = KeyPointMeanAveragePrecision().update(
+        result = (
+            KeyPointMeanAveragePrecision()
+            .update(
                 [image.predictions for image in images],
                 [image.targets for image in images],
-            ).compute()
+            )
+            .compute()
+        )
 
         expected_stats = evaluator.stats
         actual_stats = np.array(
