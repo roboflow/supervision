@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'darwin'",
@@ -878,6 +878,58 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/91/50/a9d80c47ff289c611ff12e63f7c5d13942c65d68125160cefd768c73e6e4/executing-2.2.0.tar.gz", hash = "sha256:5d108c028108fe2551d1a7b2e8b713341e2cb4fc0aa7dcf966fa4327a5226755", size = 978693, upload-time = "2025-01-22T15:41:29.403Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/8f/c4d9bafc34ad7ad5d8dc16dd1347ee0e507a52c3adb6bfa8887e1c6a26ba/executing-2.2.0-py2.py3-none-any.whl", hash = "sha256:11387150cad388d62750327a53d3339fad4888b39a6fe233c3afbb54ecffd3aa", size = 26702, upload-time = "2025-01-22T15:41:25.929Z" },
+]
+
+[[package]]
+name = "faster-coco-eval"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/83/9d978ae1a44f10be232aec200a4b44625c5efaf23c43a8dd9b6e7dfae147/faster_coco_eval-1.8.0.tar.gz", hash = "sha256:0d342e22228a2a41b734694b3b8811888b0b8aeeca34fe86b7455836b62c5a85", size = 133362, upload-time = "2026-08-24T15:13:25.679Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/c6/6e3bec678f2bfc5926bfba3fb2f863881dcc2e3e7a7ff528598166fc638b/faster_coco_eval-1.8.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:2e96dce6a97af41e8946844653b4b460131c49a7f523bedd929c3edf07a5c107", size = 368324, upload-time = "2026-08-24T15:12:33.349Z" },
+    { url = "https://files.pythonhosted.org/packages/62/f2/0f7b7e9b109ef10cea1d0024b23115a02b5439d4af771e686e574c5b010a/faster_coco_eval-1.8.0-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:65e60f5dfcc34822da0455548e46016e0f1ce5157f49f6271b3759bef2962b8a", size = 567540, upload-time = "2026-08-24T15:12:34.75Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/9b/d810855469bc6474719a1d62c32e83626a437cf28057423266a0d4d1e31d/faster_coco_eval-1.8.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e8b39068a6cf5f7d7cbccce34cafe825ddc1e030a2e9f1225741b671199d836b", size = 589169, upload-time = "2026-08-24T15:12:36.189Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/47/1d5e983b07825ebb8341511248ff902de7a6533927889dbd3ef5fda84a51/faster_coco_eval-1.8.0-cp310-cp310-win_amd64.whl", hash = "sha256:3eba19bf8e2c0365e698bcc51a88797fef8b13320d333f3accfd7684de59051d", size = 558663, upload-time = "2026-08-24T15:12:37.556Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/39/850cc92930a6f789efac9779d648d185cbb82e4dca5592dfd17ae6065206/faster_coco_eval-1.8.0-cp310-cp310-win_arm64.whl", hash = "sha256:671fb13193d18829c72a9a8fe87813633b7a7602ab61c9875a56f50011276c35", size = 371979, upload-time = "2026-08-24T15:12:38.933Z" },
+    { url = "https://files.pythonhosted.org/packages/06/f8/edf84facae992cb73ec8a8a0cb3b473976fb1a6435715e00dfd265b1acc2/faster_coco_eval-1.8.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:2b749535c10cb0c003d7d16463435f9cc026cc6bcc97e3399cc38a71e3280585", size = 371097, upload-time = "2026-08-24T15:12:40.199Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/fe/57e89f625fe0c6951521cc7bed3efb8323006620f59001b0ea8fd917cb0f/faster_coco_eval-1.8.0-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:da79dabb16b0256553d97147c9bf74966faf56e9959ce8f363b79278a2883477", size = 571471, upload-time = "2026-08-24T15:12:41.35Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/a5/b59244f6b4aa48c4da2d38f959ab4b1388605e7aef80bdadc99e3e2223d7/faster_coco_eval-1.8.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f4a2ad80b8d7619b9e043d716ddb5b43896125a3ba408414a25793fb04f83751", size = 592627, upload-time = "2026-08-24T15:12:42.739Z" },
+    { url = "https://files.pythonhosted.org/packages/98/12/bbc2457444e822b28ab0cf8f03d8dc8d680336e802f2295e4ad0c98e2365/faster_coco_eval-1.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:bbaf963cd16099073f9d1d381baa175785c4c12a432d8b9712ea9a03df04d100", size = 560234, upload-time = "2026-08-24T15:12:44.402Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/a1/b3687b42093ef4c4c2dbad32c775bf8520c997a7d4a12b6b054587f696ff/faster_coco_eval-1.8.0-cp311-cp311-win_arm64.whl", hash = "sha256:7ddd0c47707efcfb64fb27be2e2a9740602b760f255d0f74acb962fb0e9ba1a5", size = 372731, upload-time = "2026-08-24T15:12:45.702Z" },
+    { url = "https://files.pythonhosted.org/packages/88/e8/e9a19f88e982877056634ee6db745227839f391b373df327ca460496ce08/faster_coco_eval-1.8.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:80aa473ae7190c28b1c2db28dc4e21f3fb35ee86afdf65527a3af774fbb3d1b4", size = 371239, upload-time = "2026-08-24T15:12:46.753Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/69/0a831ac1eddde7c044bce6bad791157140784144d06d785db5f4e725a549/faster_coco_eval-1.8.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2fcff9f536ff1ed4c8ebd0d46229489a211d4540b11da47c95f272837fb56c11", size = 578095, upload-time = "2026-08-24T15:12:48.011Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/39/1f80c193b57f42ea8090513b74b9c85de581898dc08d515a9f1d27c600e1/faster_coco_eval-1.8.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cdcae56245ba4db8eb7b96f056bf3ba2b9648b85e606555ea1a8e07d61fbe18e", size = 604428, upload-time = "2026-08-24T15:12:49.352Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/af/fa09379e9889792e9f54b4c72c12587087650e3bd032b8111b7e9bdf33ce/faster_coco_eval-1.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:5268c302913246ce88eaa0962bd5879e41484a7ebf91e41f750056a604c8caef", size = 563419, upload-time = "2026-08-24T15:12:50.71Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/d7/c09bd70a268efb0d09fa4d39d18c22d9eff55063729eb5bdb73cf7a19175/faster_coco_eval-1.8.0-cp312-cp312-win_arm64.whl", hash = "sha256:affa0dee191bd395d08e4bf4995bedd237e12f68cb18907adf964b84eff84b15", size = 370092, upload-time = "2026-08-24T15:12:52.468Z" },
+    { url = "https://files.pythonhosted.org/packages/13/45/2c14854ec6e8216ad4221b40f1ae53542c02377696b16b321578207a59b1/faster_coco_eval-1.8.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d3e53f589a19c819f4811635f2412eb91cb1ad70d2530d24b1563d76a3c2ad85", size = 371314, upload-time = "2026-08-24T15:12:53.784Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/64/f87ffa6b221d3dd1eb02e0b68925547364cf0b238af3cb068ff69b31735e/faster_coco_eval-1.8.0-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2b506d69aacfb0363cdef52623fcbbd32a97d5eddbdb35fb6bcf1fc026c3a69d", size = 578494, upload-time = "2026-08-24T15:12:55.113Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/2b/f244ac2d361e3ceadb9d63194cb3b9c064978c899621f9afb79e8872cef2/faster_coco_eval-1.8.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:03c41bae5e2d49dfb9010b1fe34dcea8956d66f2f0b5ab723bc583955222d827", size = 604722, upload-time = "2026-08-24T15:12:56.478Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/7c/edd247ab9ce1d3921717fb84f5b407690be4e93685a01cb4717b884dfb4c/faster_coco_eval-1.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:2837a0cadbb66531a041c0d29c6c63f92e1c44a7669cb26e1145fee1560dfeb6", size = 563494, upload-time = "2026-08-24T15:12:57.613Z" },
+    { url = "https://files.pythonhosted.org/packages/66/34/3559671ecf373247e3704d503e722b7b10294867545212ebbcad5292046a/faster_coco_eval-1.8.0-cp313-cp313-win_arm64.whl", hash = "sha256:a0387ef6b98960d7f04234b3d958660627cb7fae5acb762cd96b9edd5c13c65c", size = 369778, upload-time = "2026-08-24T15:12:58.903Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/5a/ba73973628a67c525c6ac5a5c9bc1e4c4da7ed2033b332d002eeeecc0ed2/faster_coco_eval-1.8.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:9c7b4f54244f4eb87507b303aa6cc10a0a777ac039d1865721330b3ae119ab01", size = 370984, upload-time = "2026-08-24T15:12:59.912Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/d0/e2bb90c5207f4cb7314a173a6e17898f7f7dacd8f10ba775bc8929a2a324/faster_coco_eval-1.8.0-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e06dbf78a0e10d81652ea1ee919259cbd5514400fac00722bf6c912fe207a1ea", size = 582395, upload-time = "2026-08-24T15:13:01.066Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/ef/e9ded35eabf5da71ed04433fca309b93bd2f32f2d09e39258af399c741ee/faster_coco_eval-1.8.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2f82e5cbfb015192f48d56e49b73f575d4edc3b527983c49c888ae8358a9d2dd", size = 605666, upload-time = "2026-08-24T15:13:02.35Z" },
+    { url = "https://files.pythonhosted.org/packages/24/3a/14a9e904223005d59025bb743715c0634b6e6798362ceb0a84aa9112fb72/faster_coco_eval-1.8.0-cp314-cp314-win_amd64.whl", hash = "sha256:ead38032639c89b1fd8a54726f456cfdb97b32cb3937f4b744424878ee33fc65", size = 578795, upload-time = "2026-08-24T15:13:03.503Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/5a/021d04b2edcdee3e88f43e292b23f21c534c1f4a478440155d00ff10984e/faster_coco_eval-1.8.0-cp314-cp314-win_arm64.whl", hash = "sha256:933180c8df01b0724f282f5279079d475bda201456510ad84f93af475e0d9ed9", size = 379824, upload-time = "2026-08-24T15:13:04.552Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/4b/20b454b2ad82535b1c430273bc7f778f2dabef3a0458c3d20a7ee895ec3f/faster_coco_eval-1.8.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:52a2bf844a86a833e6f4e62211af12849fb7c9f12fd99e8e923ad360edddc4c9", size = 391910, upload-time = "2026-08-24T15:13:05.682Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/a9/59d609978b5d83a9998c43e39840604de550ac281168251166511e0e7f8f/faster_coco_eval-1.8.0-cp314-cp314t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e09a547a39d560a570250eb19bc9acf3cfb678e1c288051f6cc3ccb446daee1e", size = 566871, upload-time = "2026-08-24T15:13:07.262Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/5c/93d2d96d4f7794fb2c9eb586b622929d37031fcb698bf5093d5bb6b72386/faster_coco_eval-1.8.0-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:aedf1c98880fd03b7a18efb725060ce1d86bfa1addbe235266186fe3c4c65429", size = 593792, upload-time = "2026-08-24T15:13:08.43Z" },
+    { url = "https://files.pythonhosted.org/packages/12/b7/b5acc0ef114c4192c32c2ba8aae57ca9a741da37bb0e492c69942357fa45/faster_coco_eval-1.8.0-cp314-cp314t-win_amd64.whl", hash = "sha256:bf513631b702d3d4e4ae165ce89ae36dfec2e21331819c182a48ade81c1a19de", size = 590634, upload-time = "2026-08-24T15:13:09.715Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/df/743f747bea7b0d73156e79a6cb0b3e752bd4e0e7734f36e0ca67419576e3/faster_coco_eval-1.8.0-cp314-cp314t-win_arm64.whl", hash = "sha256:e855316278c7c8530791edc6186a1790d3bcd35074de161daf65249f82bbbf36", size = 395951, upload-time = "2026-08-24T15:13:10.807Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/76/6ff247f4273c9e295cf44d039fb119bd51f65a1d86e950c6b575e64c2322/faster_coco_eval-1.8.0-cp315-cp315-macosx_11_0_arm64.whl", hash = "sha256:8d6de982f6f381d86f1fb08ff841ec50113c29a32fee03035d234714537f19a6", size = 371042, upload-time = "2026-08-24T15:13:11.848Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/f1/49f6578fe8507167bfddfbaed3bd3b150a4da4c855ccc20bae3f1f2c5f98/faster_coco_eval-1.8.0-cp315-cp315-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:562f21ffeb6f325ef2df21beaac9c7103731cfb7f2718b33d179cd2af0dc93c8", size = 582545, upload-time = "2026-08-24T15:13:13.252Z" },
+    { url = "https://files.pythonhosted.org/packages/20/a7/faa3ef323e677cc491f27dd65c115fa5b12205884e66c517f2dc0b93a6af/faster_coco_eval-1.8.0-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bbd4b21d480b011f018669a1166b3c881310b295bf573abd8f62d976014ca1d7", size = 608326, upload-time = "2026-08-24T15:13:14.713Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/c2/a4bc7408b7fe48e8bcf6b60f4990eca8a6ecf55849674add5c9f044cba50/faster_coco_eval-1.8.0-cp315-cp315-win_amd64.whl", hash = "sha256:dbec4c8b9506927449b2de99e82e0424d00ce6a7a313a3a98e553a02fab63379", size = 578809, upload-time = "2026-08-24T15:13:16.052Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/74/fdc0566e305a07361efab992f5ac06579bb51c1fafd8ba7ca60468093a40/faster_coco_eval-1.8.0-cp315-cp315-win_arm64.whl", hash = "sha256:5014e0a9195d288a367c4592f57d5f99e9b5f363900f058ed3cd66d20de31330", size = 379819, upload-time = "2026-08-24T15:13:17.393Z" },
+    { url = "https://files.pythonhosted.org/packages/58/0a/52c16c9e1ecae04f7f5b77aaece26199aed7733226f70e199d7953560a7f/faster_coco_eval-1.8.0-cp315-cp315t-macosx_11_0_arm64.whl", hash = "sha256:9e46394f7d05c9f9d212c59ee78ba872455a20a05b3eebf77abfd495123fabd8", size = 391912, upload-time = "2026-08-24T15:13:18.63Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/62/92d56de85dfea1c31461f01be38df6157723e7a06c592f14b2a1146036e8/faster_coco_eval-1.8.0-cp315-cp315t-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f8627826da4c24603b8def0b139d2c12f4e40755ded7417a1ec26d25d2ec4a3d", size = 572196, upload-time = "2026-08-24T15:13:20.086Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/57/95198540ece13e773102131e27e48afcbad16594171e86a2e37511dea3e0/faster_coco_eval-1.8.0-cp315-cp315t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a07086fd44bc3e210221d478c486fb07705768cf2ab2991f41f4b3219a5d3e9e", size = 603406, upload-time = "2026-08-24T15:13:21.775Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/07/a6941d3d3c34475ffdf28a39ad3949b57f0a85f263a13d45b9b8698bcb76/faster_coco_eval-1.8.0-cp315-cp315t-win_amd64.whl", hash = "sha256:dc05892015663d45ec8e25b2c9d466fc7331db75f20f05494e8c9e12b80dae0b", size = 590282, upload-time = "2026-08-24T15:13:23.271Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/56/be12856d9609c73e694e876cc23e4059c6ad04b583f0eabbce3d0fd59f03/faster_coco_eval-1.8.0-cp315-cp315t-win_arm64.whl", hash = "sha256:f093dcccafe5c456af42e3c2e08c3e71c5f87a3eb4c252c25f8892b058215503", size = 395786, upload-time = "2026-08-24T15:13:24.609Z" },
 ]
 
 [[package]]
@@ -3585,6 +3637,7 @@ build = [
 ]
 dev = [
     { name = "docutils" },
+    { name = "faster-coco-eval" },
     { name = "ipywidgets" },
     { name = "jupytext" },
     { name = "nbconvert" },
@@ -3633,6 +3686,7 @@ build = [
 ]
 dev = [
     { name = "docutils", specifier = "!=0.21" },
+    { name = "faster-coco-eval", specifier = ">=1.8.0" },
     { name = "ipywidgets", specifier = ">=8.1.1" },
     { name = "jupytext", specifier = ">=1.16.1" },
     { name = "nbconvert", specifier = ">=7.14.2" },
