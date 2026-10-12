@@ -612,8 +612,10 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
 class ImageSink:
     """Save sequential images into a directory through a context manager.
 
-    :class:`~supervision.utils.image.ImageSink` creates the target directory on entry and writes each image using
-    `save_image`, incrementing the image name pattern after every save.
+    :class:`~supervision.utils.image.ImageSink` creates the target directory on
+    entry and writes each image using
+    :meth:`~supervision.utils.image.ImageSink.save_image`, incrementing the image
+    name pattern after every save.
     """
 
     def __init__(

@@ -179,7 +179,8 @@ def _resolve_annotator_color(
     Every annotator accepts an optional `custom_color_lookup` on `annotate()` that
     takes precedence over the lookup it was constructed with. Holding that precedence
     rule here gives it one definition instead of restating the same conditional at
-    each of the annotators' :func:`~supervision.annotators.utils.resolve_color` call sites.
+    each of the annotators'
+    :func:`~supervision.annotators.utils.resolve_color` call sites.
 
     Args:
         color: The annotator's color or palette.
@@ -332,7 +333,8 @@ def get_labels_text(
     Raises:
         ValueError: If `class_name` or `class_id` is present but its length
             does not match the number of detections (e.g. `detections.data`
-            was mutated directly, bypassing :class:`~supervision.detection.core.Detections` alignment checks).
+            was mutated directly, bypassing
+            :class:`~supervision.detection.core.Detections` alignment checks).
     """
     if custom_labels is not None:
         return custom_labels

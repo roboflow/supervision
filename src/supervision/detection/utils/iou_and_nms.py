@@ -1237,21 +1237,25 @@ def mask_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on segmentation predictions.
 
-    Unlike :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`, which discards overlapping masks outright,
+    Unlike
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`,
+    which discards overlapping masks outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
     `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
     overlap — the caller decides whether and where to threshold the result.
     A smaller `sigma` produces a stronger decay.
 
     The 3rd positional parameter here is `sigma`, not `iou_threshold` as in
-    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` — Soft-NMS has no threshold to suppress at, only
-    a decay strength, so the two signatures intentionally diverge at that
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` —
+    Soft-NMS has no threshold to suppress at, only a decay strength, so the two
+    signatures intentionally diverge at that
     position.
 
     IoU is computed exactly on the full-resolution masks for both dense and
     :class:`~supervision.detection.compact_mask.CompactMask` inputs. The
     `mask_dimension` parameter is kept for signature parity with
-    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` but is not used — dense masks are **not** resized
+    :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` but
+    is not used — dense masks are **not** resized
     before IoU computation.
 
     Args:
@@ -1264,8 +1268,8 @@ def mask_soft_non_max_suppression(
             dimensions of each mask.
         sigma: Controls the strength of the confidence decay; must be greater
             than `0`. No value of `sigma` reproduces hard
-            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression` output — Soft-NMS never drops masks, only
-            rescales confidence.
+            :func:`~supervision.detection.utils.iou_and_nms.mask_non_max_suppression`
+            output — Soft-NMS never drops masks, only rescales confidence.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         mask_dimension: Deprecated, unused. Kept for signature parity with
@@ -1366,7 +1370,9 @@ def _soft_nms_decay_from_iou_matrix(
     """Vectorized Gaussian Soft-NMS confidence decay given a precomputed IoU matrix.
 
     Assumes `ious`, `categories`, and `scores` are all sorted by descending score
-    (as produced by :func:`~supervision.detection.utils.iou_and_nms._prepare_predictions_for_nms`), and that `ious` is square with
+    (as produced by
+    :func:`~supervision.detection.utils.iou_and_nms._prepare_predictions_for_nms`),
+    and that `ious` is square with
     row/column order matching `categories`. Each detection's score is decayed once
     per higher-scoring, same-category detection that precedes it — equivalent to
     the reference single-pass (no re-sort) Soft-NMS loop, computed as a single
@@ -1433,7 +1439,9 @@ def box_soft_non_max_suppression(
 ) -> npt.NDArray[np.floating]:
     """Perform Soft Non-Maximum Suppression (Soft-NMS) on object detection predictions.
 
-    Unlike :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`, which discards overlapping boxes outright,
+    Unlike
+    :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`,
+    which discards overlapping boxes outright,
     Soft-NMS keeps every detection and instead rescales its confidence by
     `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
     overlap — the caller decides whether and where to threshold the result.
@@ -1445,8 +1453,8 @@ def box_soft_non_max_suppression(
             or `(x_min, y_min, x_max, y_max, score, class)`.
         sigma: Controls the strength of the confidence decay; must be greater
             than `0`. No value of `sigma` reproduces hard
-            :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression` output — Soft-NMS never drops boxes, only
-            rescales confidence.
+            :func:`~supervision.detection.utils.iou_and_nms.box_non_max_suppression`
+            output — Soft-NMS never drops boxes, only rescales confidence.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
 

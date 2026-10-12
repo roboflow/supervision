@@ -6,7 +6,8 @@ Purpose:
     public, index-oriented operation without coupling callers to metric result
     objects.
 Scope:
-    Matches two in-memory :class:`~supervision.detection.core.Detections` instances using bounding-box IoU and,
+    Matches two in-memory :class:`~supervision.detection.core.Detections`
+    instances using bounding-box IoU and,
     unless requested otherwise, equal class identifiers. Class-aware matching
     requires both collections to provide class IDs. It does not rank by
     confidence, mutate inputs, calculate metrics, or perform model inference.
@@ -19,7 +20,8 @@ Outputs:
 Failure:
     Raises ``ValueError`` for an IoU threshold outside the closed valid range;
     class-aware matching without class IDs; and malformed detection arrays as
-    defined by :class:`~supervision.detection.core.Detections` and the underlying IoU utility.
+    defined by :class:`~supervision.detection.core.Detections` and the
+    underlying IoU utility.
 Used by:
     Public ``sv.match_detections`` callers and metrics utilities sharing the
     greedy matching policy.

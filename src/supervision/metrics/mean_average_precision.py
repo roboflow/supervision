@@ -561,7 +561,9 @@ def _with_agnostic_class_id(detections: Detections) -> Detections:
     Returns:
         `detections` itself when it already has class IDs, otherwise a shallow copy
         labeled with the class-agnostic class ID. The input is never modified, so
-        repeated calls to :meth:`~supervision.metrics.mean_average_precision.MeanAveragePrecision.compute` leave stored state untouched.
+        repeated calls to
+        :meth:`~supervision.metrics.mean_average_precision.MeanAveragePrecision.compute`
+        leave stored state untouched.
     """
     if detections.class_id is not None:
         return detections

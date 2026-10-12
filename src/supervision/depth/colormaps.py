@@ -54,7 +54,8 @@ class DepthColormap(Enum):
         """Resolve a colormap from an enum member or its case-insensitive name.
 
         Args:
-            value: A :class:`~supervision.depth.colormaps.DepthColormap` member or one of its string values.
+            value: A :class:`~supervision.depth.colormaps.DepthColormap` member or
+                one of its string values.
 
         Returns:
             The matching :class:`~supervision.depth.colormaps.DepthColormap`.

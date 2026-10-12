@@ -38,7 +38,8 @@ class DetectionsSmoother:
 
     !!! warning
 
-        - :class:`~supervision.detection.tools.smoother.DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
+        - :class:`~supervision.detection.tools.smoother.DetectionsSmoother`
+          requires the `tracker_id` for each detection. Refer to
           [Roboflow Trackers](https://trackers.roboflow.com/latest/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
@@ -109,8 +110,8 @@ class DetectionsSmoother:
         """
         Args:
             length: The maximum number of frames to consider for smoothing
-                detections. Every call to `update_with_detections` counts as one
-                frame, including frames without tracker IDs. Defaults to 5.
+                detections. Each update counts as one frame, including frames
+                without tracker IDs. Defaults to 5.
         """
         self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
             lambda: deque(maxlen=length)
@@ -211,8 +212,9 @@ class DetectionsSmoother:
             track_id: The tracker ID whose smoothed detection to retrieve.
 
         Returns:
-            Smoothed :class:`~supervision.detection.core.Detections` for the track, or `None` if the track is
-            unknown or all frames in its window are empty.
+            Smoothed :class:`~supervision.detection.core.Detections` for the
+            track, or `None` if the track is unknown or all frames in its window
+            are empty.
         """
         track = self.tracks.get(track_id, None)
         if track is None:

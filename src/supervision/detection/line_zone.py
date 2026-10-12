@@ -407,8 +407,9 @@ class LineZoneAnnotator:
     """Draw a :class:`~supervision.detection.line_zone.LineZone` and its in/out counts
     on a video frame.
 
-    Use this annotator after calling :meth:`~supervision.detection.line_zone.LineZone.trigger` so the rendered counts reflect
-    the latest tracked detections.
+    Use this annotator after calling
+    :meth:`~supervision.detection.line_zone.LineZone.trigger` so the rendered
+    counts reflect the latest tracked detections.
     """
 
     def __init__(

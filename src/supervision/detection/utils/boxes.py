@@ -190,9 +190,9 @@ def _sort_box_corners(
     box operation in the library relies on that ordering:
     :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
     clamps its intersection widths at zero, so a box whose corners arrive
-    swapped scores an IoU of `0` even against itself. `box_area` hides the
-    problem rather than surfacing it, because negating both sides leaves their
-    product positive. Sorting the corner pairs restores the invariant without
+    swapped scores an IoU of `0` even against itself. The box area calculation
+    hides the problem rather than surfacing it, because negating both sides leaves
+    their product positive. Sorting the corner pairs restores the invariant without
     moving the region a box describes; a correctly ordered box is unchanged.
 
     Args:

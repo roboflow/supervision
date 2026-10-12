@@ -284,7 +284,8 @@ def detections_to_coco_annotations(
     The internal 0-indexed ``Detections.class_id`` is serialized as a 1-indexed
     COCO ``category_id`` (``category_id = class_id + 1``). This complies with the
     COCO specification and tools such as CVAT, and stays consistent with the ids
-    emitted by :func:`~supervision.dataset.formats.coco.classes_to_coco_categories`, so a
+    emitted by :func:`~supervision.dataset.formats.coco.classes_to_coco_categories`,
+    so a
     detection with internal ``class_id=k`` maps to ``category_id=k + 1``.
 
     Args:

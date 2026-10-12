@@ -1,7 +1,9 @@
 """Shared implementation behind the confusion-matrix detection metrics.
 
-:class:`~supervision.metrics.precision.Precision`, :class:`~supervision.metrics.recall.Recall` and
-:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very same per-class, per-
+:class:`~supervision.metrics.precision.Precision`,
+:class:`~supervision.metrics.recall.Recall` and
+:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very
+same per-class, per-
 IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied to that
 matrix, in the result dataclass they fill, and in the labels used when a result is
 rendered. This module owns everything they share.
@@ -61,10 +63,12 @@ def _validate_confusion_matrix(confusion_matrix: npt.NDArray[np.float64]) -> Non
 class _ConfusionMatrixMetric(Metric[_ResultT]):
     """Shared machinery for metrics derived from a `(TP, FP, FN)` confusion matrix.
 
-    Subclasses keep their own public `__init__`, `reset`, `update` and `compute` so
-    that the API reference keeps rendering them, and supply the metric-specific parts
-    through three hooks: the `_metric_name` used in error messages, the
-    `_score_from_confusion_matrix` formula, and the `_build_result` factory.
+    Subclasses keep their own public constructors and implementations of
+    :meth:`~supervision.metrics.core.Metric.reset`,
+    :meth:`~supervision.metrics.core.Metric.update`, and
+    :meth:`~supervision.metrics.core.Metric.compute` so the API reference keeps
+    rendering them. They supply metric-specific parts through three hooks: the
+    metric name used in error messages, a score formula, and a result factory.
     """
 
     #: Name of the metric as it appears in error messages, e.g. `"Precision"`.
