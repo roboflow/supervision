@@ -35,7 +35,19 @@ description: Colour depth and disparity maps over images with sv.DepthAnnotator 
 :::supervision.depth.annotators.DepthAnnotator
 
 <div class="md-typeset">
+    <h2><a href="#supervision.depth.annotators.DepthClipRange">DepthClipRange</a></h2>
+</div>
+
+:::supervision.depth.annotators.DepthClipRange
+
+<div class="md-typeset">
     <h2><a href="#supervision.depth.colormaps.DepthColormap">DepthColormap</a></h2>
 </div>
 
 :::supervision.depth.colormaps.DepthColormap
+
+<div class="md-typeset">
+    <h2><a href="#supervision.depth.core.DepthScale">DepthScale</a></h2>
+</div>
+
+:::supervision.depth.core.DepthScale
