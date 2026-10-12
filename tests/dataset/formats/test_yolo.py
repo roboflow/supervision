@@ -1602,3 +1602,40 @@ class TestDetectionDatasetYoloImageShapes:
             ),
             atol=1e-5,
         )
+
+
+class TestAsYoloMaskWithHole:
+    """Tests for exporting a mask that contains a hole through `as_yolo`."""
+
+    def test_round_trip_keeps_one_instance_with_hole(self, tmp_path: Path) -> None:
+        """A ring mask reloads as one instance with its hole intact."""
+        image_path = str(tmp_path / "source" / "ring.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (150, 100)).save(image_path)
+        mask = np.zeros((1, 100, 150), dtype=bool)
+        mask[0, 10:60, 10:60] = True
+        mask[0, 25:45, 25:45] = False
+        detections = Detections(
+            xyxy=np.array([[10, 10, 59, 59]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["ring"], images=[image_path], annotations={image_path: detections}
+        )
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+            force_masks=True,
+        )
+
+        result = next(iter(reloaded.annotations.values()))
+        assert len(result) == 1
+        np.testing.assert_array_equal(result.mask, mask)

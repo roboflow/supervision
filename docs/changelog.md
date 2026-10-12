@@ -1,11 +1,23 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-09
+date_modified: 2026-10-11
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.CompactMask` now accepts NumPy's array-protocol `copy` keyword. Default `np.array` and explicit-copy conversions no longer emit a NumPy 2 deprecation warning. On NumPy 2, zero-copy requests raise `ValueError` before allocating a dense mask tensor; default `np.asarray` and dtype conversion remain unchanged. ([#2708](https://github.com/roboflow/supervision/pull/2708))
+
+- `sv.CompactMask.resize` now resamples crops by decoding and indexing on the full-image sampling grid, replacing the sparse RLE path. Output remains pixel-for-pixel equal to dense nearest-neighbor resizing, including non-uniform scales and crops that become empty. ([#2705](https://github.com/roboflow/supervision/pull/2705))
+
+- `DetectionDataset.as_yolo`, `as_pascal_voc` and `as_labelme` now export a mask with holes as one instance instead of one extra same-class instance per hole. Each hole contour was written as a separate polygon, so a 50×50 square with a 20×20 hole (2100 pixels) reloaded as two instances of 2500 and 480 pixels, and the outer polygon had lost the hole. Each hole is now joined to its outer contour, or to a hole already joined, by a zero-width straight seam that stays on foreground pixels, so the mask reloads as one instance of 2100 pixels. Disconnected components, including an island inside a hole, are still separate polygons, and masks without holes export exactly as before. `sv.mask_to_polygons` is unchanged, `approximate_mask_with_polygons` gains an opt-in `bridge_holes` parameter that defaults to `False`; if no foreground-contained seam can be found, it raises `ValueError` instead of changing mask pixels, and COCO export is unaffected. ([#2703](https://github.com/roboflow/supervision/pull/2703))
+
+- `sv.metrics.MeanAverageRecall` now applies the `mAR @ K` detection limit to each class in each image instead of to each image as a whole, matching the `maxDets` limit of COCO evaluation (`pycocotools`), where `COCOeval.evaluateImg` keeps the top `maxDet` detections of one category in one image. With more than one class, the image-wide limit dropped detections that COCO keeps, so `mAR_at_1`, `mAR_at_10` and `mAR_at_100` came out lower than the COCO `AR@1`, `AR@10` and `AR@100`: one image with two classes and one perfect prediction each scored `mAR_at_1 = 0.5` against `1.0` in `pycocotools`. The fix ranks each prediction within its own class and image before applying the limit, and the same ranking feeds the small, medium and large object results and `recall_per_class`. Stable sorting can also change results for a single class when tied confidences cross a K cutoff. The detection-limit scope follows COCO's per-class `maxDets`, but the shared highest-IoU matcher can still produce different mAR values. ([#2701](https://github.com/roboflow/supervision/pull/2701))
+
+- Added `sv.DepthMap` loaders: `from_inference` (depth models served by Roboflow Inference, such as Depth Anything and YOLO26 depth), `from_ultralytics` (YOLO26 depth, in metres), `from_transformers`, and `from_png16` and `from_pfm` for dataset files such as KITTI and Middlebury. ([#2694](https://github.com/roboflow/supervision/pull/2694))
+
+- `sv.DepthMap` now measures distance: `sv.DepthCamera` turns disparity into metres (`to_depth`), and `measure_detections` stores the median depth under each object in `detections.data["depth_m"]`, also from a map of another size than the image with `resolution_wh`. Also adds `resize`, `crop`, `value_at` and `sv.DepthAnnotator(scale="metric")`. ([#2693](https://github.com/roboflow/supervision/pull/2693))
 
 - Added `sv.DepthClipRange`, which keeps the colour scale of `sv.DepthAnnotator` fixed across a video. `DepthClipRange.from_depth_maps` computes one percentile range over a clip's maps, read once from a list or a generator, with bounded memory. ([#2692](https://github.com/roboflow/supervision/pull/2692))
 
@@ -14,6 +26,8 @@ date_modified: 2026-10-09
 - Added `sv.DepthMap` and `sv.DepthAnnotator`, which colour a stereo disparity, metric depth or relative depth map over a NumPy or Pillow image: near objects warm, pixels without depth unpainted, in Turbo, Viridis, Cividis, Inferno, Magma or grayscale. It does not require OpenCV. ([#2691](https://github.com/roboflow/supervision/pull/2691))
 
 - `sv.Detections.from_inference(result, compact_masks=True)` now crops each polygon mask to the polygon's own extent instead of the whole image. Every polygon was stored as a full-frame `CompactMask` crop, so building the detections run-length encoded the entire image once per prediction, and mask operations on the result decoded full frames. For 110 polygons on a 4096×3068 image, the PR author reports `from_inference` timings of 5.4 s before and 0.6 s after, and `with_nms(class_agnostic=True)` timings of 31 s and 0.01 s; these timings have not been independently reproduced in the same environment. Masks hold the same pixels, including for polygons that cross the image border. RLE predictions and `compact_masks=False` are unchanged. ([#2678](https://github.com/roboflow/supervision/pull/2678))
+
+- `sv.CSVSink` now writes NumPy arrays in `detections.data` and `custom_data` as JSON lists, as `sv.JSONSink` does, instead of through numpy's `str()`. A 1536-d float32 embedding was truncated to 6 of its values with `...`, any array of up to 1000 elements was written space-separated without commas so `json.loads` could not read it, and oriented-box `xyxyxyxy` corners were split across lines. Each cell now holds `json.dumps(array.tolist())`, so float32 data round-trips exactly (`NaN` and `Infinity` are written as Python's `json` does). Scalars, strings, 0-d arrays, lists, tuples and dicts are written as before, and arrays JSON cannot represent (such as complex or datetime arrays) keep their previous string form. ([#2707](https://github.com/roboflow/supervision/pull/2707))
 
 - Added `sv.metrics.KeyPointMeanAveragePrecision`, the COCO keypoint mAP for pose estimation. It takes one `sv.KeyPoints` per image for predictions and targets, matches them by Object Keypoint Similarity at 10 thresholds from 0.50 to 0.95 with at most 20 predictions per image and class, and reuses the COCO matching and accumulation of `MeanAveragePrecision`, so scores agree with `pycocotools` `COCOeval(..., "keypoints")`. Target keypoints with `visible=False` are left out of the OKS. A target without visible keypoints becomes a COCO ignore region, scored against its expanded box, when its box is given in `targets.data["xyxy"]`; without a box it is skipped, so a prediction on it counts as a false positive. `targets.data["iscrowd"]` marks COCO crowd targets. Prediction boxes in `predictions.data["xyxy"]` set the object-size bucket, as the `bbox` of a COCO result entry does in `pycocotools`. Target areas are read from `targets.data["area"]`, falling back to the box spanning the visible keypoints. Predictions are ranked by `detection_confidence`. The COCO 17-point sigmas are the default only for 17-point skeletons; other skeletons must pass `sigmas`. ([#2687](https://github.com/roboflow/supervision/pull/2687))
 
@@ -42,6 +56,8 @@ date_modified: 2026-10-09
 - `sv.VLM.GOOGLE_GEMINI_3_6` and `sv.VLM.GOOGLE_GEMINI_3_7` — `sv.Detections.from_vlm` now parses the structured `{"boxes": [...]}` detection and segmentation format, including normalized polygon masks ([#2504](https://github.com/roboflow/supervision/pull/2504)).
 
 - `sv.Detections.from_vlm` now keeps `class_id` integer-typed when a `classes` filter removes every detection. The empty index array defaulted to `float64` for `sv.VLM.PALIGEMMA`, `sv.VLM.DEEPSEEK_VL_2` and `sv.VLM.GOOGLE_GEMINI_2_0`; `sv.VLM.QWEN_2_5_VL` and `sv.VLM.QWEN_3_VL` already pinned the dtype, and the rest now match them. Results with at least one surviving detection are unchanged.
+
+- `sv.Detections.from_ultralytics`, `sv.KeyPoints.from_ultralytics`, and `sv.Classifications.from_ultralytics` now accept NumPy-backed results, including `Results.numpy()`. Detection, segmentation, oriented boxes, tracking IDs, pose visibility, and classification retain the same values as tensor-backed results. ([#2710](https://github.com/roboflow/supervision/pull/2710))
 
 ### 0.30.9 <small>Oct 8, 2026</small>
 

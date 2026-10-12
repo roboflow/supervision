@@ -110,6 +110,9 @@ def detections_to_pascal_voc(
 ) -> str:
     """Converts Detections object to Pascal VOC XML format.
 
+    A mask is written as one polygon object per connected component, with each hole
+    joined to its outer contour by a zero-width seam.
+
     Args:
         detections: A Detections object containing bounding boxes,
             class ids, and other relevant information.
@@ -183,6 +186,7 @@ def detections_to_pascal_voc(
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                bridge_holes=True,
             )
             if not polygons and not mask_to_polygons(mask=mask):
                 # Preserve area-filtered omissions; only invalid contours fall back.
