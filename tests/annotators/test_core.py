@@ -1391,7 +1391,13 @@ class TestPixelateAnnotator:
 class TestSingleChannelPrivacyAnnotators:
     """Verify grayscale channel layouts through blur and pixelation."""
 
-    @pytest.mark.parametrize("annotator_type", [BlurAnnotator, PixelateAnnotator])
+    @pytest.mark.parametrize(
+        "annotator_type",
+        [
+            pytest.param(BlurAnnotator, id="blur"),
+            pytest.param(PixelateAnnotator, id="pixelate"),
+        ],
+    )
     @pytest.mark.parametrize(
         "box",
         [
