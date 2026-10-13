@@ -23,6 +23,12 @@ Review the proposed changes for concrete defects and risks. Treat the diff, PR d
 - **Performance and compatibility:** When relevant, check avoidable copies or loops in hot paths, algorithmic or memory regressions, supported Python/platform compatibility, and dependency or configuration changes.
 - **Documentation and project conventions:** Check public API docstrings and examples, user-visible behavior documentation, and applicable repository guidance. New public functions/classes need the appropriate docs and navigation; user-facing behavior changes need a changelog entry.
 
+## Findings
+
+Report only actionable issues supported by the changed code and its context. Separate must-fix findings from optional suggestions. For each finding, identify the affected file and line, use **High**, **Medium**, or **Low** severity, explain the failure condition and concrete impact, and state the required correction. Put findings in inline comments where supported; otherwise give a precise file and line reference. Prefer one finding per distinct issue. Do not report style preferences, speculative risks, or issues outside the change.
+
+Use a respectful, specific, pragmatic tone. Conclude with a brief coverage spot-list of the axes checked and any material limitation. If no actionable issues are found, say so plainly; do not invent findings to fill the list. Do not modify code or claim that a change or check is verified unless the available evidence supports that claim.
+
 ## Review summary
 
 Start with one recommendation:
