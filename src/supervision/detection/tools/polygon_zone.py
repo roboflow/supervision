@@ -181,18 +181,29 @@ class PolygonZone:
                 for anchors in self.triggering_anchors
             ]
         )
+        mapped_in_bounds = None
         if coord_transform is not None:
             mapped = _transform_points(anchor_coordinates, coord_transform.rel_to_abs)
             # -1 is just outside the mask, so non-finite anchors fail the bounds
             # check below; clipping far finite ones to the same range keeps them
             # outside without overflowing the integer cast.
             mapped = np.nan_to_num(mapped, nan=-1.0, posinf=-1.0, neginf=-1.0)
+            mask_h, mask_w = self.mask.shape
+            mapped_in_bounds = (
+                (mapped[:, :, 0] >= 0)
+                & (mapped[:, :, 1] >= 0)
+                & (mapped[:, :, 0] < mask_w)
+                & (mapped[:, :, 1] < mask_h)
+            )
             anchor_coordinates = np.clip(mapped, -1.0, float(max(self.mask.shape)))
         all_anchors = np.rint(anchor_coordinates).astype(int)
 
         mask_h, mask_w = self.mask.shape
         x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
         in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
+        if mapped_in_bounds is not None:
+            # Rounding must not pull a truly out-of-bounds point onto the mask edge.
+            in_bounds &= mapped_in_bounds
         x_safe = np.clip(x, 0, mask_w - 1)
         y_safe = np.clip(y, 0, mask_h - 1)
         anchor_hits = in_bounds & self.mask[y_safe, x_safe]

@@ -404,6 +404,7 @@ class TestPolygonZoneTriggerWithCoordTransform:
     @pytest.mark.parametrize(
         "mapped_point",
         [
+            pytest.param((-0.4, 50.0), id="fractional-negative-x"),
             pytest.param((-60.0, 45.0), id="negative-x"),
             pytest.param((160.0, 45.0), id="beyond-mask-width"),
             pytest.param((45.0, -1e30), id="far-beyond-int-range"),
