@@ -64,7 +64,8 @@ def _scores_to_pandas(
     Args:
         scores: Column name to score for the overall result.
         object_sizes: `(prefix, result)` pairs; each present result's own
-            `to_pandas` columns are added as `{prefix}_{column}`.
+            :meth:`~supervision.metrics.core.MetricResult.to_pandas` columns are
+            added as `{prefix}_{column}`.
 
     Returns:
         A DataFrame with a single row.

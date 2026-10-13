@@ -113,8 +113,17 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
         raise ValueError("Bounding boxes must be shaped (N, 4)")
 
-    width = xyxy[:, 2] - xyxy[:, 0]
-    height = xyxy[:, 3] - xyxy[:, 1]
+    width: npt.NDArray[np.number]
+    height: npt.NDArray[np.number]
+    if np.issubdtype(xyxy.dtype, np.integer):
+        # Wider integers preserve exact deltas before float area multiplication.
+        dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+        coordinates = xyxy.astype(dtype)
+        width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
+        height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
+    else:
+        width = xyxy[:, 2] - xyxy[:, 0]
+        height = xyxy[:, 3] - xyxy[:, 1]
     areas = width * height
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
@@ -135,7 +144,7 @@ def get_area_size_category(
 
     Returns:
         The size category of each area, matching the enum values of
-        `ObjectSizeCategory`. Shaped (N,).
+        :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory`. Shaped (N,).
 
     Raises:
         ValueError: If `areas` is not one-dimensional.
@@ -233,21 +242,31 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
 
-    # Shoelace formula
-    x = xyxyxyxy[:, :, 0]
-    y = xyxyxyxy[:, :, 1]
+    coordinates: npt.NDArray[np.number] | npt.NDArray[np.object_]
+    if np.issubdtype(xyxyxyxy.dtype, np.integer):
+        # Object arithmetic keeps both the translated coordinates and shoelace
+        # products exact when large terms nearly cancel.
+        exact_coordinates = xyxyxyxy.astype(object)
+        coordinates = exact_coordinates - exact_coordinates[:, :1]
+    else:
+        calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
+        coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
+    x = coordinates[:, :, 0]
+    y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
     y1, y2, y3, y4 = y.T
-    areas = 0.5 * np.abs(
+    twice_areas = np.abs(
         (x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1)
         - (x2 * y1 + x3 * y2 + x4 * y3 + x1 * y4)
     )
 
-    result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
+    result = np.full(twice_areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
-    result[areas < SM] = ObjectSizeCategory.SMALL.value
-    result[(areas >= SM) & (areas < LG)] = ObjectSizeCategory.MEDIUM.value
-    result[areas >= LG] = ObjectSizeCategory.LARGE.value
+    result[twice_areas < 2 * SM] = ObjectSizeCategory.SMALL.value
+    result[(twice_areas >= 2 * SM) & (twice_areas < 2 * LG)] = (
+        ObjectSizeCategory.MEDIUM.value
+    )
+    result[twice_areas >= 2 * LG] = ObjectSizeCategory.LARGE.value
     return result
 
 
@@ -308,10 +327,8 @@ def get_detection_size_category(
         oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
         if oriented_box_coordinates is None:
             raise ValueError("Detections oriented bounding boxes are not available")
+        # Keep the stored dtype so integer coordinates take the exact path.
         return get_obb_size_category(
-            cast(
-                npt.NDArray[np.number],
-                np.asarray(oriented_box_coordinates, dtype=np.float32),
-            )
+            cast(npt.NDArray[np.number], np.asarray(oriented_box_coordinates))
         )
     raise ValueError("Invalid metric type")

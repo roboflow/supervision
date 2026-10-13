@@ -7,10 +7,12 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 
-from supervision.dataset.utils import check_no_basename_collisions
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import (
-    mask_to_polygons,
     polygon_to_mask,
     polygon_to_xyxy,
 )
@@ -64,7 +66,8 @@ def labelme_shapes_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
 ) -> Detections:
-    """Convert a single image's LabelMe shapes into ``Detections``.
+    """Convert a single image's LabelMe shapes into
+    :class:`~supervision.detection.core.Detections`.
 
     Only ``rectangle`` and ``polygon`` shapes are imported; other shape types
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
@@ -80,8 +83,8 @@ def labelme_shapes_to_detections(
         with_masks: If ``True``, produce a binary mask for every detection.
 
     Returns:
-        A :class:`Detections` instance with ``xyxy``, ``class_id``, and
-        optionally ``mask`` populated.
+        A :class:`~supervision.detection.core.Detections` instance with
+        ``xyxy``, ``class_id``, and optionally ``mask`` populated.
 
     Raises:
         ValueError: If a shape is missing its ``label`` or ``points`` field,
@@ -180,7 +183,8 @@ def load_labelme_annotations(
     annotations_directory_path: str,
     force_masks: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
-    """Load LabelMe annotations and convert them to ``Detections``.
+    """Load LabelMe annotations and convert them to
+    :class:`~supervision.detection.core.Detections`.
 
     LabelMe stores one JSON file per image, each containing a list of ``shapes``.
     ``rectangle`` shapes become bounding boxes; ``polygon`` shapes become masks
@@ -321,12 +325,15 @@ def _build_shape(
 def detections_to_labelme_shapes(
     detections: Detections, classes: list[str]
 ) -> list[LabelMeDict]:
-    """Convert ``Detections`` into a list of LabelMe shape dicts.
+    """Convert :class:`~supervision.detection.core.Detections` into a list of LabelMe
+    shape dicts.
 
     Masked detections are exported as ``polygon`` shapes (one per connected
-    component); box-only detections — and masked detections whose mask yields no
-    polygon contour (e.g. an empty or sub-pixel mask) — are exported as
-    ``rectangle`` shapes, so no detection is silently dropped.
+    component, with each hole spliced into its outer contour by a zero-width seam
+    rather than exported as a shape of its own); box-only detections — and masked
+    detections whose mask yields no polygon contour (e.g. an empty or sub-pixel
+    mask) — are exported as ``rectangle`` shapes, so no detection is silently
+    dropped.
     Disconnected components of one mask share a ``group_id`` unique to that
     detection within the image.
 
@@ -359,7 +366,7 @@ def detections_to_labelme_shapes(
         label = classes[class_index]
         if masks is not None:
             mask_arr = np.asarray(masks[index], dtype=np.bool_)
-            polygons = mask_to_polygons(mask_arr)
+            polygons = approximate_mask_with_polygons(mask=mask_arr, bridge_holes=True)
         else:
             polygons = []
         if polygons:
@@ -380,12 +387,13 @@ def save_labelme_annotations(
     dataset: DetectionDataset,
     annotations_directory_path: str,
 ) -> None:
-    """Export a ``DetectionDataset`` to per-image LabelMe ``.json`` files.
+    """Export a :class:`~supervision.dataset.core.DetectionDataset` to per-image LabelMe
+    ``.json`` files.
 
     Image dimensions are read from grayscale or color arrays without changing pixels.
 
     Args:
-        dataset: The ``DetectionDataset`` to write.
+        dataset: The :class:`~supervision.dataset.core.DetectionDataset` to write.
         annotations_directory_path: Directory where the LabelMe ``.json`` files
             are written (created if it does not exist).
 
