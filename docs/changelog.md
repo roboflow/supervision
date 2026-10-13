@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-11
+date_modified: 2026-10-13
 ---
 
 # Changelog
@@ -8,6 +8,8 @@ date_modified: 2026-10-11
 ### Unreleased <small>upcoming</small>
 
 - `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. ([#2720](https://github.com/roboflow/supervision/pull/2720))
+
+- `sv.KeyPoints` now preserves all three coordinates when selecting a single keypoint with a NumPy integer or zero-dimensional array row index and an integer anchor index. The result keeps shape `(1, 1, 3)` instead of raising a reshape error. Two-coordinate points and the selected confidence, visibility, class IDs, and custom data are unchanged. ([#2715](https://github.com/roboflow/supervision/pull/2715))
 
 - Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
 
