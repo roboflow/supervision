@@ -2045,7 +2045,8 @@ class BlurAnnotator(BaseAnnotator):
         Args:
             scene: The image where blurring will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`.
             detections: Object detections to annotate.
 
         Returns:
@@ -2089,8 +2090,11 @@ class BlurAnnotator(BaseAnnotator):
                 if self.kernel_size is not None
                 else calculate_dynamic_kernel_size(x1, y1, x2, y2)
             )
-            roi = cast(npt.NDArray[np.uint8], cv2.blur(roi, (kernel_size, kernel_size)))
-            scene[y1:y2, x1:x2] = roi
+            blurred_roi = cast(
+                npt.NDArray[np.uint8], cv2.blur(roi, (kernel_size, kernel_size))
+            )
+            # OpenCV drops a singleton channel axis; restore it before assignment.
+            scene[y1:y2, x1:x2] = blurred_roi.reshape(roi.shape)
 
         return scene
 
@@ -2526,7 +2530,8 @@ class PixelateAnnotator(BaseAnnotator):
         Args:
             scene: The image where pixelating will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`.
             detections: Object detections to annotate.
 
         Returns:
@@ -2588,7 +2593,8 @@ class PixelateAnnotator(BaseAnnotator):
                 interpolation=cv2.INTER_NEAREST,
             )
 
-            scene[y1:y2, x1:x2] = scaled_down_roi
+            # OpenCV drops a singleton channel axis; restore it before assignment.
+            scene[y1:y2, x1:x2] = scaled_down_roi.reshape(roi.shape)
 
         return scene
 

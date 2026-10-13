@@ -1388,6 +1388,42 @@ class TestPixelateAnnotator:
         assert np.array_equal(test_image, result)
 
 
+class TestSingleChannelPrivacyAnnotators:
+    """Verify grayscale channel layouts through blur and pixelation."""
+
+    @pytest.mark.parametrize("annotator_type", [BlurAnnotator, PixelateAnnotator])
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([2, 3, 22, 19], id="normal-roi"),
+            pytest.param([2, 3, 4, 5], id="small-roi"),
+            pytest.param([2, 3, 22, 4], id="single-row-roi"),
+            pytest.param([2, 3, 3, 19], id="single-column-roi"),
+        ],
+    )
+    def test_explicit_channel_matches_grayscale(
+        self,
+        annotator_type: type[BlurAnnotator] | type[PixelateAnnotator],
+        box: list[int],
+    ) -> None:
+        """An explicit grayscale channel must survive filtering without broadcasting."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy()
+        detections = Detections(xyxy=np.asarray([box], dtype=np.float32))
+        if annotator_type is BlurAnnotator:
+            annotator: BlurAnnotator | PixelateAnnotator = BlurAnnotator(kernel_size=3)
+        else:
+            annotator = PixelateAnnotator(pixel_size=4)
+        expected = annotator.annotate(scene=gray.copy(), detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == (30, 40, 1)
+        np.testing.assert_array_equal(result[..., 0], expected)
+        assert not np.array_equal(result[..., 0], gray)
+
+
 class TestTriangleAnnotator:
     """Tests for TriangleAnnotator class."""
 
