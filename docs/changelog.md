@@ -7,6 +7,8 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
+- Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
+
 - Added keyword-only `max_detection_thresholds` to `MeanAveragePrecision` for dense-scene evaluation. The COCO default `(1, 10, 100)` is unchanged; custom limits are recorded in results, text summaries, plot titles and DataFrame attributes. ([#2716](https://github.com/roboflow/supervision/pull/2716))
 
 - `sv.KeyPoints` now preserves all three coordinates when selecting a single keypoint with a NumPy integer or zero-dimensional array row index and an integer anchor index. The result keeps shape `(1, 1, 3)` instead of raising a reshape error. Two-coordinate points and the selected confidence, visibility, class IDs, and custom data are unchanged. ([#2715](https://github.com/roboflow/supervision/pull/2715))
