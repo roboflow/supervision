@@ -1,9 +1,10 @@
 """Crop-RLE compact mask storage for memory-efficient instance segmentation.
 
-Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes prohibitive for
-aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB). :class:`CompactMask` stores each
-mask as a run-length encoding of its bounding-box crop, reducing typical usage to tens
-of MB.
+Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes
+prohibitive for aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB).
+:class:`~supervision.detection.compact_mask.CompactMask` stores each mask as a
+run-length encoding of its bounding-box crop, reducing typical usage to tens of
+MB.
 
 The bounding boxes (``xyxy``) already present in ``Detections`` serve as the crop
 boundaries, so no extra metadata is required from the caller.
@@ -38,7 +39,8 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
     """Return the number of ``True`` pixels in a run-length encoded mask.
 
     Args:
-        rle: int32 array of run lengths as produced by :func:`_mask_to_rle_counts`.
+        rle: int32 array of run lengths as produced by
+            :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
 
     Returns:
         Total number of ``True`` pixels.
@@ -67,8 +69,9 @@ def _rle_to_column_intervals(
     empty columns, are skipped without allocating pixels or per-column lists. Work and
     storage scale with foreground runs plus the columns they cross.
 
-    Use :func:`_rle_split_cols` for resize or crop work that needs per-column run
-    lists; use this helper when vectorized ``(K, 3)`` foreground intervals are needed.
+    Use :func:`~supervision.detection.compact_mask._rle_split_cols` for crop work
+    that needs per-column run lists; use this helper when vectorized ``(K, 3)``
+    foreground intervals are needed.
 
     Examples:
         ```pycon
@@ -150,11 +153,14 @@ def _validate_uniform_image_shape(
 ) -> tuple[int, int]:
     """Ensure every mask in a list shares one image shape before a collection op.
 
-    Shared by :meth:`CompactMask.merge` and :func:`_compact_mask_union` so both
+    Shared by :meth:`~supervision.detection.compact_mask.CompactMask.merge`
+    and :func:`~supervision.detection.compact_mask._compact_mask_union` so both
     raise the same error for an empty list or mismatched shapes.
 
     Args:
-        masks_list: List of :class:`CompactMask` objects to validate.
+        masks_list: List of
+            :class:`~supervision.detection.compact_mask.CompactMask` objects to
+            validate.
         action: Present-tense verb naming the caller's operation, used in the
             raised error message (e.g. ``"merge"`` or ``"union"``).
 
@@ -339,12 +345,14 @@ def _dense_union(
 
 
 def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
-    """Reduce a list of :class:`CompactMask` objects to one tight union mask.
+    """Reduce a list of :class:`~supervision.detection.compact_mask.CompactMask` objects
+    to one tight union mask.
 
     Used by NMM for both its evolving candidate and its final output, and by
     detection-group merging for the final per-group mask. Works directly on
     ``masks_list`` instead of first allocating an intermediate merged
-    :class:`CompactMask`, since only the union is ever needed. All stored
+    :class:`~supervision.detection.compact_mask.CompactMask`, since only the
+    union is ever needed. All stored
     foreground is retained regardless of the detection boxes. An empty list,
     or a list whose masks are all all-background, produces one all-background
     mask with a 1x1 crop at the image origin.
@@ -359,11 +367,13 @@ def _compact_mask_union(masks_list: list[CompactMask]) -> CompactMask:
     memory guarantee this function exists for.
 
     Args:
-        masks_list: Non-empty list of :class:`CompactMask` objects. All must
-            share the same ``image_shape``.
+        masks_list: Non-empty list of
+            :class:`~supervision.detection.compact_mask.CompactMask` objects.
+            All must share the same ``image_shape``.
 
     Returns:
-        A new :class:`CompactMask` containing a single tight union mask.
+        A new :class:`~supervision.detection.compact_mask.CompactMask`
+        containing a single tight union mask.
 
     Raises:
         ValueError: If ``masks_list`` is empty or image shapes differ.
@@ -430,15 +440,17 @@ def _rle_split_cols(
 
     Runs that cross column boundaries are split at the boundary.  Each
     returned list starts with a ``False``-run count (possibly 0), matching
-    the convention of :func:`_mask_to_rle_counts`.
+    the convention of
+    :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
 
     When ``x_start`` and ``x_stop`` are provided, only columns in the closed
     range ``[x_start, x_stop]`` are collected.  Pixels in skipped columns
     are consumed without being stored, which avoids O(W) allocation when
     only a small crop of a wide image is needed.
 
-    Use :func:`_rle_to_column_intervals` when vectorized ``(K, 3)`` foreground
-    intervals are sufficient; use this helper for resize or crop work on run lists.
+    Use :func:`~supervision.detection.compact_mask._rle_to_column_intervals`
+    when vectorized ``(K, 3)`` foreground intervals are sufficient; use this
+    helper for resize or crop work on run lists.
 
     Note:
         ``x_start`` uses ``np.cumsum`` + ``np.searchsorted`` to jump directly
@@ -548,70 +560,6 @@ def _rle_split_cols(
     return per_col
 
 
-def _rle_scale_col(
-    col_runs: list[int],
-    src_h: int,
-    row_map: npt.NDArray[np.int32],
-) -> list[int]:
-    """Scale one column's run list to a new height using a precomputed row map.
-
-    Each output row is mapped to a source row via ``row_map``, which
-    implements nearest-neighbour resampling in the vertical direction.
-
-    Args:
-        col_runs: Per-column run list starting with a ``False``-run count.
-        src_h: Height of the source column (sum of ``col_runs``).
-        row_map: int32 array of length ``new_crop_h``; ``row_map[r']`` is the
-            source row index for output row ``r'``. Use the active backend's
-            nearest-neighbour source-row map to preserve its sampling rounding.
-
-    Returns:
-        Scaled run list of total length ``len(row_map)``, always starting
-        with a ``False``-run count.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> from supervision.detection.compact_mask import _rle_scale_col
-        >>> col_runs = [0, 2, 2]   # F=0, T=2, F=2  → [T, T, F, F]
-        >>> row_map = np.array([0, 1, 2, 3, 0, 1, 2, 3], dtype=np.int32)
-        >>> _rle_scale_col(col_runs, 4, row_map)
-        [0, 2, 2, 2, 2]
-
-        ```
-    """
-    new_crop_h = len(row_map)
-    if new_crop_h == 0:
-        return [0]
-
-    # Reconstruct per-source-row boolean values from run list.
-    src_values: npt.NDArray[np.bool_] = np.empty(src_h, dtype=np.bool_)
-    pos = 0
-    for ri, rl in enumerate(col_runs):
-        src_values[pos : pos + rl] = ri % 2 == 1  # odd index → True
-        pos += rl
-    if pos < src_h:
-        src_values[pos:] = False  # pad truncated RLE
-
-    # Map output rows to source values.
-    out_values = src_values[row_map]
-
-    # RLE-encode the output column; vectorised via np.diff on bool view.
-    out_uint8 = out_values.view(np.uint8)
-    boundaries = np.flatnonzero(np.diff(out_uint8))
-    run_starts: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
-    run_ends: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
-    run_starts[0] = 0
-    run_starts[1:] = boundaries + 1
-    run_ends[:-1] = boundaries + 1
-    run_ends[-1] = new_crop_h
-    result_runs: list[int] = (run_ends - run_starts).tolist()
-    # RLE starts with a False count; prepend 0 if output begins with True.
-    if bool(out_values[0]):
-        result_runs.insert(0, 0)
-    return result_runs
-
-
 def _rle_join_cols(
     scaled_cols: list[list[int]],
     new_total: int,
@@ -625,9 +573,7 @@ def _rle_join_cols(
       run of the next column (leading count may be zero).
     * ``True``/``True``: when the accumulated output ends on a True run and the
       next column's leading False count is zero (column starts with True), the
-      two True runs are merged to avoid inserting a zero-length False run that
-      would inflate ``len(rle)`` and skew the density metric in
-      :func:`_resize_crop`.
+      two True runs are merged to avoid inserting a zero-length False run.
 
     Args:
         scaled_cols: List of per-column run lists, each starting with a
@@ -775,111 +721,6 @@ def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
     return counts_arr
 
 
-def _rle_resize(
-    rle: npt.NDArray[np.int32],
-    crop_h: int,
-    crop_w: int,
-    new_crop_h: int,
-    new_crop_w: int,
-    row_map: npt.NDArray[np.int32] | None = None,
-    col_map: npt.NDArray[np.int32] | None = None,
-) -> npt.NDArray[np.int32]:
-    """Resize an F-order RLE-encoded crop via nearest-neighbour resampling.
-
-    Manipulates run lengths directly without decoding to a full 2D boolean
-    array.  Delegates to :func:`_rle_split_cols`, :func:`_rle_scale_col`,
-    and :func:`_rle_join_cols`.
-
-    Explicit source mappings follow the full image's sampling grid. Without
-    them, resampling follows the active backend's ``INTER_NEAREST`` grid
-    within the crop, including its sampling rounding.
-
-    Args:
-        rle: int32 array of F-order run lengths as produced by
-            :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
-            Starts with a ``False``-run count (may be 0).
-        crop_h: Height of the original crop.
-        crop_w: Width of the original crop.
-        new_crop_h: Height of the resized crop.
-        new_crop_w: Width of the resized crop.
-        row_map: Optional source rows on the full image's sampling grid.
-        col_map: Optional source columns on the full image's sampling grid.
-
-    Returns:
-        int32 array of F-order run lengths for the resized crop, starting
-        with the ``False``-run count.
-
-    Examples:
-        Upscale a 3x3 mask with a diagonal True stripe to 6x6:
-
-        ```pycon
-        >>> import numpy as np
-        >>> from supervision.detection.compact_mask import _rle_resize
-        >>> from supervision.detection.utils.converters import (
-        ...     _mask_to_rle_counts, _rle_counts_to_mask,
-        ... )
-        >>> mask = np.array([
-        ...     [True,  False, False],
-        ...     [False, True,  False],
-        ...     [False, False, True ],
-        ... ], dtype=bool)
-        >>> rle = _mask_to_rle_counts(mask)
-        >>> resized_rle = _rle_resize(rle, 3, 3, 6, 6)
-        >>> result = _rle_counts_to_mask(resized_rle, 6, 6)
-        >>> result.astype(int)
-        array([[1, 1, 0, 0, 0, 0],
-               [1, 1, 0, 0, 0, 0],
-               [0, 0, 1, 1, 0, 0],
-               [0, 0, 1, 1, 0, 0],
-               [0, 0, 0, 0, 1, 1],
-               [0, 0, 0, 0, 1, 1]])
-
-        ```
-    """
-    new_total = new_crop_h * new_crop_w
-
-    if crop_h * crop_w == 0 or new_total == 0:
-        return np.array([0], dtype=np.int32)
-    if len(rle) == 1 or int(np.sum(rle[1::2])) == 0:
-        return np.array([new_total], dtype=np.int32)
-    if len(rle) == 2 and rle[0] == 0:
-        return np.array([0, new_total], dtype=np.int32)
-
-    per_col = _rle_split_cols(rle, crop_h, crop_w)
-
-    if row_map is None or col_map is None:
-        from supervision._cv2 import INTER_NEAREST, resize
-
-        # Integer division can disagree with the backend at sampling boundaries.
-        if col_map is None:
-            col_map = resize(
-                np.arange(crop_w, dtype=np.int32)[None, :],
-                (new_crop_w, 1),
-                interpolation=INTER_NEAREST,
-            ).ravel()
-        if row_map is None:
-            row_map = resize(
-                np.arange(crop_h, dtype=np.int32)[:, None],
-                (1, new_crop_h),
-                interpolation=INTER_NEAREST,
-            ).ravel()
-
-    # Scale each unique source column once; reuse via cache for repeated cols.
-    col_cache: dict[int, list[int]] = {}
-    scaled_cols = []
-    for src_c in col_map:
-        src_col = int(src_c)
-        if src_col not in col_cache:
-            col_cache[src_col] = _rle_scale_col(per_col[src_col], crop_h, row_map)
-        scaled_cols.append(col_cache[src_col])
-
-    return _rle_join_cols(scaled_cols, new_total)
-
-
-# Fraction of (run_count / pixel_count) below which _rle_resize is used
-# instead of the decode → cv2 → re-encode path.  Sparse masks have few long
-# runs; dense/complex masks approach 1 run per 2 pixels.
-_L3_DENSITY_THRESHOLD: float = 0.25
 # Thread overhead outweighs gains below this mask count.
 _PARALLEL_THRESHOLD: int = 8
 # Hard ceiling on each image dimension accepted by from_coco_rle, guarding
@@ -891,70 +732,62 @@ _MAX_IMAGE_DIMENSION: int = 32768
 _SMALL_IMAGE_DENSE_THRESHOLD: int = 128 * 128
 
 
-def _resize_crop(
-    rle: npt.NDArray[np.int32],
-    orig_h: int,
-    orig_w: int,
-    new_h: int,
-    new_w: int,
-    row_map: npt.NDArray[np.int32] | None = None,
-    col_map: npt.NDArray[np.int32] | None = None,
-) -> npt.NDArray[np.int32]:
-    """Resize one RLE crop to ``(new_h, new_w)``, choosing the fastest path.
+def _nearest_source_index(src_size: int, dst_size: int) -> npt.NDArray[np.int32]:
+    """Return the source index each output index samples in a nearest resize.
 
-    Dispatch order:
-
-    1. **All-False fast path** — returns a single False run; no decode.
-    2. **L3 direct RLE path** — used when run density is below
-       :data:`_L3_DENSITY_THRESHOLD`; manipulates run lengths without
-       allocating a 2D array.
-    3. **Dense path** — decodes the crop, samples source pixels, then re-encodes.
-       Without explicit sampling maps, uses ``cv2.resize(INTER_NEAREST)``.
+    Resizes an index ramp with the active ``supervision._cv2`` backend, so the map
+    equals ``INTER_NEAREST`` exactly, including its floating-point rounding.
 
     Args:
-        rle: int32 run-length array for the source crop.
-        orig_h: Height of the source crop.
-        orig_w: Width of the source crop.
-        new_h: Target height.
-        new_w: Target width.
-        row_map: Optional source rows on the full image's sampling grid.
-        col_map: Optional source columns on the full image's sampling grid.
+        src_size: Length of the source axis.
+        dst_size: Length of the resized axis.
 
     Returns:
-        int32 RLE array for the resized crop.
+        Non-decreasing int32 array of length ``dst_size``.
     """
     from supervision import _cv2 as cv2
 
-    # All-False: skip decode entirely.
-    if (
-        _rle_area(rle) == 0
-        or (row_map is not None and row_map.size == 0)
-        or (col_map is not None and col_map.size == 0)
-    ):
-        return np.array([new_h * new_w], dtype=np.int32)
+    ramp = np.arange(src_size, dtype=np.int32).reshape(1, -1)
+    resized = cv2.resize(ramp, (dst_size, 1), interpolation=cv2.INTER_NEAREST)
+    return cast(npt.NDArray[np.int32], resized[0])
 
-    # L3: direct RLE arithmetic for sparse masks.
-    if len(rle) / max(1, orig_h * orig_w) < _L3_DENSITY_THRESHOLD:
-        return _rle_resize(rle, orig_h, orig_w, new_h, new_w, row_map, col_map)
 
-    # Decode dense crops before resampling.
-    crop = _rle_counts_to_mask(rle, orig_h, orig_w)
-    if row_map is not None and col_map is not None:
-        resized = crop[np.ix_(row_map, col_map)]
-    else:
-        resized = cv2.resize(
-            crop.view(np.uint8),
-            (new_w, new_h),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(bool)
-    return _mask_to_rle_counts(resized)
+def _resize_crop(
+    rle: npt.NDArray[np.int32],
+    crop_h: int,
+    crop_w: int,
+    row_idx: npt.NDArray[np.int32],
+    col_idx: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Resample one RLE crop by gathering source rows and columns.
+
+    Decodes the crop, indexes it with ``row_idx`` and ``col_idx`` (crop-local source
+    indices, one per output row and column), and re-encodes. All-``False`` crops skip
+    the decode.
+
+    Args:
+        rle: int32 run-length array for the source crop.
+        crop_h: Height of the source crop.
+        crop_w: Width of the source crop.
+        row_idx: Source row for each output row.
+        col_idx: Source column for each output column.
+
+    Returns:
+        int32 RLE array for the resampled crop.
+    """
+    if _rle_area(rle) == 0:
+        return np.array([len(row_idx) * len(col_idx)], dtype=np.int32)
+
+    crop = _rle_counts_to_mask(rle, crop_h, crop_w)
+    return _mask_to_rle_counts(crop[row_idx[:, np.newaxis], col_idx])
 
 
 class CompactMask:
     """Memory-efficient crop-RLE mask storage for instance segmentation.
 
-    Instead of storing N full ``(H, W)`` boolean arrays, :class:`CompactMask`
-    encodes each mask as a run-length sequence of its bounding-box crop.  This
+    Instead of storing N full ``(H, W)`` boolean arrays,
+    :class:`~supervision.detection.compact_mask.CompactMask` encodes each mask as
+    a run-length sequence of its bounding-box crop. This
     reduces memory from O(N·H·W) to roughly O(N·bbox_area), which is orders of
     magnitude smaller for sparse masks on high-resolution images.
 
@@ -962,38 +795,49 @@ class CompactMask:
     masks used elsewhere in ``supervision``:
 
     * ``mask[int]`` → dense ``(H, W)`` bool array (annotators, converters).
-    * ``mask[slice | list | ndarray]`` → new :class:`CompactMask` (filtering).
+    * ``mask[slice | list | ndarray]`` → new
+      :class:`~supervision.detection.compact_mask.CompactMask` (filtering).
     * ``np.asarray(mask)`` → dense ``(N, H, W)`` bool array (numpy interop).
     * ``mask.shape``, ``mask.dtype``, ``mask.area`` — match the dense API.
 
-    :class:`CompactMask` is **not** a drop-in ``np.ndarray`` replacement.
+    :class:`~supervision.detection.compact_mask.CompactMask` is **not** a
+    drop-in ``np.ndarray`` replacement.
     When you need to call arbitrary ndarray methods (``astype``, ``reshape``,
-    ``ravel``, ``any``, ``all``, …) call :meth:`to_dense` first:
-    ``cm.to_dense().astype(np.uint8)``.  :meth:`to_dense` is the single
+    ``ravel``, ``any``, ``all``, …) call
+    :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` first:
+    ``cm.to_dense().astype(np.uint8)``.
+    :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` is the single
     explicit materialisation boundary.
 
     .. note:: **RLE encoding — COCO / pycocotools pixel-scan order**
 
-        :class:`CompactMask` uses **column-major (Fortran-order, F-order)**
+        :class:`~supervision.detection.compact_mask.CompactMask` uses **column-major
+        (Fortran-order, F-order)**
         run-lengths scoped to each mask's bounding-box crop, matching the
         pixel-scan order used by the COCO API (pycocotools).  The crop scope
         still differs from the full-image scope used by pycocotools, so a
-        :class:`CompactMask` RLE cannot be passed directly to
+        :class:`~supervision.detection.compact_mask.CompactMask` RLE cannot be passed
+        directly to
         ``maskUtils.iou()`` or ``maskUtils.decode()`` without re-scoping to
-        the full canvas.  Use :meth:`to_dense` to obtain a standard boolean
+        the full canvas. Use
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` to obtain a
+        standard boolean
         array for pycocotools interop.
 
         This scan order is part of CompactMask's internal RLE representation.
         Switching from row-major (C-order) to column-major (F-order) is a
         backward-incompatible format change for any persisted or serialized
-        :class:`CompactMask` state, including pickled objects and any
+        :class:`~supervision.detection.compact_mask.CompactMask` state, including
+        pickled objects and any
         external storage of ``._rles``.  Older stored RLE arrays will decode
         incorrectly under the new convention.
 
         Migration note: load or decode legacy masks with the older version,
         materialize them to dense boolean arrays, and then re-encode them
-        with the current version (for example via :meth:`to_dense` followed
-        by :meth:`from_dense`) before persisting them again.
+        with the current version (for example via
+        :meth:`~supervision.detection.compact_mask.CompactMask.to_dense` followed by
+        :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`) before
+        persisting them again.
 
     Args:
         rles: List of N int32 run-length arrays.
@@ -1043,7 +887,8 @@ class CompactMask:
         xyxy: npt.NDArray[np.number],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from a
+        dense ``(N, H, W)`` bool array.
 
         Bounding boxes are clipped to image bounds and interpreted in the
         supervision ``xyxy`` convention (inclusive max coordinates). A
@@ -1057,7 +902,7 @@ class CompactMask:
             image_shape: ``(H, W)`` of the full image.
 
         Returns:
-            A new :class:`CompactMask` instance.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Examples:
             ```pycon
@@ -1127,10 +972,12 @@ class CompactMask:
         xyxy: npt.NDArray[np.floating],
         image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Create a :class:`CompactMask` from full-frame COCO RLE masks.
+        """Create a :class:`~supervision.detection.compact_mask.CompactMask` from full-
+        frame COCO RLE masks.
 
         Transcodes full-image COCO RLE payloads into the crop-scoped RLE format
-        used by :class:`CompactMask`. The conversion uses run-length arithmetic
+        used by :class:`~supervision.detection.compact_mask.CompactMask`. The
+        conversion uses run-length arithmetic
         scoped by ``xyxy`` boxes and does not materialise a dense ``(N, H, W)``
         mask stack.
 
@@ -1144,7 +991,7 @@ class CompactMask:
                 ``"size"`` value.
 
         Returns:
-            A new :class:`CompactMask` instance.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` instance.
 
         Raises:
             ValueError: If the RLE payloads are malformed, are not aligned with
@@ -1503,7 +1350,9 @@ class CompactMask:
 
         Note:
             The implementation iterates over the N individual RLE arrays in a
-            Python loop (one :func:`_rle_area` call per mask). This is negligible
+            Python loop (one
+            :func:`~supervision.detection.compact_mask._rle_area` call per mask).
+            This is negligible
             for typical N, but callers processing thousands of detections per
             frame should be aware of the per-mask Python-level overhead.
 
@@ -1532,7 +1381,8 @@ class CompactMask:
         """NumPy-compatible sum with a fast path for per-mask area.
 
         When ``axis=(1, 2)``, returns the per-mask True-pixel count via
-        :attr:`area` without materialising the full dense array.
+        :attr:`~supervision.detection.compact_mask.CompactMask.area` without
+        materialising the full dense array.
 
         Args:
             axis: Axis or axes to sum over.
@@ -1585,15 +1435,18 @@ class CompactMask:
         """Index into the mask collection.
 
         * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
-        * ``slice | list | ndarray`` → new :class:`CompactMask` (for filtering).
+        * ``slice | list | ndarray`` → new
+          :class:`~supervision.detection.compact_mask.CompactMask` (for filtering).
 
         Args:
             index: An integer returns a dense ``(H, W)`` mask.  Any other
-                supported index type returns a new :class:`CompactMask`.
+                supported index type returns a new
+                :class:`~supervision.detection.compact_mask.CompactMask`.
 
         Returns:
             Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
-            :class:`CompactMask` for all other index types.
+            :class:`~supervision.detection.compact_mask.CompactMask` for all
+            other index types.
 
         Examples:
             ```pycon
@@ -1647,7 +1500,7 @@ class CompactMask:
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 
     def __array__(
-        self, dtype: np.dtype[np.generic] | None = None
+        self, dtype: np.dtype[np.generic] | None = None, copy: bool | None = None
     ) -> npt.NDArray[np.generic]:
         """NumPy interop: materialise as a dense ``(N, H, W)`` array.
 
@@ -1655,9 +1508,14 @@ class CompactMask:
 
         Args:
             dtype: Optional dtype to cast the result to.
+            copy: ``None`` and ``True`` materialise a fresh dense array.
+                ``False`` raises because RLE storage cannot be shared as a dense array.
 
         Returns:
             Dense boolean array of shape ``(N, H, W)``.
+
+        Raises:
+            ValueError: If ``copy`` is ``False``.
 
         Examples:
             ```pycon
@@ -1671,16 +1529,21 @@ class CompactMask:
 
             ```
         """
+        if copy is False:
+            raise ValueError("Cannot convert CompactMask to an array with copy=False.")
         result = self.to_dense()
         if dtype is not None:
             return result.astype(dtype)
         return result
 
     def __eq__(self, other: object) -> bool:
-        """Element-wise equality with another :class:`CompactMask` or ndarray.
+        """Element-wise equality with another
+        :class:`~supervision.detection.compact_mask.CompactMask` or ndarray.
 
         Args:
-            other: Another :class:`CompactMask` or ``np.ndarray``.
+            other: Another
+                :class:`~supervision.detection.compact_mask.CompactMask` or
+                ``np.ndarray``.
 
         Returns:
             ``True`` if all masks are pixel-identical.
@@ -1710,16 +1573,19 @@ class CompactMask:
 
     @staticmethod
     def merge(masks_list: list[CompactMask]) -> CompactMask:
-        """Concatenate multiple :class:`CompactMask` objects into one.
+        """Concatenate multiple :class:`~supervision.detection.compact_mask.CompactMask`
+        objects into one.
 
         All inputs must have the same ``image_shape``.
 
         Args:
-            masks_list: Non-empty list of :class:`CompactMask` objects.
+            masks_list: Non-empty list of
+                :class:`~supervision.detection.compact_mask.CompactMask`
+                objects.
 
         Returns:
-            A new :class:`CompactMask` containing every mask from the inputs,
-            in order.
+            A new :class:`~supervision.detection.compact_mask.CompactMask`
+            containing every mask from the inputs, in order.
 
         Raises:
             ValueError: If ``masks_list`` is empty or image shapes differ.
@@ -1776,8 +1642,8 @@ class CompactMask:
         tiles are merged).
 
         Returns:
-            A new :class:`CompactMask` with minimal-area crops and updated
-            offsets.
+            A new :class:`~supervision.detection.compact_mask.CompactMask` with
+            minimal-area crops and updated offsets.
 
         Examples:
             ```pycon
@@ -1849,7 +1715,8 @@ class CompactMask:
         dy: int,
         new_image_shape: tuple[int, int],
     ) -> CompactMask:
-        """Return a new :class:`CompactMask` with adjusted offsets and image shape.
+        """Return a new :class:`~supervision.detection.compact_mask.CompactMask` with
+        adjusted offsets and image shape.
 
         Used by :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
         to relocate tile-local masks into full-image coordinates without
@@ -1861,7 +1728,8 @@ class CompactMask:
             new_image_shape: ``(H, W)`` of the full (destination) image.
 
         Returns:
-            New :class:`CompactMask` with updated offsets and image shape.
+            New :class:`~supervision.detection.compact_mask.CompactMask` with
+            updated offsets and image shape.
             Crops are clipped to stay inside ``new_image_shape``; masks fully
             outside are represented as ``1x1`` all-False crops.
 
@@ -1971,24 +1839,27 @@ class CompactMask:
     def resize(self, new_image_shape: tuple[int, int]) -> CompactMask:
         """Return a new CompactMask scaled to a different image resolution.
 
-        Each crop uses the full image's nearest-neighbour sampling grid, matching
-        a dense ``cv2.resize(INTER_NEAREST)``. Sparse masks use direct RLE
-        arithmetic (:func:`_rle_resize`); dense masks sample decoded crops.
-        Crops with no sampled pixels become all-False.
+        The result equals resizing each dense mask with
+        ``cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)``, pixel for
+        pixel. Each new crop spans the output pixels that sample the old crop, so
+        crops stay tight under any scale factor, including non-uniform ones. A crop
+        that no output pixel samples (a small mask on a large downscale) becomes a
+        ``1x1`` all-``False`` crop.
 
         Performance notes:
 
-        * Coordinate arithmetic is fully vectorised (no Python loop over N).
-        * All-``False`` crops skip decode/resize entirely.
-        * For N >= 8, resize runs in a thread pool — NumPy and OpenCV
-          release the GIL so crops execute in parallel on multi-core CPUs.
+        * Crop boxes are computed for all masks at once with ``searchsorted``.
+        * Each crop is resampled by indexing its decoded pixels; the full image
+          mask is never materialised.
+        * All-``False`` crops skip decode entirely.
+        * For N >= 8, resize runs in a thread pool.
 
         Args:
             new_image_shape: ``(H, W)`` of the target image.
 
         Returns:
-            New :class:`CompactMask` with updated ``image_shape``, scaled
-            offsets, scaled crop shapes, and re-encoded RLE crops.
+            New :class:`~supervision.detection.compact_mask.CompactMask` with
+            updated ``image_shape``, offsets, crop shapes, and re-encoded RLE crops.
 
         Raises:
             ValueError: If any dimension in *new_image_shape* is ``<= 0``.
@@ -2006,6 +1877,8 @@ class CompactMask:
             (1, 50, 50)
             >>> small.offsets[0].tolist()
             [15, 10]
+            >>> small.crop(0).shape
+            (10, 15)
 
             ```
         """
@@ -2036,64 +1909,55 @@ class CompactMask:
             )
 
         img_h, img_w = self._image_shape
-        from supervision import _cv2 as cv2
+        row_src = _nearest_source_index(img_h, new_h)
+        col_src = _nearest_source_index(img_w, new_w)
 
-        # Reuse the active backend's full-image grid, including its rounding.
-        row_map = cv2.resize(
-            np.arange(img_h, dtype=np.int32)[:, None],
-            (1, new_h),
-            interpolation=cv2.INTER_NEAREST,
-        ).ravel()
-        col_map = cv2.resize(
-            np.arange(img_w, dtype=np.int32)[None, :],
-            (new_w, 1),
-            interpolation=cv2.INTER_NEAREST,
-        ).ravel()
-
-        # L1 — vectorised coordinate arithmetic; no Python loop over N masks.
+        # The source index is non-decreasing in the output index, so the outputs
+        # sampling the source range [x1, x2) are the contiguous range
+        # [first j with src[j] >= x1, first j with src[j] >= x2).
         x1s = self._offsets[:, 0]
         y1s = self._offsets[:, 1]
-        x2s = x1s + self._crop_shapes[:, 1]  # exclusive crop end
+        x2s = x1s + self._crop_shapes[:, 1]
         y2s = y1s + self._crop_shapes[:, 0]
-
-        new_x1s = np.searchsorted(col_map, x1s).astype(np.int32)
-        new_y1s = np.searchsorted(row_map, y1s).astype(np.int32)
-        new_x2s = np.searchsorted(col_map, x2s).astype(np.int32)
-        new_y2s = np.searchsorted(row_map, y2s).astype(np.int32)
+        new_x1s = np.searchsorted(col_src, x1s, side="left")
+        new_y1s = np.searchsorted(row_src, y1s, side="left")
+        new_x2s = np.searchsorted(col_src, x2s, side="left")
+        new_y2s = np.searchsorted(row_src, y2s, side="left")
         new_crop_ws = new_x2s - new_x1s
         new_crop_hs = new_y2s - new_y1s
-        unsampled = (new_crop_ws == 0) | (new_crop_hs == 0)
-        new_crop_ws[unsampled] = 1
-        new_crop_hs[unsampled] = 1
-
-        # L2b — parallel per-crop resize; NumPy and OpenCV release the GIL.
-        orig_crop_hs = self._crop_shapes[:, 0]
-        orig_crop_ws = self._crop_shapes[:, 1]
-
-        args = [
-            (
-                self._rles[i],
-                int(orig_crop_hs[i]),
-                int(orig_crop_ws[i]),
-                int(new_crop_hs[i]),
-                int(new_crop_ws[i]),
-                row_map[new_y1s[i] : new_y2s[i]] - y1s[i],
-                col_map[new_x1s[i] : new_x2s[i]] - x1s[i],
-            )
-            for i in range(len(self))
-        ]
 
         n = len(self)
+        vanished = (new_crop_ws == 0) | (new_crop_hs == 0)
+
+        def resize_one(i: int) -> npt.NDArray[np.int32]:
+            """Resample crop ``i``, or return a 1x1 all-False RLE if it vanished."""
+            if vanished[i]:
+                return np.array([1], dtype=np.int32)
+            # Crop-local source indices of the output rows and columns.
+            row_idx = row_src[new_y1s[i] : new_y2s[i]] - y1s[i]
+            col_idx = col_src[new_x1s[i] : new_x2s[i]] - x1s[i]
+            return _resize_crop(
+                self._rles[i],
+                int(self._crop_shapes[i, 0]),
+                int(self._crop_shapes[i, 1]),
+                row_idx,
+                col_idx,
+            )
+
         if n >= _PARALLEL_THRESHOLD:
             with ThreadPoolExecutor(max_workers=min(n, os.cpu_count() or 4)) as pool:
                 new_rles: list[npt.NDArray[np.int32]] = list(
-                    pool.map(lambda a: _resize_crop(*a), args)
+                    pool.map(resize_one, range(n))
                 )
         else:
-            new_rles = [_resize_crop(*a) for a in args]
+            new_rles = [resize_one(i) for i in range(n)]
+
+        # A vanished crop keeps a valid 1x1 shape at an in-bounds offset.
+        new_crop_ws = np.where(vanished, 1, new_crop_ws)
+        new_crop_hs = np.where(vanished, 1, new_crop_hs)
+        new_x1s = np.minimum(new_x1s, new_w - 1)
+        new_y1s = np.minimum(new_y1s, new_h - 1)
 
         new_crop_shapes = np.column_stack((new_crop_hs, new_crop_ws)).astype(np.int32)
-        new_offsets = np.column_stack(
-            (np.minimum(new_x1s, new_w - 1), np.minimum(new_y1s, new_h - 1))
-        ).astype(np.int32)
+        new_offsets = np.column_stack((new_x1s, new_y1s)).astype(np.int32)
         return CompactMask(new_rles, new_crop_shapes, new_offsets, new_image_shape)

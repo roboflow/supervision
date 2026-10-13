@@ -115,7 +115,8 @@ _VLM_UNIT_CONFIDENCE: frozenset[VLM] = frozenset({VLM.QWEN_2_5_VL, VLM.QWEN_3_VL
 
 @dataclass
 class Detections:
-    """The `sv.Detections` class in the Supervision library standardizes results from
+    """The :class:`~supervision.detection.core.Detections` class standardizes
+    results from
     various object detection and segmentation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with the external [trackers](https://trackers.roboflow.com/latest/),
@@ -125,7 +126,8 @@ class Detections:
     === "RF-DETR"
 
         [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
-        `sv.Detections` object directly, so no conversion step is needed.
+        :class:`~supervision.detection.core.Detections` object directly, so no
+        conversion step is needed.
 
         ```python
         from supervision import _cv2 as cv2
@@ -139,8 +141,8 @@ class Detections:
 
     === "Inference"
 
-        Use [`sv.Detections.from_inference`](/detection/core/#supervision.detection.core.Detections.from_inference)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_inference`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
         from supervision import _cv2 as cv2
@@ -155,8 +157,8 @@ class Detections:
 
     === "Ultralytics"
 
-        Use [`sv.Detections.from_ultralytics`](/detection/core/#supervision.detection.core.Detections.from_ultralytics)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_ultralytics`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
         from supervision import _cv2 as cv2
@@ -171,8 +173,8 @@ class Detections:
 
     === "Transformers"
 
-        Use [`sv.Detections.from_transformers`](/detection/core/#supervision.detection.core.Detections.from_transformers)
-        method, which accepts model results from both detection and segmentation models.
+        Use :meth:`~supervision.detection.core.Detections.from_transformers`, which
+        accepts model results from both detection and segmentation models.
 
         ```python
         import torch
@@ -335,12 +337,13 @@ class Detections:
     @classmethod
     def from_ultralytics(cls, ultralytics_results: Any) -> Detections:
         """
-        Creates a `sv.Detections` instance from a
+        Creates a :class:`~supervision.detection.core.Detections` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
 
         !!! Note
 
-            `from_ultralytics` is compatible with
+            :meth:`~supervision.detection.core.Detections.from_ultralytics` is
+            compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
             [segmentation](https://docs.ultralytics.com/tasks/segment/), and
             [OBB](https://docs.ultralytics.com/tasks/obb/) models.
@@ -484,7 +487,7 @@ class Detections:
             normalized as ``[ymin, xmin, ymax, xmax]``. This method rescales
             them to absolute pixel coordinates and reorders them to ``xyxy``
             (``[xmin, ymin, xmax, ymax]``) before constructing the
-            :class:`Detections` object.
+            :class:`~supervision.detection.core.Detections` object.
 
         Example:
             ```python
@@ -737,7 +740,8 @@ class Detections:
         compact_masks: bool = False,
     ) -> Detections:
         """
-        Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
+        Create a :class:`~supervision.detection.core.Detections` object from the
+        [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
         package results. This method extracts bounding boxes, class IDs,
         confidences, and class names from the Roboflow API result and encapsulates
@@ -1203,9 +1207,9 @@ class Detections:
         cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
         """Creates a Detections object from the given result string based on the
-        specified Vision Language Model (VLM).
+        specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
 
-        | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
+        | Name                | VLM member           | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
@@ -1713,7 +1717,7 @@ class Detections:
                 `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
 
         Returns:
-            The parsed `Detections`.
+            The parsed :class:`~supervision.detection.core.Detections`.
         """
         mask: npt.NDArray[np.bool_] | CompactMask | None
         confidence: npt.NDArray[np.floating] | None
@@ -1756,8 +1760,9 @@ class Detections:
                 `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
 
         Returns:
-            The parsed `Detections`, or an empty one carrying an empty `class_name`
-                array when the task reported no boxes.
+            The parsed :class:`~supervision.detection.core.Detections`, or an
+            empty one carrying an empty `class_name` array when the task
+            reported no boxes.
         """
         xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
         xyxy = _sort_box_corners(xyxy)
@@ -1789,7 +1794,8 @@ class Detections:
                 `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
 
         Returns:
-            The parsed `Detections`, carrying boxes only.
+            The parsed :class:`~supervision.detection.core.Detections`, carrying
+            boxes only.
         """
         xyxy = from_moondream(result, **kwargs)
         return cls(xyxy=_sort_box_corners(xyxy))
@@ -1810,7 +1816,8 @@ class Detections:
                 `REQUIRED_ARGUMENTS` and `ALLOWED_ARGUMENTS`.
 
         Returns:
-            The parsed `Detections`, carrying boxes and labels.
+            The parsed :class:`~supervision.detection.core.Detections`, carrying
+            boxes and labels.
         """
         xyxy, class_id, class_name = from_kosmos_2(result, **kwargs)
         return cls(
@@ -1963,7 +1970,8 @@ class Detections:
         )
 
     def is_empty(self) -> bool:
-        """Check whether the `Detections` object has zero bounding boxes.
+        """Check whether the :class:`~supervision.detection.core.Detections` object has
+        zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
@@ -1998,36 +2006,48 @@ class Detections:
 
         !!! Note
 
-            When merging, empty `Detections` objects are ignored.
+            When merging, empty :class:`~supervision.detection.core.Detections`
+            objects are ignored.
 
         !!! Note
 
             **Mask merge policy** — the output mask type follows these rules:
 
             * All inputs carry
-              [`CompactMask`][supervision.detection.compact_mask.CompactMask]
-              → result mask is `CompactMask`.
-            * Mixed dense `ndarray` + `CompactMask` inputs → dense masks are converted
-              to `CompactMask` via
-              [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense];
-              result is `CompactMask`. No full `(N, H, W)` stack is allocated.
+              :class:`~supervision.detection.compact_mask.CompactMask`
+              → result mask is :class:`~supervision.detection.compact_mask.CompactMask`.
+            * Mixed dense `ndarray` +
+              :class:`~supervision.detection.compact_mask.CompactMask` inputs →
+              dense masks are converted to
+              :class:`~supervision.detection.compact_mask.CompactMask` via
+              :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`;
+              result is :class:`~supervision.detection.compact_mask.CompactMask`.
+              No full
+              `(N, H, W)` stack is allocated.
 
               !!! warning "Lossy conversion"
 
-                  `from_dense` crops each dense mask to its detection bounding box
+                  :meth:`~supervision.detection.compact_mask.CompactMask.from_dense`
+                  crops each dense mask to its detection bounding box
                   (`xyxy`). **True pixels outside the bounding box are silently
                   discarded.** This matches the behaviour of
-                  `Detections.from_inference(compact_masks=True)`. If pixel-perfect
-                  preservation is required, ensure all inputs are already `CompactMask`
-                  or use the all-dense path (no `CompactMask` inputs).
+                  :meth:`~supervision.detection.core.Detections.from_inference`
+                  with `compact_masks=True`. If pixel-perfect
+                  preservation is required, ensure all inputs are already
+                  :class:`~supervision.detection.compact_mask.CompactMask` or use the
+                  all-dense path (no
+                  :class:`~supervision.detection.compact_mask.CompactMask`
+                  inputs).
 
             * All inputs carry dense `ndarray` → result is `ndarray` (backward
               compatible).
             * The pairwise merge path used by
-              [`with_nms`][supervision.detection.core.Detections.with_nms] /
-              [`with_nmm`][supervision.detection.core.Detections.with_nmm]
-              (`merge_inner_detection_object_pair`) does **not** preserve `CompactMask`
-              — mixed inputs materialise to a dense `ndarray` on that path.
+              :meth:`~supervision.detection.core.Detections.with_nms` /
+              :meth:`~supervision.detection.core.Detections.with_nmm`
+              (:func:`~supervision.detection.core.merge_inner_detection_object_pair`)
+              does **not** preserve
+              :class:`~supervision.detection.compact_mask.CompactMask` — mixed
+              inputs materialise to a dense `ndarray` on that path.
 
         Args:
             detections_list: A list of Detections objects to merge.
@@ -2036,9 +2056,12 @@ class Detections:
             A single Detections object containing the merged data from the input list.
 
         Raises:
-            ValueError: If some `Detections` have a `mask` and others do not.
-            ValueError: If `CompactMask` inputs have different `image_shape` values.
-            ValueError: If a dense mask `(H, W)` shape differs from the `CompactMask`
+            ValueError: If some :class:`~supervision.detection.core.Detections`
+                have a `mask` and others do not.
+            ValueError: If :class:`~supervision.detection.compact_mask.CompactMask`
+                inputs have different `image_shape` values.
+            ValueError: If a dense mask `(H, W)` shape differs from the
+                :class:`~supervision.detection.compact_mask.CompactMask`
                 `image_shape` when mixing mask types.
 
         Example:
@@ -2185,7 +2208,8 @@ class Detections:
     def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
         """Compute anchor-point coordinates for each detection.
 
-        The anchor can be any position in the `Position` enum, such as
+        The anchor can be any position in the
+        :class:`~supervision.geometry.core.Position` enum, such as
         `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
 
         Selection order:
@@ -2201,7 +2225,7 @@ class Detections:
 
         Args:
             anchor: Anchor position to compute. Supported positions are
-                defined in the `Position` enum.
+                defined in the :class:`~supervision.geometry.core.Position` enum.
 
         Returns:
             Array of shape `(n, 2)` where each row is the `[x, y]` anchor
@@ -2327,8 +2351,9 @@ class Detections:
             index: Row index, indices, slice, or boolean mask selecting detections.
 
         Returns:
-            A new `Detections` instance containing the selected rows. Always returns
-            a fresh copy — arrays and metadata are never shared with the original,
+            A new :class:`~supervision.detection.core.Detections` instance
+            containing the selected rows. Always returns a fresh copy — arrays
+            and metadata are never shared with the original,
             even when the selection is empty or the input has zero detections.
 
         Example:
@@ -2522,12 +2547,15 @@ class Detections:
         1. If ``mask`` is set, return the area of each mask.
         2. Else, if ``data[ORIENTED_BOX_COORDINATES]`` is set, return the area of
            the rotated body (shoelace formula on the four corners).
-        3. Otherwise, return the axis-aligned box area (``box_area``).
+        3. Otherwise, return the axis-aligned box area
+           (:meth:`~supervision.detection.core.Detections.box_area`).
 
         **OBB dispatch contract**: presence of ``data[ORIENTED_BOX_COORDINATES]``
         with shape ``(N, 4, 2)`` is the canonical signal that a detection carries
         oriented bounding box geometry. The same presence-of-key check governs
-        ``with_nms``, ``with_nmm``, and this property — always store OBB corners
+        :meth:`~supervision.detection.core.Detections.with_nms`,
+        :meth:`~supervision.detection.core.Detections.with_nmm`, and this
+        property — always store OBB corners
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
         **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
@@ -2633,9 +2661,11 @@ class Detections:
     def to_compact_masks(self) -> Detections:
         """Return a copy of this Detections with masks converted to CompactMask.
 
-        The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
+        The dense :attr:`~supervision.detection.core.Detections.mask` field
+        (``NDArray[np.bool_]``) is converted to a
         :class:`~supervision.detection.compact_mask.CompactMask` without changing
-        mask pixels. When :attr:`mask` is already a
+        mask pixels. When :attr:`~supervision.detection.core.Detections.mask` is
+        already a
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
 
@@ -2651,8 +2681,9 @@ class Detections:
             of potential pixel loss outside those boxes.
 
         Returns:
-            A new :class:`Detections` instance with ``mask`` set to a
-            :class:`~supervision.detection.compact_mask.CompactMask`, or ``self``
+            A new :class:`~supervision.detection.core.Detections` instance with
+            ``mask`` set to a :class:`~supervision.detection.compact_mask.CompactMask`,
+            or ``self``
             when conversion is not needed.
 
         Example:
@@ -2805,32 +2836,37 @@ class Detections:
         axis-aligned box IoU is used. Oriented-box detections are not given
         dedicated OBB-IoU treatment and fall back to their axis-aligned `xyxy`.
 
-        Unlike `with_nms`, which discards overlapping detections outright,
+        Unlike :meth:`~supervision.detection.core.Detections.with_nms`, which
+        discards overlapping detections outright,
         Soft-NMS keeps every detection and instead rescales its confidence by
         `score *= exp(-iou**2 / sigma)` for each higher-scoring, same-category
         overlap. By default (`score_threshold=None`) nothing is dropped — the
         method only rescales confidence, despite the "suppression" name; pass
         `score_threshold` to additionally filter the decayed scores into a real
-        subset, matching `with_nms`'s return contract.
+        subset, matching
+        :meth:`~supervision.detection.core.Detections.with_nms`'s return contract.
 
         Args:
             sigma: Controls the strength of the confidence decay; must be
                 greater than `0`. The lower the value the stronger the decay.
-                No value of `sigma` reproduces `with_nms`'s hard cutoff —
+                No value of `sigma` reproduces
+                :meth:`~supervision.detection.core.Detections.with_nms`'s hard cutoff —
                 Soft-NMS never drops detections on its own.
             class_agnostic: Whether to perform class-agnostic Soft-NMS. If
                 True, the class_id of each detection will be ignored.
                 Defaults to False.
             score_threshold: If given, detections whose decayed confidence is
                 at or below this value are dropped, producing a real subset
-                (like `with_nms`). If `None` (default), all detections are
+                (like :meth:`~supervision.detection.core.Detections.with_nms`). If
+                `None` (default), all detections are
                 kept, with their confidence rescaled in place on the returned
                 copy.
 
         Returns:
             A new Detections object with decayed confidence scores and,
                 if `score_threshold` is given, filtered to a real subset.
-                The original `Detections` instance is never modified.
+                The original :class:`~supervision.detection.core.Detections`
+                instance is never modified.
 
         Raises:
             ValueError: If `confidence` is None.
@@ -3016,8 +3052,9 @@ def _merge_obb_corners(
 def _merge_detection_group(detections: list[Detections]) -> Detections:
     """Merge a group of single-object Detections into one merged detection.
 
-    Used internally by :meth:`Detections.with_nmm` to combine each merge group
-    into a single output detection. The highest-confidence detection is the
+    Used internally by :meth:`~supervision.detection.core.Detections.with_nmm`
+    to combine each merge group into a single output detection. The
+    highest-confidence detection is the
     "winner" whose class_id, tracker_id, and data fields are preserved.
 
     Args:
