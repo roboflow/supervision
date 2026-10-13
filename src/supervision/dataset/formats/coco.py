@@ -184,7 +184,9 @@ def coco_annotations_to_masks(
         if reference_polygons:
             try:
                 from pycocotools import mask as coco_mask
-            except ImportError as exc:
+            except ModuleNotFoundError as exc:
+                if exc.name != "pycocotools":
+                    raise
                 raise ImportError(
                     'mask_rasterizer="pycocotools" requires supervision[coco]. '
                     'Install it with: pip install "supervision[coco]"'

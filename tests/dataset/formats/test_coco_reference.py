@@ -13,15 +13,25 @@ from supervision import DetectionDataset, polygon_to_mask
 from supervision.dataset.formats.coco import coco_annotations_to_masks
 
 
-def _write_dataset(tmp_path: Path, segmentation: Any) -> Path:
-    """Write a synthetic image and one-object COCO dataset."""
-    Image.new("RGB", (8, 8)).save(tmp_path / "image.png")
+def _write_dataset(
+    tmp_path: Path,
+    segmentation: Any,
+    resolution_wh: tuple[int, int] = (8, 8),
+) -> Path:
+    """Write a synthetic image and one-object COCO dataset at the requested size."""
+    width, height = resolution_wh
+    Image.new("RGB", resolution_wh).save(tmp_path / "image.png")
     path = tmp_path / "annotations.json"
     path.write_text(
         json.dumps(
             {
                 "images": [
-                    {"id": 1, "file_name": "image.png", "width": 8, "height": 8}
+                    {
+                        "id": 1,
+                        "file_name": "image.png",
+                        "width": width,
+                        "height": height,
+                    }
                 ],
                 "categories": [{"id": 1, "name": "object"}],
                 "annotations": [
@@ -89,6 +99,26 @@ class TestCocoReferenceRasterization:
         np.testing.assert_array_equal(detections.class_id, [0])
         np.testing.assert_array_equal(detections.xyxy, [[1, 1, 5, 5]])
 
+    def test_loader_matches_reference_on_rectangular_image(
+        self, tmp_path: Path
+    ) -> None:
+        """The public loader uses width and height in the COCO order."""
+        coco_mask = pytest.importorskip("pycocotools.mask")
+        polygons = [[1.6, 1.6, 8.6, 1.6, 8.6, 5.6, 1.6, 5.6]]
+        width, height = 11, 7
+        path = _write_dataset(tmp_path, polygons, (width, height))
+        reference = coco_mask.decode(
+            coco_mask.merge(coco_mask.frPyObjects(polygons, height, width))
+        )
+
+        dataset = DetectionDataset.from_coco(
+            str(tmp_path), str(path), mask_rasterizer="pycocotools"
+        )
+
+        detections = next(iter(dataset.annotations.values()))
+        np.testing.assert_array_equal(detections.mask[0], reference)
+        assert detections.mask[0].shape == (height, width)
+
     def test_preserves_default_inclusive_mask(self, tmp_path: Path) -> None:
         """Existing callers still receive the documented inclusive square."""
         path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
@@ -128,8 +158,10 @@ class TestCocoReferenceRasterization:
 
         def blocked_import(name: str, *args: Any, **kwargs: Any) -> Any:
             """Simulate an installation without the optional COCO dependency."""
-            if name == "pycocotools" or name.startswith("pycocotools."):
-                raise ImportError("pycocotools is unavailable")
+            if name == "pycocotools":
+                raise ModuleNotFoundError(
+                    "pycocotools is unavailable", name="pycocotools"
+                )
             return original_import(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", blocked_import)
@@ -138,6 +170,31 @@ class TestCocoReferenceRasterization:
             DetectionDataset.from_coco(
                 str(tmp_path), str(path), mask_rasterizer="pycocotools"
             )
+
+    def test_propagates_nested_optional_import_failure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A missing nested module keeps its original import failure."""
+        path = _write_dataset(tmp_path, [[1, 1, 5, 1, 5, 5, 1, 5]])
+        original_import = builtins.__import__
+        nested_error = ModuleNotFoundError(
+            "No module named 'pycocotools._mask'", name="pycocotools._mask"
+        )
+
+        def broken_import(name: str, *args: Any, **kwargs: Any) -> Any:
+            """Simulate a broken transitive COCO extension import."""
+            if name == "pycocotools":
+                raise nested_error
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", broken_import)
+
+        with pytest.raises(ModuleNotFoundError, match=r"pycocotools\._mask") as error:
+            DetectionDataset.from_coco(
+                str(tmp_path), str(path), mask_rasterizer="pycocotools"
+            )
+
+        assert error.value is nested_error
 
     @pytest.mark.parametrize("vertex", [float("nan"), float("inf")])
     def test_rejects_non_finite_geometry(self, vertex: float) -> None:

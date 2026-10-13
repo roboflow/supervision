@@ -7,7 +7,7 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the reference rasterization convention. Install `supervision[coco]` for this optional mode. Continuous vertices are retained and disjoint parts are merged per object. The default inclusive integer fill, generic polygon rasterizer, and RLE decoding keep their existing behavior. ([#2714](https://github.com/roboflow/supervision/pull/2714))
+- `sv.DetectionDataset.from_coco` accepts `mask_rasterizer="pycocotools"` to load COCO polygons with the reference rasterization convention. Install `supervision[coco]` for this optional mode. Continuous vertices are retained and disjoint parts are merged per object. The default inclusive integer fill, generic polygon rasterizer, and RLE decoding keep their existing behavior. A missing `pycocotools` package reports the install command; failures in nested imports or its compiled extension retain their original error. ([#2714](https://github.com/roboflow/supervision/pull/2714))
 
 - Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
 
