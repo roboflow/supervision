@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class DepthKind(Enum):
-    """What the values of a `sv.DepthMap` measure.
+    """What the values of :class:`~supervision.depth.core.DepthMap` measure.
 
     Attributes:
         DISPARITY_PX: Stereo disparity in pixels of the map. Larger is nearer.
@@ -41,7 +41,8 @@ class DepthKind(Enum):
             the farthest pixel to 1 for the nearest. Invert a relative map that
             grows with distance, such as raw Depth Anything V3 output, which is
             linear in depth: pass `1 / values`, not `-values`, whose pixels would
-            all be negative and so without depth. Maps from `from_inference` need
+            all be negative and so without depth. Maps from
+            :meth:`~supervision.depth.core.DepthMap.from_inference` need
             no inverting. Set pixels without depth to `NaN` first, because 0 is a
             valid value of this kind.
     """
@@ -60,10 +61,11 @@ class DepthKind(Enum):
         """Resolve a kind from an enum member or its case-insensitive value.
 
         Args:
-            value: A `DepthKind` member or one of its string values.
+            value: A :class:`~supervision.depth.core.DepthKind` member or one of its
+                string values.
 
         Returns:
-            The matching `DepthKind`.
+            The matching :class:`~supervision.depth.core.DepthKind`.
 
         Raises:
             ValueError: If `value` names no kind.
@@ -95,7 +97,8 @@ _DATA_FIELD_BY_KIND: dict[DepthKind, str] = {
 
 
 class DepthResizeMethod(Enum):
-    """How `sv.DepthMap.resize` picks the value of each target pixel.
+    """How :meth:`~supervision.depth.core.DepthMap.resize` picks the value of each
+    target pixel.
 
     Both methods only pick existing values and never blend them.
 
@@ -118,10 +121,11 @@ class DepthResizeMethod(Enum):
         """Resolve a resize method from an enum member or its case-insensitive value.
 
         Args:
-            value: A `DepthResizeMethod` member or one of its string values.
+            value: A :class:`~supervision.depth.core.DepthResizeMethod` member or
+                one of its string values.
 
         Returns:
-            The matching `DepthResizeMethod`.
+            The matching :class:`~supervision.depth.core.DepthResizeMethod`.
 
         Raises:
             ValueError: If `value` names no resize method.
@@ -164,10 +168,11 @@ class DepthScale(Enum):
         """Resolve a scale from an enum member or its case-insensitive value.
 
         Args:
-            value: A `DepthScale` member or one of its string values.
+            value: A :class:`~supervision.depth.core.DepthScale` member or one of
+                its string values.
 
         Returns:
-            The matching `DepthScale`.
+            The matching :class:`~supervision.depth.core.DepthScale`.
 
         Raises:
             ValueError: If `value` names no scale.
@@ -189,7 +194,7 @@ class DepthCamera:
     """Pinhole stereo camera parameters that relate disparity to metric depth.
 
     All pixel values are in pixels of the depth map they belong to, so resizing a
-    `sv.DepthMap` updates them.
+    :class:`~supervision.depth.core.DepthMap` updates them.
 
     Attributes:
         fx_px: Focal length in pixels.
@@ -399,9 +404,11 @@ def _stretch(
 ) -> npt.NDArray[np.float32]:
     """Return the values stretched over an image of `resolution_wh`, unscaled.
 
-    Each image pixel takes the map pixel under its centre, as `sv.DepthAnnotator`
-    draws the map, so the values keep the map's unit, unlike `DepthMap.resize`,
-    which rescales disparity with the width.
+    Each image pixel takes the map pixel under its centre, as
+    :class:`~supervision.depth.annotators.DepthAnnotator` draws the map, so the
+    values keep the map's unit, unlike
+    :meth:`~supervision.depth.core.DepthMap.resize`, which rescales disparity
+    with the width.
     """
     width, height = _check_resolution(resolution_wh)
     source_height, source_width = values.shape
@@ -416,10 +423,12 @@ def _stretch(
 def _pixel_boxes(
     xyxy: npt.ArrayLike, resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.int64]:
-    """Return `(N, 4)` boxes as whole pixels inside the map, as `sv.crop_image` does.
+    """Return `(N, 4)` boxes as whole pixels inside the map, as
+    :func:`~supervision.utils.image.crop_image` does.
 
     Boxes are clipped in float before the cast, so a huge coordinate cannot overflow
-    int64. Coordinates must be finite, as `sv.Detections` already ensures.
+    int64. Coordinates must be finite, as
+    :class:`~supervision.detection.core.Detections` already ensures.
     """
     clipped = np.round(clip_boxes(np.asarray(xyxy, dtype=np.float64), resolution_wh))
     pixel_boxes: npt.NDArray[np.int64] = clipped.astype(np.int64)
@@ -442,7 +451,8 @@ def _values_under_mask(
 ) -> npt.NDArray[np.float32]:
     """Return the values under a full-frame mask, or under a crop placed at `offset`.
 
-    `offset` is the crop's `(x1, y1)` origin in the map, as `CompactMask` gives it.
+    `offset` is the crop's `(x1, y1)` origin in the map, as
+    :class:`~supervision.detection.compact_mask.CompactMask` gives it.
     """
     if offset is not None:
         x_min, y_min = int(offset[0]), int(offset[1])
@@ -473,10 +483,13 @@ def _check_resolution(resolution_wh: tuple[int, int]) -> tuple[int, int]:
 class DepthMap:
     """A per-pixel depth, disparity or relative depth map for one frame.
 
-    `sv.DepthMap` is to depth what `sv.KeyPoints` is to pose: its own container, with
-    its own annotator ([`sv.DepthAnnotator`](/latest/depth/annotators/)) and model
-    connectors. It belongs to the whole frame, so it is not a `sv.Detections` field;
-    `measure_detections` brings the depth under each object into `detections.data`.
+    :class:`~supervision.depth.core.DepthMap` is to depth what
+    :class:`~supervision.key_points.core.KeyPoints` is to pose: its own container,
+    with its own :class:`~supervision.depth.annotators.DepthAnnotator` and model
+    connectors. It belongs to the whole frame, so it is not a
+    :class:`~supervision.detection.core.Detections` field;
+    :meth:`~supervision.depth.core.DepthMap.measure_detections` brings the depth
+    under each object into `detections.data`.
 
     `values` are float32 in the kind's unit. For `disparity_px` and `depth_m`,
     non-finite values and values `<= 0` are no depth; for `relative_inverse`,
@@ -528,7 +541,8 @@ class DepthMap:
                 later changes to it show in the map. Masked-array masks are
                 ignored: mark missing depth with `NaN`, an infinity or a value the
                 kind treats as no depth.
-            kind: What the values measure, as a `sv.DepthKind` or its string value.
+            kind: What the values measure, as a
+                :class:`~supervision.depth.core.DepthKind` or its string value.
             camera: Optional stereo camera parameters. A `relative_inverse` map has
                 no metric scale for a camera to give, so it takes none.
 
@@ -613,7 +627,8 @@ class DepthMap:
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from a depth model served by Roboflow Inference.
+        """Create a :class:`~supervision.depth.core.DepthMap` from a depth model served
+        by Roboflow Inference.
 
         Reads the `normalized_depth` that Inference's depth models (Depth Anything,
         YOLO26 depth) return in every `depth_map_format` (`json` nested lists,
@@ -630,7 +645,7 @@ class DepthMap:
                 Workflow's depth estimation step.
 
         Returns:
-            A `relative_inverse` `sv.DepthMap`.
+            A `relative_inverse` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the result is a list or carries no `normalized_depth`, or
@@ -679,7 +694,8 @@ class DepthMap:
 
     @classmethod
     def from_ultralytics(cls, ultralytics_results: Any) -> DepthMap:
-        """Create a `sv.DepthMap` from an Ultralytics YOLO26 depth result.
+        """Create a :class:`~supervision.depth.core.DepthMap` from an Ultralytics YOLO26
+        depth result.
 
         `result.depth.data` holds metric depth in metres at the original image size,
         where values `<= 0` are no depth. A float32 depth is shared with the map,
@@ -689,7 +705,7 @@ class DepthMap:
             ultralytics_results: One `Results` object from a depth model.
 
         Returns:
-            A `depth_m` `sv.DepthMap`.
+            A `depth_m` :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the result is a list or carries no depth map, or the depth
@@ -723,7 +739,8 @@ class DepthMap:
     def from_transformers(
         cls, transformers_results: Any, *, kind: DepthKind | str
     ) -> DepthMap:
-        """Create a `sv.DepthMap` from a Hugging Face depth estimation result.
+        """Create a :class:`~supervision.depth.core.DepthMap` from a Hugging Face depth
+        estimation result.
 
         Reads `predicted_depth` from a `depth-estimation` pipeline result or from a
         `post_process_depth_estimation(outputs, target_sizes=...)` entry. A raw model
@@ -742,7 +759,7 @@ class DepthMap:
             kind: What the model predicts.
 
         Returns:
-            A float32 `sv.DepthMap`.
+            A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the result is a list or has no `predicted_depth`, the depth
@@ -782,8 +799,9 @@ class DepthMap:
 
         Values load as float32 `code / scale`. Code 0 is no depth (`NaN`) for every
         kind, including `relative_inverse`; load Inference responses with
-        `from_inference`. KITTI disparity uses `scale=256`; Ultralytics depth datasets
-        store millimetres (`scale=1000`) unless the dataset YAML sets `depth_scale`.
+        :meth:`~supervision.depth.core.DepthMap.from_inference`. KITTI
+        disparity uses `scale=256`; Ultralytics depth datasets store
+        millimetres (`scale=1000`) unless the dataset YAML sets `depth_scale`.
 
         Args:
             path: Path to the PNG.
@@ -791,7 +809,7 @@ class DepthMap:
             kind: What the values measure.
 
         Returns:
-            A float32 `sv.DepthMap`.
+            A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the file is not a single-channel 16-bit PNG, `scale` is
@@ -836,7 +854,7 @@ class DepthMap:
             kind: What the values measure; disparity by default.
 
         Returns:
-            A float32 `sv.DepthMap`.
+            A float32 :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the file is not a valid grayscale PFM (bad header, scale
@@ -915,11 +933,12 @@ class DepthMap:
 
         Args:
             resolution_wh: Target `(width, height)`.
-            method: A `sv.DepthResizeMethod` or its case-insensitive string value,
+            method: A :class:`~supervision.depth.core.DepthResizeMethod` or its
+                case-insensitive string value,
                 `"nearest"` (default) or `"foreground"`.
 
         Returns:
-            A new `sv.DepthMap`.
+            A new :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the resolution is not positive or the method is unknown.
@@ -982,7 +1001,7 @@ class DepthMap:
             xyxy: Box as `(x_min, y_min, x_max, y_max)` in map pixels.
 
         Returns:
-            A new `sv.DepthMap`.
+            A new :class:`~supervision.depth.core.DepthMap`.
 
         Raises:
             ValueError: If the box is not four finite numbers or does not overlap
@@ -1027,9 +1046,10 @@ class DepthMap:
         """Return the value in the kind's unit under a point, or `None`.
 
         The unit is the map's own: metres for `depth_m`, pixels for `disparity_px`.
-        Call `to_depth` first for metres from a disparity map with a camera.
-        Missing values are `None` here, but `NaN` in `to_float` and in the columns
-        `measure_detections` writes.
+        Call :meth:`~supervision.depth.core.DepthMap.to_depth` first for metres
+        from a disparity map with a camera. Missing values are `None` here, but
+        `NaN` in :meth:`~supervision.depth.core.DepthMap.to_float` and in the
+        columns :meth:`~supervision.depth.core.DepthMap.measure_detections` writes.
 
         Args:
             x: Column of the point.
@@ -1039,7 +1059,9 @@ class DepthMap:
                 Without it the point is in map pixels. The point is a continuous
                 coordinate, where pixel `i` spans `[i, i + 1)`: for a pixel index,
                 pass its centre, `x + 0.5` and `y + 0.5`, to read the value that
-                `resize` and `sv.DepthAnnotator` show at that pixel.
+                :meth:`~supervision.depth.core.DepthMap.resize` and
+                :class:`~supervision.depth.annotators.DepthAnnotator`
+                show at that pixel.
 
         Returns:
             The value, or `None` where the map has no depth or the point is outside
@@ -1092,8 +1114,10 @@ class DepthMap:
         """Return the detections with the median depth under each object in `data`.
 
         For each detection, the median of the valid depth pixels inside its mask
-        (dense or `sv.CompactMask`) or, without masks, inside its box (rounded and
-        clipped as in `sv.crop_image`) is stored in a new `data` column. The depth is
+        (dense or :class:`~supervision.detection.compact_mask.CompactMask`) or,
+        without masks, inside its box (rounded and clipped as in
+        :func:`~supervision.utils.image.crop_image`) is stored in a new `data`
+        column. The depth is
         in metres, under `"depth_m"`, when the map can give them (a `depth_m` map, or
         a disparity map with a camera), and in the map's own kind otherwise, under
         `"disparity_px"` or `"relative_inverse"`
@@ -1104,20 +1128,24 @@ class DepthMap:
 
         Pass `resolution_wh` when the detections come from an image of another size
         than the map, such as a monocular model's output: the map is then stretched
-        over the image as `sv.DepthAnnotator` draws it, each image pixel taking the
+        over the image as :class:`~supervision.depth.annotators.DepthAnnotator`
+        draws it, each image pixel taking the
         map value under its centre, so even a small box gets depth. The values keep
-        the map's own unit; unlike `resize`, a disparity map's values are not
+        the map's own unit; unlike :meth:`~supervision.depth.core.DepthMap.resize`,
+        a disparity map's values are not
         rescaled.
 
         Args:
-            detections: Detections in the map's pixel coordinates, or in the
+            detections: :class:`~supervision.detection.core.Detections` in the
+                map's pixel coordinates, or in the
                 coordinates of an image of `resolution_wh`.
             resolution_wh: Size of the image the detections and their masks belong
                 to, when it differs from the map's. Without it they are in map
                 pixels.
 
         Returns:
-            A new `sv.Detections` with the added `data` column, float32 of shape
+            A new :class:`~supervision.detection.core.Detections` with the added
+            `data` column, float32 of shape
             `(N,)`. It shares the input's arrays (`xyxy`, `mask` and the other `data`
             columns) rather than copying them.
 

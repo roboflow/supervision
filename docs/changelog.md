@@ -9,6 +9,8 @@ date_modified: 2026-10-11
 
 - `sv.KeyPoints` now preserves all three coordinates when selecting a single keypoint with a NumPy integer or zero-dimensional array row index and an integer anchor index. The result keeps shape `(1, 1, 3)` instead of raising a reshape error. Two-coordinate points and the selected confidence, visibility, class IDs, and custom data are unchanged. ([#2715](https://github.com/roboflow/supervision/pull/2715))
 
+- Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
+
 - `sv.CompactMask` now accepts NumPy's array-protocol `copy` keyword. Default `np.array` and explicit-copy conversions no longer emit a NumPy 2 deprecation warning. On NumPy 2, zero-copy requests raise `ValueError` before allocating a dense mask tensor; default `np.asarray` and dtype conversion remain unchanged. ([#2708](https://github.com/roboflow/supervision/pull/2708))
 
 - `sv.CompactMask.resize` now resamples crops by decoding and indexing on the full-image sampling grid, replacing the sparse RLE path. Output remains pixel-for-pixel equal to dense nearest-neighbor resizing, including non-uniform scales and crops that become empty. ([#2705](https://github.com/roboflow/supervision/pull/2705))
