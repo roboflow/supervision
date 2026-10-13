@@ -550,6 +550,69 @@ def test_key_points_getitem_detection_level(key_points, index, expected_result):
     assert result == expected_result
 
 
+class TestKeyPointsSelect:
+    """Tests for selecting individual keypoints without losing their fields."""
+
+    @pytest.mark.parametrize("method", ["select", "__getitem__"])
+    @pytest.mark.parametrize("coordinate_count", [2, 3])
+    @pytest.mark.parametrize("with_fields", [False, True])
+    @pytest.mark.parametrize(
+        "row_index",
+        [
+            1,
+            pytest.param(np.int64(1), id="numpy-integer"),
+            pytest.param(np.array(1), id="zero-dimensional-array"),
+            pytest.param(np.int32(-1), id="negative-numpy-integer"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "anchor_index",
+        [1, pytest.param(np.int64(1), id="numpy-integer")],
+    )
+    def test_preserves_coordinates_and_fields(
+        self,
+        method: str,
+        coordinate_count: int,
+        with_fields: bool,
+        row_index: int | np.integer | np.ndarray,
+        anchor_index: int | np.integer,
+    ) -> None:
+        """Single-point selection retains coordinate depth and aligned fields."""
+        xy = np.arange(6 * coordinate_count, dtype=np.float32).reshape(
+            2, 3, coordinate_count
+        )
+        key_points = KeyPoints(xy=xy)
+        if with_fields:
+            key_points = KeyPoints(
+                xy=xy,
+                keypoint_confidence=np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]),
+                detection_confidence=np.array([0.7, 0.8]),
+                visible=np.array([[True, False, True], [False, True, False]]),
+                class_id=np.array([2, 3]),
+                data={"names": ["first", "second"], "id": np.array([10, 20])},
+            )
+        select = getattr(key_points, method)
+
+        result = select((row_index, anchor_index))
+
+        np.testing.assert_array_equal(result.xy, xy[1:2, 1:2, :])
+        assert result.xy.shape == (1, 1, coordinate_count)
+        assert result.xy.dtype == xy.dtype
+        if with_fields:
+            np.testing.assert_array_equal(result.keypoint_confidence, [[0.5]])
+            np.testing.assert_array_equal(result.detection_confidence, [0.8])
+            np.testing.assert_array_equal(result.visible, [[True]])
+            np.testing.assert_array_equal(result.class_id, [3])
+            np.testing.assert_array_equal(result.data["id"], [20])
+            assert result.data["names"] == ["second"]
+        else:
+            assert result.keypoint_confidence is None
+            assert result.detection_confidence is None
+            assert result.visible is None
+            assert result.class_id is None
+            assert result.data == {}
+
+
 class TestKeyPointsVisible:
     """Tests for the `visible` mask field on KeyPoints."""
 

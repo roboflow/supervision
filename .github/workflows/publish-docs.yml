@@ -37,10 +37,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # No `fetch-depth: 0`: that also fetches every branch, and gh-pages alone is ~4.6 GB
+      # of built-site history (all source branches together are ~0.2 GB), which blew the
+      # job timeout inside this step. Shallow checkout, then fetch only what is needed.
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
+
+      # Source history + tags, blobless: git-revision-date-localized walks commits per
+      # file and compute_is_latest_release.py reads every tag; neither reads old blobs
+      # (several are 80 MB notebooks). gh-pages is deliberately not fetched here.
+      - name: 📜 Fetch source history and tags
+        run: git fetch --unshallow --tags --force --filter=blob:none origin "$GITHUB_SHA"
+
+      # mike only reads the tip tree of gh-pages and commits on top of it, so depth 1 is
+      # enough; the push is accepted because the remote already has the parents.
+      - name: 📄 Fetch the gh-pages tip
+        run: git fetch --depth=1 origin gh-pages
 
       - name: 🐍 Install uv and set Python
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -95,7 +107,7 @@ jobs:
               is_rc=true
             fi
             # An rc never gates the outdated banner (it is never deployed below), and
-            # the comparison needs full tag history — see actions/checkout fetch-depth: 0
+            # the comparison needs every tag — see "Fetch source history and tags"
             # at the top of this job.
             if [[ "$is_rc" != "true" ]]; then
               is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
