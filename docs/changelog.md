@@ -9,6 +9,8 @@ date_modified: 2026-10-11
 
 - `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. ([#2720](https://github.com/roboflow/supervision/pull/2720))
 
+- Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
+
 - `sv.CompactMask` now accepts NumPy's array-protocol `copy` keyword. Default `np.array` and explicit-copy conversions no longer emit a NumPy 2 deprecation warning. On NumPy 2, zero-copy requests raise `ValueError` before allocating a dense mask tensor; default `np.asarray` and dtype conversion remain unchanged. ([#2708](https://github.com/roboflow/supervision/pull/2708))
 
 - `sv.CompactMask.resize` now resamples crops by decoding and indexing on the full-image sampling grid, replacing the sparse RLE path. Output remains pixel-for-pixel equal to dense nearest-neighbor resizing, including non-uniform scales and crops that become empty. ([#2705](https://github.com/roboflow/supervision/pull/2705))

@@ -44,10 +44,12 @@ def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     Every value must be finite: ``nan`` or an infinity cannot place a box, and ``nan``
     would pass the extent check below unnoticed. A negative width or height would
     place ``x_min`` past ``x_max``, breaking the ordering every consumer of ``xyxy``
-    assumes: ``box_iou_batch`` reports no overlap between identical regions,
-    ``with_nms`` stops suppressing, and ``Detections.area`` turns negative when only
-    one of the two extents is negative. Reject both here rather than let a corrupt
-    label travel on.
+    assumes: :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
+    reports no overlap between identical regions,
+    :meth:`~supervision.detection.core.Detections.with_nms` stops suppressing,
+    and the :class:`~supervision.detection.core.Detections` ``area`` property
+    turns negative when only one of the two extents is negative. Reject both
+    here rather than let a corrupt label travel on.
     """
     x_center, y_center, width, height = values
     numbers = [float(value) for value in values]
@@ -322,7 +324,8 @@ def yolo_annotations_to_detections(
     with_masks: bool,
     is_obb: bool = False,
 ) -> Detections:
-    """Convert YOLO annotation lines into ``Detections``.
+    """Convert YOLO annotation lines into
+    :class:`~supervision.detection.core.Detections`.
 
     When ``is_obb=False``, five-token lines are axis-aligned boxes. Six-token
     lines add a trailing confidence or tracker id, which is ignored. Lines with
@@ -332,7 +335,8 @@ def yolo_annotations_to_detections(
     and no extra field, is indistinguishable from the latter and is read the
     same way. When ``is_obb=True``, annotations must use the nine-token
     four-corner OBB format. Pose keypoints are not stripped here;
-    ``load_yolo_annotations`` drops them before calling this function.
+    :func:`~supervision.dataset.formats.yolo.load_yolo_annotations` drops them
+    before calling this function.
 
     Raises:
         ValueError: If a line has fewer than five tokens, or is not nine tokens

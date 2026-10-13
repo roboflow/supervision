@@ -128,15 +128,16 @@ def _normalize_row_index(
 
 @dataclass(init=False)
 class KeyPoints:
-    """The `sv.KeyPoints` class in the Supervision library standardizes results from
-    various keypoint detection and pose estimation models into a consistent format. This
-    class simplifies data manipulation and filtering, providing a uniform API for
+    """The :class:`~supervision.key_points.core.KeyPoints` class standardizes results
+    from various keypoint detection and pose estimation models into a consistent format.
+    This class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
 
     === "RF-DETR"
 
         [RF-DETR](https://github.com/roboflow/rf-detr) keypoint models return
-        `sv.KeyPoints` directly from `model.predict()` — no additional
+        :class:`~supervision.key_points.core.KeyPoints` directly from
+        `model.predict()` — no additional
         conversion is needed.
 
         ```python
@@ -152,8 +153,9 @@ class KeyPoints:
 
     === "Ultralytics"
 
-        Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_ultralytics)
-        method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
+        Use :meth:`~supervision.key_points.core.KeyPoints.from_ultralytics`,
+        which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/),
+        [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
         [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
@@ -170,7 +172,7 @@ class KeyPoints:
 
     === "Inference"
 
-        Use [`sv.KeyPoints.from_inference`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_inference)
+        Use :meth:`~supervision.key_points.core.KeyPoints.from_inference`
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
@@ -187,7 +189,7 @@ class KeyPoints:
 
     === "MediaPipe"
 
-        Use [`sv.KeyPoints.from_mediapipe`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_mediapipe)
+        Use :meth:`~supervision.key_points.core.KeyPoints.from_mediapipe`
         method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
 
@@ -220,7 +222,7 @@ class KeyPoints:
 
     === "Transformers"
 
-        Use [`sv.KeyPoints.from_transformers`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_transformers)
+        Use :meth:`~supervision.key_points.core.KeyPoints.from_transformers`
         method, which accepts [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) result.
 
         ```python
@@ -380,7 +382,8 @@ class KeyPoints:
         self.keypoint_confidence = value
 
     def __len__(self) -> int:
-        """Returns the number of objects in the `sv.KeyPoints` object.
+        """Returns the number of objects in the
+        :class:`~supervision.key_points.core.KeyPoints` object.
 
         Returns:
             The number of objects.
@@ -441,7 +444,8 @@ class KeyPoints:
     @classmethod
     def from_inference(cls, inference_result: Any) -> KeyPoints:
         """
-        Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
+        Create a :class:`~supervision.key_points.core.KeyPoints` object from the
+        [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
         package results.
 
@@ -450,7 +454,8 @@ class KeyPoints:
                 Roboflow API or Inference package containing predictions with keypoints.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates, class IDs,
                 class names, and per-keypoint confidences when supplied by the
                 source result. `detection_confidence` is populated only when every
                 prediction has a non-`None` object confidence; if any prediction
@@ -553,7 +558,7 @@ class KeyPoints:
         cls, mediapipe_results: Any, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
-        Creates a `sv.KeyPoints` instance from a
+        Creates a :class:`~supervision.key_points.core.KeyPoints` instance from a
         [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose, face, or hand landmark detection inference result.
 
@@ -566,7 +571,8 @@ class KeyPoints:
                 resolution of the frame.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates and
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates and
                 confidences of each keypoint.
 
         !!! tip
@@ -767,7 +773,7 @@ class KeyPoints:
     @classmethod
     def from_ultralytics(cls, ultralytics_results: Any) -> KeyPoints:
         """
-        Creates a `sv.KeyPoints` instance from a
+        Creates a :class:`~supervision.key_points.core.KeyPoints` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
 
         Args:
@@ -775,7 +781,8 @@ class KeyPoints:
                 with tensor or NumPy properties (including `Results.numpy()`).
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates, class IDs,
                 class names, detection confidences, and confidences of each keypoint.
 
         Examples:
@@ -815,14 +822,16 @@ class KeyPoints:
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
         """
-        Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
+        Create a :class:`~supervision.key_points.core.KeyPoints` instance from a
+        [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
 
         Args:
             yolo_nas_results: The output object from YOLO NAS.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates, class IDs,
                 and class names, and confidences of each keypoint.
 
         Examples:
@@ -873,7 +882,7 @@ class KeyPoints:
     @classmethod
     def from_detectron2(cls, detectron2_results: Any) -> KeyPoints:
         """
-        Create a `sv.KeyPoints` object from the
+        Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
@@ -881,7 +890,8 @@ class KeyPoints:
                 Detectron2 model containing instances with prediction data.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates, class IDs,
                 detection confidences, and confidences of each keypoint.
 
         Examples:
@@ -927,7 +937,7 @@ class KeyPoints:
     @classmethod
     def from_transformers(cls, transformers_results: Any) -> KeyPoints:
         """
-        Create a `sv.KeyPoints` object from the
+        Create a :class:`~supervision.key_points.core.KeyPoints` object from the
         [Transformers](https://github.com/huggingface/transformers) inference result.
 
         Args:
@@ -936,9 +946,11 @@ class KeyPoints:
                 detected pose. An empty list means no poses were detected.
 
         Returns:
-            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+            A :class:`~supervision.key_points.core.KeyPoints` object containing
+            the keypoint coordinates, class IDs,
                 class names, and confidences of each keypoint. An empty
-                `transformers_results` returns `KeyPoints.empty()`.
+                `transformers_results` returns
+                :meth:`~supervision.key_points.core.KeyPoints.empty`.
 
         Examples:
             ```python
@@ -1019,7 +1031,8 @@ class KeyPoints:
 
         This method selects the **same set of keypoints from every object**, so
         every row of `mask` must contain the same number of `True` values.  The
-        result is a new `KeyPoints` whose keypoint count is that uniform `k`.
+        result is a new :class:`~supervision.key_points.core.KeyPoints` whose
+        keypoint count is that uniform `k`.
 
         This is suitable for use cases such as *"keep only the left-side joints for
         all persons"* — where the selected joint indices are identical across objects.
@@ -1040,8 +1053,8 @@ class KeyPoints:
                 stored in a uniform `(n, k, ...)` array.
 
         Returns:
-            A new `KeyPoints` instance containing only the keypoints selected by
-            the mask for each object.
+            A new :class:`~supervision.key_points.core.KeyPoints` instance
+            containing only the keypoints selected by the mask for each object.
 
         Raises:
             ValueError: If `mask.shape[0]` does not match the number of objects, if
@@ -1146,7 +1159,8 @@ class KeyPoints:
             index: Index, indices, slice, or boolean mask selecting key points.
 
         Returns:
-            A new `KeyPoints` instance containing the selected rows or anchors.
+            A new :class:`~supervision.key_points.core.KeyPoints` instance
+            containing the selected rows or anchors.
 
         Example:
             ```pycon
@@ -1284,7 +1298,8 @@ class KeyPoints:
             ...     data={'class_name': np.array(['person', 'person', 'dog'])},
             ... )
 
-            Detection-level filtering returns a `KeyPoints` subset:
+            Detection-level filtering returns a
+            :class:`~supervision.key_points.core.KeyPoints` subset:
 
             >>> key_points[key_points.detection_confidence > 0.7].class_id
             array([0, 1])
@@ -1326,7 +1341,8 @@ class KeyPoints:
         return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
-        """Set a value in the data dictionary of the `sv.KeyPoints` object.
+        """Set a value in the data dictionary of the
+        :class:`~supervision.key_points.core.KeyPoints` object.
 
         Args:
             key: The key in the data dictionary to set.
@@ -1378,7 +1394,7 @@ class KeyPoints:
         """Create an empty KeyPoints object with no key points.
 
         Returns:
-            An empty `sv.KeyPoints` object.
+            An empty :class:`~supervision.key_points.core.KeyPoints` object.
 
         Examples:
             ```pycon
@@ -1392,7 +1408,8 @@ class KeyPoints:
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
-        """Returns `True` if the `KeyPoints` object is considered empty.
+        """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object
+        is considered empty.
 
         Returns:
             `True` if the object is empty, `False` otherwise.
@@ -1416,14 +1433,15 @@ class KeyPoints:
         respective fields (`xy`, `class_id`, `keypoint_confidence`,
         `detection_confidence`, and `visible`) into a single KeyPoints object.
         The `data` dictionaries are merged key-wise, following the same rules
-        as `Detections.merge`.
+        as :meth:`~supervision.detection.core.Detections.merge`.
 
         For example, if merging KeyPoints with 2 and 3 skeletons, this method
         will return a KeyPoints with 5 skeletons (5 entries in `xy`, etc).
 
         !!! Note
 
-            When merging, empty `KeyPoints` objects are ignored.
+            When merging, empty :class:`~supervision.key_points.core.KeyPoints`
+            objects are ignored.
 
         Args:
             key_points_list: A list of KeyPoints objects to merge.
@@ -1551,7 +1569,8 @@ class KeyPoints:
                 `OverlapMetric.IOU`.
 
         Returns:
-            A new `sv.KeyPoints` object after non-maximum suppression.
+            A new :class:`~supervision.key_points.core.KeyPoints` object after
+            non-maximum suppression.
 
         Raises:
             ValueError: If `detection_confidence` is None.
@@ -1654,7 +1673,8 @@ class KeyPoints:
         """Convert a KeyPoints object to a Detections object. This approximates the
         bounding box of the detected object by taking the bounding box that fits all key
         points. Key points that are missing (`[0, 0]`), not finite, or marked not
-        visible via `visible` are left out, as in `with_nms`, and a skeleton with no
+        visible via `visible` are left out, as in
+        :meth:`~supervision.key_points.core.KeyPoints.with_nms`, and a skeleton with no
         other key point is dropped.
 
         Args:
