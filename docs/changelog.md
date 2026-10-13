@@ -7,7 +7,7 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
-- `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region.
+- `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region. ([#2725](https://github.com/roboflow/supervision/pull/2725))
 
 - Integer-coordinate bounding boxes and oriented bounding boxes now keep their correct object-size category when area arithmetic would overflow the input dtype. Size-specific metrics no longer classify a large `int32` object as small because its area wrapped to zero. ([#2713](https://github.com/roboflow/supervision/pull/2713))
 
