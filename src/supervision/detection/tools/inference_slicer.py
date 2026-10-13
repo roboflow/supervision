@@ -30,7 +30,9 @@ from supervision.utils.iterables import create_batches
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally by `_is_windowed_raster` rather than by import so `rasterio`
+    Matched structurally by
+    :func:`~supervision.detection.tools.inference_slicer._is_windowed_raster`
+    rather than by import so `rasterio`
     stays an optional dependency — any object exposing these members works.
     `rasterio.io.DatasetReader` satisfies this protocol.
     """
@@ -318,12 +320,14 @@ class InferenceSlicer:
         followed by any probe slices, then the remaining slices in source order.
         Empty slices or batches are probed synchronously until the output geometry
         is known. If oriented bounding boxes are detected, all remaining slices are
-        processed sequentially and a ``SupervisionWarnings`` warning is emitted
+        processed sequentially and a
+        :class:`~supervision.utils.internal.SupervisionWarnings` warning is emitted
         once per slicer instance.
 
         Per-slice ``metadata`` is merged leniently: a key survives only when
         every slice carries it with an equal value; otherwise it is dropped and
-        a ``SupervisionWarnings`` warning is emitted once per slicer instance,
+        a :class:`~supervision.utils.internal.SupervisionWarnings` warning is
+        emitted once per slicer instance,
         naming the dropped keys — a key meant to be global (``video_name``,
         ``camera_id``, …) would otherwise vanish silently. The merged
         ``metadata`` dict returned is always freshly built, never the same
@@ -336,8 +340,11 @@ class InferenceSlicer:
         raster dataset has no full in-memory image to give back, so its result
         carries no ``source_image``. Because the stored value is a reference,
         mutating the returned ``metadata["source_image"]`` mutates the caller's
-        own ``image``, and every ``Detections`` derived from the result via
-        ``select()``, ``__getitem__``, or ``with_nms()`` shares that same
+        own ``image``, and every
+        :class:`~supervision.detection.core.Detections` derived from the result via
+        :meth:`~supervision.detection.core.Detections.select`,
+        :meth:`~supervision.detection.core.Detections.__getitem__`, or
+        :meth:`~supervision.detection.core.Detections.with_nms` shares that same
         reference — a long-lived derived result (e.g. held across a video
         processing loop) keeps the full input frame alive.
 

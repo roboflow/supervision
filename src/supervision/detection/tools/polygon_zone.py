@@ -21,7 +21,8 @@ class PolygonZone:
 
     !!! warning
 
-        PolygonZone uses the `tracker_id`. Read
+        :class:`~supervision.detection.tools.polygon_zone.PolygonZone` uses the
+        `tracker_id`. Read
         [here](https://trackers.roboflow.com/latest/) to learn how to plug
         tracking into your inference pipeline.
 
@@ -31,7 +32,8 @@ class PolygonZone:
         triggering_anchors: Any iterable of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
-            (default: (sv.Position.BOTTOM_CENTER,)).
+            (default: :class:`~supervision.geometry.core.Position` member
+            ``BOTTOM_CENTER``).
         require_all_anchors: If `True` (default), a detection is considered inside
             the zone only when *every* anchor in `triggering_anchors` is inside.
             If `False`, the detection triggers as soon as *any* anchor is inside.
