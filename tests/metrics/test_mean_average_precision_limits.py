@@ -5,6 +5,7 @@ import io
 
 import numpy as np
 import pytest
+from faster_coco_eval import COCO, COCOeval_faster
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -30,10 +31,7 @@ def _dense_pair(count: int, classes: int = 1) -> tuple[Detections, Detections]:
 
 
 def _reference(predictions: Detections, targets: Detections, cap: int) -> np.ndarray:
-    """Calculate bbox AP from the selected pycocotools precision slice."""
-    from pycocotools.coco import COCO
-    from pycocotools.cocoeval import COCOeval
-
+    """Calculate bbox AP from the selected Faster COCO Eval precision slice."""
     annotations = []
     for index, (box, category) in enumerate(zip(targets.xyxy, targets.class_id)):
         x0, y0, x1, y1 = box
@@ -71,7 +69,7 @@ def _reference(predictions: Detections, targets: Detections, cap: int) -> np.nda
             "annotations": annotations,
         }
         dataset.createIndex()
-        evaluator = COCOeval(dataset, dataset.loadRes(records), "bbox")
+        evaluator = COCOeval_faster(dataset, dataset.loadRes(records), "bbox")
         evaluator.params.maxDets = [1, 10, cap]
         evaluator.evaluate()
         evaluator.accumulate()
