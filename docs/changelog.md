@@ -7,6 +7,8 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.box_aspect_ratio` now subtracts integer corners without overflow or loss of narrow widths at large coordinate origins. Floating-coordinate arithmetic and zero-height NaN results are unchanged.
+
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
 - Added keyword-only `max_detection_thresholds` to `MeanAveragePrecision` for dense-scene evaluation. The COCO default `(1, 10, 100)` is unchanged; custom limits are recorded in results, text summaries, plot titles and DataFrame attributes. ([#2716](https://github.com/roboflow/supervision/pull/2716))

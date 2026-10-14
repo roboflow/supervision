@@ -3245,6 +3245,82 @@ class TestDetectionsArea:
         np.testing.assert_array_equal(detections.area, [expected])
 
 
+class TestDetectionsBoxAspectRatio:
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int8, id="int8"),
+            pytest.param(np.int16, id="int16"),
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int64, id="int64"),
+        ],
+    )
+    def test_coordinate_differences_do_not_overflow(self, dtype: type) -> None:
+        """Ordered integer boxes retain widths spanning the coordinate dtype."""
+        limits = np.iinfo(dtype)
+        xyxy = np.array(
+            [[limits.min, 0, limits.max, 20], [0, limits.min, 20, limits.max]],
+            dtype=dtype,
+        )
+        original_xyxy = xyxy.copy()
+        detections = Detections(xyxy=xyxy)
+        span = int(limits.max) - int(limits.min)
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [span / 20, 20 / span])
+        assert aspect_ratios.dtype == np.float64
+        np.testing.assert_array_equal(detections.xyxy, original_xyxy)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.uint64, id="uint64"),
+        ],
+    )
+    def test_preserves_narrow_boxes_at_large_origins(self, dtype: type) -> None:
+        """One-unit widths above float64 coordinate precision remain nonzero."""
+        origin = 2**53
+        detections = Detections(
+            xyxy=np.array([[origin, origin, origin + 1, origin + 2]], dtype=dtype)
+        )
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [0.5])
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.uint32, id="uint32"),
+            pytest.param(np.float16, id="float16"),
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.float64, id="float64"),
+        ],
+    )
+    def test_zero_height_is_nan(self, dtype: type) -> None:
+        """Regular and zero-height boxes keep float64 ratios and NaN sentinels."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 6, 2], [0, 0, 6, 0]], dtype=dtype)
+        )
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [3.0, np.nan])
+        assert aspect_ratios.dtype == np.float64
+
+    def test_empty_boxes_return_empty_ratios(self) -> None:
+        """Empty detections return a one-dimensional float64 array."""
+        detections = Detections.empty()
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        assert aspect_ratios.shape == (0,)
+        assert aspect_ratios.dtype == np.float64
+
+
 class TestDetectionsXyxyValidation:
     @pytest.mark.parametrize(
         "invalid_coordinate",
