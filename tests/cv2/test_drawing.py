@@ -40,7 +40,7 @@ def _assert_draws_on_canvas(result: np.ndarray, image: np.ndarray) -> None:
 
 @requires_cv2
 def test_fallback_line_draws_and_matches_opencv_extent() -> None:
-    """Draw a line in place with the same raster extent as OpenCV."""
+    """Draw a line in place with the same pixels as OpenCV."""
     actual = np.zeros((20, 20, 3), dtype=np.uint8)
     expected = np.zeros_like(actual)
 
@@ -48,103 +48,118 @@ def test_fallback_line_draws_and_matches_opencv_extent() -> None:
     cv2.line(expected, (2, 3), (15, 12), (10, 20, 30), thickness=2)
 
     _assert_draws_on_canvas(result, actual)
-    actual_points = np.argwhere(np.any(actual != 0, axis=2))
-    expected_points = np.argwhere(np.any(expected != 0, axis=2))
-    np.testing.assert_allclose(
-        actual_points.min(axis=0), expected_points.min(axis=0), atol=1
-    )
-    np.testing.assert_allclose(
-        actual_points.max(axis=0), expected_points.max(axis=0), atol=1
-    )
-
-
-def test_fallback_rectangle_fills_the_requested_region() -> None:
-    """Fill a rectangle using OpenCV's inclusive corner convention."""
-    image = np.zeros((12, 14, 3), dtype=np.uint8)
-
-    result = _rectangle(image, (2, 3), (7, 8), (1, 2, 3), thickness=-1)
-
-    _assert_draws_on_canvas(result, image)
-    np.testing.assert_array_equal(
-        image[3:9, 2:8], np.full((6, 6, 3), (1, 2, 3), dtype=np.uint8)
-    )
-
-
-@requires_cv2
-@pytest.mark.parametrize(
-    ("shape", "point_1", "point_2", "thickness"),
-    [
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 0, id="thickness-0"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 1, id="thickness-1"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 2, id="thickness-2"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 3, id="thickness-3"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 4, id="thickness-4"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 6, id="thickness-6"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 7, id="thickness-7"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 8, id="thickness-8"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), 25, id="thickness-over-box"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), -2, id="negative-fills"),
-        pytest.param((24, 28, 3), (6, 5), (20, 17), -5, id="negative-fills-more"),
-        pytest.param((24, 28, 3), (6, 9), (20, 9), 3, id="zero-height"),
-        pytest.param((24, 28, 3), (9, 5), (9, 17), 3, id="zero-width"),
-        pytest.param((24, 28, 3), (20, 17), (6, 5), 3, id="reversed-corners"),
-        pytest.param((24, 28), (6, 5), (20, 17), 3, id="two-dimensional-image"),
-        pytest.param((1, 1, 3), (0, 0), (0, 0), 3, id="one-pixel-canvas"),
-        pytest.param((24, 28, 3), (40, 40), (60, 60), 3, id="off-canvas"),
-        pytest.param((16, 16, 3), (-4, 2), (13, 20), 5, id="clipped-left-bottom"),
-    ],
-)
-def test_fallback_rectangle_matches_opencv(
-    shape: tuple[int, ...],
-    point_1: tuple[int, int],
-    point_2: tuple[int, int],
-    thickness: int,
-) -> None:
-    """Match OpenCV's rectangle raster for filled, thick, clipped, and edge cases."""
-    actual = np.zeros(shape, dtype=np.uint8)
-    expected = np.zeros_like(actual)
-
-    _rectangle(actual, point_1, point_2, (1, 2, 3), thickness=thickness)
-    cv2.rectangle(expected, point_1, point_2, (1, 2, 3), thickness=thickness)
-
     np.testing.assert_array_equal(actual, expected)
 
 
-def test_fallback_rectangle_border_is_centered_on_the_edges() -> None:
-    """Spread a `thickness=2` border one pixel outside and inside each edge."""
-    image = np.zeros((80, 100, 3), dtype=np.uint8)
+class TestFallbackThickLine:
+    """Thick lines, polylines and contour outlines painted pixel for pixel like
+    OpenCV."""
 
-    _rectangle(image, (20, 20), (80, 60), (1, 2, 3), thickness=2)
+    @requires_cv2
+    @pytest.mark.parametrize(
+        ("pt1", "pt2", "thickness"),
+        [
+            pytest.param((2, 3), (15, 12), 2, id="even-thickness-diagonal"),
+            pytest.param((3, 20), (36, 20), 5, id="odd-thickness-horizontal"),
+            pytest.param((20, 2), (20, 37), 4, id="vertical"),
+            pytest.param((5, 30), (34, 7), 9, id="steep-and-wide"),
+            pytest.param((18, 18), (18, 18), 6, id="single-point-is-a-disc"),
+            pytest.param((-11, 34), (63, 2), 18, id="clipped-at-canvas-edges"),
+            pytest.param((-30, -5), (70, -2), 12, id="outside-canvas-cap-reaches-in"),
+        ],
+    )
+    def test_line_matches_opencv(
+        self, pt1: tuple[int, int], pt2: tuple[int, int], thickness: int
+    ) -> None:
+        """Paint the quadrilateral and both round caps where OpenCV does."""
+        actual = np.zeros((40, 40), dtype=np.uint8)
+        expected = np.zeros_like(actual)
 
-    painted = image.any(axis=2)
-    rows, columns = np.where(painted)
-    assert int(painted.sum()) == 596
-    assert (columns.min(), columns.max(), rows.min(), rows.max()) == (19, 81, 19, 61)
-    assert painted[40, 19]
-    assert not painted[40, 22]
+        _line(actual, pt1, pt2, 1, thickness=thickness)
+        cv2.line(expected, pt1, pt2, 1, thickness=thickness)
 
+        np.testing.assert_array_equal(actual, expected)
 
-def test_fallback_rectangle_numpy_integer_thickness_matches_python_int() -> None:
-    """Keep a NumPy integer `thickness` from wrapping around in the corner radius."""
-    actual = np.zeros((120, 140, 3), dtype=np.uint8)
-    expected = np.zeros_like(actual)
+    @requires_cv2
+    @pytest.mark.parametrize("is_closed", [True, False])
+    @pytest.mark.parametrize("thickness", [2, 3, 7])
+    def test_polylines_matches_opencv(self, is_closed: bool, thickness: int) -> None:
+        """Join segments and cap open ends exactly as OpenCV's `PolyLine`."""
+        points = [np.array([[4, 5], [30, 8], [26, 33], [9, 24]], dtype=np.int32)]
+        actual = np.zeros((40, 40, 3), dtype=np.uint8)
+        expected = np.zeros_like(actual)
 
-    _rectangle(actual, (50, 50), (90, 80), (1, 2, 3), thickness=np.uint8(40))
-    _rectangle(expected, (50, 50), (90, 80), (1, 2, 3), thickness=40)
+        _polylines(actual, points, is_closed, (1, 2, 3), thickness=thickness)
+        cv2.polylines(expected, points, is_closed, (1, 2, 3), thickness=thickness)
 
-    np.testing.assert_array_equal(actual, expected)
+        np.testing.assert_array_equal(actual, expected)
 
+    @requires_cv2
+    @pytest.mark.parametrize(
+        ("points", "is_closed"),
+        [
+            pytest.param([[12, 12]], True, id="closed-single-point"),
+            pytest.param([[12, 12]], False, id="open-single-point-draws-nothing"),
+            pytest.param([[6, 6], [6, 6], [20, 9]], False, id="repeated-point"),
+        ],
+    )
+    def test_polylines_degenerate_input_matches_opencv(
+        self, points: list[list[int]], is_closed: bool
+    ) -> None:
+        """Handle one-point and repeated-point polylines like OpenCV."""
+        polygon = [np.array(points, dtype=np.int32)]
+        actual = np.zeros((25, 25), dtype=np.uint8)
+        expected = np.zeros_like(actual)
 
-@pytest.mark.parametrize("thickness", [10_000, 32_767])
-def test_fallback_rectangle_huge_thickness_covers_a_small_canvas(
-    thickness: int,
-) -> None:
-    """Paint a small canvas without allocating arrays sized by the border radius."""
-    image = np.zeros((8, 8, 3), dtype=np.uint8)
+        _polylines(actual, polygon, is_closed, 1, thickness=4)
+        cv2.polylines(expected, polygon, is_closed, 1, thickness=4)
 
-    _rectangle(image, (2, 2), (5, 5), (1, 2, 3), thickness=thickness)
+        np.testing.assert_array_equal(actual, expected)
 
-    assert image.any(axis=2).all()
+    @requires_cv2
+    def test_draw_contours_outline_matches_opencv(self) -> None:
+        """Stroke offset contours with the same thick closed outline as OpenCV."""
+        contours = [
+            np.array([[[2, 2]], [[17, 3]], [[15, 16]], [[3, 14]]], dtype=np.int32),
+            np.array([[[22, 20]], [[30, 34]], [[18, 30]]], dtype=np.int32),
+        ]
+        actual = np.zeros((40, 40, 3), dtype=np.uint8)
+        expected = np.zeros_like(actual)
+
+        _draw_contours(actual, contours, -1, (5, 6, 7), thickness=3, offset=(2, 1))
+        cv2.drawContours(expected, contours, -1, (5, 6, 7), thickness=3, offset=(2, 1))
+
+        np.testing.assert_array_equal(actual, expected)
+
+    @requires_cv2
+    def test_random_lines_match_opencv(self) -> None:
+        """Match OpenCV on random thick lines, many of them leaving the canvas."""
+        rng = np.random.default_rng(2026)
+
+        for _ in range(200):
+            height, width = (int(value) for value in rng.integers(5, 60, size=2))
+            pt1 = tuple(int(value) for value in rng.integers(-20, 80, size=2))
+            pt2 = tuple(int(value) for value in rng.integers(-20, 80, size=2))
+            thickness = int(rng.integers(2, 16))
+            actual = np.zeros((height, width), dtype=np.uint8)
+            expected = np.zeros_like(actual)
+
+            _line(actual, pt1, pt2, 1, thickness=thickness)
+            cv2.line(expected, pt1, pt2, 1, thickness=thickness)
+
+            np.testing.assert_array_equal(actual, expected)
+
+    def test_line_leaves_far_pixels_untouched(self) -> None:
+        """Keep a thick line's paint within its caps without OpenCV installed."""
+        image = np.zeros((30, 30), dtype=np.uint8)
+
+        _line(image, (10, 15), (20, 15), 1, thickness=4)
+
+        assert image[15, 15] == 1
+        assert image[15, 8] == 1
+        assert not image[:, :7].any()
+        assert not image[:, 24:].any()
+        assert not image[:12].any()
 
 
 @pytest.mark.parametrize(
