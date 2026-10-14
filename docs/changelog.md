@@ -7,7 +7,7 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.box_aspect_ratio` now subtracts integer corners without overflow or loss of narrow widths at large coordinate origins. Floating-coordinate arithmetic and zero-height NaN results are unchanged.
+- `sv.Detections.box_aspect_ratio` now subtracts integer corners without overflow or loss of narrow widths at large coordinate origins. Floating-coordinate arithmetic and zero-height NaN results are unchanged. ([#2729](https://github.com/roboflow/supervision/pull/2729))
 
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
