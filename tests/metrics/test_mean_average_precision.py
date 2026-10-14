@@ -766,6 +766,138 @@ class TestMeanAveragePrecisionMasks:
 
 class TestMeanAveragePrecisionOrientedBoundingBoxes:
     @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.float32, 100_000, id="float32"),
+            pytest.param(np.float64, 1_000_000_000, id="float64"),
+            pytest.param(np.int64, 2**55, id="int64"),
+            pytest.param(np.uint64, 2**55, id="uint64"),
+        ],
+    )
+    def test_rotated_boxes_keep_their_size_bucket_at_large_origins(
+        self, dtype: type, origin: int
+    ) -> None:
+        """A rotated 100x50 rectangle remains medium, despite its large envelope."""
+        corners = np.array([[[40, 0], [100, 80], [60, 110], [0, 30]]], dtype=dtype)
+        corners += dtype(origin)
+        targets = Detections(
+            xyxy=np.array([[origin, origin, origin + 100, origin + 110]], dtype=dtype),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        predictions = Detections(
+            xyxy=targets.xyxy.copy(),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners.copy()},
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        assert result.medium_objects.map50_95 == pytest.approx(1.0)
+        assert result.small_objects.map50_95 == -1
+        assert result.large_objects.map50_95 == -1
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.float32, 100_000, id="float32"),
+            pytest.param(np.float64, 1_000_000_000, id="float64"),
+            pytest.param(np.int64, 2**55, id="int64"),
+            pytest.param(np.uint64, 2**55, id="uint64"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("prediction_offset", "expected_map"),
+        [
+            pytest.param(0, 1.0, id="perfect"),
+            pytest.param(30, 0.1, id="partial"),
+            pytest.param(200, 0.0, id="disjoint"),
+        ],
+    )
+    def test_scores_preserve_overlap_at_large_origins(
+        self, dtype: type, origin: int, prediction_offset: int, expected_map: float
+    ) -> None:
+        """Translated OBBs retain perfect, partial and disjoint overlap scores."""
+        corners = np.array([[[0, 0], [100, 0], [100, 100], [0, 100]]], dtype=dtype)
+        target_corners = corners + dtype(origin)
+        prediction_corners = target_corners + np.array(
+            [prediction_offset, 0], dtype=dtype
+        )
+        targets = Detections(
+            xyxy=np.array([[origin, origin, origin + 100, origin + 100]], dtype=dtype),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: target_corners},
+        )
+        predictions = Detections(
+            xyxy=targets.xyxy
+            + np.array([prediction_offset, 0, prediction_offset, 0], dtype=dtype),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: prediction_corners},
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(expected_map)
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.float32, 100_000, id="float32"),
+            pytest.param(np.float64, 1_000_000_000, id="float64"),
+            pytest.param(np.int64, 2**55, id="int64"),
+            pytest.param(np.uint64, 2**55, id="uint64"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("size", "expected_scores"),
+        [
+            pytest.param(31, [1.0, -1.0, -1.0], id="small"),
+            pytest.param(95, [-1.0, 1.0, -1.0], id="medium"),
+            pytest.param(100, [-1.0, -1.0, 1.0], id="large"),
+        ],
+    )
+    def test_size_buckets_preserve_area_at_large_origins(
+        self, dtype: type, origin: int, size: int, expected_scores: list[float]
+    ) -> None:
+        """OBB size buckets depend on polygon area rather than its absolute origin."""
+        corners = np.array([[[0, 0], [size, 0], [size, size], [0, size]]], dtype=dtype)
+        corners += dtype(origin)
+        targets = Detections(
+            xyxy=np.array(
+                [[origin, origin, origin + size, origin + size]], dtype=dtype
+            ),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        predictions = Detections(
+            xyxy=targets.xyxy.copy(),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners.copy()},
+        )
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        result = metric.update(predictions, targets).compute()
+
+        scores = [
+            result.small_objects.map50_95,
+            result.medium_objects.map50_95,
+            result.large_objects.map50_95,
+        ]
+        assert scores == pytest.approx(expected_scores)
+
+    @pytest.mark.parametrize(
         ("prediction_corners", "target_corners", "expected_map50"),
         [
             pytest.param(
