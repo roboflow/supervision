@@ -1348,7 +1348,7 @@ class ConfusionMatrix:
 
             model = RFDETRMedium()
             def callback(image: np.ndarray) -> sv.Detections:
-                return model.predict(image[:, :, ::-1])
+                return model.predict(image[:, :, ::-1].copy())
 
             confusion_matrix = sv.ConfusionMatrix.benchmark(
                 dataset = dataset,

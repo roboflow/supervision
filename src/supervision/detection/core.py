@@ -492,12 +492,12 @@ class Detections:
             import tensorflow_hub as hub
             import numpy as np
             import supervision as sv
-            from supervision import _cv2 as cv2
+            from PIL import Image
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
-            img = np.array(cv2.imread("<SOURCE_IMAGE_PATH>"))
-            result = model(img)
+            img = np.array(Image.open("<SOURCE_IMAGE_PATH>"))
+            result = model(np.expand_dims(img, axis=0))
             detections = sv.Detections.from_tensorflow(
                 result, resolution_wh=(img.shape[1], img.shape[0])
             )
