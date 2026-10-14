@@ -164,7 +164,7 @@ Modifying the input resolution of images before detection can enhance small obje
     import supervision as sv
     from inference import get_model
 
-    model = get_model(model_id="yolov8x-1280")
+    model = get_model(model_id="rfdetr-medium")
     image = cv2.imread("<SOURCE_IMAGE_PATH>")
     results = model.infer(image)[0]
     detections = sv.Detections.from_inference(results)

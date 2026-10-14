@@ -803,7 +803,7 @@ class Detections:
             from inference import get_model
 
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
-            model = get_model(model_id="yolov8s-640")
+            model = get_model(model_id="rfdetr-seg-small")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
@@ -3185,7 +3185,7 @@ def merge_inner_detection_object_pair(
         from inference import get_model
 
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = get_model(model_id="yolov8s-640")
+        model = get_model(model_id="rfdetr-small")
 
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)
