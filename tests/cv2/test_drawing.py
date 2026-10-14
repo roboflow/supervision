@@ -240,6 +240,46 @@ def test_fallback_fill_poly_matches_opencv_for_mask_conversion() -> None:
     np.testing.assert_array_equal(actual, expected)
 
 
+@requires_cv2
+def test_fallback_fill_poly_matches_opencv_boundary_pixels() -> None:
+    """Include the boundary pixel OpenCV paints for a narrow triangle."""
+    polygon = np.array([[10, 9], [9, 9], [7, 11]], dtype=np.int32)
+    actual = np.zeros((12, 12), dtype=np.uint8)
+    expected = np.zeros((12, 12), dtype=np.uint8)
+
+    _fill_poly(actual, [polygon], color=(1,))
+    cv2.fillPoly(expected, [polygon], color=(1,))
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@requires_cv2
+def test_fallback_fill_poly_matches_opencv_for_centered_polygons() -> None:
+    """Match OpenCV for polygons confined to the image bounds."""
+    rng = np.random.default_rng(1000)
+    height = width = 200
+    center = np.array([width / 2, height / 2])
+
+    for _ in range(300):
+        vertex_count = int(rng.integers(3, 12))
+        angles = np.sort(rng.uniform(0, 2 * np.pi, vertex_count))
+        radii = rng.uniform(30, 90, vertex_count)
+        polygon = np.column_stack(
+            (
+                center[0] + radii * np.cos(angles),
+                center[1] + radii * np.sin(angles),
+            )
+        ).round()
+        polygon = polygon.astype(np.int32)
+        actual = np.zeros((height, width), dtype=np.uint8)
+        expected = np.zeros((height, width), dtype=np.uint8)
+
+        _fill_poly(actual, [polygon], color=(1,))
+        cv2.fillPoly(expected, [polygon], color=(1,))
+
+        np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_draw_contours_fills_selected_contour() -> None:
     """Fill the selected contour when drawContours receives a negative thickness."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)

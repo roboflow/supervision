@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import operator
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from typing import Any
 
 import numpy as np
@@ -15,6 +15,10 @@ _Point = tuple[int, int]
 
 #: Largest border thickness OpenCV accepts (its `MAX_THICKNESS`).
 _MAX_THICKNESS = 32767
+
+#: OpenCV's fixed-point shift used by its polygon rasterizer.
+_XY_SHIFT = 16
+_XY_ONE = 1 << _XY_SHIFT
 
 
 def _drawing_mask(
@@ -49,6 +53,148 @@ def _paint(image: _ImageArray, mask: npt.NDArray[np.bool_], color: Any) -> _Imag
 def _point(point: Sequence[int | float]) -> _Point:
     """Convert an OpenCV point to integer pixel coordinates."""
     return round(point[0]), round(point[1])
+
+
+def _trunc_div(numerator: int, denominator: int) -> int:
+    """Divide integers with C++ truncation toward zero."""
+    quotient = abs(numerator) // abs(denominator)
+    return quotient if (numerator >= 0) == (denominator >= 0) else -quotient
+
+
+def _clip_line(
+    width: int, height: int, first: _Point, second: _Point
+) -> tuple[_Point, _Point] | None:
+    """Clip a line segment to image bounds like OpenCV's `clipLine`."""
+    if width <= 0 or height <= 0:
+        return None
+
+    x1, y1 = first
+    x2, y2 = second
+    right = width - 1
+    bottom = height - 1
+    code_1 = (x1 < 0) + (x1 > right) * 2 + (y1 < 0) * 4 + (y1 > bottom) * 8
+    code_2 = (x2 < 0) + (x2 > right) * 2 + (y2 < 0) * 4 + (y2 > bottom) * 8
+
+    if (code_1 & code_2) == 0 and (code_1 | code_2) != 0:
+        if code_1 & 12:
+            edge = 0 if code_1 < 8 else bottom
+            if y2 != y1:
+                x1 += _trunc_div((edge - y1) * (x2 - x1), y2 - y1)
+            y1 = edge
+            code_1 = (x1 < 0) + (x1 > right) * 2
+        if code_2 & 12:
+            edge = 0 if code_2 < 8 else bottom
+            if y2 != y1:
+                x2 += _trunc_div((edge - y2) * (x2 - x1), y2 - y1)
+            y2 = edge
+            code_2 = (x2 < 0) + (x2 > right) * 2
+        if (code_1 & code_2) == 0 and (code_1 | code_2) != 0:
+            if code_1:
+                edge = 0 if code_1 == 1 else right
+                if x2 != x1:
+                    y1 += _trunc_div((edge - x1) * (y2 - y1), x2 - x1)
+                x1 = edge
+                code_1 = 0
+            if code_2:
+                edge = 0 if code_2 == 1 else right
+                if x2 != x1:
+                    y2 += _trunc_div((edge - x2) * (y2 - y1), x2 - x1)
+                x2 = edge
+                code_2 = 0
+
+    if (code_1 | code_2) != 0:
+        return None
+    return (x1, y1), (x2, y2)
+
+
+def _iter_line_points(first: _Point, second: _Point) -> Iterator[_Point]:
+    """Yield OpenCV's 8-connected raster points for a line segment."""
+    x1, y1 = first
+    x2, y2 = second
+    dx = x2 - x1
+    dy = y2 - y1
+    delta_x = 1
+    delta_y = 1
+
+    if dx < 0:
+        dx = -dx
+        dy = -dy
+        x1, y1 = x2, y2
+    if dy < 0:
+        dy = -dy
+        delta_y = -1
+
+    vertical = dy > dx
+    if vertical:
+        dx, dy = dy, dx
+        delta_x, delta_y = delta_y, delta_x
+
+    error = dx - 2 * dy
+    plus_delta = 2 * dx
+    minus_delta = -2 * dy
+    minus_shift = delta_x
+    plus_shift = 0
+    minus_step = 0
+    plus_step = delta_y
+    if vertical:
+        plus_step, plus_shift = plus_shift, plus_step
+        minus_step, minus_shift = minus_shift, minus_step
+
+    x, y = x1, y1
+    for _ in range(dx + 1):
+        yield x, y
+        mask = -1 if error < 0 else 0
+        error += minus_delta + (plus_delta & mask)
+        x += minus_shift + (plus_shift & mask)
+        y += minus_step + (plus_step & mask)
+
+
+def _fill_polygon_mask(
+    width: int, height: int, points: list[_Point]
+) -> npt.NDArray[np.bool_]:
+    """Rasterize an OpenCV fillPoly polygon into a boolean mask."""
+    mask = np.zeros((height, width), dtype=bool)
+    if not points:
+        return mask
+
+    for first, second in zip(points, [*points[1:], points[0]]):
+        clipped = _clip_line(width, height, first, second)
+        if clipped is None:
+            continue
+        for x, y in _iter_line_points(*clipped):
+            if 0 <= x < width and 0 <= y < height:
+                mask[y, x] = True
+
+    if len(points) < 3:
+        return mask
+
+    edges: list[tuple[int, int, int, int]] = []
+    previous = points[-1]
+    for current in points:
+        if previous[1] != current[1]:
+            y0, y1 = sorted((previous[1], current[1]))
+            x0 = (previous[0] if previous[1] == y0 else current[0]) << _XY_SHIFT
+            x1 = (current[0] if previous[1] == y0 else previous[0]) << _XY_SHIFT
+            dx = _trunc_div(x1 - x0, y1 - y0)
+            edges.append((y0, y1, x0, dx))
+        previous = current
+
+    if not edges:
+        return mask
+
+    y_start = max(0, min(edge[0] for edge in edges))
+    y_stop = min(height, max(edge[1] for edge in edges))
+    for y in range(y_start, y_stop):
+        intersections = sorted(
+            x + (y - y0) * dx for y0, y1, x, dx in edges if y0 <= y < y1
+        )
+        for left, right in zip(intersections[::2], intersections[1::2]):
+            x_start = (left + _XY_ONE - 1) >> _XY_SHIFT
+            x_stop = right >> _XY_SHIFT
+            if x_start < width and x_stop >= 0:
+                mask[y, max(x_start, 0) : min(x_stop, width - 1) + 1] = True
+
+    return mask
 
 
 def _points(points: npt.NDArray[Any], offset: tuple[int, int] = (0, 0)) -> list[_Point]:
@@ -303,18 +449,15 @@ def _fill_poly(
     """Fill one or more polygons in place."""
     del lineType
     _validate_shift(shift)
-
-    def draw_polygons(draw: Any) -> None:
-        for polygon in pts:
-            points = _points(polygon, offset=offset)
-            if len(points) == 1:
-                draw.point(points[0], fill=1)
-            elif len(points) == 2:
-                draw.line(points, fill=1)
-            elif len(points) >= 3:
-                draw.polygon(points, fill=1)
-
-    return _paint(img, _drawing_mask(img, draw_polygons), color)
+    height, width = img.shape[:2]
+    mask = np.zeros((height, width), dtype=bool)
+    for polygon in pts:
+        mask |= _fill_polygon_mask(
+            width=width,
+            height=height,
+            points=_points(polygon, offset=offset),
+        )
+    return _paint(img, mask, color)
 
 
 def _draw_contours(
