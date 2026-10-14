@@ -3253,6 +3253,10 @@ class TestDetectionsBoxAspectRatio:
             pytest.param(np.int16, id="int16"),
             pytest.param(np.int32, id="int32"),
             pytest.param(np.int64, id="int64"),
+            pytest.param(np.uint8, id="uint8"),
+            pytest.param(np.uint16, id="uint16"),
+            pytest.param(np.uint32, id="uint32"),
+            pytest.param(np.uint64, id="uint64"),
         ],
     )
     def test_coordinate_differences_do_not_overflow(self, dtype: type) -> None:

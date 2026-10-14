@@ -2655,7 +2655,8 @@ class Detections:
         if np.issubdtype(xyxy.dtype, np.integer):
             # Subtract before converting to float64 to preserve narrow boxes at
             # large integer origins and differences spanning the dtype range.
-            integer_coordinates = xyxy.astype(object)
+            dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+            integer_coordinates = xyxy.astype(dtype)
             widths: npt.NDArray[np.generic] = np.asarray(
                 integer_coordinates[:, 2] - integer_coordinates[:, 0], dtype=np.float64
             )
