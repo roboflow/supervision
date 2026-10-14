@@ -280,6 +280,20 @@ def test_fallback_fill_poly_matches_opencv_for_centered_polygons() -> None:
         np.testing.assert_array_equal(actual, expected)
 
 
+@requires_cv2
+def test_fallback_fill_poly_matches_opencv_for_nested_contours() -> None:
+    """Apply even-odd filling across multiple contours like OpenCV."""
+    outer = np.array([[1, 1], [9, 1], [9, 9], [1, 9]], dtype=np.int32)
+    inner = np.array([[3, 3], [7, 3], [7, 7], [3, 7]], dtype=np.int32)
+    actual = np.zeros((11, 11), dtype=np.uint8)
+    expected = np.zeros((11, 11), dtype=np.uint8)
+
+    _fill_poly(actual, [outer, inner], color=(1,))
+    cv2.fillPoly(expected, [outer, inner], color=(1,))
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_draw_contours_fills_selected_contour() -> None:
     """Fill the selected contour when drawContours receives a negative thickness."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)
@@ -291,6 +305,20 @@ def test_fallback_draw_contours_fills_selected_contour() -> None:
 
     _assert_draws_on_canvas(result, image)
     assert tuple(image[5, 5]) == (7, 8, 9)
+
+
+@requires_cv2
+def test_fallback_draw_contours_filled_matches_opencv() -> None:
+    """Match OpenCV's filled-contour boundary pixels and nested contours."""
+    outer = np.array([[[1, 1]], [[9, 1]], [[9, 9]], [[1, 9]]], dtype=np.int32)
+    inner = np.array([[[3, 3]], [[7, 3]], [[7, 7]], [[3, 7]]], dtype=np.int32)
+    actual = np.zeros((11, 11), dtype=np.uint8)
+    expected = np.zeros((11, 11), dtype=np.uint8)
+
+    _draw_contours(actual, [outer, inner], contourIdx=-1, color=(1,), thickness=-1)
+    cv2.drawContours(expected, [outer, inner], -1, (1,), thickness=-1)
+
+    np.testing.assert_array_equal(actual, expected)
 
 
 def test_fallback_draw_contours_rejects_hierarchy() -> None:

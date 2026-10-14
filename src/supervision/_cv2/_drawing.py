@@ -150,34 +150,34 @@ def _iter_line_points(first: _Point, second: _Point) -> Iterator[_Point]:
 
 
 def _fill_polygon_mask(
-    width: int, height: int, points: list[_Point]
+    width: int, height: int, polygons: Sequence[list[_Point]]
 ) -> npt.NDArray[np.bool_]:
-    """Rasterize an OpenCV fillPoly polygon into a boolean mask."""
+    """Rasterize OpenCV fillPoly contours into a boolean mask."""
     mask = np.zeros((height, width), dtype=bool)
-    if not points:
-        return mask
-
-    for first, second in zip(points, [*points[1:], points[0]]):
-        clipped = _clip_line(width, height, first, second)
-        if clipped is None:
-            continue
-        for x, y in _iter_line_points(*clipped):
-            if 0 <= x < width and 0 <= y < height:
-                mask[y, x] = True
-
-    if len(points) < 3:
+    if not polygons:
         return mask
 
     edges: list[tuple[int, int, int, int]] = []
-    previous = points[-1]
-    for current in points:
-        if previous[1] != current[1]:
-            y0, y1 = sorted((previous[1], current[1]))
-            x0 = (previous[0] if previous[1] == y0 else current[0]) << _XY_SHIFT
-            x1 = (current[0] if previous[1] == y0 else previous[0]) << _XY_SHIFT
-            dx = _trunc_div(x1 - x0, y1 - y0)
-            edges.append((y0, y1, x0, dx))
-        previous = current
+    for points in polygons:
+        if not points:
+            continue
+        for first, second in zip(points, [*points[1:], points[0]]):
+            clipped = _clip_line(width, height, first, second)
+            if clipped is None:
+                continue
+            for x, y in _iter_line_points(*clipped):
+                if 0 <= x < width and 0 <= y < height:
+                    mask[y, x] = True
+
+        previous = points[-1]
+        for current in points:
+            if previous[1] != current[1]:
+                y0, y1 = sorted((previous[1], current[1]))
+                x0 = (previous[0] if previous[1] == y0 else current[0]) << _XY_SHIFT
+                x1 = (current[0] if previous[1] == y0 else previous[0]) << _XY_SHIFT
+                dx = _trunc_div(x1 - x0, y1 - y0)
+                edges.append((y0, y1, x0, dx))
+            previous = current
 
     if not edges:
         return mask
@@ -450,14 +450,12 @@ def _fill_poly(
     del lineType
     _validate_shift(shift)
     height, width = img.shape[:2]
-    mask = np.zeros((height, width), dtype=bool)
-    for polygon in pts:
-        mask |= _fill_polygon_mask(
-            width=width,
-            height=height,
-            points=_points(polygon, offset=offset),
-        )
-    return _paint(img, mask, color)
+    polygons = [_points(polygon, offset=offset) for polygon in pts]
+    return _paint(
+        img,
+        _fill_polygon_mask(width=width, height=height, polygons=polygons),
+        color,
+    )
 
 
 def _draw_contours(
@@ -480,16 +478,24 @@ def _draw_contours(
     if hierarchy is not None:
         raise ValueError("Only None hierarchy is supported by the fallback")
     selected = contours if contourIdx < 0 else contours[contourIdx : contourIdx + 1]
+    if thickness < 0:
+        polygons = [_points(contour, offset=offset) for contour in selected]
+        return _paint(
+            image,
+            _fill_polygon_mask(
+                width=image.shape[1],
+                height=image.shape[0],
+                polygons=polygons,
+            ),
+            color,
+        )
 
     def draw_selected(draw: Any) -> None:
         for contour in selected:
             points = _points(contour, offset=offset)
             if len(points) < 2:
                 continue
-            if thickness < 0:
-                draw.polygon(points, fill=1)
-            else:
-                width = max(1, thickness)
-                draw.line([*points, points[0]], fill=1, width=width, joint="curve")
+            width = max(1, thickness)
+            draw.line([*points, points[0]], fill=1, width=width, joint="curve")
 
     return _paint(image, _drawing_mask(image, draw_selected), color)
