@@ -461,7 +461,8 @@ def _encoded_image_format(data: bytes) -> str | None:
     from PIL import Image
 
     with Image.open(io.BytesIO(data)) as image:
-        return image.format
+        image_format: str | None = image.format
+    return image_format
 
 
 @pytest.mark.parametrize(
@@ -501,9 +502,11 @@ def _gradient_image(channels: int = 3) -> np.ndarray:
     """
     rows, columns = np.mgrid[0:48, 0:64]
     if channels == 1:
-        return ((rows + columns) * 3 % 256).astype(np.uint8)
+        gray: np.ndarray = ((rows + columns) * 3 % 256).astype(np.uint8)
+        return gray
     channel_values = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
-    return np.dstack(channel_values).astype(np.uint8)
+    image: np.ndarray = np.dstack(channel_values).astype(np.uint8)
+    return image
 
 
 def _as_bgr(image: np.ndarray) -> np.ndarray:
@@ -531,9 +534,12 @@ def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
     import io
 
     from PIL import Image
+    from PIL.JpegImagePlugin import JpegImageFile
 
     with Image.open(io.BytesIO(data)) as image:
-        return dict(image.quantization)
+        assert isinstance(image, JpegImageFile)
+        tables: dict[int, list[int]] = dict(image.quantization)
+    return tables
 
 
 def _jpeg_chroma_subsampling(data: bytes) -> int:
@@ -543,7 +549,8 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     from PIL import Image, JpegImagePlugin
 
     with Image.open(io.BytesIO(data)) as image:
-        return JpegImagePlugin.get_sampling(image)
+        sampling: int = JpegImagePlugin.get_sampling(image)
+    return sampling
 
 
 @pytest.mark.parametrize(

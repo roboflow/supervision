@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -21,6 +22,7 @@ from supervision._cv2._drawing import (
     _rectangle,
 )
 
+cv2: Any
 try:
     cv2 = importlib.import_module("cv2")
 except (ImportError, OSError):
@@ -116,7 +118,7 @@ def test_fallback_rectangle_border_is_centered_on_the_edges() -> None:
 
     _rectangle(image, (20, 20), (80, 60), (1, 2, 3), thickness=2)
 
-    painted = image.any(axis=2)
+    painted = np.asarray(image.any(axis=2))
     rows, columns = np.where(painted)
     assert int(painted.sum()) == 596
     assert (columns.min(), columns.max(), rows.min(), rows.max()) == (19, 81, 19, 61)
@@ -161,7 +163,7 @@ def test_fallback_rectangle_rejects_thickness_opencv_rejects(
     image = np.zeros((8, 8, 3), dtype=np.uint8)
 
     with pytest.raises(error):
-        _rectangle(image, (2, 2), (5, 5), (1, 2, 3), thickness=thickness)
+        _rectangle(image, (2, 2), (5, 5), (1, 2, 3), thickness=thickness)  # type: ignore[arg-type]
 
 
 @requires_cv2
