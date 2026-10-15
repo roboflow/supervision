@@ -505,10 +505,7 @@ def test_fallback_fill_poly_matches_opencv_for_nested_contours() -> None:
 
 
 @requires_cv2
-@pytest.mark.parametrize(
-    "entry_point",
-    ["fill-poly", "draw-contours"]
-)
+@pytest.mark.parametrize("entry_point", ["fill-poly", "draw-contours"])
 @pytest.mark.parametrize(
     ("points", "offset"),
     [
