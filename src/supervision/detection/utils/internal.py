@@ -762,7 +762,10 @@ def get_data_item(
             if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
-                subset_data[key] = [value[i] for i in index]
+                # Resolve the positions as NumPy indexes the array fields, so a
+                # list of booleans is a mask, not the positions 0 and 1.
+                positions = np.arange(len(value))[index]
+                subset_data[key] = [value[i] for i in positions]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
                     subset_data[key] = [
