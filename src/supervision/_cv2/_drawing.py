@@ -98,6 +98,23 @@ def _points(points: npt.NDArray[Any], offset: tuple[int, int] = (0, 0)) -> list[
     return [(int(x), int(y)) for x, y in normalized]
 
 
+def _bounded_thickness(thickness: int, shape: str) -> int:
+    """Return `thickness` as a Python int, rejecting values OpenCV rejects.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767, which would
+            otherwise make the rasterizers walk thickness-sized spans.
+    """
+    # A Python int, so a NumPy integer scalar cannot wrap around in derived radii.
+    thickness = operator.index(thickness)
+    if thickness > _MAX_THICKNESS:
+        raise ValueError(
+            f"{shape} thickness must be at most {_MAX_THICKNESS}, got {thickness}"
+        )
+    return thickness
+
+
 def _validate_shift(shift: int) -> None:
     """Reject fixed-point coordinates not supported by the fallback."""
     if shift != 0:
@@ -113,10 +130,15 @@ def _line(
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
-    """Draw a line in place, with OpenCV's round caps when `thickness` exceeds 1."""
+    """Draw a line in place, with OpenCV's round caps when `thickness` exceeds 1.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767.
+    """
     del lineType
     _validate_shift(shift)
-    thickness = operator.index(thickness)
+    thickness = _bounded_thickness(thickness, "Line")
     if thickness <= 1:
         mask = _drawing_mask(
             img,
@@ -428,12 +450,7 @@ def _rectangle(
     """
     del lineType
     _validate_shift(shift)
-    # A Python int, so a NumPy integer scalar cannot wrap around in `radius` below.
-    thickness = operator.index(thickness)
-    if thickness > _MAX_THICKNESS:
-        raise ValueError(
-            f"Rectangle thickness must be at most {_MAX_THICKNESS}, got {thickness}"
-        )
+    thickness = _bounded_thickness(thickness, "Rectangle")
     first_point, second_point = _point(pt1), _point(pt2)
     first = (
         min(first_point[0], second_point[0]),
@@ -538,10 +555,14 @@ def _polylines(
 
     With `thickness` above 1 every segment is OpenCV's thick line, capped with a disc
     at its end, and an open polyline also at its first point.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767.
     """
     del lineType
     _validate_shift(shift)
-    thickness = operator.index(thickness)
+    thickness = _bounded_thickness(thickness, "Polyline")
     if thickness > 1:
         mask = np.zeros(img.shape[:2], dtype=bool)
         polylines = [_points(polygon) for polygon in pts]
@@ -620,8 +641,15 @@ def _draw_contours(
     maxLevel: int = 2**31 - 1,
     offset: tuple[int, int] = (0, 0),
 ) -> _ImageArray:
-    """Draw selected contours with OpenCV-compatible in-place mutation."""
+    """Draw selected contours with OpenCV-compatible in-place mutation.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds OpenCV's maximum of 32767, or if a
+            `hierarchy` is given.
+    """
     del lineType, maxLevel
+    thickness = _bounded_thickness(thickness, "Contour")
     # OpenCV walks the hierarchy tree to also draw a contour's nested descendants;
     # the fallback only does flat contourIdx selection, so reject a hierarchy
     # instead of silently diverging. maxLevel is a no-op without a hierarchy, which
