@@ -4292,6 +4292,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.LabelAnnotator</code>, <code>sv.RichLabelAnnotator</code> and <code>sv.VertexLabelAnnotator</code> with <code>smart_position=True</code> now separate labels whose boxes share a center. <code>spread_out_boxes</code> pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. (<a href="https://github.com/roboflow/supervision/pull/2718">#2718</a>)</p>
 </li>
 <li>
+<p>The NumPy fallback <code>line</code>, <code>polylines</code> and <code>drawContours</code> outline now match OpenCV's <code>LINE_8</code> rasterization for <code>thickness</code> 2 or more, including segments that leave the canvas. The fallback used Pillow's square-ended wide lines, while OpenCV draws each segment as a fixed-point quadrilateral with round caps; on 2,000 random lines every one differed, by a median 24% of OpenCV's pixels. The fallback now ports OpenCV's <code>ThickLine</code>, <code>FillConvexPoly</code> and <code>Line2</code>. Consumers using <code>LINE_8</code>, such as <code>sv.draw_line</code> and <code>sv.draw_polygon</code>, receive the corrected pixels. Antialiased drawing (<code>LINE_AA</code>) remains unsupported by the fallback, including calls from <code>LineZoneAnnotator</code>. <code>thickness=1</code> lines are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2727">#2727</a>)</p>
+</li>
+<li>
 <p>Oriented-box <code>MeanAveragePrecision</code> now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. (<a href="https://github.com/roboflow/supervision/pull/2717">#2717</a>)</p>
 </li>
 <li>
@@ -6468,7 +6471,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 15:07:51 UTC">October 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 16:45:58 UTC">October 15, 2026</span>
   </span>
 
     
@@ -6496,9 +6499,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6506,14 +6509,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
+          
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
+        </a>
+      
         <a href="https://github.com/Lingikaushikreddy" class="md-author" title="@Lingikaushikreddy">
           
           <img src="https://avatars.githubusercontent.com/u/214906239?v=4&size=72" alt="Lingikaushikreddy">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
