@@ -7,7 +7,7 @@ date_modified: 2026-10-15
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.from_ultralytics` now removes letterbox padding using the rounded content dimensions. Fractional padding no longer shifts or truncates segmentation masks when restoring the original image resolution.
+- `sv.Detections.from_ultralytics` now removes letterbox padding using the rounded content dimensions. Fractional padding no longer shifts or truncates segmentation masks when restoring the original image resolution. ([#2739](https://github.com/roboflow/supervision/pull/2739))
 
 - `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region. ([#2725](https://github.com/roboflow/supervision/pull/2725))
 
