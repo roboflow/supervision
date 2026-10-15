@@ -6,7 +6,7 @@ import warnings
 from collections.abc import Callable
 from dataclasses import FrozenInstanceError
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -1219,7 +1219,7 @@ class TestDepthMapMeasureDetections:
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert np.asarray(measured.data[DEPTH_M_DATA_FIELD]).tolist() == [10.0]
+        assert cast(np.ndarray, measured.data[DEPTH_M_DATA_FIELD]).tolist() == [10.0]
 
     @pytest.mark.parametrize(
         "make_mask",
@@ -1251,7 +1251,10 @@ class TestDepthMapMeasureDetections:
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert np.asarray(measured.data[DEPTH_M_DATA_FIELD]).tolist() == [2.0, 6.0]
+        assert cast(np.ndarray, measured.data[DEPTH_M_DATA_FIELD]).tolist() == [
+            2.0,
+            6.0,
+        ]
 
     @pytest.mark.parametrize(
         "make_mask",
@@ -1284,8 +1287,8 @@ class TestDepthMapMeasureDetections:
         """Empty detections get an empty float32 column rather than an error."""
         measured = self._depth_map().measure_detections(sv.Detections.empty())
 
-        assert np.asarray(measured.data[DEPTH_M_DATA_FIELD]).shape == (0,)
-        assert np.asarray(measured.data[DEPTH_M_DATA_FIELD]).dtype == np.float32
+        assert cast(np.ndarray, measured.data[DEPTH_M_DATA_FIELD]).shape == (0,)
+        assert cast(np.ndarray, measured.data[DEPTH_M_DATA_FIELD]).dtype == np.float32
 
     @pytest.mark.parametrize(
         ("camera", "field", "expected"),
@@ -1306,7 +1309,7 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert np.asarray(measured.data[field]).tolist() == [expected]
+        assert cast(np.ndarray, measured.data[field]).tolist() == [expected]
 
     def test_converts_disparity_like_to_depth(self) -> None:
         """Measuring a disparity map with a camera equals measuring its `to_depth()`.
@@ -1361,7 +1364,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections, resolution_wh=(20, 20))
 
-        assert np.asarray(measured.data[DISPARITY_PX_DATA_FIELD]).tolist() == [50.0]
+        assert cast(np.ndarray, measured.data[DISPARITY_PX_DATA_FIELD]).tolist() == [
+            50.0
+        ]
 
     def test_relative_map_measures_its_own_kind(self) -> None:
         """A relative map has no metres and measures relative inverse depth."""
@@ -1372,7 +1377,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert np.asarray(measured.data[RELATIVE_INVERSE_DATA_FIELD]).tolist() == [0.25]
+        assert cast(
+            np.ndarray, measured.data[RELATIVE_INVERSE_DATA_FIELD]
+        ).tolist() == [0.25]
 
     def test_keeps_detections_and_existing_data(self) -> None:
         """The input is not modified and existing data columns stay."""
@@ -1384,7 +1391,7 @@ class TestDepthMapMeasureDetections:
         measured = self._depth_map().measure_detections(detections)
 
         assert DEPTH_M_DATA_FIELD not in detections.data
-        assert np.asarray(measured.data["class_name"]).tolist() == ["car"]
+        assert cast(np.ndarray, measured.data["class_name"]).tolist() == ["car"]
 
     @pytest.mark.parametrize(
         "make_mask",
