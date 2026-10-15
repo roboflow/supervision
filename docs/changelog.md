@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-11
+date_modified: 2026-10-15
 ---
 
 # Changelog
@@ -8,6 +8,8 @@ date_modified: 2026-10-11
 ### Unreleased <small>upcoming</small>
 
 - The NumPy `resize` fallback now samples the same source pixel as OpenCV for `INTER_NEAREST` when `dsize` is given. It used the exact integer ratio `x * src // dst`, while OpenCV steps through the source with the reciprocal of the size ratio. At some whole-number positions of `x * src / dst`, reciprocal multiplication rounds below the integer: a 6-pixel ramp resized to 34 wide picks pixel 2 at `x = 17`, not 3. These differences also made `sv.CompactMask.resize`, which derives its grid from this call, give different masks with and without OpenCV installed. ([#2722](https://github.com/roboflow/supervision/pull/2722))
+
+- `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. Decoding and callback errors retain their original exceptions when capture or output-writer release also fails; secondary cleanup failures are logged. ([#2720](https://github.com/roboflow/supervision/pull/2720))
 
 - `sv.LabelAnnotator`, `sv.RichLabelAnnotator` and `sv.VertexLabelAnnotator` with `smart_position=True` now separate labels whose boxes share a center. `spread_out_boxes` pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. ([#2718](https://github.com/roboflow/supervision/pull/2718))
 
