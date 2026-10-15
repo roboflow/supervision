@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 import numpy as np
 import pytest
 
@@ -28,7 +30,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
     r: int = n // 2
     x_axis = np.linspace(0, 2 * r, n)
     y_axis = (r**2 - (x_axis - r) ** 2) ** 0.5 + 2 * r
-    polygon = np.array([x_axis, y_axis]).T
+    polygon: np.ndarray = np.array([x_axis, y_axis]).T
 
     return polygon
 
@@ -125,7 +127,7 @@ def test_get_polygon_center_does_not_call_np_cross(
 ) -> None:
     """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("np.cross must not be called on 2-D vectors")
 
     monkeypatch.setattr(np, "cross", _raise)

@@ -73,7 +73,8 @@ RANDOM = [pytest.param(*pair, id=f"random-{i}") for i, pair in enumerate(RANDOM_
 def _project(matrix: np.ndarray, points: np.ndarray) -> np.ndarray:
     """Map (4, 2) points through a 3x3 matrix by plain float64 homogeneous division."""
     homogeneous = points.astype(np.float64) @ matrix[:, :2].T + matrix[:, 2]
-    return homogeneous[:, :2] / homogeneous[:, 2:]
+    projected: np.ndarray = homogeneous[:, :2] / homogeneous[:, 2:]
+    return projected
 
 
 def test_fallback_blur_preserves_shape_and_dtype() -> None:
@@ -322,6 +323,7 @@ class TestPerspectiveTransform:
 
         actual = _perspective_transform(points, matrix)
 
+        assert actual is not None
         assert actual.shape == shape
         assert actual.dtype == dtype
         # Both compute in float64, but OpenCV's build may fuse its sums into FMAs;
@@ -348,6 +350,7 @@ class TestPerspectiveTransform:
 
         actual = _perspective_transform(points, matrix)
 
+        assert actual is not None
         np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=0)
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])

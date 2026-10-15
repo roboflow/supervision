@@ -209,6 +209,20 @@ warn_unused_ignores = true
 strict = true
 overrides = [
   { module = [ "examples.*", "tests.*" ], ignore_errors = true },
+  { module = [
+    "tests",
+    "tests.assets.*",
+    "tests.classification.*",
+    "tests.conftest",
+    "tests.cv2.*",
+    "tests.depth.*",
+    "tests.draw.*",
+    "tests.geometry.*",
+    "tests.helpers",
+    "tests.test_public_api",
+    "tests.test_validate_deprecations",
+    "tests.validators.*",
+  ], ignore_errors = false },
   { module = [ "supervision._cv2" ], warn_unused_ignores = false },
 ]
 
