@@ -309,7 +309,7 @@ class TestFarthestFromSegment:
 def _random_integer_contours(dtype: type) -> tuple[list[np.ndarray], list[float]]:
     """Build seeded integer-valued contours with mixed integer and float epsilons."""
     rng = np.random.default_rng(20261006)
-    contours = [
+    contours: list[np.ndarray] = [
         rng.integers(-50, 100, (int(rng.integers(2, 40)), 2)).astype(dtype)
         for _ in range(300)
     ]
