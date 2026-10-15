@@ -304,7 +304,10 @@ class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
     def __init__(
-        self, boxes: _FakeUltralyticsBoxes, names: dict[int, str], length: int = 0
+        self,
+        boxes: _FakeUltralyticsBoxes | None,
+        names: dict[int, str],
+        length: int = 0,
     ) -> None:
         self.boxes = boxes
         self.names = names
