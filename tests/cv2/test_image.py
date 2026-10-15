@@ -202,6 +202,38 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
 
 
 @pytest.mark.parametrize(
+    ("source_width", "width"),
+    [
+        pytest.param(6, 34, id="six-to-thirty-four"),
+        pytest.param(9, 51, id="nine-to-fifty-one"),
+        pytest.param(10, 74, id="ten-to-seventy-four"),
+        pytest.param(12, 34, id="twelve-to-thirty-four"),
+    ],
+)
+def test_fallback_nearest_resize_matches_opencv_at_whole_sample_positions(
+    source_width: int, width: int
+) -> None:
+    """Pick OpenCV's source pixel where `x * source_width / width` is a whole number."""
+    source = np.arange(source_width, dtype=np.uint8).reshape(1, -1)
+
+    actual = _resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_nearest_resize_matches_opencv_on_both_axes() -> None:
+    """Match OpenCV's nearest sampling grid on rows and columns of a color image."""
+    rng = np.random.default_rng(20261012)
+    source = rng.integers(0, 256, (9, 6, 3), dtype=np.uint8)
+
+    actual = _resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
     ("interpolation", "atol"),
     [
         pytest.param(cv2.INTER_NEAREST, 0, id="nearest"),
