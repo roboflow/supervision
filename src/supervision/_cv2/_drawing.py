@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, SupportsIndex
 
 import numpy as np
 import numpy.typing as npt
@@ -98,7 +98,7 @@ def _points(points: npt.NDArray[Any], offset: tuple[int, int] = (0, 0)) -> list[
     return [(int(x), int(y)) for x, y in normalized]
 
 
-def _bounded_thickness(thickness: int, shape: str) -> int:
+def _bounded_thickness(thickness: SupportsIndex, shape: str) -> int:
     """Return `thickness` as a Python int, rejecting values OpenCV rejects.
 
     Raises:
@@ -126,7 +126,7 @@ def _line(
     pt1: Sequence[int | float],
     pt2: Sequence[int | float],
     color: Any,
-    thickness: int = 1,
+    thickness: SupportsIndex = 1,
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
