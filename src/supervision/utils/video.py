@@ -160,10 +160,24 @@ class VideoSink:
         exc_value: BaseException | None,
         exc_traceback: TracebackType | None,
     ) -> None:
-        """Release the underlying video writer when leaving the context."""
+        """Release the writer without replacing an error from the managed block.
+
+        A secondary release failure is logged; a cleanup-only failure propagates. The
+        sink is marked closed in either case.
+        """
         if self.__writer is not None:
-            self.__writer.release()
-            self.__writer = None
+            try:
+                self.__writer.release()
+            except Exception:
+                # Context exit must preserve the exception already being propagated;
+                # without a pending error, callers still need to see release failures.
+                if exc_value is None:
+                    raise
+                logger.exception(
+                    "Failed to release video writer while handling an error."
+                )
+            finally:
+                self.__writer = None
 
 
 def _validate_and_setup_video(
@@ -249,15 +263,17 @@ def get_video_frames_generator(
 
     Raises:
         Exception: If `end` exceeds a positive frame count reported by the
-            container (raised on first iteration; wrapped in `RuntimeError` when
-            `prefetch` > 0).
+            container (raised on first iteration), or capture release fails without
+            an earlier decoding error. Both are wrapped in `RuntimeError` when
+            `prefetch` > 0.
         ValueError: If `prefetch` is negative.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
             drained after buffered frames, so when `prefetch` > 0 the consumer may
             yield up to `prefetch` additional good frames before the exception is
-            raised.
+            raised. If capture release also fails after a decoding error, the
+            cleanup failure is logged and the original decoding error is preserved.
 
     Note:
         For live camera streams, use `cv2.VideoCapture` with an integer device
@@ -315,6 +331,7 @@ def get_video_frames_generator(
         source_path, start, end, iterative_seek
     )
     frame_position = start
+    decoding_failed = False
     try:
         while True:
             success, frame = video.read()
@@ -327,8 +344,18 @@ def get_video_frames_generator(
                 if not success:
                     break
             frame_position += stride
+    except Exception:
+        decoding_failed = True
+        raise
     finally:
-        video.release()
+        try:
+            video.release()
+        except Exception:
+            # A secondary release error must not replace the pending decode error;
+            # cleanup-only failures still propagate, including during generator close.
+            if not decoding_failed:
+                raise
+            logger.exception("Failed to release video capture after a decoding error.")
 
 
 def _prefetched_frames_generator(
@@ -430,6 +457,8 @@ def process_video(
     On a processing or writing failure, shutdown stops the reader instead of
     decoding the rest of the source. An active decode is allowed to finish before
     the capture is released; queued writes finish unless the writer itself fails.
+    If a callback fails, a secondary reader failure is logged before the original
+    callback exception is re-raised.
 
     Args:
         source_path: Path to the input video file.
@@ -619,6 +648,17 @@ def process_video(
             writer_worker.join()
             progress_bar.close()
             if exception_in_worker is not None:
+                # Callback errors stay primary, but secondary reader failures
+                # must remain visible after both worker threads have stopped.
+                if reader_exception is not None:
+                    logger.error(
+                        "Reader thread failed while handling a processing error.",
+                        exc_info=(
+                            type(reader_exception),
+                            reader_exception,
+                            reader_exception.__traceback__,
+                        ),
+                    )
                 raise exception_in_worker
             if reader_exception is not None:
                 raise RuntimeError(

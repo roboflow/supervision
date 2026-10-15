@@ -171,6 +171,266 @@ class TestProcessVideoReaderCancellation:
         assert len(decoded) == 3
         assert reader_captures[0] in released
 
+    @pytest.mark.parametrize("failure", ["cleanup", "callback", "interrupt", "reader"])
+    def test_preserves_error_priority_when_generator_cleanup_fails(
+        self,
+        dummy_video_path: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure: str,
+    ) -> None:
+        """Preserve primary errors and log cleanup failures during cancellation."""
+        cleanup_error = OSError("capture cleanup failed")
+        callback_error = (
+            KeyboardInterrupt("callback interrupted")
+            if failure == "interrupt"
+            else ValueError("callback failed")
+        )
+        reader_error = OSError("decode failed")
+        reader_buffered = threading.Event()
+        source_closed = threading.Event()
+        original_generator = get_video_frames_generator
+
+        class CloseFailingGenerator:
+            """Read a real video and fail after closing its underlying generator."""
+
+            def __init__(self, source_path: str, end: int | None = None) -> None:
+                """Open the real frame generator and initialize its read count."""
+                self.generator = original_generator(source_path=source_path, end=end)
+                self.read_count = 0
+
+            def __iter__(self) -> "CloseFailingGenerator":
+                """Return the iterator used by the reader."""
+                return self
+
+            def __next__(self) -> np.ndarray:
+                """Decode real frames, optionally failing before the second one."""
+                if failure == "reader" and self.read_count == 1:
+                    raise reader_error
+                frame = next(self.generator)
+                self.read_count += 1
+                if self.read_count == 3:
+                    reader_buffered.set()
+                return frame
+
+            def close(self) -> None:
+                """Release the real source before reporting a cleanup failure."""
+                self.generator.close()
+                source_closed.set()
+                raise cleanup_error
+
+        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+            """Fail after the reader fills its queue, or pass the frame through."""
+            if failure in {"callback", "interrupt"}:
+                assert reader_buffered.wait(timeout=5)
+                raise callback_error
+            return frame
+
+        monkeypatch.setattr(
+            "supervision.utils.video.get_video_frames_generator", CloseFailingGenerator
+        )
+        monkeypatch.setattr("supervision.utils.video.logger.handlers", [caplog.handler])
+        expected_error = {
+            "cleanup": RuntimeError,
+            "callback": ValueError,
+            "interrupt": KeyboardInterrupt,
+            "reader": RuntimeError,
+        }[failure]
+
+        with pytest.raises(expected_error) as exc_info:
+            _run_process_video_with_deadline(
+                deadline_seconds=10,
+                source_path=dummy_video_path,
+                target_path=str(tmp_path / "cleanup-error.mp4"),
+                callback=callback,
+                prefetch=1,
+                writer_buffer=1,
+            )
+
+        if failure in {"callback", "interrupt"}:
+            assert exc_info.value is callback_error
+            assert any(
+                record.getMessage()
+                == "Reader thread failed while handling a processing error."
+                and record.exc_info is not None
+                and record.exc_info[1] is cleanup_error
+                for record in caplog.records
+            )
+        else:
+            expected_cause = reader_error if failure == "reader" else cleanup_error
+            assert exc_info.value.__cause__ is expected_cause
+        assert source_closed.is_set()
+
+    @pytest.mark.parametrize("decode_fails", [True, False])
+    def test_preserves_first_backend_error_when_capture_release_fails(
+        self,
+        dummy_video_path: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        decode_fails: bool,
+    ) -> None:
+        """Decode errors retain priority while cleanup-only errors still surface."""
+        decode_error = OSError("backend decode failed")
+        cleanup_error = OSError("backend release failed")
+        source_released = threading.Event()
+        original_capture = cv2.VideoCapture
+
+        class FailingCapture:
+            """Inject backend failures after real capture operations complete."""
+
+            def __init__(self, path: str) -> None:
+                """Open the real capture and track whether decoding began."""
+                self.capture = original_capture(path)
+                self.read_started = False
+
+            def __getattr__(self, name: str) -> object:
+                """Delegate metadata queries to the real capture."""
+                return getattr(self.capture, name)
+
+            def read(self) -> tuple[bool, np.ndarray | None]:
+                """Decode a real frame before reporting a backend failure."""
+                result = self.capture.read()
+                self.read_started = True
+                if decode_fails:
+                    raise decode_error
+                return result
+
+            def release(self) -> None:
+                """Release the real reader capture before reporting cleanup failure."""
+                self.capture.release()
+                if self.read_started:
+                    source_released.set()
+                    raise cleanup_error
+
+        monkeypatch.setattr(cv2, "VideoCapture", FailingCapture)
+        monkeypatch.setattr("supervision.utils.video.logger.handlers", [caplog.handler])
+
+        with pytest.raises(RuntimeError) as exc_info:
+            _run_process_video_with_deadline(
+                deadline_seconds=10,
+                source_path=dummy_video_path,
+                target_path=str(tmp_path / "backend-errors.mp4"),
+                callback=lambda frame, index: frame,
+                prefetch=1,
+                writer_buffer=1,
+            )
+
+        expected_cause = decode_error if decode_fails else cleanup_error
+        assert exc_info.value.__cause__ is expected_cause
+        assert source_released.is_set()
+        if decode_fails:
+            assert any(
+                record.getMessage()
+                == "Failed to release video capture after a decoding error."
+                and record.exc_info is not None
+                and record.exc_info[1] is cleanup_error
+                for record in caplog.records
+            )
+        else:
+            assert not caplog.records
+
+    @pytest.mark.parametrize("failure", ["callback", "interrupt", "reader", "none"])
+    def test_preserves_primary_error_when_output_release_fails(
+        self,
+        dummy_video_path: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        failure: str,
+    ) -> None:
+        """Sink cleanup preserves pending errors and surfaces its own sole failure."""
+        cleanup_error = OSError("writer release failed")
+        callback_error = (
+            KeyboardInterrupt("callback interrupted")
+            if failure == "interrupt"
+            else ValueError("callback failed")
+        )
+        reader_error = OSError("reader failed")
+        output_released = threading.Event()
+        original_writer = cv2.VideoWriter
+        original_generator = get_video_frames_generator
+
+        class ReleaseFailingWriter:
+            """Inject a failure after releasing a real output writer."""
+
+            def __init__(
+                self, path: str, fourcc: int, fps: float, frame_size: tuple[int, int]
+            ) -> None:
+                """Open the real output writer."""
+                self.writer = original_writer(path, fourcc, fps, frame_size)
+
+            def __getattr__(self, name: str) -> object:
+                """Delegate writes and status checks to the real writer."""
+                return getattr(self.writer, name)
+
+            def release(self) -> None:
+                """Release real output resources before reporting failure."""
+                self.writer.release()
+                output_released.set()
+                raise cleanup_error
+
+        def frames(
+            source_path: str, end: int | None = None
+        ) -> Generator[np.ndarray, None, None]:
+            """Optionally fail after reading a real source frame."""
+            generator = original_generator(source_path=source_path, end=end)
+            try:
+                first_frame = next(generator)
+                if failure == "reader":
+                    raise reader_error
+                yield first_frame
+                yield from generator
+            finally:
+                generator.close()
+
+        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+            """Raise the selected processing error or pass the frame through."""
+            if failure in {"callback", "interrupt"}:
+                raise callback_error
+            return frame
+
+        monkeypatch.setattr(cv2, "VideoWriter", ReleaseFailingWriter)
+        monkeypatch.setattr(
+            "supervision.utils.video.get_video_frames_generator", frames
+        )
+        monkeypatch.setattr("supervision.utils.video.logger.handlers", [caplog.handler])
+        expected_error = {
+            "callback": ValueError,
+            "interrupt": KeyboardInterrupt,
+            "reader": RuntimeError,
+            "none": OSError,
+        }[failure]
+
+        with pytest.raises(expected_error) as exc_info:
+            _run_process_video_with_deadline(
+                deadline_seconds=10,
+                source_path=dummy_video_path,
+                target_path=str(tmp_path / "writer-release-error.mp4"),
+                callback=callback,
+                prefetch=1,
+                writer_buffer=1,
+            )
+
+        if failure == "reader":
+            assert exc_info.value.__cause__ is reader_error
+        elif failure == "none":
+            assert exc_info.value is cleanup_error
+        else:
+            assert exc_info.value is callback_error
+        assert output_released.is_set()
+        if failure == "none":
+            assert not caplog.records
+        else:
+            assert any(
+                record.getMessage()
+                == "Failed to release video writer while handling an error."
+                and record.exc_info is not None
+                and record.exc_info[1] is cleanup_error
+                for record in caplog.records
+            )
+
     @pytest.mark.parametrize("failure_path", ["writer", "eof"])
     def test_cancels_blocked_reader_put_and_preserves_error(
         self,
