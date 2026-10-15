@@ -192,7 +192,7 @@ class TestDepthMapInit:
     def test_rejects_a_camera_that_is_not_a_depth_camera(self) -> None:
         """Camera parameters must come wrapped in a `sv.DepthCamera`."""
         with pytest.raises(ValueError, match="camera must be"):
-            sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m", camera=(700, 0.1))
+            sv.DepthMap(np.ones((2, 2), np.float32), kind="depth_m", camera=(700, 0.1))  # type: ignore[arg-type]
 
     def test_rejects_a_camera_on_a_relative_map(self) -> None:
         """A relative map has no metric scale, so a camera would be silently unused."""
@@ -635,7 +635,7 @@ class TestDepthMapFromFiles:
         Image.fromarray(np.ones((2, 2), np.uint16)).save(path)
 
         with pytest.raises(TypeError):
-            sv.DepthMap.from_png16(path, 256, "depth_m")  # type: ignore[misc]
+            sv.DepthMap.from_png16(path, 256, "depth_m")  # type: ignore[call-arg]
 
     def test_from_pfm_takes_kind_by_keyword_only(self, tmp_path: Any) -> None:
         """`kind` is keyword-only, so a stray second argument is not read as one."""
@@ -643,7 +643,7 @@ class TestDepthMapFromFiles:
         _write_pfm(path, np.ones((2, 2), np.float32), True)
 
         with pytest.raises(TypeError):
-            sv.DepthMap.from_pfm(path, "depth_m")  # type: ignore[misc]
+            sv.DepthMap.from_pfm(path, "depth_m")  # type: ignore[call-arg]
 
     def test_from_png16_raises_file_not_found_for_a_missing_file(
         self, tmp_path: Any
@@ -1219,7 +1219,9 @@ class TestDepthMapMeasureDetections:
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [10.0]
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [10.0]
 
     @pytest.mark.parametrize(
         "make_mask",
@@ -1251,7 +1253,12 @@ class TestDepthMapMeasureDetections:
 
         measured = self._depth_map().measure_detections(detections)
 
-        assert measured.data[DEPTH_M_DATA_FIELD].tolist() == [2.0, 6.0]
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [
+            2.0,
+            6.0,
+        ]
 
     @pytest.mark.parametrize(
         "make_mask",
@@ -1284,8 +1291,10 @@ class TestDepthMapMeasureDetections:
         """Empty detections get an empty float32 column rather than an error."""
         measured = self._depth_map().measure_detections(sv.Detections.empty())
 
-        assert measured.data[DEPTH_M_DATA_FIELD].shape == (0,)
-        assert measured.data[DEPTH_M_DATA_FIELD].dtype == np.float32
+        values = measured.data[DEPTH_M_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.shape == (0,)
+        assert values.dtype == np.float32
 
     @pytest.mark.parametrize(
         ("camera", "field", "expected"),
@@ -1306,7 +1315,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert measured.data[field].tolist() == [expected]
+        values = measured.data[field]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [expected]
 
     def test_converts_disparity_like_to_depth(self) -> None:
         """Measuring a disparity map with a camera equals measuring its `to_depth()`.
@@ -1361,7 +1372,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections, resolution_wh=(20, 20))
 
-        assert measured.data[DISPARITY_PX_DATA_FIELD].tolist() == [50.0]
+        values = measured.data[DISPARITY_PX_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [50.0]
 
     def test_relative_map_measures_its_own_kind(self) -> None:
         """A relative map has no metres and measures relative inverse depth."""
@@ -1372,7 +1385,9 @@ class TestDepthMapMeasureDetections:
 
         measured = depth_map.measure_detections(detections)
 
-        assert measured.data[RELATIVE_INVERSE_DATA_FIELD].tolist() == [0.25]
+        values = measured.data[RELATIVE_INVERSE_DATA_FIELD]
+        assert isinstance(values, np.ndarray)
+        assert values.tolist() == [0.25]
 
     def test_keeps_detections_and_existing_data(self) -> None:
         """The input is not modified and existing data columns stay."""
@@ -1384,7 +1399,9 @@ class TestDepthMapMeasureDetections:
         measured = self._depth_map().measure_detections(detections)
 
         assert DEPTH_M_DATA_FIELD not in detections.data
-        assert measured.data["class_name"].tolist() == ["car"]
+        class_names = measured.data["class_name"]
+        assert isinstance(class_names, np.ndarray)
+        assert class_names.tolist() == ["car"]
 
     @pytest.mark.parametrize(
         "make_mask",
