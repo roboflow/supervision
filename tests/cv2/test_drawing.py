@@ -14,6 +14,7 @@ import pytest
 
 from supervision._cv2._drawing import (
     _circle,
+    _clip_line,
     _draw_contours,
     _ellipse,
     _fill_poly,
@@ -55,6 +56,25 @@ def test_fallback_line_draws_and_matches_opencv_extent() -> None:
 class TestFallbackThickLine:
     """Thick lines, polylines and contour outlines painted pixel for pixel like
     OpenCV."""
+
+    @pytest.mark.parametrize(
+        "points",
+        [
+            pytest.param([], id="no-polylines"),
+            pytest.param([np.empty((0, 2), dtype=np.int32)], id="empty-polyline"),
+        ],
+    )
+    def test_empty_polylines_leave_image_unchanged(
+        self, points: list[np.ndarray]
+    ) -> None:
+        """Treat absent and empty thick outlines as in-place no-ops."""
+        image = np.full((8, 8, 3), 17, dtype=np.uint8)
+        expected = image.copy()
+
+        result = _polylines(image, points, True, (1, 2, 3), thickness=3)
+
+        assert result is image
+        np.testing.assert_array_equal(image, expected)
 
     @requires_cv2
     @pytest.mark.parametrize(
@@ -161,6 +181,25 @@ class TestFallbackThickLine:
         assert not image[:, :7].any()
         assert not image[:, 24:].any()
         assert not image[:12].any()
+
+
+class TestClipLine:
+    """Clipping against bounds that cannot contain a pixel."""
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            pytest.param(0, 8, id="zero-width"),
+            pytest.param(8, 0, id="zero-height"),
+        ],
+    )
+    def test_empty_bounds_reject_segment(self, width: int, height: int) -> None:
+        """Reject an empty clipping rectangle without changing either endpoint."""
+        first, second = (1, 2), (5, 6)
+
+        result = _clip_line(width, height, first, second)
+
+        assert result == (False, first, second)
 
 
 def test_fallback_rectangle_fills_the_requested_region() -> None:
