@@ -34,7 +34,9 @@ def _direct_cv2_imports(root: Path, excluded: set[Path] | None = None) -> list[s
             is_direct_from_import = (
                 isinstance(node, ast.ImportFrom) and node.module == "cv2"
             )
-            if is_direct_import or is_direct_from_import:
+            if isinstance(node, (ast.Import, ast.ImportFrom)) and (
+                is_direct_import or is_direct_from_import
+            ):
                 relative_path = path.relative_to(PROJECT_ROOT).as_posix()
                 imports.append(f"{relative_path}:{node.lineno}")
     return imports

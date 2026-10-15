@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -80,7 +81,7 @@ def test_top_k(
     confidence: np.ndarray | None,
     k: int,
     expected_result: tuple[np.ndarray, np.ndarray] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """Retrieves requested top-k values or raises for malformed confidence input."""
     with exception:
@@ -88,6 +89,7 @@ def test_top_k(
             class_id=np.array(class_id), confidence=np.array(confidence)
         ).get_top_k(k)
 
+        assert expected_result is not None
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
 
