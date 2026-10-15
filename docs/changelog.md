@@ -21,6 +21,8 @@ date_modified: 2026-10-15
 
 - The NumPy fallback `line`, `polylines` and `drawContours` outline now match OpenCV's `LINE_8` rasterization for `thickness` 2 or more, including segments that leave the canvas. The fallback used Pillow's square-ended wide lines, while OpenCV draws each segment as a fixed-point quadrilateral with round caps; on 2,000 random lines every one differed, by a median 24% of OpenCV's pixels. The fallback now ports OpenCV's `ThickLine`, `FillConvexPoly` and `Line2`. Consumers using `LINE_8`, such as `sv.draw_line` and `sv.draw_polygon`, receive the corrected pixels. Antialiased drawing (`LINE_AA`) remains unsupported by the fallback, including calls from `LineZoneAnnotator`. `thickness=1` lines are unchanged. ([#2727](https://github.com/roboflow/supervision/pull/2727))
 
+- The NumPy fallback for `cv2.fillPoly` now uses OpenCV-compatible line and scanline rasterization, so `polygon_to_mask`, polygon drawing, and `PolygonZone` paint the same boundary pixels with or without OpenCV installed for polygons within the image bounds. ([#2730](https://github.com/roboflow/supervision/pull/2730))
+
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
 - Added keyword-only `max_detection_thresholds` to `MeanAveragePrecision` for dense-scene evaluation. The COCO default `(1, 10, 100)` is unchanged; custom limits are recorded in results, text summaries, plot titles and DataFrame attributes. ([#2716](https://github.com/roboflow/supervision/pull/2716))
