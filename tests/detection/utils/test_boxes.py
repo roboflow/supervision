@@ -13,6 +13,7 @@ from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
+    move_oriented_boxes,
     obb_polygon_area,
     pad_boxes,
     scale_boxes,
@@ -129,6 +130,81 @@ def test_move_boxes(
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
         assert np.array_equal(result, expected_result)
+
+
+class TestMoveBoxesIntegerCoordinates:
+    """Integer translations preserve coordinates beyond the input dtype bounds."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "offset", "offset_dtype", "expected"),
+        [
+            pytest.param(
+                np.uint8,
+                [[250, 0, 255, 10]],
+                [10, 0],
+                np.uint8,
+                [[260, 0, 265, 10]],
+                id="uint8-positive-overflow",
+            ),
+            pytest.param(
+                np.int8,
+                [[-120, 0, -100, 10]],
+                [-10, 0],
+                np.int8,
+                [[-130, 0, -110, 10]],
+                id="int8-negative-underflow",
+            ),
+            pytest.param(
+                np.uint64,
+                [[2**63, 0, 2**63 + 2, 10]],
+                [-(2**63), 0],
+                np.int64,
+                [[0, 0, 2, 10]],
+                id="uint64-signed-cancellation",
+            ),
+        ],
+    )
+    def test_move_boxes_promotes_integer_coordinates(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[list[int]],
+        offset: list[int],
+        offset_dtype: type[np.integer],
+        expected: list[list[int]],
+    ) -> None:
+        """Translations do not wrap signed or unsigned integer coordinates."""
+        boxes = np.array(xyxy, dtype=dtype)
+        displacement = np.array(offset, dtype=offset_dtype)
+
+        result = move_boxes(xyxy=boxes, offset=displacement)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.int64))
+
+    def test_move_oriented_boxes_promotes_integer_coordinates(self) -> None:
+        """Oriented-box translations use the same overflow-safe arithmetic."""
+        corners = np.array([[[250, 0], [255, 0], [255, 10], [250, 10]]], dtype=np.uint8)
+        offset = np.array([10, 0], dtype=np.uint8)
+
+        result = move_oriented_boxes(xyxyxyxy=corners, offset=offset)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(
+            result,
+            np.array([[[260, 0], [265, 0], [265, 10], [260, 10]]], dtype=np.int64),
+        )
+
+    def test_move_boxes_uses_float_when_result_exceeds_int64(self) -> None:
+        """Translations beyond int64 use float64 after exact integer addition."""
+        maximum = np.iinfo(np.int64).max
+        boxes = np.array([[maximum, 0, maximum, 10]], dtype=np.int64)
+
+        result = move_boxes(xyxy=boxes, offset=np.array([1, 0], dtype=np.int64))
+
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(
+            result, np.array([[float(2**63), 0, float(2**63), 10]], dtype=np.float64)
+        )
 
 
 @pytest.mark.parametrize(

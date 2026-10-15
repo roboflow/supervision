@@ -7,6 +7,8 @@ date_modified: 2026-10-15
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.move_boxes` and `InferenceSlicer` translations no longer wrap integer coordinates when an offset crosses the input dtype's bounds. A `uint8` box at `[250, 0, 255, 10]` shifted by `[10, 0]` previously became `[4, 0, 9, 10]`; translations now promote integer results to `int64`, or `float64` when the result exceeds the `int64` range, while floating-point behavior is unchanged.
+
 - The NumPy `resize` fallback now samples the same source pixel as OpenCV for `INTER_NEAREST` when `dsize` is given. It used the exact integer ratio `x * src // dst`, while OpenCV steps through the source with the reciprocal of the size ratio. At some whole-number positions of `x * src / dst`, reciprocal multiplication rounds below the integer: a 6-pixel ramp resized to 34 wide picks pixel 2 at `x = 17`, not 3. These differences also made `sv.CompactMask.resize`, which derives its grid from this call, give different masks with and without OpenCV installed. ([#2722](https://github.com/roboflow/supervision/pull/2722))
 
 - `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. Decoding and callback errors retain their original exceptions when capture or output-writer release also fails; secondary cleanup failures are logged. ([#2720](https://github.com/roboflow/supervision/pull/2720))

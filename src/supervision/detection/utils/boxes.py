@@ -221,10 +221,51 @@ def _sort_box_corners(
     return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
 
 
+def _add_integer_offset(
+    coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
+    """Add an integer offset without wrapping coordinate values."""
+    coordinates = np.asarray(coordinates)
+    offset = np.asarray(offset)
+    if not (
+        np.issubdtype(coordinates.dtype, np.integer)
+        and np.issubdtype(offset.dtype, np.integer)
+    ):
+        return coordinates + offset
+
+    limits = np.iinfo(np.int64)
+    coordinates_fit_int64 = np.issubdtype(
+        coordinates.dtype, np.signedinteger
+    ) or np.all(coordinates <= limits.max)
+    offset_fit_int64 = np.issubdtype(offset.dtype, np.signedinteger) or np.all(
+        offset <= limits.max
+    )
+    if coordinates_fit_int64 and offset_fit_int64:
+        integer_coordinates = coordinates.astype(np.int64)
+        integer_offset = offset.astype(np.int64)
+        with np.errstate(over="ignore"):
+            translated = integer_coordinates + integer_offset
+        overflow = (
+            (integer_coordinates ^ translated) & (integer_offset ^ translated)
+        ) < 0
+        if not np.any(overflow):
+            return cast(npt.NDArray[np.number], translated)
+
+    exact_translation = coordinates.astype(object) + offset.astype(object)
+    fits_int64 = np.all(
+        (exact_translation >= limits.min) & (exact_translation <= limits.max)
+    )
+    output_dtype = np.int64 if fits_int64 else np.float64
+    return cast(
+        npt.NDArray[np.number], np.asarray(exact_translation, dtype=output_dtype)
+    )
+
+
 def move_boxes(
     xyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
 ) -> npt.NDArray[np.number]:
-    """
+    """Move axis-aligned boxes by an `(x, y)` offset.
+
     Args:
         xyxy: An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
@@ -232,7 +273,9 @@ def move_boxes(
             is `[dx, dy]`.
 
     Returns:
-        Repositioned bounding boxes.
+        Repositioned bounding boxes. Integer inputs produce `int64` output when
+        the translated coordinates fit; otherwise, they produce `float64` output.
+        Floating-point inputs preserve NumPy's existing addition behavior.
 
     Examples:
         ```pycon
@@ -249,13 +292,15 @@ def move_boxes(
 
         ```
     """
-    return xyxy + np.hstack([offset, offset])
+    offset = np.asarray(offset)
+    return _add_integer_offset(xyxy, np.hstack([offset, offset]))
 
 
 def move_oriented_boxes(
     xyxyxyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
 ) -> npt.NDArray[np.number]:
-    """
+    """Move oriented boxes by an `(x, y)` offset.
+
     Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
         oriented bounding boxes coordinates in format
@@ -264,7 +309,9 @@ def move_oriented_boxes(
             is `[dx, dy]`.
 
     Returns:
-        Repositioned bounding boxes.
+        Repositioned bounding boxes. Integer inputs produce `int64` output when
+        the translated coordinates fit; otherwise, they produce `float64` output.
+        Floating-point inputs preserve NumPy's existing addition behavior.
 
     Examples:
         ```pycon
@@ -298,7 +345,7 @@ def move_oriented_boxes(
 
         ```
     """
-    return xyxyxyxy + offset
+    return _add_integer_offset(xyxyxyxy, np.asarray(offset))
 
 
 def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
