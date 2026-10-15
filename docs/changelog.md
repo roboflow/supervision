@@ -7,6 +7,8 @@ date_modified: 2026-10-15
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.move_boxes` and `InferenceSlicer` translations no longer wrap integer coordinates when an offset crosses the input dtype's bounds. A `uint8` box at `[250, 0, 255, 10]` shifted by `[10, 0]` previously became `[4, 0, 9, 10]`; translations now promote integer results to `int64`, or `float64` when the result exceeds the `int64` range, while floating-point behavior is unchanged. ([#2734](https://github.com/roboflow/supervision/pull/2734))
+
 - Performance: `sv.metrics.MeanAveragePrecision` and `sv.metrics.KeyPointMeanAveragePrecision` now run COCO greedy matching with NumPy over all IoU thresholds and targets at once, instead of a Python loop over every threshold, prediction and target. Dense scenes evaluate much faster: one image with 1000 predictions and 1000 targets at `max_detection_thresholds=(1, 10, 1000)` drops from 35.9 s to 0.5 s. No output changes. ([#2733](https://github.com/roboflow/supervision/pull/2733))
 
 - `sv.Detections.box_aspect_ratio` now subtracts integer corners without overflow or loss of narrow widths at large coordinate origins. Floating-coordinate arithmetic and zero-height NaN results are unchanged. ([#2729](https://github.com/roboflow/supervision/pull/2729))
