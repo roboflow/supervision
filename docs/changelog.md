@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-13
+date_modified: 2026-10-15
 ---
 
 # Changelog
@@ -8,6 +8,10 @@ date_modified: 2026-10-13
 ### Unreleased <small>upcoming</small>
 
 - `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region. ([#2725](https://github.com/roboflow/supervision/pull/2725))
+
+- `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. Decoding and callback errors retain their original exceptions when capture or output-writer release also fails; secondary cleanup failures are logged. ([#2720](https://github.com/roboflow/supervision/pull/2720))
+
+- `sv.LabelAnnotator`, `sv.RichLabelAnnotator` and `sv.VertexLabelAnnotator` with `smart_position=True` now separate labels whose boxes share a center. `spread_out_boxes` pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. ([#2718](https://github.com/roboflow/supervision/pull/2718))
 
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 

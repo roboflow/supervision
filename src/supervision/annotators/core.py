@@ -1965,6 +1965,7 @@ class IconAnnotator(BaseAnnotator):
 
         Example:
             ```python
+            import numpy as np
             import supervision as sv
 
             image = ...
