@@ -7,6 +7,8 @@ date_modified: 2026-10-11
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LabelAnnotator`, `sv.RichLabelAnnotator` and `sv.VertexLabelAnnotator` with `smart_position=True` now separate labels whose boxes share a center. `spread_out_boxes` pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. ([#2718](https://github.com/roboflow/supervision/pull/2718))
+
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
 - Added keyword-only `max_detection_thresholds` to `MeanAveragePrecision` for dense-scene evaluation. The COCO default `(1, 10, 100)` is unchanged; custom limits are recorded in results, text summaries, plot titles and DataFrame attributes. ([#2716](https://github.com/roboflow/supervision/pull/2716))
