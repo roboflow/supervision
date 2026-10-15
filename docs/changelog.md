@@ -8,6 +8,7 @@ date_modified: 2026-10-11
 ### Unreleased <small>upcoming</small>
 
 - `sv.LabelAnnotator`, `sv.RichLabelAnnotator` and `sv.VertexLabelAnnotator` with `smart_position=True` now separate labels whose boxes share a center. `spread_out_boxes` pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. ([#2718](https://github.com/roboflow/supervision/pull/2718))
+
 - mypy now type checks the test helpers and the `assets`, `classification`, `cv2`, `depth`, `draw`, `geometry` and `validators` test packages under the project's strict settings, the first slice of removing the `tests.*` `ignore_errors` override. The 75 errors these packages had are fixed with annotations and narrowing only, no test behaviour changes. The remaining test packages stay exempt for now. ([#2728](https://github.com/roboflow/supervision/pull/2728))
 
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
