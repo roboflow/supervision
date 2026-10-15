@@ -92,7 +92,7 @@ def _trunc_div(numerator: int, denominator: int) -> int:
     return quotient if (numerator >= 0) == (denominator >= 0) else -quotient
 
 
-def _clip_line(
+def _clip_polygon_line(
     width: int, height: int, first: _Point, second: _Point
 ) -> tuple[_Point, _Point] | None:
     """Clip a line segment to image bounds like OpenCV's `clipLine`."""
@@ -193,11 +193,10 @@ def _fill_polygon_mask(
         if not points:
             continue
         for first, second in zip(points, [*points[1:], points[0]]):
-            inside, clipped_first, clipped_second = _clip_line(
-                width, height, first, second
-            )
-            if not inside:
+            clipped = _clip_polygon_line(width, height, first, second)
+            if clipped is None:
                 continue
+            clipped_first, clipped_second = clipped
             for x, y in _iter_line_points(clipped_first, clipped_second):
                 if 0 <= x < width and 0 <= y < height:
                     mask[y, x] = True

@@ -504,6 +504,50 @@ def test_fallback_fill_poly_matches_opencv_for_nested_contours() -> None:
     np.testing.assert_array_equal(actual, expected)
 
 
+@requires_cv2
+@pytest.mark.parametrize(
+    "entry_point",
+    [
+        pytest.param("fill-poly", id="fill-poly"),
+        pytest.param("draw-contours", id="draw-contours"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("points", "offset"),
+    [
+        pytest.param(
+            ((-5, -4), (18, -4), (18, 16), (-5, 16)),
+            (2, 1),
+            id="crosses-all-canvas-edges-with-positive-offset",
+        ),
+        pytest.param(
+            ((1, 1), (18, 2), (15, 16), (3, 12)),
+            (-2, -1),
+            id="crosses-right-and-bottom-with-negative-offset",
+        ),
+    ],
+)
+def test_fallback_filled_polygons_match_opencv_when_clipped_and_offset(
+    entry_point: str,
+    points: tuple[tuple[int, int], ...],
+    offset: tuple[int, int],
+) -> None:
+    """Match OpenCV for filled polygons crossing canvas edges with offsets."""
+    polygon = np.asarray(points, dtype=np.int32)
+    contour = polygon.reshape(-1, 1, 2)
+    actual = np.zeros((12, 14), dtype=np.uint8)
+    expected = np.zeros_like(actual)
+
+    if entry_point == "fill-poly":
+        _fill_poly(actual, [polygon], color=(1,), offset=offset)
+        cv2.fillPoly(expected, [polygon], color=(1,), offset=offset)
+    else:
+        _draw_contours(actual, [contour], -1, (1,), thickness=-1, offset=offset)
+        cv2.drawContours(expected, [contour], -1, (1,), thickness=-1, offset=offset)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_draw_contours_fills_selected_contour() -> None:
     """Fill the selected contour when drawContours receives a negative thickness."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)
