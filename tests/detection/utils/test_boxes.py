@@ -16,8 +16,10 @@ from supervision.detection.utils.boxes import (
     obb_polygon_area,
     pad_boxes,
     scale_boxes,
+    spread_out_boxes,
     xyxyxyxy_to_xyxy,
 )
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
 
 _ALL_ANCHORS = [
@@ -839,3 +841,34 @@ def test_box_midpoint_returns_expected_values_and_dtype(
 
     assert result.dtype == expected_dtype
     np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+
+
+class TestSpreadOutBoxes:
+    """Overlapping boxes are moved apart until they no longer overlap."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([[10, 10, 40, 20]] * 2, id="two-identical"),
+            pytest.param([[10, 10, 40, 20]] * 3, id="three-identical"),
+            pytest.param([[10, 10, 40, 20], [5, 5, 45, 25]], id="nested-same-center"),
+        ],
+    )
+    def test_separates_boxes_sharing_a_center(self, xyxy: list[list[int]]) -> None:
+        """Boxes with a common center end up with no overlap between any pair."""
+        boxes = np.array(xyxy, dtype=np.float64)
+
+        result = spread_out_boxes(boxes)
+
+        iou = box_iou_batch(result, result)
+        np.fill_diagonal(iou, 0)
+        assert np.all(iou == 0)
+
+    def test_moves_earlier_of_two_identical_boxes_up(self) -> None:
+        """Of two identical boxes, the first moves up and the second moves down."""
+        xyxy = np.array([[10, 10, 40, 20], [10, 10, 40, 20]], dtype=np.float64)
+
+        result = spread_out_boxes(xyxy)
+
+        np.testing.assert_array_equal(result[:, [0, 2]], xyxy[:, [0, 2]])
+        assert result[0, 1] < xyxy[0, 1] < result[1, 1]

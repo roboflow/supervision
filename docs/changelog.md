@@ -1,11 +1,23 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-14
+date_modified: 2026-10-15
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region. ([#2725](https://github.com/roboflow/supervision/pull/2725))
+
+- The NumPy `resize` fallback now samples the same source pixel as OpenCV for `INTER_NEAREST` when `dsize` is given. It used the exact integer ratio `x * src // dst`, while OpenCV steps through the source with the reciprocal of the size ratio. At some whole-number positions of `x * src / dst`, reciprocal multiplication rounds below the integer: a 6-pixel ramp resized to 34 wide picks pixel 2 at `x = 17`, not 3. These differences also made `sv.CompactMask.resize`, which derives its grid from this call, give different masks with and without OpenCV installed. ([#2722](https://github.com/roboflow/supervision/pull/2722))
+
+- `sv.process_video` now stops its reader when a callback or frame write fails, including callback interruption, instead of decoding the rest of the source before raising the error. Shutdown releases the source capture and waits for queued writes unless the writer itself fails; an active backend decode or write is allowed to finish. Decoding and callback errors retain their original exceptions when capture or output-writer release also fails; secondary cleanup failures are logged. ([#2720](https://github.com/roboflow/supervision/pull/2720))
+
+- `sv.LabelAnnotator`, `sv.RichLabelAnnotator` and `sv.VertexLabelAnnotator` with `smart_position=True` now separate labels whose boxes share a center. `spread_out_boxes` pushes overlapping boxes away from each other's centers, and boxes with the same center got no direction, so they stayed exactly on top of each other and only the last label was visible: two detections with the same box and same-width labels, or two key points at the same position. Such boxes are now pushed apart vertically, the earlier one upward. ([#2718](https://github.com/roboflow/supervision/pull/2718))
+
+- mypy now type checks the test helpers and the `assets`, `classification`, `cv2`, `depth`, `draw`, `geometry` and `validators` test packages under the project's strict settings, the first slice of removing the `tests.*` `ignore_errors` override. The 75 errors these packages had are fixed with annotations and narrowing only, no test behaviour changes. The remaining test packages stay exempt for now. ([#2728](https://github.com/roboflow/supervision/pull/2728))
+
+- The NumPy fallback `line`, `polylines` and `drawContours` outline now match OpenCV's `LINE_8` rasterization for `thickness` 2 or more, including segments that leave the canvas. The fallback used Pillow's square-ended wide lines, while OpenCV draws each segment as a fixed-point quadrilateral with round caps; on 2,000 random lines every one differed, by a median 24% of OpenCV's pixels. The fallback now ports OpenCV's `ThickLine`, `FillConvexPoly` and `Line2`. Consumers using `LINE_8`, such as `sv.draw_line` and `sv.draw_polygon`, receive the corrected pixels. Antialiased drawing (`LINE_AA`) remains unsupported by the fallback, including calls from `LineZoneAnnotator`. `thickness=1` lines are unchanged. ([#2727](https://github.com/roboflow/supervision/pull/2727))
 
 - The NumPy fallback for `cv2.fillPoly` now uses OpenCV-compatible line and scanline rasterization, so `polygon_to_mask`, polygon drawing, and `PolygonZone` paint the same boundary pixels with or without OpenCV installed for polygons within the image bounds. ([#2730](https://github.com/roboflow/supervision/pull/2730))
 
