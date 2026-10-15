@@ -224,7 +224,27 @@ def _sort_box_corners(
 def _add_integer_offset(
     coordinates: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
 ) -> npt.NDArray[np.number]:
-    """Add an integer offset without wrapping coordinate values."""
+    """Add an offset to coordinates without wrapping integer values.
+
+    Integer inputs are added without integer wraparound. The result uses
+    `int64` when all translated values fit; otherwise, it uses `float64`, which
+    may round values outside the exact integer range. If either input is
+    non-integer, addition follows NumPy's usual behavior.
+
+    Args:
+        coordinates: Coordinate array to translate.
+        offset: Integer offset, broadcastable to the shape of `coordinates`.
+
+    Returns:
+        Translated coordinates.
+
+    Example:
+        >>> import numpy as np
+        >>> coordinates = np.array([[1, 2], [3, 4]])
+        >>> _add_integer_offset(coordinates, np.array([5, 6]))
+        array([[ 6,  8],
+               [ 8, 10]])
+    """
     coordinates = np.asarray(coordinates)
     offset = np.asarray(offset)
     if not (
