@@ -87,7 +87,32 @@ def _point(point: Sequence[int | float]) -> _Point:
 
 
 def _trunc_div(numerator: int, denominator: int) -> int:
-    """Divide integers with C++ truncation toward zero."""
+    """Divide integers with C++ truncation toward zero.
+
+    Polygon clipping and fixed-point edge slopes need this rounding rule to
+    reproduce OpenCV's integer arithmetic. Python's floor division rounds negative
+    results down instead, which can move a clipped endpoint or scanline intersection
+    by one pixel. Dividing magnitudes first also avoids floating-point precision loss.
+
+    Args:
+        numerator: Signed integer dividend.
+        denominator: Nonzero signed integer divisor.
+
+    Returns:
+        Integer quotient with any fractional part discarded toward zero.
+
+    Raises:
+        ZeroDivisionError: If the denominator is zero.
+
+    Example:
+        ```pycon
+        >>> _trunc_div(-7, 3)
+        -2
+        >>> _trunc_div(7, -3)
+        -2
+
+        ```
+    """
     quotient = abs(numerator) // abs(denominator)
     return quotient if (numerator >= 0) == (denominator >= 0) else -quotient
 
@@ -95,7 +120,38 @@ def _trunc_div(numerator: int, denominator: int) -> int:
 def _clip_polygon_line(
     width: int, height: int, first: _Point, second: _Point
 ) -> tuple[_Point, _Point] | None:
-    """Clip a line segment to image bounds like OpenCV's `clipLine`."""
+    """Clip a polygon boundary segment to the image's inclusive pixel bounds.
+
+    Boundary rasterization must start from clipped endpoints: walking a long
+    off-canvas segment wastes work, and merely discarding its out-of-bounds pixels
+    can produce different boundary pixels after integer rounding.
+
+    Each endpoint receives a bit code for the sides it lies beyond: left = 1,
+    right = 2, top = 4, bottom = 8. A shared bit rejects a segment whose endpoints
+    lie outside the same side. Otherwise, the algorithm clips top/bottom first,
+    recomputes the horizontal codes, then clips left/right if needed. Intersections
+    use truncation toward zero and the already updated endpoints; this ordering
+    preserves the integer clipping arithmetic used by the polygon fill path.
+
+    Args:
+        width: Image width in pixels; valid x coordinates run from 0 to width - 1.
+        height: Image height in pixels; valid y coordinates run from 0 to height - 1.
+        first: First endpoint as integer (x, y) coordinates.
+        second: Second endpoint as integer (x, y) coordinates.
+
+    Returns:
+        Clipped endpoints in their original order, or None when the segment is
+        outside the image or either image dimension is nonpositive.
+
+    Example:
+        ```pycon
+        >>> _clip_polygon_line(5, 4, (-2, 1), (7, 1))
+        ((0, 1), (4, 1))
+        >>> _clip_polygon_line(5, 4, (-2, 0), (-2, 3)) is None
+        True
+
+        ```
+    """
     if width <= 0 or height <= 0:
         return None
 
@@ -139,7 +195,37 @@ def _clip_polygon_line(
 
 
 def _iter_line_points(first: _Point, second: _Point) -> Iterator[_Point]:
-    """Yield OpenCV's 8-connected raster points for a line segment."""
+    """Yield integer boundary pixels using OpenCV's 8-connected line stepping.
+
+    The polygon fill path draws boundaries separately from interiors so horizontal
+    edges, vertices, and degenerate contours still contribute pixels. This iterator
+    uses integer error accumulation rather than interpolating and rounding each
+    point, preserving the tie-breaking rule that determines diagonal steps.
+
+    Endpoints are swapped when necessary to make x nondecreasing. For steep lines,
+    the axes are exchanged so the same stepping logic advances along the dominant
+    axis. Each iteration advances one dominant-axis pixel and advances the other
+    axis only when the error is negative. The negative mask selects that correction
+    with bitwise operations. Both endpoints are included, including one pixel for
+    a zero-length segment.
+
+    Args:
+        first: First integer (x, y) endpoint, already clipped by the caller.
+        second: Second integer (x, y) endpoint, already clipped by the caller.
+
+    Yields:
+        Pixel coordinates along the segment. Iteration may reverse the input
+        endpoint order; this helper does not clip or check image bounds.
+
+    Example:
+        ```pycon
+        >>> list(_iter_line_points((0, 0), (2, 1)))
+        [(0, 0), (1, 0), (2, 1)]
+        >>> list(_iter_line_points((3, 2), (3, 2)))
+        [(3, 2)]
+
+        ```
+    """
     x1, y1 = first
     x2, y2 = second
     dx = x2 - x1
@@ -183,7 +269,46 @@ def _iter_line_points(first: _Point, second: _Point) -> Iterator[_Point]:
 def _fill_polygon_mask(
     width: int, height: int, polygons: Sequence[list[_Point]]
 ) -> npt.NDArray[np.bool_]:
-    """Rasterize OpenCV fillPoly contours into a boolean mask."""
+    """Build a polygon mask with explicit boundaries and even-odd interior filling.
+
+    This is the shared fill path for polygon and filled-contour drawing. All
+    contours participate in one even-odd fill: crossing an edge toggles whether a
+    pixel is inside. Nested contours therefore create holes, while overlapping
+    interiors can cancel instead of being combined as a union of separate masks.
+
+    Rasterization has two parts. First, each contour is implicitly closed and its
+    clipped boundary segments are drawn with 8-connected integer line stepping.
+    This retains horizontal edges and degenerate contours that do not define an
+    interior. Second, nonhorizontal edges become records (y0, y1, x0, dx), where
+    x0 is the x coordinate at the upper endpoint and dx is the per-row increment.
+    Both x values use 16 fractional bits, with slopes truncated toward zero to
+    preserve integer rasterization rules.
+
+    On each visible row, edges are active over the half-open interval y0 <= y < y1.
+    Excluding the lower endpoint prevents a shared vertex from being counted twice.
+    Sorted intersections are paired, then each inclusive span runs from the ceiling
+    of its left intersection to the floor of its right intersection. Only the
+    resulting spans are clipped horizontally: keeping the original edge geometry
+    preserves interior crossings for polygons extending beyond the canvas.
+
+    Args:
+        width: Nonnegative output width in pixels.
+        height: Nonnegative output height in pixels.
+        polygons: Contours of integer (x, y) points with any offsets already applied.
+            A repeated closing point is unnecessary. Empty contours are ignored.
+
+    Returns:
+        A new boolean array of shape (height, width), with True for boundary or
+        interior pixels. An empty contour collection produces an all-False mask.
+
+    Example:
+        ```pycon
+        >>> mask = _fill_polygon_mask(4, 4, [[(1, 1), (2, 1), (2, 2), (1, 2)]])
+        >>> mask.astype(int).tolist()
+        [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]]
+
+        ```
+    """
     mask = np.zeros((height, width), dtype=bool)
     if not polygons:
         return mask
