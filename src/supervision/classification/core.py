@@ -73,7 +73,7 @@ class Classifications:
 
             model, preprocess = clip.load('ViT-B/32')
 
-            image = cv2.imread(SOURCE_IMAGE_PATH)
+            image = Image.open(SOURCE_IMAGE_PATH)
             image = preprocess(image).unsqueeze(0)
 
             text = clip.tokenize(["a diagram", "a dog", "a cat"])
