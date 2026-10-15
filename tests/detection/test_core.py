@@ -3315,6 +3315,15 @@ class TestDetectionsBoxAspectRatio:
         np.testing.assert_array_equal(aspect_ratios, [3.0, np.nan])
         assert aspect_ratios.dtype == np.float64
 
+    def test_preserves_float32_subtraction_rounding(self) -> None:
+        """Floating corners retain their coordinate dtype's subtraction rounding."""
+        detections = Detections(xyxy=np.array([[-(2**24), 0, 1, 1]], dtype=np.float32))
+
+        aspect_ratios = detections.box_aspect_ratio
+
+        np.testing.assert_array_equal(aspect_ratios, [16777216.0])
+        assert aspect_ratios.dtype == np.float64
+
     def test_empty_boxes_return_empty_ratios(self) -> None:
         """Empty detections return a one-dimensional float64 array."""
         detections = Detections.empty()
