@@ -239,11 +239,14 @@ def _add_integer_offset(
         Translated coordinates.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> coordinates = np.array([[1, 2], [3, 4]])
         >>> _add_integer_offset(coordinates, np.array([5, 6]))
         array([[ 6,  8],
                [ 8, 10]])
+
+        ```
     """
     coordinates = np.asarray(coordinates)
     offset = np.asarray(offset)
