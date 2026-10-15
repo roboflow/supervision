@@ -187,11 +187,12 @@ def _sort_box_corners(
     """Order each box's corners so that `x_min <= x_max` and `y_min <= y_max`.
 
     `Detections.xyxy` is defined as `(x_min, y_min, x_max, y_max)`, and every
-    box operation in the library relies on that ordering: `box_iou_batch`
+    box operation in the library relies on that ordering:
+    :func:`~supervision.detection.utils.iou_and_nms.box_iou_batch`
     clamps its intersection widths at zero, so a box whose corners arrive
-    swapped scores an IoU of `0` even against itself. `box_area` hides the
-    problem rather than surfacing it, because negating both sides leaves their
-    product positive. Sorting the corner pairs restores the invariant without
+    swapped scores an IoU of `0` even against itself. The box area calculation
+    hides the problem rather than surfacing it, because negating both sides leaves
+    their product positive. Sorting the corner pairs restores the invariant without
     moving the region a box describes; a correctly ordered box is unchanged.
 
     Args:
@@ -611,6 +612,9 @@ def spread_out_boxes(
 ) -> npt.NDArray[np.number]:
     """Spread out boxes that overlap with each other.
 
+    Overlapping boxes are pushed away from each other's centers. Boxes that share
+    a center are pushed apart vertically, the earlier box upward.
+
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
         max_iterations: Maximum number of iterations to run the algorithm for.
@@ -650,6 +654,14 @@ def spread_out_boxes(
 
         # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
+        # Boxes that share a center give no direction to push along, so they would
+        # never move apart. Push them apart vertically, in index order, instead.
+        shared_center = np.all(delta_centers == 0, axis=2)
+        indices = np.arange(len(centers))
+        index_order = np.sign(indices[:, np.newaxis] - indices[np.newaxis, :])
+        delta_centers[..., 1] = np.where(
+            shared_center, index_order, delta_centers[..., 1]
+        )
         delta_centers *= overlap_mask[:, :, np.newaxis]
 
         # Nx2

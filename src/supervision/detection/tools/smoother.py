@@ -38,7 +38,8 @@ class DetectionsSmoother:
 
     !!! warning
 
-        - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
+        - :class:`~supervision.detection.tools.smoother.DetectionsSmoother`
+          requires the `tracker_id` for each detection. Refer to
           [Roboflow Trackers](https://trackers.roboflow.com/latest/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
@@ -109,8 +110,8 @@ class DetectionsSmoother:
         """
         Args:
             length: The maximum number of frames to consider for smoothing
-                detections. Every call to `update_with_detections` counts as one
-                frame, including frames without tracker IDs. Defaults to 5.
+                detections. Each update counts as one frame, including frames
+                without tracker IDs. Defaults to 5.
         """
         self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
             lambda: deque(maxlen=length)
@@ -194,7 +195,8 @@ class DetectionsSmoother:
                 del self.tracks[track_id]
 
     def get_track(self, track_id: int) -> Detections | None:
-        """Return the smoothed `Detections` for a single track.
+        """Return the smoothed :class:`~supervision.detection.core.Detections` for a
+        single track.
 
         Averages `xyxy` over all valid (non-`None`) frames in the track window.
         `confidence` is averaged only over frames that carry it; frames with
@@ -210,8 +212,9 @@ class DetectionsSmoother:
             track_id: The tracker ID whose smoothed detection to retrieve.
 
         Returns:
-            Smoothed `Detections` for the track, or `None` if the track is
-            unknown or all frames in its window are empty.
+            Smoothed :class:`~supervision.detection.core.Detections` for the
+            track, or `None` if the track is unknown or all frames in its window
+            are empty.
         """
         track = self.tracks.get(track_id, None)
         if track is None:

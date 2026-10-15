@@ -39,7 +39,8 @@ _CLIP_SAMPLE_ARRAYS = 4096
 
 
 class DepthAnnotator:
-    """Colours a `sv.DepthMap` over an image, near objects warm and far ones cool.
+    """Colours a :class:`~supervision.depth.core.DepthMap` over an image, near objects
+    warm and far ones cool.
 
     Pixels without depth are left unpainted, so the scene shows through.
 
@@ -82,9 +83,10 @@ class DepthAnnotator:
                 the unit, the near end of the range takes the warm colour.
                 Pixels of a `disparity_px` range belong to the map's resolution:
                 disparity scales with width, so the same tuple means another
-                depth after `resize`.
-                A `sv.DepthClipRange` uses one range, in the maps' own unit like a
-                tuple, for every frame of a clip.
+                depth after :meth:`~supervision.depth.core.DepthMap.resize`.
+                A :class:`~supervision.depth.annotators.DepthClipRange` uses one
+                range, in the maps' own unit like a tuple, for every frame of a
+                clip.
             opacity: Opacity of the colours over the scene, from 0 to 1. Values
                 outside are clamped: `<= 0` draws nothing and `>= 1` fully replaces
                 the pixels that have depth.
@@ -218,7 +220,8 @@ class DepthClipRange:
 
     Attributes:
         display_range: `(low, high)` colour range in the maps' own unit, read like a
-            `(low, high)` tuple passed to `sv.DepthAnnotator`. Equal ends, as from a
+            `            (low, high)` tuple passed to
+            :class:`~supervision.depth.annotators.DepthAnnotator`. Equal ends, as from a
             clip of one flat value, paint every pixel the far-end colour, as `"auto"`
             does on a flat map.
 
@@ -278,7 +281,8 @@ class DepthClipRange:
                 Defaults to 98, as for `display_range="auto"`.
 
         Returns:
-            The clip's `sv.DepthClipRange`, in the maps' own unit.
+            The clip's :class:`~supervision.depth.annotators.DepthClipRange`, in the
+            maps' own unit.
 
         Raises:
             ValueError: If the percentiles are not
