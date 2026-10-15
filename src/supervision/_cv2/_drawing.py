@@ -147,8 +147,8 @@ def _clip_polygon_line(
         ```pycon
         >>> _clip_polygon_line(5, 4, (-2, 1), (7, 1))
         ((0, 1), (4, 1))
-        >>> _clip_polygon_line(5, 4, (-2, 0), (-2, 3)) is None
-        True
+        >>> _clip_polygon_line(5, 4, (-2, 0), (-2, 3))
+        None
 
         ```
     """
