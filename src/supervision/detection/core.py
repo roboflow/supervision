@@ -2652,8 +2652,21 @@ class Detections:
 
             ```
         """
-        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
-        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract before converting to float64 to preserve narrow boxes at
+            # large integer origins and differences spanning the dtype range.
+            dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+            integer_coordinates = xyxy.astype(dtype)
+            widths: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 2] - integer_coordinates[:, 0], dtype=np.float64
+            )
+            heights: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 3] - integer_coordinates[:, 1], dtype=np.float64
+            )
+        else:
+            widths = xyxy[:, 2] - xyxy[:, 0]
+            heights = xyxy[:, 3] - xyxy[:, 1]
 
         aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
