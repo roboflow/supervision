@@ -154,7 +154,8 @@ class KeyPoints:
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
         model = RFDETRKeypointPreview()
 
-        key_points = model.predict(image)
+        # cv2 loads BGR; RF-DETR expects RGB.
+        key_points = model.predict(image[:, :, ::-1])
         ```
 
     === "Ultralytics"
@@ -1592,7 +1593,8 @@ class KeyPoints:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = RFDETRKeypointPreview()
 
-            key_points = model.predict(image)
+            # cv2 loads BGR; RF-DETR expects RGB.
+            key_points = model.predict(image[:, :, ::-1])
             key_points = key_points.with_nms(threshold=0.5)
             ```
 

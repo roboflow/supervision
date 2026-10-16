@@ -501,9 +501,12 @@ def process_video(
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
+        box_annotator = sv.BoxAnnotator()
 
         def callback(frame, frame_index):
-            return model.predict(frame)
+            # Frames are BGR; RF-DETR expects RGB. Return the annotated frame.
+            detections = model.predict(frame[:, :, ::-1])
+            return box_annotator.annotate(frame.copy(), detections)
 
         sv.process_video(
             source_path="source.mp4",

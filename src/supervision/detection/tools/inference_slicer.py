@@ -193,7 +193,8 @@ class InferenceSlicer:
         model = RFDETRMedium()
 
         def callback(tile):
-            return model.predict(tile)
+            # Tiles are BGR slices of the image; RF-DETR expects RGB.
+            return model.predict(tile[:, :, ::-1])
 
         slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
 

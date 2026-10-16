@@ -79,7 +79,13 @@ assert isinstance(detections.mask, CompactMask)
 
 !!! Warning
 
-    `compact_masks=True` crops each mask to its detector bounding box. Pixels outside the box are silently dropped. For masks that extend meaningfully beyond the reported bounding box, use the default `compact_masks=False` (dense decode) to preserve all pixels.
+    With `compact_masks=True`, the crop depends on how each prediction encodes its mask:
+
+    - Native COCO-RLE masks whose `size` matches the image are cropped to the detector bounding box (`xyxy`). Pixels outside the box are silently dropped.
+    - Polygon masks (`points`) are cropped to the bounds of their rounded vertices, clipped to the image. Every filled polygon pixel is kept.
+    - COCO-RLE masks of another size are decoded, resized to the image and kept full-frame.
+
+    Only the first path can lose pixels. For RLE masks that extend beyond the reported bounding box, use the default `compact_masks=False` (dense decode) to preserve all pixels.
 
 To convert an existing dense-mask `Detections` to compact at any point:
 
