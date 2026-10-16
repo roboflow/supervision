@@ -758,8 +758,18 @@ class TestArea:
         np.testing.assert_array_equal(area, [_rle_area(rle) for rle in cm._rles])
         np.testing.assert_array_equal(area, masks.sum(axis=(1, 2)))
 
-    def test_random_masks_match_rle_and_dense_counts(self) -> None:
-        """Seeded masks with loose, empty and all-True crops match both references."""
+    @pytest.mark.parametrize("chunk_runs", [1, 7, 100, 65536])
+    def test_random_masks_match_rle_and_dense_counts(
+        self, chunk_runs: int, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Seeded masks with loose, empty and all-True crops match both references.
+
+        The collection holds about 3,400 runs, so small chunk sizes put chunk bounds
+        between masks, after empty masks and around masks larger than one chunk.
+        """
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._AREA_CHUNK_RUNS", chunk_runs
+        )
         rng = np.random.default_rng(0)
         num_masks, img_h, img_w = 64, 40, 60
         corners = rng.integers(0, (img_w, img_h), size=(num_masks, 2, 2))
