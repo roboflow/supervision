@@ -1,11 +1,15 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-15
+date_modified: 2026-10-16
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- `sv.PolygonZone.trigger` and `sv.LineZone.trigger` accept an optional per-frame `coord_transform`, which maps detection anchors into the frame the zone was drawn on before testing them, so counts stay attached to the scene while the camera moves. It is any object with `abs_to_rel` and `rel_to_abs`, typed by the new `sv.CoordinatesTransformation` protocol, such as the transformations returned by the `trackers` motion estimator. Only the in-zone and line-crossing checks change: drawing with `sv.PolygonZoneAnnotator` and `sv.LineZoneAnnotator` is unchanged, each zone expects transforms into one consistent reference frame, and `coord_transform=None`, the default, keeps current results. ([#2657](https://github.com/roboflow/supervision/pull/2657))
+
+- Transformed `sv.PolygonZone` anchors just outside the mask remain outside even when rounding would move a fractional coordinate onto the edge pixel. ([#2657](https://github.com/roboflow/supervision/pull/2657))
 
 - `sv.Detections.from_ultralytics` now removes letterbox padding using the rounded content dimensions. Fractional padding no longer shifts or truncates segmentation masks when restoring the original image resolution. ([#2739](https://github.com/roboflow/supervision/pull/2739))
 
