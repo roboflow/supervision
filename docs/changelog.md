@@ -5,6 +5,10 @@ date_modified: 2026-10-16
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.metrics.MeanAverageRecall` now leaves COCO ignore regions out of recall: targets with `data["iscrowd"]` set, as `sv.DetectionDataset.from_coco` loads them, or with `data["ignore"]` set, the same rule `MeanAveragePrecision` applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than `pycocotools` AR: one target, one crowd target and a perfect prediction scored `mAR_at_100` 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. ([#2750](https://github.com/roboflow/supervision/pull/2750))
+
 ### 0.31.0 <small>Oct 16, 2026</small>
 
 - **Depth maps**: the new `sv.DepthMap` module loads, measures and draws depth.
