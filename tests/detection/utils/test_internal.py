@@ -68,6 +68,47 @@ def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
     assert masks[0].sum() < int((resized > 0).sum())
 
 
+class TestExtractUltralyticsLetterboxMasks:
+    """Restore mask geometry after rounded and asymmetric letterbox padding."""
+
+    @pytest.mark.parametrize("portrait", [False, True])
+    @pytest.mark.parametrize(
+        ("orig_shape", "inference_shape", "content_rows"),
+        [
+            pytest.param((333, 500), (448, 640), (11, 437), id="fractional-padding"),
+            pytest.param((332, 500), (448, 640), (11, 436), id="odd-padding"),
+            pytest.param((480, 640), (640, 640), (80, 560), id="integer-padding"),
+            pytest.param((320, 320), (640, 640), (0, 640), id="resize-without-padding"),
+            pytest.param((17, 19), (17, 19), (0, 17), id="original-resolution"),
+        ],
+    )
+    def test_preserves_content_geometry(
+        self,
+        portrait: bool,
+        orig_shape: tuple[int, int],
+        inference_shape: tuple[int, int],
+        content_rows: tuple[int, int],
+    ) -> None:
+        """Foreground bands are scaled from content pixels, excluding padding."""
+        top, bottom = content_rows
+        content = np.zeros((bottom - top, inference_shape[1]), dtype=np.float32)
+        content[2:-2, 2:-2] = 1
+        content[5:9] = 0
+        proto = np.zeros((1, *inference_shape), dtype=np.float32)
+        proto[0, top:bottom] = content
+        if portrait:
+            proto = proto.transpose(0, 2, 1)
+            content = content.T
+            orig_shape = orig_shape[::-1]
+        expected = cv2.resize(content, (orig_shape[1], orig_shape[0])) > 0.5
+        results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
+
+        actual = extract_ultralytics_masks(results)
+
+        assert actual is not None
+        np.testing.assert_array_equal(actual[0], expected)
+
+
 def _pred(
     yx: tuple[float, float] = (1.5, 1.5),
     size: tuple[float, float] = (2.0, 2.0),

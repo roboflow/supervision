@@ -7,6 +7,8 @@ date_modified: 2026-10-15
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_ultralytics` now removes letterbox padding using the rounded content dimensions. Fractional padding no longer shifts or truncates segmentation masks when restoring the original image resolution. ([#2739](https://github.com/roboflow/supervision/pull/2739))
+
 - `sv.Detections` indexed with a Python list of booleans, such as `detections[[c == 0 for c in detections.class_id]]`, now selects list-valued `data` with the same mask as its arrays. The list was read as positions, so `True` and `False` became the indices `1` and `0`: an all-`True` mask returned the second item for every row (`["cat", "dog", "bird"]` became `["dog", "dog", "dog"]`), any other mask failed with `ValueError: Length of list for key ... must be ...`, and a list of `np.bool_` values raised `TypeError`. Integer lists, slices and NumPy index arrays are unchanged. ([#2737](https://github.com/roboflow/supervision/pull/2737)) Integer-list selection allocates only for requested rows, avoiding quadratic position-array allocation when the smoother selects rows repeatedly.
 
 - `sv.move_boxes` and `InferenceSlicer` translations no longer wrap integer coordinates when an offset crosses the input dtype's bounds. A `uint8` box at `[250, 0, 255, 10]` shifted by `[10, 0]` previously became `[4, 0, 9, 10]`; translations now promote integer results to `int64`, or `float64` when the result exceeds the `int64` range, while floating-point behavior is unchanged. ([#2734](https://github.com/roboflow/supervision/pull/2734))
