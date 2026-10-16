@@ -1349,12 +1349,11 @@ class CompactMask:
         """Compute the area (``True`` pixel count) of each mask.
 
         Note:
-            The implementation iterates over the N individual RLE arrays in a
-            Python loop (one
-            :func:`~supervision.detection.compact_mask._rle_area` call per mask).
-            This is negligible
-            for typical N, but callers processing thousands of detections per
-            frame should be aware of the per-mask Python-level overhead.
+            Counts are read from the RLE runs without decoding any crop. The
+            foreground runs of all N masks are concatenated and summed per mask
+            in one NumPy reduction, instead of one
+            :func:`~supervision.detection.compact_mask._rle_area` call per mask,
+            with identical results.
 
         Returns:
             int64 array of shape ``(N,)`` with per-mask pixel counts.
@@ -1373,7 +1372,27 @@ class CompactMask:
 
             ```
         """
-        return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
+        # RLEs alternate background and foreground runs, starting with background,
+        # so each mask's area is the sum of its odd-indexed runs; concatenating
+        # only those views skips the background runs. Casting to int64 during the
+        # copy keeps sums exact (split runs let one crop exceed the int32 range,
+        # and NumPy 1.x on Windows sums int32 in int32) and spares reduceat a
+        # much slower buffered cast.
+        foreground_runs = [rle[1::2] for rle in self._rles]
+        run_counts = np.fromiter(
+            map(len, foreground_runs), dtype=np.int64, count=len(foreground_runs)
+        )
+        starts = np.cumsum(run_counts) - run_counts
+        areas = np.zeros(len(run_counts), dtype=np.int64)
+        # reduceat sums each start up to the next one and cannot express an empty
+        # segment, so all-False masks are left out and keep zero area.
+        has_foreground = run_counts > 0
+        if has_foreground.any():
+            areas[has_foreground] = np.add.reduceat(
+                np.concatenate(foreground_runs, dtype=np.int64),
+                starts[has_foreground],
+            )
+        return areas
 
     def sum(
         self, axis: int | tuple[int, ...] | None = None
