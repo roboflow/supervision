@@ -5,6 +5,14 @@ date_modified: 2026-10-16
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
+
+- The NumPy fallback for `ellipse` now matches OpenCV's `Ellipse2Poly` / `EllipseEx` rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A `(25, 15)` ellipse at `thickness=2` previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, `ThickLine` and `FillEdgeCollection` paths. `circle` is unchanged. ([#2740](https://github.com/roboflow/supervision/pull/2740))
+
+- `sv.MaskAnnotator` no longer widens its blend region to the boxes of all-False masks, for dense masks and `CompactMask` alike, and skips blending when every `CompactMask` is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. `CompactMask` foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. ([#2741](https://github.com/roboflow/supervision/pull/2741))
+
 ### 0.31.0 <small>Oct 16, 2026</small>
 
 - **Depth maps**: the new `sv.DepthMap` module loads, measures and draws depth.
