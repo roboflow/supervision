@@ -4,6 +4,7 @@ import warnings
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import patch
 
 import numpy as np
 import numpy.typing as npt
@@ -387,7 +388,10 @@ class TestMaskAnnotator:
         assert not np.array_equal(result, scene)
         assert blended_shapes == [(45, 60, 3)]
 
-    def test_annotate_skips_all_false_mask_blend(self, monkeypatch):
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_annotate_skips_all_false_mask_blend(
+        self, monkeypatch: pytest.MonkeyPatch, compact_masks: bool
+    ) -> None:
         """All-false masks must skip blending — addWeighted must not be called."""
         height, width = 30, 40
         scene = np.random.default_rng(3).integers(
@@ -397,6 +401,10 @@ class TestMaskAnnotator:
         detections = _create_detections(
             xyxy=[[5.0, 5.0, 20.0, 20.0]], mask=[mask], class_id=[0]
         )
+        if compact_masks:
+            detections.mask = CompactMask.from_dense(
+                np.array([mask]), detections.xyxy, (height, width)
+            )
 
         call_count = []
 
@@ -412,6 +420,29 @@ class TestMaskAnnotator:
 
         assert np.array_equal(result, scene)
         assert len(call_count) == 0, "addWeighted called for all-false masks"
+
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_empty_mask_does_not_expand_blend(self, compact_masks: bool) -> None:
+        """An empty full-frame mask does not enlarge a sparse mask's blend region."""
+        scene = np.zeros((60, 80, 3), dtype=np.uint8)
+        masks = np.zeros((2, 60, 80), dtype=bool)
+        masks[1, 40:45, 60:65] = True
+        xyxy = np.array([[0, 0, 79, 59], [60, 40, 64, 44]], dtype=np.float32)
+        mask = (
+            CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+            if compact_masks
+            else masks
+        )
+        detections = Detections(xyxy=xyxy, mask=mask)
+        annotator = MaskAnnotator(color=Color.RED, color_lookup=ColorLookup.INDEX)
+
+        with patch.object(cv2, "addWeighted", wraps=cv2.addWeighted) as blend:
+            result = annotator.annotate(scene=scene, detections=detections)
+
+        blend.assert_called_once()
+        assert blend.call_args.args[0].shape == (5, 5, 3)
+        np.testing.assert_array_equal(result.any(axis=2), masks[1])
+        assert result is scene
 
     def test_annotate_pixels_outside_roi_unchanged(self):
         """Pixels outside the blended ROI must be unchanged from the original scene."""
