@@ -551,19 +551,20 @@ def _compact_masks_to_roi(
 ) -> tuple[int, int, int, int] | None:
     """Return exclusive bounding-box union for compact masks.
 
-    Uses crop metadata (offsets + shapes) — no RLE decode required.
+    Uses crop metadata (offsets + shapes) and RLE foreground counts to exclude
+    all-False masks without decoding crops.
 
     Args:
         masks: Compact mask collection.
         image_shape: Image dimensions as ``(height, width)``.
 
     Returns:
-        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when empty.
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true pixels exist.
     """
-    if len(masks) == 0:
+    bboxes = masks.bbox_xyxy[masks.area > 0]
+    if len(bboxes) == 0:
         return None
     image_h, image_w = image_shape
-    bboxes = masks.bbox_xyxy  # shape (N, 4), inclusive int32
     x_min = int(bboxes[:, 0].min())
     y_min = int(bboxes[:, 1].min())
     x_max = int(bboxes[:, 2].max()) + 1  # convert inclusive to exclusive
@@ -589,8 +590,9 @@ def _masks_to_roi(
         image_shape: Image dimensions as ``(height, width)``.
         xyxy: Optional detection boxes of shape ``(N, 4)`` in
             ``[x1, y1, x2, y2]`` format. When provided, the dense path
-            first checks whether all true pixels fall within the box union;
-            if so the box bounds are returned without a full pixel scan.
+            first checks whether all true pixels fall within the union of
+            boxes whose masks have true pixels; if so the box bounds are
+            returned without a full pixel scan.
 
     Returns:
         Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
@@ -605,6 +607,10 @@ def _masks_to_roi(
     # when boxes are mask-derived. Guard it with an `any()` check over the ROI so
     # loose boxes cannot clip true pixels that lie outside the box union.
     if xyxy is not None and len(xyxy) > 0:
+        if mask_array.ndim == 3 and len(xyxy) == len(mask_array):
+            # All-False masks cover no pixels, so their boxes must not widen
+            # the union; at least one box remains because some pixel is true.
+            xyxy = xyxy[mask_array.any(axis=(1, 2))]
         image_h, image_w = image_shape
         box_roi = (
             max(0, int(np.floor(xyxy[:, 0].min()))),

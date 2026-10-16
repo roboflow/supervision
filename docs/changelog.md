@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.MaskAnnotator` no longer widens its blend region to the boxes of all-False masks, for dense masks and `CompactMask` alike, and skips blending when every `CompactMask` is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. `CompactMask` foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. ([#2741](https://github.com/roboflow/supervision/pull/2741))
 
 ### 0.31.0 <small>Oct 16, 2026</small>
 
