@@ -181,6 +181,20 @@ class TestMaskROIHelpers:
         result = _masks_to_roi(masks, (30, 40), xyxy)
         assert result is None
 
+    @pytest.mark.parametrize("empty_index", [0, 1])
+    def test_masks_to_roi_dense_with_xyxy_ignores_empty_mask_boxes(
+        self, empty_index: int
+    ) -> None:
+        """An all-False mask's full-frame box does not widen the dense box union."""
+        masks = np.zeros((2, 60, 80), dtype=bool)
+        masks[1 - empty_index, 40:45, 60:65] = True
+        xyxy = np.array([[0, 0, 79, 59], [0, 0, 79, 59]], dtype=np.float32)
+        xyxy[1 - empty_index] = [60, 40, 64, 44]
+
+        result = _masks_to_roi(masks, (60, 80), xyxy)
+
+        assert result == (60, 40, 65, 45)
+
 
 def test_resize_masks_does_not_upscale_small_masks() -> None:
     """resize_masks returns small masks unchanged instead of upscaling."""

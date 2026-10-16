@@ -421,16 +421,19 @@ class TestMaskAnnotator:
         assert np.array_equal(result, scene)
         assert len(call_count) == 0, "addWeighted called for all-false masks"
 
-    def test_empty_compact_mask_does_not_expand_blend(self) -> None:
-        """An empty full-frame crop does not enlarge a sparse mask's blend region."""
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_empty_mask_does_not_expand_blend(self, compact_masks: bool) -> None:
+        """An empty full-frame mask does not enlarge a sparse mask's blend region."""
         scene = np.zeros((60, 80, 3), dtype=np.uint8)
         masks = np.zeros((2, 60, 80), dtype=bool)
         masks[1, 40:45, 60:65] = True
         xyxy = np.array([[0, 0, 79, 59], [60, 40, 64, 44]], dtype=np.float32)
-        detections = Detections(
-            xyxy=xyxy,
-            mask=CompactMask.from_dense(masks, xyxy, image_shape=(60, 80)),
+        mask = (
+            CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+            if compact_masks
+            else masks
         )
+        detections = Detections(xyxy=xyxy, mask=mask)
         annotator = MaskAnnotator(color=Color.RED, color_lookup=ColorLookup.INDEX)
 
         with patch.object(cv2, "addWeighted", wraps=cv2.addWeighted) as blend:
