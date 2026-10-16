@@ -5,6 +5,10 @@ date_modified: 2026-10-16
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+-
+
 ### 0.31.0 <small>Oct 16, 2026</small>
 
 - **Depth maps**: the new `sv.DepthMap` module loads, measures and draws depth.
