@@ -747,6 +747,9 @@ def get_data_item(
 ) -> _DetectionDataType:
     """Retrieve a subset of the data dictionary based on the given index.
 
+    Boolean lists act as masks. Integer-list selection allocates positions only
+    for the requested rows, independent of the total number of data rows.
+
     Args:
         data: The data dictionary of the Detections object.
         index: The index or indices specifying the subset to retrieve.
@@ -762,7 +765,12 @@ def get_data_item(
             if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
-                subset_data[key] = [value[i] for i in index]
+                positions = np.asarray(index)
+                if positions.dtype == bool:
+                    # Only masks need full-row positions; integer selections
+                    # must not allocate for rows that were not requested.
+                    positions = np.arange(len(value))[positions]
+                subset_data[key] = [value[i] for i in positions]
             elif isinstance(index, np.ndarray):
                 if index.dtype == bool:
                     subset_data[key] = [

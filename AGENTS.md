@@ -10,6 +10,7 @@ ______________________________________________________________________
 - Outline a plan before making changes.
 - Check whether the feature already exists under a different name.
 - Confirm alignment with `src/supervision/` architecture.
+- For pull request reviews, follow [.github/skills/code-review/SKILL.md](.github/skills/code-review/SKILL.md).
 
 ______________________________________________________________________
 

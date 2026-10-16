@@ -140,7 +140,7 @@ def _resize(
     fy: float = 0,
     interpolation: int = _INTER_LINEAR,
 ) -> npt.NDArray[Any]:
-    """Resize with exact nearest or OpenCV-compatible linear sampling."""
+    """Resize with OpenCV-compatible nearest or linear sampling."""
     source_height, source_width = src.shape[:2]
     width, height = dsize if dsize is not None else (0, 0)
     # Like OpenCV, when the size comes from `fx`/`fy`, pixels are mapped with
@@ -156,15 +156,16 @@ def _resize(
     if scale_from_factors:
         scale_x, scale_y = 1 / fx, 1 / fy
     else:
-        scale_x, scale_y = source_width / width, source_height / height
+        # OpenCV steps through the source with the reciprocal of the size ratio
+        # (`ifx = 1. / (dsize.width / ssize.width)`), whose rounding can put a
+        # whole-number position such as 17 * 6 / 34 just below 3.0, so the
+        # exact integer ratio would pick a different pixel there.
+        scale_x = 1 / (width / source_width)
+        scale_y = 1 / (height / source_height)
 
     if interpolation == _INTER_NEAREST:
-        if scale_from_factors:
-            y_indices = np.floor(np.arange(height) * scale_y).astype(np.int64)
-            x_indices = np.floor(np.arange(width) * scale_x).astype(np.int64)
-        else:
-            y_indices = np.arange(height) * source_height // height
-            x_indices = np.arange(width) * source_width // width
+        y_indices = np.floor(np.arange(height) * scale_y).astype(np.int64)
+        x_indices = np.floor(np.arange(width) * scale_x).astype(np.int64)
         y_indices = np.minimum(y_indices, source_height - 1)
         x_indices = np.minimum(x_indices, source_width - 1)
         return np.ascontiguousarray(src[y_indices[:, np.newaxis], x_indices])

@@ -76,7 +76,7 @@ def _create_detections(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
@@ -201,7 +201,7 @@ def _create_key_points(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]):
+    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
         return {k: np.array(v) for k, v in data.items()}
 
     return KeyPoints(
@@ -273,7 +273,9 @@ def _generate_random_boxes(
     return out
 
 
-def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
+def assert_almost_equal(
+    actual: float, expected: float, tolerance: float = 1e-5
+) -> None:
     """Assert that two values are equal within a specified tolerance.
 
     Args:
@@ -364,7 +366,12 @@ class _FakeUltralyticsBoxes:
 class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
-    def __init__(self, boxes, names: dict[int, str], length: int = 0) -> None:
+    def __init__(
+        self,
+        boxes: _FakeUltralyticsBoxes | None,
+        names: dict[int, str],
+        length: int = 0,
+    ) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
@@ -378,7 +385,9 @@ class _FakeUltralyticsResults:
 class _FakeYoloNasPrediction:
     """YOLO-NAS-like prediction struct."""
 
-    def __init__(self, bboxes_xyxy, confidence, labels) -> None:
+    def __init__(
+        self, bboxes_xyxy: np.ndarray, confidence: np.ndarray, labels: np.ndarray
+    ) -> None:
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
@@ -394,7 +403,7 @@ class _FakeYoloNasResults:
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses, labels=None) -> None:
+    def __init__(self, poses: Any, labels: Any = None) -> None:
         self.poses = np.array(poses, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
@@ -403,20 +412,22 @@ class _FakeYoloNasKeyPoint:
 class _FakeYoloNasKeyPointResults:
     """YOLO-NAS-like results exposing key points."""
 
-    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None) -> None:
+    def __init__(
+        self, prediction: _FakeYoloNasKeyPoint, class_names: list[str] | None = None
+    ) -> None:
         self.prediction = prediction
         self.class_names = class_names
 
 
 class _FakeMediapipeLandmark:
-    def __init__(self, x, y, visibility=1.0) -> None:
+    def __init__(self, x: float, y: float, visibility: float = 1.0) -> None:
         self.x = x
         self.y = y
         self.visibility = visibility
 
 
 class _FakeMediapipeLandmarkWithoutVisibility:
-    def __init__(self, x, y):
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
 
@@ -736,6 +747,7 @@ def create_predictions_with_class_iou_tests(
     pred_classes = []
     pred_confs = []
 
+    assert gt_detections.class_id is not None
     for i, (box, cls) in enumerate(zip(gt_detections.xyxy, gt_detections.class_id)):
         if i % 3 == 0:
             # Pattern 1: Correct match

@@ -202,6 +202,38 @@ def test_fallback_resize_matches_opencv(interpolation: int, atol: int) -> None:
 
 
 @pytest.mark.parametrize(
+    ("source_width", "width"),
+    [
+        pytest.param(6, 34, id="six-to-thirty-four"),
+        pytest.param(9, 51, id="nine-to-fifty-one"),
+        pytest.param(10, 74, id="ten-to-seventy-four"),
+        pytest.param(12, 34, id="twelve-to-thirty-four"),
+    ],
+)
+def test_fallback_nearest_resize_matches_opencv_at_whole_sample_positions(
+    source_width: int, width: int
+) -> None:
+    """Pick OpenCV's source pixel where `x * source_width / width` is a whole number."""
+    source = np.arange(source_width, dtype=np.uint8).reshape(1, -1)
+
+    actual = _resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (width, 1), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_nearest_resize_matches_opencv_on_both_axes() -> None:
+    """Match OpenCV's nearest sampling grid on rows and columns of a color image."""
+    rng = np.random.default_rng(20261012)
+    source = rng.integers(0, 256, (9, 6, 3), dtype=np.uint8)
+
+    actual = _resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+    expected = cv2.resize(source, (34, 51), interpolation=cv2.INTER_NEAREST)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
     ("interpolation", "atol"),
     [
         pytest.param(cv2.INTER_NEAREST, 0, id="nearest"),
@@ -461,7 +493,8 @@ def _encoded_image_format(data: bytes) -> str | None:
     from PIL import Image
 
     with Image.open(io.BytesIO(data)) as image:
-        return image.format
+        image_format: str | None = image.format
+    return image_format
 
 
 @pytest.mark.parametrize(
@@ -501,9 +534,11 @@ def _gradient_image(channels: int = 3) -> np.ndarray:
     """
     rows, columns = np.mgrid[0:48, 0:64]
     if channels == 1:
-        return ((rows + columns) * 3 % 256).astype(np.uint8)
+        gray: np.ndarray = ((rows + columns) * 3 % 256).astype(np.uint8)
+        return gray
     channel_values = (columns * 4 % 256, rows * 5 % 256, (rows + columns) * 3 % 256)
-    return np.dstack(channel_values).astype(np.uint8)
+    image: np.ndarray = np.dstack(channel_values).astype(np.uint8)
+    return image
 
 
 def _as_bgr(image: np.ndarray) -> np.ndarray:
@@ -531,9 +566,12 @@ def _jpeg_quantization_tables(data: bytes) -> dict[int, list[int]]:
     import io
 
     from PIL import Image
+    from PIL.JpegImagePlugin import JpegImageFile
 
     with Image.open(io.BytesIO(data)) as image:
-        return dict(image.quantization)
+        assert isinstance(image, JpegImageFile)
+        tables: dict[int, list[int]] = dict(image.quantization)
+    return tables
 
 
 def _jpeg_chroma_subsampling(data: bytes) -> int:
@@ -543,7 +581,8 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     from PIL import Image, JpegImagePlugin
 
     with Image.open(io.BytesIO(data)) as image:
-        return JpegImagePlugin.get_sampling(image)
+        sampling: int = JpegImagePlugin.get_sampling(image)
+    return sampling
 
 
 @pytest.mark.parametrize(

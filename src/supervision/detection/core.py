@@ -494,12 +494,13 @@ class Detections:
             import tensorflow as tf
             import tensorflow_hub as hub
             import numpy as np
-            from supervision import _cv2 as cv2
+            import supervision as sv
+            from PIL import Image
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
-            img = np.array(cv2.imread("<SOURCE_IMAGE_PATH>"))
-            result = model(img)
+            img = np.array(Image.open("<SOURCE_IMAGE_PATH>"))
+            result = model(np.expand_dims(img, axis=0))
             detections = sv.Detections.from_tensorflow(
                 result, resolution_wh=(img.shape[1], img.shape[0])
             )
@@ -803,7 +804,7 @@ class Detections:
             from inference import get_model
 
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
-            model = get_model(model_id="yolov8s-640")
+            model = get_model(model_id="rfdetr-seg-small")
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
@@ -2651,8 +2652,21 @@ class Detections:
 
             ```
         """
-        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
-        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+        xyxy = self.xyxy
+        if np.issubdtype(xyxy.dtype, np.integer):
+            # Subtract before converting to float64 to preserve narrow boxes at
+            # large integer origins and differences spanning the dtype range.
+            dtype = np.int64 if xyxy.dtype.itemsize < 8 else object
+            integer_coordinates = xyxy.astype(dtype)
+            widths: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 2] - integer_coordinates[:, 0], dtype=np.float64
+            )
+            heights: npt.NDArray[np.generic] = np.asarray(
+                integer_coordinates[:, 3] - integer_coordinates[:, 1], dtype=np.float64
+            )
+        else:
+            widths = xyxy[:, 2] - xyxy[:, 0]
+            heights = xyxy[:, 3] - xyxy[:, 1]
 
         aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
@@ -3185,7 +3199,7 @@ def merge_inner_detection_object_pair(
         from inference import get_model
 
         image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = get_model(model_id="yolov8s-640")
+        model = get_model(model_id="rfdetr-small")
 
         result = model.infer(image)[0]
         detections = sv.Detections.from_inference(result)

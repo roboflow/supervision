@@ -13,11 +13,14 @@ from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
+    move_oriented_boxes,
     obb_polygon_area,
     pad_boxes,
     scale_boxes,
+    spread_out_boxes,
     xyxyxyxy_to_xyxy,
 )
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.geometry.core import Position
 
 _ALL_ANCHORS = [
@@ -127,6 +130,81 @@ def test_move_boxes(
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
         assert np.array_equal(result, expected_result)
+
+
+class TestMoveBoxesIntegerCoordinates:
+    """Integer translations preserve coordinates beyond the input dtype bounds."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "offset", "offset_dtype", "expected"),
+        [
+            pytest.param(
+                np.uint8,
+                [[250, 0, 255, 10]],
+                [10, 0],
+                np.uint8,
+                [[260, 0, 265, 10]],
+                id="uint8-positive-overflow",
+            ),
+            pytest.param(
+                np.int8,
+                [[-120, 0, -100, 10]],
+                [-10, 0],
+                np.int8,
+                [[-130, 0, -110, 10]],
+                id="int8-negative-underflow",
+            ),
+            pytest.param(
+                np.uint64,
+                [[2**63, 0, 2**63 + 2, 10]],
+                [-(2**63), 0],
+                np.int64,
+                [[0, 0, 2, 10]],
+                id="uint64-signed-cancellation",
+            ),
+        ],
+    )
+    def test_move_boxes_promotes_integer_coordinates(
+        self,
+        dtype: type[np.integer],
+        xyxy: list[list[int]],
+        offset: list[int],
+        offset_dtype: type[np.integer],
+        expected: list[list[int]],
+    ) -> None:
+        """Translations do not wrap signed or unsigned integer coordinates."""
+        boxes = np.array(xyxy, dtype=dtype)
+        displacement = np.array(offset, dtype=offset_dtype)
+
+        result = move_boxes(xyxy=boxes, offset=displacement)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(result, np.array(expected, dtype=np.int64))
+
+    def test_move_oriented_boxes_promotes_integer_coordinates(self) -> None:
+        """Oriented-box translations use the same overflow-safe arithmetic."""
+        corners = np.array([[[250, 0], [255, 0], [255, 10], [250, 10]]], dtype=np.uint8)
+        offset = np.array([10, 0], dtype=np.uint8)
+
+        result = move_oriented_boxes(xyxyxyxy=corners, offset=offset)
+
+        assert result.dtype == np.int64
+        np.testing.assert_array_equal(
+            result,
+            np.array([[[260, 0], [265, 0], [265, 10], [260, 10]]], dtype=np.int64),
+        )
+
+    def test_move_boxes_uses_float_when_result_exceeds_int64(self) -> None:
+        """Translations beyond int64 use float64 after exact integer addition."""
+        maximum = np.iinfo(np.int64).max
+        boxes = np.array([[maximum, 0, maximum, 10]], dtype=np.int64)
+
+        result = move_boxes(xyxy=boxes, offset=np.array([1, 0], dtype=np.int64))
+
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(
+            result, np.array([[float(2**63), 0, float(2**63), 10]], dtype=np.float64)
+        )
 
 
 @pytest.mark.parametrize(
@@ -839,3 +917,34 @@ def test_box_midpoint_returns_expected_values_and_dtype(
 
     assert result.dtype == expected_dtype
     np.testing.assert_array_equal(result, np.array(expected, dtype=np.float64))
+
+
+class TestSpreadOutBoxes:
+    """Overlapping boxes are moved apart until they no longer overlap."""
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([[10, 10, 40, 20]] * 2, id="two-identical"),
+            pytest.param([[10, 10, 40, 20]] * 3, id="three-identical"),
+            pytest.param([[10, 10, 40, 20], [5, 5, 45, 25]], id="nested-same-center"),
+        ],
+    )
+    def test_separates_boxes_sharing_a_center(self, xyxy: list[list[int]]) -> None:
+        """Boxes with a common center end up with no overlap between any pair."""
+        boxes = np.array(xyxy, dtype=np.float64)
+
+        result = spread_out_boxes(boxes)
+
+        iou = box_iou_batch(result, result)
+        np.fill_diagonal(iou, 0)
+        assert np.all(iou == 0)
+
+    def test_moves_earlier_of_two_identical_boxes_up(self) -> None:
+        """Of two identical boxes, the first moves up and the second moves down."""
+        xyxy = np.array([[10, 10, 40, 20], [10, 10, 40, 20]], dtype=np.float64)
+
+        result = spread_out_boxes(xyxy)
+
+        np.testing.assert_array_equal(result[:, [0, 2]], xyxy[:, [0, 2]])
+        assert result[0, 1] < xyxy[0, 1] < result[1, 1]
