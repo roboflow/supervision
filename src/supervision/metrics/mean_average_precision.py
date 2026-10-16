@@ -951,40 +951,30 @@ class COCOEvaluator:
         gt_ignore = np.array([g["_ignore"] for g in gt], dtype=np.int64)
         dt_ignore = np.zeros((num_thresholds, num_detections), dtype=np.bool_)
         if len(ious) != 0:
-            # Go through the iou thresholds
-            for tresh_idx, thresh in enumerate(self.params.iou_thrs):
-                # Go through the detections
-                for det_idx, det in enumerate(dt):
-                    # Start the iou of the best match
-                    iou_best_match = min([thresh, 1 - 1e-10])
-                    # Set the best match index to -1 (unmatched)
-                    best_match_idx = -1
-                    # Go through the ground truths
-                    for g_idx, g in enumerate(gt):
-                        # If current gt is already matched, and not a crowd, continue
-                        # if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd[g_idx]:
-                        iscrowd = int(g.get("iscrowd", 0))
-                        if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd:
-                            continue
-                        # Stop searching the ground truths
-                        if (
-                            best_match_idx > -1  # detection is matched to a gt
-                            and gt_ignore[best_match_idx]
-                            == 0  # matched gt is not ignored
-                            and gt_ignore[g_idx] == 1  # current gt is ignored
-                        ):
-                            break
-
-                        # A new best match was found
-                        if ious[det_idx, g_idx] >= iou_best_match:
-                            iou_best_match = ious[det_idx, g_idx]
-                            best_match_idx = g_idx
-
-                    # A best match was found
-                    if best_match_idx != -1:
-                        dt_ignore[tresh_idx, det_idx] = gt_ignore[best_match_idx]
-                        dt_matches[tresh_idx, det_idx] = gt[best_match_idx]["id"]
-                        gt_matches[tresh_idx, best_match_idx] = det["id"]
+            is_crowd = np.array(
+                [bool(int(g.get("iscrowd", 0))) for g in gt], dtype=np.bool_
+            )
+            gt_ids = np.array([g["id"] for g in gt], dtype=np.int64)
+            is_kept = gt_ignore == 0
+            thresholds = np.minimum(self.params.iou_thrs, 1 - 1e-10)[:, np.newaxis]
+            available = (gt_matches <= 0) | is_crowd
+            reachable = (ious[:num_detections] >= thresholds.min()).any(axis=1)
+            for det_idx in np.flatnonzero(reachable):
+                candidates = (ious[det_idx] >= thresholds) & available
+                # COCO stops at ignored targets once a kept target matched.
+                has_kept = (candidates & is_kept).any(axis=1, keepdims=True)
+                candidates &= is_kept | ~has_kept
+                matched = np.flatnonzero(candidates.any(axis=1))
+                if matched.size == 0:
+                    continue
+                scores = np.where(candidates[matched], ious[det_idx], -np.inf)
+                best = num_ground_truths - 1 - np.argmax(scores[:, ::-1], axis=1)
+                dt_ignore[matched, det_idx] = gt_ignore[best]
+                dt_matches[matched, det_idx] = gt_ids[best]
+                gt_matches[matched, best] = dt[det_idx]["id"]
+                available[matched, best] = (gt_matches[matched, best] <= 0) | (
+                    is_crowd[best]
+                )
 
         # Set unmatched detections outside of area range to ignore
         area_range_mask = np.array(

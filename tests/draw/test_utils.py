@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -15,7 +17,7 @@ from supervision.geometry.core import Point, Rect
 from supervision.utils.image import grayscale_image
 
 
-def test_draw_image_invalid_path_raises_oserror(tmp_path) -> None:
+def test_draw_image_invalid_path_raises_oserror(tmp_path: Path) -> None:
     """Existing but undecodable image files raise OSError."""
     invalid_image_path = tmp_path / "invalid_image.dat"
     invalid_image_path.write_bytes(b"not an image")
@@ -31,7 +33,7 @@ def test_draw_image_invalid_path_raises_oserror(tmp_path) -> None:
         )
 
 
-def test_draw_image_valid_image(tmp_path) -> None:
+def test_draw_image_valid_image(tmp_path: Path) -> None:
     """Valid image files are decoded and drawn onto the scene."""
     image = np.zeros((100, 100, 3), dtype=np.uint8)
     image_path = tmp_path / "image.png"
@@ -52,7 +54,7 @@ def test_draw_image_valid_image(tmp_path) -> None:
 
 @pytest.mark.parametrize("channels", [3, 4])
 def test_draw_image_16_bit_file_draws_its_colors(
-    monkeypatch: pytest.MonkeyPatch, tmp_path, channels: int
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, channels: int
 ) -> None:
     """A 16-bit image file is scaled down to 8 bits, not saturated to white."""
     image_path = tmp_path / "image16.png"
@@ -74,7 +76,7 @@ def test_draw_image_16_bit_file_draws_its_colors(
     np.testing.assert_array_equal(result, expected)
 
 
-def test_draw_image_grayscale_file_raises_value_error(tmp_path) -> None:
+def test_draw_image_grayscale_file_raises_value_error(tmp_path: Path) -> None:
     """Grayscale image files raise ValueError before channel access."""
     image = np.zeros((100, 100), dtype=np.uint8)
     image_path = tmp_path / "grayscale.png"
