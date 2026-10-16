@@ -4280,6 +4280,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Detections</code> indexed with a Python list of booleans, such as <code>detections[[c == 0 for c in detections.class_id]]</code>, now selects list-valued <code>data</code> with the same mask as its arrays. The list was read as positions, so <code>True</code> and <code>False</code> became the indices <code>1</code> and <code>0</code>: an all-<code>True</code> mask returned the second item for every row (<code>["cat", "dog", "bird"]</code> became <code>["dog", "dog", "dog"]</code>), any other mask failed with <code>ValueError: Length of list for key ... must be ...</code>, and a list of <code>np.bool_</code> values raised <code>TypeError</code>. Integer lists, slices and NumPy index arrays are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2737">#2737</a>) Integer-list selection allocates only for requested rows, avoiding quadratic position-array allocation when the smoother selects rows repeatedly.</p>
+</li>
+<li>
 <p><code>sv.move_boxes</code> and <code>InferenceSlicer</code> translations no longer wrap integer coordinates when an offset crosses the input dtype's bounds. A <code>uint8</code> box at <code>[250, 0, 255, 10]</code> shifted by <code>[10, 0]</code> previously became <code>[4, 0, 9, 10]</code>; translations now promote integer results to <code>int64</code>, or <code>float64</code> when the result exceeds the <code>int64</code> range, while floating-point behavior is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2734">#2734</a>)</p>
 </li>
 <li>
@@ -6486,7 +6489,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 15, 2026 22:52:35 UTC">October 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 08:43:13 UTC">October 16, 2026</span>
   </span>
 
     
@@ -6514,9 +6517,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
-          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6524,14 +6527,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
+          
+          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
+        </a>
+      
         <a href="https://github.com/quotentiroler" class="md-author" title="@quotentiroler">
           
           <img src="https://avatars.githubusercontent.com/u/40643627?v=4&size=72" alt="quotentiroler">
-        </a>
-      
-        <a href="https://github.com/px12811" class="md-author" title="@px12811">
-          
-          <img src="https://avatars.githubusercontent.com/u/78131130?v=4&size=72" alt="px12811">
         </a>
       
       
