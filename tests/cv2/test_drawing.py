@@ -415,6 +415,111 @@ def test_fallback_ellipse_draws_a_rotated_outline() -> None:
     _assert_draws_on_canvas(result, image)
 
 
+class TestFallbackEllipse:
+    """Ellipse arcs and fills painted pixel for pixel like OpenCV."""
+
+    @requires_cv2
+    @pytest.mark.parametrize(
+        ("center", "axes", "angle", "start_angle", "end_angle", "thickness"),
+        [
+            pytest.param((50, 40), (30, 20), 0, 0, 360, 1, id="thin-full"),
+            pytest.param((50, 40), (30, 20), 0, 0, 360, 2, id="thick-full"),
+            pytest.param((50, 40), (30, 20), 0, 0, 360, 7, id="very-thick-full"),
+            pytest.param((60, 60), (40, 25), 30, 0, 360, 3, id="rotated"),
+            pytest.param((50, 50), (35, 20), 20, 0, 90, 3, id="quarter-arc"),
+            pytest.param((50, 50), (35, 20), 20, 30, 200, 5, id="partial-arc"),
+            pytest.param((50, 50), (35, 20), 20, 200, 400, 4, id="arc-past-full-turn"),
+            pytest.param((50, 40), (30, 20), 0, 0, 360, -1, id="filled-full"),
+            pytest.param((50, 50), (35, 20), 20, 30, 200, -1, id="filled-pie"),
+            pytest.param((5, 5), (20, 12), 25, 0, 360, 3, id="center-outside-top-left"),
+            pytest.param((150, 40), (25, 15), 25, 0, 360, 3, id="center-past-right"),
+            pytest.param((40, 40), (0, 20), 25, 0, 360, 3, id="zero-semi-axis"),
+            pytest.param((40, 40), (0, 0), 25, 0, 360, 3, id="zero-both-axes"),
+            pytest.param((40, 40), (30, 20), 12.5, 45.5, 300.5, 2, id="half-degrees"),
+        ],
+    )
+    def test_ellipse_matches_opencv(
+        self,
+        center: tuple[int, int],
+        axes: tuple[int, int],
+        angle: float,
+        start_angle: float,
+        end_angle: float,
+        thickness: int,
+    ) -> None:
+        """Match OpenCV's `Ellipse2Poly` outline and fill paths."""
+        actual = np.zeros((80, 100, 3), dtype=np.uint8)
+        expected = np.zeros_like(actual)
+
+        _ellipse(
+            actual,
+            center,
+            axes,
+            angle,
+            start_angle,
+            end_angle,
+            (1, 2, 3),
+            thickness=thickness,
+        )
+        cv2.ellipse(
+            expected,
+            center,
+            axes,
+            angle,
+            start_angle,
+            end_angle,
+            (1, 2, 3),
+            thickness=thickness,
+        )
+
+        np.testing.assert_array_equal(actual, expected)
+
+    @requires_cv2
+    def test_random_ellipses_match_opencv(self) -> None:
+        """Match OpenCV on random arcs, including partly off-canvas ellipses."""
+        rng = np.random.default_rng(20261016)
+
+        for _ in range(200):
+            height, width = (int(value) for value in rng.integers(5, 90, size=2))
+            center = (
+                int(rng.integers(-20, width + 20)),
+                int(rng.integers(-20, height + 20)),
+            )
+            axes = (
+                int(rng.integers(0, 60)),
+                int(rng.integers(0, 60)),
+            )
+            angle = int(rng.integers(-720, 720))
+            start_angle = int(rng.integers(-360, 721))
+            end_angle = int(rng.integers(-360, 721))
+            thickness = int(rng.integers(-3, 16)) or 1
+            actual = np.zeros((height, width), dtype=np.uint8)
+            expected = np.zeros_like(actual)
+
+            _ellipse(
+                actual,
+                center,
+                axes,
+                angle,
+                start_angle,
+                end_angle,
+                1,
+                thickness=thickness,
+            )
+            cv2.ellipse(
+                expected,
+                center,
+                axes,
+                angle,
+                start_angle,
+                end_angle,
+                1,
+                thickness=thickness,
+            )
+
+            np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_polylines_respects_closed_flag() -> None:
     """Close a polyline only when the caller requests a closed path."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)
