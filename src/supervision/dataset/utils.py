@@ -45,7 +45,7 @@ def _image_file_resolution_wh(image_path: str) -> tuple[int, int]:
 
 
 if TYPE_CHECKING:
-    from supervision.dataset.core import DetectionDataset
+    from supervision.dataset.core import DetectionDataset, KeyPointsDataset
 
 T = TypeVar("T")
 
@@ -453,7 +453,7 @@ def check_no_basename_collisions(
 
 
 def save_dataset_images(
-    dataset: DetectionDataset,
+    dataset: DetectionDataset | KeyPointsDataset,
     images_directory_path: str,
     show_progress: bool = False,
 ) -> None:
@@ -462,7 +462,9 @@ def save_dataset_images(
     Images already in memory are written with ``cv2.imwrite``; images stored
     only as file paths are copied with ``shutil.copyfile``. An image file that is
     already at its destination, because the images are exported into the folder
-    they were loaded from, is left where it is.
+    they were loaded from, is left where it is. A dataset that is lazy-only, such
+    as :class:`~supervision.dataset.core.KeyPointsDataset`, carries no in-memory
+    store and always takes the copy path.
 
     Args:
         dataset: The dataset whose images are saved.
@@ -489,14 +491,15 @@ def save_dataset_images(
         output_kind="image",
     )
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
+    images_in_memory = getattr(dataset, "_images_in_memory", {})
     for image_path in tqdm(
         dataset.image_paths,
         desc="Saving images",
         disable=not show_progress,
     ):
         final_path = os.path.join(images_directory_path, Path(image_path).name)
-        if image_path in dataset._images_in_memory:
-            image = dataset._images_in_memory[image_path]
+        if image_path in images_in_memory:
+            image = images_in_memory[image_path]
             if not cv2.imwrite(final_path, image):
                 raise OSError(f"Failed to save image to path: {final_path}")
         else:
