@@ -29,7 +29,7 @@ Supervision does not install OpenCV. Its image, drawing, and file-video APIs use
 
 ## Which object detection models work with Supervision?
 
-Supervision is model agnostic. [RF-DETR](https://github.com/roboflow/rf-detr) works natively — its `predict` method returns an `sv.Detections` object directly, no conversion needed. `sv.Detections` also includes converters for Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, Ultralytics YOLO, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe.
+Supervision is model agnostic. [RF-DETR](https://github.com/roboflow/rf-detr) works natively — its `predict` method returns an `sv.Detections` object directly, no conversion needed. `sv.Detections` also includes converters for Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, Ultralytics YOLO, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini (2.0 to 3.7), Kosmos-2, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe pose, face, and hand landmarks.
 
 ## What can I do with Supervision?
 
