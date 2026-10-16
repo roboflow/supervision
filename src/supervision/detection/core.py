@@ -1526,6 +1526,36 @@ class Detections:
 
             ```
 
+        !!! example "Google Gemini 3.6 / 3.7"
+
+            Gemini 3.6 and 3.7 return structured JSON with a top-level `boxes` key.
+            Each entry carries `box_2d` as `[y_min, x_min, y_max, x_max]`, a `label`,
+            and an optional `mask` polygon of `[x, y]` points, all normalized to
+            0-1000 across the full image. Use `sv.VLM.GOOGLE_GEMINI_3_7` the same way.
+
+            ```pycon
+            >>> import supervision as sv
+
+            >>> gemini_response_text = (
+            ...     '{"boxes": [{"box_2d": [250, 200, 750, 800], '
+            ...     '"mask": [[200, 250], [800, 250], [800, 750], [200, 750]], '
+            ...     '"label": "wooden bowl"}]}'
+            ... )
+
+            >>> detections = sv.Detections.from_vlm(
+            ...     sv.VLM.GOOGLE_GEMINI_3_6,
+            ...     gemini_response_text,
+            ...     resolution_wh=(100, 80),
+            ... )
+            >>> detections.xyxy
+            array([[20., 20., 80., 60.]])
+            >>> detections.mask.shape
+            (1, 80, 100)
+            >>> detections.data
+            {'class_name': array(['wooden bowl'], dtype='<U11')}
+
+            ```
+
         !!! example "Moondream"
 
 
