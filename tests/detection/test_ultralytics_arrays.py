@@ -58,6 +58,38 @@ class TestUltralyticsArrayResults:
     """Keep tensor and NumPy Results equivalent across the public adapters."""
 
     @pytest.mark.parametrize("backend", ["numpy", "tensor"])
+    @pytest.mark.parametrize("portrait", [False, True])
+    @pytest.mark.parametrize("with_boxes", [False, True])
+    def test_restores_letterboxed_foreground(
+        self, backend: str, portrait: bool, with_boxes: bool
+    ) -> None:
+        """Removing rounded letterbox padding preserves every foreground pixel."""
+        masks = np.zeros((1, 448, 640), dtype=np.float32)
+        masks[:, 11:437, :] = 1
+        orig_shape = (333, 500)
+        if portrait:
+            masks = masks.transpose(0, 2, 1)
+            orig_shape = orig_shape[::-1]
+        height, width = orig_shape
+        xyxy = np.array([[0, 0, width - 1, height - 1]], dtype=np.float32)
+        boxes = _boxes(backend, 1)
+        boxes.xyxy = _property(xyxy, backend)
+        results = SimpleNamespace(
+            boxes=boxes if with_boxes else None,
+            obb=None,
+            masks=SimpleNamespace(data=_property(masks, backend)),
+            orig_shape=orig_shape,
+            names={0: "person"},
+        )
+
+        detections = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(
+            detections.mask, np.ones((1, height, width), bool)
+        )
+        np.testing.assert_array_equal(detections.xyxy, xyxy)
+
+    @pytest.mark.parametrize("backend", ["numpy", "tensor"])
     @pytest.mark.parametrize(
         "tracked", [pytest.param(False, id="plain"), pytest.param(True, id="tracked")]
     )
