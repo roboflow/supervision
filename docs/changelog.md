@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 4–8× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. No output changes. ([#2744](https://github.com/roboflow/supervision/pull/2744))
+- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. No output changes. ([#2744](https://github.com/roboflow/supervision/pull/2744))
 
 - `sv.PolygonZone.trigger` and `sv.LineZone.trigger` accept an optional per-frame `coord_transform`, which maps detection anchors into the frame the zone was drawn on before testing them, so counts stay attached to the scene while the camera moves. It is any object with `abs_to_rel` and `rel_to_abs`, typed by the new `sv.CoordinatesTransformation` protocol, such as the transformations returned by the `trackers` motion estimator. Only the in-zone and line-crossing checks change: drawing with `sv.PolygonZoneAnnotator` and `sv.LineZoneAnnotator` is unchanged, each zone expects transforms into one consistent reference frame, and `coord_transform=None`, the default, keeps current results. ([#2657](https://github.com/roboflow/supervision/pull/2657))
 
