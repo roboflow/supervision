@@ -4,7 +4,7 @@ import warnings
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -89,6 +89,10 @@ from supervision.validators import (
     _validate_detections_fields,
     _validate_resolution,
 )
+
+if TYPE_CHECKING:
+    from supervision.dataset.core import DetectionDataset
+
 
 #: VLM parsers taking a string result and returning `(xyxy, class_id, class_name)`.
 _VLM_BOX_PARSERS: dict[VLM, Callable[..., tuple[Any, Any, Any]]] = {
@@ -267,6 +271,7 @@ class Detections:
             )
 
     def __eq__(self, other: object) -> bool:
+        """Compare detection arrays, data, and metadata."""
         if not isinstance(other, Detections):
             return NotImplemented
 
@@ -2456,6 +2461,126 @@ class Detections:
             data=data,
             metadata=dict(self.metadata),
         )
+
+    def align_to_dataset(
+        self,
+        dataset: DetectionDataset,
+        class_mapping: dict[str, str] | None = None,
+        on_unmapped: Literal["keep", "drop"] = "keep",
+    ) -> Detections:
+        """Align class names and IDs with a detection dataset.
+
+        Class names are read from ``data[CLASS_NAME_DATA_FIELD]``. If
+        ``class_mapping`` is omitted, names are matched directly to
+        ``dataset.classes``. Mapping targets must exist in the dataset.
+
+        Args:
+            dataset: Dataset whose class order defines the output class IDs.
+            class_mapping: Optional mapping from prediction class names to
+                dataset class names.
+            on_unmapped: Whether to keep detections whose mapped class names
+                are not in the dataset, preserving their existing class IDs,
+                or drop them. Defaults to ``"keep"``.
+
+        Returns:
+            A new :class:`~supervision.detection.core.Detections` object with
+            mapped names and class IDs aligned to ``dataset.classes`` for
+            matching names.
+
+        Raises:
+            ValueError: If the detections have no class names, a mapping target
+                is not in ``dataset.classes``, ``on_unmapped`` is invalid, or
+                an unmapped detection must be kept but has no existing class ID.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> dataset = sv.DetectionDataset(
+            ...     classes=["cat", "dog"], images=[], annotations={}
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1]]),
+            ...     class_id=np.array([5]),
+            ...     data={"class_name": np.array(["kitten"])},
+            ... )
+            >>> aligned = detections.align_to_dataset(
+            ...     dataset, class_mapping={"kitten": "cat"}
+            ... )
+            >>> aligned.class_id.tolist()
+            [0]
+            >>> aligned["class_name"].tolist()
+            ['cat']
+
+            ```
+        """
+        if on_unmapped not in ("keep", "drop"):
+            raise ValueError(
+                f"on_unmapped must be 'keep' or 'drop', got {on_unmapped!r}."
+            )
+
+        class_names = self.data.get(CLASS_NAME_DATA_FIELD)
+        if class_names is None:
+            raise ValueError(
+                f"Detections must contain class names in "
+                f"data[{CLASS_NAME_DATA_FIELD!r}]."
+            )
+
+        source_class_names = np.asarray(class_names)
+        mapping = class_mapping or {}
+        invalid_targets = list(
+            dict.fromkeys(
+                target for target in mapping.values() if target not in dataset.classes
+            )
+        )
+        if invalid_targets:
+            raise ValueError(
+                "All class_mapping values must be in dataset.classes. "
+                f"Invalid values: {invalid_targets}."
+            )
+
+        mapping_values = np.asarray(list(mapping.values()), dtype=str)
+        mapped_name_dtype = np.result_type(
+            source_class_names.dtype, mapping_values.dtype
+        )
+        mapped_class_names = source_class_names.astype(mapped_name_dtype, copy=True)
+        for source_name, target_name in mapping.items():
+            mapped_class_names[source_class_names == source_name] = target_name
+        class_to_id: dict[str, int] = {}
+        for class_id, class_name in enumerate(dataset.classes):
+            class_to_id.setdefault(class_name, class_id)
+
+        is_mapped = np.isin(mapped_class_names, dataset.classes)
+        if on_unmapped == "keep":
+            if np.any(~is_mapped) and self.class_id is None:
+                raise ValueError(
+                    "class_id must be present to keep detections whose class "
+                    "names are not in dataset.classes."
+                )
+            keep = np.ones(len(self), dtype=bool)
+        else:
+            keep = is_mapped
+
+        result = self.select(keep)
+        result_class_names = mapped_class_names[keep]
+        result.data[CLASS_NAME_DATA_FIELD] = result_class_names
+
+        if self.class_id is None:
+            result_class_ids = np.empty(len(result_class_names), dtype=int)
+            for class_name, class_id in class_to_id.items():
+                result_class_ids[result_class_names == class_name] = class_id
+            result.class_id = result_class_ids
+        else:
+            result_class_ids = self.class_id[keep].copy()
+            required_id_dtype = np.min_scalar_type(max(class_to_id.values(), default=0))
+            result_class_ids = result_class_ids.astype(
+                np.result_type(result_class_ids.dtype, required_id_dtype), copy=False
+            )
+            for class_name, class_id in class_to_id.items():
+                result_class_ids[result_class_names == class_name] = class_id
+            result.class_id = result_class_ids
+
+        return result
 
     def __getitem__(
         self,

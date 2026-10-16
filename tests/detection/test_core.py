@@ -1,10 +1,12 @@
 import warnings
 from contextlib import ExitStack as DoesNotRaise
+from typing import Literal
 
 import numpy as np
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.dataset.core import DetectionDataset
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import (
     Detections,
@@ -3384,3 +3386,152 @@ class TestDetectionsXyxyValidation:
         """Detections reports unsupported coordinate dtypes as validation errors."""
         with pytest.raises(ValueError, match="must contain only finite numeric values"):
             Detections(xyxy=xyxy)
+
+
+class TestDetectionsAlignToDataset:
+    """Tests for aligning prediction class names and IDs to dataset classes."""
+
+    @pytest.mark.parametrize("class_mapping", [None, {}])
+    def test_matches_names_directly_when_mapping_is_empty_or_none(
+        self, class_mapping: dict[str, str] | None
+    ) -> None:
+        """An absent mapping uses prediction names directly."""
+        dataset = DetectionDataset(classes=["cat", "dog"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]),
+            class_id=np.array([4, 3]),
+            data={"class_name": np.array(["dog", "cat"])},
+        )
+
+        result = detections.align_to_dataset(dataset, class_mapping=class_mapping)
+
+        np.testing.assert_array_equal(result.class_id, [1, 0])
+        np.testing.assert_array_equal(result["class_name"], ["dog", "cat"])
+        np.testing.assert_array_equal(detections.class_id, [4, 3])
+
+    def test_preserves_empty_class_name_dtype(self) -> None:
+        """Aligning empty detections preserves their class-name string dtype."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.empty((0, 4)),
+            class_id=np.empty((0,), dtype=int),
+            data={"class_name": np.empty((0,), dtype=str)},
+        )
+
+        result = detections.align_to_dataset(dataset)
+
+        assert result["class_name"].dtype.kind == "U"
+
+    def test_maps_names_and_assigns_ids_using_dataset_order(self) -> None:
+        """Mapped class names receive IDs from dataset class ordering."""
+        dataset = DetectionDataset(classes=["cat", "dog"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]),
+            class_id=np.array([8, 9]),
+            data={"class_name": np.array(["kitten", "puppy"])},
+        )
+
+        result = detections.align_to_dataset(
+            dataset, class_mapping={"kitten": "cat", "puppy": "dog"}
+        )
+
+        np.testing.assert_array_equal(result.class_id, [0, 1])
+        np.testing.assert_array_equal(result["class_name"], ["cat", "dog"])
+
+    def test_assigns_class_ids_when_original_ids_are_missing(self) -> None:
+        """Names matching dataset classes can provide missing class IDs."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1]]),
+            data={"class_name": np.array(["cat"])},
+        )
+
+        result = detections.align_to_dataset(dataset)
+
+        np.testing.assert_array_equal(result.class_id, [0])
+
+    @pytest.mark.parametrize(
+        ("on_unmapped", "expected_ids", "expected_names"),
+        [
+            pytest.param("keep", [0, 8], ["cat", "fox"], id="keep-unmapped"),
+            pytest.param("drop", [0], ["cat"], id="drop-unmapped"),
+        ],
+    )
+    def test_handles_unmapped_classes(
+        self,
+        on_unmapped: Literal["keep", "drop"],
+        expected_ids: list[int],
+        expected_names: list[str],
+    ) -> None:
+        """Unmapped classes are retained or removed according to the option."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]),
+            class_id=np.array([7, 8]),
+            data={"class_name": np.array(["cat", "fox"])},
+        )
+
+        result = detections.align_to_dataset(dataset, on_unmapped=on_unmapped)
+
+        np.testing.assert_array_equal(result.class_id, expected_ids)
+        np.testing.assert_array_equal(result["class_name"], expected_names)
+
+    def test_class_id_dtype_expands_for_dataset_indices(self) -> None:
+        """Dataset class IDs fit even when the original integer dtype is narrow."""
+        dataset = DetectionDataset(
+            classes=[f"class-{index}" for index in range(130)],
+            images=[],
+            annotations={},
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1]]),
+            class_id=np.array([1], dtype=np.int8),
+            data={"class_name": np.array(["class-129"])},
+        )
+
+        result = detections.align_to_dataset(dataset)
+
+        assert result.class_id is not None
+        assert result.class_id[0] == 129
+        assert np.issubdtype(result.class_id.dtype, np.signedinteger)
+
+    def test_rejects_mapping_targets_outside_dataset_classes(self) -> None:
+        """Mapping targets must belong to the supplied dataset."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1]]),
+            data={"class_name": np.array(["kitten"])},
+        )
+
+        with pytest.raises(ValueError, match="class_mapping values"):
+            detections.align_to_dataset(dataset, class_mapping={"kitten": "feline"})
+
+    def test_rejects_unknown_unmapped_option(self) -> None:
+        """Only keep and drop are valid unmapped handling options."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1]]),
+            data={"class_name": np.array(["cat"])},
+        )
+
+        with pytest.raises(ValueError, match="on_unmapped"):
+            detections.align_to_dataset(dataset, on_unmapped="ignore")
+
+    def test_requires_class_ids_to_keep_unmapped_names(self) -> None:
+        """Keeping an unknown name requires an existing ID to preserve."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(
+            xyxy=np.array([[0, 0, 1, 1]]),
+            data={"class_name": np.array(["fox"])},
+        )
+
+        with pytest.raises(ValueError, match="class_id must be present"):
+            detections.align_to_dataset(dataset)
+
+    def test_requires_class_name_data(self) -> None:
+        """Class-name alignment fails clearly when names are unavailable."""
+        dataset = DetectionDataset(classes=["cat"], images=[], annotations={})
+        detections = Detections(xyxy=np.array([[0, 0, 1, 1]]))
+
+        with pytest.raises(ValueError, match="must contain class names"):
+            detections.align_to_dataset(dataset)
