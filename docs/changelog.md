@@ -9,6 +9,10 @@ date_modified: 2026-10-15
 
 - `sv.Detections.from_ultralytics` now removes letterbox padding using the rounded content dimensions. Fractional padding no longer shifts or truncates segmentation masks when restoring the original image resolution. ([#2739](https://github.com/roboflow/supervision/pull/2739))
 
+- `sv.move_boxes` and `InferenceSlicer` translations no longer wrap integer coordinates when an offset crosses the input dtype's bounds. A `uint8` box at `[250, 0, 255, 10]` shifted by `[10, 0]` previously became `[4, 0, 9, 10]`; translations now promote integer results to `int64`, or `float64` when the result exceeds the `int64` range, while floating-point behavior is unchanged. ([#2734](https://github.com/roboflow/supervision/pull/2734))
+
+- Performance: `sv.metrics.MeanAveragePrecision` and `sv.metrics.KeyPointMeanAveragePrecision` now run COCO greedy matching with NumPy over all IoU thresholds and targets at once, instead of a Python loop over every threshold, prediction and target. Dense scenes evaluate much faster: one image with 1000 predictions and 1000 targets at `max_detection_thresholds=(1, 10, 1000)` drops from 35.9 s to 0.5 s. No output changes. ([#2733](https://github.com/roboflow/supervision/pull/2733))
+
 - `sv.Detections.box_aspect_ratio` now subtracts integer corners without overflow or loss of narrow widths at large coordinate origins. Floating-coordinate arithmetic and zero-height NaN results are unchanged. ([#2729](https://github.com/roboflow/supervision/pull/2729))
 
 - `BlurAnnotator` and `PixelateAnnotator` preserve an explicit grayscale channel axis. Images shaped `(H, W, 1)` no longer fail with a broadcasting error when OpenCV returns a two-dimensional filtered region. ([#2725](https://github.com/roboflow/supervision/pull/2725))
@@ -22,6 +26,8 @@ date_modified: 2026-10-15
 - mypy now type checks the test helpers and the `assets`, `classification`, `cv2`, `depth`, `draw`, `geometry` and `validators` test packages under the project's strict settings, the first slice of removing the `tests.*` `ignore_errors` override. The 75 errors these packages had are fixed with annotations and narrowing only, no test behaviour changes. The remaining test packages stay exempt for now. ([#2728](https://github.com/roboflow/supervision/pull/2728))
 
 - The NumPy fallback `line`, `polylines` and `drawContours` outline now match OpenCV's `LINE_8` rasterization for `thickness` 2 or more, including segments that leave the canvas. The fallback used Pillow's square-ended wide lines, while OpenCV draws each segment as a fixed-point quadrilateral with round caps; on 2,000 random lines every one differed, by a median 24% of OpenCV's pixels. The fallback now ports OpenCV's `ThickLine`, `FillConvexPoly` and `Line2`. Consumers using `LINE_8`, such as `sv.draw_line` and `sv.draw_polygon`, receive the corrected pixels. Antialiased drawing (`LINE_AA`) remains unsupported by the fallback, including calls from `LineZoneAnnotator`. `thickness=1` lines are unchanged. ([#2727](https://github.com/roboflow/supervision/pull/2727))
+
+- The NumPy fallback for `cv2.fillPoly` now uses OpenCV-compatible line and scanline rasterization, so `polygon_to_mask`, polygon drawing, and `PolygonZone` paint the same boundary pixels with or without OpenCV installed for polygons within the image bounds. ([#2730](https://github.com/roboflow/supervision/pull/2730))
 
 - Oriented-box `MeanAveragePrecision` now preserves corner precision and computes polygon areas relative to a local origin. Boxes at large coordinates no longer collapse during matching or enter the wrong object-size bucket through cancellation in the area calculation. ([#2717](https://github.com/roboflow/supervision/pull/2717))
 
