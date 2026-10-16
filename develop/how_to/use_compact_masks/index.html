@@ -3487,7 +3487,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p><code>compact_masks=True</code> crops each mask to its detector bounding box. Pixels outside the box are silently dropped. For masks that extend meaningfully beyond the reported bounding box, use the default <code>compact_masks=False</code> (dense decode) to preserve all pixels.</p>
+<p>With <code>compact_masks=True</code>, the crop depends on how each prediction encodes its mask:</p>
+<ul>
+<li>Native COCO-RLE masks whose <code>size</code> matches the image are cropped to the detector bounding box (<code>xyxy</code>). Pixels outside the box are silently dropped.</li>
+<li>Polygon masks (<code>points</code>) are cropped to the bounds of their rounded vertices, clipped to the image. Every filled polygon pixel is kept.</li>
+<li>COCO-RLE masks of another size are decoded, resized to the image and kept full-frame.</li>
+</ul>
+<p>Only the first path can lose pixels. For RLE masks that extend beyond the reported bounding box, use the default <code>compact_masks=False</code> (dense decode) to preserve all pixels.</p>
 </div>
 <p>To convert an existing dense-mask <code>Detections</code> to compact at any point:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">detections_compact</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">to_compact_masks</span><span class="p">()</span>
@@ -3687,7 +3693,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 22, 2026 08:19:39 UTC">September 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 18:22:27 UTC">October 16, 2026</span>
   </span>
 
     
@@ -3715,9 +3721,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3725,9 +3731,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/trueoneplusone" class="md-author" title="@trueoneplusone">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/78432179?v=4&size=72" alt="trueoneplusone">
         </a>
       
         <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
