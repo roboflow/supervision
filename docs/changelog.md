@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index.
+- Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
 - `sv.PolygonZone.trigger` and `sv.LineZone.trigger` accept an optional per-frame `coord_transform`, which maps detection anchors into the frame the zone was drawn on before testing them, so counts stay attached to the scene while the camera moves. It is any object with `abs_to_rel` and `rel_to_abs`, typed by the new `sv.CoordinatesTransformation` protocol, such as the transformations returned by the `trackers` motion estimator. Only the in-zone and line-crossing checks change: drawing with `sv.PolygonZoneAnnotator` and `sv.LineZoneAnnotator` is unchanged, each zone expects transforms into one consistent reference frame, and `coord_transform=None`, the default, keeps current results. ([#2657](https://github.com/roboflow/supervision/pull/2657))
 
