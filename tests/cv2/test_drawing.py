@@ -415,6 +415,36 @@ def test_fallback_ellipse_draws_a_rotated_outline() -> None:
     _assert_draws_on_canvas(result, image)
 
 
+@pytest.mark.parametrize(
+    "axes",
+    [
+        pytest.param((-1, 4), id="negative-horizontal-axis"),
+        pytest.param((4, -1), id="negative-vertical-axis"),
+    ],
+)
+def test_fallback_ellipse_rejects_negative_axes(axes: tuple[int, int]) -> None:
+    """Reject a negative semi-axis before drawing any pixels."""
+    image = np.zeros((15, 15), dtype=np.uint8)
+
+    with pytest.raises(ValueError, match="Ellipse axes must be non-negative"):
+        _ellipse(image, (7, 7), axes, 0, 0, 360, 1)
+
+    assert not np.any(image)
+
+
+def test_fallback_ellipse_fills_partial_arc_as_pie_slice() -> None:
+    """Include the center in a partial filled arc and leave the opposite side empty."""
+    image = np.zeros((21, 21), dtype=np.uint8)
+
+    result = _ellipse(image, (10, 10), (7, 5), 0, 0, 90, 1, thickness=-1)
+
+    assert result is image
+    assert image[10, 10] == 1
+    assert image[10, 15] == 1
+    assert image[5, 10] == 0
+    assert np.count_nonzero(image) > 1
+
+
 class TestFallbackEllipse:
     """Ellipse arcs and fills painted pixel for pixel like OpenCV."""
 
