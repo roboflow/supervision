@@ -5,6 +5,10 @@ date_modified: 2026-10-16
 
 # Changelog
 
+### Unreleased <small>upcoming</small>
+
+- `sv.metrics.MeanAverageRecall`, `Precision`, `Recall` and `F1Score` with `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES` now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. ([#2752](https://github.com/roboflow/supervision/pull/2752))
+
 ### 0.31.0 <small>Oct 16, 2026</small>
 
 - **Depth maps**: the new `sv.DepthMap` module loads, measures and draws depth.
