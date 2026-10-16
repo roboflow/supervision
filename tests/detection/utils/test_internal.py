@@ -1,3 +1,4 @@
+import tracemalloc
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
@@ -1143,6 +1144,61 @@ def test_get_data_item(
                 assert result[key] == expected_result[key], (
                     f"Mismatch in non-array data for key {key}"
                 )
+
+
+class TestGetDataItemListSelection:
+    def test_small_integer_selection_uses_bounded_memory(self) -> None:
+        """Selecting a few list rows avoids allocation for unselected rows."""
+        values = list(range(100_000))
+        data = {"label": values}
+        tracemalloc.start()
+        try:
+            result = get_data_item(data, [0, -1, 0])
+            _, peak_bytes = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+
+        assert result == {"label": [0, 99_999, 0]}
+        # A full int64 positions array requires 800 KB for this real input.
+        assert peak_bytes < 64_000
+
+    @pytest.mark.parametrize(
+        ("index", "expected"),
+        [
+            pytest.param([True, False, True], [0, 2], id="mixed-mask"),
+            pytest.param([True, True, True], [0, 1, 2], id="all-true-mask"),
+            pytest.param([False, False, False], [], id="all-false-mask"),
+            pytest.param([np.True_, np.False_, np.True_], [0, 2], id="numpy-bools"),
+            pytest.param([2, -3, 2], [2, 0, 2], id="reordered-repeated-integers"),
+            pytest.param([np.True_, 0], [1, 0], id="mixed-bool-integer"),
+            pytest.param([], [], id="empty-index"),
+        ],
+    )
+    def test_matches_numpy_rows(
+        self, index: list[int | bool | np.bool_], expected: list[int]
+    ) -> None:
+        """Python-list metadata follows NumPy mask and positional semantics."""
+        data = {"label": [0, 1, 2], "score": np.arange(3)}
+
+        result = get_data_item(data, index)
+
+        assert result["label"] == expected
+        np.testing.assert_array_equal(result["score"], expected)
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pytest.param([3], id="past-end"),
+            pytest.param([-4], id="before-start"),
+            pytest.param([True, False], id="short-mask"),
+        ],
+    )
+    def test_rejects_out_of_bounds_rows(self, index: list[int | bool]) -> None:
+        """Invalid positions and mask lengths remain indexing errors."""
+        data = {"label": [0, 1, 2]}
+
+        with pytest.raises(IndexError):
+            get_data_item(data, index)
 
 
 @pytest.mark.parametrize(

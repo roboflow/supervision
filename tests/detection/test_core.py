@@ -341,6 +341,28 @@ def test_select_returns_detection_subset() -> None:
     )
 
 
+class TestDetectionsSelectBooleanList:
+    @pytest.mark.parametrize(
+        ("index", "expected_rows"),
+        [
+            pytest.param([True, False, True], [0, 2], id="mixed"),
+            pytest.param([True, True, True], [0, 1, 2], id="all-true"),
+            pytest.param([False, False, False], [], id="all-false"),
+            pytest.param(
+                [np.True_, np.False_, np.True_], [0, 2], id="numpy-bool-elements"
+            ),
+        ],
+    )
+    def test_list_data_follows_the_mask(
+        self, index: list[bool], expected_rows: list[int]
+    ) -> None:
+        """A list of booleans selects the same rows from list data as from arrays."""
+        result = TEST_DET_1[index]
+
+        assert result == TEST_DET_1[np.array(index, dtype=bool)]
+        assert result.data["some_key"] == [[1, 2, 3][i] for i in expected_rows]
+
+
 def test_select_empty_returns_fresh_metadata_dict() -> None:
     """Selecting empty detections returns a fresh metadata dictionary."""
     detections = Detections.empty()
