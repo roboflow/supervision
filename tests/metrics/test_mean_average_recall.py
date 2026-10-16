@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.config import ISCROWD_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
@@ -447,6 +448,46 @@ def test_single_perfect_detection() -> None:
     # For a single GT, if it's recalled, the score is 1.0 across all K
     expected = np.array([1.0, 1.0, 1.0])
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
+
+
+@pytest.mark.parametrize("ignore_field", [ISCROWD_DATA_FIELD, "ignore"])
+def test_crowd_or_ignored_target_is_not_counted_as_a_miss(ignore_field: str) -> None:
+    """A COCO ignore region (crowd or ignore flag) is left out of recall."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [100, 0, 200, 100]], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+        data={ignore_field: np.array([0, 1])},
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update(predictions, targets).compute()
+
+    np.testing.assert_almost_equal(result.recall_scores, [1.0, 1.0, 1.0])
+
+
+def test_class_with_only_crowd_targets_is_left_out_of_the_mean() -> None:
+    """A class whose every target is a crowd region does not score zero recall."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [100, 0, 200, 100]], dtype=np.float32),
+        class_id=np.array([0, 1], dtype=np.int32),
+        data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update(predictions, targets).compute()
+
+    np.testing.assert_almost_equal(result.recall_scores, [1.0, 1.0, 1.0])
+    assert result.matched_classes.tolist() == [0]
 
 
 def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:

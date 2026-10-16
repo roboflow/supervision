@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
@@ -281,6 +281,10 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     the `maxDets` limit of COCO evaluation, so with a single class the limit
     applies to the whole image.
 
+    Targets marked as crowd regions in `targets.data["iscrowd"]`, as
+    `DetectionDataset.from_coco` loads them, or flagged in `targets.data["ignore"]`
+    are COCO ignore regions: they are not counted as missed objects.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -384,6 +388,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         targets_list: list[Detections],
         size_category: ObjectSizeCategory = ObjectSizeCategory.ANY,
     ) -> MeanAverageRecallResult:
+        # COCO treats crowd and `ignore`-flagged targets as ignore regions: they
+        # are never counted as misses, and a prediction on one is not a hit.
+        targets_list = [self._drop_ignored_targets(targets) for targets in targets_list]
         if size_category != ObjectSizeCategory.ANY:
             # Recall is unaffected by false-positive bookkeeping, and out-of-bucket
             # predictions must still consume top-K rank slots, so bucket-filtering
@@ -811,6 +818,25 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             return empty_obb
 
         raise ValueError(f"Invalid metric target: {self._metric_target}")
+
+    @staticmethod
+    def _drop_ignored_targets(targets: Detections) -> Detections:
+        """Return targets without the COCO ignore regions among them.
+
+        A target is an ignore region when ``data["iscrowd"]`` or ``data["ignore"]``
+        is set for it, the same rule
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        applies.
+        """
+        data = targets.data or {}
+        ignored = np.zeros(len(targets), dtype=bool)
+        for field in (ISCROWD_DATA_FIELD, "ignore"):
+            if field in data:
+                ignored |= np.asarray(data[field]).astype(bool)
+        if not ignored.any():
+            return targets
+        # A boolean mask always selects a `Detections`; narrow for mypy.
+        return cast(Detections, targets[~ignored])
 
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
