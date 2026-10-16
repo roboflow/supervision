@@ -42,6 +42,7 @@ from supervision.dataset.core import (
     BaseDataset,
     ClassificationDataset,
     DetectionDataset,
+    KeyPointsDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
 from supervision.depth.annotators import DepthAnnotator, DepthClipRange
@@ -214,6 +215,7 @@ __all__ = [
     "InferenceSlicer",
     "JSONSink",
     "KeyPoints",
+    "KeyPointsDataset",
     "LabelAnnotator",
     "LineZone",
     "LineZoneAnnotator",
