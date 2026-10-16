@@ -1585,7 +1585,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 continue
 
             content = self._detections_content(image_targets)
-            for target_idx, xyxy in enumerate(image_targets.xyxy):
+            # Native Python scalars avoid overflowing narrow NumPy dtypes when
+            # subtracting corners or multiplying the resulting box extents.
+            for target_idx, xyxy in enumerate(image_targets.xyxy.tolist()):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
 
                 # Default values
@@ -1666,7 +1668,9 @@ class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
                 continue
 
             content = self._detections_content(image_predictions)
-            for pred_idx, xyxy in enumerate(image_predictions.xyxy):
+            # Match target preparation: overflow would also change whether an
+            # unmatched prediction is ignored in each area bucket.
+            for pred_idx, xyxy in enumerate(image_predictions.xyxy.tolist()):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
 
                 category_id = 0
