@@ -1,4 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
+from unittest.mock import patch
 
 import numpy as np
 import numpy.typing as npt
@@ -77,6 +78,33 @@ class TestMaskROIHelpers:
         assert y1 <= 5
         assert x2 >= 8
         assert y2 >= 10
+
+    def test_all_false_compact_masks_have_no_roi(self) -> None:
+        """A nonempty compact collection without foreground has no ROI."""
+        masks = np.zeros((1, 60, 80), dtype=bool)
+        xyxy = np.array([[0, 0, 79, 59]], dtype=np.float32)
+        compact = CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+
+        result = _compact_masks_to_roi(compact, (60, 80))
+
+        assert result is None
+
+    @pytest.mark.parametrize("empty_index", [0, 1])
+    def test_empty_compact_crops_do_not_expand_roi(self, empty_index: int) -> None:
+        """An empty full-frame crop leaves the foreground crop's bounds unchanged."""
+        masks = np.zeros((2, 60, 80), dtype=bool)
+        masks[1 - empty_index, 40:45, 60:65] = True
+        xyxy = np.array([[0, 0, 79, 59], [0, 0, 79, 59]], dtype=np.float32)
+        xyxy[1 - empty_index] = [60, 40, 64, 44]
+        compact = CompactMask.from_dense(masks, xyxy, image_shape=(60, 80))
+
+        with (
+            patch.object(CompactMask, "to_dense", side_effect=AssertionError),
+            patch.object(CompactMask, "crop", side_effect=AssertionError),
+        ):
+            result = _compact_masks_to_roi(compact, (60, 80))
+
+        assert result == (60, 40, 65, 45)
 
     def test_compact_masks_to_roi_two_detections_union(self):
         """Two disjoint compact masks union should span both regions."""

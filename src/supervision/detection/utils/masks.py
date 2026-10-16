@@ -551,19 +551,20 @@ def _compact_masks_to_roi(
 ) -> tuple[int, int, int, int] | None:
     """Return exclusive bounding-box union for compact masks.
 
-    Uses crop metadata (offsets + shapes) — no RLE decode required.
+    Uses crop metadata (offsets + shapes) and RLE foreground counts to exclude
+    all-False masks without decoding crops.
 
     Args:
         masks: Compact mask collection.
         image_shape: Image dimensions as ``(height, width)``.
 
     Returns:
-        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when empty.
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true pixels exist.
     """
-    if len(masks) == 0:
+    bboxes = masks.bbox_xyxy[masks.area > 0]
+    if len(bboxes) == 0:
         return None
     image_h, image_w = image_shape
-    bboxes = masks.bbox_xyxy  # shape (N, 4), inclusive int32
     x_min = int(bboxes[:, 0].min())
     y_min = int(bboxes[:, 1].min())
     x_max = int(bboxes[:, 2].max()) + 1  # convert inclusive to exclusive
