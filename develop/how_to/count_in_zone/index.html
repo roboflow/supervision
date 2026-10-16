@@ -204,7 +204,7 @@
   ],
   "mainEntityOfPage": "https://supervision.roboflow.com/latest/how_to/count_in_zone/",
   
-  "dateModified": "2026-04-22",
+  "dateModified": "2026-10-13",
   
   
   "articleBody": "Count objects entering a polygon zone in images and video using supervision\u0027s PolygonZone \u2014 measure throughput and density in any region.",
@@ -1273,6 +1273,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-ellipsis">
       
         Run Inference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-a-moving-camera" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow a Moving Camera
       
     </span>
   </a>
@@ -3392,6 +3403,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#follow-a-moving-camera" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow a Moving Camera
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#frequently-asked-questions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3572,6 +3594,22 @@ APIs described here may change or may never ship in a release, so use the <a hre
   <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
 </video>
 
+<h2 id="follow-a-moving-camera">Follow a Moving Camera<a class="headerlink" href="#follow-a-moving-camera" title="Permanent link">&para;</a></h2>
+<p><code>PolygonZone</code> and <code>LineZone</code> assume a static camera: a zone drawn on one frame slides off its target when the camera pans or tilts. Pass a per-frame <code>coord_transform</code> to <code>trigger</code> to test detections in the coordinates of the frame the zone was drawn on. It can be any object with <code>abs_to_rel</code> and <code>rel_to_abs</code> (see <a href="../../utils/geometry/#supervision.geometry.core.CoordinatesTransformation"><code>sv.CoordinatesTransformation</code></a>), such as the transformations returned by the <a href="https://trackers.roboflow.com/latest/"><code>trackers</code></a> motion estimator, which are relative to the first frame it sees:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">trackers</span><span class="w"> </span><span class="kn">import</span> <span class="n">MotionEstimator</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">motion_estimator</span> <span class="o">=</span> <span class="n">MotionEstimator</span><span class="p">()</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">zone</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">PolygonZone</span><span class="p">(</span><span class="n">polygon</span><span class="o">=</span><span class="n">polygons</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># drawn on the first frame</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">VIDEO</span><span class="p">):</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">coord_transform</span> <span class="o">=</span> <span class="n">motion_estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">detections</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">frame</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">in_zone</span> <span class="o">=</span> <span class="n">zone</span><span class="o">.</span><span class="n">trigger</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">coord_transform</span><span class="o">=</span><span class="n">coord_transform</span><span class="p">)</span>
+</span></code></pre></div>
+<ul>
+<li>Only the zone test follows the camera: <code>PolygonZoneAnnotator</code> and <code>LineZoneAnnotator</code> still draw the zone where it was defined.</li>
+<li>Use one reference frame per zone and pass a transform on every call; <code>LineZone</code> keeps its crossing history in that frame.</li>
+</ul>
 <h2 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-count-objects-in-a-zone-with-supervision">How do I count objects in a zone with supervision?<a class="headerlink" href="#how-do-i-count-objects-in-a-zone-with-supervision" title="Permanent link">&para;</a></h3>
 <p>Create <code>sv.PolygonZone</code> with a polygon defining your region. Call <code>zone.trigger(detections)</code> on each frame — it returns a mask of detections inside the zone.</p>
@@ -3605,7 +3643,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 16, 2026 14:19:50 UTC">September 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 09:34:34 UTC">October 16, 2026</span>
   </span>
 
     
@@ -3633,9 +3671,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/kari-pikkarainen" class="md-author" title="@kari-pikkarainen">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/154351964?v=4&size=72" alt="kari-pikkarainen">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3643,21 +3681,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/capjamesg" class="md-author" title="@capjamesg">
           
           <img src="https://avatars.githubusercontent.com/u/37276661?v=4&size=72" alt="capjamesg">
-        </a>
-      
-        <a href="https://github.com/codex" class="md-author" title="@codex">
-          
-          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/count_in_zone.md" class="md-author md-author--more">
-            +4
+            +5
           </a>
         
       
