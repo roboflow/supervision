@@ -1113,13 +1113,13 @@ def _ellipse(
     if axes_point[0] < 0 or axes_point[1] < 0:
         raise ValueError("Ellipse axes must be non-negative")
 
-    points = _ellipse_fixed_points(
-        center_point, axes_point, angle, startAngle, endAngle
-    )
+    arc_start = round(startAngle)
+    arc_end = round(endAngle)
+    points = _ellipse_fixed_points(center_point, axes_point, angle, arc_start, arc_end)
     height, width = img.shape[:2]
     mask = np.zeros((height, width), dtype=bool)
     if thickness < 0:
-        if endAngle - startAngle >= 360:
+        if arc_end - arc_start >= 360:
             _fill_convex_fixed_point(mask, points)
         else:
             center_fixed = (center_point[0] << _XY_SHIFT, center_point[1] << _XY_SHIFT)
