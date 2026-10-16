@@ -25,6 +25,82 @@ _XY_HALF = _XY_ONE >> 1
 _CAP_START = 1
 _CAP_END = 2
 
+#: OpenCV's 451-entry sine table, copied from `drawing.cpp`.
+#:
+#: `ellipse2Poly` indexes it with integer degrees. The values are float32, so they
+#: cannot be regenerated exactly from `numpy.sin` on every platform: about half the
+#: entries differ in the last bit.
+_SIN_TABLE = np.array(
+    """
+    0.0000000 0.0174524 0.0348995 0.0523360 0.0697565 0.0871557 0.1045285
+    0.1218693 0.1391731 0.1564345 0.1736482 0.1908090 0.2079117 0.2249511
+    0.2419219 0.2588190 0.2756374 0.2923717 0.3090170 0.3255682 0.3420201
+    0.3583679 0.3746066 0.3907311 0.4067366 0.4226183 0.4383711 0.4539905
+    0.4694716 0.4848096 0.5000000 0.5150381 0.5299193 0.5446390 0.5591929
+    0.5735764 0.5877853 0.6018150 0.6156615 0.6293204 0.6427876 0.6560590
+    0.6691306 0.6819984 0.6946584 0.7071068 0.7193398 0.7313537 0.7431448
+    0.7547096 0.7660444 0.7771460 0.7880108 0.7986355 0.8090170 0.8191520
+    0.8290376 0.8386706 0.8480481 0.8571673 0.8660254 0.8746197 0.8829476
+    0.8910065 0.8987940 0.9063078 0.9135455 0.9205049 0.9271839 0.9335804
+    0.9396926 0.9455186 0.9510565 0.9563048 0.9612617 0.9659258 0.9702957
+    0.9743701 0.9781476 0.9816272 0.9848078 0.9876883 0.9902681 0.9925462
+    0.9945219 0.9961947 0.9975641 0.9986295 0.9993908 0.9998477 1.0000000
+    0.9998477 0.9993908 0.9986295 0.9975641 0.9961947 0.9945219 0.9925462
+    0.9902681 0.9876883 0.9848078 0.9816272 0.9781476 0.9743701 0.9702957
+    0.9659258 0.9612617 0.9563048 0.9510565 0.9455186 0.9396926 0.9335804
+    0.9271839 0.9205049 0.9135455 0.9063078 0.8987940 0.8910065 0.8829476
+    0.8746197 0.8660254 0.8571673 0.8480481 0.8386706 0.8290376 0.8191520
+    0.8090170 0.7986355 0.7880108 0.7771460 0.7660444 0.7547096 0.7431448
+    0.7313537 0.7193398 0.7071068 0.6946584 0.6819984 0.6691306 0.6560590
+    0.6427876 0.6293204 0.6156615 0.6018150 0.5877853 0.5735764 0.5591929
+    0.5446390 0.5299193 0.5150381 0.5000000 0.4848096 0.4694716 0.4539905
+    0.4383711 0.4226183 0.4067366 0.3907311 0.3746066 0.3583679 0.3420201
+    0.3255682 0.3090170 0.2923717 0.2756374 0.2588190 0.2419219 0.2249511
+    0.2079117 0.1908090 0.1736482 0.1564345 0.1391731 0.1218693 0.1045285
+    0.0871557 0.0697565 0.0523360 0.0348995 0.0174524 0.0000000 -0.0174524
+    -0.0348995 -0.0523360 -0.0697565 -0.0871557 -0.1045285 -0.1218693 -0.1391731
+    -0.1564345 -0.1736482 -0.1908090 -0.2079117 -0.2249511 -0.2419219 -0.2588190
+    -0.2756374 -0.2923717 -0.3090170 -0.3255682 -0.3420201 -0.3583679 -0.3746066
+    -0.3907311 -0.4067366 -0.4226183 -0.4383711 -0.4539905 -0.4694716 -0.4848096
+    -0.5000000 -0.5150381 -0.5299193 -0.5446390 -0.5591929 -0.5735764 -0.5877853
+    -0.6018150 -0.6156615 -0.6293204 -0.6427876 -0.6560590 -0.6691306 -0.6819984
+    -0.6946584 -0.7071068 -0.7193398 -0.7313537 -0.7431448 -0.7547096 -0.7660444
+    -0.7771460 -0.7880108 -0.7986355 -0.8090170 -0.8191520 -0.8290376 -0.8386706
+    -0.8480481 -0.8571673 -0.8660254 -0.8746197 -0.8829476 -0.8910065 -0.8987940
+    -0.9063078 -0.9135455 -0.9205049 -0.9271839 -0.9335804 -0.9396926 -0.9455186
+    -0.9510565 -0.9563048 -0.9612617 -0.9659258 -0.9702957 -0.9743701 -0.9781476
+    -0.9816272 -0.9848078 -0.9876883 -0.9902681 -0.9925462 -0.9945219 -0.9961947
+    -0.9975641 -0.9986295 -0.9993908 -0.9998477 -1.0000000 -0.9998477 -0.9993908
+    -0.9986295 -0.9975641 -0.9961947 -0.9945219 -0.9925462 -0.9902681 -0.9876883
+    -0.9848078 -0.9816272 -0.9781476 -0.9743701 -0.9702957 -0.9659258 -0.9612617
+    -0.9563048 -0.9510565 -0.9455186 -0.9396926 -0.9335804 -0.9271839 -0.9205049
+    -0.9135455 -0.9063078 -0.8987940 -0.8910065 -0.8829476 -0.8746197 -0.8660254
+    -0.8571673 -0.8480481 -0.8386706 -0.8290376 -0.8191520 -0.8090170 -0.7986355
+    -0.7880108 -0.7771460 -0.7660444 -0.7547096 -0.7431448 -0.7313537 -0.7193398
+    -0.7071068 -0.6946584 -0.6819984 -0.6691306 -0.6560590 -0.6427876 -0.6293204
+    -0.6156615 -0.6018150 -0.5877853 -0.5735764 -0.5591929 -0.5446390 -0.5299193
+    -0.5150381 -0.5000000 -0.4848096 -0.4694716 -0.4539905 -0.4383711 -0.4226183
+    -0.4067366 -0.3907311 -0.3746066 -0.3583679 -0.3420201 -0.3255682 -0.3090170
+    -0.2923717 -0.2756374 -0.2588190 -0.2419219 -0.2249511 -0.2079117 -0.1908090
+    -0.1736482 -0.1564345 -0.1391731 -0.1218693 -0.1045285 -0.0871557 -0.0697565
+    -0.0523360 -0.0348995 -0.0174524 -0.0000000 0.0174524 0.0348995 0.0523360
+    0.0697565 0.0871557 0.1045285 0.1218693 0.1391731 0.1564345 0.1736482
+    0.1908090 0.2079117 0.2249511 0.2419219 0.2588190 0.2756374 0.2923717
+    0.3090170 0.3255682 0.3420201 0.3583679 0.3746066 0.3907311 0.4067366
+    0.4226183 0.4383711 0.4539905 0.4694716 0.4848096 0.5000000 0.5150381
+    0.5299193 0.5446390 0.5591929 0.5735764 0.5877853 0.6018150 0.6156615
+    0.6293204 0.6427876 0.6560590 0.6691306 0.6819984 0.6946584 0.7071068
+    0.7193398 0.7313537 0.7431448 0.7547096 0.7660444 0.7771460 0.7880108
+    0.7986355 0.8090170 0.8191520 0.8290376 0.8386706 0.8480481 0.8571673
+    0.8660254 0.8746197 0.8829476 0.8910065 0.8987940 0.9063078 0.9135455
+    0.9205049 0.9271839 0.9335804 0.9396926 0.9455186 0.9510565 0.9563048
+    0.9612617 0.9659258 0.9702957 0.9743701 0.9781476 0.9816272 0.9848078
+    0.9876883 0.9902681 0.9925462 0.9945219 0.9961947 0.9975641 0.9986295
+    0.9993908 0.9998477 1.0000000
+    """.split(),
+    dtype=np.float32,
+)
+
 
 def _drawing_mask(
     image: _ImageArray, draw_operation: Callable[[Any], None]
@@ -336,9 +412,46 @@ def _fill_polygon_mask(
                 edges.append((y0, y1, x0, dx))
             previous = current
 
-    if not edges:
-        return mask
+    _fill_mask_edges(mask, edges)
+    return mask
 
+
+def _fill_mask_edges(
+    mask: npt.NDArray[np.bool_], edges: list[tuple[int, int, int, int]]
+) -> None:
+    """Set polygon interior pixels by pairing scanline intersections.
+
+    Each edge is `(y0, y1, x, dx)`: rows are integer pixel coordinates, while
+    `x` at row `y0` and its per-row increment `dx` use 16 fractional bits
+    (65536 units per pixel). Edges are active over `y0 <= y < y1`, so a shared
+    vertex does not count twice. Horizontal edges must be omitted by the caller.
+
+    On each visible row, intersections are sorted and paired using the even-odd
+    fill rule. The left intersection rounds up and the right rounds down to an
+    inclusive pixel span, clipped to the mask width. Boundary strokes are the
+    caller's responsibility; this implements OpenCV's `FillEdgeCollection` span
+    rule without clearing any pixels already set in the mask.
+
+    Args:
+        mask: Boolean `(height, width)` destination, modified in place.
+        edges: Non-horizontal edges with `y0 < y1`, in any order. An empty list
+            leaves the mask unchanged.
+
+    Example:
+        Fill columns 1 through 3 on rows 0 and 1; row 2 is the excluded end row.
+
+        ```pycon
+        >>> mask = np.zeros((3, 5), dtype=bool)
+        >>> edges = [(0, 2, 1 << 16, 0), (0, 2, 3 << 16, 0)]
+        >>> _fill_mask_edges(mask, edges)
+        >>> mask.astype(int).tolist()
+        [[0, 1, 1, 1, 0], [0, 1, 1, 1, 0], [0, 0, 0, 0, 0]]
+
+        ```
+    """
+    if not edges:
+        return
+    height, width = mask.shape
     y_start = max(0, min(edge[0] for edge in edges))
     y_stop = min(height, max(edge[1] for edge in edges))
     for y in range(y_start, y_stop):
@@ -351,7 +464,106 @@ def _fill_polygon_mask(
             if x_start < width and x_stop >= 0:
                 mask[y, max(x_start, 0) : min(x_stop, width - 1) + 1] = True
 
-    return mask
+
+def _fill_ellipse_arc_mask(
+    mask: npt.NDArray[np.bool_],
+    points: list[_Point],
+    center: _Point,
+) -> None:
+    """Set the boundary and interior pixels of an elliptic pie slice.
+
+    The ordered arc vertices and center use 16 fractional bits (65536 units per
+    pixel). Appending the center closes the arc with two radial edges, producing
+    a sector rather than the segment formed by joining the arc endpoints directly.
+    All coordinates are `(x, y)`; mask indexing is `[y, x]`.
+
+    Boundary endpoints round to pixels by adding half a pixel before shifting.
+    Clipped boundary lines are painted first. For the interior, each edge keeps
+    its original rounded row range, but its slope and starting x incorporate
+    clipped endpoints when available. Retaining that range is necessary for
+    off-canvas sectors to follow OpenCV's `CollectPolyEdges` behavior. Horizontal
+    edges contribute boundary pixels only; the remaining edges use the even-odd
+    scanline fill in :func:`~supervision._cv2._drawing._fill_mask_edges`.
+
+    Args:
+        mask: Boolean `(height, width)` destination. Existing true pixels remain
+            set; boundary and interior pixels are added in place.
+        points: Ordered fixed-point arc vertices, normally produced by
+            :func:`~supervision._cv2._drawing._ellipse_fixed_points`.
+        center: Fixed-point ellipse center used to close the sector.
+
+    Example:
+        Two arc vertices and the center form a small right-triangle sector.
+
+        ```pycon
+        >>> mask = np.zeros((5, 5), dtype=bool)
+        >>> points = [(3 << 16, 1 << 16), (1 << 16, 3 << 16)]
+        >>> _fill_ellipse_arc_mask(mask, points, (1 << 16, 1 << 16))
+        >>> mask[1:4, 1:4].astype(int).tolist()
+        [[1, 1, 1], [1, 1, 0], [1, 0, 0]]
+
+        ```
+    """
+    height, width = mask.shape
+    polygon = [*points, center]
+    edges: list[tuple[int, int, int, int]] = []
+    previous = polygon[-1]
+    for current in polygon:
+        previous_y = (previous[1] + _XY_HALF) >> _XY_SHIFT
+        current_y = (current[1] + _XY_HALF) >> _XY_SHIFT
+        previous_x = (previous[0] + _XY_HALF) >> _XY_SHIFT
+        current_x = (current[0] + _XY_HALF) >> _XY_SHIFT
+        first = (previous_x, previous_y)
+        second = (current_x, current_y)
+
+        clipped = _clip_polygon_line(width, height, first, second)
+        if clipped is not None:
+            for x, y in _iter_line_points(*clipped):
+                if 0 <= x < width and 0 <= y < height:
+                    mask[y, x] = True
+
+        edge_first_x, edge_first_y = previous_x << _XY_SHIFT, previous_y
+        edge_second_x, edge_second_y = current_x << _XY_SHIFT, current_y
+        if not (
+            0 <= previous_x < width
+            and 0 <= current_x < width
+            and 0 <= previous_y < height
+            and 0 <= current_y < height
+        ):
+            inside, clipped_first, clipped_second = _clip_line(
+                width, height, first, second
+            )
+            if inside:
+                if clipped_first[1] != clipped_second[1]:
+                    edge_first_y, edge_second_y = clipped_first[1], clipped_second[1]
+                edge_first_x = clipped_first[0] << _XY_SHIFT
+                edge_second_x = clipped_second[0] << _XY_SHIFT
+
+        if previous_y == current_y:
+            previous = current
+            continue
+        dx = _trunc_div(edge_second_x - edge_first_x, edge_second_y - edge_first_y)
+        if previous_y < current_y:
+            edges.append(
+                (
+                    previous_y,
+                    current_y,
+                    edge_first_x + (previous_y - edge_first_y) * dx,
+                    dx,
+                )
+            )
+        else:
+            edges.append(
+                (
+                    current_y,
+                    previous_y,
+                    edge_second_x + (current_y - edge_second_y) * dx,
+                    dx,
+                )
+            )
+        previous = current
+
+    _fill_mask_edges(mask, edges)
 
 
 def _points(points: npt.NDArray[Any], offset: tuple[int, int] = (0, 0)) -> list[_Point]:
@@ -664,6 +876,305 @@ def _paint_disc(mask: npt.NDArray[np.bool_], center: _Point, radius: int) -> Non
     mask[y_start:y_stop, x_start:x_stop] |= rows**2 + columns**2 <= radius * radius
 
 
+def _ellipse_arc_points(
+    center_x: float,
+    center_y: float,
+    axes_width: float,
+    axes_height: float,
+    angle: int,
+    arc_start: int,
+    arc_end: int,
+    delta: int,
+) -> list[tuple[float, float]]:
+    """Sample a rotated ellipse arc without quantizing its coordinates to pixels.
+
+    Sampling uses the stored float32 sine table rather than evaluating trigonometric
+    functions, preserving the values used by OpenCV's `ellipse2Poly`. With image
+    coordinates (x right, y down), increasing arc angles and positive rotation
+    move clockwise. Zero arc angle starts at the positive first semi-axis.
+
+    Reversed arc bounds are swapped. Bounds outside one turn are shifted together
+    by multiples of 360 degrees; spans greater than 360 become a full ellipse.
+    Sampling starts at the normalized lower bound and includes the upper bound,
+    even when the final step is shorter than `delta`. Equal bounds return two
+    copies of the center, not a point on the ellipse.
+
+    Args:
+        center_x: Horizontal center in the caller's coordinate units.
+        center_y: Vertical center in the same units.
+        axes_width: First semi-axis length, not the full width, in the same units.
+        axes_height: Second semi-axis length, not the full height, in the same units.
+        angle: Integer rotation in degrees; normalized to one turn.
+        arc_start: Integer starting angle in degrees before rotation.
+        arc_end: Integer ending angle in degrees before rotation.
+        delta: Positive integer sampling step in degrees, supplied by the caller.
+
+    Returns:
+        Ordered floating-point `(x, y)` vertices in the input units. A full turn
+        repeats its initial vertex at the end; no duplicate removal is performed.
+
+    Example:
+        Sample a quarter ellipse, then the same arc with a 90-degree rotation.
+
+        ```pycon
+        >>> _ellipse_arc_points(5, 5, 3, 2, 0, 0, 90, 90)
+        [(8.0, 5.0), (5.0, 7.0)]
+        >>> _ellipse_arc_points(5, 5, 3, 2, 90, 0, 90, 90)
+        [(5.0, 8.0), (3.0, 5.0)]
+        >>> _ellipse_arc_points(5, 5, 3, 2, 0, 45, 45, 90)
+        [(5, 5), (5, 5)]
+
+        ```
+    """
+    while angle < 0:
+        angle += 360
+    while angle > 360:
+        angle -= 360
+
+    if arc_start > arc_end:
+        arc_start, arc_end = arc_end, arc_start
+    while arc_start < 0:
+        arc_start += 360
+        arc_end += 360
+    while arc_end > 360:
+        arc_end -= 360
+        arc_start -= 360
+    if arc_end - arc_start > 360:
+        arc_start, arc_end = 0, 360
+
+    alpha = float(_SIN_TABLE[450 - angle])
+    beta = float(_SIN_TABLE[angle])
+    points: list[tuple[float, float]] = []
+    for step in range(arc_start, arc_end + delta, delta):
+        current = arc_end if step > arc_end else step
+        if current < 0:
+            current += 360
+        x = axes_width * float(_SIN_TABLE[450 - current])
+        y = axes_height * float(_SIN_TABLE[current])
+        points.append(
+            (
+                center_x + x * alpha - y * beta,
+                center_y + x * beta + y * alpha,
+            )
+        )
+
+    if len(points) == 1:
+        points = [(center_x, center_y), (center_x, center_y)]
+    return points
+
+
+def _ellipse_fixed_points(
+    center: _Point,
+    axes: _Point,
+    angle: float,
+    start_angle: float,
+    end_angle: float,
+) -> list[_Point]:
+    """Convert pixel-based ellipse geometry into fixed-point arc vertices.
+
+    Input coordinates are integer pixels; output coordinates have 16 fractional
+    bits, so `(65536, 131072)` represents pixel position `(1, 2)`. Angles round
+    to integer degrees with ties to even before sampling through
+    :func:`~supervision._cv2._drawing._ellipse_arc_points`.
+
+    The larger semi-axis selects an angular step of 90 degrees below 3 pixels,
+    30 below 10, 18 below 15, and 5 otherwise. Each sampled coordinate is rounded
+    in two stages: nearest whole pixel, then the remaining fixed-point fraction.
+    This preserves OpenCV's `EllipseEx` rounding order. Consecutive duplicate
+    vertices are removed, but a full ellipse retains its closing vertex. If at
+    most one vertex survives, two copies of the center represent the degenerate
+    path so the stroke rasterizer can still paint its caps.
+
+    Args:
+        center: Integer `(x, y)` center in pixels.
+        axes: Non-negative integer semi-axis lengths in pixels; already validated
+            by the caller.
+        angle: Clockwise rotation in degrees in image coordinates.
+        start_angle: Arc start in degrees before rotation.
+        end_angle: Arc end in degrees before rotation. Reversed and out-of-range
+            bounds are normalized by the arc sampler.
+
+    Returns:
+        At least two integer `(x, y)` vertices, scaled by 65536, for the fixed-point
+        stroke or fill helpers.
+
+    Example:
+        A two-pixel radius selects 90-degree steps, giving four cardinal vertices
+        and a closing vertex. Dividing by 65536 makes the units visible.
+
+        ```pycon
+        >>> points = _ellipse_fixed_points((3, 3), (2, 1), 0, 0, 360)
+        >>> [(x // 65536, y // 65536) for x, y in points]
+        [(5, 3), (3, 4), (1, 3), (3, 2), (5, 3)]
+        >>> _ellipse_fixed_points((1, 2), (0, 0), 0, 0, 360)
+        [(65536, 131072), (65536, 131072)]
+
+        ```
+    """
+    fixed_angle = round(angle)
+    arc_start = round(start_angle)
+    arc_end = round(end_angle)
+    center_x, center_y = center[0] << _XY_SHIFT, center[1] << _XY_SHIFT
+    axes_width, axes_height = axes[0] << _XY_SHIFT, axes[1] << _XY_SHIFT
+    delta = (max(axes_width, axes_height) + _XY_HALF) >> _XY_SHIFT
+    delta = 90 if delta < 3 else 30 if delta < 10 else 18 if delta < 15 else 5
+
+    points = _ellipse_arc_points(
+        float(center_x),
+        float(center_y),
+        float(axes_width),
+        float(axes_height),
+        fixed_angle,
+        arc_start,
+        arc_end,
+        delta,
+    )
+    fixed: list[_Point] = []
+    previous: _Point | None = None
+    for x, y in points:
+        point_x = round(x / _XY_ONE) << _XY_SHIFT
+        point_y = round(y / _XY_ONE) << _XY_SHIFT
+        point_x += round(x - point_x)
+        point_y += round(y - point_y)
+        point = (point_x, point_y)
+        if point != previous:
+            fixed.append(point)
+            previous = point
+
+    if len(fixed) <= 1:
+        fixed = [(center_x, center_y), (center_x, center_y)]
+    return fixed
+
+
+def _thick_line_mask_fixed_point(
+    mask: npt.NDArray[np.bool_],
+    first: _Point,
+    second: _Point,
+    thickness: int,
+    caps: int,
+) -> None:
+    """Rasterize a fixed-point segment with independently selectable round caps.
+
+    Endpoints have 16 fractional bits (65536 units per pixel). For thickness at
+    most one, endpoints round to integer pixels, the segment is clipped, and an
+    inclusive one-pixel line is drawn; cap flags have no effect on this path.
+
+    Thicker segments become a filled quadrilateral perpendicular to the segment,
+    plus a disc at each requested endpoint. Odd thickness adds half a pixel to
+    the perpendicular half-width, matching OpenCV's `ThickLine` construction.
+    The quadrilateral is formed before clipping, because clipping the centerline
+    first would change off-canvas stroke coverage. Coincident endpoints have no
+    quadrilateral and draw only the requested cap discs.
+
+    Args:
+        mask: Boolean `(height, width)` destination, updated in place without
+            clearing existing pixels.
+        first: Fixed-point `(x, y)` start, possibly outside the mask.
+        second: Fixed-point `(x, y)` end, possibly outside the mask.
+        thickness: Stroke width in pixels, already bounded by the caller.
+        caps: Bit mask: 1 adds the start cap, 2 the end cap, 3 both, and 0 neither.
+
+    Example:
+        Coincident endpoints with thickness two produce a radius-one disc when
+        a cap is requested.
+
+        ```pycon
+        >>> mask = np.zeros((5, 5), dtype=bool)
+        >>> point = (2 << 16, 2 << 16)
+        >>> _thick_line_mask_fixed_point(mask, point, point, 2, 1)
+        >>> mask[1:4, 1:4].astype(int).tolist()
+        [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+
+        ```
+    """
+    height, width = mask.shape
+    x0, y0 = first
+    x1, y1 = second
+    if thickness <= 1:
+        rounded_first = ((x0 + _XY_HALF) >> _XY_SHIFT, (y0 + _XY_HALF) >> _XY_SHIFT)
+        rounded_second = ((x1 + _XY_HALF) >> _XY_SHIFT, (y1 + _XY_HALF) >> _XY_SHIFT)
+        clipped = _clip_polygon_line(width, height, rounded_first, rounded_second)
+        if clipped is not None:
+            for x, y in _iter_line_points(*clipped):
+                mask[y, x] = True
+        return
+
+    dx = (x0 - x1) / _XY_ONE
+    dy = (y1 - y0) / _XY_ONE
+    squared_length = dx * dx + dy * dy
+    half_width = thickness << (_XY_SHIFT - 1)
+    if abs(squared_length) > np.finfo(np.float64).eps:
+        scale = (half_width + (thickness & 1) * _XY_ONE * 0.5) / np.sqrt(squared_length)
+        offset_x = round(dy * scale)
+        offset_y = round(dx * scale)
+        _fill_convex_fixed_point(
+            mask,
+            [
+                (x0 + offset_x, y0 + offset_y),
+                (x0 - offset_x, y0 - offset_y),
+                (x1 - offset_x, y1 - offset_y),
+                (x1 + offset_x, y1 + offset_y),
+            ],
+        )
+    radius = (half_width + _XY_HALF) >> _XY_SHIFT
+    for cap, (x, y) in ((_CAP_START, (x0, y0)), (_CAP_END, (x1, y1))):
+        if caps & cap:
+            center = ((x + _XY_HALF) >> _XY_SHIFT, (y + _XY_HALF) >> _XY_SHIFT)
+            _paint_disc(mask, center, radius)
+
+
+def _thick_polyline_mask_fixed_point(
+    mask: npt.NDArray[np.bool_],
+    points: list[_Point],
+    is_closed: bool,
+    thickness: int,
+) -> None:
+    """Join fixed-point segments with round caps while preserving their order.
+
+    An open path paints both caps on its first segment, then only the end cap
+    on each later segment. A closed path starts with the last-to-first segment
+    and paints only end caps, visiting every vertex once as a segment end. This
+    reproduces OpenCV's `PolyLine` cap scheduling through
+    :func:`~supervision._cv2._drawing._thick_line_mask_fixed_point`.
+
+    Args:
+        mask: Boolean `(height, width)` destination, modified in place. Previously
+            set pixels remain set.
+        points: Ordered `(x, y)` vertices with 16 fractional bits. An empty list
+            does nothing. A single vertex draws nothing for an open path, but
+            becomes a zero-length capped segment for a closed path.
+        is_closed: Whether to connect the last vertex back to the first. An open
+            path can also repeat its initial vertex explicitly, as full ellipses do.
+        thickness: Stroke width in pixels, already bounded by the caller.
+
+    Example:
+        Closing an L-shaped path adds the diagonal from the last vertex to the
+        first. Coordinates are scaled by 65536 before rasterization.
+
+        ```pycon
+        >>> points = [(x << 16, y << 16) for x, y in [(1, 1), (3, 1), (3, 3)]]
+        >>> mask = np.zeros((5, 5), dtype=bool)
+        >>> _thick_polyline_mask_fixed_point(mask, points, False, 1)
+        >>> bool(mask[2, 2])
+        False
+        >>> _thick_polyline_mask_fixed_point(mask, points, True, 1)
+        >>> bool(mask[2, 2])
+        True
+
+        ```
+    """
+    if not points:
+        return
+    index = len(points) - 1 if is_closed else 0
+    previous = points[index]
+    caps = _CAP_END if is_closed else _CAP_START | _CAP_END
+    segments = points if is_closed else points[1:]
+    for point in segments:
+        _thick_line_mask_fixed_point(mask, previous, point, thickness, caps)
+        previous = point
+        caps = _CAP_END
+
+
 def _rectangle_mask(
     image: _ImageArray, first: _Point, second: _Point, thickness: int
 ) -> npt.NDArray[np.bool_]:
@@ -756,27 +1267,6 @@ def _circle(
     return _paint(img, mask, color)
 
 
-def _ellipse_points(
-    center: Sequence[int | float],
-    axes: Sequence[int | float],
-    angle: float,
-    start_angle: float,
-    end_angle: float,
-) -> list[_Point]:
-    """Sample an OpenCV ellipse arc as integer image coordinates."""
-    center_x, center_y = center
-    axis_x, axis_y = axes
-    span = max(0.0, end_angle - start_angle)
-    sample_count = max(2, int(np.ceil(span * max(axis_x, axis_y) * np.pi / 90)))
-    angles = np.linspace(start_angle, end_angle, sample_count + 1)
-    radians = np.deg2rad(angles)
-    rotation = np.deg2rad(angle)
-    cosine, sine = np.cos(rotation), np.sin(rotation)
-    x = center_x + axis_x * np.cos(radians) * cosine - axis_y * np.sin(radians) * sine
-    y = center_y + axis_x * np.cos(radians) * sine + axis_y * np.sin(radians) * cosine
-    return [(round(x_value), round(y_value)) for x_value, y_value in zip(x, y)]
-
-
 def _ellipse(
     img: _ImageArray,
     center: Sequence[int | float],
@@ -789,25 +1279,95 @@ def _ellipse(
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
-    """Draw or fill an optionally rotated ellipse arc in place."""
+    """Draw or fill an optionally rotated ellipse arc in place.
+
+    The fallback samples the arc through
+    :func:`~supervision._cv2._drawing._ellipse_fixed_points`, then rasterizes its
+    outline with fixed-point quadrilaterals and round caps. Negative thickness
+    selects filling: a rounded end-minus-start span of at least 360 degrees uses
+    the convex fill path; all other spans use a sector closed through the center
+    and filled with the even-odd rule. This dispatch uses the rounded bounds
+    before the sampler swaps or normalizes them.
+
+    Args:
+        img: Grayscale `(height, width)` or multichannel `(height, width, channels)`
+            image to modify. Pixels outside the rasterized shape are preserved.
+        center: `(x, y)` center in pixels, rounded to integers with ties to even.
+        axes: Semi-axis lengths in pixels, not full diameters. Values round to
+            integers with ties to even before checking that they are non-negative.
+        angle: Clockwise rotation in degrees (image y increases downward), rounded
+            to an integer with ties to even.
+        startAngle: Arc start in degrees before rotation, rounded with ties to even.
+        endAngle: Arc end in degrees before rotation, rounded with ties to even.
+            The sampler swaps reversed bounds and limits spans to one full turn.
+        color: Scalar or channel values in the image's channel order, normally BGR.
+            A scalar paints only the first channel of a multichannel image;
+            missing channels are zero-filled and surplus values are ignored.
+        thickness: Integer outline width in pixels; negative values fill the shape.
+        lineType: Accepted for API compatibility but ignored; rendering is aliased.
+        shift: Coordinate fractional-bit count. Only zero is supported by this
+            entry point, despite the internal rasterizer using fixed-point vertices.
+
+    Returns:
+        The same image object, painted in place and clipped to its dimensions.
+
+    Raises:
+        TypeError: If `thickness` is not an integer, as in OpenCV.
+        ValueError: If `thickness` exceeds 32767, a rounded semi-axis is negative,
+            or `shift` is nonzero.
+
+    Example:
+        A filled quarter ellipse includes the center and extends right and down.
+
+        ```pycon
+        >>> image = np.zeros((9, 9), dtype=np.uint8)
+        >>> result = _ellipse(image, (4, 4), (3, 2), 0, 0, 90, 7, thickness=-1)
+        >>> result is image
+        True
+        >>> image[[4, 4, 6, 2], [4, 7, 4, 4]].tolist()
+        [7, 7, 7, 0]
+
+        ```
+
+        Fractional arc bounds round before choosing the fill path: 359.6 degrees
+        fills the same full ellipse as 360 degrees.
+
+        ```pycon
+        >>> rounded = np.zeros((9, 9), dtype=np.uint8)
+        >>> full = np.zeros_like(rounded)
+        >>> _ = _ellipse(rounded, (4, 4), (3, 2), 0, 0, 359.6, 1, thickness=-1)
+        >>> _ = _ellipse(full, (4, 4), (3, 2), 0, 0, 360, 1, thickness=-1)
+        >>> np.array_equal(rounded, full)
+        True
+
+        ```
+    """
     del lineType
     _validate_shift(shift)
-    ellipse_points = _ellipse_points(center, axes, angle, startAngle, endAngle)
-    is_full = endAngle - startAngle >= 360
+    thickness = _bounded_thickness(thickness, "Ellipse")
+    center_point = _point(center)
+    axes_point = (round(axes[0]), round(axes[1]))
+    if axes_point[0] < 0 or axes_point[1] < 0:
+        raise ValueError("Ellipse axes must be non-negative")
 
-    def draw_ellipse(draw: Any) -> None:
-        if thickness < 0:
-            if is_full:
-                draw.polygon(ellipse_points, fill=1)
-            else:
-                draw.polygon([_point(center), *ellipse_points], fill=1)
-            return
-        width = max(1, thickness)
-        draw.line(ellipse_points, fill=1, width=width, joint="curve")
-        if is_full and len(ellipse_points) > 1:
-            draw.line([ellipse_points[-1], ellipse_points[0]], fill=1, width=width)
+    arc_start = round(startAngle)
+    arc_end = round(endAngle)
+    points = _ellipse_fixed_points(center_point, axes_point, angle, arc_start, arc_end)
+    height, width = img.shape[:2]
+    mask = np.zeros((height, width), dtype=bool)
+    if thickness < 0:
+        if arc_end - arc_start >= 360:
+            _fill_convex_fixed_point(mask, points)
+        else:
+            center_fixed = (center_point[0] << _XY_SHIFT, center_point[1] << _XY_SHIFT)
+            _fill_ellipse_arc_mask(mask, points, center_fixed)
+        return _paint(img, mask, color)
 
-    return _paint(img, _drawing_mask(img, draw_ellipse), color)
+    _thick_polyline_mask_fixed_point(mask, points, False, thickness)
+    painted_points = [
+        ((x + _XY_HALF) >> _XY_SHIFT, (y + _XY_HALF) >> _XY_SHIFT) for x, y in points
+    ]
+    return _paint_around(img, mask, color, painted_points, thickness)
 
 
 def _polylines(
