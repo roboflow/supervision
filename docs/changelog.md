@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.metrics.MeanAverageRecall`, `Precision`, `Recall` and `F1Score` with `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES` now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. ([#2752](https://github.com/roboflow/supervision/pull/2752))
+
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
 - `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
