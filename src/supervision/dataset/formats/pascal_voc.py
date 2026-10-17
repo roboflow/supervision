@@ -34,7 +34,8 @@ def object_to_pascal_voc(
 ) -> Element:
     """Build a Pascal VOC ``<object>`` XML element for one detection.
 
-    Coordinates are converted to 1-indexed Pascal VOC convention before writing.
+    Coordinates are converted to 1-indexed Pascal VOC convention before writing,
+    and ``<bndbox>`` corners are rounded to the nearest integer pixel.
     The input arrays are never mutated; new arrays are allocated for the offset.
 
     Args:
@@ -77,13 +78,13 @@ def object_to_pascal_voc(
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(x_min))
+    xmin.text = str(round(x_min))
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(y_min))
+    ymin.text = str(round(y_min))
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(x_max))
+    xmax.text = str(round(x_max))
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(y_max))
+    ymax.text = str(round(y_max))
 
     if polygon is not None:
         # 1-indexed, rebound to avoid mutating the caller's array (see above).

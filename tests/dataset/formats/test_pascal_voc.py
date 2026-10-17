@@ -76,6 +76,40 @@ def test_object_to_pascal_voc(
         assert are_xml_elements_equal(result, expected_result)
 
 
+@pytest.mark.parametrize(
+    ("xyxy", "expected_bndbox"),
+    [
+        pytest.param(
+            np.array([10.9, 10.9, 20.9, 20.9]),
+            ("12", "12", "22", "22"),
+            id="fraction_above_half_rounds_up",
+        ),
+        pytest.param(
+            np.array([10.2, 10.2, 20.2, 20.2]),
+            ("11", "11", "21", "21"),
+            id="fraction_below_half_rounds_down",
+        ),
+        pytest.param(
+            # `from_yolo` reading the 6-decimal label of the integer box [0, 0, 37, 29]
+            # on a 640x480 image; truncating writes xmin=0, outside 1-indexed VOC.
+            np.array([-0.00032, -0.00024, 37.0, 28.99992]),
+            ("1", "1", "38", "30"),
+            id="yolo_float_noise",
+        ),
+    ],
+)
+def test_object_to_pascal_voc_rounds_fractional_bndbox(
+    xyxy: np.ndarray, expected_bndbox: tuple[str, str, str, str]
+) -> None:
+    """Fractional box corners are rounded, not truncated, when written."""
+    result = object_to_pascal_voc(xyxy=xyxy, name="test")
+
+    bndbox = tuple(
+        result.find(f"bndbox/{tag}").text for tag in ("xmin", "ymin", "xmax", "ymax")
+    )
+    assert bndbox == expected_bndbox
+
+
 def test_object_to_pascal_voc_does_not_mutate_inputs():
     """Serializing an object must not write the 1-index offset back into the inputs."""
     xyxy = np.array([10, 20, 30, 40], dtype=np.float32)
