@@ -41,14 +41,18 @@ def _write_video(path: Path, values: list[int], fps: int = 5) -> None:
         container.close()
 
 
-def _write_video_with_audio(path: Path, frame_count: int = 5, fps: int = 5) -> None:
+def _write_video_with_audio(
+    path: Path, frame_count: int = 5, fps: int = 5, *, audio_first: bool = False
+) -> None:
     """Write a short video with one AAC audio stream for remux tests."""
     container = av.open(str(path), mode="w")
+    audio_stream = container.add_stream("aac", rate=8_000) if audio_first else None
     video_stream = container.add_stream("mpeg4", rate=fps)
     video_stream.width = 16
     video_stream.height = 16
     video_stream.pix_fmt = "yuv420p"
-    audio_stream = container.add_stream("aac", rate=8_000)
+    if audio_stream is None:
+        audio_stream = container.add_stream("aac", rate=8_000)
     audio_stream.layout = "mono"
     try:
         for value in range(frame_count):
@@ -70,6 +74,62 @@ def _write_video_with_audio(path: Path, frame_count: int = 5, fps: int = 5) -> N
             container.mux(packet)
     finally:
         container.close()
+
+
+@pytest.mark.parametrize("audio_first", [False, True])
+@pytest.mark.parametrize("suffix", [".mp4", ".mkv"])
+def test_fallback_capture_handles_audio_before_video(
+    tmp_path: Path, audio_first: bool, suffix: str
+) -> None:
+    """Read metadata, count frames and seek independently of container stream order."""
+    source_path = tmp_path / f"stream_order{suffix}"
+    _write_video_with_audio(source_path, audio_first=audio_first)
+    with av.open(str(source_path)) as container:
+        assert container.streams.video[0].index == int(audio_first)
+
+    capture = _VideoCapture(str(source_path))
+    try:
+        assert capture.isOpened()
+        assert capture.get(_cv2.CAP_PROP_FRAME_WIDTH) == 16
+        assert capture.get(_cv2.CAP_PROP_FRAME_HEIGHT) == 16
+        assert capture.get(_cv2.CAP_PROP_FRAME_COUNT) == 5
+        assert capture.get(_cv2.CAP_PROP_POS_FRAMES) == 0
+        assert capture.grab()
+        success, frame = capture.read()
+        assert success
+        assert frame is not None
+        assert float(frame.mean()) == pytest.approx(20, abs=4)
+        assert capture.set(_cv2.CAP_PROP_POS_FRAMES, 1)
+        success, frame = capture.read()
+        assert success
+        assert frame is not None
+        assert float(frame.mean()) == pytest.approx(20, abs=4)
+    finally:
+        capture.release()
+
+
+@pytest.mark.parametrize("prefetch", [0, 2])
+def test_public_video_reader_handles_audio_before_video(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, prefetch: int
+) -> None:
+    """Read an audio-first file through the public APIs using the fallback backend."""
+    from supervision.utils.video import VideoInfo, get_video_frames_generator
+
+    source_path = tmp_path / "audio_first.mp4"
+    _write_video_with_audio(source_path, audio_first=True)
+    monkeypatch.setattr(_cv2, "VideoCapture", _VideoCapture)
+
+    info = VideoInfo.from_video_path(str(source_path))
+    frames = list(
+        get_video_frames_generator(
+            str(source_path), start=1, end=4, stride=2, prefetch=prefetch
+        )
+    )
+
+    assert info.total_frames == 5
+    assert info.resolution_wh == (16, 16)
+    assert len(frames) == 2
+    assert [float(frame.mean()) for frame in frames] == pytest.approx([20, 60], abs=4)
 
 
 def _write_rotated_video(path: Path, rotation: int) -> np.ndarray:

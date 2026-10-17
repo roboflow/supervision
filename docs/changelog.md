@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
+
 - `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
 
 - The NumPy fallback for `ellipse` now matches OpenCV's `Ellipse2Poly` / `EllipseEx` rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A `(25, 15)` ellipse at `thickness=2` previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, `ThickLine` and `FillEdgeCollection` paths. `circle` is unchanged. ([#2740](https://github.com/roboflow/supervision/pull/2740))
