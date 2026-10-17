@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `VertexAnnotator` and the three `VertexEllipse` annotators now draw accepted three-coordinate keypoints using x/y instead of raising a tuple-unpacking error. Two-coordinate rendering and visibility filtering are unchanged.
+- `VertexAnnotator` and the three `VertexEllipse` annotators now draw accepted three-coordinate keypoints using x/y instead of raising a tuple-unpacking error. Two-coordinate rendering and visibility filtering are unchanged. ([#2759](https://github.com/roboflow/supervision/pull/2759))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
