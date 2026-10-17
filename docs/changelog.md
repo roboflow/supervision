@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents.
+- `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
