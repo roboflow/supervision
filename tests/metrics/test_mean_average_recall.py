@@ -1,9 +1,117 @@
 import numpy as np
 import pytest
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
+
+
+class TestMeanAverageRecallConfidenceMatching:
+    """Verify COCO confidence-ordered matching across mAR geometries."""
+
+    @pytest.mark.parametrize(
+        "metric_target",
+        [MetricTarget.BOXES, MetricTarget.MASKS, MetricTarget.ORIENTED_BOUNDING_BOXES],
+    )
+    @pytest.mark.parametrize(
+        ("confidence", "expected"),
+        [
+            pytest.param([0.9, 0.8], [0.45, 0.85, 0.85], id="higher-score-first"),
+            pytest.param([0.8, 0.9], [0.5, 0.75, 0.75], id="higher-score-second"),
+            pytest.param([0.9, 0.9], [0.45, 0.85, 0.85], id="tied-scores"),
+        ],
+    )
+    def test_overlapping_targets_match_in_confidence_order(
+        self,
+        metric_target: MetricTarget,
+        confidence: list[float],
+        expected: list[float],
+    ) -> None:
+        """Higher-scored detections get first choice of overlapping targets."""
+        target_boxes = np.array([[0, 0, 100, 100], [10, 0, 110, 100]], dtype=np.float32)
+        predicted_boxes = np.array(
+            [[15, 0, 115, 100], [10, 0, 110, 100]], dtype=np.float32
+        )
+        targets = Detections(xyxy=target_boxes, class_id=np.array([0, 0]))
+        predictions = Detections(
+            xyxy=predicted_boxes,
+            confidence=np.array(confidence, dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+        for detections in (targets, predictions):
+            if metric_target == MetricTarget.MASKS:
+                detections.mask = np.zeros((2, 100, 150), dtype=bool)
+                for index, (x1, y1, x2, y2) in enumerate(detections.xyxy.astype(int)):
+                    detections.mask[index, y1:y2, x1:x2] = True
+            elif metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                boxes = detections.xyxy
+                detections.data[ORIENTED_BOX_COORDINATES] = boxes[
+                    :, [0, 1, 2, 1, 2, 3, 0, 3]
+                ].reshape(2, 4, 2)
+
+        result = MeanAverageRecall(metric_target).update(predictions, targets).compute()
+
+        # pycocotools 2.0.11 gives these AR@1/10/100 scores for both boxes and masks.
+        np.testing.assert_allclose(result.recall_scores, expected)
+        np.testing.assert_allclose(result.large_objects.recall_scores, expected)
+
+    @pytest.mark.parametrize(
+        ("prediction_classes", "target_classes", "ious", "thresholds", "expected"),
+        [
+            pytest.param(
+                [0, 0],
+                [0],
+                [[0.6, 0.9]],
+                [0.5, 0.75],
+                [[True, False], [False, True]],
+                id="independent-thresholds",
+            ),
+            pytest.param(
+                [0, 0],
+                [0, 0],
+                [[0.6, 0.0], [0.6, 1.0]],
+                [0.5, 0.75],
+                [[True, False], [False, True]],
+                id="last-target-wins-iou-tie",
+            ),
+            pytest.param(
+                [0, 1],
+                [1, 0],
+                [[0.9, 0.8], [0.7, 0.9]],
+                [0.75],
+                [[False], [True]],
+                id="matching-class-only",
+            ),
+            pytest.param([], [0], [], [0.5], [], id="no-predictions"),
+            pytest.param([0, 0], [], [], [0.5], [[False], [False]], id="no-targets"),
+        ],
+    )
+    def test_matches_each_target_once_at_each_threshold(
+        self,
+        prediction_classes: list[int],
+        target_classes: list[int],
+        ious: list[list[float]],
+        thresholds: list[float],
+        expected: list[list[bool]],
+    ) -> None:
+        """Thresholds keep independent class-aware assignments, including COCO ties."""
+        prediction_count = len(prediction_classes)
+        iou = np.array(ious, dtype=np.float32).reshape(
+            len(target_classes), prediction_count
+        )
+
+        matches = MeanAverageRecall._match_detection_batch(
+            np.array(prediction_classes, dtype=np.int32),
+            np.array(target_classes, dtype=np.int32),
+            iou,
+            np.array(thresholds, dtype=np.float32),
+        )
+
+        np.testing.assert_array_equal(
+            matches,
+            np.array(expected, dtype=bool).reshape(prediction_count, len(thresholds)),
+        )
 
 
 @pytest.fixture

@@ -15,9 +15,6 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.detection.utils.matching import (
-    _match_detection_batch_with_target_indices,
-)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import (
     Metric,
@@ -279,7 +276,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     confidence detections of each class in each image. mAR @ 1 considers only
     the highest confidence detection of each class in each image. This matches
     the `maxDets` limit of COCO evaluation, so with a single class the limit
-    applies to the whole image.
+    applies to the whole image. Predictions are matched in descending confidence
+    order to the highest-IoU unmatched target of the same class at each IoU threshold.
 
     Examples:
         ```pycon
@@ -565,12 +563,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     ) -> npt.NDArray[np.bool_]:
         """Match one image's predictions separately for each detection limit.
 
-        The matcher pairs by highest IoU rather than by confidence, so matching every
-        prediction and then keeping the top K would let a prediction ranked below K
-        take a target from one ranked within it. Each limit therefore matches only the
-        top K predictions of each class, as COCO does for every (image, class) pair.
-        Matching never pairs predictions with targets of another class, so dropping
-        one class's excess predictions cannot change how another class is matched.
+        Each limit matches only the top K predictions of each class, in descending
+        confidence order, as COCO does for every (image, class) pair.
 
         Args:
             sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
@@ -594,7 +588,7 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         for limit_index, max_detections in enumerate(self.max_detections):
             # Ascending indices keep the confidence order the matcher relies on.
             within_limit = np.flatnonzero(class_ranks < max_detections)
-            limit_matches, _ = _match_detection_batch_with_target_indices(
+            limit_matches = self._match_detection_batch(
                 sorted_prediction_class_ids[within_limit],
                 target_class_ids,
                 sorted_iou[:, within_limit],
@@ -665,9 +659,32 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
-        result_correct, _ = _match_detection_batch_with_target_indices(
-            predictions_classes, target_classes, iou, iou_thresholds
+        """Match predictions already sorted by descending confidence, as COCO does.
+
+        Each prediction takes its highest-IoU unmatched target of the same class. Target
+        availability is independent at each threshold. Equal IoUs select the last target
+        in input order, matching COCO's tie rule. The prediction loop is sequential
+        because later predictions must respect earlier assignments; thresholds and
+        targets are handled together with NumPy.
+        """
+        result_correct = np.zeros(
+            (predictions_classes.size, iou_thresholds.size), dtype=bool
         )
+        available = np.ones((iou_thresholds.size, target_classes.size), dtype=bool)
+        for prediction_idx, prediction_class in enumerate(predictions_classes):
+            prediction_iou = iou[:, prediction_idx]
+            candidates = (
+                (prediction_iou >= iou_thresholds[:, None])
+                & (target_classes == prediction_class)
+                & available
+            )
+            matched = np.flatnonzero(candidates.any(axis=1))
+            if matched.size == 0:
+                continue
+            scores = np.where(candidates[matched], prediction_iou, -np.inf)
+            best = target_classes.size - 1 - np.argmax(scores[:, ::-1], axis=1)
+            result_correct[prediction_idx, matched] = True
+            available[matched, best] = False
         return result_correct
 
     @staticmethod
