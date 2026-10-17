@@ -1233,6 +1233,11 @@ def test_mask_to_polygons_polygon_to_mask_round_trip() -> None:
             np.zeros(4, dtype=np.float32),
             id="empty-polygon-float32",
         ),
+        pytest.param(
+            [],
+            np.array([0, 0, 0, 0]),
+            id="empty-polygon-list",
+        ),
     ],
 )
 def test_polygon_to_xyxy(
@@ -1240,4 +1245,5 @@ def test_polygon_to_xyxy(
 ) -> None:
     """polygon_to_xyxy returns the tight axis-aligned bounding box."""
     result = polygon_to_xyxy(polygon)
+    assert result.dtype == expected.dtype
     np.testing.assert_array_equal(result, expected)
