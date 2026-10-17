@@ -1090,6 +1090,9 @@ class KeyPointsDataset(BaseDataset):
             ``kpt_shape``.
         value_dim: Values stored per keypoint, the ``D`` of ``kpt_shape``;
             ``2`` for coordinates only, ``3`` when a visibility flag follows.
+        flip_idx: The ``flip_idx`` of the dataset, mapping each keypoint to the
+            one it becomes under a horizontal flip, or ``None`` when the
+            dataset declares none.
 
     Examples:
         ```pycon
@@ -1119,6 +1122,7 @@ class KeyPointsDataset(BaseDataset):
         annotations: dict[str, KeyPoints],
         keypoint_count: int,
         value_dim: int = 3,
+        flip_idx: list[int] | None = None,
     ) -> None:
         """Initialize a keypoint dataset.
 
@@ -1129,11 +1133,15 @@ class KeyPointsDataset(BaseDataset):
             keypoint_count: Number of keypoints per skeleton.
             value_dim: ``2`` or ``3``, the per-keypoint value count written by
                 :meth:`~supervision.dataset.core.KeyPointsDataset.as_yolo`.
+            flip_idx: Optional permutation mapping each keypoint to the one it
+                becomes under a horizontal flip, carried through splitting,
+                merging and export.
 
         Raises:
             ValueError: If the image paths and annotation keys differ, if
                 ``keypoint_count`` is not positive, if ``value_dim`` is neither
-                2 nor 3, or if an annotation carries a non-integer class id, a
+                2 nor 3, if ``flip_idx`` is not a permutation of the keypoint
+                indices, or if an annotation carries a non-integer class id, a
                 class id outside the range of ``classes``, or a keypoint count
                 other than ``keypoint_count``.
         """
@@ -1147,10 +1155,16 @@ class KeyPointsDataset(BaseDataset):
             )
         if value_dim not in (2, 3):
             raise ValueError(f"`value_dim` must be 2 or 3, got {value_dim}.")
+        if flip_idx is not None and sorted(flip_idx) != list(range(keypoint_count)):
+            raise ValueError(
+                f"`flip_idx` must be a permutation of the {keypoint_count} "
+                f"keypoint indices 0..{keypoint_count - 1}, got {flip_idx!r}."
+            )
 
         self.classes = classes
         self.keypoint_count = keypoint_count
         self.value_dim = value_dim
+        self.flip_idx = None if flip_idx is None else list(flip_idx)
         self.annotations = {
             image_path: deepcopy(annotation)
             for image_path, annotation in annotations.items()
@@ -1228,6 +1242,7 @@ class KeyPointsDataset(BaseDataset):
             and self.image_paths == other.image_paths
             and self.keypoint_count == other.keypoint_count
             and self.value_dim == other.value_dim
+            and self.flip_idx == other.flip_idx
             and self.annotations == other.annotations
         )
 
@@ -1266,6 +1281,7 @@ class KeyPointsDataset(BaseDataset):
                 annotations={path: self.annotations[path] for path in train_paths},
                 keypoint_count=self.keypoint_count,
                 value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
             ),
             KeyPointsDataset(
                 classes=self.classes,
@@ -1273,6 +1289,7 @@ class KeyPointsDataset(BaseDataset):
                 annotations={path: self.annotations[path] for path in test_paths},
                 keypoint_count=self.keypoint_count,
                 value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
             ),
         )
 
@@ -1293,8 +1310,8 @@ class KeyPointsDataset(BaseDataset):
 
         Raises:
             ValueError: If the list is empty, if the datasets disagree on
-                ``keypoint_count`` or ``value_dim``, or if an image path
-                appears in more than one dataset.
+                ``keypoint_count``, ``value_dim`` or ``flip_idx``, or if an
+                image path appears in more than one dataset.
         """
         if not dataset_list:
             raise ValueError("Cannot merge an empty list of datasets.")
@@ -1310,6 +1327,16 @@ class KeyPointsDataset(BaseDataset):
             raise ValueError(
                 "Cannot merge KeyPointsDatasets with different `value_dim` "
                 f"values: {sorted(value_dims)}."
+            )
+        flip_indices = {
+            None if dataset.flip_idx is None else tuple(dataset.flip_idx)
+            for dataset in dataset_list
+        }
+        if len(flip_indices) > 1:
+            raise ValueError(
+                "Cannot merge KeyPointsDatasets with different `flip_idx` "
+                "values; they disagree on which keypoint is which: "
+                f"{sorted(map(str, flip_indices))}."
             )
 
         image_paths = list(
@@ -1346,6 +1373,7 @@ class KeyPointsDataset(BaseDataset):
             annotations=annotations,
             keypoint_count=keypoint_counts.pop(),
             value_dim=value_dims.pop(),
+            flip_idx=dataset_list[0].flip_idx,
         )
 
     @classmethod
@@ -1388,7 +1416,13 @@ class KeyPointsDataset(BaseDataset):
             )
             ```
         """
-        classes, image_paths, annotations, kpt_shape = load_yolo_pose_annotations(
+        (
+            classes,
+            image_paths,
+            annotations,
+            kpt_shape,
+            flip_idx,
+        ) = load_yolo_pose_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             data_yaml_path=data_yaml_path,
@@ -1401,6 +1435,7 @@ class KeyPointsDataset(BaseDataset):
             annotations=annotations,
             keypoint_count=keypoint_count,
             value_dim=value_dim,
+            flip_idx=flip_idx,
         )
 
     def as_yolo(
@@ -1467,6 +1502,7 @@ class KeyPointsDataset(BaseDataset):
                 classes=self.classes,
                 keypoint_count=self.keypoint_count,
                 value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
             )
 
 

@@ -312,3 +312,57 @@ class TestKeyPointsDatasetExport:
             )
 
         assert not output.exists()
+
+
+class TestKeyPointsDatasetFlipIdx:
+    """Tests for the `flip_idx` keypoint permutation on the dataset."""
+
+    def test_rejects_a_flip_idx_that_is_not_a_permutation(self) -> None:
+        """A `flip_idx` that would drop or duplicate a joint is refused."""
+        with pytest.raises(ValueError, match="permutation"):
+            KeyPointsDataset(
+                classes=["person"],
+                images=[],
+                annotations={},
+                keypoint_count=3,
+                flip_idx=[0, 1, 1],
+            )
+
+    def test_split_carries_flip_idx_to_both_parts(self) -> None:
+        """Both halves of a split keep the permutation of the source."""
+        dataset = _dataset(["a.png", "b.png"], keypoint_count=2)
+        dataset.flip_idx = [1, 0]
+
+        train, test = dataset.split(split_ratio=0.5, random_state=0)
+
+        assert train.flip_idx == [1, 0]
+        assert test.flip_idx == [1, 0]
+
+    def test_merge_rejects_differing_flip_idx(self) -> None:
+        """Datasets that disagree on which keypoint is which cannot merge."""
+        first = _dataset(["a.png"], keypoint_count=2)
+        second = _dataset(["b.png"], keypoint_count=2)
+        first.flip_idx = [0, 1]
+        second.flip_idx = [1, 0]
+
+        with pytest.raises(ValueError, match="different `flip_idx`"):
+            KeyPointsDataset.merge([first, second])
+
+    def test_merge_keeps_a_shared_flip_idx(self) -> None:
+        """A permutation common to every input survives the merge."""
+        first = _dataset(["a.png"], keypoint_count=2)
+        second = _dataset(["b.png"], keypoint_count=2)
+        first.flip_idx = [1, 0]
+        second.flip_idx = [1, 0]
+
+        merged = KeyPointsDataset.merge([first, second])
+
+        assert merged.flip_idx == [1, 0]
+
+    def test_differing_flip_idx_compares_unequal(self) -> None:
+        """Equality is sensitive to the permutation."""
+        first = _dataset(["a.png"], keypoint_count=2)
+        second = _dataset(["a.png"], keypoint_count=2)
+        second.flip_idx = [1, 0]
+
+        assert first != second

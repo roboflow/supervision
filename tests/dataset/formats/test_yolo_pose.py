@@ -255,7 +255,7 @@ class TestLoadYoloPoseAnnotations:
             data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\n",
         )
 
-        classes, image_paths, loaded, kpt_shape = load_yolo_pose_annotations(
+        classes, image_paths, loaded, kpt_shape, _ = load_yolo_pose_annotations(
             images_directory_path=images,
             annotations_directory_path=annotations,
             data_yaml_path=data_yaml,
@@ -275,7 +275,7 @@ class TestLoadYoloPoseAnnotations:
         )
         Image.new("RGB", (200, 100)).save(Path(images) / "b.png")
 
-        _, image_paths, loaded, _ = load_yolo_pose_annotations(
+        _, image_paths, loaded, _, _ = load_yolo_pose_annotations(
             images_directory_path=images,
             annotations_directory_path=annotations,
             data_yaml_path=data_yaml,
@@ -376,7 +376,53 @@ class TestYoloPoseRoundTrip:
             data_yaml_path=str(out / "data.yaml"),
         )
 
-        assert (out / "labels" / "a.txt").read_text().strip() == line
+        assert (out / "labels" / "a.txt").read_text() == f"{line}\n"
+
+    def test_round_trip_rounds_to_six_significant_digits(self) -> None:
+        """A label carrying more precision than the writer emits is rounded."""
+        line = "0 0.5 0.5 0.4 0.6 0.1234567 0.3 2 0.5 0.5 1 0.75 0.7 0"
+        key_points = yolo_pose_annotations_to_key_points(
+            lines=[line], resolution_wh=(200, 100), keypoint_count=3, value_dim=3
+        )
+
+        result = key_points_to_yolo_pose_annotations(
+            key_points=key_points,
+            image_shape=(100, 200, 3),
+            keypoint_count=3,
+            value_dim=3,
+        )
+
+        assert result == ["0 0.5 0.5 0.4 0.6 0.123457 0.3 2 0.5 0.5 1 0.75 0.7 0"]
+
+    def test_round_trip_carries_flip_idx(self, tmp_path: Path) -> None:
+        """`flip_idx` survives a write and read cycle."""
+        images, annotations, data_yaml = _write_dataset(
+            root=tmp_path / "src",
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"]},
+            data_yaml=(
+                "nc: 1\nnames: ['person']\nkpt_shape: [3, 3]\nflip_idx: [0, 2, 1]\n"
+            ),
+        )
+        dataset = KeyPointsDataset.from_yolo(
+            images_directory_path=images,
+            annotations_directory_path=annotations,
+            data_yaml_path=data_yaml,
+        )
+        out = tmp_path / "out"
+        dataset.as_yolo(
+            images_directory_path=str(out / "images"),
+            annotations_directory_path=str(out / "labels"),
+            data_yaml_path=str(out / "data.yaml"),
+        )
+
+        reloaded = KeyPointsDataset.from_yolo(
+            images_directory_path=str(out / "images"),
+            annotations_directory_path=str(out / "labels"),
+            data_yaml_path=str(out / "data.yaml"),
+        )
+
+        assert dataset.flip_idx == [0, 2, 1]
+        assert reloaded.flip_idx == [0, 2, 1]
 
     def test_round_trip_reloads_to_an_equal_dataset(self, tmp_path: Path) -> None:
         """The reloaded dataset compares equal to the one that wrote it."""
@@ -526,3 +572,56 @@ class TestKeyPointsToYoloPoseBoxHandling:
                 keypoint_count=2,
                 value_dim=3,
             )
+
+
+class TestFlipIdx:
+    """Tests for reading and writing the `flip_idx` keypoint permutation."""
+
+    def test_absent_flip_idx_loads_as_none(self, tmp_path: Path) -> None:
+        """A dataset declaring no `flip_idx` carries none."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 2"]},
+            data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\n",
+        )
+
+        dataset = KeyPointsDataset.from_yolo(*paths)
+
+        assert dataset.flip_idx is None
+
+    def test_absent_flip_idx_is_not_written(self, tmp_path: Path) -> None:
+        """A dataset without `flip_idx` does not gain the field on export."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 2"]},
+            data_yaml="nc: 1\nnames: ['person']\nkpt_shape: [2, 3]\n",
+        )
+        dataset = KeyPointsDataset.from_yolo(*paths)
+        data_yaml_path = tmp_path / "out" / "data.yaml"
+
+        dataset.as_yolo(data_yaml_path=str(data_yaml_path))
+
+        assert "flip_idx" not in data_yaml_path.read_text()
+
+    @pytest.mark.parametrize(
+        "flip_idx",
+        [
+            pytest.param("[0, 1]", id="too-short"),
+            pytest.param("[0, 1, 1]", id="repeated-index"),
+            pytest.param("[0, 1, 3]", id="out-of-range"),
+        ],
+    )
+    def test_rejects_a_flip_idx_that_is_not_a_permutation(
+        self, tmp_path: Path, flip_idx: str
+    ) -> None:
+        """A `flip_idx` that would drop or duplicate a joint is refused."""
+        paths = _write_dataset(
+            root=tmp_path,
+            label_lines={"a": ["0 0.5 0.5 0.4 0.6 0.25 0.3 2 0.5 0.5 1 0.75 0.7 0"]},
+            data_yaml=(
+                f"nc: 1\nnames: ['person']\nkpt_shape: [3, 3]\nflip_idx: {flip_idx}\n"
+            ),
+        )
+
+        with pytest.raises(ValueError, match="permutation"):
+            KeyPointsDataset.from_yolo(*paths)
