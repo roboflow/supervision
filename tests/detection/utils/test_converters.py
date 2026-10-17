@@ -1223,10 +1223,20 @@ def test_mask_to_polygons_polygon_to_mask_round_trip() -> None:
             np.array([4, 4, 4, 4]),
             id="single-point",
         ),
+        pytest.param(
+            np.empty((0, 2), dtype=int),
+            np.array([0, 0, 0, 0]),
+            id="empty-polygon-int",
+        ),
+        pytest.param(
+            np.empty((0, 2), dtype=np.float32),
+            np.zeros(4, dtype=np.float32),
+            id="empty-polygon-float32",
+        ),
     ],
 )
 def test_polygon_to_xyxy(
-    polygon: npt.NDArray[np.int_], expected: npt.NDArray[np.int_]
+    polygon: npt.NDArray[np.number], expected: npt.NDArray[np.number]
 ) -> None:
     """polygon_to_xyxy returns the tight axis-aligned bounding box."""
     result = polygon_to_xyxy(polygon)
