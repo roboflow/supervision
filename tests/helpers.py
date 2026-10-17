@@ -156,6 +156,67 @@ class _NanBeyondX:
         return np.where(points[:, :1] > self.x_max, np.nan, points)
 
 
+class _MoveBeyondX:
+    """An identity transform that moves points with `x > x_max` to x = `new_x`.
+
+    Like `_NanBeyondX`, both directions apply the same move rather than inverses:
+    the drawing tests that use it only call `abs_to_rel`.
+    """
+
+    def __init__(self, x_max: float, new_x: float) -> None:
+        """Store the largest x left in place and the x the others move to."""
+        self.x_max = x_max
+        self.new_x = new_x
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Return points unchanged, with x set to `new_x` where `x > x_max`."""
+        moved: np.ndarray = np.array(points, dtype=np.float64)
+        moved[moved[:, 0] > self.x_max, 0] = self.new_x
+        return moved
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Apply the same move as `abs_to_rel`."""
+        return self.abs_to_rel(points)
+
+
+class _ShearXTransform:
+    """A camera motion that shifts each point's x by `factor` times its y."""
+
+    def __init__(self, factor: float) -> None:
+        """Store how much x shifts per unit of y."""
+        self.factor = factor
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Map reference-frame points to the current frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] += self.factor * sheared[:, 1]
+        return sheared
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Map current-frame points to the reference frame."""
+        sheared = np.array(points, dtype=np.float64)
+        sheared[:, 0] -= self.factor * sheared[:, 1]
+        return sheared
+
+
+class _InPlaceShiftTransform:
+    """A shift that adds `(dx, dy)` to the points array it is given, in place."""
+
+    def __init__(self, dx: float, dy: float) -> None:
+        """Store the shift from reference-frame to current-frame coordinates."""
+        self.offset = np.array([dx, dy], dtype=np.float64)
+
+    def abs_to_rel(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points in place and return them."""
+        points += self.offset
+        return points
+
+    def rel_to_abs(self, points: np.ndarray) -> np.ndarray:
+        """Shift the given points back in place and return them."""
+        points -= self.offset
+        return points
+
+
 def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,

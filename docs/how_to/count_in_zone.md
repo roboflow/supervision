@@ -5,7 +5,7 @@ authors:
   - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-date_modified: 2026-10-13
+date_modified: 2026-10-17
 ---
 
 With supervision, you can count the number of objects in a zone in an image or video. In this guide, we will show how to count the number of cars in a traffic video.
@@ -139,14 +139,17 @@ from trackers import MotionEstimator
 
 motion_estimator = MotionEstimator()
 zone = sv.PolygonZone(polygon=polygons[0])  # drawn on the first frame
+zone_annotator = sv.PolygonZoneAnnotator(zone=zone)
 
 for frame in sv.get_video_frames_generator(VIDEO):
     coord_transform = motion_estimator.update(frame)
     detections = model.predict(frame[:, :, ::-1])
     in_zone = zone.trigger(detections, coord_transform=coord_transform)
+    frame = zone_annotator.annotate(frame, coord_transform=coord_transform)
 ```
 
-- Only the zone test follows the camera: `PolygonZoneAnnotator` and `LineZoneAnnotator` still draw the zone where it was defined.
+- Pass the same transform to `PolygonZoneAnnotator.annotate` and `LineZoneAnnotator.annotate` to draw the zone, line and count labels where they appear in the current frame. `LineZoneAnnotatorMulticlass` still draws the line where it was defined.
+- A zone or line with any point mapped to a non-finite coordinate, or beyond `2**20` pixels, is not drawn on that frame. A homography can map points behind the camera to finite but mirrored coordinates, so a zone that crosses the horizon may be drawn folded.
 - Use one reference frame per zone and pass a transform on every call; `LineZone` keeps its crossing history in that frame.
 
 ## Frequently Asked Questions

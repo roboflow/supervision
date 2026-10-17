@@ -14,7 +14,11 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_rectangle, draw_text
+from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
+    draw_rectangle,
+    draw_text,
+)
 from supervision.geometry.core import (
     CoordinatesTransformation,
     Point,
@@ -522,19 +526,72 @@ class LineZoneAnnotator:
         self.text_centered: bool = text_centered
 
     def annotate(
-        self, frame: npt.NDArray[np.uint8], line_counter: LineZone
+        self,
+        frame: npt.NDArray[np.uint8],
+        line_counter: LineZone,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> npt.NDArray[np.uint8]:
         """Draws the line on the frame using the line zone provided.
 
         Args:
             frame: The image on which the line will be drawn.
             line_counter: The line zone that will be used to draw the line.
+            coord_transform: Optional per-frame camera motion, the same one passed
+                to :meth:`~supervision.detection.line_zone.LineZone.trigger`. The
+                line's endpoints are mapped into the current frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
+                and rounded to the nearest pixel. The count labels follow the mapped
+                line. If either endpoint maps to a non-finite coordinate or one
+                beyond `2**20` pixels, the line is not drawn on this frame and
+                `frame` is returned unchanged.
 
         Returns:
             The image with the line drawn on it.
+
+        Raises:
+            ValueError: If `coord_transform` does not return one point per input
+                point.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [0, 60]
+            ...     def rel_to_abs(self, points): return points - [0, 60]
+            >>> line = sv.LineZone(start=sv.Point(10, 20), end=sv.Point(190, 20))
+            >>> line_annotator = sv.LineZoneAnnotator(
+            ...     display_in_count=False, display_out_count=False
+            ... )
+            >>> frame = np.zeros((120, 200, 3), dtype=np.uint8)
+            >>> annotated_frame = line_annotator.annotate(
+            ...     frame, line, coord_transform=CameraShift()
+            ... )
+            >>> annotated_frame[80, 100].tolist()
+            [255, 255, 255]
+            >>> annotated_frame[20, 100].tolist()
+            [0, 0, 0]
+
+            ```
         """
-        line_start = line_counter.vector.start.as_xy_int_tuple()
-        line_end = line_counter.vector.end.as_xy_int_tuple()
+        vector = line_counter.vector
+        if coord_transform is not None:
+            endpoints = np.array(
+                [vector.start.as_xy_float_tuple(), vector.end.as_xy_float_tuple()]
+            )
+            mapped = _map_to_drawing_coordinates(endpoints, coord_transform)
+            if mapped is None:
+                return frame
+            (start_x, start_y), (end_x, end_y) = np.rint(mapped).tolist()
+            vector = Vector(
+                start=Point(x=start_x, y=start_y), end=Point(x=end_x, y=end_y)
+            )
+        # The rounded endpoints keep a vertical line at exactly 90 degrees: jitter
+        # that rounds away cannot flip its labels, only a shift across a pixel can.
+        line_angle_degrees = self._get_line_angle(vector)
+
+        line_start = vector.start.as_xy_int_tuple()
+        line_end = vector.end.as_xy_int_tuple()
         cv2.line(
             frame,
             line_start,
@@ -561,9 +618,12 @@ class LineZoneAnnotator:
             lineType=cv2.LINE_AA,
         )
 
+        frame_resolution_wh = None
+        if coord_transform is not None:
+            frame_resolution_wh = (frame.shape[1], frame.shape[0])
+
         in_text = f"{self.in_text}: {line_counter.in_count}"
         out_text = f"{self.out_text}: {line_counter.out_count}"
-        line_angle_degrees = self._get_line_angle(line_counter)
 
         for text, is_shown, is_in_count in [
             (in_text, self.display_in_count, True),
@@ -575,31 +635,33 @@ class LineZoneAnnotator:
             if line_angle_degrees == 0 or not self.text_orient_to_line:
                 self._draw_basic_label(
                     frame=frame,
-                    line_center=line_counter.vector.center,
+                    line_center=vector.center,
                     text=text,
                     is_in_count=is_in_count,
                 )
             else:
                 self._draw_oriented_label(
                     frame=frame,
-                    line_zone=line_counter,
+                    vector=vector,
+                    line_angle_degrees=line_angle_degrees,
                     text=text,
                     is_in_count=is_in_count,
+                    frame_resolution_wh=frame_resolution_wh,
                 )
 
         return frame
 
-    def _get_line_angle(self, line_zone: LineZone) -> float:
-        """Calculate the line counter angle (in degrees).
+    def _get_line_angle(self, vector: Vector) -> float:
+        """Calculate the angle of the line as drawn, in degrees.
 
         Args:
-            line_zone: The line zone object.
+            vector: The line as drawn on the frame.
 
         Returns:
-            Line counter angle, in degrees.
+            Line angle, in degrees.
         """
-        start_point = line_zone.vector.start.as_xy_int_tuple()
-        end_point = line_zone.vector.end.as_xy_int_tuple()
+        start_point = vector.start.as_xy_int_tuple()
+        end_point = vector.end.as_xy_int_tuple()
 
         delta_x = end_point[0] - start_point[0]
         delta_y = end_point[1] - start_point[1]
@@ -615,43 +677,49 @@ class LineZoneAnnotator:
 
     def _calculate_anchor_in_frame(
         self,
-        line_zone: LineZone,
+        vector: Vector,
+        line_angle_degrees: float,
         text_width: int,
         text_height: int,
         is_in_count: bool,
         label_dimension: int,
+        frame_resolution_wh: tuple[int, int] | None = None,
     ) -> tuple[int, int]:
         """Calculate insertion anchor in frame to position the center of the count
         image.
 
         Args:
-            line_zone: The line counter object used for counting.
+            vector: The line as drawn on the frame.
+            line_angle_degrees: The line angle the label is oriented to.
             text_width: Text width.
             text_height: Text height.
             is_in_count: Whether the count should be placed over or below line.
             label_dimension: Size of the label image. Assumes the
                 label is rectangular.
+            frame_resolution_wh: If given, a label beyond the left or top edge
+                is pulled back onto the frame only while the line point it is
+                anchored on lies inside a frame of this size, so labels of a line
+                mapped off-frame leave with it. If `None`, it is always pulled
+                back.
 
         Returns:
             xy, point in an image where the label will be placed.
         """
-        line_angle = self._get_line_angle(line_zone)
-
         if self.text_centered:
-            mid_point = Vector(
-                start=line_zone.vector.start, end=line_zone.vector.end
-            ).center.as_xy_int_tuple()
+            line_point = vector.center
+            mid_point = line_point.as_xy_int_tuple()
             anchor = list(mid_point)
         else:
-            end_point = line_zone.vector.end.as_xy_int_tuple()
+            line_point = vector.end
+            end_point = line_point.as_xy_int_tuple()
             anchor = list(end_point)
 
             move_along_x = int(
-                math.cos(math.radians(line_angle))
+                math.cos(math.radians(line_angle_degrees))
                 * (text_width / 2 + self.text_padding)
             )
             move_along_y = int(
-                math.sin(math.radians(line_angle))
+                math.sin(math.radians(line_angle_degrees))
                 * (text_width / 2 + self.text_padding)
             )
 
@@ -659,10 +727,12 @@ class LineZoneAnnotator:
             anchor[1] -= move_along_y
 
         move_perpendicular_x = int(
-            math.sin(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.sin(math.radians(line_angle_degrees))
+            * (self.text_offset * text_height)
         )
         move_perpendicular_y = int(
-            math.cos(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.cos(math.radians(line_angle_degrees))
+            * (self.text_offset * text_height)
         )
 
         if is_in_count:
@@ -672,8 +742,16 @@ class LineZoneAnnotator:
             anchor[0] -= move_perpendicular_x
             anchor[1] += move_perpendicular_y
 
-        x1 = max(anchor[0] - label_dimension // 2, 0)
-        y1 = max(anchor[1] - label_dimension // 2, 0)
+        x1 = anchor[0] - label_dimension // 2
+        y1 = anchor[1] - label_dimension // 2
+        # Tested on the float point, so a midpoint at x = -0.5 counts as outside
+        # even though truncating it gives 0.
+        x, y = line_point.as_xy_float_tuple()
+        clamp = frame_resolution_wh is None or (
+            0 <= x < frame_resolution_wh[0] and 0 <= y < frame_resolution_wh[1]
+        )
+        if clamp:
+            x1, y1 = max(x1, 0), max(y1, 0)
 
         return x1, y1
 
@@ -723,9 +801,11 @@ class LineZoneAnnotator:
     def _draw_oriented_label(
         self,
         frame: npt.NDArray[np.uint8],
-        line_zone: LineZone,
+        vector: Vector,
+        line_angle_degrees: float,
         text: str,
         is_in_count: bool,
+        frame_resolution_wh: tuple[int, int] | None = None,
     ) -> npt.NDArray[np.uint8]:
         """Draw the count label on the frame.
 
@@ -733,15 +813,19 @@ class LineZoneAnnotator:
 
         Args:
             frame: The entire scene, on which the label will be placed.
-            line_zone: The line zone responsible for counting objects crossing it.
+            vector: The line as drawn on the frame.
+            line_angle_degrees: The line angle the label is oriented to.
             text: The text that will be drawn.
             is_in_count: Whether to display the in count (above line)
                 or out count (below line).
+            frame_resolution_wh: If given, a label beyond the left or top edge
+                is pulled back onto the frame only while the line point it is
+                anchored on lies inside a frame of this size. If `None`, it is
+                always pulled back.
 
         Returns:
             The scene with the label drawn on it.
         """
-        line_angle_degrees = self._get_line_angle(line_zone)
         label_image = self._make_label_image(
             text,
             text_scale=self.text_scale,
@@ -759,11 +843,13 @@ class LineZoneAnnotator:
         )[0]
 
         label_anchor = self._calculate_anchor_in_frame(
-            line_zone=line_zone,
+            vector=vector,
+            line_angle_degrees=line_angle_degrees,
             text_width=text_width,
             text_height=text_height,
             is_in_count=is_in_count,
             label_dimension=label_image.shape[0],
+            frame_resolution_wh=frame_resolution_wh,
         )
 
         frame = _overlay_image(frame, label_image, label_anchor)
