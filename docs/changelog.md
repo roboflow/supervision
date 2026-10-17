@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-16
+date_modified: 2026-10-17
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- The Pascal VOC exporter now rounds all four `<bndbox>` corners to the nearest integer instead of truncating fractional coordinates, preserving the intended box extent when converting YOLO detections to VOC XML. ([#2748](https://github.com/roboflow/supervision/pull/2748))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
 
