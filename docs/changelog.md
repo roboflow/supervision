@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.metrics.MeanAverageRecall` now matches predictions to targets in descending confidence order at each IoU threshold, with COCO's tie rule for equal-IoU targets. Overlapping targets no longer produce different recall solely because the shared matcher assigned the highest-IoU pair first. The per-image, per-class detection limits and other metrics are unchanged.
+- `sv.metrics.MeanAverageRecall` now matches predictions to targets in descending confidence order at each IoU threshold, with COCO's tie rule for equal-IoU targets. Overlapping targets no longer produce different recall solely because the shared matcher assigned the highest-IoU pair first. The per-image, per-class detection limits and other metrics are unchanged. ([#2758](https://github.com/roboflow/supervision/pull/2758))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
