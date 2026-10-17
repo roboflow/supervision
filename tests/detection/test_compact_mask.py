@@ -703,6 +703,107 @@ class TestProperties:
         assert cm.area.shape == (0,)
 
 
+_AREA_IMAGE_SHAPE = (6, 8)
+
+
+def _rectangle_masks(
+    boxes: list[tuple[int, int, int, int]],
+    rectangles: list[tuple[int, int, int, int] | None],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build 6x8 masks with one inclusive-xyxy foreground rectangle (or none) each."""
+    masks = np.zeros((len(boxes), *_AREA_IMAGE_SHAPE), dtype=bool)
+    for mask_idx, rectangle in enumerate(rectangles):
+        if rectangle is not None:
+            x1, y1, x2, y2 = rectangle
+            masks[mask_idx, y1 : y2 + 1, x1 : x2 + 1] = True
+    return masks, np.array(boxes, dtype=np.float32).reshape(-1, 4)
+
+
+class TestArea:
+    """Tests for CompactMask.area against per-mask RLE sums and dense pixel counts.
+
+    Boxes are the crops stored by from_dense, so a rectangle at a box corner makes the
+    crop's RLE start with an empty background run or end with a foreground run.
+    """
+
+    @pytest.mark.parametrize(
+        ("boxes", "rectangles"),
+        [
+            pytest.param([], [], id="empty-collection"),
+            pytest.param([(0, 0, 7, 5)], [None], id="all-false"),
+            pytest.param([(0, 0, 7, 5)], [(0, 0, 7, 5)], id="all-true"),
+            pytest.param([(1, 1, 5, 4)], [(3, 2, 3, 2)], id="single-pixel"),
+            pytest.param([(2, 1, 6, 4)], [(2, 1, 3, 2)], id="crop-starts-true"),
+            pytest.param([(2, 1, 7, 4)], [(6, 3, 7, 4)], id="crop-ends-true"),
+            pytest.param(
+                [(1, 1, 6, 4), (0, 0, 7, 5), (3, 2, 3, 2), (0, 0, 7, 5), (5, 0, 7, 1)],
+                [(2, 2, 5, 3), None, (3, 2, 3, 2), (0, 0, 7, 5), (5, 0, 7, 1)],
+                id="mixed-crop-sizes",
+            ),
+        ],
+    )
+    def test_matches_rle_and_dense_counts(
+        self,
+        boxes: list[tuple[int, int, int, int]],
+        rectangles: list[tuple[int, int, int, int] | None],
+    ) -> None:
+        """Each area equals its RLE foreground sum and its dense pixel count."""
+        masks, xyxy = _rectangle_masks(boxes, rectangles)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=_AREA_IMAGE_SHAPE)
+
+        area = cm.area
+
+        assert area.dtype == np.int64
+        assert area.shape == (len(boxes),)
+        np.testing.assert_array_equal(area, [_rle_area(rle) for rle in cm._rles])
+        np.testing.assert_array_equal(area, masks.sum(axis=(1, 2)))
+
+    @pytest.mark.parametrize("chunk_runs", [1, 7, 100, 65536])
+    def test_random_masks_match_rle_and_dense_counts(
+        self, chunk_runs: int, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Seeded masks with loose, empty and all-True crops match both references.
+
+        The collection holds about 3,400 runs, so small chunk sizes put chunk bounds
+        between masks, after empty masks and around masks larger than one chunk.
+        """
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._AREA_CHUNK_RUNS", chunk_runs
+        )
+        rng = np.random.default_rng(0)
+        num_masks, img_h, img_w = 64, 40, 60
+        corners = rng.integers(0, (img_w, img_h), size=(num_masks, 2, 2))
+        xyxy = np.sort(corners, axis=1).reshape(num_masks, 4).astype(np.float32)
+        x1, y1, x2, y2 = xyxy.T[:, :, None, None]
+        rows, cols = np.ogrid[:img_h, :img_w]
+        inside = (x1 <= cols) & (cols <= x2) & (y1 <= rows) & (rows <= y2)
+        density = rng.choice([0.0, 0.1, 0.5, 1.0], size=(num_masks, 1, 1))
+        masks = inside & (rng.random((num_masks, img_h, img_w)) < density)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        area = cm.area
+
+        assert area.dtype == np.int64
+        np.testing.assert_array_equal(area, [_rle_area(rle) for rle in cm._rles])
+        np.testing.assert_array_equal(area, masks.sum(axis=(1, 2)))
+
+    def test_counts_split_runs_beyond_int32_range(self) -> None:
+        """A foreground run split at the int32 limit sums past it without overflow."""
+        foreground = _INT32_LIMIT + 5
+        rles = [
+            np.array([3], dtype=np.int32),
+            _rle_counts_int32(np.array([0, foreground], dtype=np.int64)),
+        ]
+        crop_shapes = np.array([[1, 3], [2, foreground // 2]], dtype=np.int32)
+        cm = CompactMask(
+            rles, crop_shapes, np.zeros((2, 2), dtype=np.int32), (2, foreground // 2)
+        )
+
+        area = cm.area
+
+        assert area.tolist() == [0, foreground]
+
+
 class TestCrop:
     """Tests for CompactMask.crop.
 

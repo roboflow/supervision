@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. No output changes. ([#2744](https://github.com/roboflow/supervision/pull/2744))
+
 - `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
 
 - The NumPy fallback for `ellipse` now matches OpenCV's `Ellipse2Poly` / `EllipseEx` rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A `(25, 15)` ellipse at `thickness=2` previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, `ThickLine` and `FillEdgeCollection` paths. `circle` is unchanged. ([#2740](https://github.com/roboflow/supervision/pull/2740))
