@@ -2353,6 +2353,45 @@ class TestMergeObbCorners:
 class TestMergeDetectionGroup:
     """_merge_detection_group."""
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    def test_preserves_area_weights_for_extended_precision_corners(self) -> None:
+        """Wider floating corners are subtracted before converting their extents."""
+        origin = np.longdouble("1e20")
+        boxes = np.array(
+            [[origin, 0, origin + 16, 10], [origin, 0, origin + 8, 10]],
+            dtype=np.longdouble,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        np.testing.assert_allclose(result.confidence, [0.8])
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+    def test_preserves_area_weights_at_large_integer_origins(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Small extents above 2**53 retain their area when scores are merged."""
+        origin = 2**60
+        boxes = np.array(
+            [[origin, 0, origin + 20, 10], [origin, 0, origin + 10, 10]],
+            dtype=dtype,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        np.testing.assert_allclose(result.confidence, [0.8])
+
     @pytest.mark.parametrize(
         ("detections", "expected_detections"),
         [
@@ -2694,6 +2733,41 @@ class TestMergeDetectionGroup:
 
 class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "extent"),
+        [
+            pytest.param(np.int8, 100, id="int8"),
+            pytest.param(np.int16, 30000, id="int16"),
+            pytest.param(np.int32, 2000000000, id="int32"),
+            pytest.param(np.int64, 2**62, id="int64"),
+            pytest.param(np.float16, 60000, id="float16"),
+            pytest.param(np.float32, 3e38, id="float32"),
+            pytest.param(np.float64, 60000, id="float64"),
+        ],
+    )
+    @pytest.mark.parametrize("vertical", [False, True])
+    def test_confidence_uses_unwrapped_box_extents(
+        self, dtype: type[np.number], extent: float, vertical: bool
+    ) -> None:
+        """NMM weights scores by geometric areas even for narrow coordinate dtypes."""
+        boxes = np.array(
+            [[-extent, 0, extent, 1], [-extent / 2, 0, extent, 1]], dtype=dtype
+        )
+        if vertical:
+            boxes = boxes[:, [1, 0, 3, 2]]
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.6]),
+            class_id=np.array([0, 0]),
+        )
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        np.testing.assert_allclose(result.confidence, [(2 * 0.9 + 1.5 * 0.6) / 3.5])
+        np.testing.assert_array_equal(detections.xyxy, boxes)
 
     @pytest.mark.parametrize(
         (
