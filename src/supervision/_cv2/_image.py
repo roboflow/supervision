@@ -313,13 +313,22 @@ def _imdecode(
     return _read_pil_source(io.BytesIO(data), flags)
 
 
-def _bgr_to_pil_values(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
-    """Reorder BGR or BGRA channels into the RGB order Pillow expects."""
+def _bgr_to_pil_values(
+    image: npt.NDArray[Any], image_format: str | None = None
+) -> npt.NDArray[Any]:
+    """Normalize channel layouts and order for a Pillow image encoder.
+
+    Pillow expects grayscale as a 2D array. JPEG has no alpha channel, so discard alpha
+    without compositing, as OpenCV does; other formats retain it.
+    """
     values = np.asarray(image)
+    if values.ndim == 3 and values.shape[2] == 1:
+        values = values[..., 0]
     if values.ndim == 3 and values.shape[2] == 3:
         values = values[..., ::-1]
     elif values.ndim == 3 and values.shape[2] == 4:
-        values = values[..., [2, 1, 0, 3]]
+        channels = [2, 1, 0] if image_format == "JPEG" else [2, 1, 0, 3]
+        values = values[..., channels]
     return np.ascontiguousarray(values)
 
 
@@ -354,7 +363,9 @@ def _imwrite(
     image_format = Image.registered_extensions().get(extension)
     save_options = _opencv_default_save_options(image_format)
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(filename, **save_options)
+        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
+            filename, **save_options
+        )
     except (OSError, ValueError):
         return False
     return True
@@ -383,7 +394,7 @@ def _imencode(
     save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
     try:
-        Image.fromarray(_bgr_to_pil_values(image)).save(
+        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
             buffer, format=image_format, **save_options
         )
     except (KeyError, OSError, ValueError):
