@@ -82,8 +82,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
                 flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-            key_points: A collection of key points where each key point consists of x
-                and y coordinates.
+            key_points: A collection of key points. Only the first two coordinate
+                channels, x and y, determine pixel positions.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -116,7 +116,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             return scene
 
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
                 if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
@@ -363,13 +363,13 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
     def _iter_ellipse_params(
         self, key_points: KeyPoints
     ) -> list[list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]]:
-        """Return ellipse params grouped by sigma level (outermost first)."""
+        """Return image-space ellipse params, using x/y, outermost level first."""
         covariances = self._get_covariances(key_points)
         levels: list[
             list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]
         ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
                 if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (

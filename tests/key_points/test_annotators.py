@@ -6,6 +6,47 @@ from supervision import _cv2
 from tests.helpers import assert_image_mostly_same
 
 
+class TestThreeCoordinateKeyPointAnnotators:
+    @pytest.mark.parametrize(
+        "annotator_name",
+        [
+            "VertexAnnotator",
+            "VertexEllipseAreaAnnotator",
+            "VertexEllipseOutlineAnnotator",
+            "VertexEllipseHaloAnnotator",
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("hidden", [False, True])
+    def test_matches_two_coordinate_rendering(
+        self, annotator_name: str, dtype: str, hidden: bool
+    ) -> None:
+        """An extra coordinate leaves pixel rendering and visibility unchanged."""
+        scene = np.zeros((64, 64, 3), dtype=np.uint8)
+        xy = np.array([[[25.0, 30.0], [0.0, 0.0], [np.nan, np.nan]]], dtype=dtype)
+        xyz = np.concatenate([xy, np.full((1, 3, 1), 0.2, dtype=dtype)], axis=2)
+        visible = np.array([[not hidden, True, True]])
+        covariance = np.tile(np.eye(2, dtype=np.float32) * 9, (1, 3, 1, 1))
+        points = sv.KeyPoints(
+            xy=xyz.copy(),
+            visible=visible.copy(),
+            data={"covariance": covariance.copy()},
+        )
+        reference = sv.KeyPoints(
+            xy=xy, visible=visible, data={"covariance": covariance}
+        )
+        annotator = getattr(sv, annotator_name)()
+        expected = annotator.annotate(scene.copy(), reference)
+
+        actual = annotator.annotate(scene.copy(), points)
+
+        np.testing.assert_array_equal(actual, expected)
+        assert bool(np.any(actual)) is not hidden
+        np.testing.assert_array_equal(points.xy, xyz)
+        np.testing.assert_array_equal(points.visible, visible)
+        np.testing.assert_array_equal(points.data["covariance"], covariance)
+
+
 class TestVertexAnnotator:
     """Verify that VertexAnnotator correctly draws keypoints on an image.
 
