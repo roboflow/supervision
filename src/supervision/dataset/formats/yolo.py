@@ -38,6 +38,19 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
+IMAGE_EXTENSIONS = [
+    "bmp",
+    "dng",
+    "jpg",
+    "jpeg",
+    "mpo",
+    "png",
+    "tif",
+    "tiff",
+    "webp",
+]
+
+
 def _parse_box(values: list[str]) -> npt.NDArray[np.float32]:
     """Parse a YOLO ``x_center y_center width height`` box into relative ``xyxy``.
 
@@ -450,17 +463,7 @@ def load_yolo_annotations(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path,
-            extensions=[
-                "bmp",
-                "dng",
-                "jpg",
-                "jpeg",
-                "mpo",
-                "png",
-                "tif",
-                "tiff",
-                "webp",
-            ],
+            extensions=IMAGE_EXTENSIONS,
         )
     ]
 

@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- Added `sv.KeyPointsDataset`, the keypoint counterpart of `sv.DetectionDataset`: lazy image loading, indexing, iteration, `split`, `merge`, `from_yolo` and `as_yolo` for the YOLO pose format. A pose dataset was previously unreachable — `DetectionDataset.from_yolo` keeps the box of each label and discards the keypoint values. Each image is annotated with `sv.KeyPoints` carrying the object box under `data['xyxy']` and, for a `kpt_shape` of `[K, 3]`, the raw `0`/`1`/`2` visibility flags under the new `data['keypoint_visibility']`, since `KeyPoints.visible` is boolean and cannot distinguish an unlabelled keypoint from an occluded one. A dataset survives `from_yolo` then `as_yolo` with each annotation line rewritten unchanged, to the six significant digits the writer emits. The pose loader shares `_parse_box` and `_sort_box_corners` with the detection loader, so a corrupt box is rejected on load rather than reaching `data['xyxy']` with its corners reversed. ([#2745](https://github.com/roboflow/supervision/pull/2745))
+
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
 - `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
