@@ -2638,7 +2638,9 @@ class Detections:
             An array of floats containing the area of each bounding
             box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections. Integer coordinates
-                produce ``float64``; floating coordinates preserve their dtype.
+                produce ``float64``; ``float16`` coordinates produce ``float32``
+                to avoid overflow and underflow. Other floating coordinates
+                preserve their dtype.
         """
         xyxy = self.xyxy
         if np.issubdtype(xyxy.dtype, np.integer):
@@ -2652,6 +2654,8 @@ class Detections:
                 heights, dtype=np.float64
             )
 
+        if np.issubdtype(xyxy.dtype, np.float16):
+            xyxy = xyxy.astype(np.float32)
         widths = xyxy[:, 2] - xyxy[:, 0]
         heights = xyxy[:, 3] - xyxy[:, 1]
         return widths * heights

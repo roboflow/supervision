@@ -3025,6 +3025,67 @@ class TestDetectionsWithNMM:
 class TestDetectionsArea:
     """Selection order for the `area` property: mask → OBB → AABB."""
 
+    @pytest.mark.parametrize("area_property", ["box_area", "area"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.dtype("<f2"), id="little-endian"),
+            pytest.param(np.dtype(">f2"), id="big-endian"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([0, 0, 256, 256], id="product-overflow"),
+            pytest.param([-65000, -65000, 65000, 65000], id="extent-overflow"),
+            pytest.param([0, 0, 0.0001, 0.0001], id="product-underflow"),
+            pytest.param([0, 0, 10, 10], id="small-box"),
+        ],
+    )
+    def test_half_precision_area_matches_float32(
+        self, box: list[float], area_property: str, dtype: np.dtype
+    ) -> None:
+        """Half-precision coordinates retain finite, nonzero box areas."""
+        xyxy = np.array([box], dtype=dtype)
+        detections = Detections(xyxy=xyxy.copy())
+        reference = Detections(xyxy=xyxy.astype(np.float32))
+
+        with np.errstate(over="raise", under="raise", invalid="raise"):
+            area = getattr(detections, area_property)
+
+        np.testing.assert_array_equal(area, getattr(reference, area_property))
+        np.testing.assert_array_equal(detections.xyxy, xyxy)
+        assert area.dtype == np.float32
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_wider_float_area_preserves_dtype(self, dtype: type) -> None:
+        """Area calculations preserve existing float32 and float64 results."""
+        detections = Detections(xyxy=np.array([[0, 0, 300, 300]], dtype=dtype))
+
+        area = detections.box_area
+
+        np.testing.assert_array_equal(area, [90000])
+        assert area.dtype == dtype
+
+    def test_half_precision_area_filter_keeps_large_boxes(self) -> None:
+        """Area filtering retains ordinary boxes whose area exceeds float16 range."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300], [0, 0, 10, 10]], dtype=np.float16)
+        )
+
+        filtered = detections[detections.area > 80000.0]
+
+        np.testing.assert_array_equal(filtered.xyxy, [[0, 0, 300, 300]])
+
+    def test_empty_half_precision_area_is_float32(self) -> None:
+        """Empty half-precision boxes produce an empty float32 area array."""
+        detections = Detections(xyxy=np.empty((0, 4), dtype=np.float16))
+
+        area = detections.box_area
+
+        assert area.shape == (0,)
+        assert area.dtype == np.float32
+
     @pytest.mark.parametrize(
         ("width", "height", "angle_deg", "expected_area"),
         [
