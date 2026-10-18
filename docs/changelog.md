@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- COCO loading now derives a segmented annotation's missing `area` from its decoded mask. Missing areas previously became `NaN`, causing `MeanAveragePrecision` to exclude those targets from every size bucket and return `-1` even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior.
+- COCO loading now derives a segmented annotation's missing `area` from its decoded mask. Missing areas previously became `NaN`, causing `MeanAveragePrecision` to exclude those targets from every size bucket and return `-1` even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior. ([#2763](https://github.com/roboflow/supervision/pull/2763))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
