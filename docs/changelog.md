@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `Detections.box_area` and box-based `Detections.area` now compute `float16` coordinates in `float32`. Ordinary 256×256 boxes no longer overflow to infinity, tiny boxes retain nonzero areas, and area filtering works for half-precision detections. Integer and wider floating-point results retain their existing dtypes.
+- `Detections.box_area` and box-based `Detections.area` now compute `float16` coordinates in `float32`. Ordinary 256×256 boxes no longer overflow to infinity, tiny boxes retain nonzero areas, and area filtering works for half-precision detections. Integer and wider floating-point results retain their existing dtypes. ([#2764](https://github.com/roboflow/supervision/pull/2764))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
