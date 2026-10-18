@@ -34,8 +34,12 @@ def object_to_pascal_voc(
 ) -> Element:
     """Build a Pascal VOC ``<object>`` XML element for one detection.
 
-    Coordinates are converted to 1-indexed Pascal VOC convention before writing.
-    The input arrays are never mutated; new arrays are allocated for the offset.
+    Coordinates are converted to the Pascal VOC convention before writing.
+    VOC indices are 1-based and inclusive, so only ``xmin`` and ``ymin`` are
+    shifted by 1: a zero-indexed box covering pixels ``x0 .. x0 + w - 1`` is
+    written as ``xmin = x0 + 1`` and ``xmax = x0 + w``, which is the input
+    ``xmax`` unchanged. The input arrays are never mutated; new arrays are
+    allocated for the offset.
 
     Args:
         xyxy: Bounding box in zero-indexed pixel coordinates ``[x1, y1, x2, y2]``.
@@ -56,7 +60,7 @@ def object_to_pascal_voc(
         >>> elem.find("bndbox/xmin").text
         '1'
         >>> elem.find("bndbox/xmax").text
-        '10'
+        '9'
 
         ```
     """
@@ -65,21 +69,22 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
-    # Pascal VOC coordinates are 1-indexed (https://github.com/roboflow/supervision/issues/144).
-    # Rebind to a new array instead of `+= 1`: `xyxy` is a view into the source
-    # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
-    # would corrupt the caller's detections by +1 on every export.
-    xyxy = xyxy + 1
     # Order the corners so a reversed box is written as the same rectangle
-    # rather than with xmin past xmax.
+    # rather than with xmin past xmax. The ordering uses the raw corners:
+    # the VOC offset below applies to the minimum corner only, so it can
+    # only be added once the corners are ordered.
     x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
     y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(x_min))
+    # Pascal VOC indices are 1-based and inclusive
+    # (https://github.com/roboflow/supervision/issues/144): a zero-indexed
+    # box covering pixels x0 .. x0 + w - 1 is written xmin = x0 + 1 and
+    # xmax = x0 + w, so only the minimum corner shifts by 1.
+    xmin.text = str(int(x_min) + 1)
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(y_min))
+    ymin.text = str(int(y_min) + 1)
     xmax = SubElement(bndbox, "xmax")
     xmax.text = str(int(x_max))
     ymax = SubElement(bndbox, "ymax")
@@ -374,8 +379,11 @@ def detections_from_xml_obj(
     else:
         xyxy_arr = np.empty((0, 4), dtype=np.float32)
 
+    # Pascal VOC indices are 1-based and inclusive, so only xmin and ymin
+    # were shifted by 1 on write; shift only those back, mirroring
+    # object_to_pascal_voc.
     # https://github.com/roboflow/supervision/issues/144
-    xyxy_arr -= 1
+    xyxy_arr -= np.array([1, 1, 0, 0], dtype=np.float32)
 
     for k in sorted(set(class_names)):
         if k not in extended_classes:
