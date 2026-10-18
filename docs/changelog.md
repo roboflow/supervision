@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array.
+- `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. ([#2762](https://github.com/roboflow/supervision/pull/2762))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
