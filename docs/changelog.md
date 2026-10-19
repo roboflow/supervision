@@ -23,6 +23,8 @@ date_modified: 2026-10-16
 
 - `sv.MaskAnnotator` no longer widens its blend region to the boxes of all-False masks, for dense masks and `CompactMask` alike, and skips blending when every `CompactMask` is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. `CompactMask` foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. ([#2741](https://github.com/roboflow/supervision/pull/2741))
 
+- Image writing without OpenCV now accepts explicit single-channel grayscale arrays and saves BGRA images as JPEG by discarding alpha. In-memory dataset exports no longer lose these JPEG images. ([#2754](https://github.com/roboflow/supervision/pull/2754))
+
 ### 0.31.0 <small>Oct 16, 2026</small>
 
 - **Depth maps**: the new `sv.DepthMap` module loads, measures and draws depth.
