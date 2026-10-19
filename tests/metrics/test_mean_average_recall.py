@@ -710,6 +710,23 @@ def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
     np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
 
 
+def test_mar_matching_follows_confidence_order_when_iou_order_disagrees() -> None:
+    """The higher-confidence prediction claims its best eligible target first."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [8, 0, 18, 10]], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 18, 10], [0, 0, 10, 10]], dtype=np.float32),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    np.testing.assert_allclose(result.recall_scores, [0.1, 0.5, 0.5])
+
+
 @pytest.mark.parametrize(
     ("sorted_class_ids", "expected_ranks"),
     [

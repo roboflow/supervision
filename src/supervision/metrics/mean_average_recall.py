@@ -281,9 +281,10 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     the `maxDets` limit of COCO evaluation, so with a single class the limit
     applies to the whole image.
 
-    Targets marked as crowd regions in `targets.data["iscrowd"]`, as
-    `DetectionDataset.from_coco` loads them, or flagged in `targets.data["ignore"]`
-    are COCO ignore regions: they are not counted as missed objects.
+    Targets marked as crowd regions in `targets.data["iscrowd"]`, loaded by
+    :meth:`~supervision.dataset.core.DetectionDataset.from_coco`, or marked in
+    `targets.data["ignore"]` are COCO ignore regions: they are not counted as
+    missed objects.
 
     Examples:
         ```pycon
@@ -572,12 +573,12 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     ) -> npt.NDArray[np.bool_]:
         """Match one image's predictions separately for each detection limit.
 
-        The matcher pairs by highest IoU rather than by confidence, so matching every
-        prediction and then keeping the top K would let a prediction ranked below K
-        take a target from one ranked within it. Each limit therefore matches only the
-        top K predictions of each class, as COCO does for every (image, class) pair.
-        Matching never pairs predictions with targets of another class, so dropping
-        one class's excess predictions cannot change how another class is matched.
+        For each IoU threshold, predictions are visited in descending confidence
+        order and each claims its highest-IoU eligible unmatched target. Each limit
+        matches only the top K predictions of each class, as COCO does for every
+        (image, class) pair. Matching never pairs predictions with targets of another
+        class, so dropping one class's excess predictions cannot change how another
+        class is matched.
 
         Args:
             sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
@@ -601,13 +602,29 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         for limit_index, max_detections in enumerate(self.max_detections):
             # Ascending indices keep the confidence order the matcher relies on.
             within_limit = np.flatnonzero(class_ranks < max_detections)
-            limit_matches, _ = _match_detection_batch_with_target_indices(
-                sorted_prediction_class_ids[within_limit],
-                target_class_ids,
-                sorted_iou[:, within_limit],
-                iou_thresholds,
-            )
-            matches[within_limit, :, limit_index] = limit_matches
+            limit_class_ids = sorted_prediction_class_ids[within_limit]
+            limit_iou = sorted_iou[:, within_limit]
+            for threshold_index, threshold in enumerate(iou_thresholds):
+                matched_targets = np.zeros(target_class_ids.size, dtype=bool)
+                for prediction_index, class_id in enumerate(limit_class_ids):
+                    eligible_targets = (
+                        (target_class_ids == class_id)
+                        & ~matched_targets
+                        & (limit_iou[:, prediction_index] >= threshold)
+                    )
+                    if not eligible_targets.any():
+                        continue
+
+                    # COCO visits detections by score, then assigns each its best
+                    # unmatched target; the shared matcher instead ranks all pairs.
+                    eligible_indices = np.flatnonzero(eligible_targets)
+                    target_index = eligible_indices[
+                        np.argmax(limit_iou[eligible_indices, prediction_index])
+                    ]
+                    matched_targets[target_index] = True
+                    matches[
+                        within_limit[prediction_index], threshold_index, limit_index
+                    ] = True
         return matches
 
     def _compute_average_recall_for_classes(
