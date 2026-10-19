@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
@@ -57,60 +57,45 @@ class TestMeanAverageRecallConfidenceMatching:
         np.testing.assert_allclose(result.large_objects.recall_scores, expected)
 
     @pytest.mark.parametrize(
-        ("prediction_classes", "target_classes", "ious", "thresholds", "expected"),
-        [
-            pytest.param(
-                [0, 0],
-                [0],
-                [[0.6, 0.9]],
-                [0.5, 0.75],
-                [[True, False], [False, True]],
-                id="independent-thresholds",
-            ),
-            pytest.param(
-                [0, 0],
-                [0, 0],
-                [[0.6, 0.0], [0.6, 1.0]],
-                [0.5, 0.75],
-                [[True, False], [False, True]],
-                id="last-target-wins-iou-tie",
-            ),
-            pytest.param(
-                [0, 1],
-                [1, 0],
-                [[0.9, 0.8], [0.7, 0.9]],
-                [0.75],
-                [[False], [True]],
-                id="matching-class-only",
-            ),
-            pytest.param([], [0], [], [0.5], [], id="no-predictions"),
-            pytest.param([0, 0], [], [], [0.5], [[False], [False]], id="no-targets"),
-        ],
+        "metric_target",
+        [MetricTarget.BOXES, MetricTarget.MASKS, MetricTarget.ORIENTED_BOUNDING_BOXES],
     )
-    def test_matches_each_target_once_at_each_threshold(
-        self,
-        prediction_classes: list[int],
-        target_classes: list[int],
-        ious: list[list[float]],
-        thresholds: list[float],
-        expected: list[list[bool]],
+    @pytest.mark.parametrize("ignore_field", [None, ISCROWD_DATA_FIELD, "ignore"])
+    def test_equal_iou_targets_follow_coco_tie_rule(
+        self, metric_target: MetricTarget, ignore_field: str | None
     ) -> None:
-        """Thresholds keep independent class-aware assignments, including COCO ties."""
-        prediction_count = len(prediction_classes)
-        iou = np.array(ious, dtype=np.float32).reshape(
-            len(target_classes), prediction_count
+        """COCO's last-target tie preserves a later match, even beside ignore
+        regions."""
+        target_boxes = [[0, 0, 10, 10], [10, 0, 20, 10]]
+        target_data = {}
+        if ignore_field is not None:
+            target_boxes.append([0, 0, 20, 10])
+            target_data[ignore_field] = np.array([0, 0, 1])
+        targets = Detections(
+            xyxy=np.array(target_boxes, dtype=np.float32),
+            class_id=np.zeros(len(target_boxes), dtype=np.int32),
+            data=target_data,
         )
-
-        matches = MeanAverageRecall._match_detection_batch(
-            np.array(prediction_classes, dtype=np.int32),
-            np.array(target_classes, dtype=np.int32),
-            iou,
-            np.array(thresholds, dtype=np.float32),
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 20, 10], [0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0]),
         )
+        for detections in (targets, predictions):
+            if metric_target == MetricTarget.MASKS:
+                detections.mask = np.zeros((len(detections), 10, 20), dtype=bool)
+                for index, (x1, y1, x2, y2) in enumerate(detections.xyxy.astype(int)):
+                    detections.mask[index, y1:y2, x1:x2] = True
+            elif metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                detections.data[ORIENTED_BOX_COORDINATES] = detections.xyxy[
+                    :, [0, 1, 2, 1, 2, 3, 0, 3]
+                ].reshape(len(detections), 4, 2)
 
-        np.testing.assert_array_equal(
-            matches,
-            np.array(expected, dtype=bool).reshape(prediction_count, len(thresholds)),
+        result = MeanAverageRecall(metric_target).update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.recall_scores, [0.05, 0.55, 0.55])
+        np.testing.assert_allclose(
+            result.small_objects.recall_scores, [0.05, 0.55, 0.55]
         )
 
 
@@ -557,6 +542,46 @@ def test_single_perfect_detection() -> None:
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
 
 
+@pytest.mark.parametrize("ignore_field", [ISCROWD_DATA_FIELD, "ignore"])
+def test_crowd_or_ignored_target_is_not_counted_as_a_miss(ignore_field: str) -> None:
+    """A COCO ignore region (crowd or ignore flag) is left out of recall."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [100, 0, 200, 100]], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+        data={ignore_field: np.array([0, 1])},
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update(predictions, targets).compute()
+
+    np.testing.assert_almost_equal(result.recall_scores, [1.0, 1.0, 1.0])
+
+
+def test_class_with_only_crowd_targets_is_left_out_of_the_mean() -> None:
+    """A class whose every target is a crowd region does not score zero recall."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 50, 50], [100, 0, 200, 100]], dtype=np.float32),
+        class_id=np.array([0, 1], dtype=np.int32),
+        data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        class_id=np.array([0], dtype=np.int32),
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.BOXES)
+
+    result = metric.update(predictions, targets).compute()
+
+    np.testing.assert_almost_equal(result.recall_scores, [1.0, 1.0, 1.0])
+    assert result.matched_classes.tolist() == [0]
+
+
 def test_recall_per_class_keeps_each_max_detection_cutoff() -> None:
     """Per-class recall must expose @1, @10 and @100 instead of only @100."""
     predictions = Detections(
@@ -775,6 +800,24 @@ def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
     # Only the first of the tied top-scored boxes hits the target. Among the equal
     # scores it ranks first, so it is the top-1 detection; pycocotools agrees.
     np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+
+
+def test_mar_matching_follows_confidence_order_when_iou_order_disagrees() -> None:
+    """The higher-confidence prediction claims its best eligible target first."""
+    targets = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [8, 0, 18, 10]], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+    predictions = Detections(
+        xyxy=np.array([[0, 0, 18, 10], [0, 0, 10, 10]], dtype=np.float32),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=np.int32),
+    )
+
+    result = MeanAverageRecall().update(predictions, targets).compute()
+
+    # Both targets tie for the first prediction; COCO assigns the last one.
+    np.testing.assert_allclose(result.recall_scores, [0.1, 0.6, 0.6])
 
 
 @pytest.mark.parametrize(

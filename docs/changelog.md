@@ -7,7 +7,11 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.metrics.MeanAverageRecall` now matches predictions to targets in descending confidence order at each IoU threshold, with COCO's tie rule for equal-IoU targets. Overlapping targets no longer produce different recall solely because the shared matcher assigned the highest-IoU pair first. The per-image, per-class detection limits and other metrics are unchanged. ([#2758](https://github.com/roboflow/supervision/pull/2758))
+- `sv.metrics.MeanAverageRecall` now follows COCO's last-target tie rule when multiple eligible targets have the same IoU. This preserves confidence-ordered matching and the crowd/ignore handling added in #2750. ([#2758](https://github.com/roboflow/supervision/pull/2758))
+
+- `sv.metrics.MeanAverageRecall` now leaves COCO ignore regions out of recall: targets with `data["iscrowd"]` set, as `sv.DetectionDataset.from_coco` loads them, or with `data["ignore"]` set, the same rule `MeanAveragePrecision` applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than `pycocotools` AR: one target, one crowd target and a perfect prediction scored `mAR_at_100` 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. ([#2750](https://github.com/roboflow/supervision/pull/2750))
+
+- `sv.metrics.MeanAverageRecall` now matches predictions in descending confidence order, as COCO does, instead of choosing globally highest-IoU pairs first. When a high-confidence prediction overlaps two targets and a lower-confidence prediction overlaps only the first, the lower-confidence prediction no longer takes that target first. ([#2750](https://github.com/roboflow/supervision/pull/2750))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
