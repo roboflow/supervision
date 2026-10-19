@@ -85,20 +85,31 @@ def _axis_aligned_detections(
 @pytest.mark.parametrize(
     ("metric_cls", "scores_name"),
     [
-        (Precision, "precision_scores"),
-        (Recall, "recall_scores"),
-        (F1Score, "f1_scores"),
-        (MeanAverageRecall, "recall_per_class"),
+        pytest.param(Precision, "precision_scores", id="precision"),
+        pytest.param(Recall, "recall_scores", id="recall"),
+        pytest.param(F1Score, "f1_scores", id="f1-score"),
+        pytest.param(MeanAverageRecall, "recall_per_class", id="mean-average-recall"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("threshold", "prediction_box", "target_box"),
+    [
+        pytest.param(0.55, [0, 0, 11, 20], [0, 0, 20, 20], id="iou-0-55"),
+        pytest.param(0.6, [0, 1, 14, 11], [0, 0, 10, 10], id="iou-0-6"),
+        pytest.param(0.8, [0, 0, 16, 20], [0, 0, 20, 20], id="iou-0-8"),
+        pytest.param(0.85, [0, 0, 17, 20], [0, 0, 20, 20], id="iou-0-85"),
     ],
 )
 def test_oriented_box_iou_on_a_threshold_matches_like_axis_aligned_box(
     metric_cls: type,
     scores_name: str,
+    threshold: float,
+    prediction_box: list[float],
+    target_box: list[float],
 ) -> None:
-    """An IoU of exactly 0.6 passes the 0.6 threshold for OBB as it does for boxes."""
-    # Overlap 9 x 10 = 90 over union 100 + 140 - 90 = 150 gives IoU 0.6.
-    predictions = _axis_aligned_detections([0, 1, 14, 11], confidence=0.9)
-    targets = _axis_aligned_detections([0, 0, 10, 10])
+    """Exact threshold IoUs produce matching OBB and box metric scores."""
+    predictions = _axis_aligned_detections(prediction_box, confidence=0.9)
+    targets = _axis_aligned_detections(target_box)
 
     boxes_result = (
         metric_cls(metric_target=MetricTarget.BOXES)
@@ -114,3 +125,7 @@ def test_oriented_box_iou_on_a_threshold_matches_like_axis_aligned_box(
     np.testing.assert_array_equal(
         getattr(obb_result, scores_name), getattr(boxes_result, scores_name)
     )
+    threshold_index = np.flatnonzero(
+        np.isclose(boxes_result.iou_thresholds, threshold)
+    )[0]
+    assert getattr(obb_result, scores_name)[..., threshold_index] == pytest.approx(1.0)
