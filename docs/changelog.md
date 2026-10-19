@@ -9,6 +9,16 @@ date_modified: 2026-10-16
 
 - `sv.filter_polygons_by_area` and `sv.polygon_to_xyxy` now accept empty polygons instead of raising a `ValueError`. Empty polygons evaluate to zero area when filtering, and `polygon_to_xyxy` returns an all-zero bounding box while preserving the input NumPy array dtype. ([#2761](https://github.com/roboflow/supervision/pull/2761))
 
+- `sv.MaskAnnotator` and `sv.HaloAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. ([#2755](https://github.com/roboflow/supervision/pull/2755))
+
+- `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
+
+- `sv.metrics.MeanAverageRecall`, `Precision`, `Recall` and `F1Score` with `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES` now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. ([#2752](https://github.com/roboflow/supervision/pull/2752))
+
+- `sv.metrics.MeanAverageRecall` now leaves COCO ignore regions out of recall: targets with `data["iscrowd"]` set, as `sv.DetectionDataset.from_coco` loads them, or with `data["ignore"]` set, the same rule `MeanAveragePrecision` applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than `pycocotools` AR: one target, one crowd target and a perfect prediction scored `mAR_at_100` 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. ([#2750](https://github.com/roboflow/supervision/pull/2750))
+
+- `sv.metrics.MeanAverageRecall` now matches predictions in descending confidence order, as COCO does, instead of choosing globally highest-IoU pairs first. When a high-confidence prediction overlaps two targets and a lower-confidence prediction overlaps only the first, the lower-confidence prediction no longer takes that target first. ([#2750](https://github.com/roboflow/supervision/pull/2750))
+
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
 - `sv.metrics.MeanAveragePrecision` now computes box extents and areas without overflowing `float16` or narrow integer coordinate dtypes. Perfect large boxes no longer score `-1` or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. ([#2743](https://github.com/roboflow/supervision/pull/2743))
@@ -16,6 +26,8 @@ date_modified: 2026-10-16
 - The NumPy fallback for `ellipse` now matches OpenCV's `Ellipse2Poly` / `EllipseEx` rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A `(25, 15)` ellipse at `thickness=2` previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, `ThickLine` and `FillEdgeCollection` paths. `circle` is unchanged. ([#2740](https://github.com/roboflow/supervision/pull/2740))
 
 - `sv.MaskAnnotator` no longer widens its blend region to the boxes of all-False masks, for dense masks and `CompactMask` alike, and skips blending when every `CompactMask` is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. `CompactMask` foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. ([#2741](https://github.com/roboflow/supervision/pull/2741))
+
+- Image writing without OpenCV now accepts explicit single-channel grayscale arrays and saves BGRA images as JPEG by discarding alpha. In-memory dataset exports no longer lose these JPEG images. ([#2754](https://github.com/roboflow/supervision/pull/2754))
 
 ### 0.31.0 <small>Oct 16, 2026</small>
 
