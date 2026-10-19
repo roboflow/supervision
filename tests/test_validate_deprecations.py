@@ -85,9 +85,9 @@ def _detections() -> Detections:
         ),
     ],
 )
-def test_validate_public_shims_warn(call: Callable[[], object], version: str) -> None:
+def test_validate_public_shims_warn(fn_call: Callable[[], object], version: str) -> None:
     with pytest.warns(FutureWarning, match=f"deprecated since v{version}"):
-        call()
+        fn_call()
 
 
 def test_private_validation_paths_do_not_warn() -> None:

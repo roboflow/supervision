@@ -737,7 +737,7 @@ class TestFallbackEncoderChannels:
     """Image encoders accept OpenCV's one-, three- and four-channel layouts."""
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -748,7 +748,7 @@ class TestFallbackEncoderChannels:
     def test_jpeg_discards_alpha_without_compositing(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
         alpha: int,
     ) -> None:
@@ -757,13 +757,13 @@ class TestFallbackEncoderChannels:
         image = np.dstack((bgr, np.full(bgr.shape[:2], alpha, dtype=np.uint8)))
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_COLOR)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
         np.testing.assert_array_equal(actual, expected)
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -773,14 +773,14 @@ class TestFallbackEncoderChannels:
     def test_single_channel_axis_encodes_as_grayscale(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
     ) -> None:
         """An explicit singleton channel writes the same pixels as a 2D image."""
         image = _gradient_image(channels=1)[..., np.newaxis]
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(
             np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED

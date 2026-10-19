@@ -1519,12 +1519,12 @@ class TestDetectionMetrics:
         ],
     )
     def test_confusion_matrix_masks_rejected_by_tensor_entry_points(
-        self, call: Callable[[], None]
+        self, fn_call: Callable[[], None]
     ) -> None:
         """Masks have no tensor layout: the tensor entry points raise and point the
         caller at ``from_detections``."""
         with pytest.raises(ValueError, match=r"MetricTarget\.MASKS.*from_detections"):
-            call()
+            fn_call()
 
     def test_confusion_matrix_multiclass_obb(self):
         """Multi-class OBB: TP for exact match, FP+FN for rotation mismatch."""

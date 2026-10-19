@@ -747,7 +747,7 @@ class TestArrayProtocol:
         assert arr.sum() == 25
 
     @pytest.mark.parametrize(
-        ("converter", "kwargs"),
+        ("fn_converter", "kwargs"),
         [
             pytest.param(np.array, {}, id="array-default"),
             pytest.param(np.array, {"copy": True}, id="array-copy"),
