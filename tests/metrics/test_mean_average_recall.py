@@ -64,8 +64,7 @@ class TestMeanAverageRecallConfidenceMatching:
     def test_equal_iou_targets_follow_coco_tie_rule(
         self, metric_target: MetricTarget, ignore_field: str | None
     ) -> None:
-        """COCO's last-target tie preserves a later match, even beside ignore
-        regions."""
+        """COCO's last-target tie preserves later matches beside ignored regions."""
         target_boxes = [[0, 0, 10, 10], [10, 0, 20, 10]]
         target_data = {}
         if ignore_field is not None:
