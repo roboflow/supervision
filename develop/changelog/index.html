@@ -4302,6 +4302,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.metrics.MeanAverageRecall</code>, <code>Precision</code>, <code>Recall</code> and <code>F1Score</code> with <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code> now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. (<a href="https://github.com/roboflow/supervision/pull/2752">#2752</a>)</p>
+</li>
+<li>
 <p><code>sv.metrics.MeanAverageRecall</code> now leaves COCO ignore regions out of recall: targets with <code>data["iscrowd"]</code> set, as <code>sv.DetectionDataset.from_coco</code> loads them, or with <code>data["ignore"]</code> set, the same rule <code>MeanAveragePrecision</code> applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than <code>pycocotools</code> AR: one target, one crowd target and a perfect prediction scored <code>mAR_at_100</code> 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. (<a href="https://github.com/roboflow/supervision/pull/2750">#2750</a>)</p>
 </li>
 <li>
@@ -6470,7 +6473,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 19, 2026 11:57:31 UTC">October 19, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 19, 2026 13:50:05 UTC">October 19, 2026</span>
   </span>
 
     
