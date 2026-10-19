@@ -9,6 +9,8 @@ date_modified: 2026-10-16
 
 - `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
 
+- `sv.metrics.MeanAverageRecall`, `Precision`, `Recall` and `F1Score` with `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES` now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. ([#2752](https://github.com/roboflow/supervision/pull/2752))
+
 - `sv.metrics.MeanAverageRecall` now leaves COCO ignore regions out of recall: targets with `data["iscrowd"]` set, as `sv.DetectionDataset.from_coco` loads them, or with `data["ignore"]` set, the same rule `MeanAveragePrecision` applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than `pycocotools` AR: one target, one crowd target and a perfect prediction scored `mAR_at_100` 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. ([#2750](https://github.com/roboflow/supervision/pull/2750))
 
 - `sv.metrics.MeanAverageRecall` now matches predictions in descending confidence order, as COCO does, instead of choosing globally highest-IoU pairs first. When a high-confidence prediction overlaps two targets and a lower-confidence prediction overlaps only the first, the lower-confidence prediction no longer takes that target first. ([#2750](https://github.com/roboflow/supervision/pull/2750))
