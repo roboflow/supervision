@@ -341,6 +341,23 @@ def test_select_returns_detection_subset() -> None:
     )
 
 
+class TestDetectionsScalarData:
+    def test_select_preserves_scalar_data(self) -> None:
+        """Selecting detections preserves scalar data shared across rows."""
+        detections = Detections(
+            xyxy=np.array(
+                [[0, 0, 1, 1], [2, 2, 3, 3]],
+                dtype=np.float32,
+            ),
+            data={"class_name": np.array("person")},
+        )
+
+        selected = detections.select([1])
+
+        assert selected.data["class_name"].shape == ()
+        assert selected.data["class_name"].item() == "person"
+
+
 class TestDetectionsSelectBooleanList:
     @pytest.mark.parametrize(
         ("index", "expected_rows"),
