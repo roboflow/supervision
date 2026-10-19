@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.MaskAnnotator` and `sv.HaloAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. ([#2755](https://github.com/roboflow/supervision/pull/2755))
+
 - `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
 
 - `sv.metrics.MeanAverageRecall`, `Precision`, `Recall` and `F1Score` with `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES` now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. ([#2752](https://github.com/roboflow/supervision/pull/2752))
