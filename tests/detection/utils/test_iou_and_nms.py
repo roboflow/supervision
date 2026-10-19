@@ -2335,6 +2335,64 @@ class TestMaskIouBatch:
         with pytest.raises(ValueError, match="must share the same"):
             mask_iou_batch(masks_true, masks_detection)
 
+    def test_compact_masks_mismatched_spatial_shape_raises(self) -> None:
+        """Compact masks must reject different image canvases like dense masks."""
+        from supervision.detection.compact_mask import CompactMask
+
+        true_mask = np.zeros((1, 10, 10), dtype=bool)
+        detection_mask = np.zeros((1, 20, 20), dtype=bool)
+        true_compact = CompactMask.from_dense(
+            true_mask, np.array([[0, 0, 9, 9]], dtype=np.float32), (10, 10)
+        )
+        detection_compact = CompactMask.from_dense(
+            detection_mask, np.array([[0, 0, 19, 19]], dtype=np.float32), (20, 20)
+        )
+
+        with pytest.raises(ValueError, match="must share the same"):
+            mask_iou_batch(true_compact, detection_compact)
+
+    def test_compact_masks_match_dense_precision_at_nms_threshold(self) -> None:
+        """Compact and dense NMS must make the same threshold decision."""
+        from supervision.detection.compact_mask import CompactMask
+
+        masks = np.zeros((2, 1, 10), dtype=bool)
+        masks[0, 0, 0] = True
+        masks[1, 0, :] = True
+        boxes = np.array([[0, 0, 9, 0], [0, 0, 9, 0]], dtype=np.float32)
+        compact_masks = CompactMask.from_dense(masks, boxes, image_shape=(1, 10))
+        predictions = np.array(
+            [[0, 0, 9, 0, 0.8, 0], [0, 0, 9, 0, 0.9, 0]], dtype=np.float32
+        )
+
+        dense_keep = mask_non_max_suppression(predictions, masks, iou_threshold=0.1)
+        compact_keep = mask_non_max_suppression(
+            predictions, compact_masks, iou_threshold=0.1
+        )
+
+        np.testing.assert_array_equal(compact_keep, dense_keep)
+
+    def test_compact_masks_validate_overlap_metric_without_overlapping_boxes(
+        self,
+    ) -> None:
+        """Invalid metrics must fail even when the bbox pre-filter finds no pairs."""
+        from supervision.detection.compact_mask import CompactMask
+
+        true_mask = np.zeros((1, 4, 4), dtype=bool)
+        true_mask[0, 0, 0] = True
+        detection_mask = np.zeros((1, 4, 4), dtype=bool)
+        detection_mask[0, 3, 3] = True
+        true_compact = CompactMask.from_dense(
+            true_mask, np.array([[0, 0, 0, 0]], dtype=np.float32), image_shape=(4, 4)
+        )
+        detection_compact = CompactMask.from_dense(
+            detection_mask,
+            np.array([[3, 3, 3, 3]], dtype=np.float32),
+            image_shape=(4, 4),
+        )
+
+        with pytest.raises(ValueError, match="overlap_metric"):
+            mask_iou_batch(true_compact, detection_compact, overlap_metric="bad")
+
     def test_invalid_ndim_raises(self) -> None:
         """2D and 4D inputs must raise ValueError before reaching shape[1:] check."""
         mask_3d = np.zeros((1, 10, 10), dtype=bool)
