@@ -773,7 +773,7 @@ class TestArrayProtocol:
     )
     def test_returns_dense_pixels_without_warnings(
         self,
-        converter: Callable[..., np.ndarray],
+        fn_converter: Callable[..., np.ndarray],
         kwargs: dict[str, bool],
         dtype: np.dtype | None,
     ) -> None:
@@ -781,7 +781,7 @@ class TestArrayProtocol:
         masks = np.eye(3, dtype=bool)[None, ...]
         cm = _make_cm(masks, (3, 3))
 
-        result = converter(cm, dtype=dtype, **kwargs)
+        result = fn_converter(cm, dtype=dtype, **kwargs)
 
         np.testing.assert_array_equal(result, masks)
         assert result.dtype == (np.dtype(bool) if dtype is None else dtype)
@@ -791,11 +791,11 @@ class TestArrayProtocol:
         reason="NumPy 1 allows allocation when copy=False",
     )
     @pytest.mark.parametrize(
-        "converter",
+        "fn_converter",
         [pytest.param(np.array, id="array"), pytest.param(np.asarray, id="asarray")],
     )
     def test_rejects_zero_copy_before_materializing(
-        self, converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
+        self, fn_converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A zero-copy request fails before allocating the dense mask tensor."""
         cm = _make_cm(np.ones((1, 3, 3), dtype=bool), (3, 3))
@@ -804,7 +804,7 @@ class TestArrayProtocol:
         )
 
         with pytest.raises(ValueError, match="copy=False"):
-            converter(cm, copy=False)
+            fn_converter(cm, copy=False)
 
     def test_copies_empty_masks(self) -> None:
         """Explicit copies retain the spatial dimensions of empty mask collections."""
