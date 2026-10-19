@@ -817,6 +817,19 @@ class TestSingleChannelMaskAnnotators:
         np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
         assert not np.array_equal(result.reshape(30, 40), gray)
 
+    def test_halo_grayscale_uses_blue_color_component(self) -> None:
+        """A grayscale halo responds to changes in the BGR blue component."""
+        scene = np.zeros((30, 40), dtype=np.uint8)
+        detections = self._detections()
+        blue_halo = HaloAnnotator(
+            color=Color(r=20, g=40, b=220), kernel_size=5
+        ).annotate(scene=scene.copy(), detections=detections)
+        dim_blue_halo = HaloAnnotator(
+            color=Color(r=20, g=40, b=20), kernel_size=5
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert blue_halo[7, 15] > dim_blue_halo[7, 15]
+
     @pytest.mark.parametrize(
         "annotator_type",
         [
