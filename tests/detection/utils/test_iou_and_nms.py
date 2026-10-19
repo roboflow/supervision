@@ -2196,7 +2196,7 @@ class TestIouThresholdValidation:
     """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
 
     @pytest.mark.parametrize(
-        ("function", "kwargs"),
+        ("fn_function", "kwargs"),
         [
             pytest.param(
                 box_non_max_suppression,

@@ -283,7 +283,7 @@ class TestLoadCreatemlAnnotations:
         )
 
     @pytest.mark.parametrize(
-        ("setup_fn", "match"),
+        ("fn_setup", "match"),
         [
             pytest.param(
                 lambda p: ("../evil.jpg", str(p / "images")),

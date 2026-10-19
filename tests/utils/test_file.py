@@ -223,7 +223,7 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 
 
 @pytest.mark.parametrize(
-    ("read_file", "file_name", "content"),
+    ("fn_read_file", "file_name", "content"),
     [
         pytest.param(
             read_json_file,
