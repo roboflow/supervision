@@ -60,6 +60,26 @@ class TestAugmentLinksInFile:
             == "see [license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md)"
         )
 
+    def test_rewrites_against_the_given_repository(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A fork PR's links point at the fork, where its branch actually exists."""
+        repo_root = tmp_path / "repo"
+        repo_root.mkdir()
+        (repo_root / "examples").mkdir()
+        page = repo_root / "README.md"
+        page.write_text("see [examples](examples)", encoding="utf-8")
+        monkeypatch.setattr(augment_links, "get_repo_root", lambda: str(repo_root))
+
+        augment_links.augment_links_in_file(
+            str(page), branch="feat/zones", repo="someone/supervision"
+        )
+
+        assert (
+            page.read_text(encoding="utf-8")
+            == "see [examples](https://github.com/someone/supervision/tree/feat/zones/examples)"
+        )
+
     def test_leaves_absolute_urls_untouched(self, tmp_path: Path) -> None:
         """Links that already point at a host are passed through unchanged."""
         page = tmp_path / "page.md"

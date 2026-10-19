@@ -13,12 +13,17 @@ def get_repo_root() -> str:
     return os.path.dirname(os.path.dirname(script_dir))
 
 
-def augment_links_in_file(file_path: str, branch: str = "main") -> None:
+def augment_links_in_file(
+    file_path: str, branch: str = "main", repo: str = "roboflow/supervision"
+) -> None:
     """Augment relative links in a markdown file to GitHub URLs.
 
     Args:
         file_path: Path to the markdown file.
         branch: Branch name, default "main".
+        repo: `owner/name` of the repository that holds `branch`, default
+            "roboflow/supervision". Pull requests from forks must pass the
+            fork, because their branch does not exist upstream.
     """
     repo_root = get_repo_root()
 
@@ -40,7 +45,7 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
                 # Use 'tree' for directories and 'blob' for files
                 ref = "tree" if os.path.isdir(abs_path) else "blob"
                 rel_to_root = os.path.relpath(abs_path, repo_root)
-                new_url = f"https://github.com/roboflow/supervision/{ref}/{branch}/{rel_to_root}"
+                new_url = f"https://github.com/{repo}/{ref}/{branch}/{rel_to_root}"
                 if full_match.startswith("!"):
                     return f"![{text}]({new_url})"
                 else:
@@ -58,11 +63,16 @@ def main() -> None:
         description="Augment relative links to GitHub URLs."
     )
     parser.add_argument("--branch", default="main", help="Branch name")
+    parser.add_argument(
+        "--repo",
+        default="roboflow/supervision",
+        help="Repository holding the branch, as owner/name",
+    )
     parser.add_argument("files", nargs="+", help="Files to process")
     args = parser.parse_args()
 
     for file in args.files:
-        augment_links_in_file(file, args.branch)
+        augment_links_in_file(file, args.branch, args.repo)
 
 
 if __name__ == "__main__":
