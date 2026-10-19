@@ -453,10 +453,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
                         # OBB target never yields CompactMask; narrow for mypy.
+                        # The float32 cast matches `box_iou_batch`: the thresholds
+                        # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+                        # a float64 IoU exactly on one of them would fall below it.
                         iou = oriented_box_iou_batch(
                             cast(npt.NDArray[np.number], target_contents),
                             cast(npt.NDArray[np.number], prediction_contents),
-                        )
+                        ).astype(np.float32)
                     else:
                         raise ValueError(
                             "Unsupported metric target for IoU calculation"
