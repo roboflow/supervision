@@ -1248,6 +1248,7 @@ class ClassificationDataset(BaseDataset):
 
         Raises:
             ValueError: If two images would be saved to the same output path.
+            OSError: If an in-memory image cannot be written to its destination.
         """
         output_paths = {}
         for image_path in self.image_paths:
@@ -1280,7 +1281,8 @@ class ClassificationDataset(BaseDataset):
                 root_directory_path, output_paths[image_path]
             )
             if image_path in self._images_in_memory:
-                cv2.imwrite(image_save_path, self._images_in_memory[image_path])
+                if not cv2.imwrite(image_save_path, self._images_in_memory[image_path]):
+                    raise OSError(f"Failed to save image to path: {image_save_path}")
                 continue
             # Copy the file as `save_dataset_images` does: decoding and re-encoding it
             # would drop alpha and bit depth and recompress lossy formats. Exporting
