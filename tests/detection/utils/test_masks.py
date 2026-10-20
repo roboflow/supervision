@@ -196,15 +196,39 @@ class TestMaskROIHelpers:
         assert result == (60, 40, 65, 45)
 
 
-def test_resize_masks_does_not_upscale_small_masks() -> None:
-    """resize_masks returns small masks unchanged instead of upscaling."""
-    masks = np.zeros((2, 4, 5), dtype=bool)
-    masks[:, 1:3, 2:4] = True
+class TestResizeMasks:
+    def test_does_not_upscale_small_masks(self) -> None:
+        """Small masks keep their original dimensions and storage."""
+        masks = np.zeros((2, 4, 5), dtype=bool)
+        masks[:, 1:3, 2:4] = True
 
-    result = resize_masks(masks, max_dimension=640)
+        result = resize_masks(masks, max_dimension=640)
 
-    assert result is masks
-    assert result.shape == (2, 4, 5)
+        assert result is masks
+        assert result.shape == (2, 4, 5)
+
+    @pytest.mark.parametrize(
+        ("height", "width", "expected_height", "expected_width"),
+        [
+            pytest.param(1, 1024, 1, 640, id="single-row"),
+            pytest.param(1024, 1, 640, 1, id="single-column"),
+            pytest.param(4, 4096, 1, 640, id="wide-strip"),
+            pytest.param(4096, 4, 640, 1, id="tall-strip"),
+        ],
+    )
+    def test_keeps_both_spatial_axes(
+        self, height: int, width: int, expected_height: int, expected_width: int
+    ) -> None:
+        """Downscaling a narrow mask keeps at least one pixel on each axis."""
+        masks = np.ones((2, height, width), dtype=bool)
+        masks[1] = False
+
+        result = resize_masks(masks, max_dimension=640)
+
+        assert result.shape == (2, expected_height, expected_width)
+        assert result.dtype == np.bool_
+        assert result[0].all()
+        assert not result[1].any()
 
 
 @pytest.mark.parametrize(
