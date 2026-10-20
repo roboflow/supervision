@@ -7,6 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.as_yolo` and `sv.dataset.formats.yolo.detections_to_yolo_annotations` now omit COCO crowd targets (`iscrowd=1`) by default via `ignore_crowd=True`, and join multi-part mask contours into a single continuous polygon line via `merge_segments=True` and `sv.merge_multi_segment`. An object split by an occluder no longer exports as multiple independent instances, and crowd regions no longer export as positive training objects. ([#2757](https://github.com/roboflow/supervision/issues/2757))
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
 
 ### 0.31.1 <small>Oct 20, 2026</small>

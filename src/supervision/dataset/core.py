@@ -607,6 +607,8 @@ class DetectionDataset(BaseDataset):
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
         is_obb: bool = False,
+        ignore_crowd: bool = True,
+        merge_segments: bool = True,
         show_progress: bool = False,
     ) -> None:
         """Exports the dataset to YOLO format.
@@ -641,6 +643,12 @@ class DetectionDataset(BaseDataset):
                 corners stored in `detections.data["xyxyxyxy"]`. Mirrors
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
+            ignore_crowd: When True (default), detections marked with a non-zero
+                `iscrowd` flag in `detections.data` are omitted from the export.
+            merge_segments: When True (default), multiple disconnected polygon
+                contours belonging to a single detection mask are joined using
+                zero-width seams, emitting exactly one YOLO polygon line per
+                detection.
             show_progress: If True, display a progress bar during saving.
 
         Raises:
@@ -692,6 +700,8 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
                 show_progress=show_progress,
                 is_obb=is_obb,
+                ignore_crowd=ignore_crowd,
+                merge_segments=merge_segments,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)

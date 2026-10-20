@@ -6,6 +6,7 @@ import pytest
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
+    merge_multi_segment,
 )
 
 
@@ -291,3 +292,101 @@ def test_filter_polygons_by_area_preserves_large_origin_geometry(
 
     assert len(result) == 1
     assert np.array_equal(result[0], square)
+
+
+class TestMergeMultiSegment:
+    """Tests for merging multiple disconnected polygon segments."""
+
+    def test_empty_segments_returns_empty_array(self) -> None:
+        """Empty input yields a 2D empty array."""
+        result = merge_multi_segment([])
+
+        assert result.shape == (0, 2)
+
+    def test_single_segment_returns_unchanged(self) -> None:
+        """Single polygon segment is returned as-is without modification."""
+        poly = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.int32)
+
+        result = merge_multi_segment([poly])
+
+        np.testing.assert_array_equal(result, poly)
+
+    def test_merge_two_disconnected_segments(self) -> None:
+        """Two separated square segments are merged into a single closed contour."""
+        p1 = np.array([[5, 5], [15, 5], [15, 15], [5, 15]], dtype=np.int32)
+        p2 = np.array([[35, 5], [45, 5], [45, 15], [35, 15]], dtype=np.int32)
+
+        result = merge_multi_segment([p1, p2])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        assert len(result) == 10
+        # The first and last points of p1 at the seam are connected to p2
+        assert [15, 5] in result.tolist()
+        assert [35, 5] in result.tolist()
+
+    def test_merge_three_disconnected_segments(self) -> None:
+        """Three collinear square segments are merged in order."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        p2 = np.array([[20, 0], [30, 0], [30, 10], [20, 10]], dtype=np.float32)
+        p3 = np.array([[40, 0], [50, 0], [50, 10], [40, 10]], dtype=np.float32)
+
+        result = merge_multi_segment([p1, p2, p3])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        assert len(result) == 16
+
+    def test_merge_intermediate_segment_reversed_indices(self) -> None:
+        """Intermediate polygon with idx[0] > idx[1] connects closest vertices."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        # 5 points; closest to p1 is index 4 ([20, 0]);
+        # closest to p3 is index 2 ([30, 0])
+        p2 = np.array(
+            [
+                [25, -5],
+                [27, -5],
+                [30, 0],
+                [30, 10],
+                [20, 0],
+            ],
+            dtype=np.float32,
+        )
+        p3 = np.array([[40, 0], [50, 0], [50, 10], [40, 10]], dtype=np.float32)
+
+        result = merge_multi_segment([p1, p2, p3])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        # p1 (5 points) + p2 forward (3 points) + p3 (5 points) + p2 return (3 pts) + 1
+        assert len(result) == 17
+        # Ensure the transition from p1 connects to p2[4] ([20, 0]), not [30, 0]
+        # In result, after p1 ends at [10, 0], the next point should be [20, 0]
+        p1_end_idx = 4
+        np.testing.assert_array_equal(result[p1_end_idx], [10.0, 0.0])
+        np.testing.assert_array_equal(result[p1_end_idx + 1], [20.0, 0.0])
+
+    def test_invalid_shape_raises_value_error(self) -> None:
+        """A segment with incorrect dimension or coordinates raises ValueError."""
+        invalid_1d = np.array([0, 0, 10, 10])
+
+        with pytest.raises(ValueError, match="Each segment must have shape \\(N, 2\\)"):
+            merge_multi_segment([invalid_1d])
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.float64, id="float64"),
+        ],
+    )
+    def test_preserves_input_dtype(self, dtype: type) -> None:
+        """The merged polygon retains the dtype of the input segments."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype)
+        p2 = np.array([[20, 0], [30, 0], [30, 10], [20, 10]], dtype=dtype)
+
+        result = merge_multi_segment([p1, p2])
+
+        assert result.dtype == dtype
