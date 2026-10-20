@@ -851,6 +851,40 @@ class TestPolygonZoneOccupancy:
 
         assert occupancy == pytest.approx(435 / (60 * 60))
 
+    def test_oriented_box_outside_zone_adds_nothing(self) -> None:
+        """An oriented box away from the zone leaves the coverage unchanged."""
+        zone = sv.PolygonZone(POLYGON)
+        corners = np.array(
+            [
+                [[100, 100], [150, 100], [150, 200], [100, 200]],
+                [[300, 300], [350, 300], [350, 350], [300, 350]],
+            ],
+            dtype=float,
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[100.0, 100.0, 150.0, 200.0], [300.0, 300.0, 350.0, 350.0]]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        occupancy = zone.occupancy(detections)
+
+        assert occupancy == pytest.approx(51 * 101 / ZONE_PIXELS)
+
+    def test_oriented_box_larger_than_canvas_limit_covers_zone(self) -> None:
+        """A huge oriented box enclosing the zone is drawn on the zone's window."""
+        zone = sv.PolygonZone(POLYGON)
+        corners = np.array(
+            [[[-5000, -5000], [5000, -5000], [5000, 5000], [-5000, 5000]]], dtype=float
+        )
+        detections = sv.Detections(
+            xyxy=np.array([[-5000.0, -5000.0, 5000.0, 5000.0]]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        occupancy = zone.occupancy(detections)
+
+        assert occupancy == pytest.approx(1.0)
+
     def test_rejects_misshaped_oriented_boxes(self) -> None:
         """Oriented-box data must be `(N, K, 2)` corner arrays."""
         zone = sv.PolygonZone(POLYGON)
