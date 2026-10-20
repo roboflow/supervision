@@ -36,6 +36,30 @@ EMPTY_BANNER_DIV = (
 )
 
 
+def _material_banner_div(inner: str) -> str:
+    """Wrap `inner` in the banner div markup Material renders on published gh-pages."""
+    return (
+        '<div data-md-color-scheme="default" data-md-component="outdated" hidden>\n'
+        "        \n"
+        '          <aside class="md-banner md-banner--warning">\n'
+        '            <div class="md-banner__inner md-grid md-typeset">\n'
+        f"{inner}"
+        "            </div>\n"
+        "            <script>var el=document.querySelector("
+        '"[data-md-component=outdated]"),base=new URL("."),'
+        'outdated=__md_get("__outdated",sessionStorage,base);'
+        "!0===outdated&&el&&(el.hidden=!1)</script>\n"
+        "          </aside>\n"
+        "        \n"
+        "      </div>"
+    )
+
+
+#: The banner div of a release built as the newest stable one, copied from gh-pages
+#: ``0.31.0/index.html``: Material's aside is rendered, but its text block is empty.
+LATEST_BUILD_BANNER_DIV = _material_banner_div("              \n\n\n\n\n\n\n")
+
+
 @pytest.fixture
 def current_release(tmp_path: Path) -> Path:
     """Create the current release's tree, demoting lower versions to archived."""
@@ -296,6 +320,77 @@ def test_inject_banner_leaves_a_genuine_material_build_untouched(
 
     assert changed == []
     assert page.read_text() == f"<html><body>{real_markup}</body></html>"
+
+
+@pytest.mark.usefixtures("current_release")
+def test_inject_banner_demotes_a_tree_built_as_the_latest_release(
+    tmp_path: Path, load_script: Callable[[str], ModuleType]
+) -> None:
+    """Fill the empty Material banner of a superseded tree built as the latest release.
+
+    The theme's ``is_latest_release`` exemption renders the aside with no text, so the
+    Archive step that runs after the next release must still recognise that markup —
+    otherwise the superseded docs never warn their readers, as with 0.30.9 and 0.31.0.
+    """
+    module = load_script("inject_outdated_banner")
+    page = tmp_path / "0.10.0" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f"<html><body>{LATEST_BUILD_BANNER_DIV}</body></html>")
+
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == [page]
+    patched = page.read_text()
+    assert "older version of Supervision" in patched
+    assert patched.count(module._MARKER_START) == 1
+    assert patched.count('class="md-banner__inner') == 1
+
+
+@pytest.mark.parametrize(
+    ("version_dir", "inner"),
+    [
+        pytest.param(
+            "0.10.0",
+            "              \n\n\n\nYou are reading the documentation for an older "
+            "version of Supervision, kept online for reference.<br>\n"
+            "APIs described here may have changed or been removed, so use the "
+            '<a href="https://supervision.roboflow.com/latest"><strong>latest stable '
+            "release</strong></a> instead.\n\n\n",
+            id="archived-0.30.2",
+        ),
+        pytest.param(
+            "develop",
+            "              \n\n\n\n\n\nYou are reading the unreleased development "
+            "version of the documentation, built from the <code>develop</code> "
+            "branch.<br>\nAPIs described here may change or may never ship in a "
+            'release, so use the <a href="https://supervision.roboflow.com/latest">'
+            "<strong>latest stable release</strong></a> instead.\n\n\n",
+            id="develop",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("current_release")
+def test_inject_banner_leaves_a_real_text_banner_untouched(
+    tmp_path: Path,
+    load_script: Callable[[str], ModuleType],
+    version_dir: str,
+    inner: str,
+) -> None:
+    """Keep a genuinely built banner that already carries warning text byte-identical.
+
+    The markup is copied from published gh-pages pages, so it differs from the empty
+    latest-build aside only by its text — the one thing the matcher must key on.
+    """
+    module = load_script("inject_outdated_banner")
+    original = f"<html><body>{_material_banner_div(inner)}</body></html>"
+    page = tmp_path / version_dir / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(original)
+
+    changed = module.patch_tree(tmp_path)
+
+    assert changed == []
+    assert page.read_text() == original
 
 
 @pytest.mark.usefixtures("current_release")
