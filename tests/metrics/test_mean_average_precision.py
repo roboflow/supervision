@@ -10,6 +10,7 @@ from supervision.metrics.mean_average_precision import (
     EvaluationDataset,
     MeanAveragePrecision,
 )
+from tests.metrics.coco_reference import evaluate_detections
 
 
 def _mask_detections(
@@ -492,7 +493,7 @@ class TestMeanAveragePrecision:
         # Medium objects should have 0.0 mAP (missed detection)
         assert abs(result.medium_objects.map50_95 - 0.0) < 1e-6
 
-    def test_scenario_3_false_positive(self):
+    def test_scenario_3_false_positive(self) -> None:
         """Scenario 3: No GT, Prediction Present (False Positive)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -528,10 +529,13 @@ class TestMeanAveragePrecision:
         metric.update([large_detections], [large_detections])
         result = metric.compute()
 
-        # Medium objects should have -1 mAP (false positive, matching pycocotools)
-        assert result.medium_objects.map50_95 == -1
+        reference = evaluate_detections(
+            [small_detection, medium_pred, large_detections],
+            [small_detection, no_medium_target, large_detections],
+        )
+        assert result.medium_objects.map50_95 == reference.stats[4]
 
-    def test_scenario_4_no_data(self):
+    def test_scenario_4_no_data(self) -> None:
         """Scenario 4: No GT, No Prediction (Category has no data)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -578,8 +582,11 @@ class TestMeanAveragePrecision:
 
         # Should NOT have negative mAP values for overall
         assert result.map50_95 >= 0.0
-        # Medium objects should have -1 mAP (no data, matching pycocotools)
-        assert result.medium_objects.map50_95 == -1
+        reference = evaluate_detections(
+            [small_detection, no_medium, large_preds],
+            [small_detection, no_medium, large_targets],
+        )
+        assert result.medium_objects.map50_95 == reference.stats[4]
 
     def test_scenario_5_only_one_class_present(self):
         """Scenario 5: Only 1 of 3 Classes Present (Perfect Match)"""
@@ -638,21 +645,24 @@ class TestMeanAveragePrecision:
         # Should be less than 1.0 due to missed detection and false positive
         assert result.map50_95 < 1.0
 
-    def test_empty_predictions_and_targets(self):
+    def test_empty_predictions_and_targets(self) -> None:
         """Test completely empty predictions and targets."""
         metric = MeanAveragePrecision()
         metric.update([Detections.empty()], [Detections.empty()])
         result = metric.compute()
 
-        # Should return -1 for no data (matching pycocotools behavior)
-        assert result.map50_95 == -1
-        assert result.map50 == -1
-        assert result.map75 == -1
-
-        # All object size categories should also be -1
-        assert result.small_objects.map50_95 == -1
-        assert result.medium_objects.map50_95 == -1
-        assert result.large_objects.map50_95 == -1
+        reference = evaluate_detections(Detections.empty(), Detections.empty())
+        np.testing.assert_array_equal(
+            [
+                result.map50_95,
+                result.map50,
+                result.map75,
+                result.small_objects.map50_95,
+                result.medium_objects.map50_95,
+                result.large_objects.map50_95,
+            ],
+            reference.stats[:6],
+        )
 
     def test_box_map_uses_100_max_detections_by_default(self) -> None:
         """Box mAP reads the 100-detection slice, so a match ranked 12th counts.
@@ -1347,8 +1357,13 @@ class TestMeanAveragePrecisionPycocotoolsParity:
         result = MeanAveragePrecision().update(predictions, targets).compute()
 
         # Assert
-        # pycocotools 2.0.11 gives 1.0 within 3e-16; a float32 epsilon gave
-        # 0.99999988.
+        reference = evaluate_detections(predictions, targets)
+        np.testing.assert_allclose(
+            [result.map50_95, result.map50, result.map75],
+            reference.stats[:3],
+            atol=3e-16,
+            rtol=0,
+        )
         assert result.map50_95 == 1.0
         assert result.map50 == 1.0
         assert result.map75 == 1.0
@@ -1373,15 +1388,12 @@ class TestMeanAveragePrecisionPycocotoolsParity:
 
         result = MeanAveragePrecision().update(predictions, targets).compute()
 
-        # pycocotools 2.0.11 `COCOeval(..., "bbox")` stats[1] for the same data.
-        assert result.map50 == pytest.approx(0.7414741474147416, abs=1e-6)
+        reference = evaluate_detections(predictions, targets)
+        assert result.map50 == pytest.approx(reference.stats[1], abs=1e-6)
 
-    @pytest.mark.parametrize(
-        ("prediction_width", "expected_map50_95"),
-        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
-    )
+    @pytest.mark.parametrize("prediction_width", [65, 70, 90, 95])
     def test_iou_landing_on_an_iou_threshold_matches_pycocotools(
-        self, prediction_width: int, expected_map50_95: float
+        self, prediction_width: int
     ) -> None:
         """An IoU equal to a threshold counts as a match at it, as in pycocotools."""
         targets = Detections(xyxy=np.array([[0, 0, 100, 10]]), class_id=np.array([0]))
@@ -1393,15 +1405,12 @@ class TestMeanAveragePrecisionPycocotoolsParity:
 
         result = MeanAveragePrecision().update(predictions, targets).compute()
 
-        # IoU is prediction_width / 100; pycocotools 2.0.11 gives the same stats[0].
-        assert result.map50_95 == pytest.approx(expected_map50_95)
+        reference = evaluate_detections(predictions, targets)
+        assert result.map50_95 == pytest.approx(reference.stats[0])
 
-    @pytest.mark.parametrize(
-        ("prediction_width", "expected_map50_95"),
-        [(65, 0.4), (70, 0.5), (90, 0.9), (95, 1.0)],
-    )
+    @pytest.mark.parametrize("prediction_width", [65, 70, 90, 95])
     def test_mask_iou_landing_on_an_iou_threshold_matches_pycocotools(
-        self, prediction_width: int, expected_map50_95: float
+        self, prediction_width: int
     ) -> None:
         """A mask IoU equal to a threshold matches at it, as in pycocotools."""
         target_mask = np.zeros((1, 20, 120), dtype=bool)
@@ -1424,6 +1433,5 @@ class TestMeanAveragePrecisionPycocotoolsParity:
             .compute()
         )
 
-        # Mask IoU is prediction_width / 100; pycocotools 2.0.11 ("segm") gives the
-        # same stats[0].
-        assert result.map50_95 == pytest.approx(expected_map50_95)
+        reference = evaluate_detections(predictions, targets, MetricTarget.MASKS)
+        assert result.map50_95 == pytest.approx(reference.stats[0])
