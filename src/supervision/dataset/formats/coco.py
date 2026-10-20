@@ -218,6 +218,9 @@ def coco_annotations_to_detections(
         RLE dict per annotation; consumed by
         :func:`~supervision.dataset.formats.coco.detections_to_coco_annotations`
         for a coordinate-preserving round-trip.
+        When ``use_iscrowd=True``, missing areas are derived from decoded masks
+        for segmented annotations if ``with_masks=True``, or from the bounding
+        box otherwise.
 
     Raises:
         ValueError: If an annotation's ``bbox`` has a negative width or height.
@@ -236,29 +239,31 @@ def coco_annotations_to_detections(
     xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
+    mask = (
+        coco_annotations_to_masks(
+            image_annotations=image_annotations, resolution_wh=resolution_wh
+        )
+        if with_masks
+        else None
+    )
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation.get("iscrowd", 0) for image_annotation in image_annotations
         ]
         area = []
-        for image_annotation in image_annotations:
+        for index, image_annotation in enumerate(image_annotations):
             if "area" in image_annotation:
                 area.append(image_annotation["area"])
-            elif with_masks and _with_seg_mask(image_annotation):
-                area.append(np.nan)
+            elif mask is not None and _with_seg_mask(image_annotation):
+                area.append(float(np.count_nonzero(mask[index])))
             else:
                 area.append(image_annotation["bbox"][2] * image_annotation["bbox"][3])
         data = dict(
             iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
         )
 
-    if with_masks:
-        mask = coco_annotations_to_masks(
-            image_annotations=image_annotations, resolution_wh=resolution_wh
-        )
-    else:
-        mask = None
+    if not with_masks:
         # Preserve raw polygon/RLE data so as_coco() can round-trip without
         # binary-mask encoding. Stored as an object array (one entry per detection).
         raw_segs: npt.NDArray[np.object_] = np.empty(
