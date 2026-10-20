@@ -4302,6 +4302,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>resize_masks</code> retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. (<a href="https://github.com/roboflow/supervision/pull/2762">#2762</a>)</p>
+</li>
+<li>
 <p><code>sv.filter_polygons_by_area</code> and <code>sv.polygon_to_xyxy</code> now accept empty polygons instead of raising a <code>ValueError</code>. Empty polygons evaluate to zero area when filtering, and <code>polygon_to_xyxy</code> returns an all-zero bounding box while preserving the input NumPy array dtype. (<a href="https://github.com/roboflow/supervision/pull/2761">#2761</a>)</p>
 </li>
 <li>
@@ -6491,7 +6494,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 20, 2026 15:27:22 UTC">October 20, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 20, 2026 15:34:38 UTC">October 20, 2026</span>
   </span>
 
     
@@ -6519,9 +6522,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/ghanashyam03" class="md-author" title="@ghanashyam03">
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
-          <img src="https://avatars.githubusercontent.com/u/117498393?v=4&size=72" alt="ghanashyam03">
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6529,9 +6532,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+        <a href="https://github.com/ghanashyam03" class="md-author" title="@ghanashyam03">
           
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+          <img src="https://avatars.githubusercontent.com/u/117498393?v=4&size=72" alt="ghanashyam03">
         </a>
       
         <a href="https://github.com/px12811" class="md-author" title="@px12811">
