@@ -453,10 +453,13 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
                         # OBB target never yields CompactMask; narrow for mypy.
+                        # The float32 cast matches `box_iou_batch`: the thresholds
+                        # are float32, which rounds 0.55, 0.6, 0.8 and 0.85 up, so
+                        # a float64 IoU exactly on one of them would fall below it.
                         iou = oriented_box_iou_batch(
                             cast(npt.NDArray[np.number], target_contents),
                             cast(npt.NDArray[np.number], prediction_contents),
-                        )
+                        ).astype(np.float32)
                     else:
                         raise ValueError(
                             "Unsupported metric target for IoU calculation"
@@ -578,7 +581,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         matches only the top K predictions of each class, as COCO does for every
         (image, class) pair. Matching never pairs predictions with targets of another
         class, so dropping one class's excess predictions cannot change how another
-        class is matched.
+        class is matched. Equal-IoU ties select the last eligible target in input
+        order, matching COCO.
 
         Args:
             sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
@@ -617,7 +621,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
                     # COCO visits detections by score, then assigns each its best
                     # unmatched target; the shared matcher instead ranks all pairs.
-                    eligible_indices = np.flatnonzero(eligible_targets)
+                    # COCO lets the last eligible target win an equal-IoU tie.
+                    eligible_indices = np.flatnonzero(eligible_targets)[::-1]
                     target_index = eligible_indices[
                         np.argmax(limit_iou[eligible_indices, prediction_index])
                     ]

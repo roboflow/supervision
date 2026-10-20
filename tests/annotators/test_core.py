@@ -770,6 +770,108 @@ class TestHaloAnnotator:
         assert np.array_equal(result, scene)
 
 
+class TestSingleChannelMaskAnnotators:
+    """Verify mask-painting annotators on grayscale scenes."""
+
+    @staticmethod
+    def _detections(compact: bool = False) -> Detections:
+        """Return one square mask detection inside a 30x40 scene."""
+        mask = np.zeros((1, 30, 40), dtype=bool)
+        mask[0, 8:20, 10:26] = True
+        xyxy = np.array([[10, 8, 25, 19]], dtype=np.float32)
+        masks = CompactMask.from_dense(mask, xyxy, (30, 40)) if compact else mask
+        return Detections(xyxy=xyxy, mask=masks, class_id=np.array([0]))
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(
+                MaskAnnotator(color=Color(r=180, g=180, b=180), opacity=0.6),
+                id="mask",
+            ),
+            pytest.param(
+                HaloAnnotator(color=Color(r=180, g=180, b=180), kernel_size=5),
+                id="halo",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    @pytest.mark.parametrize("compact", [False, True])
+    def test_grayscale_matches_color_scene(
+        self,
+        annotator: MaskAnnotator | HaloAnnotator,
+        channel_axis: bool,
+        compact: bool,
+    ) -> None:
+        """A grayscale scene is annotated like each channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections = self._detections(compact=compact)
+        expected = annotator.annotate(scene=color_scene, detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    def test_halo_grayscale_uses_blue_color_component(self) -> None:
+        """A grayscale halo responds to changes in the BGR blue component."""
+        scene = np.zeros((30, 40), dtype=np.uint8)
+        detections = self._detections()
+        blue_halo = HaloAnnotator(
+            color=Color(r=20, g=40, b=220), kernel_size=5
+        ).annotate(scene=scene.copy(), detections=detections)
+        dim_blue_halo = HaloAnnotator(
+            color=Color(r=20, g=40, b=20), kernel_size=5
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert blue_halo[7, 15] > dim_blue_halo[7, 15]
+
+    @pytest.mark.parametrize(
+        "annotator_type",
+        [
+            pytest.param(MaskAnnotator, id="mask"),
+            pytest.param(PolygonAnnotator, id="polygon"),
+            pytest.param(ColorAnnotator, id="color"),
+        ],
+    )
+    def test_grayscale_draws_first_color_channel(
+        self,
+        annotator_type: type[MaskAnnotator]
+        | type[PolygonAnnotator]
+        | type[ColorAnnotator],
+    ) -> None:
+        """Masks take the same gray value as other annotators' OpenCV drawing."""
+        color = Color(r=10, g=20, b=200)
+        if annotator_type is PolygonAnnotator:
+            annotator: MaskAnnotator | PolygonAnnotator | ColorAnnotator = (
+                PolygonAnnotator(color=color)
+            )
+        else:
+            annotator = annotator_type(color=color, opacity=1.0)
+        scene = np.zeros((30, 40), dtype=np.uint8)
+
+        result = annotator.annotate(scene=scene, detections=self._detections())
+
+        assert result[8, 18] == color.b
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=50)
+
+        result = MaskAnnotator(color=Color.WHITE, opacity=1.0).annotate(
+            scene=image, detections=self._detections()
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((18, 12)) == 255
+        assert result.getpixel((2, 2)) == 50
+
+
 class TestPaintMasksByArea:
     """Tests for the _paint_masks_by_area helper function."""
 
