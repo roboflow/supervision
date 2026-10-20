@@ -2590,7 +2590,8 @@ class Detections:
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
         **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
-        floating input dtype (floating AABB fallback), ``int64`` (mask branch).
+        ``float32`` (float16 AABB fallback), other floating input dtype
+        (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
