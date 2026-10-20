@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks.
+- `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
 
