@@ -9,6 +9,8 @@ date_modified: 2026-10-16
 
 - `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. ([#2762](https://github.com/roboflow/supervision/pull/2762))
 
+- `sv.metrics.MeanAverageRecall` now follows COCO's last-target tie rule when multiple eligible targets have the same IoU. This preserves confidence-ordered matching and the crowd/ignore handling added in #2750. ([#2758](https://github.com/roboflow/supervision/pull/2758))
+
 - `sv.MaskAnnotator` and `sv.HaloAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. ([#2755](https://github.com/roboflow/supervision/pull/2755))
 
 - `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
