@@ -34,6 +34,12 @@ requires_cv2 = pytest.mark.skipif(
     reason="OpenCV is required as the reference implementation for this test",
 )
 
+requires_opencv_5 = pytest.mark.skipif(
+    cv2 is None or int(cv2.__version__.split(".")[0]) < 5,
+    reason="The fallback follows OpenCV 5 for 1-pixel ellipse outlines, "
+    "which OpenCV 4 rasterizes differently",
+)
+
 
 def _assert_draws_on_canvas(result: np.ndarray, image: np.ndarray) -> None:
     """Assert that a fallback drawing operation mutates and returns its image."""
@@ -479,7 +485,16 @@ class TestFallbackEllipse:
     @pytest.mark.parametrize(
         ("center", "axes", "angle", "start_angle", "end_angle", "thickness"),
         [
-            pytest.param((50, 40), (30, 20), 0, 0, 360, 1, id="thin-full"),
+            pytest.param(
+                (50, 40),
+                (30, 20),
+                0,
+                0,
+                360,
+                1,
+                id="thin-full",
+                marks=requires_opencv_5,
+            ),
             pytest.param((50, 40), (30, 20), 0, 0, 360, 2, id="thick-full"),
             pytest.param((50, 40), (30, 20), 0, 0, 360, 7, id="very-thick-full"),
             pytest.param((60, 60), (40, 25), 30, 0, 360, 3, id="rotated"),
@@ -559,7 +574,14 @@ class TestFallbackEllipse:
         np.testing.assert_array_equal(actual, expected)
 
     @requires_cv2
-    def test_random_ellipses_match_opencv(self) -> None:
+    @pytest.mark.parametrize(
+        "thicknesses",
+        [
+            pytest.param((*range(-3, 0), *range(2, 16)), id="thick-and-filled"),
+            pytest.param((1,), id="thin", marks=requires_opencv_5),
+        ],
+    )
+    def test_random_ellipses_match_opencv(self, thicknesses: tuple[int, ...]) -> None:
         """Match OpenCV on random arcs, including partly off-canvas ellipses."""
         rng = np.random.default_rng(20261016)
 
@@ -576,7 +598,7 @@ class TestFallbackEllipse:
             angle = int(rng.integers(-720, 720))
             start_angle = int(rng.integers(-360, 721))
             end_angle = int(rng.integers(-360, 721))
-            thickness = int(rng.integers(-3, 16)) or 1
+            thickness = int(rng.choice(thicknesses))
             actual = np.zeros((height, width), dtype=np.uint8)
             expected = np.zeros_like(actual)
 
