@@ -1254,6 +1254,12 @@ def _circle(
     """Draw or fill a circle in place."""
     del lineType
     _validate_shift(shift)
+    if thickness > 1:
+        # OpenCV strokes a thick circle centred on its radius, half the
+        # thickness on either side, by drawing it as a full ellipse arc.
+        # Pillow's outline grows inward from the bounding box instead, which
+        # shrinks a thick ring by half its thickness.
+        return _ellipse(img, center, (radius, radius), 0, 0, 360, color, thickness)
     x, y = _point(center)
     bounds = [x - radius, y - radius, x + radius, y + radius]
     if thickness < 0:

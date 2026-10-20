@@ -85,6 +85,30 @@ from supervision.detection.utils.polygons import (
             DoesNotRaise(),
         ),  # two polygons with min_area and
         # max_area equal to the area of the second polygon
+        (
+            [np.empty((0, 2))],
+            50,
+            None,
+            [],
+            DoesNotRaise(),
+        ),  # empty polygon with min_area constraint
+        (
+            [np.empty((0, 2))],
+            None,
+            50,
+            [np.empty((0, 2))],
+            DoesNotRaise(),
+        ),  # empty polygon with max_area constraint
+        (
+            [
+                np.empty((0, 2)),
+                np.array([[0, 0], [0, 10], [10, 10], [10, 0]]),
+            ],
+            50,
+            None,
+            [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],
+            DoesNotRaise(),
+        ),  # mixed empty and valid polygons with min_area
     ],
 )
 def test_filter_polygons_by_area(

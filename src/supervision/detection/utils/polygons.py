@@ -13,6 +13,9 @@ def _to_local_cv2_polygon(
     before conversion. Translating first preserves representable local geometry when
     absolute coordinates exceed float32 precision.
     """
+    if len(polygon) == 0:
+        return np.empty((0, 2), dtype=np.float32), np.zeros(2, dtype=polygon.dtype)
+
     origin = polygon.min(axis=0)
     if np.issubdtype(polygon.dtype, np.integer):
         local_polygon = np.asarray(
