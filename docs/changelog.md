@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
+
 - `sv.MaskAnnotator` and `sv.HaloAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. ([#2755](https://github.com/roboflow/supervision/pull/2755))
 
 - `sv.Detections.with_nmm` now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. ([#2753](https://github.com/roboflow/supervision/pull/2753))
