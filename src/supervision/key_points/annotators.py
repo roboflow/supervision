@@ -82,8 +82,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
                 flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-            key_points: A collection of key points where each key point consists of x
-                and y coordinates.
+            key_points: A collection of key points. Only the first two coordinate
+                channels, x and y, determine pixel positions.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -116,7 +116,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             return scene
 
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
                 if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
@@ -169,8 +169,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """Annotates the given scene by drawing lines between specified key points to
         form edges. Edges where either endpoint is marked as not visible via
-        ``key_points.visible``, or where either endpoint has a non-finite coordinate,
-        are skipped.
+        ``key_points.visible``, or where either endpoint has a non-finite x/y
+        coordinate, are skipped. An extra coordinate does not affect drawing.
 
         Args:
             scene: The image where skeleton edges will be drawn. `ImageType` is a
@@ -265,8 +265,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
             for edge in edges:
                 idx_a, idx_b = _validate_edge_indices(edge=edge, vertex_count=len(xy))
-                xy_a = xy[idx_a]
-                xy_b = xy[idx_b]
+                xy_a = xy[idx_a, :2]
+                xy_b = xy[idx_b, :2]
                 if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
                     continue
                 if not _has_finite_coordinates(xy_a) or not _has_finite_coordinates(
@@ -363,13 +363,13 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
     def _iter_ellipse_params(
         self, key_points: KeyPoints
     ) -> list[list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]]:
-        """Return ellipse params grouped by sigma level (outermost first)."""
+        """Return image-space ellipse params, using x/y, outermost level first."""
         covariances = self._get_covariances(key_points)
         levels: list[
             list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]
         ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
+            for point_index, (x, y) in enumerate(xy[:, :2]):
                 if np.allclose((x, y), 0) or not _has_finite_coordinates((x, y)):
                     continue
                 if (
@@ -886,7 +886,7 @@ class VertexLabelAnnotator:
         all_text_colors: list[Color] = []
 
         for i in range(skeletons_count):
-            xy = key_points.xy[i]
+            xy = key_points.xy[i, :, :2]
 
             class_id = (
                 int(key_points.class_id[i]) if key_points.class_id is not None else None

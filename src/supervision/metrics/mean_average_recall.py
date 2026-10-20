@@ -581,7 +581,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         matches only the top K predictions of each class, as COCO does for every
         (image, class) pair. Matching never pairs predictions with targets of another
         class, so dropping one class's excess predictions cannot change how another
-        class is matched.
+        class is matched. Equal-IoU ties select the last eligible target in input
+        order, matching COCO.
 
         Args:
             sorted_prediction_class_ids: shape (P,), prediction class ids sorted by
@@ -620,7 +621,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
                     # COCO visits detections by score, then assigns each its best
                     # unmatched target; the shared matcher instead ranks all pairs.
-                    eligible_indices = np.flatnonzero(eligible_targets)
+                    # COCO lets the last eligible target win an equal-IoU tie.
+                    eligible_indices = np.flatnonzero(eligible_targets)[::-1]
                     target_index = eligible_indices[
                         np.argmax(limit_iou[eligible_indices, prediction_index])
                     ]

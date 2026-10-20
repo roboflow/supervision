@@ -1,8 +1,13 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
+from PIL import Image
 
 import supervision.metrics.mean_average_precision as mean_average_precision
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import (
@@ -10,6 +15,46 @@ from supervision.metrics.mean_average_precision import (
     EvaluationDataset,
     MeanAveragePrecision,
 )
+
+
+class TestMeanAveragePrecisionWithCocoMasks:
+    @pytest.mark.parametrize("metric_target", [MetricTarget.BOXES, MetricTarget.MASKS])
+    def test_missing_annotation_area_scores_perfect_predictions(
+        self, metric_target: MetricTarget, tmp_path: Path
+    ) -> None:
+        """COCO masks without annotated area remain evaluable in the right bucket."""
+        Image.new("RGB", (100, 100)).save(tmp_path / "image.png")
+        annotation_path = tmp_path / "annotations.json"
+        coco = {
+            "images": [
+                {"id": 1, "file_name": "image.png", "height": 100, "width": 100}
+            ],
+            "categories": [{"id": 1, "name": "object"}],
+            "annotations": [
+                {
+                    "id": 1,
+                    "image_id": 1,
+                    "category_id": 1,
+                    "bbox": [0, 0, 100, 100],
+                    "segmentation": [[0, 0, 49, 0, 49, 49, 0, 49]],
+                }
+            ],
+        }
+        annotation_path.write_text(json.dumps(coco), encoding="utf-8")
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(annotation_path),
+        )
+        targets = next(iter(dataset.annotations.values()))
+        predictions = targets.select(slice(None))
+        predictions.confidence = np.array([0.9])
+        metric = MeanAveragePrecision(metric_target=metric_target)
+
+        result = metric.update(predictions, targets).compute()
+
+        assert result.map50_95 == pytest.approx(1.0)
+        assert result.medium_objects.map50_95 == pytest.approx(1.0)
+        assert result.large_objects.map50_95 == -1
 
 
 def _mask_detections(
