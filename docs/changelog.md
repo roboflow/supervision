@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- COCO loading now derives a segmented annotation's missing `area` from its decoded mask. Missing areas previously became `NaN`, causing `MeanAveragePrecision` to exclude those targets from every size bucket and return `-1` even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior. ([#2763](https://github.com/roboflow/supervision/pull/2763))
+
 - `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. ([#2762](https://github.com/roboflow/supervision/pull/2762))
 
 - `sv.filter_polygons_by_area` and `sv.polygon_to_xyxy` now accept empty polygons instead of raising a `ValueError`. Empty polygons evaluate to zero area when filtering, and `polygon_to_xyxy` returns an all-zero bounding box while preserving the input NumPy array dtype. ([#2761](https://github.com/roboflow/supervision/pull/2761))
