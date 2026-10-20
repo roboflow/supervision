@@ -5137,8 +5137,8 @@ drawn.</p>
 </span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">        Args:</span>
 </span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">            scene: The image where skeleton vertices will be drawn. `ImageType` is a</span>
 </span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">            key_points: A collection of key points where each key point consists of x</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">                and y coordinates.</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">            key_points: A collection of key points. Only the first two coordinate</span>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">                channels, x and y, determine pixel positions.</span>
 </span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>
 </span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">        Returns:</span>
 </span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">            The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
@@ -5171,7 +5171,7 @@ drawn.</p>
 </span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>            <span class="k">return</span> <span class="n">scene</span>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="k">for</span> <span class="n">detection_index</span><span class="p">,</span> <span class="n">xy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">):</span>
-</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>            <span class="k">for</span> <span class="n">point_index</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">):</span>
+</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>            <span class="k">for</span> <span class="n">point_index</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]):</span>
 </span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)):</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a>                    <span class="k">continue</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>                <span class="k">if</span> <span class="p">(</span>
@@ -5359,8 +5359,8 @@ flexible type, accepting either <code>numpy.ndarray</code> or <code>PIL.Image.Im
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A collection of key points where each key point consists of x
-and y coordinates.</p>
+                <p>A collection of key points. Only the first two coordinate
+channels, x and y, determine pixel positions.</p>
               </div>
             </td>
             <td>
@@ -5510,8 +5510,8 @@ or <code>PIL.Image.Image</code>)</p>
 </span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">        scene: The image where skeleton vertices will be drawn. `ImageType` is a</span>
 </span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">            flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">        key_points: A collection of key points where each key point consists of x</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">            and y coordinates.</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">        key_points: A collection of key points. Only the first two coordinate</span>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">            channels, x and y, determine pixel positions.</span>
 </span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>
 </span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">        The annotated image, matching the type of `scene` (`numpy.ndarray`</span>
@@ -5544,7 +5544,7 @@ or <code>PIL.Image.Image</code>)</p>
 </span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="k">return</span> <span class="n">scene</span>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>    <span class="k">for</span> <span class="n">detection_index</span><span class="p">,</span> <span class="n">xy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">):</span>
-</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>        <span class="k">for</span> <span class="n">point_index</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">):</span>
+</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>        <span class="k">for</span> <span class="n">point_index</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]):</span>
 </span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)):</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a>                <span class="k">continue</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="k">if</span> <span class="p">(</span>
@@ -5796,8 +5796,8 @@ points.</p>
 </span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Annotates the given scene by drawing lines between specified key points to</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="sd">        form edges. Edges where either endpoint is marked as not visible via</span>
-</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">        ``key_points.visible``, or where either endpoint has a non-finite coordinate,</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        are skipped.</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">        ``key_points.visible``, or where either endpoint has a non-finite x/y</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        coordinate, are skipped. An extra coordinate does not affect drawing.</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        Args:</span>
 </span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">            scene: The image where skeleton edges will be drawn. `ImageType` is a</span>
@@ -5892,8 +5892,8 @@ points.</p>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a>            <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a>                <span class="n">idx_a</span><span class="p">,</span> <span class="n">idx_b</span> <span class="o">=</span> <span class="n">_validate_edge_indices</span><span class="p">(</span><span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span> <span class="n">vertex_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">xy</span><span class="p">))</span>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a>                <span class="n">xy_a</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_a</span><span class="p">]</span>
-</span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a>                <span class="n">xy_b</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_b</span><span class="p">]</span>
+</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a>                <span class="n">xy_a</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_a</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+</span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a>                <span class="n">xy_b</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_b</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 </span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a>                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">xy_a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">xy_b</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
 </span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a>                    <span class="k">continue</span>
 </span><span id="__span-0-272"><a id="__codelineno-0-272" name="__codelineno-0-272"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">(</span><span class="n">xy_a</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">(</span>
@@ -6082,8 +6082,8 @@ rendering for datasets with multiple skeleton types.</p>
 
         <p>Annotates the given scene by drawing lines between specified key points to
 form edges. Edges where either endpoint is marked as not visible via
-<code>key_points.visible</code>, or where either endpoint has a non-finite coordinate,
-are skipped.</p>
+<code>key_points.visible</code>, or where either endpoint has a non-finite x/y
+coordinate, are skipped. An extra coordinate does not affect drawing.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -6362,8 +6362,8 @@ or <code>PIL.Image.Image</code>)</p>
 </span><span id="__span-0-169"><a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotates the given scene by drawing lines between specified key points to</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="sd">    form edges. Edges where either endpoint is marked as not visible via</span>
-</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">    ``key_points.visible``, or where either endpoint has a non-finite coordinate,</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">    are skipped.</span>
+</span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">    ``key_points.visible``, or where either endpoint has a non-finite x/y</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">    coordinate, are skipped. An extra coordinate does not affect drawing.</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">        scene: The image where skeleton edges will be drawn. `ImageType` is a</span>
@@ -6458,8 +6458,8 @@ or <code>PIL.Image.Image</code>)</p>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a>            <span class="n">idx_a</span><span class="p">,</span> <span class="n">idx_b</span> <span class="o">=</span> <span class="n">_validate_edge_indices</span><span class="p">(</span><span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span> <span class="n">vertex_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">xy</span><span class="p">))</span>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="n">xy_a</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_a</span><span class="p">]</span>
-</span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a>            <span class="n">xy_b</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_b</span><span class="p">]</span>
+</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="n">xy_a</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_a</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+</span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a>            <span class="n">xy_b</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">idx_b</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 </span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a>            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">xy_a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">xy_b</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
 </span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a>                <span class="k">continue</span>
 </span><span id="__span-0-272"><a id="__codelineno-0-272" name="__codelineno-0-272"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">(</span><span class="n">xy_a</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_has_finite_coordinates</span><span class="p">(</span>
@@ -6944,7 +6944,7 @@ drawn.</p>
 </span><span id="__span-0-886"><a id="__codelineno-0-886" name="__codelineno-0-886"></a>        <span class="n">all_text_colors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 </span><span id="__span-0-887"><a id="__codelineno-0-887" name="__codelineno-0-887"></a>
 </span><span id="__span-0-888"><a id="__codelineno-0-888" name="__codelineno-0-888"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">skeletons_count</span><span class="p">):</span>
-</span><span id="__span-0-889"><a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">xy</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span><span id="__span-0-889"><a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">xy</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 </span><span id="__span-0-890"><a id="__codelineno-0-890" name="__codelineno-0-890"></a>
 </span><span id="__span-0-891"><a id="__codelineno-0-891" name="__codelineno-0-891"></a>            <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-892"><a id="__codelineno-0-892" name="__codelineno-0-892"></a>                <span class="nb">int</span><span class="p">(</span><span class="n">key_points</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">if</span> <span class="n">key_points</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
@@ -7794,7 +7794,7 @@ or <code>PIL.Image.Image</code>)</p>
 </span><span id="__span-0-886"><a id="__codelineno-0-886" name="__codelineno-0-886"></a>    <span class="n">all_text_colors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Color</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 </span><span id="__span-0-887"><a id="__codelineno-0-887" name="__codelineno-0-887"></a>
 </span><span id="__span-0-888"><a id="__codelineno-0-888" name="__codelineno-0-888"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">skeletons_count</span><span class="p">):</span>
-</span><span id="__span-0-889"><a id="__codelineno-0-889" name="__codelineno-0-889"></a>        <span class="n">xy</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span><span id="__span-0-889"><a id="__codelineno-0-889" name="__codelineno-0-889"></a>        <span class="n">xy</span> <span class="o">=</span> <span class="n">key_points</span><span class="o">.</span><span class="n">xy</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 </span><span id="__span-0-890"><a id="__codelineno-0-890" name="__codelineno-0-890"></a>
 </span><span id="__span-0-891"><a id="__codelineno-0-891" name="__codelineno-0-891"></a>        <span class="n">class_id</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="__span-0-892"><a id="__codelineno-0-892" name="__codelineno-0-892"></a>            <span class="nb">int</span><span class="p">(</span><span class="n">key_points</span><span class="o">.</span><span class="n">class_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">if</span> <span class="n">key_points</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
