@@ -637,12 +637,23 @@ class TestPolygonZoneEntryExit:
 
         assert zone.in_count_per_class == {None: 1}
 
-    def test_unconfirmed_tracker_ids_are_ignored(self) -> None:
-        """Negative tracker ids are shared by unconfirmed tracks and never count."""
+    @pytest.mark.parametrize(
+        "tracker_id",
+        [
+            pytest.param(-1.0, id="unconfirmed"),
+            pytest.param(np.nan, id="nan"),
+            pytest.param(np.inf, id="positive-infinity"),
+            pytest.param(-np.inf, id="negative-infinity"),
+        ],
+    )
+    def test_unusable_tracker_ids_are_ignored(self, tracker_id: float) -> None:
+        """Negative or non-finite tracker ids cannot be followed and never count."""
         zone = sv.PolygonZone(POLYGON)
         frames = [
-            _create_detections(xyxy=[OUTSIDE_BOX], class_id=[0], tracker_id=[-1]),
-            _create_detections(xyxy=[INSIDE_BOX], class_id=[0], tracker_id=[-1]),
+            sv.Detections(
+                xyxy=np.array([box], dtype=float), tracker_id=np.array([tracker_id])
+            )
+            for box in (OUTSIDE_BOX, INSIDE_BOX)
         ]
 
         for frame in frames:
@@ -942,6 +953,12 @@ class TestPolygonZoneTimeInZone:
                     xyxy=np.array([INSIDE_BOX]), tracker_id=np.array([np.nan])
                 ),
                 id="non-finite-tracker",
+            ),
+            pytest.param(
+                sv.Detections(
+                    xyxy=np.array([INSIDE_BOX]), tracker_id=np.array([np.inf])
+                ),
+                id="infinite-tracker",
             ),
         ],
     )

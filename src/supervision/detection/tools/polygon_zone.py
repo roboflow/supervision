@@ -43,7 +43,8 @@ class PolygonZone:
         stay at zero and dwell time is `NaN`, while `current_count` and
         :attr:`~supervision.detection.tools.polygon_zone.PolygonZone.current_count_per_class`
         still work. Detections with a negative `tracker_id`, which trackers
-        report for tracks they have not confirmed yet, never enter or exit.
+        report for tracks they have not confirmed yet, or a non-finite one never
+        enter or exit.
 
     Attributes:
         polygon: A polygon represented by a numpy array of shape
@@ -554,8 +555,9 @@ class PolygonZone:
 
         # Trackers report a negative id for tracks they have not confirmed yet, and
         # several distinct objects can share it, so such detections get no state.
+        # Non-finite ids in float arrays cannot be keys either, so they are skipped.
         tracker_ids = detections.tracker_id
-        confirmed = np.flatnonzero(tracker_ids >= 0)
+        confirmed = np.flatnonzero(np.isfinite(tracker_ids) & (tracker_ids >= 0))
         # An id repeated within one frame, for example after merging overlapping
         # sources, is one observation; counting each copy would let a single frame
         # satisfy minimum_crossing_threshold. The first copy is kept.
