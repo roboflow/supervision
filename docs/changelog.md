@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- Keypoint annotators use x/y when drawing accepted three-coordinate keypoints. Vertex and ellipse drawing no longer raises a tuple-unpacking error, and edge and label visibility checks ignore the extra coordinate. Rendering matches equivalent two-coordinate input, including missing-point and explicit-visibility handling. ([#2759](https://github.com/roboflow/supervision/pull/2759))
+
 - `sv.metrics.MeanAverageRecall` now follows COCO's last-target tie rule when multiple eligible targets have the same IoU. This preserves confidence-ordered matching and the crowd/ignore handling added in #2750. ([#2758](https://github.com/roboflow/supervision/pull/2758))
 
 - `sv.MaskAnnotator` and `sv.HaloAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. ([#2755](https://github.com/roboflow/supervision/pull/2755))
