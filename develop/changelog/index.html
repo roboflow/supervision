@@ -3128,6 +3128,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0311-oct-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.1 Oct 20, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0310-oct-16-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3744,6 +3755,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0311-oct-20-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.1 Oct 20, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0310-oct-16-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4300,57 +4322,39 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<h3 id="0311-oct-20-2026">0.31.1 <small>Oct 20, 2026</small><a class="headerlink" href="#0311-oct-20-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li>
-<p>The NumPy fallback for <code>circle</code> now centres a thick outline on the radius, like OpenCV, instead of growing it inward from the bounding box. Every thick circle the fallback drew (<code>CircleAnnotator</code>, <code>DotAnnotator</code> outlines, key points) was shrunk by half its thickness: <code>thickness=5</code> at radius 10 covered radii 5–10 instead of about 7.5–12.5. Thick outlines now go through the fallback <code>ellipse</code>, which matches <code>cv2.circle</code> pixel for pixel. Filled circles and 1-pixel outlines are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2765">#2765</a>)</p>
+<li><strong><code>MeanAverageRecall</code> and COCO</strong>: recall evaluation follows <code>pycocotools</code> more closely.<ul>
+<li><code>sv.metrics.MeanAverageRecall</code> now leaves COCO ignore regions out of recall: targets with <code>data["iscrowd"]</code> set, as <code>sv.DetectionDataset.from_coco</code> loads them, or with <code>data["ignore"]</code> set, the same rule <code>MeanAveragePrecision</code> applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than <code>pycocotools</code> AR: one target, one crowd target and a perfect prediction scored <code>mAR_at_100</code> 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. (<a href="https://github.com/roboflow/supervision/pull/2750">#2750</a>)</li>
+<li><code>sv.metrics.MeanAverageRecall</code> now matches predictions in descending confidence order, as COCO does, instead of choosing globally highest-IoU pairs first. When a high-confidence prediction overlaps two targets and a lower-confidence prediction overlaps only the first, the lower-confidence prediction no longer takes that target first. (<a href="https://github.com/roboflow/supervision/pull/2750">#2750</a>)</li>
+<li><code>sv.metrics.MeanAverageRecall</code> now follows COCO's last-target tie rule when multiple eligible targets have the same IoU. This preserves confidence-ordered matching and the crowd/ignore handling added in #2750. (<a href="https://github.com/roboflow/supervision/pull/2758">#2758</a>)</li>
+<li><code>sv.metrics.MeanAverageRecall</code>, <code>Precision</code>, <code>Recall</code> and <code>F1Score</code> with <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code> now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. (<a href="https://github.com/roboflow/supervision/pull/2752">#2752</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>Detections.box_area</code> and box-based <code>Detections.area</code> now compute <code>float16</code> coordinates in <code>float32</code>. Ordinary 256×256 boxes no longer overflow to infinity, tiny boxes retain nonzero areas, and area filtering works for half-precision detections. Integer and wider floating-point results retain their existing dtypes. (<a href="https://github.com/roboflow/supervision/pull/2764">#2764</a>)</p>
+<li><strong>Overflow-safe boxes</strong>: half-precision and narrow-integer coordinates no longer overflow.<ul>
+<li><code>Detections.box_area</code> and box-based <code>Detections.area</code> now compute <code>float16</code> coordinates in <code>float32</code>. Ordinary 256×256 boxes no longer overflow to infinity, tiny boxes retain nonzero areas, and area filtering works for half-precision detections. Integer and wider floating-point results retain their existing dtypes. (<a href="https://github.com/roboflow/supervision/pull/2764">#2764</a>)</li>
+<li><code>sv.metrics.MeanAveragePrecision</code> now computes box extents and areas without overflowing <code>float16</code> or narrow integer coordinate dtypes. Perfect large boxes no longer score <code>-1</code> or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. (<a href="https://github.com/roboflow/supervision/pull/2743">#2743</a>)</li>
+<li><code>sv.Detections.with_nmm</code> now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. (<a href="https://github.com/roboflow/supervision/pull/2753">#2753</a>)</li>
+</ul>
 </li>
-<li>
-<p>COCO loading now derives a segmented annotation's missing <code>area</code> from its decoded mask. Missing areas previously became <code>NaN</code>, causing <code>MeanAveragePrecision</code> to exclude those targets from every size bucket and return <code>-1</code> even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior. (<a href="https://github.com/roboflow/supervision/pull/2763">#2763</a>)</p>
+<li>COCO loading now derives a segmented annotation's missing <code>area</code> from its decoded mask. Missing areas previously became <code>NaN</code>, causing <code>MeanAveragePrecision</code> to exclude those targets from every size bucket and return <code>-1</code> even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior. (<a href="https://github.com/roboflow/supervision/pull/2763">#2763</a>)</li>
+<li><strong>Masks and polygons</strong>: degenerate inputs no longer come back empty or raise.<ul>
+<li><code>resize_masks</code> retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. (<a href="https://github.com/roboflow/supervision/pull/2762">#2762</a>)</li>
+<li><code>sv.filter_polygons_by_area</code> and <code>sv.polygon_to_xyxy</code> now accept empty polygons instead of raising a <code>ValueError</code>. Empty polygons evaluate to zero area when filtering, and <code>polygon_to_xyxy</code> returns an all-zero bounding box while preserving the input NumPy array dtype. (<a href="https://github.com/roboflow/supervision/pull/2761">#2761</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>resize_masks</code> retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. (<a href="https://github.com/roboflow/supervision/pull/2762">#2762</a>)</p>
+<li><strong>Annotators</strong>: more scene and key point inputs are drawn instead of rejected.<ul>
+<li><code>sv.MaskAnnotator</code> and <code>sv.HaloAnnotator</code> now annotate grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. (<a href="https://github.com/roboflow/supervision/pull/2755">#2755</a>)</li>
+<li>Keypoint annotators use x/y when drawing accepted three-coordinate keypoints. Vertex and ellipse drawing no longer raises a tuple-unpacking error, and edge and label visibility checks ignore the extra coordinate. Rendering matches equivalent two-coordinate input, including missing-point and explicit-visibility handling. (<a href="https://github.com/roboflow/supervision/pull/2759">#2759</a>)</li>
+<li><code>sv.MaskAnnotator</code> no longer widens its blend region to the boxes of all-False masks, for dense masks and <code>CompactMask</code> alike, and skips blending when every <code>CompactMask</code> is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. <code>CompactMask</code> foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2741">#2741</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.filter_polygons_by_area</code> and <code>sv.polygon_to_xyxy</code> now accept empty polygons instead of raising a <code>ValueError</code>. Empty polygons evaluate to zero area when filtering, and <code>polygon_to_xyxy</code> returns an all-zero bounding box while preserving the input NumPy array dtype. (<a href="https://github.com/roboflow/supervision/pull/2761">#2761</a>)</p>
-</li>
-<li>
-<p>Keypoint annotators use x/y when drawing accepted three-coordinate keypoints. Vertex and ellipse drawing no longer raises a tuple-unpacking error, and edge and label visibility checks ignore the extra coordinate. Rendering matches equivalent two-coordinate input, including missing-point and explicit-visibility handling. (<a href="https://github.com/roboflow/supervision/pull/2759">#2759</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAverageRecall</code> now follows COCO's last-target tie rule when multiple eligible targets have the same IoU. This preserves confidence-ordered matching and the crowd/ignore handling added in #2750. (<a href="https://github.com/roboflow/supervision/pull/2758">#2758</a>)</p>
-</li>
-<li>
-<p><code>sv.MaskAnnotator</code> and <code>sv.HaloAnnotator</code> now annotate grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. Masks and halos take the first (blue) channel of their color, the gray value OpenCV writes for boxes and polygons on the same scene. (<a href="https://github.com/roboflow/supervision/pull/2755">#2755</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.with_nmm</code> now computes area-weighted confidence without overflowing integer, float16 or float32 box extents. (<a href="https://github.com/roboflow/supervision/pull/2753">#2753</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAverageRecall</code>, <code>Precision</code>, <code>Recall</code> and <code>F1Score</code> with <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code> now count a prediction whose IoU is exactly 0.55, 0.6, 0.8 or 0.85 as a match at that threshold, as they do for boxes and masks. The oriented-box IoU was float64 while the thresholds are float32, which rounds those four values up. (<a href="https://github.com/roboflow/supervision/pull/2752">#2752</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAverageRecall</code> now leaves COCO ignore regions out of recall: targets with <code>data["iscrowd"]</code> set, as <code>sv.DetectionDataset.from_coco</code> loads them, or with <code>data["ignore"]</code> set, the same rule <code>MeanAveragePrecision</code> applies. They were counted as missed objects, so mAR on COCO data with crowd annotations was lower than <code>pycocotools</code> AR: one target, one crowd target and a perfect prediction scored <code>mAR_at_100</code> 0.5 instead of 1.0. A class whose only targets are crowd regions no longer counts as zero recall. (<a href="https://github.com/roboflow/supervision/pull/2750">#2750</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAverageRecall</code> now matches predictions in descending confidence order, as COCO does, instead of choosing globally highest-IoU pairs first. When a high-confidence prediction overlaps two targets and a lower-confidence prediction overlaps only the first, the lower-confidence prediction no longer takes that target first. (<a href="https://github.com/roboflow/supervision/pull/2750">#2750</a>)</p>
-</li>
-<li>
-<p>Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. (<a href="https://github.com/roboflow/supervision/pull/2746">#2746</a>)</p>
-</li>
-<li>
-<p><code>sv.metrics.MeanAveragePrecision</code> now computes box extents and areas without overflowing <code>float16</code> or narrow integer coordinate dtypes. Perfect large boxes no longer score <code>-1</code> or enter the wrong size bucket, and unmatched predictions are included or ignored according to their actual area. (<a href="https://github.com/roboflow/supervision/pull/2743">#2743</a>)</p>
-</li>
-<li>
-<p>The NumPy fallback for <code>ellipse</code> now matches OpenCV's <code>Ellipse2Poly</code> / <code>EllipseEx</code> rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A <code>(25, 15)</code> ellipse at <code>thickness=2</code> previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, <code>ThickLine</code> and <code>FillEdgeCollection</code> paths. <code>circle</code> is unchanged. (<a href="https://github.com/roboflow/supervision/pull/2740">#2740</a>)</p>
-</li>
-<li>
-<p><code>sv.MaskAnnotator</code> no longer widens its blend region to the boxes of all-False masks, for dense masks and <code>CompactMask</code> alike, and skips blending when every <code>CompactMask</code> is all-False. Empty masks previously contributed their full bounding boxes, causing unnecessary image copies and blending outside the foreground region. <code>CompactMask</code> foreground counts are read from RLE without decoding; nonempty mask bounds and painted pixels are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2741">#2741</a>)</p>
-</li>
-<li>
-<p>Image writing without OpenCV now accepts explicit single-channel grayscale arrays and saves BGRA images as JPEG by discarding alpha. In-memory dataset exports no longer lose these JPEG images. (<a href="https://github.com/roboflow/supervision/pull/2754">#2754</a>)</p>
+<li><strong>cv2-free fallback</strong>: the NumPy fallback follows OpenCV more closely.<ul>
+<li>The NumPy fallback for <code>ellipse</code> now matches OpenCV's <code>Ellipse2Poly</code> / <code>EllipseEx</code> rasterization for full ellipses, partial arcs, rotation, thick strokes, fills and geometry that leaves the canvas. A <code>(25, 15)</code> ellipse at <code>thickness=2</code> previously painted 308 pixels against OpenCV's 380, and filled arcs differed at their boundary. The fallback now ports OpenCV's sine table, fixed-point ellipse sampling, <code>ThickLine</code> and <code>FillEdgeCollection</code> paths. (<a href="https://github.com/roboflow/supervision/pull/2740">#2740</a>)</li>
+<li>The NumPy fallback for <code>circle</code> now centres a thick outline on the radius, like OpenCV, instead of growing it inward from the bounding box. Every thick circle the fallback drew (<code>CircleAnnotator</code>, <code>DotAnnotator</code> outlines, key points) was shrunk by half its thickness: <code>thickness=5</code> at radius 10 covered radii 5–10 instead of about 7.5–12.5. Thick outlines now go through the fallback <code>ellipse</code>, which matches <code>cv2.circle</code> pixel for pixel. Filled circles and 1-pixel outlines are unchanged. (<a href="https://github.com/roboflow/supervision/pull/2765">#2765</a>)</li>
+<li>Image writing without OpenCV now accepts explicit single-channel grayscale arrays and saves BGRA images as JPEG by discarding alpha. In-memory dataset exports no longer lose these JPEG images. (<a href="https://github.com/roboflow/supervision/pull/2754">#2754</a>)</li>
+<li>Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. (<a href="https://github.com/roboflow/supervision/pull/2746">#2746</a>)</li>
+</ul>
 </li>
 </ul>
 <h3 id="0310-oct-16-2026">0.31.0 <small>Oct 16, 2026</small><a class="headerlink" href="#0310-oct-16-2026" title="Permanent link">&para;</a></h3>
@@ -6503,7 +6507,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 20, 2026 16:09:40 UTC">October 20, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 20, 2026 22:40:46 UTC">October 20, 2026</span>
   </span>
 
     
@@ -6531,9 +6535,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6541,14 +6545,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+          
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+        </a>
+      
         <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
           <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
-        </a>
-      
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
-          
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
       
