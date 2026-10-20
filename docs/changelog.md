@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `Detections.box_area` and box-based `Detections.area` now compute `float16` coordinates in `float32`. Ordinary 256×256 boxes no longer overflow to infinity, tiny boxes retain nonzero areas, and area filtering works for half-precision detections. Integer and wider floating-point results retain their existing dtypes. ([#2764](https://github.com/roboflow/supervision/pull/2764))
+
 - COCO loading now derives a segmented annotation's missing `area` from its decoded mask. Missing areas previously became `NaN`, causing `MeanAveragePrecision` to exclude those targets from every size bucket and return `-1` even for perfect predictions. Explicit areas and box-only annotations retain their existing behavior. ([#2763](https://github.com/roboflow/supervision/pull/2763))
 
 - `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. ([#2762](https://github.com/roboflow/supervision/pull/2762))
