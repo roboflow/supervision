@@ -438,6 +438,20 @@ def _iter_mask_crops(
             )
 
 
+def _color_for_canvas(
+    color_bgr: tuple[int, int, int], canvas: npt.NDArray[np.uint8]
+) -> tuple[int, ...]:
+    """Return the color as the pixel value OpenCV drawing writes to `canvas`.
+
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first
+    (blue) channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match
+    the boxes and polygons other annotators draw on the same scene.
+    """
+    if canvas.ndim == 2 or canvas.shape[2] == 1:
+        return color_bgr[:1]
+    return color_bgr
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
@@ -454,7 +468,8 @@ def _paint_masks_by_area(
     allocation per mask; dense masks fall back to full-frame boolean indexing.
 
     Args:
-        canvas: BGR image array painted in place. Shape ``(H, W, 3)``.
+        canvas: Image array painted in place: BGR of shape ``(H, W, 3)``, or
+            grayscale of shape ``(H, W)`` or ``(H, W, 1)``.
         detections: Detections whose masks to paint. Returns immediately
             without modifying `canvas` when ``detections.mask`` is ``None``.
         color: Single color or palette used to resolve each detection's color.
@@ -482,12 +497,15 @@ def _paint_masks_by_area(
     origin_x, origin_y = canvas_origin
     canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
-        color_bgr = resolve_color(
-            color=color,
-            detections=detections,
-            detection_idx=detection_idx,
-            color_lookup=color_lookup,
-        ).as_bgr()
+        pixel_value = _color_for_canvas(
+            resolve_color(
+                color=color,
+                detections=detections,
+                detection_idx=detection_idx,
+                color_lookup=color_lookup,
+            ).as_bgr(),
+            canvas,
+        )
         if compact_mask is not None:
             x1 = int(compact_mask.offsets[detection_idx, 0])
             y1 = int(compact_mask.offsets[detection_idx, 1])
@@ -508,7 +526,7 @@ def _paint_masks_by_area(
                 canvas_y1 : canvas_y1 + paint_h,
                 canvas_x1 : canvas_x1 + paint_w,
             ]
-            canvas_slice[crop_slice] = color_bgr
+            canvas_slice[crop_slice] = pixel_value
             if union is not None:
                 union[
                     canvas_y1 : canvas_y1 + paint_h,
@@ -517,7 +535,7 @@ def _paint_masks_by_area(
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
             mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]
-            canvas[mask] = color_bgr
+            canvas[mask] = pixel_value
             if union is not None:
                 union |= mask
     return union
@@ -564,7 +582,9 @@ class MaskAnnotator(BaseAnnotator):
         Args:
             scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; masks are drawn in the first (blue) channel of
+                their color, as OpenCV draws boxes and polygons.
             detections: Object detections to annotate.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -627,7 +647,8 @@ class MaskAnnotator(BaseAnnotator):
         tmp = cv2.addWeighted(
             colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
         )
-        scene_roi[:] = tmp
+        # OpenCV drops a singleton channel axis; restore it before assignment.
+        scene_roi[:] = tmp.reshape(scene_roi.shape)
         return scene
 
 
@@ -866,7 +887,9 @@ class HaloAnnotator(BaseAnnotator):
         Args:
             scene: The image where the halo effect will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; halos are drawn in the first (blue) channel of
+                their color, as OpenCV draws boxes and polygons.
             detections: Object detections to annotate.
             custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
@@ -910,18 +933,21 @@ class HaloAnnotator(BaseAnnotator):
         )
         assert fmask is not None  # collect_union=True always returns an array
 
-        colored_mask = cast(
-            npt.NDArray[np.uint8],
-            cv2.blur(colored_mask, (self.kernel_size, self.kernel_size)),
-        )
-        colored_mask[fmask] = [0, 0, 0]
-        gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
+        # OpenCV drops a singleton channel axis; restore the scene's layout.
+        colored_mask = cv2.blur(
+            colored_mask, (self.kernel_size, self.kernel_size)
+        ).reshape(scene.shape)
+        colored_mask[fmask] = 0
+        if colored_mask.ndim == 2 or colored_mask.shape[2] == 1:
+            gray = colored_mask.reshape(scene.shape[:2])
+        else:
+            gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         gray_max = gray.max()
         if gray_max == 0:
             # no halo to draw (e.g. empty masks); leave the scene untouched
             return scene
         alpha = self.opacity * gray / gray_max
-        alpha_mask = alpha[:, :, np.newaxis]
+        alpha_mask = alpha if scene.ndim == 2 else alpha[:, :, np.newaxis]
         # Blend in float space so halo opacity cannot wrap around uint8 boundaries.
         blended_scene = np.clip(
             scene.astype(np.float32) * (1 - alpha_mask)

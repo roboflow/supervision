@@ -731,3 +731,58 @@ def test_fallback_imdecode_matches_opencv_exif_orientation(
     np.testing.assert_array_equal(
         _imdecode(encoded, _IMREAD_COLOR), cv2.imdecode(encoded, cv2.IMREAD_COLOR)
     )
+
+
+class TestFallbackEncoderChannels:
+    """Image encoders accept OpenCV's one-, three- and four-channel layouts."""
+
+    @pytest.mark.parametrize(
+        "encode",
+        [
+            pytest.param(_encode_with_imwrite, id="imwrite"),
+            pytest.param(_encode_with_imencode, id="imencode"),
+        ],
+    )
+    @pytest.mark.parametrize("extension", [".jpg", ".jpeg", ".jpe"])
+    @pytest.mark.parametrize("alpha", [0, 255])
+    def test_jpeg_discards_alpha_without_compositing(
+        self,
+        tmp_path: Path,
+        encode: Callable[[Path, str, np.ndarray], bytes],
+        extension: str,
+        alpha: int,
+    ) -> None:
+        """JPEG keeps the BGR pixels even when their alpha is fully transparent."""
+        bgr = _gradient_image()
+        image = np.dstack((bgr, np.full(bgr.shape[:2], alpha, dtype=np.uint8)))
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_COLOR)
+
+        encoded = encode(tmp_path, extension, image)
+
+        actual = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize(
+        "encode",
+        [
+            pytest.param(_encode_with_imwrite, id="imwrite"),
+            pytest.param(_encode_with_imencode, id="imencode"),
+        ],
+    )
+    @pytest.mark.parametrize("extension", [".png", ".jpg"])
+    def test_single_channel_axis_encodes_as_grayscale(
+        self,
+        tmp_path: Path,
+        encode: Callable[[Path, str, np.ndarray], bytes],
+        extension: str,
+    ) -> None:
+        """An explicit singleton channel writes the same pixels as a 2D image."""
+        image = _gradient_image(channels=1)[..., np.newaxis]
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
+
+        encoded = encode(tmp_path, extension, image)
+
+        actual = cv2.imdecode(
+            np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED
+        )
+        np.testing.assert_array_equal(actual, expected)
