@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `resize_masks` retains at least one pixel on each spatial axis when downscaling narrow masks, instead of returning an empty array. ([#2762](https://github.com/roboflow/supervision/pull/2762))
+
 - `sv.filter_polygons_by_area` and `sv.polygon_to_xyxy` now accept empty polygons instead of raising a `ValueError`. Empty polygons evaluate to zero area when filtering, and `polygon_to_xyxy` returns an all-zero bounding box while preserving the input NumPy array dtype. ([#2761](https://github.com/roboflow/supervision/pull/2761))
 
 - Keypoint annotators use x/y when drawing accepted three-coordinate keypoints. Vertex and ellipse drawing no longer raises a tuple-unpacking error, and edge and label visibility checks ignore the extra coordinate. Rendering matches equivalent two-coordinate input, including missing-point and explicit-visibility handling. ([#2759](https://github.com/roboflow/supervision/pull/2759))
