@@ -397,6 +397,33 @@ def test_fallback_circle_draws_a_filled_disk() -> None:
     assert tuple(image[0, 0]) == (0, 0, 0)
 
 
+def test_fallback_thick_circle_is_centred_on_its_radius() -> None:
+    """Spread a thick circle outline across its radius, as OpenCV does."""
+    image = np.zeros((31, 31, 3), dtype=np.uint8)
+
+    _circle(image, (15, 15), 10, (1, 2, 3), thickness=5)
+
+    # The stroke covers roughly radius 7.5 to 12.5 around the centre.
+    assert tuple(image[15, 15 + 12]) == (1, 2, 3)
+    assert tuple(image[15 + 12, 15]) == (1, 2, 3)
+    assert tuple(image[15, 15 + 6]) == (0, 0, 0)
+
+
+@requires_cv2
+@pytest.mark.parametrize("thickness", [2, 3, 5])
+@pytest.mark.parametrize("radius", [1, 4, 9])
+def test_fallback_thick_circle_matches_opencv(thickness: int, radius: int) -> None:
+    """Draw thick circle outlines pixel-for-pixel like OpenCV."""
+    assert cv2 is not None
+    actual = np.zeros((30, 30, 3), dtype=np.uint8)
+    expected = np.zeros_like(actual)
+
+    _circle(actual, (14, 15), radius, (255, 0, 0), thickness)
+    cv2.circle(expected, (14, 15), radius, (255, 0, 0), thickness)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_ellipse_draws_a_rotated_outline() -> None:
     """Draw a rotated ellipse outline on a multi-channel image."""
     image = np.zeros((24, 24, 3), dtype=np.uint8)
