@@ -21,6 +21,70 @@ from supervision.dataset.formats.coco import (
 )
 
 
+class TestCocoMissingMaskArea:
+    @pytest.mark.parametrize("encoding", ["polygon", "rle", "compressed-rle"])
+    def test_decoded_masks_supply_missing_area(self, encoding: str) -> None:
+        """Loading segmented labels without area records the decoded pixel count."""
+        from supervision.detection.utils.converters import mask_to_rle
+
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[:50, :50] = True
+        segmentation = (
+            [[0, 0, 49, 0, 49, 49, 0, 49]]
+            if encoding == "polygon"
+            else {
+                "counts": mask_to_rle(mask, compressed=encoding == "compressed-rle"),
+                "size": [100, 100],
+            }
+        )
+        annotation = {
+            "id": 1,
+            "category_id": 0,
+            "bbox": [0, 0, 80, 80],
+            "segmentation": segmentation,
+        }
+
+        detections = coco_annotations_to_detections(
+            [annotation], resolution_wh=(100, 100), with_masks=True
+        )
+
+        np.testing.assert_array_equal(detections.data["area"], [2500.0])
+        assert "area" not in annotation
+
+    @pytest.mark.parametrize("stored_area", [0.0, 123.0])
+    def test_annotated_area_takes_precedence(self, stored_area: float) -> None:
+        """Explicit COCO areas remain authoritative even when masks differ."""
+        annotation = {
+            "category_id": 0,
+            "bbox": [0, 0, 80, 80],
+            "segmentation": [[0, 0, 49, 0, 49, 49, 0, 49]],
+            "area": stored_area,
+        }
+
+        detections = coco_annotations_to_detections(
+            [annotation], resolution_wh=(100, 100), with_masks=True
+        )
+
+        np.testing.assert_array_equal(detections.data["area"], [stored_area])
+
+    def test_mixed_annotations_keep_per_instance_area(self) -> None:
+        """Missing mask areas and bbox-only areas stay aligned in mixed images."""
+        annotations = [
+            {"category_id": 0, "bbox": [0, 0, 80, 80]},
+            {
+                "category_id": 0,
+                "bbox": [0, 0, 80, 80],
+                "segmentation": [[0, 0, 49, 0, 49, 49, 0, 49]],
+            },
+        ]
+
+        detections = coco_annotations_to_detections(
+            annotations, resolution_wh=(100, 100), with_masks=True
+        )
+
+        np.testing.assert_array_equal(detections.data["area"], [6400.0, 2500.0])
+
+
 def mock_coco_annotation(
     annotation_id: int = 0,
     image_id: int = 0,
