@@ -378,6 +378,23 @@ def test_scale_boxes_returns_expected_dtype(
     assert result.dtype == expected_dtype
 
 
+def test_large_float16_boxes_keep_finite_midpoints() -> None:
+    """A representable midpoint never overflows the sum of its two corners.
+
+    Averaging corners through their sum overflows `float16` for a finite box at
+    `32000`-`64000`: `scale_boxes(factor=1.0)` returned `inf` corners and
+    `Position.CENTER` returned an `inf` anchor.
+    """
+    xyxy = np.array([[32000, 0, 64000, 10]], dtype=np.float16)
+
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([48000], dtype=np.float16),
+    )
+    assert np.isfinite(spread_out_boxes(xyxy=np.tile(xyxy, (2, 1)))).all()
+
+
 @pytest.mark.parametrize(
     ("xyxy", "resolution_wh", "normalization_factor", "expected_result", "exception"),
     [

@@ -554,7 +554,9 @@ def _box_midpoint(
     Integer inputs produce `float64` midpoints; floating-point inputs keep their
     dtype. Integers of 32 bits or fewer are widened to `float64`, which is exact.
     For 64-bit integers a corner sum that overflows is recomputed exactly and
-    rounded once to `float64`.
+    rounded once to `float64`. Floating-point midpoints halve each corner before
+    adding, so a finite midpoint stays finite even when the corner sum overflows
+    the coordinate dtype.
 
     Args:
         first: Lower corner coordinates, an integer or floating-point array.
@@ -575,7 +577,10 @@ def _box_midpoint(
         ```
     """
     if not np.issubdtype(first.dtype, np.integer):
-        return (first + second) / 2
+        # Halve each corner before adding: a representable midpoint must not
+        # overflow the coordinate dtype through the intermediate corner sum.
+        # Halving is exact for binary floating-point operands.
+        return first / 2 + second / 2
     if first.dtype.itemsize <= 4:
         return (first.astype(np.float64) + second.astype(np.float64)) / 2
 
@@ -668,7 +673,9 @@ def scale_boxes(
         else:
             xyxy = xyxy.astype(np.float64)
 
-    centers = cast(npt.NDArray[np.floating], (xyxy[:, :2] + xyxy[:, 2:]) / 2)
+    # Halve each corner before adding: a representable center must not overflow
+    # the coordinate dtype through the intermediate corner sum.
+    centers = cast(npt.NDArray[np.floating], xyxy[:, :2] / 2 + xyxy[:, 2:] / 2)
     new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
     return cast(
         npt.NDArray[np.floating],
@@ -719,8 +726,9 @@ def spread_out_boxes(
 
         overlap_mask = iou > 0
 
-        # Nx2
-        centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
+        # Nx2. Halve each corner before adding so a representable center does not
+        # overflow the coordinate dtype through the intermediate corner sum.
+        centers = xyxy_padded[:, :2] / 2 + xyxy_padded[:, 2:] / 2
 
         # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
