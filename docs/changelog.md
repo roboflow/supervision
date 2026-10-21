@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- Serialize NumPy boolean scalars as JSON booleans when saving JSON files.
+- Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
 
