@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.CropAnnotator` and `sv.IconAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `IndexError` or `ValueError`. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. ([#2788](https://github.com/roboflow/supervision/pull/2788))
+
 ### 0.31.1 <small>Oct 20, 2026</small>
 
 - **`MeanAverageRecall` and COCO**: recall evaluation follows `pycocotools` more closely.
