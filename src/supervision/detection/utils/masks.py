@@ -295,7 +295,8 @@ def resize_masks(
 
     Args:
         masks: 3D array of binary masks with shape (N, H, W).
-        max_dimension: The maximum dimension for the resized masks.
+        max_dimension: The maximum dimension for the resized masks. Each spatial
+            axis retains at least one pixel.
 
     Returns:
         Array of resized masks.
@@ -306,8 +307,8 @@ def resize_masks(
     if scale == 1.0:
         return masks
 
-    new_height = int(scale * max_height)
-    new_width = int(scale * max_width)
+    new_height = max(1, int(scale * max_height))
+    new_width = max(1, int(scale * max_width))
 
     x = np.linspace(0, max_width - 1, new_width).astype(int)
     y = np.linspace(0, max_height - 1, new_height).astype(int)
