@@ -814,9 +814,14 @@ class TestDetectionDatasetPascalVocImageShapes:
         assert len(objects) == 1
         obj = objects[0]
         assert obj.findtext("name") == "object"
+        # A mask-derived box encloses the exported polygon, whose extreme
+        # vertices are (16, 11); a plain box keeps its given extents.
+        expected_bndbox = (
+            ["4", "3", "16", "11"] if with_mask else ["4", "3", "15", "10"]
+        )
         assert [
             obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
-        ] == ["4", "3", "15", "10"]
+        ] == expected_bndbox
         polygon = obj.find("polygon")
         if with_mask:
             assert polygon is not None
@@ -952,3 +957,44 @@ class TestPascalVocDevkitConvention:
         )
 
         np.testing.assert_allclose(result.xyxy, [xyxy])
+
+    def test_mask_export_box_encloses_polygon(self) -> None:
+        """A mask's box reaches the polygon's last row and column, not one short."""
+        mask = np.zeros((1, 20, 20), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 16, 11]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["box"],
+            filename="a.jpg",
+            image_shape=(20, 20, 3),
+        )
+
+        root = ElementTree.fromstring(xml_string)
+        obj = root.find("object")
+        bndbox = [
+            int(obj.find(f"bndbox/{tag}").text)
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+        polygon = parse_polygon_points(obj.find("polygon"))
+
+        assert bndbox == [4, 3, 16, 11]
+        assert bndbox[2] >= polygon[:, 0].max()
+        assert bndbox[3] >= polygon[:, 1].max()
+
+    def test_subpixel_box_never_exports_inverted_bounds(self) -> None:
+        """A box under one pixel wide clamps to a one-pixel extent, never inverts."""
+        element = object_to_pascal_voc(
+            np.array([10.25, 20.25, 10.75, 20.75]), name="box"
+        )
+
+        actual = [
+            element.find(f"bndbox/{tag}").text
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+
+        assert actual == ["11", "21", "11", "21"]

@@ -82,13 +82,21 @@ def object_to_pascal_voc(
     # (https://github.com/roboflow/supervision/issues/144): a zero-indexed
     # box covering pixels x0 .. x0 + w - 1 is written xmin = x0 + 1 and
     # xmax = x0 + w, so only the minimum corner shifts by 1.
-    xmin.text = str(int(x_min) + 1)
+    xmin_value = int(x_min) + 1
+    ymin_value = int(y_min) + 1
+    # A box less than one pixel wide can collapse under truncation: its
+    # truncated maximum lands below the shifted minimum, which would
+    # write an inverted box. Clamp the maximum corner to the minimum so
+    # the written box always covers at least one pixel.
+    xmax_value = max(int(x_max), xmin_value)
+    ymax_value = max(int(y_max), ymin_value)
+    xmin.text = str(xmin_value)
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(y_min) + 1)
+    ymin.text = str(ymin_value)
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(x_max))
+    xmax.text = str(xmax_value)
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(y_max))
+    ymax.text = str(ymax_value)
 
     if polygon is not None:
         # 1-indexed, rebound to avoid mutating the caller's array (see above).
@@ -203,6 +211,12 @@ def detections_to_pascal_voc(
                 continue
             for polygon in polygons:
                 xyxy = polygon_to_xyxy(polygon=polygon)
+                # `polygon_to_xyxy` returns the contour's extreme pixel
+                # indices, while `object_to_pascal_voc` expects the
+                # maximum corner to be the exclusive box edge. Shift the
+                # maximum corner out by one so the written box encloses
+                # the polygon; the polygon vertices stay unchanged.
+                xyxy[2:] += 1
                 next_object = object_to_pascal_voc(
                     xyxy=xyxy, name=name, polygon=polygon
                 )
