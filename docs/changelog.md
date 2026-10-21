@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error.
+- `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. ([#2782](https://github.com/roboflow/supervision/pull/2782))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
 
