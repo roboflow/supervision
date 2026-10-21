@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- Serialize NumPy boolean scalars as JSON booleans when saving JSON files.
+
 ### 0.31.1 <small>Oct 20, 2026</small>
 
 - **`MeanAverageRecall` and COCO**: recall evaluation follows `pycocotools` more closely.
