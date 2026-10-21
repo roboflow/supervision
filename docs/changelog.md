@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and integer coordinates, avoiding distorted boxes from overflow in the distance comparison.
+
 ### 0.31.1 <small>Oct 20, 2026</small>
 
 - **`MeanAverageRecall` and COCO**: recall evaluation follows `pycocotools` more closely.
