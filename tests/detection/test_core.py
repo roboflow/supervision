@@ -2353,6 +2353,45 @@ class TestMergeObbCorners:
 class TestMergeDetectionGroup:
     """_merge_detection_group."""
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant,
+        reason="longdouble has no extra precision on this platform",
+    )
+    def test_preserves_area_weights_for_extended_precision_corners(self) -> None:
+        """Wider floating corners are subtracted before converting their extents."""
+        origin = np.longdouble("1e20")
+        boxes = np.array(
+            [[origin, 0, origin + 16, 10], [origin, 0, origin + 8, 10]],
+            dtype=np.longdouble,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        np.testing.assert_allclose(result.confidence, [0.8])
+
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+    def test_preserves_area_weights_at_large_integer_origins(
+        self, dtype: type[np.integer]
+    ) -> None:
+        """Small extents above 2**53 retain their area when scores are merged."""
+        origin = 2**60
+        boxes = np.array(
+            [[origin, 0, origin + 20, 10], [origin, 0, origin + 10, 10]],
+            dtype=dtype,
+        )
+        detections = [
+            Detections(xyxy=boxes[:1], confidence=np.array([0.9])),
+            Detections(xyxy=boxes[1:], confidence=np.array([0.6])),
+        ]
+
+        result = _merge_detection_group(detections)
+
+        np.testing.assert_allclose(result.confidence, [0.8])
+
     @pytest.mark.parametrize(
         ("detections", "expected_detections"),
         [
@@ -2696,6 +2735,41 @@ class TestDetectionsWithNMM:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
     @pytest.mark.parametrize(
+        ("dtype", "extent"),
+        [
+            pytest.param(np.int8, 100, id="int8"),
+            pytest.param(np.int16, 30000, id="int16"),
+            pytest.param(np.int32, 2000000000, id="int32"),
+            pytest.param(np.int64, 2**62, id="int64"),
+            pytest.param(np.float16, 60000, id="float16"),
+            pytest.param(np.float32, 3e38, id="float32"),
+            pytest.param(np.float64, 60000, id="float64"),
+        ],
+    )
+    @pytest.mark.parametrize("vertical", [False, True])
+    def test_confidence_uses_unwrapped_box_extents(
+        self, dtype: type[np.number], extent: float, vertical: bool
+    ) -> None:
+        """NMM weights scores by geometric areas even for narrow coordinate dtypes."""
+        boxes = np.array(
+            [[-extent, 0, extent, 1], [-extent / 2, 0, extent, 1]], dtype=dtype
+        )
+        if vertical:
+            boxes = boxes[:, [1, 0, 3, 2]]
+        detections = Detections(
+            xyxy=boxes,
+            confidence=np.array([0.9, 0.6]),
+            class_id=np.array([0, 0]),
+        )
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        np.testing.assert_allclose(result.confidence, [(2 * 0.9 + 1.5 * 0.6) / 3.5])
+        np.testing.assert_array_equal(detections.xyxy, boxes)
+
+    @pytest.mark.parametrize(
         (
             "corners",
             "confidence",
@@ -3024,6 +3098,67 @@ class TestDetectionsWithNMM:
 
 class TestDetectionsArea:
     """Selection order for the `area` property: mask → OBB → AABB."""
+
+    @pytest.mark.parametrize("area_property", ["box_area", "area"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.dtype("<f2"), id="little-endian"),
+            pytest.param(np.dtype(">f2"), id="big-endian"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pytest.param([0, 0, 256, 256], id="product-overflow"),
+            pytest.param([-65000, -65000, 65000, 65000], id="extent-overflow"),
+            pytest.param([0, 0, 0.0001, 0.0001], id="product-underflow"),
+            pytest.param([0, 0, 10, 10], id="small-box"),
+        ],
+    )
+    def test_half_precision_area_matches_float32(
+        self, box: list[float], area_property: str, dtype: np.dtype
+    ) -> None:
+        """Half-precision coordinates retain finite, nonzero box areas."""
+        xyxy = np.array([box], dtype=dtype)
+        detections = Detections(xyxy=xyxy.copy())
+        reference = Detections(xyxy=xyxy.astype(np.float32))
+
+        with np.errstate(over="raise", under="raise", invalid="raise"):
+            area = getattr(detections, area_property)
+
+        np.testing.assert_array_equal(area, getattr(reference, area_property))
+        np.testing.assert_array_equal(detections.xyxy, xyxy)
+        assert area.dtype == np.float32
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_wider_float_area_preserves_dtype(self, dtype: type) -> None:
+        """Area calculations preserve existing float32 and float64 results."""
+        detections = Detections(xyxy=np.array([[0, 0, 300, 300]], dtype=dtype))
+
+        area = detections.box_area
+
+        np.testing.assert_array_equal(area, [90000])
+        assert area.dtype == dtype
+
+    def test_half_precision_area_filter_keeps_large_boxes(self) -> None:
+        """Area filtering retains ordinary boxes whose area exceeds float16 range."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300], [0, 0, 10, 10]], dtype=np.float16)
+        )
+
+        filtered = detections[detections.area > 80000.0]
+
+        np.testing.assert_array_equal(filtered.xyxy, [[0, 0, 300, 300]])
+
+    def test_empty_half_precision_area_is_float32(self) -> None:
+        """Empty half-precision boxes produce an empty float32 area array."""
+        detections = Detections(xyxy=np.empty((0, 4), dtype=np.float16))
+
+        area = detections.box_area
+
+        assert area.shape == (0,)
+        assert area.dtype == np.float32
 
     @pytest.mark.parametrize(
         ("width", "height", "angle_deg", "expected_area"),
