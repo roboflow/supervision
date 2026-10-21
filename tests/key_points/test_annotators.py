@@ -6,6 +6,80 @@ from supervision import _cv2
 from tests.helpers import assert_image_mostly_same
 
 
+class TestThreeCoordinateKeyPointAnnotators:
+    @pytest.mark.parametrize(
+        "annotator_name", ["EdgeAnnotator", "VertexLabelAnnotator"]
+    )
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("depth", [0.5, np.nan, np.inf, -np.inf])
+    @pytest.mark.parametrize("visible", [None, True, False])
+    def test_depth_does_not_change_xy_checks(
+        self, annotator_name: str, dtype: str, depth: float, visible: bool | None
+    ) -> None:
+        """Depth preserves x/y validity, missing points and explicit visibility."""
+        scene = np.zeros((64, 64, 3), dtype=np.uint8)
+        xy = np.array([[[0, 0], [25, 30], [50, 45], [np.nan, 30]]], dtype=dtype)
+        xyz = np.concatenate([xy, np.full((1, 4, 1), depth, dtype=dtype)], axis=2)
+        visibility = None if visible is None else np.full((1, 4), visible)
+        points = sv.KeyPoints(xy=xyz.copy(), visible=visibility)
+        reference = sv.KeyPoints(xy=xy.copy(), visible=visibility)
+        annotator = (
+            sv.EdgeAnnotator(edges=[(1, 2), (2, 3), (3, 4)])
+            if annotator_name == "EdgeAnnotator"
+            else sv.VertexLabelAnnotator()
+        )
+        expected = annotator.annotate(scene.copy(), reference)
+
+        actual = annotator.annotate(scene.copy(), points)
+
+        np.testing.assert_array_equal(actual, expected)
+        assert bool(np.any(actual)) is (visible is not False)
+        np.testing.assert_array_equal(points.xy, xyz)
+        if visible is None:
+            assert points.visible is None
+        else:
+            np.testing.assert_array_equal(points.visible, np.full((1, 4), visible))
+
+    @pytest.mark.parametrize(
+        "annotator_name",
+        [
+            "VertexAnnotator",
+            "VertexEllipseAreaAnnotator",
+            "VertexEllipseOutlineAnnotator",
+            "VertexEllipseHaloAnnotator",
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("hidden", [False, True])
+    def test_matches_two_coordinate_rendering(
+        self, annotator_name: str, dtype: str, hidden: bool
+    ) -> None:
+        """An extra coordinate leaves pixel rendering and visibility unchanged."""
+        scene = np.zeros((64, 64, 3), dtype=np.uint8)
+        xy = np.array([[[25.0, 30.0], [0.0, 0.0], [np.nan, np.nan]]], dtype=dtype)
+        xyz = np.concatenate([xy, np.full((1, 3, 1), 0.2, dtype=dtype)], axis=2)
+        visible = np.array([[not hidden, True, True]])
+        covariance = np.tile(np.eye(2, dtype=np.float32) * 9, (1, 3, 1, 1))
+        points = sv.KeyPoints(
+            xy=xyz.copy(),
+            visible=visible.copy(),
+            data={"covariance": covariance.copy()},
+        )
+        reference = sv.KeyPoints(
+            xy=xy, visible=visible, data={"covariance": covariance}
+        )
+        annotator = getattr(sv, annotator_name)()
+        expected = annotator.annotate(scene.copy(), reference)
+
+        actual = annotator.annotate(scene.copy(), points)
+
+        np.testing.assert_array_equal(actual, expected)
+        assert bool(np.any(actual)) is not hidden
+        np.testing.assert_array_equal(points.xy, xyz)
+        np.testing.assert_array_equal(points.visible, visible)
+        np.testing.assert_array_equal(points.data["covariance"], covariance)
+
+
 class TestVertexAnnotator:
     """Verify that VertexAnnotator correctly draws keypoints on an image.
 
@@ -245,20 +319,14 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
-    def test_non_finite_z_skips_edge_despite_finite_xy(self, scene):
-        """A finite (x, y) pair with a non-finite z component is skipped.
-
-        Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
-        rasterized by EdgeAnnotator. A future change to only check (x, y) should be a
-        deliberate decision, not an accidental one.
-        """
+    def test_non_finite_z_does_not_hide_finite_xy(self, scene):
+        """Edges use finite x/y coordinates even when depth is non-finite."""
         key_points = sv.KeyPoints(
             xy=np.array([[[10.0, 10.0, np.nan], [90.0, 90.0, 1.0]]], dtype=np.float32),
         )
         annotator = sv.EdgeAnnotator(edges=[(1, 2)])
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
-        assert np.array_equal(result, scene)
+        assert not np.array_equal(result, scene)
 
     def test_all_non_finite_multi_detection_draws_nothing(self, scene):
         """A fully non-finite, multi-detection, multi-point array draws nothing and does
@@ -634,20 +702,14 @@ class TestVertexLabelAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
         assert not np.array_equal(result, scene)
 
-    def test_non_finite_z_skips_label_despite_finite_xy(self, scene):
-        """A finite (x, y) pair with a non-finite z component is skipped.
-
-        Pins the current full-row finiteness rule, which matches
-        `KeyPoints.as_detections`: a non-finite z vetoes drawing even though z is never
-        rasterized by VertexLabelAnnotator. A future change to only check (x, y) should
-        be a deliberate decision, not an accidental one.
-        """
+    def test_non_finite_z_does_not_hide_finite_xy(self, scene):
+        """Labels use finite x/y coordinates even when depth is non-finite."""
         key_points = sv.KeyPoints(
             xy=np.array([[[50.0, 50.0, np.nan]]], dtype=np.float32),
         )
         annotator = sv.VertexLabelAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
-        assert np.array_equal(result, scene)
+        assert not np.array_equal(result, scene)
 
     def test_all_non_finite_multi_detection_draws_nothing(self, scene):
         """A fully non-finite, multi-detection, multi-point array draws nothing and does
