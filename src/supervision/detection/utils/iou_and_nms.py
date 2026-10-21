@@ -900,6 +900,17 @@ def compact_mask_iou_batch(
     Returns:
         Float array of shape ``(N1, N2)`` with pairwise overlap values.
     """
+    if masks_true.image_shape != masks_detection.image_shape:
+        raise ValueError(
+            "masks_true and masks_detection must share the same (H, W); got "
+            f"{masks_true.image_shape} and {masks_detection.image_shape}."
+        )
+    if overlap_metric not in (OverlapMetric.IOU, OverlapMetric.IOS):
+        raise ValueError(
+            f"overlap_metric {overlap_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
+        )
+
     n1: int = len(masks_true)
     n2: int = len(masks_detection)
     result: npt.NDArray[np.floating] = np.zeros((n1, n2), dtype=float)
@@ -909,6 +920,12 @@ def compact_mask_iou_batch(
 
     areas_a: npt.NDArray[np.int64] = masks_true.area
     areas_b: npt.NDArray[np.int64] = masks_detection.area
+    # Keep the arithmetic aligned with the dense matmul implementation. For
+    # images up to 2**24 pixels it intentionally uses float32 counts; this
+    # matters at an NMS threshold such as 0.1, where float32's rounded value
+    # is just above the threshold while the exact Python float is not.
+    pixel_count = masks_true.image_shape[0] * masks_true.image_shape[1]
+    count_dtype = np.float32 if pixel_count <= 2**24 else np.float64
 
     # Inclusive per-mask bounding boxes obtained from public accessors.
     # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
@@ -954,9 +971,9 @@ def compact_mask_iou_batch(
         ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
         sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
 
-        inter = int(np.logical_and(sub_a, sub_b).sum())
-        area_a_i = int(areas_a[idx_a])
-        area_b_j = int(areas_b[idx_b])
+        inter = count_dtype(np.logical_and(sub_a, sub_b).sum())
+        area_a_i = count_dtype(areas_a[idx_a])
+        area_b_j = count_dtype(areas_b[idx_b])
 
         if overlap_metric == OverlapMetric.IOU:
             union = area_a_i + area_b_j - inter
@@ -964,11 +981,6 @@ def compact_mask_iou_batch(
         elif overlap_metric == OverlapMetric.IOS:
             small = min(area_a_i, area_b_j)
             result[idx_a, idx_b] = inter / small if small > 0 else 0.0
-        else:
-            raise ValueError(
-                f"overlap_metric {overlap_metric} is not supported, "
-                "only 'IOU' and 'IOS' are supported"
-            )
 
     return result
 
