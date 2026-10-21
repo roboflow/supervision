@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 from inference import InferencePipeline
@@ -5,7 +7,6 @@ from inference.core.interfaces.camera.entities import VideoFrame
 from trackers import ByteTrackTracker
 from ultralytics import YOLO
 from utils.general import find_in_list, load_zones_config
-from utils.timers import ClockBasedTimer
 
 import supervision as sv
 
@@ -29,11 +30,12 @@ class CustomSink:
         )
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
-        self.timers = [ClockBasedTimer() for _ in self.polygons]
         self.zones = [
             sv.PolygonZone(
                 polygon=polygon,
                 triggering_anchors=(sv.Position.CENTER,),
+                # Ignore boxes flickering across the edge for under 3 frames.
+                minimum_crossing_threshold=3,
             )
             for polygon in self.polygons
         ]
@@ -60,8 +62,13 @@ class CustomSink:
                 scene=annotated_frame, polygon=zone.polygon, color=COLORS.by_idx(idx)
             )
 
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = self.timers[idx].tick(detections_in_zone)
+            zone.trigger(detections, timestamp=time.monotonic())
+            time_in_zone = zone.time_in_zone(detections)
+            # Dwell is NaN until an entry is confirmed, so only confirmed
+            # stays are drawn and labelled.
+            is_in_zone = ~np.isnan(time_in_zone)
+            detections_in_zone = detections[is_in_zone]
+            time_in_zone = time_in_zone[is_in_zone]
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
 
             annotated_frame = COLOR_ANNOTATOR.annotate(
@@ -70,8 +77,8 @@ class CustomSink:
                 custom_color_lookup=custom_color_lookup,
             )
             labels = [
-                f"#{tracker_id} {int(time // 60):02d}:{int(time % 60):02d}"
-                for tracker_id, time in zip(detections_in_zone.tracker_id, time_in_zone)
+                f"#{tracker_id} {int(t // 60):02d}:{int(t % 60):02d}"
+                for tracker_id, t in zip(detections_in_zone.tracker_id, time_in_zone)
             ]
             annotated_frame = LABEL_ANNOTATOR.annotate(
                 scene=annotated_frame,

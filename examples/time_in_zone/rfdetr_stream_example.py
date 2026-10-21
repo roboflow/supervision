@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from enum import Enum
 
 import cv2
@@ -9,7 +10,6 @@ from inference.core.interfaces.camera.entities import VideoFrame
 from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
 from trackers import ByteTrackTracker
 from utils.general import find_in_list, load_zones_config
-from utils.timers import ClockBasedTimer
 
 import supervision as sv
 
@@ -92,11 +92,12 @@ class CustomSink:
         )
         self.fps_monitor = sv.FPSMonitor()
         self.polygons = load_zones_config(file_path=zone_configuration_path)
-        self.timers = [ClockBasedTimer() for _ in self.polygons]
         self.zones = [
             sv.PolygonZone(
                 polygon=polygon,
                 triggering_anchors=(sv.Position.CENTER,),
+                # Ignore boxes flickering across the edge for under 3 frames.
+                minimum_crossing_threshold=3,
             )
             for polygon in self.polygons
         ]
@@ -121,8 +122,13 @@ class CustomSink:
                 polygon=zone.polygon,
                 color=COLORS.by_idx(idx),
             )
-            detections_in_zone = detections[zone.trigger(detections)]
-            time_in_zone = self.timers[idx].tick(detections_in_zone)
+            zone.trigger(detections, timestamp=time.monotonic())
+            time_in_zone = zone.time_in_zone(detections)
+            # Dwell is NaN until an entry is confirmed, so only confirmed
+            # stays are drawn and labelled.
+            is_in_zone = ~np.isnan(time_in_zone)
+            detections_in_zone = detections[is_in_zone]
+            time_in_zone = time_in_zone[is_in_zone]
             custom_color_lookup = np.full(detections_in_zone.class_id.shape, idx)
             annotated_frame = COLOR_ANNOTATOR.annotate(
                 scene=annotated_frame,

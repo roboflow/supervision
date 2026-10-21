@@ -29,8 +29,13 @@ jobs:
           activate-environment: true
 
       - name: 🎨 Augment paths in README
+        # A fork PR's branch exists only on the fork, so links must point there.
+        # Both values come from the event, so pass them through env, not the script.
+        env:
+          LINK_BRANCH: ${{ github.head_ref || github.ref_name }}
+          LINK_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
         run: |
-          python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          python .github/scripts/augment_links.py README.md --branch "$LINK_BRANCH" --repo "$LINK_REPO"
           cat README.md
 
       - name: 🔗 Link Checker
