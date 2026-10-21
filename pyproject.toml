@@ -211,6 +211,7 @@ overrides = [
   { module = [ "examples.*", "tests.*" ], ignore_errors = true },
   { module = [
     "tests",
+    "tests.annotators.*",
     "tests.assets.*",
     "tests.classification.*",
     "tests.conftest",
