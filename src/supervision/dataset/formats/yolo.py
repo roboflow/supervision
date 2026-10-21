@@ -727,9 +727,9 @@ def save_yolo_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
+    show_progress: bool = False,
     ignore_crowd: bool = True,
     merge_segments: bool = True,
-    show_progress: bool = False,
 ) -> None:
     """Save dataset annotations in YOLO format.
 
@@ -750,13 +750,13 @@ def save_yolo_annotations(
             the 9-token format ``class_id x1 y1 x2 y2 x3 y3 x4 y4``. Each
             non-empty detection must carry ``detections.data['xyxyxyxy']``
             with shape ``(N, 4, 2)``.
+        show_progress: If ``True``, display a tqdm progress bar while
+            saving annotations.
         ignore_crowd: When ``True`` (default), detections carrying a non-zero
             ``iscrowd`` flag in ``detections.data`` are omitted from the export.
         merge_segments: When ``True`` (default), multiple disconnected polygon
             contours belonging to a single detection mask are joined using zero-width
             seams, emitting exactly one YOLO polygon line per detection.
-        show_progress: If ``True``, display a tqdm progress bar while
-            saving annotations.
 
     Examples:
         ```pycon

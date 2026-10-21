@@ -2,6 +2,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
+from scipy.spatial import cKDTree
 
 from supervision import _cv2 as cv2
 
@@ -183,11 +184,13 @@ def _find_min_distance_indices(
         A tuple of ``(idx1, idx2)`` containing the index in ``polygon1`` and
         the index in ``polygon2`` of the mutually closest vertices.
     """
-    diff = polygon1[:, np.newaxis, :] - polygon2[np.newaxis, :, :]
-    distances_sq = np.sum(diff**2, axis=-1)
-    flat_idx = int(np.argmin(distances_sq))
-    idx1, idx2 = np.unravel_index(flat_idx, distances_sq.shape)
-    return int(idx1), int(idx2)
+    p1 = np.asarray(polygon1, dtype=np.float64)
+    p2 = np.asarray(polygon2, dtype=np.float64)
+    tree2 = cKDTree(p2)
+    dists, indices = tree2.query(p1)
+    min_p1_idx = int(np.argmin(dists))
+    min_p2_idx = int(indices[min_p1_idx])
+    return min_p1_idx, min_p2_idx
 
 
 def merge_multi_segment(

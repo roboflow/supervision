@@ -376,6 +376,7 @@ class TestMergeMultiSegment:
     @pytest.mark.parametrize(
         "dtype",
         [
+            pytest.param(np.uint8, id="uint8"),
             pytest.param(np.int32, id="int32"),
             pytest.param(np.int64, id="int64"),
             pytest.param(np.float32, id="float32"),
@@ -390,3 +391,30 @@ class TestMergeMultiSegment:
         result = merge_multi_segment([p1, p2])
 
         assert result.dtype == dtype
+
+    def test_no_overflow_uint8_and_large_int32(self) -> None:
+        """Nearest pair calculation does not overflow with uint8 or large int32."""
+        # uint8: squared distance of 20 or 40 would overflow in uint8
+        p1_uint8 = np.array([[5, 5], [15, 5], [15, 15], [5, 15]], dtype=np.uint8)
+        p2_uint8 = np.array([[35, 5], [45, 5], [45, 15], [35, 15]], dtype=np.uint8)
+        res_uint8 = merge_multi_segment([p1_uint8, p2_uint8])
+        assert res_uint8.dtype == np.uint8
+        # Closest vertices are [15, 5] and [35, 5] (dx=20), not [5, 5] and [45, 5]
+        # In the result, the seam must connect p1's [15, 5] to p2's [35, 5]
+        p1_seam_idx = 4
+        np.testing.assert_array_equal(res_uint8[p1_seam_idx], [15, 5])
+        np.testing.assert_array_equal(res_uint8[p1_seam_idx + 1], [35, 5])
+
+        # int32: coordinate difference > 46,341 squares to > 2**31 - 1
+        p1_int32 = np.array(
+            [[0, 0], [100000, 0], [100000, 10], [0, 10]], dtype=np.int32
+        )
+        p2_int32 = np.array(
+            [[160000, 0], [200000, 0], [200000, 10], [160000, 10]],
+            dtype=np.int32,
+        )
+        res_int32 = merge_multi_segment([p1_int32, p2_int32])
+        assert res_int32.dtype == np.int32
+        # Closest vertices are [100000, 0] and [160000, 0]
+        np.testing.assert_array_equal(res_int32[4], [100000, 0])
+        np.testing.assert_array_equal(res_int32[5], [160000, 0])
