@@ -2590,7 +2590,8 @@ class Detections:
         under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
 
         **Return dtype**: ``float64`` (OBB branch and integer AABB fallback),
-        floating input dtype (floating AABB fallback), ``int64`` (mask branch).
+        ``float32`` (float16 AABB fallback), other floating input dtype
+        (floating AABB fallback), ``int64`` (mask branch).
 
         Returns:
             An array containing the area of each detection
@@ -2638,7 +2639,9 @@ class Detections:
             An array of floats containing the area of each bounding
             box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections. Integer coordinates
-                produce ``float64``; floating coordinates preserve their dtype.
+                produce ``float64``; ``float16`` coordinates produce ``float32``
+                to avoid overflow and underflow. Other floating coordinates
+                preserve their dtype.
         """
         xyxy = self.xyxy
         if np.issubdtype(xyxy.dtype, np.integer):
@@ -2652,6 +2655,8 @@ class Detections:
                 heights, dtype=np.float64
             )
 
+        if np.issubdtype(xyxy.dtype, np.float16):
+            xyxy = xyxy.astype(np.float32)
         widths = xyxy[:, 2] - xyxy[:, 0]
         heights = xyxy[:, 3] - xyxy[:, 1]
         return widths * heights
@@ -3099,7 +3104,9 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     Used internally by :meth:`~supervision.detection.core.Detections.with_nmm`
     to combine each merge group into a single output detection. The
     highest-confidence detection is the
-    "winner" whose class_id, tracker_id, and data fields are preserved.
+    "winner" whose class_id, tracker_id, and data fields are preserved. Box
+    extents are widened before subtraction to keep confidence weights finite
+    and avoid integer wraparound.
 
     Args:
         detections: List of Detections, each containing exactly one object.
@@ -3120,11 +3127,22 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     # Area-weighted confidence: each box contributes proportionally to its
     # footprint so large overlapping boxes dominate over small slivers.
     all_xyxy = np.array([d.xyxy[0] for d in detections])
-    widths = all_xyxy[:, 2] - all_xyxy[:, 0]
-    heights = all_xyxy[:, 3] - all_xyxy[:, 1]
-    areas = widths.astype(np.float64, copy=False) * heights.astype(
-        np.float64, copy=False
+    # Widen before subtracting: casting wrapped or infinite extents afterwards
+    # cannot recover their areas. Python integers also preserve narrow boxes at
+    # large 64-bit origins, where casting the corners to float64 would lose pixels.
+    area_dtype = (
+        object
+        if np.issubdtype(all_xyxy.dtype, np.integer)
+        else np.promote_types(all_xyxy.dtype, np.float64)
     )
+    area_coordinates = all_xyxy.astype(area_dtype)
+    widths = np.asarray(
+        area_coordinates[:, 2] - area_coordinates[:, 0], dtype=np.float64
+    )
+    heights = np.asarray(
+        area_coordinates[:, 3] - area_coordinates[:, 1], dtype=np.float64
+    )
+    areas = widths * heights
 
     confidence: npt.NDArray[np.floating] | None
     if winner.confidence is not None:
