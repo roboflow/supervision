@@ -5,8 +5,8 @@ date_modified: 2026-10-16
 
 # Changelog
 
-
 ### Unreleased <small>upcoming</small>
+
 - Pascal VOC export and import now follow the VOC devkit convention for box extents: only `xmin` and `ymin` are shifted by 1 on export, and only they are shifted back on import. Boxes written by `sv.DetectionDataset.as_pascal_voc` no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in `supervision`. Annotations written by earlier `supervision` versions carry the old +1 in `xmax` and `ymax`, so those maximum corners now load one pixel larger than before. ([#2780](https://github.com/roboflow/supervision/pull/2780))
 
 - Video reading without OpenCV now handles files with audio streams before the first video stream. Frame decoding, metadata, frame counting and seeking select the first video stream independently of its container index. ([#2746](https://github.com/roboflow/supervision/pull/2746))
