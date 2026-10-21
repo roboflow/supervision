@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.JSONSink.append` now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written.
+
 ### 0.31.1 <small>Oct 20, 2026</small>
 
 - **`MeanAverageRecall` and COCO**: recall evaluation follows `pycocotools` more closely.
