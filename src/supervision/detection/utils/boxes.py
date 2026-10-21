@@ -554,9 +554,10 @@ def _box_midpoint(
     Integer inputs produce `float64` midpoints; floating-point inputs keep their
     dtype. Integers of 32 bits or fewer are widened to `float64`, which is exact.
     For 64-bit integers a corner sum that overflows is recomputed exactly and
-    rounded once to `float64`. Floating-point midpoints halve each corner before
-    adding, so a finite midpoint stays finite even when the corner sum overflows
-    the coordinate dtype.
+    rounded once to `float64`. Floating-point midpoints sum the corners before
+    dividing, so a subnormal result keeps its exact value; a sum that overflows
+    the coordinate dtype falls back to halving each corner, so a finite midpoint
+    stays finite.
 
     Args:
         first: Lower corner coordinates, an integer or floating-point array.
@@ -577,10 +578,15 @@ def _box_midpoint(
         ```
     """
     if not np.issubdtype(first.dtype, np.integer):
-        # Halve each corner before adding: a representable midpoint must not
-        # overflow the coordinate dtype through the intermediate corner sum.
-        # Halving is exact for binary floating-point operands.
-        return first / 2 + second / 2
+        # Sum before dividing so a subnormal midpoint keeps its exact value; halve
+        # each corner only when the sum overflows, which keeps it finite.
+        with np.errstate(over="ignore"):
+            summed = first + second
+        midpoints = summed / 2
+        overflow = ~np.isfinite(midpoints)
+        if np.any(overflow):
+            midpoints = np.where(overflow, first / 2 + second / 2, midpoints)
+        return midpoints
     if first.dtype.itemsize <= 4:
         return (first.astype(np.float64) + second.astype(np.float64)) / 2
 
@@ -673,9 +679,7 @@ def scale_boxes(
         else:
             xyxy = xyxy.astype(np.float64)
 
-    # Halve each corner before adding: a representable center must not overflow
-    # the coordinate dtype through the intermediate corner sum.
-    centers = cast(npt.NDArray[np.floating], xyxy[:, :2] / 2 + xyxy[:, 2:] / 2)
+    centers = cast(npt.NDArray[np.floating], _box_midpoint(xyxy[:, :2], xyxy[:, 2:]))
     new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
     return cast(
         npt.NDArray[np.floating],
@@ -726,9 +730,8 @@ def spread_out_boxes(
 
         overlap_mask = iou > 0
 
-        # Nx2. Halve each corner before adding so a representable center does not
-        # overflow the coordinate dtype through the intermediate corner sum.
-        centers = xyxy_padded[:, :2] / 2 + xyxy_padded[:, 2:] / 2
+        # Nx2
+        centers = _box_midpoint(xyxy_padded[:, :2], xyxy_padded[:, 2:])
 
         # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]

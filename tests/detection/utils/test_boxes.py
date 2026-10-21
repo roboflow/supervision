@@ -395,6 +395,23 @@ def test_large_float16_boxes_keep_finite_midpoints() -> None:
     assert np.isfinite(spread_out_boxes(xyxy=np.tile(xyxy, (2, 1)))).all()
 
 
+def test_subnormal_float16_boxes_keep_exact_midpoints() -> None:
+    """A midpoint keeps its exact value when the result is subnormal.
+
+    `s = 2**-24` is the smallest positive `float16`; halving before adding rounds
+    `s` to zero and `5*s` to `2*s`, moving the midpoint from `3*s` to `2*s` and
+    shifting a box that `scale_boxes(factor=1.0)` must leave untouched.
+    """
+    s = np.float16(2.0**-24)
+    xyxy = np.array([[s, 0, np.float16(5) * s, 1]], dtype=np.float16)
+
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([np.float16(3) * s], dtype=np.float16),
+    )
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+
+
 @pytest.mark.parametrize(
     ("xyxy", "resolution_wh", "normalization_factor", "expected_result", "exception"),
     [
