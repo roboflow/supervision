@@ -865,6 +865,12 @@ def polygon_to_xyxy(polygon: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
 
         ```
     """
+    if len(polygon) == 0:
+        output_dtype = polygon.dtype if isinstance(polygon, np.ndarray) else np.int_
+        return np.zeros(4, dtype=output_dtype)
+
+    polygon = np.asarray(polygon)
+
     x_min, y_min = np.min(polygon, axis=0)
     x_max, y_max = np.max(polygon, axis=0)
     return np.array([x_min, y_min, x_max, y_max])
