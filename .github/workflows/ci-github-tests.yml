@@ -3,12 +3,30 @@ name: Test GitHub Configuration
 on:
   push:
     branches: ["main", "develop", "release/*"]
+    paths:
+      - ".github/**"
+      - "docs/**"
+      - "tests/cv2/installed_wheel_fallback_manifest.txt"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
   pull_request:
     branches: ["main", "develop", "release/*"]
+    paths:
+      - ".github/**"
+      - "docs/**"
+      - "tests/cv2/installed_wheel_fallback_manifest.txt"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: github-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -18,12 +36,15 @@ jobs:
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🐍 Install uv and set Python
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: "3.10"
           activate-environment: true
+          enable-cache: true # zizmor: ignore[cache-poisoning] -- Test-only workflow; publishing jobs do not restore this cache.
 
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group dev --group docs

@@ -6,7 +6,15 @@ permissions:
 on:
   push:
     branches: ["main", "develop", "release/*"]
-  pull_request: {}
+    paths:
+      - "**/*.md"
+      - ".github/lychee.toml"
+      - ".github/workflows/ci-check-links.yml"
+  pull_request:
+    paths:
+      - "**/*.md"
+      - ".github/lychee.toml"
+      - ".github/workflows/ci-check-links.yml"
   schedule:
     # Run once a week on Sundays
     - cron: "0 9 * * 0"
@@ -16,13 +24,16 @@ concurrency:
   cancel-in-progress: true
 jobs:
   links-check:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🔗 Link Checker
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           lycheeVersion: v0.22.0
           args: |
