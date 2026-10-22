@@ -131,6 +131,25 @@ class Vector:
                 lies to the left of the vector (when moving from 'start' to 'end'),
                 negative if it lies to the right, and 0 if it is collinear with the
                 vector.
+
+        Example:
+            For a vector from ``start`` to ``end``, the cross product is positive
+            for a point to its left, negative for a point to its right, and zero
+            for a point on the same line.
+
+            ```pycon
+            >>> from supervision.geometry.core import Point, Vector
+            >>> start = Point(x=10.0, y=10.0)
+            >>> end = Point(x=12.0, y=10.0)
+            >>> vector = Vector(start=start, end=end)
+            >>> vector.cross_product(Point(x=11.0, y=11.0))
+            2.0
+            >>> vector.cross_product(Point(x=11.0, y=9.0))
+            -2.0
+            >>> vector.cross_product(Point(x=11.0, y=10.0))
+            0.0
+
+            ```
         """
         dx_vector = self.end.x - self.start.x
         dy_vector = self.end.y - self.start.y

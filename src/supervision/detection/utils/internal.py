@@ -762,7 +762,7 @@ def get_data_item(
     subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
-            subset_data[key] = value[index]
+            subset_data[key] = value if value.ndim == 0 else value[index]
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]

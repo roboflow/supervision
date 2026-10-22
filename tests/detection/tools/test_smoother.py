@@ -48,11 +48,11 @@ def _tracked_empty() -> Detections:
 
 
 def _feed(
-    smoother: DetectionsSmoother, frame_factories: list[Callable[[], Detections]]
+    smoother: DetectionsSmoother, fn_frame_factories: list[Callable[[], Detections]]
 ) -> None:
     """Send one frame per factory to `smoother`, discarding the results."""
-    for make_frame in frame_factories:
-        smoother.update_with_detections(make_frame())
+    for fn_make_frame in fn_frame_factories:
+        smoother.update_with_detections(fn_make_frame())
 
 
 # Frames without tracker IDs warn on every call; the tests below check their effect on
@@ -60,7 +60,7 @@ def _feed(
 @pytest.mark.filterwarnings("ignore::supervision.utils.internal.SupervisionWarnings")
 class TestDetectionsSmoother:
     @pytest.mark.parametrize(
-        "make_missing_frame",
+        "fn_make_missing_frame",
         [
             pytest.param(_untracked_empty, id="untracked-empty"),
             pytest.param(_untracked_nonempty, id="untracked-nonempty"),
@@ -78,7 +78,7 @@ class TestDetectionsSmoother:
     )
     def test_returning_track_averages_only_frames_inside_window(
         self,
-        make_missing_frame: Callable[[], Detections],
+        fn_make_missing_frame: Callable[[], Detections],
         gap_frames: int,
         expected_xyxy: list[list[int]],
         expected_confidence: list[float],
@@ -86,7 +86,7 @@ class TestDetectionsSmoother:
         """Frames missing tracker IDs or boxes age history like any other frame."""
         smoother = DetectionsSmoother(length=3)
         smoother.update_with_detections(_track(0, 0.5))
-        _feed(smoother, [make_missing_frame] * gap_frames)
+        _feed(smoother, [fn_make_missing_frame] * gap_frames)
 
         result = smoother.update_with_detections(_track(100, 0.9))
 
