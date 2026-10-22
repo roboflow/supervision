@@ -9,6 +9,8 @@ date_modified: 2026-10-16
 
 - Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. ([#2769](https://github.com/roboflow/supervision/pull/2769))
 
+- Pascal VOC export and import now follow the VOC devkit convention for box extents: only `xmin` and `ymin` are shifted by 1 on export, and only they are shifted back on import. Boxes written by `sv.DetectionDataset.as_pascal_voc` no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in `supervision`. Annotations written by earlier `supervision` versions carry the old +1 in `xmax` and `ymax`, so those maximum corners now load one pixel larger than before. ([#2780](https://github.com/roboflow/supervision/pull/2780))
+
 - In-memory dataset image exports now raise `OSError` with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and `sv.ClassificationDataset.as_folder_structure`. ([#2772](https://github.com/roboflow/supervision/pull/2772))
 
 - `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
