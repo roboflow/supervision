@@ -9,6 +9,8 @@ date_modified: 2026-10-16
 
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 
+- `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
+
 ### 0.31.1 <small>Oct 20, 2026</small>
 
 - **`MeanAverageRecall` and COCO**: recall evaluation follows `pycocotools` more closely.
