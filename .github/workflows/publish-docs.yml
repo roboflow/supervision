@@ -147,6 +147,9 @@ jobs:
             git commit -m "chore(docs): archive the previously-latest release"
             git push origin gh-pages
           fi
+          # Later steps read the release's own tree (docs/, .github/), which gh-pages
+          # lacks — hand the workspace back on the exact commit the job started on.
+          git checkout "$GITHUB_SHA"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
@@ -163,15 +166,17 @@ jobs:
           (github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true')
         run: |
           root_files=(robots.txt llms.txt llms.full.txt llms-100k.txt _headers 0d5d9799b1cc4a39825146388c6781eb.txt)
+          # Read the inputs from the deployed commit rather than the working tree, so an
+          # earlier step that left gh-pages checked out cannot break this one.
           for f in "${root_files[@]}"; do
-            cp "docs/$f" "/tmp/$f"
+            git show "$GITHUB_SHA:docs/$f" > "/tmp/$f"
           done
           # Site root: replaces mike's redirect stub, which carries no canonical.
           # Release deploys check out the tag, and tags cut before this file existed do
           # not carry it — treat it as optional rather than failing the whole deploy.
           rm -f /tmp/root-index.html
-          if [[ -f .github/root-index.html ]]; then
-            cp .github/root-index.html /tmp/root-index.html
+          if git cat-file -e "$GITHUB_SHA:.github/root-index.html" 2>/dev/null; then
+            git show "$GITHUB_SHA:.github/root-index.html" > /tmp/root-index.html
           fi
           if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
             version_dir="latest"
