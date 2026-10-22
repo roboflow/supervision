@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. ([#2782](https://github.com/roboflow/supervision/pull/2782))
+
 - `sv.JSONSink.append` now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written. ([#2781](https://github.com/roboflow/supervision/pull/2781))
 
 - Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. ([#2769](https://github.com/roboflow/supervision/pull/2769))
