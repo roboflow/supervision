@@ -283,7 +283,7 @@ class TestLoadCreatemlAnnotations:
         )
 
     @pytest.mark.parametrize(
-        ("setup_fn", "match"),
+        ("fn_setup", "match"),
         [
             pytest.param(
                 lambda p: ("../evil.jpg", str(p / "images")),
@@ -305,11 +305,11 @@ class TestLoadCreatemlAnnotations:
     def test_raises_on_unsafe_image_path(
         self,
         tmp_path: Path,
-        setup_fn: Callable[[Path], tuple[str, str]],
+        fn_setup: Callable[[Path], tuple[str, str]],
         match: str,
     ) -> None:
         """Raises ValueError for unsafe image path: traversal, absolute, directory."""
-        image, images_dir = setup_fn(tmp_path)
+        image, images_dir = fn_setup(tmp_path)
         annotations_path = tmp_path / "annotations.json"
         annotations_path.write_text(json.dumps([{"image": image, "annotations": []}]))
 

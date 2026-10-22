@@ -2196,7 +2196,7 @@ class TestIouThresholdValidation:
     """Invalid IoU thresholds must raise `ValueError` on public NMS/NMM APIs."""
 
     @pytest.mark.parametrize(
-        ("function", "kwargs"),
+        ("fn_function", "kwargs"),
         [
             pytest.param(
                 box_non_max_suppression,
@@ -2245,13 +2245,13 @@ class TestIouThresholdValidation:
     @pytest.mark.parametrize("iou_threshold", [-0.1, 1.1])
     def test_rejects_thresholds_outside_closed_unit_interval(
         self,
-        function: Callable[..., object],
+        fn_function: Callable[..., object],
         kwargs: dict[str, object],
         iou_threshold: float,
     ) -> None:
         """Each public overlap filter rejects thresholds outside [0, 1]."""
         with pytest.raises(ValueError, match="closed range from 0 to 1"):
-            function(iou_threshold=iou_threshold, **kwargs)
+            fn_function(iou_threshold=iou_threshold, **kwargs)
 
 
 def _naive_mask_iou(

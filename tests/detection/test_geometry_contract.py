@@ -108,13 +108,13 @@ _GEOMETRY_AWARE_OPS = [
 class TestGeometryAwareOperations:
     """Contract tests shared by geometry-aware detection operations."""
 
-    @pytest.mark.parametrize(("name", "run"), _GEOMETRY_AWARE_OPS)
+    @pytest.mark.parametrize(("name", "fn_run"), _GEOMETRY_AWARE_OPS)
     def test_op_respects_geometry(
-        self, name: str, run: Callable[[Callable[..., Detections]], np.ndarray]
+        self, name: str, fn_run: Callable[[Callable[..., Detections]], np.ndarray]
     ) -> None:
         """A geometry-aware op must not answer the same for a box and its envelope."""
-        with_corners = np.asarray(run(_oriented), dtype=float)
-        without_corners = np.asarray(run(_envelope_only), dtype=float)
+        with_corners = np.asarray(fn_run(_oriented), dtype=float)
+        without_corners = np.asarray(fn_run(_envelope_only), dtype=float)
 
         assert with_corners.shape == without_corners.shape, (
             f"{name} changed result shape depending on whether corners were present"
