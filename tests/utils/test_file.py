@@ -223,7 +223,7 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 
 
 @pytest.mark.parametrize(
-    ("read_file", "file_name", "content"),
+    ("fn_read_file", "file_name", "content"),
     [
         pytest.param(
             read_json_file,
@@ -241,7 +241,7 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 )
 def test_read_structured_file_decodes_utf8_text(
     tmp_path: Path,
-    read_file: Callable[[Path], dict[str, Any]],
+    fn_read_file: Callable[[Path], dict[str, Any]],
     file_name: str,
     content: str,
 ) -> None:
@@ -249,6 +249,6 @@ def test_read_structured_file_decodes_utf8_text(
     file_path = tmp_path / file_name
     file_path.write_bytes(content.encode("utf-8"))
 
-    data = read_file(file_path)
+    data = fn_read_file(file_path)
 
     assert data == {"names": ["café", "고양이", "猫"]}
