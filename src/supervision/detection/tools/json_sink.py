@@ -104,14 +104,17 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
-        """Write and close the JSON file."""
-        if self.file:
-            try:
-                json.dump(
-                    self.data, self.file, indent=4, default=JSONSink._json_default
-                )
-            finally:
-                self.file.close()
+        """Write and close the JSON file.
+
+        Does nothing once the file is closed, so calling it inside a `with` block
+        does not make the block's exit fail on the closed file.
+        """
+        if self.file is None or self.file.closed:
+            return
+        try:
+            json.dump(self.data, self.file, indent=4, default=JSONSink._json_default)
+        finally:
+            self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
