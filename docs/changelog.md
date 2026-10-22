@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.scale_boxes` and `Detections.get_anchors_coordinates` now compute box centers without overflowing `float16` coordinates. A half-precision box from 40000 to 60000 previously scaled to `inf` and reported an `inf` center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. ([#2787](https://github.com/roboflow/supervision/pull/2787))
+
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
