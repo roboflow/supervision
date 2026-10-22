@@ -7,6 +7,8 @@ date_modified: 2026-10-20
 
 ### Unreleased <small>upcoming</small>
 
+- Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
+
 - `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. ([#2782](https://github.com/roboflow/supervision/pull/2782))
 
 - `sv.JSONSink.append` now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written. ([#2781](https://github.com/roboflow/supervision/pull/2781))
