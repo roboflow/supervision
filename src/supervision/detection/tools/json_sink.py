@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -197,6 +198,10 @@ class JSONSink:
     ) -> None:
         """Append detection data to the JSON file.
 
+        The appended rows are deep-copied so later changes to arrays or nested
+        containers in ``detections.data`` or ``custom_data`` do not change the
+        saved values. JSON serialization still happens when the sink is closed.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -206,4 +211,4 @@ class JSONSink:
                 and tuples are broadcast unchanged.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
-        self.data.extend(parsed_rows)
+        self.data.extend(deepcopy(parsed_rows))
