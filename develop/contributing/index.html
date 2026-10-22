@@ -3203,6 +3203,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
         
           <li class="md-nav__item">
+  <a href="#reference-parity-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference parity tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#doctests" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3754,6 +3765,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
         
           <li class="md-nav__item">
+  <a href="#reference-parity-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference parity tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#doctests" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3920,6 +3942,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li><a href="#documentation">Documentation</a></li>
 <li><a href="#cookbooks">Cookbooks</a></li>
 <li><a href="#tests">Tests</a></li>
+<li><a href="#reference-parity-tests">Reference parity tests</a></li>
 <li><a href="#license">License</a></li>
 </ul>
 <h2 id="contribution-guidelines">Contribution Guidelines<a class="headerlink" href="#contribution-guidelines" title="Permanent link">&para;</a></h2>
@@ -4164,6 +4187,8 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <p><strong>Docstrings:</strong> Every test function/method requires at minimum a one-line docstring (within the project line length configured in <code>pyproject.toml</code>). Describe the scenario, not the implementation.</p>
+<h3 id="reference-parity-tests">Reference parity tests<a class="headerlink" href="#reference-parity-tests" title="Permanent link">&para;</a></h3>
+<p>When tests claim parity with or compare results to a reference implementation or golden standard, compute the reference results using the live package on the same inputs rather than hardcoded expected values. Keep reference packages in the development dependency group; do not add them to runtime dependencies or optional extras.</p>
 <h3 id="doctests">Doctests<a class="headerlink" href="#doctests" title="Permanent link">&para;</a></h3>
 <p><strong>Guidance:</strong> when an example uses only <code>supervision</code>, NumPy, and the standard library — no optional extras (e.g. no <code>--extra metrics</code> packages), no external files, no network, no devices — prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically verified by the test suite. Fenced <code>```python</code> blocks are appropriate when the example cannot reasonably be executed (e.g. loading a third-party model, reading a video file) or when the primary purpose is demonstrating error/exception behaviour rather than return values.</p>
 <p>Doctests run automatically as part of the test suite via <code>--doctest-modules</code> in <code>pyproject.toml</code>. The <code>ELLIPSIS</code> and <code>NORMALIZE_WHITESPACE</code> flags are enabled globally, so <code>...</code> matches any output fragment and minor whitespace differences are ignored.</p>
