@@ -527,6 +527,36 @@ class TestJSONSinkLifecycle:
             }
         ]
 
+    def test_write_and_close_inside_with_block_keeps_output(
+        self, tmp_path: Any
+    ) -> None:
+        """Closing explicitly inside `with` does not fail or rewrite on exit."""
+        path = tmp_path / "closed_early.json"
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([1]),
+        )
+
+        with sv.JSONSink(str(path)) as sink:
+            sink.append(detections)
+            sink.write_and_close()
+            sink.write_and_close()
+
+        with open(path) as file:
+            rows = json.load(file)
+
+        assert rows == [
+            {
+                "x_min": 0.0,
+                "y_min": 0.0,
+                "x_max": 10.0,
+                "y_max": 10.0,
+                "class_id": 1,
+                "confidence": "",
+                "tracker_id": "",
+            }
+        ]
+
 
 def assert_json_equal(file_name, expected_rows):
     with open(file_name) as file:
