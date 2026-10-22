@@ -1224,7 +1224,7 @@ class TestDepthMapMeasureDetections:
         assert values.tolist() == [10.0]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(
@@ -1236,7 +1236,7 @@ class TestDepthMapMeasureDetections:
         ],
     )
     def test_measures_inside_masks_not_boxes(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any]
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any]
     ) -> None:
         """Dense, uint8 and compact masks all select the pixels the median is over.
 
@@ -1249,7 +1249,7 @@ class TestDepthMapMeasureDetections:
         mask[0, 2:6, 2:4] = True
         mask[1, 4:6, 5:7] = True
         xyxy = np.array([[2, 2, 10, 6], [5, 4, 7, 6]], dtype=float)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         measured = self._depth_map().measure_detections(detections)
 
@@ -1261,7 +1261,7 @@ class TestDepthMapMeasureDetections:
         ]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(_compact_masks, id="compact"),
@@ -1275,13 +1275,13 @@ class TestDepthMapMeasureDetections:
         ],
     )
     def test_masks_without_depth_measure_nan(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any], rows: slice
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any], rows: slice
     ) -> None:
         """A mask selecting no pixel, or only pixels without depth, measures NaN."""
         mask = np.zeros((1, 20, 20), dtype=bool)
         mask[0, rows, 13:16] = True
         xyxy = np.array([[10, 10, 18, 18]], dtype=float)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         measured = self._depth_map().measure_detections(detections)
 
@@ -1404,19 +1404,19 @@ class TestDepthMapMeasureDetections:
         assert class_names.tolist() == ["car"]
 
     @pytest.mark.parametrize(
-        "make_mask",
+        "fn_make_mask",
         [
             pytest.param(_dense_masks, id="dense"),
             pytest.param(_compact_masks, id="compact"),
         ],
     )
     def test_raises_when_masks_do_not_match_map(
-        self, make_mask: Callable[[np.ndarray, np.ndarray], Any]
+        self, fn_make_mask: Callable[[np.ndarray, np.ndarray], Any]
     ) -> None:
         """Masks of another size cannot be measured on this map."""
         xyxy = np.array([[0, 0, 5, 5]], dtype=float)
         mask = np.ones((1, 10, 10), dtype=bool)
-        detections = sv.Detections(xyxy=xyxy, mask=make_mask(mask, xyxy))
+        detections = sv.Detections(xyxy=xyxy, mask=fn_make_mask(mask, xyxy))
 
         with pytest.raises(ValueError, match="resize the map"):
             self._depth_map().measure_detections(detections)
