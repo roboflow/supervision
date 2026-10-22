@@ -1502,7 +1502,7 @@ class TestDetectionMetrics:
         np.testing.assert_array_equal(cm.matrix, expected_matrix)
 
     @pytest.mark.parametrize(
-        "call",
+        "fn_call",
         [
             pytest.param(
                 _call_confusion_matrix_from_tensors_masks,
