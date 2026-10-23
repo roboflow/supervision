@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-16
+date_modified: 2026-10-17
 ---
 
 # Changelog
@@ -8,8 +8,26 @@ date_modified: 2026-10-16
 ### Unreleased <small>upcoming</small>
 
 - `sv.scale_boxes` and `Detections.get_anchors_coordinates` now compute box centers without overflowing `float16` coordinates. A half-precision box from 40000 to 60000 previously scaled to `inf` and reported an `inf` center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. ([#2787](https://github.com/roboflow/supervision/pull/2787))
+
+- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. ([#2785](https://github.com/roboflow/supervision/pull/2785))
+
+- **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. ([#2748](https://github.com/roboflow/supervision/pull/2748))
+
+- Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
+
+- `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. ([#2782](https://github.com/roboflow/supervision/pull/2782))
+
+- `sv.JSONSink.append` now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written. ([#2781](https://github.com/roboflow/supervision/pull/2781))
+
+- Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. ([#2769](https://github.com/roboflow/supervision/pull/2769))
+
+- Pascal VOC export and import now follow the VOC devkit convention for box extents: only `xmin` and `ymin` are shifted by 1 on export, and only they are shifted back on import. Boxes written by `sv.DetectionDataset.as_pascal_voc` no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in `supervision`. Annotations written by earlier `supervision` versions carry the old +1 in `xmax` and `ymax`, so those maximum corners now load one pixel larger than before. ([#2780](https://github.com/roboflow/supervision/pull/2780))
+
+
 - In-memory dataset image exports now raise `OSError` with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and `sv.ClassificationDataset.as_folder_structure`. ([#2772](https://github.com/roboflow/supervision/pull/2772))
+
 - `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
+
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
