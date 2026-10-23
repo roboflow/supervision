@@ -72,6 +72,8 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 
 **⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, bare simple parametrized values, `pytest.param(..., id="semantic-slug")` for compound or unclear cases (never parallel `ids`), one-line docstring per test.
 
+**Reference parity tests** — follow [CONTRIBUTING.md §Reference parity tests](.github/CONTRIBUTING.md#reference-parity-tests): evaluate the live reference package on the same inputs, and keep it in development dependencies only.
+
 For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ______________________________________________________________________
