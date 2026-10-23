@@ -7,6 +7,8 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5` or `sv.VLM.GOOGLE_GEMINI_3_5` now keeps the masks of a response when an item's `box_2d` leaves the 0-1000 range. Any coordinate above 1000 or below 0, even `1001`, raised `ValueError: could not broadcast input array` and discarded every detection in the response, while the same box parsed without a `mask`, and with `sv.VLM.GOOGLE_GEMINI_3_6`. The mask is now cropped to the part of its box inside the image, a box wholly outside the image gets an all-false mask, and `xyxy` is returned unclipped as before. Boxes inside the image produce identical masks. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
+
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 
 - `sv.get_video_frames_generator` now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. ([#2782](https://github.com/roboflow/supervision/pull/2782))

@@ -947,7 +947,8 @@ def from_google_gemini_2_5(
             `confidence` is an optional array of shape `(n,)` with confidence
             scores, and `masks` is an optional array of shape `(n, h, w)` with
             segmentation masks. Each mask PNG is a 0-255 probability map, kept
-            where it is above `127` after resizing to its box.
+            where it is above `127` after resizing to its box. A box that leaves
+            the image is returned as is, while its mask is cropped to the image.
     """
     w, h = _validate_resolution(resolution_wh)
 
@@ -1013,15 +1014,39 @@ def from_google_gemini_2_5(
                 masks_list.append(np.zeros((h, w), dtype=bool))
                 continue
 
+            # `box_2d` is only nominally within 0-1000, and a box that overshoots the
+            # image (or a negative one, whose slice would wrap) cannot be assigned
+            # into the mask as is. Keep only the part inside the image, as the
+            # polygon masks of Gemini 3.6 do, and let a box wholly outside the
+            # image degrade to an all-false mask like every other bad mask.
+            visible_x_min, visible_x_max = max(x_min, 0), min(x_max, w)
+            visible_y_min, visible_y_max = max(y_min, 0), min(y_max, h)
+            if visible_x_min >= visible_x_max or visible_y_min >= visible_y_max:
+                masks_list.append(np.zeros((h, w), dtype=bool))
+                continue
+
+            # Resample straight from the part of the PNG that lands inside the
+            # image, so the mask keeps its alignment with the full box and a huge
+            # box does not allocate an image larger than the frame.
+            scale_x = mask_img.width / bbox_width
+            scale_y = mask_img.height / bbox_height
             mask_img = mask_img.resize(
-                (bbox_width, bbox_height),
+                (visible_x_max - visible_x_min, visible_y_max - visible_y_min),
                 resample=Image.Resampling.BILINEAR,
+                box=(
+                    (visible_x_min - x_min) * scale_x,
+                    (visible_y_min - y_min) * scale_y,
+                    (visible_x_max - x_min) * scale_x,
+                    (visible_y_max - y_min) * scale_y,
+                ),
             )
             np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
             # The PNG is a probability map from 0 to 255, and the bilinear resize
             # blends values along every edge. Binarize at the midpoint, as Google's
             # segmentation guide does, so pixels scored as unlikely stay outside.
-            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 127
+            np_mask[visible_y_min:visible_y_max, visible_x_min:visible_x_max] = (
+                np.array(mask_img) > 127
+            )
             masks_list.append(np_mask)
 
         # A response whose items are all filtered out still owes the caller a 3D
