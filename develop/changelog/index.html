@@ -4324,6 +4324,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionsSmoother</code> preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. (<a href="https://github.com/roboflow/supervision/pull/2785">#2785</a>)</p>
+</li>
+<li>
 <p><strong>Breaking</strong>: <code>sv.DetectionDataset.as_pascal_voc</code> and <code>sv.DetectionDataset.from_pascal_voc</code> now follow the Pascal VOC devkit's 1-based, inclusive <code>&lt;bndbox&gt;</code> indices, offsetting only <code>xmin</code> and <code>ymin</code> by one. The box <code>[10, 20, 40, 60]</code> is written as <code>11 21 40 60</code> instead of <code>11 21 41 61</code>, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box <code>[0, 0, 37, 29]</code>, which <code>from_yolo</code> loads with float noise, is written as <code>1 1 37 29</code> instead of <code>0 0 38 29</code>. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. (<a href="https://github.com/roboflow/supervision/pull/2748">#2748</a>)</p>
 </li>
 <li>
@@ -6536,7 +6539,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 23, 2026 16:34:13 UTC">October 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 23, 2026 17:41:51 UTC">October 23, 2026</span>
   </span>
 
     
@@ -6564,9 +6567,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Lingikaushikreddy" class="md-author" title="@Lingikaushikreddy">
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
-          <img src="https://avatars.githubusercontent.com/u/214906239?v=4&size=72" alt="Lingikaushikreddy">
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6574,21 +6577,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Lingikaushikreddy" class="md-author" title="@Lingikaushikreddy">
+          
+          <img src="https://avatars.githubusercontent.com/u/214906239?v=4&size=72" alt="Lingikaushikreddy">
+        </a>
+      
         <a href="https://github.com/zurrll" class="md-author" title="@zurrll">
           
           <img src="https://avatars.githubusercontent.com/u/243898826?v=4&size=72" alt="zurrll">
-        </a>
-      
-        <a href="https://github.com/shaun0927" class="md-author" title="@shaun0927">
-          
-          <img src="https://avatars.githubusercontent.com/u/70629228?v=4&size=72" alt="shaun0927">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +30
+            +28
           </a>
         
       
