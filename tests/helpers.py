@@ -80,6 +80,7 @@ def _create_detections(
     def convert_data(
         data: Mapping[str, Sequence[Any] | np.ndarray],
     ) -> dict[str, np.ndarray | list[Any]]:
+        """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
