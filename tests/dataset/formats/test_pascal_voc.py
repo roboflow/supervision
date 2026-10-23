@@ -1066,6 +1066,7 @@ class TestPascalVocDevkitBndbox:
             reloaded.annotations[image_path].xyxy, source_xyxy
         )
 
+
 class TestPascalVocDevkitConvention:
     """VOC indices are 1-based and inclusive: only xmin/ymin carry the offset."""
 
