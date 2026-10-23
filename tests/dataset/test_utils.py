@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import supervision.dataset.utils as dataset_utils
-from supervision import Detections
+from supervision import DetectionDataset, Detections
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     build_class_index_mapping,
@@ -645,3 +645,36 @@ class TestCheckNoBasenameCollisions:
             key=lambda image_path: Path(image_path).name,
             output_kind="image",
         )
+
+
+class TestSaveDatasetImages:
+    """In-memory image exports report failed writes and preserve successful pixels."""
+
+    def test_raises_when_image_cannot_be_written(self, tmp_path: Path) -> None:
+        """An existing directory at the image path must not look like a saved image."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images={"image.png": np.zeros((4, 4, 3), dtype=np.uint8)},
+            annotations={"image.png": Detections.empty()},
+        )
+        image_path = tmp_path / "image.png"
+        image_path.mkdir()
+
+        with pytest.raises(OSError, match="Failed to save image") as error:
+            dataset_utils.save_dataset_images(dataset, str(tmp_path))
+
+        assert str(image_path) in str(error.value)
+
+    def test_writes_in_memory_pixels(self, tmp_path: Path) -> None:
+        """A writable destination receives the original lossless image pixels."""
+        image = np.full((4, 4, 3), 127, dtype=np.uint8)
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images={"image.png": image},
+            annotations={"image.png": Detections.empty()},
+        )
+
+        dataset_utils.save_dataset_images(dataset, str(tmp_path))
+
+        saved = dataset_utils.cv2.imread(str(tmp_path / "image.png"))
+        np.testing.assert_array_equal(saved, image)
