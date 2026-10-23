@@ -633,6 +633,61 @@ class TestDetectionsSmootherOrientedBoxes:
         y = corners[0, :, 1]
         assert 0.0 < 0.5 * abs(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
 
+    @pytest.mark.parametrize("dtype", [np.float16, np.int16, np.float32, np.float64])
+    @pytest.mark.parametrize("shift", [0, 1])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_image_sized_corners_preserve_rectangular_geometry(
+        self, dtype: type[np.generic], shift: int, reverse: bool
+    ) -> None:
+        """Corner matching preserves a translated rectangle in narrow dtypes."""
+        smoother = DetectionsSmoother(length=2)
+        corners = np.array([[[0, 0], [400, 0], [400, 200], [0, 200]]], dtype=dtype)
+        translated = corners + np.array([0, 160], dtype=dtype)
+        if reverse:
+            translated = translated[:, ::-1]
+        translated = np.roll(translated, shift, axis=1)
+        frames = [
+            Detections(
+                xyxy=np.concatenate((points.min(1), points.max(1)), axis=1),
+                tracker_id=np.array([1]),
+                data={ORIENTED_BOX_COORDINATES: points},
+            )
+            for points in (corners, translated)
+        ]
+        smoother.update_with_detections(frames[0])
+
+        result = smoother.update_with_detections(frames[1])
+
+        assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES],
+            [[[0, 80], [400, 80], [400, 280], [0, 280]]],
+        )
+        assert_allclose(result.xyxy, [[0, 80, 400, 280]])
+
+    def test_large_int16_translation_preserves_square_corner_order(self) -> None:
+        """Corner matching distinguishes nearby distances at large coordinates."""
+        smoother = DetectionsSmoother(length=2)
+        corners = np.array([[[0, 0], [1, 0], [1, 1], [0, 1]]], dtype=np.int16)
+        translated = np.roll(
+            corners + np.array([4000, 4000], dtype=np.int16), 1, axis=1
+        )
+
+        for points in (corners, translated):
+            bounds = np.concatenate((points.min(axis=1), points.max(axis=1)), axis=1)
+            result = smoother.update_with_detections(
+                Detections(
+                    xyxy=bounds,
+                    tracker_id=np.array([1]),
+                    data={ORIENTED_BOX_COORDINATES: points},
+                )
+            )
+
+        assert_allclose(
+            result.data[ORIENTED_BOX_COORDINATES],
+            [[[2000, 2000], [2001, 2000], [2001, 2001], [2000, 2001]]],
+        )
+        assert_allclose(result.xyxy, [[2000, 2000, 2001, 2001]])
+
     def test_mixed_oriented_box_metadata_is_dropped(self) -> None:
         """Mixed OBB and axis-aligned history must not retain stale OBB data."""
         smoother = DetectionsSmoother(length=2)
