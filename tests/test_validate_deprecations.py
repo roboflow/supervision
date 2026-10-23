@@ -35,7 +35,7 @@ def _detections() -> Detections:
 
 
 @pytest.mark.parametrize(
-    ("call", "version"),
+    ("fn_call", "version"),
     [
         (lambda: validate_xyxy(np.array([[0, 0, 1, 1]])), "0.29.0"),
         (lambda: validate_mask(np.array([[[True]]]), 1), "0.29.0"),
@@ -85,9 +85,12 @@ def _detections() -> Detections:
         ),
     ],
 )
-def test_validate_public_shims_warn(call: Callable[[], object], version: str) -> None:
+def test_validate_public_shims_warn(
+    fn_call: Callable[[], object], version: str
+) -> None:
+    """Public validation shims emit their documented deprecation warning."""
     with pytest.warns(FutureWarning, match=f"deprecated since v{version}"):
-        call()
+        fn_call()
 
 
 def test_private_validation_paths_do_not_warn() -> None:

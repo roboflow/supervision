@@ -1,3 +1,4 @@
+import json
 import os
 from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
@@ -5,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
+import numpy as np
 import pytest
 import requests
 
@@ -15,6 +17,7 @@ from supervision.utils.file import (
     read_json_file,
     read_txt_file,
     read_yaml_file,
+    save_json_file,
 )
 
 
@@ -223,7 +226,7 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 
 
 @pytest.mark.parametrize(
-    ("read_file", "file_name", "content"),
+    ("fn_read_file", "file_name", "content"),
     [
         pytest.param(
             read_json_file,
@@ -241,7 +244,7 @@ def test_list_files_with_extensions_without_filter_ignores_directories(
 )
 def test_read_structured_file_decodes_utf8_text(
     tmp_path: Path,
-    read_file: Callable[[Path], dict[str, Any]],
+    fn_read_file: Callable[[Path], dict[str, Any]],
     file_name: str,
     content: str,
 ) -> None:
@@ -249,6 +252,45 @@ def test_read_structured_file_decodes_utf8_text(
     file_path = tmp_path / file_name
     file_path.write_bytes(content.encode("utf-8"))
 
-    data = read_file(file_path)
+    data = fn_read_file(file_path)
 
     assert data == {"names": ["café", "고양이", "猫"]}
+
+
+class TestSaveJsonFile:
+    @pytest.mark.parametrize("value", [True, False])
+    def test_saves_numpy_booleans(self, tmp_path: Path, value: bool) -> None:
+        """NumPy booleans remain JSON booleans, including in nested fields."""
+        file_path = tmp_path / "data.json"
+        data = {"flag": np.bool_(value), "nested": {"flag": np.bool_(value)}}
+
+        save_json_file(data, file_path)
+
+        result = json.loads(file_path.read_text(encoding="utf-8"))
+        assert result["flag"] is value
+        assert result["nested"]["flag"] is value
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (True, True),
+            (False, False),
+            pytest.param(np.int64(7), 7, id="numpy-integer"),
+            pytest.param(np.float32(0.5), 0.5, id="numpy-float"),
+            pytest.param(np.array([1, 2]), [1, 2], id="numpy-array"),
+            pytest.param(
+                np.array([True, False]), [True, False], id="numpy-boolean-array"
+            ),
+        ],
+    )
+    def test_preserves_supported_values(
+        self, tmp_path: Path, value: Any, expected: Any
+    ) -> None:
+        """Existing scalar and array values retain their JSON types and values."""
+        file_path = tmp_path / "data.json"
+
+        save_json_file({"value": value}, file_path)
+
+        result = json.loads(file_path.read_text(encoding="utf-8"))["value"]
+        assert result == expected
+        assert type(result) is type(expected)

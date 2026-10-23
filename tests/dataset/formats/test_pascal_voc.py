@@ -195,10 +195,10 @@ N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
 
 NO_DETECTIONS = """<annotation></annotation>"""
 MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
-<xmin>1</xmin><ymin>1</ymin><xmax>11</xmax><ymax>11</ymax></bndbox>
+<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox>
 <polygon><x1>1</x1><y1>1</y1><x2>11</x2><y2>1</y2><x3>11</x3><y3>11</y3>
 <x4>1</x4><y4>11</y4></polygon></object><object><name>test</name><bndbox>
-<xmin>11</xmin><ymin>11</ymin><xmax>21</xmax><ymax>21</ymax></bndbox></object>
+<xmin>11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object>
 </annotation>"""
 
 
@@ -848,9 +848,12 @@ class TestDetectionDatasetPascalVocImageShapes:
         assert len(objects) == 1
         obj = objects[0]
         assert obj.findtext("name") == "object"
+        # The far edge stays unchanged for both a plain box and a mask-derived
+        # box; the mask polygon reaches the same outermost pixel coordinates.
+        expected_bndbox = ["4", "3", "16", "11"]
         assert [
             obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
-        ] == ["4", "3", "16", "11"]
+        ] == expected_bndbox
         polygon = obj.find("polygon")
         if with_mask:
             assert polygon is not None
@@ -889,7 +892,7 @@ class TestPascalVocBoxExtent:
         assert detections.area[0] > 0
 
     def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
-        """Export preserves the rectangle with ordered, one-indexed corners."""
+        """Export preserves the rectangle with ordered corners in VOC convention."""
         xyxy = np.array([70, 70, 30, 30], dtype=np.float32)
 
         element = object_to_pascal_voc(xyxy=xyxy, name="thing")
@@ -1062,3 +1065,96 @@ class TestPascalVocDevkitBndbox:
         np.testing.assert_array_equal(
             reloaded.annotations[image_path].xyxy, source_xyxy
         )
+
+class TestPascalVocDevkitConvention:
+    """VOC indices are 1-based and inclusive: only xmin/ymin carry the offset."""
+
+    def test_writes_devkit_box_extents(self) -> None:
+        """A COCO box at x=10, y=20, w=30, h=40 is written as 11, 21, 40, 60."""
+        element = object_to_pascal_voc(np.array([10, 20, 40, 60]), name="box")
+
+        actual = [
+            element.find(f"bndbox/{tag}").text
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+
+        assert actual == ["11", "21", "40", "60"]
+
+    def test_reads_devkit_box_extents(self) -> None:
+        """A devkit-encoded box loads with its maximum corner unchanged."""
+        root = ElementTree.fromstring(
+            _single_object_xml(bndbox=("11", "21", "40", "60"))
+        )
+
+        detections, _ = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(100, 100)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[10, 20, 40, 60]])
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([0, 0, 10, 10], id="origin"),
+            pytest.param([10, 20, 40, 60], id="offset"),
+            pytest.param([0, 0, 100, 100], id="whole-image"),
+        ],
+    )
+    def test_export_then_load_returns_the_same_box(self, xyxy: list[int]) -> None:
+        """Boxes survive a VOC export and reload without growing by a pixel."""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["box"],
+            filename="a.jpg",
+            image_shape=(100, 100, 3),
+        )
+
+        result, _ = detections_from_xml_obj(
+            ElementTree.fromstring(xml_string),
+            classes=["box"],
+            resolution_wh=(100, 100),
+        )
+
+        np.testing.assert_allclose(result.xyxy, [xyxy])
+
+    def test_mask_export_box_encloses_polygon(self) -> None:
+        """A mask's box reaches the polygon's last row and column, not one short."""
+        mask = np.zeros((1, 20, 20), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 16, 11]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["box"],
+            filename="a.jpg",
+            image_shape=(20, 20, 3),
+        )
+
+        root = ElementTree.fromstring(xml_string)
+        obj = root.find("object")
+        bndbox = [
+            int(obj.find(f"bndbox/{tag}").text)
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+        polygon = parse_polygon_points(obj.find("polygon"))
+
+        assert bndbox == [4, 3, 16, 11]
+        assert bndbox[2] >= polygon[:, 0].max()
+        assert bndbox[3] >= polygon[:, 1].max()
+
+    def test_subpixel_box_never_exports_inverted_bounds(self) -> None:
+        """A box under one pixel wide clamps to a one-pixel extent, never inverts."""
+        element = object_to_pascal_voc(
+            np.array([10.25, 20.25, 10.75, 20.75]), name="box"
+        )
+
+        actual = [
+            element.find(f"bndbox/{tag}").text
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+
+        assert actual == ["11", "21", "11", "21"]

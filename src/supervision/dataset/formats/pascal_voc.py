@@ -34,11 +34,11 @@ def object_to_pascal_voc(
 ) -> Element:
     """Build a Pascal VOC ``<object>`` XML element for one detection.
 
-    ``<bndbox>`` follows the Pascal VOC devkit, whose pixel indices are 1-based and
-    inclusive: ``xmin`` and ``ymin`` are shifted by one, while ``xmax`` and ``ymax``
-    already equal the 1-based index of the last covered pixel and are written as is.
-    Corners are rounded to the nearest integer pixel. Polygon vertices are points, so
-    every vertex is shifted by one. The input arrays are never mutated.
+    ``<bndbox>`` follows the Pascal VOC devkit's 1-based inclusive pixel indices:
+    only ``xmin`` and ``ymin`` shift by one, while ``xmax`` and ``ymax`` already
+    name the last covered pixel. Coordinates are rounded to the nearest integer
+    pixel. Polygon vertices are points, so every vertex shifts by one. The input
+    arrays are never mutated.
 
     Args:
         xyxy: Bounding box ``[x1, y1, x2, y2]`` in zero-indexed pixel coordinates,
@@ -70,21 +70,26 @@ def object_to_pascal_voc(
     object_name.text = name
 
     # Order the corners so a reversed box is written as the same rectangle
-    # rather than with xmin past xmax. In the 1-based, inclusive devkit indices
-    # (https://github.com/roboflow/supervision/issues/144), a box covering
-    # zero-indexed pixels x1 .. x2 - 1 is written xmin = x1 + 1, xmax = x2.
-    x_min, x_max = min(xyxy[0], xyxy[2]) + 1, max(xyxy[0], xyxy[2])
-    y_min, y_max = min(xyxy[1], xyxy[3]) + 1, max(xyxy[1], xyxy[3])
+    # rather than with xmin past xmax. The VOC minimum offset applies after the
+    # corners are ordered; maxima already denote the far edge of the box.
+    x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
+    y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(round(x_min))
+    xmin_value = round(x_min + 1)
+    ymin_value = round(y_min + 1)
+    # Keep positive subpixel boxes ordered after integer rounding; otherwise the
+    # loader's reversed-corner normalization would silently move and enlarge them.
+    xmax_value = max(round(x_max), xmin_value)
+    ymax_value = max(round(y_max), ymin_value)
+    xmin.text = str(xmin_value)
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(round(y_min))
+    ymin.text = str(ymin_value)
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(round(x_max))
+    xmax.text = str(xmax_value)
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(round(y_max))
+    ymax.text = str(ymax_value)
 
     if polygon is not None:
         # Rebind instead of `+= 1`: the caller's polygon must not be shifted.
@@ -198,8 +203,8 @@ def detections_to_pascal_voc(
                 annotation.append(object_to_pascal_voc(xyxy=xyxy, name=name))
                 continue
             for polygon in polygons:
-                # Contour vertices sit on the outermost mask pixels, so the far
-                # edge of the box is one past the largest vertex.
+                # Contour extrema are outermost mask pixels; the VOC maximum is
+                # the far edge immediately after the last covered pixel.
                 xyxy = polygon_to_xyxy(polygon=polygon) + np.array([0, 0, 1, 1])
                 next_object = object_to_pascal_voc(
                     xyxy=xyxy, name=name, polygon=polygon
@@ -382,8 +387,8 @@ def detections_from_xml_obj(
     else:
         xyxy_arr = np.empty((0, 4), dtype=np.float32)
 
-    # Devkit indices are 1-based and inclusive, so only the min corner shifts:
-    # xmax already equals the far edge of the box in zero-indexed coordinates.
+    # VOC indices are 1-based and inclusive, so only the minimum coordinates
+    # shift back; maximum coordinates already name the far edge.
     xyxy_arr[:, :2] -= 1
 
     for k in sorted(set(class_names)):
