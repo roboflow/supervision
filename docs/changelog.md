@@ -7,7 +7,7 @@ date_modified: 2026-10-16
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and integer coordinates, avoiding distorted boxes from overflow in the distance comparison. ([#2785](https://github.com/roboflow/supervision/pull/2785))
+- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. ([#2785](https://github.com/roboflow/supervision/pull/2785))
 
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 

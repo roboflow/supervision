@@ -20,7 +20,7 @@ def _align_oriented_corners(corners: np.ndarray, reference: np.ndarray) -> np.nd
             for shift in range(4)
         ]
     )
-    comparison_dtype = np.result_type(candidates.dtype, reference.dtype, np.float32)
+    comparison_dtype = np.result_type(candidates.dtype, reference.dtype, np.float64)
     deltas = candidates.astype(comparison_dtype, copy=False) - reference[None, ...]
     distances = np.sum(deltas**2, axis=(-2, -1))
     best = np.argmin(distances, axis=0)
