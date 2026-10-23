@@ -392,6 +392,81 @@ class TestMergeMultiSegment:
 
         assert result.dtype == dtype
 
+    def test_preserves_nearest_pair_beyond_float64_integer_precision(self) -> None:
+        """Large integer origins retain the uniquely closest seam vertices."""
+        base = 2**53
+        p1 = np.array([[base - 8, -8], [base - 7, -4]], dtype=np.int64)
+        p2 = np.array([[base + 1, -8]], dtype=np.int64)
+        squared_distances = np.sum((p1 - p2[0]) ** 2, axis=1)
+
+        result = merge_multi_segment([p1, p2])
+
+        np.testing.assert_array_equal(squared_distances, [81, 80])
+        np.testing.assert_array_equal(result[0], p1[1])
+        np.testing.assert_array_equal(result[2], p1[1])
+        np.testing.assert_array_equal(result[3], p2[0])
+        assert result.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("integer_x", "float_first"),
+        [
+            pytest.param(2**53 + 1, False, id="positive-integer-first"),
+            pytest.param(2**53 + 1, True, id="positive-integer-second"),
+            pytest.param(-(2**53) - 1, False, id="negative-integer-first"),
+            pytest.param(-(2**53) - 1, True, id="negative-integer-second"),
+        ],
+    )
+    def test_rejects_large_integer_origin_with_float_segment(
+        self, integer_x: int, float_first: bool
+    ) -> None:
+        """Mixed dtypes reject integer coordinates outside the exact float64 range."""
+        p1 = np.array([[integer_x, 0]], dtype=np.int64)
+        p2 = np.array([[2**53, 0]], dtype=np.float64)
+        segments = [p2, p1] if float_first else [p1, p2]
+
+        with pytest.raises(ValueError, match="Mixed integer and floating segments"):
+            merge_multi_segment(segments)
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, -(2**63), id="int64-minimum-origin"),
+            pytest.param(np.uint64, 2**64 - 2**25 - 1, id="uint64-maximum-origin"),
+        ],
+    )
+    def test_accepts_integer_span_at_safe_limit(self, dtype: type, origin: int) -> None:
+        """Integer extremes preserve the nearest seam at the supported span limit."""
+        p1 = np.array([[origin, origin], [origin + 1, origin]], dtype=dtype)
+        p2 = np.array([[origin + 2**25, origin + 2**25]], dtype=dtype)
+
+        result = merge_multi_segment([p1, p2])
+
+        np.testing.assert_array_equal(result[0], p1[1])
+        np.testing.assert_array_equal(result[3], p2[0])
+        assert result.dtype == dtype
+
+    @pytest.mark.parametrize(
+        ("x1", "x2", "y2"),
+        [
+            pytest.param(0, 2**25 + 1, 0, id="x-span-too-large"),
+            pytest.param(0, 0, 2**25 + 1, id="y-span-too-large"),
+            pytest.param(
+                -(2**63), 2**63 - 1, 0, id="signed-subtraction-would-overflow"
+            ),
+        ],
+    )
+    def test_rejects_integer_span_beyond_safe_limit(
+        self, x1: int, x2: int, y2: int
+    ) -> None:
+        """Unsupported integer spans raise before a lossy distance conversion."""
+        p1 = np.array([[x1, 0]], dtype=np.int64)
+        p2 = np.array([[x2, y2]], dtype=np.int64)
+
+        with pytest.raises(
+            ValueError, match="Integer segments must span at most 2\\*\\*25"
+        ):
+            merge_multi_segment([p1, p2])
+
     def test_no_overflow_uint8_and_large_int32(self) -> None:
         """Nearest pair calculation does not overflow with uint8 or large int32."""
         # uint8: squared distance of 20 or 40 would overflow in uint8

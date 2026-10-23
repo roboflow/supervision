@@ -183,9 +183,43 @@ def _find_min_distance_indices(
     Returns:
         A tuple of ``(idx1, idx2)`` containing the index in ``polygon1`` and
         the index in ``polygon2`` of the mutually closest vertices.
+
+    Raises:
+        ValueError: If integer coordinates span more than ``2**25`` on either axis.
+            For mixed integer and floating inputs, integer coordinates must lie
+            within ``[-2**53, 2**53]`` to avoid lossy float64 conversion.
     """
-    p1 = np.asarray(polygon1, dtype=np.float64)
-    p2 = np.asarray(polygon2, dtype=np.float64)
+    if np.issubdtype(polygon1.dtype, np.integer) and np.issubdtype(
+        polygon2.dtype, np.integer
+    ):
+        # Translate with exact arithmetic before float conversion, including for
+        # unsigned coordinates and origins near the limits of int64.
+        p1_local = polygon1.astype(object)
+        p2_local = polygon2.astype(object)
+        origin = np.minimum(p1_local.min(axis=0), p2_local.min(axis=0))
+        p1_local -= origin
+        p2_local -= origin
+        # This bound keeps squared distances <= 2**51, exactly representable in
+        # float64, and distinct integer distances distinct after square rooting.
+        # Revisit the bound if larger local coordinate spans must be supported.
+        if max(p1_local.max(), p2_local.max()) > 2**25:
+            raise ValueError(
+                "Integer segments must span at most 2**25 on each axis "
+                "across each adjacent pair to preserve nearest-vertex ordering."
+            )
+        p1 = np.asarray(p1_local, dtype=np.float64)
+        p2 = np.asarray(p2_local, dtype=np.float64)
+    else:
+        for polygon in (polygon1, polygon2):
+            if np.issubdtype(polygon.dtype, np.integer) and (
+                int(polygon.min()) < -(2**53) or int(polygon.max()) > 2**53
+            ):
+                raise ValueError(
+                    "Mixed integer and floating segments require integer coordinates "
+                    "within [-2**53, 2**53] to avoid lossy float64 conversion."
+                )
+        p1 = np.asarray(polygon1, dtype=np.float64)
+        p2 = np.asarray(polygon2, dtype=np.float64)
     tree2 = cKDTree(p2)
     dists, indices = tree2.query(p1)
     min_p1_idx = int(np.argmin(dists))
@@ -214,6 +248,12 @@ def merge_multi_segment(
 
     Raises:
         ValueError: If any segment does not have 2D shape with 2 coordinates per vertex.
+            Also raised if an adjacent pair of integer segments spans more than
+            ``2**25`` on either axis; this bound preserves exact nearest-vertex
+            ordering independently of the absolute integer origin.
+            For an adjacent pair mixing integer and floating segments, integer
+            coordinates must lie within ``[-2**53, 2**53]`` to avoid lossy float64
+            conversion.
 
     Examples:
         ```pycon

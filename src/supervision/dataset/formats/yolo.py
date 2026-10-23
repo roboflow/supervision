@@ -569,8 +569,10 @@ def detections_to_yolo_annotations(
 ) -> list[str]:
     """Convert detections to YOLO annotation lines.
 
-    A mask is written as one polygon line per connected component, with each hole
-    joined to its outer contour by a zero-width seam.
+    By default, disconnected mask contours are joined with zero-width seams and
+    written as one polygon line per detection. With ``merge_segments=False``, each
+    disconnected contour is written on a separate line. Holes are joined to their
+    outer contour by a zero-width seam.
 
     Args:
         detections: The detections to serialize. Each detection must have a
@@ -594,7 +596,8 @@ def detections_to_yolo_annotations(
         ignore_crowd: When ``True`` (default), detections carrying a non-zero
             ``iscrowd`` flag in ``detections.data`` are omitted from the export,
             matching standard COCO-to-YOLO practice where crowd regions are ignore
-            regions rather than real detection instances.
+            regions rather than real detection instances. When ``False``, those
+            detections are included.
         merge_segments: When ``True`` (default), multiple disconnected polygon
             contours belonging to a single detection mask are joined using zero-width
             seams via :func:`~supervision.detection.utils.polygons.merge_multi_segment`,
@@ -754,9 +757,11 @@ def save_yolo_annotations(
             saving annotations.
         ignore_crowd: When ``True`` (default), detections carrying a non-zero
             ``iscrowd`` flag in ``detections.data`` are omitted from the export.
+            When ``False``, those detections are included.
         merge_segments: When ``True`` (default), multiple disconnected polygon
             contours belonging to a single detection mask are joined using zero-width
             seams, emitting exactly one YOLO polygon line per detection.
+            When ``False``, each disconnected contour is exported on a separate line.
 
     Examples:
         ```pycon

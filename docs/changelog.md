@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
+
 - `sv.DetectionDataset.as_yolo` and `sv.dataset.formats.yolo.detections_to_yolo_annotations` now omit COCO crowd targets (`iscrowd=1`) by default via `ignore_crowd=True`, and join multi-part mask contours into a single continuous polygon line via `merge_segments=True` and `sv.merge_multi_segment`. An object split by an occluder no longer exports as multiple independent instances, and crowd regions no longer export as positive training objects. ([#2757](https://github.com/roboflow/supervision/issues/2757))
 
 - **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. ([#2748](https://github.com/roboflow/supervision/pull/2748))
@@ -24,6 +26,7 @@ date_modified: 2026-10-17
 - In-memory dataset image exports now raise `OSError` with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and `sv.ClassificationDataset.as_folder_structure`. ([#2772](https://github.com/roboflow/supervision/pull/2772))
 
 - `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
+
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
 
 ### 0.31.1 <small>Oct 20, 2026</small>

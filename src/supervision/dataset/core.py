@@ -646,10 +646,12 @@ class DetectionDataset(BaseDataset):
             show_progress: If True, display a progress bar during saving.
             ignore_crowd: When True (default), detections marked with a non-zero
                 `iscrowd` flag in `detections.data` are omitted from the export.
+                When False, those detections are included.
             merge_segments: When True (default), multiple disconnected polygon
                 contours belonging to a single detection mask are joined using
                 zero-width seams, emitting exactly one YOLO polygon line per
-                detection.
+                detection. When False, each disconnected contour is exported on a
+                separate line.
 
         Raises:
             ValueError: If two image paths share the same basename (when
