@@ -412,6 +412,26 @@ def letterbox_image(
     return image_with_borders
 
 
+def _match_overlay_to_scene_channels(
+    overlay: npt.NDArray[np.uint8], roi: npt.NDArray[np.uint8]
+) -> npt.NDArray[np.uint8]:
+    """Return ``overlay`` in the channel layout of the scene region ``roi``.
+
+    A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such
+    as an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
+    layout, because ``cv2.resize`` drops the channel axis of a crop taken from an
+    ``(H, W, 1)`` scene.
+    """
+    if roi.ndim == 3 and roi.shape[2] != 1:
+        return overlay
+    if overlay.ndim == 3 and overlay.shape[2] == 3:
+        overlay = cast(
+            npt.NDArray[np.uint8],
+            cv2.cvtColor(np.ascontiguousarray(overlay), cv2.COLOR_BGR2GRAY),
+        )
+    return overlay.reshape(roi.shape)
+
+
 def _overlay_image(
     image: npt.NDArray[np.uint8],
     overlay: npt.NDArray[np.uint8],
@@ -420,10 +440,12 @@ def _overlay_image(
     """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
 
     Args:
-        image: Background BGR array of shape ``(H, W, 3)``. Modified in place
-            and returned.
-        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``; channel
-            4, when present, is treated as alpha.
+        image: Background array, BGR of shape ``(H, W, 3)`` or grayscale of
+            shape ``(H, W)`` or ``(H, W, 1)``. Modified in place and returned.
+        overlay: Overlay array of shape ``(H, W, 3)`` or ``(H, W, 4)``, or
+            grayscale like ``image``; channel 4, when present, is treated as
+            alpha. A BGR overlay is drawn as gray luminance on a grayscale
+            ``image``.
         anchor: ``(x, y)`` pixel position of the overlay top-left corner. May
             be negative (partial off-screen placement is clipped).
 
@@ -450,20 +472,23 @@ def _overlay_image(
     crop_x_max = image_width - max((anchor_x + image_width) - scene_width, 0)
     crop_y_max = image_height - max((anchor_y + image_height) - scene_height, 0)
 
-    if overlay.shape[2] == 4:
-        b, g, r, alpha = cv2.split(
-            overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
-        )
-        alpha_f32 = alpha[:, :, None].astype(np.float32) / 255.0
-        overlay_color = cv2.merge((b, g, r)).astype(np.float32)
+    overlay_crop = overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
+    roi = image[y_min:y_max, x_min:x_max]
+    alpha = None
+    if overlay_crop.ndim == 3 and overlay_crop.shape[2] == 4:
+        alpha = overlay_crop[:, :, 3]
+        overlay_crop = overlay_crop[:, :, :3]
+    overlay_crop = _match_overlay_to_scene_channels(overlay=overlay_crop, roi=roi)
 
-        roi = image[y_min:y_max, x_min:x_max].astype(np.float32)
-        blended = roi * (1 - alpha_f32) + overlay_color * alpha_f32
+    if alpha is not None:
+        alpha_f32 = alpha.astype(np.float32) / 255.0
+        if roi.ndim == 3:
+            alpha_f32 = alpha_f32[:, :, None]
+        overlay_color = overlay_crop.astype(np.float32)
+        blended = roi.astype(np.float32) * (1 - alpha_f32) + overlay_color * alpha_f32
         image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
     else:
-        image[y_min:y_max, x_min:x_max] = overlay[
-            crop_y_min:crop_y_max, crop_x_min:crop_x_max
-        ]
+        image[y_min:y_max, x_min:x_max] = overlay_crop
 
     return image
 

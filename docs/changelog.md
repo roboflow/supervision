@@ -7,6 +7,8 @@ date_modified: 2026-10-20
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.CropAnnotator` and `sv.IconAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `IndexError` or `ValueError`. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. ([#2788](https://github.com/roboflow/supervision/pull/2788))
+
 - `sv.scale_boxes` and `Detections.get_anchors_coordinates` now compute box centers without overflowing `float16` coordinates. A half-precision box from 40000 to 60000 previously scaled to `inf` and reported an `inf` center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. ([#2787](https://github.com/roboflow/supervision/pull/2787))
 
 - `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. ([#2785](https://github.com/roboflow/supervision/pull/2785))
