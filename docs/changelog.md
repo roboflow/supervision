@@ -1,11 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-16
+date_modified: 2026-10-17
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+- **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. ([#2748](https://github.com/roboflow/supervision/pull/2748))
 
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 
