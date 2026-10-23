@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from typing import cast
 
@@ -111,7 +112,7 @@ def test_resolve_color_idx(
     detection_idx: int,
     color_lookup: ColorLookup | np.ndarray,
     expected_result: int | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = resolve_color_idx(
@@ -139,7 +140,9 @@ def test_resolve_color_accepts_negative_class_id() -> None:
 
 def test_resolve_color_accepts_palette_from_src_namespace() -> None:
     """Palette instances imported through src.supervision still resolve by index."""
-    from src.supervision.draw.color import ColorPalette as SrcColorPalette
+    from importlib import import_module
+
+    SrcColorPalette = import_module("src.supervision.draw.color").ColorPalette
 
     detections = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
 
@@ -210,7 +213,7 @@ def test_wrap_text(
     text: object,
     max_line_length: int | None,
     expected_result: list[str],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = wrap_text(text=text, max_line_length=max_line_length)
