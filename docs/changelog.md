@@ -9,6 +9,8 @@ date_modified: 2026-10-17
 
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
+- `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5` or `sv.VLM.GOOGLE_GEMINI_3_5` now keeps the masks of a response when an item's `box_2d` leaves the 0-1000 range. Any coordinate above 1000 or below 0, even `1001`, raised `ValueError: could not broadcast input array` and discarded every detection in the response, while the same box parsed without a `mask`, and with `sv.VLM.GOOGLE_GEMINI_3_6`. The mask is now cropped to the part of its box inside the image, a box wholly outside the image gets an all-false mask, and `xyxy` is returned unclipped as before. Boxes inside the image produce identical masks. ([#2793](https://github.com/roboflow/supervision/pull/2793))
+
 - `sv.CropAnnotator` and `sv.IconAnnotator` now annotate grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `IndexError` or `ValueError`. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. ([#2788](https://github.com/roboflow/supervision/pull/2788))
 
 - `sv.scale_boxes` and `Detections.get_anchors_coordinates` now compute box centers without overflowing `float16` coordinates. A half-precision box from 40000 to 60000 previously scaled to `inf` and reported an `inf` center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. ([#2787](https://github.com/roboflow/supervision/pull/2787))
