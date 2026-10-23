@@ -7,6 +7,8 @@ date_modified: 2026-10-20
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. ([#2785](https://github.com/roboflow/supervision/pull/2785))
+
 - **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. ([#2748](https://github.com/roboflow/supervision/pull/2748))
 
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
