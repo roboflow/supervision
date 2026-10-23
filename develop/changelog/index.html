@@ -4324,6 +4324,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> now annotate grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>IndexError</code> or <code>ValueError</code>. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. (<a href="https://github.com/roboflow/supervision/pull/2788">#2788</a>)</p>
+</li>
+<li>
 <p><code>sv.scale_boxes</code> and <code>Detections.get_anchors_coordinates</code> now compute box centers without overflowing <code>float16</code> coordinates. A half-precision box from 40000 to 60000 previously scaled to <code>inf</code> and reported an <code>inf</code> center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. (<a href="https://github.com/roboflow/supervision/pull/2787">#2787</a>)</p>
 </li>
 <li>
@@ -6542,7 +6545,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 23, 2026 20:20:35 UTC">October 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 23, 2026 20:26:32 UTC">October 23, 2026</span>
   </span>
 
     
@@ -6570,9 +6573,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/lu123bing" class="md-author" title="@lu123bing">
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
-          <img src="https://avatars.githubusercontent.com/u/156820648?v=4&size=72" alt="lu123bing">
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6580,14 +6583,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/lu123bing" class="md-author" title="@lu123bing">
+          
+          <img src="https://avatars.githubusercontent.com/u/156820648?v=4&size=72" alt="lu123bing">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/Lingikaushikreddy" class="md-author" title="@Lingikaushikreddy">
-          
-          <img src="https://avatars.githubusercontent.com/u/214906239?v=4&size=72" alt="Lingikaushikreddy">
         </a>
       
       
