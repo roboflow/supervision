@@ -537,6 +537,58 @@ def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
 
 
 @pytest.mark.parametrize(
+    ("image_shape", "overlay_shape"),
+    [
+        pytest.param((3, 3), (2, 2), id="2d-scene-2d-overlay"),
+        pytest.param((3, 3, 1), (2, 2), id="channel-scene-2d-overlay"),
+        pytest.param((3, 3, 1), (2, 2, 1), id="channel-scene-channel-overlay"),
+    ],
+)
+def test_overlay_image_pastes_grayscale_overlay_on_grayscale_scene(
+    image_shape: tuple[int, ...], overlay_shape: tuple[int, ...]
+) -> None:
+    """A grayscale overlay is pasted into a grayscale scene in the scene's layout."""
+    # given
+    image = np.zeros(image_shape, dtype=np.uint8)
+    overlay = np.full(overlay_shape, 9, dtype=np.uint8)
+    expected = np.zeros((3, 3), dtype=np.uint8)
+    expected[1:, 1:] = 9
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(1, 1))
+
+    # then
+    assert result.shape == image_shape
+    np.testing.assert_array_equal(result.reshape(3, 3), expected)
+
+
+@pytest.mark.parametrize(
+    "image_shape",
+    [
+        pytest.param((2, 2), id="2d-scene"),
+        pytest.param((2, 2, 1), id="channel-scene"),
+    ],
+)
+def test_overlay_image_blends_bgra_overlay_as_gray_on_grayscale_scene(
+    image_shape: tuple[int, ...],
+) -> None:
+    """A BGRA overlay is blended into a grayscale scene as its gray luminance."""
+    # given
+    image = np.full(image_shape, 100, dtype=np.uint8)
+    overlay = np.zeros((2, 2, 4), dtype=np.uint8)
+    overlay[0] = (255, 255, 255, 255)
+    overlay[1] = (255, 255, 255, 0)
+    expected = np.array([[255, 255], [100, 100]], dtype=np.uint8)
+
+    # when
+    result = _overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    assert result.shape == image_shape
+    np.testing.assert_array_equal(result.reshape(2, 2), expected)
+
+
+@pytest.mark.parametrize(
     ("image", "xyxy", "expected_size"),
     [
         # NumPy RGB
