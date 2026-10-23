@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-16
+date_modified: 2026-10-22
 ---
 
 # Changelog
@@ -22,6 +22,8 @@ date_modified: 2026-10-16
 - `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
 
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
+
+- `sv.PolygonZoneAnnotator.annotate` and `sv.LineZoneAnnotator.annotate` accept the same optional `coord_transform` as `trigger`, so zones, lines and their counts are drawn where they appear while the camera moves. A zone or line with a point mapped to a non-finite coordinate or beyond `2**20` pixels is skipped for that frame. ([#2760](https://github.com/roboflow/supervision/pull/2760))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
 

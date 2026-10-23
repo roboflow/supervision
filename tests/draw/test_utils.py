@@ -6,6 +6,7 @@ import pytest
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
 from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
     draw_filled_rectangle,
     draw_image,
     draw_line,
@@ -15,6 +16,9 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Rect
 from supervision.utils.image import grayscale_image
+from tests.helpers import _MoveBeyondX, _WrongShapeTransform
+
+DRAWING_LIMIT = 2**20
 
 
 def test_draw_image_invalid_path_raises_oserror(tmp_path: Path) -> None:
@@ -324,3 +328,49 @@ def test_grayscale_image_uniform_color_stays_gray() -> None:
     image = np.full((20, 20, 3), fill_value=[100, 150, 200], dtype=np.uint8)
     result = grayscale_image(image=image)
     assert result[:, :, 0].min() == result[:, :, 0].max()
+
+
+class TestMapToDrawingCoordinates:
+    """`_map_to_drawing_coordinates` maps points or rejects undrawable ones."""
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    @pytest.mark.parametrize(
+        ("mapped_x", "expected"),
+        [
+            pytest.param(np.nan, None, id="nan"),
+            pytest.param(np.inf, None, id="inf"),
+            pytest.param(-np.inf, None, id="negative-inf"),
+            pytest.param(1e30, None, id="far-beyond-limit"),
+            pytest.param(DRAWING_LIMIT + 0.5, None, id="just-beyond-limit"),
+            pytest.param(-DRAWING_LIMIT - 0.5, None, id="just-beyond-negative-limit"),
+            pytest.param(
+                DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [DRAWING_LIMIT, 2.0]]),
+                id="at-limit",
+            ),
+            pytest.param(
+                -DRAWING_LIMIT,
+                np.array([[0.0, 5.0], [-DRAWING_LIMIT, 2.0]]),
+                id="at-negative-limit",
+            ),
+            pytest.param(
+                2.5, np.array([[0.0, 5.0], [2.5, 2.0]]), id="fraction-not-rounded"
+            ),
+        ],
+    )
+    def test_returns_mapped_points_or_none_when_undrawable(
+        self, mapped_x: float, expected: np.ndarray | None
+    ) -> None:
+        """One non-finite point, or one beyond 2**20 px before rounding, gives None."""
+        points = np.array([[0, 5], [10, 2]])
+
+        mapped = _map_to_drawing_coordinates(points, _MoveBeyondX(1, mapped_x))
+
+        np.testing.assert_equal(mapped, expected)
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        points = np.array([[0, 5], [10, 2]])
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            _map_to_drawing_coordinates(points, _WrongShapeTransform())
