@@ -25,7 +25,7 @@ def _non_square_obb_detections(confidence: bool = False) -> Detections:
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "score_name"),
+    ("cls_metric", "score_name"),
     [
         (Precision, "precision_at_50"),
         (Recall, "recall_at_50"),
@@ -34,14 +34,14 @@ def _non_square_obb_detections(confidence: bool = False) -> Detections:
     ],
 )
 def test_perfect_non_square_oriented_boxes_score_as_perfect(
-    metric_cls: type,
+    cls_metric: type,
     score_name: str,
 ) -> None:
     """Perfect non-square OBB predictions score 1.0 for metrics that use OBB IoU."""
     predictions = _non_square_obb_detections(confidence=True)
     targets = _non_square_obb_detections()
 
-    metric = metric_cls(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+    metric = cls_metric(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
     result = metric.update([predictions], [targets]).compute()
 
     assert getattr(result, score_name) == pytest.approx(1.0)
@@ -83,7 +83,7 @@ def _axis_aligned_detections(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "scores_name"),
+    ("cls_metric", "scores_name"),
     [
         pytest.param(Precision, "precision_scores", id="precision"),
         pytest.param(Recall, "recall_scores", id="recall"),
@@ -101,7 +101,7 @@ def _axis_aligned_detections(
     ],
 )
 def test_oriented_box_iou_on_a_threshold_matches_like_axis_aligned_box(
-    metric_cls: type,
+    cls_metric: type,
     scores_name: str,
     threshold: float,
     prediction_box: list[float],
@@ -112,12 +112,12 @@ def test_oriented_box_iou_on_a_threshold_matches_like_axis_aligned_box(
     targets = _axis_aligned_detections(target_box)
 
     boxes_result = (
-        metric_cls(metric_target=MetricTarget.BOXES)
+        cls_metric(metric_target=MetricTarget.BOXES)
         .update([predictions], [targets])
         .compute()
     )
     obb_result = (
-        metric_cls(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+        cls_metric(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
         .update([predictions], [targets])
         .compute()
     )

@@ -901,6 +901,41 @@ class TestClassificationDatasetExportCollisions:
             np.testing.assert_array_equal(saved, images[path])
 
 
+class TestClassificationDatasetImageWrites:
+    """Classification folder exports surface failed in-memory image writes."""
+
+    def test_raises_when_image_cannot_be_written(self, tmp_path: Path) -> None:
+        """An unwritable image path raises with the destination path in the error."""
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": np.zeros((4, 4, 3), dtype=np.uint8)},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+        image_path = tmp_path / "cat" / "image.png"
+        image_path.mkdir(parents=True)
+
+        with pytest.raises(OSError, match="Failed to save image") as error:
+            dataset.as_folder_structure(str(tmp_path))
+
+        assert str(image_path) in str(error.value)
+
+    def test_writes_in_memory_pixels(self, tmp_path: Path) -> None:
+        """A successful export keeps the image in its class directory unchanged."""
+        from supervision import _cv2
+
+        image = np.full((4, 4, 3), 127, dtype=np.uint8)
+        dataset = ClassificationDataset(
+            classes=["cat"],
+            images={"image.png": image},
+            annotations={"image.png": Classifications(class_id=np.array([0]))},
+        )
+
+        dataset.as_folder_structure(str(tmp_path))
+
+        saved = _cv2.imread(str(tmp_path / "cat" / "image.png"))
+        np.testing.assert_array_equal(saved, image)
+
+
 class TestClassificationDatasetFolderRoundTrip:
     """from_folder_structure -> as_folder_structure -> reload reproduces the dataset."""
 

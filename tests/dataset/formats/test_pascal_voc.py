@@ -43,7 +43,7 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
             None,
             ElementTree.fromstring(
                 """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
-                <xmax>11</xmax><ymax>11</ymax></bndbox></object>"""
+                <xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
             ),
             DoesNotRaise(),
             id="bbox_only",
@@ -54,7 +54,7 @@ def are_xml_elements_equal(elem1, elem2) -> bool:
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             ElementTree.fromstring(
                 """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
-                <xmax>11</xmax><ymax>11</ymax>
+                <xmax>10</xmax><ymax>10</ymax>
                 </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>
                 <y2>1</y2><x3>11</x3><y3>11</y3><x4>1</x4><y4>11</y4>
                 </polygon></object>"""
@@ -74,6 +74,40 @@ def test_object_to_pascal_voc(
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
         assert are_xml_elements_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("xyxy", "expected_bndbox"),
+    [
+        pytest.param(
+            np.array([10.9, 10.9, 20.9, 20.9]),
+            ("12", "12", "21", "21"),
+            id="fraction_above_half_rounds_up",
+        ),
+        pytest.param(
+            np.array([10.2, 10.2, 20.2, 20.2]),
+            ("11", "11", "20", "20"),
+            id="fraction_below_half_rounds_down",
+        ),
+        pytest.param(
+            # `from_yolo` reading the 6-decimal label of the integer box [0, 0, 37, 29]
+            # on a 640x480 image; truncating writes xmin=0, outside 1-indexed VOC.
+            np.array([-0.00032, -0.00024, 37.0, 28.99992]),
+            ("1", "1", "37", "29"),
+            id="yolo_float_noise",
+        ),
+    ],
+)
+def test_object_to_pascal_voc_rounds_fractional_bndbox(
+    xyxy: np.ndarray, expected_bndbox: tuple[str, str, str, str]
+) -> None:
+    """Fractional box corners are rounded, not truncated, when written."""
+    result = object_to_pascal_voc(xyxy=xyxy, name="test")
+
+    bndbox = tuple(
+        result.find(f"bndbox/{tag}").text for tag in ("xmin", "ymin", "xmax", "ymax")
+    )
+    assert bndbox == expected_bndbox
 
 
 def test_object_to_pascal_voc_does_not_mutate_inputs():
@@ -141,30 +175,30 @@ def test_parse_polygon_points(
 
 
 ONE_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
-<ymin>1</ymin><xmax>11</xmax><ymax>11</ymax>
+<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>
 </bndbox></object><object><name>test</name><bndbox><xmin>11</xmin><ymin>11</ymin>
-<xmax>21</xmax><ymax>21</ymax></bndbox></object></annotation>"""
+<xmax>20</xmax><ymax>20</ymax></bndbox></object></annotation>"""
 
 
 ONE_CLASS_ONE_BBOX = """<annotation><object><name>test</name><bndbox>
-<xmin>1</xmin><ymin>1</ymin><xmax>11</xmax><ymax>11</ymax></bndbox></object>
+<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>
 </annotation>"""
 
 
 N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
-<ymin>1</ymin><xmax>11</xmax><ymax>11</ymax>
+<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>
 </bndbox></object><object><name>test</name><bndbox>
-<xmin>21</xmin><ymin>31</ymin><xmax>31</xmax><ymax>41</ymax></bndbox>
+<xmin>21</xmin><ymin>31</ymin><xmax>30</xmax><ymax>40</ymax></bndbox>
 </object><object><name>test2</name><bndbox><xmin>
-11</xmin><ymin>11</ymin><xmax>21</xmax><ymax>
-21</ymax></bndbox></object></annotation>"""
+11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>
+20</ymax></bndbox></object></annotation>"""
 
 NO_DETECTIONS = """<annotation></annotation>"""
 MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
-<xmin>1</xmin><ymin>1</ymin><xmax>11</xmax><ymax>11</ymax></bndbox>
+<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox>
 <polygon><x1>1</x1><y1>1</y1><x2>11</x2><y2>1</y2><x3>11</x3><y3>11</y3>
 <x4>1</x4><y4>11</y4></polygon></object><object><name>test</name><bndbox>
-<xmin>11</xmin><ymin>11</ymin><xmax>21</xmax><ymax>21</ymax></bndbox></object>
+<xmin>11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object>
 </annotation>"""
 
 
@@ -484,12 +518,12 @@ class TestLoadPascalVocDecimalCoordinates:
         [
             pytest.param(
                 ("48.5", "24.25", "95.75", "71.5"),
-                [47.5, 23.25, 94.75, 70.5],
+                [47.5, 23.25, 95.75, 71.5],
                 id="fractional",
             ),
             pytest.param(
                 ("48.0", "24.0", "95.0", "71.0"),
-                [47.0, 23.0, 94.0, 70.0],
+                [47.0, 23.0, 95.0, 71.0],
                 id="whole-number-written-as-decimal",
             ),
         ],
@@ -584,7 +618,7 @@ class TestLoadPascalVocDecimalCoordinates:
 
         _, _, detections = dataset[0]
         assert dataset.classes == ["dog"]
-        np.testing.assert_allclose(detections.xyxy, [[47.5, 23.25, 94.75, 70.5]])
+        np.testing.assert_allclose(detections.xyxy, [[47.5, 23.25, 95.75, 71.5]])
 
 
 class TestSavePascalVocAnnotations:
@@ -724,7 +758,7 @@ class TestDetectionsToPascalVocEmptyMask:
         assert [obj.find("polygon") is not None for obj in objects] == [True, False]
         dog_box = objects[1].find("bndbox")
         actual = [dog_box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
-        expected = ["61", "61", "91", "91"]
+        expected = ["61", "61", "90", "90"]
         assert actual == expected
 
     def test_writes_bounding_box_for_nonempty_mask_without_contour(self) -> None:
@@ -747,7 +781,7 @@ class TestDetectionsToPascalVocEmptyMask:
         assert objects[0].find("polygon") is None
         box = objects[0].find("bndbox")
         actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
-        expected = ["31", "21", "51", "41"]
+        expected = ["31", "21", "50", "40"]
         assert actual == expected
 
     def test_keeps_area_filter_for_masks_with_contours(self) -> None:
@@ -794,7 +828,7 @@ class TestDetectionDatasetPascalVocImageShapes:
         mask = np.zeros((1, 16, 24), dtype=bool)
         mask[0, 2:11, 3:16] = True
         detections = Detections(
-            xyxy=np.array([[3, 2, 15, 10]], dtype=np.float32),
+            xyxy=np.array([[3, 2, 16, 11]], dtype=np.float32),
             class_id=np.array([0]),
             mask=mask if with_mask else None,
         )
@@ -814,9 +848,12 @@ class TestDetectionDatasetPascalVocImageShapes:
         assert len(objects) == 1
         obj = objects[0]
         assert obj.findtext("name") == "object"
+        # The far edge stays unchanged for both a plain box and a mask-derived
+        # box; the mask polygon reaches the same outermost pixel coordinates.
+        expected_bndbox = ["4", "3", "16", "11"]
         assert [
             obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
-        ] == ["4", "3", "16", "11"]
+        ] == expected_bndbox
         polygon = obj.find("polygon")
         if with_mask:
             assert polygon is not None
@@ -851,11 +888,11 @@ class TestPascalVocBoxExtent:
             resolution_wh=(100, 100),
         )
 
-        assert detections.xyxy[0].tolist() == [29.0, 29.0, 69.0, 69.0]
+        assert detections.xyxy[0].tolist() == [29.0, 29.0, 70.0, 70.0]
         assert detections.area[0] > 0
 
     def test_exports_a_reversed_box_with_ordered_corners(self) -> None:
-        """Export preserves the rectangle with ordered, one-indexed corners."""
+        """Export preserves the rectangle with ordered corners in VOC convention."""
         xyxy = np.array([70, 70, 30, 30], dtype=np.float32)
 
         element = object_to_pascal_voc(xyxy=xyxy, name="thing")
@@ -863,7 +900,7 @@ class TestPascalVocBoxExtent:
         assert [
             int(element.find(f"bndbox/{coordinate}").text)
             for coordinate in ("xmin", "ymin", "xmax", "ymax")
-        ] == [31, 31, 71, 71]
+        ] == [31, 31, 70, 70]
 
 
 class TestAsPascalVocMaskWithHole:
@@ -899,3 +936,226 @@ class TestAsPascalVocMaskWithHole:
         result = next(iter(reloaded.annotations.values()))
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
+
+
+class TestPascalVocDevkitBndbox:
+    """Pascal VOC boxes use the devkit's 1-based, inclusive pixel indices."""
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_bndbox"),
+        [
+            pytest.param([0, 0, 37, 29], ["1", "1", "37", "29"], id="box-at-origin"),
+            pytest.param(
+                [10, 20, 40, 60], ["11", "21", "40", "60"], id="coco-box-10-20-30-40"
+            ),
+            pytest.param([0, 0, 100, 80], ["1", "1", "100", "80"], id="full-image"),
+        ],
+    )
+    def test_export_offsets_only_min_corner(
+        self, xyxy: list[float], expected_bndbox: list[str]
+    ) -> None:
+        """Export adds one to xmin and ymin only; xmax and ymax are unchanged."""
+        element = object_to_pascal_voc(
+            xyxy=np.array(xyxy, dtype=np.float32), name="box"
+        )
+
+        actual = [
+            element.findtext(f"bndbox/{tag}")
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+        assert actual == expected_bndbox
+
+    def test_export_mask_box_spans_outermost_mask_pixels(self) -> None:
+        """A mask's box runs from its first to its last covered pixel, inclusive."""
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 20:60, 10:40] = True
+        detections = Detections(
+            xyxy=np.array([[10, 20, 40, 60]], dtype=np.float32),
+            mask=mask,
+            class_id=np.array([0]),
+        )
+
+        xml_string = detections_to_pascal_voc(
+            detections, classes=["box"], filename="image.jpg", image_shape=(100, 100, 3)
+        )
+
+        obj = ElementTree.fromstring(xml_string).find("object")
+        assert obj.find("polygon") is not None
+        actual = [
+            obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+        assert actual == ["11", "21", "40", "60"]
+
+    @pytest.mark.parametrize(
+        ("bndbox", "expected_xyxy"),
+        [
+            pytest.param(("1", "1", "37", "29"), [0, 0, 37, 29], id="box-at-origin"),
+            pytest.param(
+                ("11", "21", "40", "60"), [10, 20, 40, 60], id="coco-box-10-20-30-40"
+            ),
+            pytest.param(("1", "1", "100", "80"), [0, 0, 100, 80], id="full-image"),
+        ],
+    )
+    def test_load_offsets_only_min_corner(
+        self, bndbox: tuple[str, str, str, str], expected_xyxy: list[float]
+    ) -> None:
+        """Loading subtracts one from xmin and ymin only; xmax and ymax are kept."""
+        root = ElementTree.fromstring(_single_object_xml(bndbox=bndbox))
+
+        detections, _ = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(100, 80)
+        )
+
+        np.testing.assert_array_equal(detections.xyxy, [expected_xyxy])
+
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_xyxy"),
+        [
+            pytest.param([10, 20, 40, 60], [10, 20, 40, 60], id="integer"),
+            pytest.param(
+                [-0.00032, -0.00024, 37.0, 28.99992],
+                [0, 0, 37, 29],
+                id="yolo-float-noise",
+            ),
+            pytest.param(
+                [10.9, 10.9, 20.9, 20.9], [11, 11, 21, 21], id="fraction-above-half"
+            ),
+            pytest.param(
+                [10.2, 10.2, 20.2, 20.2], [10, 10, 20, 20], id="fraction-below-half"
+            ),
+        ],
+    )
+    def test_export_then_load_returns_rounded_source_box(
+        self, xyxy: list[float], expected_xyxy: list[float]
+    ) -> None:
+        """A box written and read back is the source box rounded to whole pixels."""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+
+        xml_string = detections_to_pascal_voc(
+            detections, classes=["box"], filename="image.jpg", image_shape=(80, 100, 3)
+        )
+        reloaded, _ = detections_from_xml_obj(
+            ElementTree.fromstring(xml_string), classes=["box"], resolution_wh=(100, 80)
+        )
+
+        np.testing.assert_array_equal(reloaded.xyxy, [expected_xyxy])
+
+    def test_dataset_export_then_load_returns_source_box(self, tmp_path: Path) -> None:
+        """A box exported with as_pascal_voc reloads unchanged via from_pascal_voc."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        image_path = str(images_dir / "image.jpg")
+        cv2.imwrite(image_path, np.zeros((100, 100, 3), dtype=np.uint8))
+        source_xyxy = np.array([[10, 20, 40, 60]], dtype=np.float32)
+        dataset = DetectionDataset(
+            classes=["box"],
+            images=[image_path],
+            annotations={
+                image_path: Detections(xyxy=source_xyxy, class_id=np.array([0]))
+            },
+        )
+        annotations_dir = tmp_path / "annotations"
+
+        dataset.as_pascal_voc(annotations_directory_path=str(annotations_dir))
+        reloaded = DetectionDataset.from_pascal_voc(
+            images_directory_path=str(images_dir),
+            annotations_directory_path=str(annotations_dir),
+        )
+
+        np.testing.assert_array_equal(
+            reloaded.annotations[image_path].xyxy, source_xyxy
+        )
+
+
+class TestPascalVocDevkitConvention:
+    """VOC indices are 1-based and inclusive: only xmin/ymin carry the offset."""
+
+    def test_writes_devkit_box_extents(self) -> None:
+        """A COCO box at x=10, y=20, w=30, h=40 is written as 11, 21, 40, 60."""
+        element = object_to_pascal_voc(np.array([10, 20, 40, 60]), name="box")
+
+        actual = [
+            element.find(f"bndbox/{tag}").text
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+
+        assert actual == ["11", "21", "40", "60"]
+
+    def test_reads_devkit_box_extents(self) -> None:
+        """A devkit-encoded box loads with its maximum corner unchanged."""
+        root = ElementTree.fromstring(
+            _single_object_xml(bndbox=("11", "21", "40", "60"))
+        )
+
+        detections, _ = detections_from_xml_obj(
+            root, classes=[], resolution_wh=(100, 100)
+        )
+
+        np.testing.assert_allclose(detections.xyxy, [[10, 20, 40, 60]])
+
+    @pytest.mark.parametrize(
+        "xyxy",
+        [
+            pytest.param([0, 0, 10, 10], id="origin"),
+            pytest.param([10, 20, 40, 60], id="offset"),
+            pytest.param([0, 0, 100, 100], id="whole-image"),
+        ],
+    )
+    def test_export_then_load_returns_the_same_box(self, xyxy: list[int]) -> None:
+        """Boxes survive a VOC export and reload without growing by a pixel."""
+        detections = _create_detections(xyxy=[xyxy], class_id=[0])
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["box"],
+            filename="a.jpg",
+            image_shape=(100, 100, 3),
+        )
+
+        result, _ = detections_from_xml_obj(
+            ElementTree.fromstring(xml_string),
+            classes=["box"],
+            resolution_wh=(100, 100),
+        )
+
+        np.testing.assert_allclose(result.xyxy, [xyxy])
+
+    def test_mask_export_box_encloses_polygon(self) -> None:
+        """A mask's box reaches the polygon's last row and column, not one short."""
+        mask = np.zeros((1, 20, 20), dtype=bool)
+        mask[0, 2:11, 3:16] = True
+        detections = Detections(
+            xyxy=np.array([[3, 2, 16, 11]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        xml_string = detections_to_pascal_voc(
+            detections,
+            classes=["box"],
+            filename="a.jpg",
+            image_shape=(20, 20, 3),
+        )
+
+        root = ElementTree.fromstring(xml_string)
+        obj = root.find("object")
+        bndbox = [
+            int(obj.find(f"bndbox/{tag}").text)
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+        polygon = parse_polygon_points(obj.find("polygon"))
+
+        assert bndbox == [4, 3, 16, 11]
+        assert bndbox[2] >= polygon[:, 0].max()
+        assert bndbox[3] >= polygon[:, 1].max()
+
+    def test_subpixel_box_never_exports_inverted_bounds(self) -> None:
+        """A box under one pixel wide clamps to a one-pixel extent, never inverts."""
+        element = object_to_pascal_voc(
+            np.array([10.25, 20.25, 10.75, 20.75]), name="box"
+        )
+
+        actual = [
+            element.find(f"bndbox/{tag}").text
+            for tag in ("xmin", "ymin", "xmax", "ymax")
+        ]
+
+        assert actual == ["11", "21", "11", "21"]
