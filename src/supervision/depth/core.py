@@ -732,7 +732,10 @@ class DepthMap:
                 "The Ultralytics result has no depth map; run a depth model such as "
                 "yolo26n-depth.pt."
             )
-        values = _to_numpy(getattr(depth, "data", depth))
+        # A NumPy array's own `.data` is a dtype-less memoryview, which would slip
+        # integer codes past the float check in `_to_numpy`.
+        raw = depth if isinstance(depth, np.ndarray) else getattr(depth, "data", depth)
+        values = _to_numpy(raw)
         return cls(_squeeze_to_2d(values, "Ultralytics"), kind=DepthKind.DEPTH_M)
 
     @classmethod
