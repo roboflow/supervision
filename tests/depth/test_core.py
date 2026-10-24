@@ -487,6 +487,11 @@ class TestDepthMapFromUltralytics:
                 id="integer-dtype",
             ),
             pytest.param(
+                SimpleNamespace(depth=np.ones((2, 2), np.uint16)),
+                "uint16",
+                id="unwrapped-integer-array",
+            ),
+            pytest.param(
                 [_FakeUltralyticsResult(np.ones((2, 2), np.float32))],
                 r"single result.*results\[0\]",
                 id="list-of-results",
