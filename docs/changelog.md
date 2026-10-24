@@ -1,11 +1,11 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-20
+date_modified: 2026-10-24
 ---
 
 # Changelog
 
-### Unreleased <small>upcoming</small>
+### 0.31.2 <small>Oct 24, 2026</small>
 
 - `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_5` or `sv.VLM.GOOGLE_GEMINI_3_5` now keeps the masks of a response when an item's `box_2d` leaves the 0-1000 range. Any coordinate above 1000 or below 0, even `1001`, raised `ValueError: could not broadcast input array` and discarded every detection in the response, while the same box parsed without a `mask`, and with `sv.VLM.GOOGLE_GEMINI_3_6`. The mask is now cropped to the part of its box inside the image, a box wholly outside the image gets an all-false mask, and `xyxy` is returned unclipped as before. Boxes inside the image produce identical masks. ([#2793](https://github.com/roboflow/supervision/pull/2793))
 
@@ -13,9 +13,9 @@ date_modified: 2026-10-20
 
 - `sv.scale_boxes` and `Detections.get_anchors_coordinates` now compute box centers without overflowing `float16` coordinates. A half-precision box from 40000 to 60000 previously scaled to `inf` and reported an `inf` center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. ([#2787](https://github.com/roboflow/supervision/pull/2787))
 
-- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. ([#2785](https://github.com/roboflow/supervision/pull/2785))
+- `sv.DetectionsSmoother` preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64 instead of the coordinate dtype, which overflowed or tied in float16 and narrow integer types. Integer coordinates beyond `2**53`, which float64 cannot represent exactly, can still tie during alignment and lose their low-order pixels in the float64 average. ([#2785](https://github.com/roboflow/supervision/pull/2785))
 
-- **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. ([#2748](https://github.com/roboflow/supervision/pull/2748))
+- **Breaking**: `sv.DetectionDataset.as_pascal_voc` and `sv.DetectionDataset.from_pascal_voc` now follow the Pascal VOC devkit's 1-based, inclusive `<bndbox>` indices, offsetting only `xmin` and `ymin` by one. The box `[10, 20, 40, 60]` is written as `11 21 40 60` instead of `11 21 41 61`, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box `[0, 0, 37, 29]`, which `from_yolo` loads with float noise, is written as `1 1 37 29` instead of `0 0 38 29`. Box-only VOC objects written by earlier versions of supervision now load one pixel larger on the right and bottom edges; objects exported from masks, which carry a `<polygon>`, already used the devkit maxima, so their files need no change and their masks load unchanged, while their boxes now end one pixel further right and down. ([#2748](https://github.com/roboflow/supervision/pull/2748))
 
 - Serialize NumPy boolean scalars as JSON booleans when saving JSON files. ([#2783](https://github.com/roboflow/supervision/pull/2783))
 
@@ -25,7 +25,7 @@ date_modified: 2026-10-20
 
 - Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. ([#2769](https://github.com/roboflow/supervision/pull/2769))
 
-- Pascal VOC export and import now follow the VOC devkit convention for box extents: only `xmin` and `ymin` are shifted by 1 on export, and only they are shifted back on import. Boxes written by `sv.DetectionDataset.as_pascal_voc` no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in `supervision`. Annotations written by earlier `supervision` versions carry the old +1 in `xmax` and `ymax`, so those maximum corners now load one pixel larger than before. ([#2780](https://github.com/roboflow/supervision/pull/2780))
+- Pascal VOC export and import now follow the VOC devkit convention for box extents: only `xmin` and `ymin` are shifted by 1 on export, and only they are shifted back on import. Boxes written by `sv.DetectionDataset.as_pascal_voc` no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in `supervision`. Box-only annotations written by earlier `supervision` versions carry the old +1 in `xmax` and `ymax`, so those maximum corners now load one pixel larger than before. ([#2780](https://github.com/roboflow/supervision/pull/2780))
 
 - In-memory dataset image exports now raise `OSError` with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and `sv.ClassificationDataset.as_folder_structure`. ([#2772](https://github.com/roboflow/supervision/pull/2772))
 
