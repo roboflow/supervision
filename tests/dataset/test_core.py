@@ -1,4 +1,5 @@
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -189,7 +190,7 @@ def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
 def test_dataset_merge(
     dataset_list: list[DetectionDataset],
     expected_result: DetectionDataset | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """Verify that multiple DetectionDataset objects can be successfully merged.
 

@@ -1,5 +1,7 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from xml.etree.ElementTree import Element
 
 import numpy as np
 import pytest
@@ -19,7 +21,29 @@ from supervision.detection.core import Detections
 from tests.helpers import _create_detections
 
 
-def are_xml_elements_equal(elem1, elem2) -> bool:
+def _find(element: Element, path: str) -> Element:
+    """Return the child element at ``path``, failing the test when it is absent."""
+    found = element.find(path)
+    assert found is not None, f"missing element: {path}"
+    return found
+
+
+def _findtext(element: Element, path: str) -> str:
+    """Return the text of the child element at ``path``, asserting both exist."""
+    text = _find(element, path).text
+    assert text is not None, f"missing text: {path}"
+    return text
+
+
+def _class_ids(detections: Detections) -> list[int]:
+    """Return the detections' class IDs as a list, asserting they are present."""
+    assert detections.class_id is not None
+    class_ids: list[int] = detections.class_id.tolist()
+    return class_ids
+
+
+def are_xml_elements_equal(elem1: Element, elem2: Element) -> bool:
+    """Compare two XML elements recursively by tag, attributes, text and children."""
     if (
         elem1.tag != elem2.tag
         or elem1.attrib != elem2.attrib
@@ -68,9 +92,10 @@ def test_object_to_pascal_voc(
     xyxy: np.ndarray,
     name: str,
     polygon: np.ndarray | None,
-    expected_result,
-    exception: Exception,
+    expected_result: Element,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Serializing one object to Pascal VOC XML matches the expected element."""
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
         assert are_xml_elements_equal(result, expected_result)
@@ -105,12 +130,12 @@ def test_object_to_pascal_voc_rounds_fractional_bndbox(
     result = object_to_pascal_voc(xyxy=xyxy, name="test")
 
     bndbox = tuple(
-        result.find(f"bndbox/{tag}").text for tag in ("xmin", "ymin", "xmax", "ymax")
+        _findtext(result, f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
     )
     assert bndbox == expected_bndbox
 
 
-def test_object_to_pascal_voc_does_not_mutate_inputs():
+def test_object_to_pascal_voc_does_not_mutate_inputs() -> None:
     """Serializing an object must not write the 1-index offset back into the inputs."""
     xyxy = np.array([10, 20, 30, 40], dtype=np.float32)
     polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
@@ -123,7 +148,7 @@ def test_object_to_pascal_voc_does_not_mutate_inputs():
     )
 
 
-def test_object_to_pascal_voc_does_not_mutate_view_input():
+def test_object_to_pascal_voc_does_not_mutate_view_input() -> None:
     """Mutation guard holds when xyxy is a NumPy row-view (the actual bug scenario)."""
     base = np.array([[10, 20, 30, 40]], dtype=np.float32)
     xyxy_view = base[0]  # row-view, shares memory with base
@@ -135,7 +160,7 @@ def test_object_to_pascal_voc_does_not_mutate_view_input():
     )
 
 
-def test_detections_to_pascal_voc_does_not_mutate_detections():
+def test_detections_to_pascal_voc_does_not_mutate_detections() -> None:
     """Exporting detections must not shift the source xyxy, and must be repeatable."""
     detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[0])
     expected_xyxy = detections.xyxy.copy()
@@ -165,10 +190,11 @@ def test_detections_to_pascal_voc_does_not_mutate_detections():
     ],
 )
 def test_parse_polygon_points(
-    polygon_element,
-    expected_result: list[list],
-    exception,
+    polygon_element: Element,
+    expected_result: list[list[int]],
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Polygon point elements parse into the expected coordinate array."""
     with exception:
         result = parse_polygon_points(polygon_element)
         assert np.array_equal(result, expected_result)
@@ -256,8 +282,14 @@ MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
     ],
 )
 def test_detections_from_xml_obj(
-    xml_string, classes, resolution_wh, force_masks, expected_result, exception
+    xml_string: str,
+    classes: list[str],
+    resolution_wh: tuple[int, int],
+    force_masks: bool,
+    expected_result: Detections,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Pascal VOC XML converts to the expected Detections object."""
     with exception:
         root = ElementTree.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
@@ -332,8 +364,8 @@ class TestLoadPascalVocDeterministicClasses:
         )
 
         assert first[0] == second[0]
-        assert {p: d.class_id.tolist() for p, d in first[2].items()} == {
-            p: d.class_id.tolist() for p, d in second[2].items()
+        assert {p: _class_ids(d) for p, d in first[2].items()} == {
+            p: _class_ids(d) for p, d in second[2].items()
         }
 
 
@@ -412,8 +444,10 @@ class TestLoadPascalVocBackgroundImages:
         )
 
         by_stem = {Path(path).stem: d for path, d in annotations.items()}
-        assert np.issubdtype(by_stem["aaa_background"].class_id.dtype, np.integer)
-        assert by_stem["aaa_background"].class_id.size == 0
+        background_class_id = by_stem["aaa_background"].class_id
+        assert background_class_id is not None
+        assert np.issubdtype(background_class_id.dtype, np.integer)
+        assert background_class_id.size == 0
 
     def test_force_masks_background_image_gets_empty_3d_mask(self) -> None:
         """force_masks=True on a background XML yields an empty (0, H, W) mask."""
@@ -575,8 +609,8 @@ class TestLoadPascalVocDecimalCoordinates:
             rounded_root, classes=[], resolution_wh=(20, 20)
         )
 
-        assert decimal.mask is not None
-        assert rounded.mask is not None
+        assert isinstance(decimal.mask, np.ndarray)
+        assert isinstance(rounded.mask, np.ndarray)
         assert rounded.mask.any()
         np.testing.assert_array_equal(decimal.mask, rounded.mask)
 
@@ -701,6 +735,7 @@ class TestSavePascalVocAnnotations:
         )
 
         class_id = next(iter(annotations.values())).class_id
+        assert class_id is not None
         assert np.issubdtype(class_id.dtype, np.integer)
         assert class_id.size == 0
 
@@ -756,7 +791,7 @@ class TestDetectionsToPascalVocEmptyMask:
         objects = ElementTree.fromstring(xml_string).findall("object")
         assert [obj.findtext("name") for obj in objects] == ["cat", "dog"]
         assert [obj.find("polygon") is not None for obj in objects] == [True, False]
-        dog_box = objects[1].find("bndbox")
+        dog_box = _find(objects[1], "bndbox")
         actual = [dog_box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
         expected = ["61", "61", "90", "90"]
         assert actual == expected
@@ -779,7 +814,7 @@ class TestDetectionsToPascalVocEmptyMask:
         objects = ElementTree.fromstring(xml_string).findall("object")
         assert len(objects) == 1
         assert objects[0].find("polygon") is None
-        box = objects[0].find("bndbox")
+        box = _find(objects[0], "bndbox")
         actual = [box.findtext(tag) for tag in ("xmin", "ymin", "xmax", "ymax")]
         expected = ["31", "21", "50", "40"]
         assert actual == expected
@@ -858,7 +893,10 @@ class TestDetectionDatasetPascalVocImageShapes:
         if with_mask:
             assert polygon is not None
             points = [
-                [float(polygon.findtext(f"x{i}")), float(polygon.findtext(f"y{i}"))]
+                [
+                    float(_findtext(polygon, f"x{i}")),
+                    float(_findtext(polygon, f"y{i}")),
+                ]
                 for i in range(1, len(polygon) // 2 + 1)
             ]
             assert sorted(points) == [[4, 3], [4, 11], [16, 3], [16, 11]]
@@ -898,7 +936,7 @@ class TestPascalVocBoxExtent:
         element = object_to_pascal_voc(xyxy=xyxy, name="thing")
 
         assert [
-            int(element.find(f"bndbox/{coordinate}").text)
+            int(_findtext(element, f"bndbox/{coordinate}"))
             for coordinate in ("xmin", "ymin", "xmax", "ymax")
         ] == [31, 31, 70, 70]
 
@@ -979,7 +1017,7 @@ class TestPascalVocDevkitBndbox:
             detections, classes=["box"], filename="image.jpg", image_shape=(100, 100, 3)
         )
 
-        obj = ElementTree.fromstring(xml_string).find("object")
+        obj = _find(ElementTree.fromstring(xml_string), "object")
         assert obj.find("polygon") is not None
         actual = [
             obj.findtext(f"bndbox/{tag}") for tag in ("xmin", "ymin", "xmax", "ymax")
@@ -1075,7 +1113,7 @@ class TestPascalVocDevkitConvention:
         element = object_to_pascal_voc(np.array([10, 20, 40, 60]), name="box")
 
         actual = [
-            element.find(f"bndbox/{tag}").text
+            _findtext(element, f"bndbox/{tag}")
             for tag in ("xmin", "ymin", "xmax", "ymax")
         ]
 
@@ -1136,16 +1174,16 @@ class TestPascalVocDevkitConvention:
         )
 
         root = ElementTree.fromstring(xml_string)
-        obj = root.find("object")
+        obj = _find(root, "object")
         bndbox = [
-            int(obj.find(f"bndbox/{tag}").text)
+            int(_findtext(obj, f"bndbox/{tag}"))
             for tag in ("xmin", "ymin", "xmax", "ymax")
         ]
-        polygon = parse_polygon_points(obj.find("polygon"))
+        polygon = parse_polygon_points(_find(obj, "polygon"))
 
         assert bndbox == [4, 3, 16, 11]
-        assert bndbox[2] >= polygon[:, 0].max()
-        assert bndbox[3] >= polygon[:, 1].max()
+        assert bndbox[2] >= np.max(polygon[:, 0])
+        assert bndbox[3] >= np.max(polygon[:, 1])
 
     def test_subpixel_box_never_exports_inverted_bounds(self) -> None:
         """A box under one pixel wide clamps to a one-pixel extent, never inverts."""
@@ -1154,7 +1192,7 @@ class TestPascalVocDevkitConvention:
         )
 
         actual = [
-            element.find(f"bndbox/{tag}").text
+            _findtext(element, f"bndbox/{tag}")
             for tag in ("xmin", "ymin", "xmax", "ymax")
         ]
 
