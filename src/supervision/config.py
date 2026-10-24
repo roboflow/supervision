@@ -8,6 +8,17 @@ AREA_DATA_FIELD: str = "area"
 #: ``(x_min, y_min, x_max, y_max)`` format, one box per skeleton. Read by
 #: ``KeyPointMeanAveragePrecision``.
 XYXY_DATA_FIELD: str = "xyxy"
+#: Key for raw per-keypoint visibility flags in ``KeyPoints.data``.
+#:
+#: Value layout: ``np.ndarray`` of shape ``(N, K)``, dtype ``uint8``, holding the
+#: YOLO / COCO ternary flag of each keypoint — ``0`` not labelled, ``1`` labelled
+#: but not visible, ``2`` labelled and visible. ``KeyPoints.visible`` is the
+#: boolean reading of it (``flag == 2``) and cannot tell ``0`` from ``1``, so the
+#: raw value is kept here to let
+#: :func:`~supervision.dataset.formats.yolo_pose.key_points_to_yolo_pose_annotations`
+#: write a label file back unchanged. Only present for a ``kpt_shape`` of
+#: ``[K, 3]``.
+KEYPOINT_VISIBILITY_DATA_FIELD: str = "keypoint_visibility"
 #: Key for per-target COCO crowd flags in ``Detections.data`` or ``KeyPoints.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N,)``; a non-zero value marks a

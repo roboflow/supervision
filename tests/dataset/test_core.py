@@ -1046,3 +1046,13 @@ class TestClassificationDatasetFolderRoundTrip:
 
         assert dataset.classes == ["cats"]
         assert dataset.image_paths == [str(cats / "cat.png")]
+
+
+class TestClassificationDatasetRepr:
+    """ClassificationDataset is a dataclass, so it carries a named repr."""
+
+    def test_repr_names_the_class(self) -> None:
+        """A dataset prints as its class name rather than an object address."""
+        dataset = ClassificationDataset(classes=["cat"], images=[], annotations={})
+
+        assert repr(dataset) == "ClassificationDataset()"

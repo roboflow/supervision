@@ -39,6 +39,12 @@ from supervision.dataset.formats.yolo import (
     save_data_yaml,
     save_yolo_annotations,
 )
+from supervision.dataset.formats.yolo_pose import (
+    load_yolo_pose_annotations,
+    map_key_points_class_id,
+    save_pose_data_yaml,
+    save_yolo_pose_annotations,
+)
 from supervision.dataset.utils import (
     build_class_index_mapping,
     check_no_basename_collisions,
@@ -48,6 +54,7 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
+from supervision.key_points.core import KeyPoints
 from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
@@ -1055,6 +1062,448 @@ class DetectionDataset(BaseDataset):
                 show_progress=show_progress,
             )
         return starting_image_id, starting_annotation_id
+
+
+class KeyPointsDataset(BaseDataset):
+    """Contains information about a keypoint (pose) dataset.
+
+    The keypoint counterpart of
+    :class:`~supervision.dataset.core.DetectionDataset`: lazy image loading,
+    splitting, merging and conversion to and from the YOLO pose format.
+
+    Each image is annotated with a
+    :class:`~supervision.key_points.core.KeyPoints` instance holding one
+    skeleton per object. Alongside the coordinates, the annotations carry the
+    object box under ``data['xyxy']`` and, for a ``kpt_shape`` of ``[K, 3]``,
+    the raw visibility flags under ``data['keypoint_visibility']``.
+
+    The visibility flags are aligned with the keypoint axis rather than the
+    skeleton axis. ``KeyPoints`` 2D indexing narrows ``xy`` and ``visible`` along
+    that axis but carries ``data`` entries through whole, so select whole
+    skeletons when an annotation is to be saved again.
+
+    Attributes:
+        classes: List containing dataset class names.
+        images: List of image paths, loaded lazily on access.
+        annotations: Dictionary mapping image path to its key points.
+        keypoint_count: Number of keypoints per skeleton, the ``K`` of
+            ``kpt_shape``.
+        value_dim: Values stored per keypoint, the ``D`` of ``kpt_shape``;
+            ``2`` for coordinates only, ``3`` when a visibility flag follows.
+        flip_idx: The ``flip_idx`` of the dataset, mapping each keypoint to the
+            one it becomes under a horizontal flip, or ``None`` when the
+            dataset declares none.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> ds = sv.KeyPointsDataset(
+        ...     classes=['person'],
+        ...     images=['img1.jpg'],
+        ...     annotations={
+        ...         'img1.jpg': sv.KeyPoints(
+        ...             xy=np.array([[[10.0, 10.0], [20.0, 20.0]]], dtype=np.float32),
+        ...             class_id=np.array([0]),
+        ...         )
+        ...     },
+        ...     keypoint_count=2,
+        ... )
+        >>> len(ds)
+        1
+
+        ```
+    """
+
+    def __init__(
+        self,
+        classes: list[str],
+        images: list[str],
+        annotations: dict[str, KeyPoints],
+        keypoint_count: int,
+        value_dim: int = 3,
+        flip_idx: list[int] | None = None,
+    ) -> None:
+        """Initialize a keypoint dataset.
+
+        Args:
+            classes: Dataset class names, ordered by class index.
+            images: Image paths; images are read on demand.
+            annotations: Key points of each image, keyed by image path.
+            keypoint_count: Number of keypoints per skeleton.
+            value_dim: ``2`` or ``3``, the per-keypoint value count written by
+                :meth:`~supervision.dataset.core.KeyPointsDataset.as_yolo`.
+            flip_idx: Optional permutation mapping each keypoint to the one it
+                becomes under a horizontal flip, carried through splitting,
+                merging and export.
+
+        Raises:
+            ValueError: If the image paths and annotation keys differ, if
+                ``keypoint_count`` is not positive, if ``value_dim`` is neither
+                2 nor 3, if ``flip_idx`` is not a permutation of the keypoint
+                indices, or if an annotation carries a non-integer class id, a
+                class id outside the range of ``classes``, or a keypoint count
+                other than ``keypoint_count``.
+        """
+        if set(images) != set(annotations):
+            raise ValueError(
+                "The keys of the images and annotations dictionaries must match."
+            )
+        if keypoint_count <= 0:
+            raise ValueError(
+                f"`keypoint_count` must be a positive integer, got {keypoint_count}."
+            )
+        if value_dim not in (2, 3):
+            raise ValueError(f"`value_dim` must be 2 or 3, got {value_dim}.")
+        if flip_idx is not None and sorted(flip_idx) != list(range(keypoint_count)):
+            raise ValueError(
+                f"`flip_idx` must be a permutation of the {keypoint_count} "
+                f"keypoint indices 0..{keypoint_count - 1}, got {flip_idx!r}."
+            )
+
+        self.classes = classes
+        self.keypoint_count = keypoint_count
+        self.value_dim = value_dim
+        self.flip_idx = None if flip_idx is None else list(flip_idx)
+        self.annotations = {
+            image_path: deepcopy(annotation)
+            for image_path, annotation in annotations.items()
+        }
+
+        np_classes = np.array(self.classes)
+        for image_path, annotation in self.annotations.items():
+            if len(annotation) > 0 and annotation.xy.shape[1] != keypoint_count:
+                raise ValueError(
+                    f"Key point annotation for image {image_path!r} holds "
+                    f"{annotation.xy.shape[1]} keypoints per skeleton, but the "
+                    f"dataset declares {keypoint_count}."
+                )
+
+            class_ids = annotation.class_id
+            if class_ids is None:
+                continue
+            if not np.issubdtype(class_ids.dtype, np.integer):
+                raise ValueError(
+                    f"Key point annotation for image {image_path!r} contains "
+                    f"non-integer class_id values with dtype {class_ids.dtype}."
+                )
+
+            invalid_class_ids = class_ids[
+                (class_ids < 0) | (class_ids >= len(self.classes))
+            ]
+            if len(invalid_class_ids) > 0:
+                valid_range = (
+                    "empty"
+                    if len(self.classes) == 0
+                    else f"[0, {len(self.classes) - 1}]"
+                )
+                raise ValueError(
+                    f"Key point annotation for image {image_path!r} contains "
+                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
+                    f"range {valid_range} for {len(self.classes)} classes."
+                )
+            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
+
+        # Eliminate duplicates while preserving order
+        self.image_paths = list(dict.fromkeys(images))
+
+    def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
+        """Read an image of the dataset from disk."""
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from path: {image_path}")
+        return cast(npt.NDArray[np.uint8], image)
+
+    def __len__(self) -> int:
+        return len(self.image_paths)
+
+    def __getitem__(self, i: int) -> tuple[str, npt.NDArray[np.uint8], KeyPoints]:
+        """
+        Returns:
+            The image path, image data, and its key points at index i.
+        """
+        image_path = self.image_paths[i]
+        return image_path, self._get_image(image_path), self.annotations[image_path]
+
+    def __iter__(self) -> Iterator[tuple[str, npt.NDArray[np.uint8], KeyPoints]]:
+        """Iterate over the images and annotations in the dataset.
+
+        Yields:
+            Tuples containing the image path, image data, and its key points.
+        """
+        for i in range(len(self)):
+            yield self[i]
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, KeyPointsDataset):
+            return False
+        return (
+            self.classes == other.classes
+            and self.image_paths == other.image_paths
+            and self.keypoint_count == other.keypoint_count
+            and self.value_dim == other.value_dim
+            and self.flip_idx == other.flip_idx
+            and self.annotations == other.annotations
+        )
+
+    def split(
+        self,
+        split_ratio: float = 0.8,
+        random_state: int | None = None,
+        shuffle: bool = True,
+    ) -> tuple[KeyPointsDataset, KeyPointsDataset]:
+        """Split the dataset into two parts. The input dataset is not mutated.
+
+        Args:
+            split_ratio: Ratio of the training set to the entire dataset, within
+                the inclusive range `[0, 1]`.
+            random_state: Seed for the random number generator, for
+                reproducibility.
+            shuffle: Whether to shuffle the data before splitting.
+
+        Returns:
+            A tuple containing the training and testing datasets.
+
+        Raises:
+            ValueError: If `split_ratio` is outside `[0, 1]` or is not a finite
+                number.
+        """
+        train_paths, test_paths = train_test_split(
+            data=self.image_paths,
+            train_ratio=split_ratio,
+            random_state=random_state,
+            shuffle=shuffle,
+        )
+        return (
+            KeyPointsDataset(
+                classes=self.classes,
+                images=train_paths,
+                annotations={path: self.annotations[path] for path in train_paths},
+                keypoint_count=self.keypoint_count,
+                value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
+            ),
+            KeyPointsDataset(
+                classes=self.classes,
+                images=test_paths,
+                annotations={path: self.annotations[path] for path in test_paths},
+                keypoint_count=self.keypoint_count,
+                value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
+            ),
+        )
+
+    @classmethod
+    def merge(cls, dataset_list: list[KeyPointsDataset]) -> KeyPointsDataset:
+        """Merge a list of :class:`~supervision.dataset.core.KeyPointsDataset` objects
+        into one.
+
+        Class lists are merged and each dataset's ``class_id`` values are
+        remapped onto the merged list, as
+        :meth:`~supervision.dataset.core.DetectionDataset.merge` does.
+
+        Args:
+            dataset_list: The datasets to merge.
+
+        Returns:
+            The merged dataset.
+
+        Raises:
+            ValueError: If the list is empty, if the datasets disagree on
+                ``keypoint_count``, ``value_dim`` or ``flip_idx``, or if an
+                image path appears in more than one dataset.
+        """
+        if not dataset_list:
+            raise ValueError("Cannot merge an empty list of datasets.")
+
+        keypoint_counts = {dataset.keypoint_count for dataset in dataset_list}
+        if len(keypoint_counts) > 1:
+            raise ValueError(
+                "Cannot merge KeyPointsDatasets with different keypoint counts: "
+                f"{sorted(keypoint_counts)}."
+            )
+        value_dims = {dataset.value_dim for dataset in dataset_list}
+        if len(value_dims) > 1:
+            raise ValueError(
+                "Cannot merge KeyPointsDatasets with different `value_dim` "
+                f"values: {sorted(value_dims)}."
+            )
+        flip_indices = {
+            None if dataset.flip_idx is None else tuple(dataset.flip_idx)
+            for dataset in dataset_list
+        }
+        if len(flip_indices) > 1:
+            raise ValueError(
+                "Cannot merge KeyPointsDatasets with different `flip_idx` "
+                "values; they disagree on which keypoint is which: "
+                f"{sorted(map(str, flip_indices))}."
+            )
+
+        image_paths = list(
+            chain.from_iterable(dataset.image_paths for dataset in dataset_list)
+        )
+        image_paths_unique = list(dict.fromkeys(image_paths))
+        if len(image_paths) != len(image_paths_unique):
+            duplicates = find_duplicates(image_paths)
+            raise ValueError(
+                f"Image paths {duplicates} are not unique across datasets."
+            )
+
+        classes = merge_class_lists(
+            class_lists=[dataset.classes for dataset in dataset_list]
+        )
+        annotations: dict[str, KeyPoints] = {}
+        for dataset in dataset_list:
+            class_index_mapping = build_class_index_mapping(
+                source_classes=dataset.classes, target_classes=classes
+            )
+            for image_path in dataset.image_paths:
+                annotation = dataset.annotations[image_path]
+                if annotation.class_id is None:
+                    annotations[image_path] = annotation
+                    continue
+                annotations[image_path] = map_key_points_class_id(
+                    source_to_target_mapping=class_index_mapping,
+                    key_points=annotation,
+                )
+
+        return cls(
+            classes=classes,
+            images=image_paths_unique,
+            annotations=annotations,
+            keypoint_count=keypoint_counts.pop(),
+            value_dim=value_dims.pop(),
+            flip_idx=dataset_list[0].flip_idx,
+        )
+
+    @classmethod
+    def from_yolo(
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        data_yaml_path: str,
+        show_progress: bool = False,
+    ) -> KeyPointsDataset:
+        """Create a dataset from a YOLO pose dataset on disk.
+
+        The label of each object is ``class x y w h`` followed by ``K * D``
+        keypoint values, with ``kpt_shape: [K, D]`` declared in data.yaml. All
+        coordinates are normalized; they are denormalized against each image's
+        own resolution while loading.
+
+        Args:
+            images_directory_path: Directory holding the images.
+            annotations_directory_path: Directory holding the ``.txt`` labels.
+            data_yaml_path: Path to the data.yaml file, which must declare
+                ``kpt_shape``.
+            show_progress: If ``True``, display a progress bar while loading.
+
+        Returns:
+            The loaded dataset.
+
+        Raises:
+            ValueError: If data.yaml declares no valid ``kpt_shape``, or if a
+                label file holds an invalid line; the message names the file.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.KeyPointsDataset.from_yolo(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+                data_yaml_path="<DATA_YAML_PATH>",
+            )
+            ```
+        """
+        (
+            classes,
+            image_paths,
+            annotations,
+            kpt_shape,
+            flip_idx,
+        ) = load_yolo_pose_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            data_yaml_path=data_yaml_path,
+            show_progress=show_progress,
+        )
+        keypoint_count, value_dim = kpt_shape
+        return cls(
+            classes=classes,
+            images=image_paths,
+            annotations=annotations,
+            keypoint_count=keypoint_count,
+            value_dim=value_dim,
+            flip_idx=flip_idx,
+        )
+
+    def as_yolo(
+        self,
+        images_directory_path: str | None = None,
+        annotations_directory_path: str | None = None,
+        data_yaml_path: str | None = None,
+        show_progress: bool = False,
+    ) -> None:
+        """Write the dataset to disk in YOLO pose format.
+
+        The data.yaml carries ``kpt_shape: [keypoint_count, value_dim]``, so the
+        written dataset reads back through
+        :meth:`~supervision.dataset.core.KeyPointsDataset.from_yolo`.
+
+        Args:
+            images_directory_path: Directory for the images; skipped when
+                ``None``.
+            annotations_directory_path: Directory for the ``.txt`` labels;
+                skipped when ``None``.
+            data_yaml_path: Path for the data.yaml file; skipped when ``None``.
+            show_progress: If ``True``, display a progress bar while saving.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds.as_yolo(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+                data_yaml_path="<DATA_YAML_PATH>",
+            )
+            ```
+        """
+        # Pre-flight: validate output uniqueness before writing any file
+        if images_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).name,
+                output_kind="image",
+            )
+        if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: Path(image_path).stem + ".txt",
+                output_kind="YOLO pose annotation",
+            )
+
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
+            )
+        if annotations_directory_path is not None:
+            save_yolo_pose_annotations(
+                dataset=self,
+                annotations_directory_path=annotations_directory_path,
+                show_progress=show_progress,
+            )
+        if data_yaml_path is not None:
+            save_pose_data_yaml(
+                data_yaml_path=data_yaml_path,
+                classes=self.classes,
+                keypoint_count=self.keypoint_count,
+                value_dim=self.value_dim,
+                flip_idx=self.flip_idx,
+            )
 
 
 @dataclass
