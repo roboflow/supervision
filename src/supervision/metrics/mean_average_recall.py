@@ -10,6 +10,7 @@ import numpy.typing as npt
 from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
+from supervision.detection.utils.internal import get_data_item
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     mask_iou_batch,
@@ -881,7 +882,6 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         if new_detections.tracker_id is not None:
             new_detections.tracker_id = new_detections.tracker_id[size_mask]
         if new_detections.data is not None:
-            for key, value in new_detections.data.items():
-                new_detections.data[key] = np.array(value)[size_mask]
+            new_detections.data = get_data_item(new_detections.data, size_mask)
 
         return new_detections
