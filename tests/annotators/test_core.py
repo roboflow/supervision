@@ -2094,6 +2094,65 @@ class TestIconAnnotator:
         assert info_after.hits - info_before.hits == 1
 
 
+class TestSingleChannelOverlayAnnotators:
+    """Verify crop and icon overlays on grayscale scenes."""
+
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_crop_grayscale_matches_color_scene(self, channel_axis: bool) -> None:
+        """A grayscale crop is drawn like each channel of its BGR copy."""
+        gray = (np.arange(60 * 80) % 256).astype(np.uint8).reshape(60, 80)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections = _create_detections(xyxy=[[30, 30, 50, 50]], class_id=[0])
+        annotator = CropAnnotator(border_color=Color(r=10, g=20, b=200))
+        expected = annotator.annotate(scene=color_scene, detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(60, 80), expected[..., 0])
+        assert not np.array_equal(result.reshape(60, 80), gray)
+
+    def test_crop_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image gets its crop and is returned as one."""
+        image = Image.new("L", (80, 60), color=50)
+        image.paste(200, (30, 30, 50, 50))
+        detections = _create_detections(xyxy=[[30, 30, 50, 50]], class_id=[0])
+
+        result = CropAnnotator(position=Position.TOP_LEFT, scale_factor=1.0).annotate(
+            scene=image, detections=detections
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((20, 20)) == 200
+        assert result.getpixel((5, 5)) == 50
+
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_icon_grayscale_draws_icon_luminance(
+        self, tmp_path: Path, channel_axis: bool
+    ) -> None:
+        """A BGRA icon is drawn as its gray luminance where it is opaque."""
+        icon = np.zeros((16, 16, 4), dtype=np.uint8)
+        icon[4:12, 4:12] = (200, 100, 50, 255)
+        icon_path = tmp_path / "icon.png"
+        cv2.imwrite(str(icon_path), icon)
+        icon_gray = cv2.cvtColor(icon[..., :3], cv2.COLOR_BGR2GRAY)[8, 8]
+        expected = np.full((48, 48), 30, dtype=np.uint8)
+        expected[12:20, 20:28] = icon_gray
+        scene_shape = (48, 48, 1) if channel_axis else (48, 48)
+        scene = np.full(scene_shape, 30, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[8, 16, 40, 40]], class_id=[0])
+
+        result = IconAnnotator(icon_resolution_wh=(16, 16)).annotate(
+            scene=scene, detections=detections, icon_path=str(icon_path)
+        )
+
+        assert result.shape == scene_shape
+        np.testing.assert_array_equal(result.reshape(48, 48), expected)
+
+
 class TestBackgroundOverlayAnnotator:
     """Tests for BackgroundOverlayAnnotator class."""
 

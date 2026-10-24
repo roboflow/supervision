@@ -1677,6 +1677,159 @@ def test_from_google_gemini_2_5_keeps_mask_pixels_above_midpoint_probability() -
     np.testing.assert_array_equal(masks, [[[True, True], [False, False]]])
 
 
+class TestGeminiMasksForBoxesOutsideImage:
+    """Gemini 2.5 and 3.5 masks for `box_2d` values outside the 0-1000 range."""
+
+    resolution_wh = (1000, 800)
+
+    @staticmethod
+    def _response(*items: tuple[list[int], np.ndarray]) -> str:
+        """Build a Gemini response with one masked `cat` per `(box_2d, mask)` pair."""
+        return json.dumps(
+            [
+                {
+                    "box_2d": box_2d,
+                    "label": "cat",
+                    "mask": _gemini_mask_data_uri(probabilities),
+                }
+                for box_2d, probabilities in items
+            ]
+        )
+
+    @pytest.mark.parametrize(
+        "vlm",
+        [
+            pytest.param(VLM.GOOGLE_GEMINI_2_5, id="gemini-2.5"),
+            pytest.param(VLM.GOOGLE_GEMINI_3_5, id="gemini-3.5"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("box_2d", "expected_rows", "expected_columns"),
+        [
+            pytest.param([0, 0, 1000, 1000], (0, 800), (0, 1000), id="exactly-1000"),
+            pytest.param([500, 500, 1001, 1001], (400, 800), (500, 1000), id="by-one"),
+            pytest.param([500, 500, 1010, 1010], (400, 800), (500, 1000), id="by-ten"),
+            pytest.param([-10, -10, 500, 500], (0, 400), (0, 500), id="negative"),
+            pytest.param([-1, -1, 1001, 1001], (0, 800), (0, 1000), id="both-sides"),
+            pytest.param([0, 0, 10**9, 10**9], (0, 800), (0, 1000), id="huge"),
+        ],
+    )
+    def test_mask_keeps_the_part_inside_the_image(
+        self,
+        vlm: VLM,
+        box_2d: list[int],
+        expected_rows: tuple[int, int],
+        expected_columns: tuple[int, int],
+    ) -> None:
+        """A box leaving the image is cropped to it instead of failing the parse."""
+        result = self._response((box_2d, np.full((16, 16), 255, dtype=np.uint8)))
+        expected = np.zeros((1, 800, 1000), dtype=bool)
+        expected[0, slice(*expected_rows), slice(*expected_columns)] = True
+
+        detections = Detections.from_vlm(vlm, result, resolution_wh=self.resolution_wh)
+
+        assert detections.mask is not None
+        np.testing.assert_array_equal(detections.mask, expected)
+
+    @pytest.mark.parametrize(
+        "box_2d",
+        [
+            pytest.param([1100, 1100, 1200, 1200], id="beyond-bottom-right"),
+            pytest.param([-300, -300, -100, -100], id="beyond-top-left"),
+            pytest.param([0, 1001, 1000, 1200], id="beyond-right-edge"),
+            pytest.param([-200, 0, 0, 1000], id="above-top-edge"),
+        ],
+    )
+    def test_box_wholly_outside_image_gets_an_empty_mask(
+        self, box_2d: list[int]
+    ) -> None:
+        """A box with no pixel inside the image keeps its slot with an empty mask."""
+        result = self._response((box_2d, np.full((16, 16), 255, dtype=np.uint8)))
+
+        detections = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
+        )
+
+        assert detections.mask is not None
+        assert detections.mask.shape == (1, 800, 1000)
+        assert not detections.mask.any()
+
+    @pytest.mark.parametrize(
+        ("box_2d", "probabilities", "expected_columns"),
+        [
+            pytest.param(
+                [0, 500, 1000, 1500],
+                np.array([[255, 255, 0, 0]], dtype=np.uint8),
+                (500, 1000),
+                id="overshoot-right-keeps-left-columns",
+            ),
+            pytest.param(
+                [0, -500, 1000, 500],
+                np.array([[0, 0, 255, 255]], dtype=np.uint8),
+                (10, 500),
+                id="overshoot-left-keeps-right-columns",
+            ),
+        ],
+    )
+    def test_cropped_mask_stays_aligned_with_the_full_box(
+        self,
+        box_2d: list[int],
+        probabilities: np.ndarray,
+        expected_columns: tuple[int, int],
+    ) -> None:
+        """The visible part is the matching slice of the PNG, not a squashed copy."""
+        result = self._response((box_2d, probabilities))
+
+        detections = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
+        )
+
+        assert detections.mask is not None
+        assert detections.mask[0, :, slice(*expected_columns)].all()
+
+    def test_out_of_range_box_does_not_drop_the_other_detections(self) -> None:
+        """Items with in-range boxes keep their masks next to an out-of-range one."""
+        solid = np.full((16, 16), 255, dtype=np.uint8)
+        in_range_box = [100, 100, 300, 300]
+        mixed = self._response(
+            (in_range_box, solid),
+            ([500, 500, 1001, 1001], solid),
+            ([1100, 1100, 1200, 1200], solid),
+            ([600, 0, 700, 100], solid),
+        )
+        in_range_only = self._response(
+            (in_range_box, solid), ([600, 0, 700, 100], solid)
+        )
+
+        detections = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, mixed, resolution_wh=self.resolution_wh
+        )
+        reference = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, in_range_only, resolution_wh=self.resolution_wh
+        )
+
+        assert detections.mask is not None
+        assert reference.mask is not None
+        assert detections.mask.shape == (4, 800, 1000)
+        np.testing.assert_array_equal(detections.mask[[0, 3]], reference.mask)
+        np.testing.assert_array_equal(detections.xyxy[[0, 3]], reference.xyxy)
+
+    def test_boxes_are_returned_unclipped(self) -> None:
+        """Only the mask is cropped: `xyxy` matches the box-only parse of the item."""
+        box_2d = [-10, 500, 1010, 1001]
+        with_mask = self._response((box_2d, np.full((16, 16), 255, dtype=np.uint8)))
+        box_only = json.dumps([{"box_2d": box_2d, "label": "cat"}])
+
+        detections = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, with_mask, resolution_wh=self.resolution_wh
+        )
+        reference = Detections.from_vlm(
+            VLM.GOOGLE_GEMINI_2_5, box_only, resolution_wh=self.resolution_wh
+        )
+
+        np.testing.assert_array_equal(detections.xyxy, reference.xyxy)
+
+
 def test_from_vlm_unsupported_future_enum_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
