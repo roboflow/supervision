@@ -12,11 +12,15 @@ on:
 
 permissions: {} # Explicitly remove all permissions by default
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     permissions:
       contents: read
-    uses: ./.github/workflows/build-package.yml
+    uses: ./.github/workflows/build-package.yml # zizmor: ignore[self-repository] -- Local calls already use the workflow commit.
 
   publish-release:
     name: Publish Release Package
@@ -31,7 +35,7 @@ jobs:
       contents: write # Required for checkout and upload assets
     steps:
       - name: 📥 Download distribution artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
@@ -40,7 +44,7 @@ jobs:
 
       - name: 📦 Upload assets to Release
         if: github.event_name == 'release'
-        uses: AButler/upload-release-assets@v4.0
+        uses: AButler/upload-release-assets@34491005a5d7ec239a784e460807ce844fde7962 # v4.0.0
         with:
           files: "dist/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
