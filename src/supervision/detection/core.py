@@ -2921,6 +2921,28 @@ class Detections:
             ValueError: If `confidence` is None.
                 If `class_id` is None and class_agnostic is False.
                 If `sigma` is not greater than `0`.
+
+        Example:
+            Two identical boxes show that Soft-NMS decays the lower score but
+            keeps both detections by default. A score threshold removes the
+            detection whose decayed score falls below it.
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 4, 4], [0, 0, 4, 4]], dtype=np.float32),
+            ...     confidence=np.array([0.9, 0.8], dtype=np.float32),
+            ...     class_id=np.array([0, 0]),
+            ... )
+            >>> softened = detections.with_soft_nms(sigma=0.5)
+            >>> len(softened), np.round(softened.confidence, 3).tolist()
+            (2, [0.9, 0.108])
+            >>> filtered = detections.with_soft_nms(sigma=0.5, score_threshold=0.2)
+            >>> len(filtered), np.round(filtered.confidence, 3).tolist()
+            (1, [0.9])
+
+            ```
         """
         if len(self) == 0:
             return self
