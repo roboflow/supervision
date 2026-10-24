@@ -8,7 +8,10 @@ date_modified: 2026-10-17
 ### Unreleased <small>upcoming</small>
 
 - `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
-- `sv.DetectionDataset.as_yolo` and `sv.dataset.formats.yolo.detections_to_yolo_annotations` now omit COCO crowd targets (`iscrowd=1`) by default via `ignore_crowd=True`, and join multi-part mask contours into a single continuous polygon line via `merge_segments=True` and `sv.merge_multi_segment`. An object split by an occluder no longer exports as multiple independent instances, and crowd regions no longer export as positive training objects. ([#2757](https://github.com/roboflow/supervision/issues/2757))
+
+- Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
+
+-
 
 ### 0.31.2 <small>Oct 24, 2026</small>
 
