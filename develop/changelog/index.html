@@ -3128,6 +3128,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0312-oct-24-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.2 Oct 24, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0311-oct-20-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3755,6 +3766,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0312-oct-24-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.2 Oct 24, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0311-oct-20-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4322,46 +4344,22 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<p>-</p>
+<h3 id="0312-oct-24-2026">0.31.2 <small>Oct 24, 2026</small><a class="headerlink" href="#0312-oct-24-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li>
-<p><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_5</code> or <code>sv.VLM.GOOGLE_GEMINI_3_5</code> now keeps the masks of a response when an item's <code>box_2d</code> leaves the 0-1000 range. Any coordinate above 1000 or below 0, even <code>1001</code>, raised <code>ValueError: could not broadcast input array</code> and discarded every detection in the response, while the same box parsed without a <code>mask</code>, and with <code>sv.VLM.GOOGLE_GEMINI_3_6</code>. The mask is now cropped to the part of its box inside the image, a box wholly outside the image gets an all-false mask, and <code>xyxy</code> is returned unclipped as before. Boxes inside the image produce identical masks. (<a href="https://github.com/roboflow/supervision/pull/2793">#2793</a>)</p>
-</li>
-<li>
-<p><code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> now annotate grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>IndexError</code> or <code>ValueError</code>. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. (<a href="https://github.com/roboflow/supervision/pull/2788">#2788</a>)</p>
-</li>
-<li>
-<p><code>sv.scale_boxes</code> and <code>Detections.get_anchors_coordinates</code> now compute box centers without overflowing <code>float16</code> coordinates. A half-precision box from 40000 to 60000 previously scaled to <code>inf</code> and reported an <code>inf</code> center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. (<a href="https://github.com/roboflow/supervision/pull/2787">#2787</a>)</p>
-</li>
-<li>
-<p><code>sv.DetectionsSmoother</code> preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64, avoiding overflow and precision ties. (<a href="https://github.com/roboflow/supervision/pull/2785">#2785</a>)</p>
-</li>
-<li>
-<p><strong>Breaking</strong>: <code>sv.DetectionDataset.as_pascal_voc</code> and <code>sv.DetectionDataset.from_pascal_voc</code> now follow the Pascal VOC devkit's 1-based, inclusive <code>&lt;bndbox&gt;</code> indices, offsetting only <code>xmin</code> and <code>ymin</code> by one. The box <code>[10, 20, 40, 60]</code> is written as <code>11 21 40 60</code> instead of <code>11 21 41 61</code>, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box <code>[0, 0, 37, 29]</code>, which <code>from_yolo</code> loads with float noise, is written as <code>1 1 37 29</code> instead of <code>0 0 38 29</code>. VOC files written by earlier versions of supervision now load one pixel larger on the right and bottom edges. (<a href="https://github.com/roboflow/supervision/pull/2748">#2748</a>)</p>
-</li>
-<li>
-<p>Serialize NumPy boolean scalars as JSON booleans when saving JSON files. (<a href="https://github.com/roboflow/supervision/pull/2783">#2783</a>)</p>
-</li>
-<li>
-<p><code>sv.get_video_frames_generator</code> now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. (<a href="https://github.com/roboflow/supervision/pull/2782">#2782</a>)</p>
-</li>
-<li>
-<p><code>sv.JSONSink.append</code> now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written. (<a href="https://github.com/roboflow/supervision/pull/2781">#2781</a>)</p>
-</li>
-<li>
-<p>Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. (<a href="https://github.com/roboflow/supervision/pull/2769">#2769</a>)</p>
-</li>
-<li>
-<p>Pascal VOC export and import now follow the VOC devkit convention for box extents: only <code>xmin</code> and <code>ymin</code> are shifted by 1 on export, and only they are shifted back on import. Boxes written by <code>sv.DetectionDataset.as_pascal_voc</code> no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in <code>supervision</code>. Annotations written by earlier <code>supervision</code> versions carry the old +1 in <code>xmax</code> and <code>ymax</code>, so those maximum corners now load one pixel larger than before. (<a href="https://github.com/roboflow/supervision/pull/2780">#2780</a>)</p>
-</li>
-<li>
-<p>In-memory dataset image exports now raise <code>OSError</code> with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and <code>sv.ClassificationDataset.as_folder_structure</code>. (<a href="https://github.com/roboflow/supervision/pull/2772">#2772</a>)</p>
-</li>
-<li>
-<p><code>sv.JSONSink.write_and_close()</code> now does nothing once the file is closed. Calling it inside a <code>with</code> block made the block's exit call it again and raise <code>ValueError: I/O operation on closed file.</code>; <code>sv.CSVSink.close()</code> already returned early in that case. (<a href="https://github.com/roboflow/supervision/pull/2771">#2771</a>)</p>
-</li>
-<li>
-<p><code>sv.mask_iou_batch</code> now keeps <code>CompactMask</code> inputs aligned with the dense-mask contract: mismatched image shapes raise <code>ValueError</code>, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. (<a href="https://github.com/roboflow/supervision/pull/2767">#2767</a>)</p>
-</li>
+<li><code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_5</code> or <code>sv.VLM.GOOGLE_GEMINI_3_5</code> now keeps the masks of a response when an item's <code>box_2d</code> leaves the 0-1000 range. Any coordinate above 1000 or below 0, even <code>1001</code>, raised <code>ValueError: could not broadcast input array</code> and discarded every detection in the response, while the same box parsed without a <code>mask</code>, and with <code>sv.VLM.GOOGLE_GEMINI_3_6</code>. The mask is now cropped to the part of its box inside the image, a box wholly outside the image gets an all-false mask, and <code>xyxy</code> is returned unclipped as before. Boxes inside the image produce identical masks. (<a href="https://github.com/roboflow/supervision/pull/2793">#2793</a>)</li>
+<li><code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> now annotate grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>IndexError</code> or <code>ValueError</code>. Crops keep the scene's channel layout, and icons are drawn as their gray luminance, blended by their alpha channel. (<a href="https://github.com/roboflow/supervision/pull/2788">#2788</a>)</li>
+<li><code>sv.scale_boxes</code> and <code>Detections.get_anchors_coordinates</code> now compute box centers without overflowing <code>float16</code> coordinates. A half-precision box from 40000 to 60000 previously scaled to <code>inf</code> and reported an <code>inf</code> center anchor; the midpoint now sums the corners before dividing and halves each corner only when that sum overflows. Centers whose corner sum fits the coordinate dtype are unchanged, including subnormal ones. (<a href="https://github.com/roboflow/supervision/pull/2787">#2787</a>)</li>
+<li><code>sv.DetectionsSmoother</code> preserves oriented-box corner alignment for float16 and large integer coordinates by comparing corner distances in float64 instead of the coordinate dtype, which overflowed or tied in float16 and narrow integer types. Integer coordinates beyond <code>2**53</code>, which float64 cannot represent exactly, can still tie during alignment and lose their low-order pixels in the float64 average. (<a href="https://github.com/roboflow/supervision/pull/2785">#2785</a>)</li>
+<li><strong>Breaking</strong>: <code>sv.DetectionDataset.as_pascal_voc</code> and <code>sv.DetectionDataset.from_pascal_voc</code> now follow the Pascal VOC devkit's 1-based, inclusive <code>&lt;bndbox&gt;</code> indices, offsetting only <code>xmin</code> and <code>ymin</code> by one. The box <code>[10, 20, 40, 60]</code> is written as <code>11 21 40 60</code> instead of <code>11 21 41 61</code>, the encoding Detectron2 and other devkit readers expect, and reads back unchanged. Exported corners are also rounded to the nearest pixel instead of truncated, so the YOLO box <code>[0, 0, 37, 29]</code>, which <code>from_yolo</code> loads with float noise, is written as <code>1 1 37 29</code> instead of <code>0 0 38 29</code>. Box-only VOC objects written by earlier versions of supervision now load one pixel larger on the right and bottom edges; objects exported from masks, which carry a <code>&lt;polygon&gt;</code>, already used the devkit maxima, so their files need no change and their masks load unchanged, while their boxes now end one pixel further right and down. (<a href="https://github.com/roboflow/supervision/pull/2748">#2748</a>)</li>
+<li>Serialize NumPy boolean scalars as JSON booleans when saving JSON files. (<a href="https://github.com/roboflow/supervision/pull/2783">#2783</a>)</li>
+<li><code>sv.get_video_frames_generator</code> now releases its video capture when range validation or initial seeking fails, with or without prefetching. A secondary release error is logged without replacing the setup error. (<a href="https://github.com/roboflow/supervision/pull/2782">#2782</a>)</li>
+<li><code>sv.JSONSink.append</code> now snapshots appended data so reusing NumPy buffers or modifying nested metadata no longer changes previously appended rows before the JSON file is written. (<a href="https://github.com/roboflow/supervision/pull/2781">#2781</a>)</li>
+<li>Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. (<a href="https://github.com/roboflow/supervision/pull/2769">#2769</a>)</li>
+<li>Pascal VOC export and import now follow the VOC devkit convention for box extents: only <code>xmin</code> and <code>ymin</code> are shifted by 1 on export, and only they are shifted back on import. Boxes written by <code>sv.DetectionDataset.as_pascal_voc</code> no longer read one pixel wider and taller in devkit-based readers such as Detectron2, and devkit-encoded files no longer load one pixel smaller in <code>supervision</code>. Box-only annotations written by earlier <code>supervision</code> versions carry the old +1 in <code>xmax</code> and <code>ymax</code>, so those maximum corners now load one pixel larger than before. (<a href="https://github.com/roboflow/supervision/pull/2780">#2780</a>)</li>
+<li>In-memory dataset image exports now raise <code>OSError</code> with the destination path when image writing fails, instead of returning normally with missing image files. This covers detection dataset exports and <code>sv.ClassificationDataset.as_folder_structure</code>. (<a href="https://github.com/roboflow/supervision/pull/2772">#2772</a>)</li>
+<li><code>sv.JSONSink.write_and_close()</code> now does nothing once the file is closed. Calling it inside a <code>with</code> block made the block's exit call it again and raise <code>ValueError: I/O operation on closed file.</code>; <code>sv.CSVSink.close()</code> already returned early in that case. (<a href="https://github.com/roboflow/supervision/pull/2771">#2771</a>)</li>
+<li><code>sv.mask_iou_batch</code> now keeps <code>CompactMask</code> inputs aligned with the dense-mask contract: mismatched image shapes raise <code>ValueError</code>, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. (<a href="https://github.com/roboflow/supervision/pull/2767">#2767</a>)</li>
 </ul>
 <h3 id="0311-oct-20-2026">0.31.1 <small>Oct 20, 2026</small><a class="headerlink" href="#0311-oct-20-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -6548,7 +6546,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 23, 2026 22:37:08 UTC">October 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 14:29:58 UTC">October 24, 2026</span>
   </span>
 
     
@@ -6576,6 +6574,11 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
         <a href="https://github.com/avanish-garg" class="md-author" title="@avanish-garg">
           
           <img src="https://avatars.githubusercontent.com/u/146908506?v=4&size=72" alt="avanish-garg">
@@ -6589,11 +6592,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/lu123bing" class="md-author" title="@lu123bing">
-          
-          <img src="https://avatars.githubusercontent.com/u/156820648?v=4&size=72" alt="lu123bing">
         </a>
       
       
