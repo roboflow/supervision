@@ -8,6 +8,35 @@ from supervision.metrics import MeanAverageRecall, MetricTarget
 from tests.metrics.coco_reference import evaluate_detections
 
 
+class TestMeanAverageRecallScalarMetadata:
+    """Size buckets preserve data shared by every target."""
+
+    @pytest.mark.parametrize("value", ["camera-a", 7, True])
+    def test_shared_target_data_does_not_change_recall(
+        self, value: str | int | bool
+    ) -> None:
+        """A shared scalar does not stop recall for small and large objects."""
+        boxes = np.array([[0, 0, 10, 10], [0, 0, 100, 100]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes.copy(),
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0]),
+            data={"source": np.array(value)},
+        )
+
+        result = MeanAverageRecall().update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.recall_scores, [0.5, 1, 1])
+        np.testing.assert_allclose(result.small_objects.recall_scores, 1)
+        np.testing.assert_allclose(result.large_objects.recall_scores, [0, 1, 1])
+        np.testing.assert_array_equal(targets.data["source"], np.array(value))
+        np.testing.assert_array_equal(targets.xyxy, boxes)
+
+
 class TestMeanAverageRecallConfidenceMatching:
     """Verify COCO confidence-ordered matching across mAR geometries."""
 
