@@ -1,4 +1,4 @@
-supervision>=0.32.0
+supervision>=0.31.0
 opencv-python
 tqdm
 jsonargparse[signatures]
