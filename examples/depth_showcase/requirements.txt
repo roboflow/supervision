@@ -1,0 +1,7 @@
+supervision
+opencv-python
+tqdm
+jsonargparse[signatures]
+torch
+transformers
+ultralytics
