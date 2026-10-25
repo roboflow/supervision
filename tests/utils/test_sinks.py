@@ -77,6 +77,37 @@ class TestImageSink:
         assert sentinel.exists(), "pre-existing file should not be deleted"
         assert len(list(existing.iterdir())) == 2
 
+    @pytest.mark.parametrize("image_name", [None, "image_00000.png"])
+    def test_overwrite_false_preserves_existing_image(
+        self, tmp_path: Path, image_name: str | None
+    ) -> None:
+        """A numbered image already on disk cannot be silently replaced."""
+        existing = tmp_path / "image_00000.png"
+        Image.new("RGB", (8, 8), color="black").save(existing)
+        original = existing.read_bytes()
+        image = np.full((8, 8, 3), 255, dtype=np.uint8)
+
+        with sv.ImageSink(target_dir_path=str(tmp_path), overwrite=False) as sink:
+            with pytest.raises(FileExistsError, match=r"image_00000\.png"):
+                sink.save_image(image=image, image_name=image_name)
+
+        assert existing.read_bytes() == original
+        assert sink.image_count == 0
+
+    def test_overwrite_true_replaces_same_named_image(self, tmp_path: Path) -> None:
+        """Overwrite=True still permits replacing a named image in one session."""
+        image_name = "same.png"
+        black = np.zeros((8, 8, 3), dtype=np.uint8)
+        white = np.full((8, 8, 3), 255, dtype=np.uint8)
+
+        with sv.ImageSink(target_dir_path=str(tmp_path), overwrite=True) as sink:
+            sink.save_image(image=black, image_name=image_name)
+            sink.save_image(image=white, image_name=image_name)
+
+        with Image.open(tmp_path / image_name) as saved:
+            assert saved.getpixel((0, 0)) == (255, 255, 255)
+        assert sink.image_count == 2
+
     def test_overwrite_true_clears_existing_dir(self, tmp_path: Path) -> None:
         """Overwrite=True removes pre-existing files before writing."""
         target = tmp_path / "target"

@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename.
+
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
