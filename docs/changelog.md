@@ -7,7 +7,7 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename.
+- `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename. ([#2800](https://github.com/roboflow/supervision/pull/2800))
 
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
