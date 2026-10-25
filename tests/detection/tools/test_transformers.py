@@ -408,7 +408,7 @@ class TestProcessTransformersV5SemanticOrInstanceSegmentationResult:
         )
 
 
-def _instance_binary_maps_result() -> tuple[np.ndarray, dict]:
+def _instance_binary_maps_result() -> tuple[np.ndarray, dict[str, object]]:
     """Build a v5 instance result as `return_binary_maps=True` returns it.
 
     Mask2Former and MaskFormer then stack one 0/1 map per kept instance instead of a
