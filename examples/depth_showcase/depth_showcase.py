@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 import supervision as sv
+from supervision.assets import VideoAssets, download_assets
 
 CAPTION_COLOR = sv.Color.from_hex("#FFB450")
 Predictor = Callable[[np.ndarray], sv.DepthMap]
@@ -135,8 +136,9 @@ def write_depth_video(
 def main(
     source_video_path: str,
     target_directory: str = "outputs",
+    assets_directory: str = "data",
     models: list[str] = ["depth-anything", "depth-pro", "yolo26"],
-    max_seconds: float = 8.0,
+    max_seconds: float | None = None,
     colormap: str = "turbo",
     opacity: float = 0.9,
     device: str = "cpu",
@@ -147,16 +149,24 @@ def main(
     `<target_directory>/<source name>-<model>.mp4`.
 
     Args:
-        source_video_path: Path to the source video file
+        source_video_path: Path to the source video file, or the name of a sample
+            video of supervision such as 'VEHICLES' or 'PEOPLE_WALKING', which is
+            downloaded first
         target_directory: Directory for the output videos
+        assets_directory: Directory where sample videos are downloaded
         models: Models to run: 'depth-anything', 'depth-pro' or 'yolo26'
-        max_seconds: Length of the video to process
+        max_seconds: Length of the video to process, the whole video if not set
         colormap: Colour table of the depth maps, such as 'turbo' or 'viridis'
         opacity: Opacity of the depth colours over the video (0 to 1)
         device: Computation device ('cpu', 'mps' or 'cuda')
     """
+    if source_video_path.upper() in VideoAssets.__members__:
+        asset = VideoAssets[source_video_path.upper()]
+        source_video_path = download_assets(asset, assets_directory)
     video_info = sv.VideoInfo.from_video_path(source_video_path)
-    max_frames = min(video_info.total_frames, int(max_seconds * video_info.fps))
+    max_frames = video_info.total_frames
+    if max_seconds is not None:
+        max_frames = min(max_frames, int(max_seconds * video_info.fps))
     Path(target_directory).mkdir(parents=True, exist_ok=True)
 
     for model_name in models:

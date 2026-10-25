@@ -30,13 +30,13 @@ python depth_showcase.py --source_video_path my-video.mp4 --device mps
 
 This writes `outputs/my-video-depth-anything.mp4`, `outputs/my-video-depth-pro.mp4` and `outputs/my-video-yolo26.mp4`.
 
-`./run_all.sh` downloads the `VEHICLES` and `PEOPLE_WALKING` sample videos of supervision and runs every model on both. Other members of `sv.assets.VideoAssets` are `SUBWAY`, `BEACH` and `SKIING`.
+`--source_video_path` also takes the name of a sample video of supervision, any member of `sv.assets.VideoAssets` such as `VEHICLES`, `PEOPLE_WALKING` or `SKIING`, and downloads it to `data/` first. `./run_all.sh` does this for every sample video and runs every model on the full length of each. Expect hours on a laptop, mostly for Depth Pro; set `MODELS` and `MAX_SECONDS` to shorten it, for example `MODELS='["yolo26"]' MAX_SECONDS=8 ./run_all.sh`.
 
 | Option                    | Meaning                                                                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `--target_directory`      | Directory for the output videos, `outputs` by default                                                                         |
 | `--models`                | JSON list of models to run, such as `'["depth-anything", "yolo26"]'`; the choices are `depth-anything`, `depth-pro`, `yolo26` |
-| `--max_seconds`           | Length of the video to process                                                                                                |
+| `--max_seconds`           | Length of the video to process, the whole video by default                                                                    |
 | `--colormap`, `--opacity` | Colour table, such as `turbo` or `viridis`, and its opacity                                                                   |
 | `--device`                | `cpu`, `mps` or `cuda`                                                                                                        |
 

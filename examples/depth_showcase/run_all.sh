@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Generate one depth video per model for every sample clip into outputs/.
-# Usage: ./run_all.sh            (device is picked automatically)
-#        DEVICE=cuda ./run_all.sh
-set -euo pipefail
+# Generate one depth video per model for every sample video of supervision into outputs/.
+# Usage: ./run_all.sh            (full length, all models, device picked automatically)
+#        DEVICE=cuda MODELS='["yolo26"]' MAX_SECONDS=8 ./run_all.sh
+set -uo pipefail
 cd "$(dirname "$0")"
 
 if [ -z "${DEVICE:-}" ]; then
@@ -12,16 +12,13 @@ if [ -z "${DEVICE:-}" ]; then
     fi
 fi
 
-mkdir -p data
-(
-    cd data
-    python -c "
-from supervision.assets import VideoAssets, download_assets
-for asset in (VideoAssets.VEHICLES, VideoAssets.PEOPLE_WALKING):
-    download_assets(asset)
-"
-)
+extra_args=()
+[ -n "${MODELS:-}" ] && extra_args+=(--models "$MODELS")
+[ -n "${MAX_SECONDS:-}" ] && extra_args+=(--max_seconds "$MAX_SECONDS")
 
-for video in data/vehicles.mp4 data/people-walking.mp4; do
-    python depth_showcase.py --source_video_path "$video" --device "$DEVICE"
+# the members of supervision.assets.VideoAssets
+for asset in VEHICLES VEHICLES_2 MILK_BOTTLING_PLANT GROCERY_STORE SUBWAY \
+    MARKET_SQUARE PEOPLE_WALKING BEACH BASKETBALL SKIING; do
+    python depth_showcase.py --source_video_path "$asset" --device "$DEVICE" \
+        ${extra_args[@]+"${extra_args[@]}"} || echo "skipping $asset: failed"
 done
