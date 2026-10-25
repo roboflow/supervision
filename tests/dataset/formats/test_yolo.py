@@ -224,6 +224,8 @@ def test_yolo_annotations_to_detections(
         )
         assert expected_result is not None
         assert np.array_equal(result.xyxy, expected_result.xyxy)
+        assert result.class_id is not None
+        assert expected_result.class_id is not None
         assert np.array_equal(result.class_id, expected_result.class_id)
         if result.mask is not None or expected_result.mask is not None:
             assert isinstance(result.mask, np.ndarray)
