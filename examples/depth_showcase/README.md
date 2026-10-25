@@ -18,6 +18,8 @@ The input video is only a parameter, so the same command works for a road, a cro
 pip install -r requirements.txt
 ```
 
+The minimum versions are `supervision>=0.32.0` for the progress bar of `sv.process_video`, `ultralytics>=8.4.104` for the YOLO26 depth task and `transformers>=4.49.0` for Depth Pro.
+
 ## ⚙️ run
 
 Use any video of your own:

@@ -1,7 +1,7 @@
-supervision
+supervision>=0.32.0
 opencv-python
 tqdm
 jsonargparse[signatures]
 torch
-transformers
-ultralytics
+transformers>=4.49.0
+ultralytics>=8.4.104
