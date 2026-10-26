@@ -25,6 +25,8 @@ date_modified: 2026-10-17
 
 - The NumPy fallback for `line`, `polylines` and `drawContours` at `thickness` 1, and for `circle` outlines of `thickness` 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from `cv2`, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's `clipLine` and `LineIterator`, and circles port the midpoint stepping of OpenCV's `Circle`. A negative circle radius now raises `ValueError`, as in OpenCV. ([#2808](https://github.com/roboflow/supervision/pull/2808))
 
+- The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
