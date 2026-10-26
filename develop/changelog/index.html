@@ -4372,6 +4372,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p>The NumPy fallback for <code>line</code>, <code>polylines</code> and <code>drawContours</code> at <code>thickness</code> 1, and for <code>circle</code> outlines of <code>thickness</code> 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from <code>cv2</code>, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's <code>clipLine</code> and <code>LineIterator</code>, and circles port the midpoint stepping of OpenCV's <code>Circle</code>. A negative circle radius now raises <code>ValueError</code>, as in OpenCV. (<a href="https://github.com/roboflow/supervision/pull/2808">#2808</a>)</p>
 </li>
+<li>
+<p>The NumPy fallback for <code>fillPoly</code> and filled <code>drawContours</code> now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of <a href="https://github.com/roboflow/supervision/pull/2730">#2730</a>. OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). <code>polygon_to_mask</code>, <code>sv.draw_filled_polygon</code> and <code>PolygonZone</code> masks are affected without OpenCV. (<a href="https://github.com/roboflow/supervision/pull/2810">#2810</a>)</p>
+</li>
 </ul>
 <p>-</p>
 <h3 id="0312-oct-24-2026">0.31.2 <small>Oct 24, 2026</small><a class="headerlink" href="#0312-oct-24-2026" title="Permanent link">&para;</a></h3>
@@ -6575,7 +6578,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2026 21:58:39 UTC">October 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2026 23:32:57 UTC">October 26, 2026</span>
   </span>
 
     
