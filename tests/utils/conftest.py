@@ -10,6 +10,12 @@ ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets"))
 ALL_IMAGES_LIST = [os.path.join(ASSETS_DIR, f"{i}.jpg") for i in range(1, 6)]
 
 
+def _read_image(path: str) -> np.ndarray:
+    """Read an image asset with OpenCV, typed as a NumPy array."""
+    image: np.ndarray = cv2.imread(path)
+    return image
+
+
 @fixture(scope="function")
 def empty_cv2_image() -> np.ndarray:
     return np.zeros((128, 128, 3), dtype=np.uint8)
@@ -22,78 +28,80 @@ def empty_pillow_image() -> Image.Image:
 
 @fixture(scope="function")
 def all_images() -> list[np.ndarray]:
-    return [cv2.imread(path) for path in ALL_IMAGES_LIST]
+    return [_read_image(path) for path in ALL_IMAGES_LIST]
 
 
 @fixture(scope="function")
 def one_image() -> np.ndarray:
-    return cv2.imread(ALL_IMAGES_LIST[0])
+    return _read_image(ALL_IMAGES_LIST[0])
 
 
 @fixture(scope="function")
 def two_images() -> list[np.ndarray]:
-    return [cv2.imread(path) for path in ALL_IMAGES_LIST[:2]]
+    return [_read_image(path) for path in ALL_IMAGES_LIST[:2]]
 
 
 @fixture(scope="function")
 def three_images() -> list[np.ndarray]:
-    return [cv2.imread(path) for path in ALL_IMAGES_LIST[:3]]
+    return [_read_image(path) for path in ALL_IMAGES_LIST[:3]]
 
 
 @fixture(scope="function")
 def four_images() -> list[np.ndarray]:
-    return [cv2.imread(path) for path in ALL_IMAGES_LIST[:4]]
+    return [_read_image(path) for path in ALL_IMAGES_LIST[:4]]
 
 
 @fixture(scope="function")
 def all_images_tile() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "all_images_tile.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "all_images_tile.png"))
 
 
 @fixture(scope="function")
 def all_images_tile_and_custom_colors() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "all_images_tile_and_custom_colors.png"))
+    return _read_image(
+        os.path.join(ASSETS_DIR, "all_images_tile_and_custom_colors.png")
+    )
 
 
 @fixture(scope="function")
 def all_images_tile_and_custom_grid() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "all_images_tile_and_custom_grid.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "all_images_tile_and_custom_grid.png"))
 
 
 @fixture(scope="function")
 def four_images_tile() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "four_images_tile.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "four_images_tile.png"))
 
 
 @fixture(scope="function")
 def single_image_tile() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "single_image_tile.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "single_image_tile.png"))
 
 
 @fixture(scope="function")
 def single_image_tile_enforced_grid() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "single_image_tile_enforced_grid.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "single_image_tile_enforced_grid.png"))
 
 
 @fixture(scope="function")
 def three_images_tile() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "three_images_tile.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "three_images_tile.png"))
 
 
 @fixture(scope="function")
 def two_images_tile() -> np.ndarray:
-    return cv2.imread(os.path.join(ASSETS_DIR, "two_images_tile.png"))
+    return _read_image(os.path.join(ASSETS_DIR, "two_images_tile.png"))
 
 
 @fixture(scope="function")
 def all_images_tile_and_custom_colors_and_titles() -> np.ndarray:
-    return cv2.imread(
+    return _read_image(
         os.path.join(ASSETS_DIR, "all_images_tile_and_custom_colors_and_titles.png")
     )
 
 
 @fixture(scope="function")
 def all_images_tile_and_titles_with_custom_configs() -> np.ndarray:
-    return cv2.imread(
+    return _read_image(
         os.path.join(ASSETS_DIR, "all_images_tile_and_titles_with_custom_configs.png")
     )

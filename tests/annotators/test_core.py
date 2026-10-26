@@ -41,9 +41,11 @@ from supervision.annotators.core import (
     _paint_masks_by_area,
 )
 from supervision.annotators.utils import ColorLookup
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import spread_out_boxes
+from supervision.detection.utils.converters import xyxy_to_mask, xyxy_to_polygons
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
@@ -191,6 +193,15 @@ def test_hex_color_support_across_annotators(
         color = getattr(annotator, attribute_name)
         assert isinstance(color, Color)
         assert color.as_rgb() == expected_rgb
+
+
+@pytest.mark.parametrize("hex_color", ["#f0f", "f0f", "#f0f8", "#FFF"])
+def test_short_hex_color_matches_color_from_hex(hex_color: str) -> None:
+    """Annotators accept the short hex forms that Color.from_hex documents."""
+    annotator = BoxAnnotator(color=hex_color)
+
+    assert isinstance(annotator.color, Color)
+    assert annotator.color.as_rgb() == Color.from_hex(hex_color).as_rgb()
 
 
 class TestBoxAnnotator:
@@ -2389,6 +2400,85 @@ class TestComparisonAnnotator:
         )
 
         np.testing.assert_array_equal(result, expected)
+
+
+class TestSingleChannelComparisonAnnotator:
+    """Verify ComparisonAnnotator on grayscale scenes."""
+
+    @staticmethod
+    def _detection_pair(geometry: str) -> tuple[Detections, Detections]:
+        """Return two overlapping detections inside a 30x40 scene."""
+        detection_pair = []
+        for xyxy in ([[4, 3, 20, 18]], [[12, 10, 34, 26]]):
+            boxes = np.array(xyxy, dtype=np.float32)
+            detections = Detections(xyxy=boxes, class_id=np.array([0]))
+            if geometry == "mask":
+                detections.mask = xyxy_to_mask(boxes, resolution_wh=(40, 30))
+            elif geometry == "oriented_box":
+                detections.data[ORIENTED_BOX_COORDINATES] = xyxy_to_polygons(boxes)
+            detection_pair.append(detections)
+        return detection_pair[0], detection_pair[1]
+
+    @pytest.mark.parametrize("geometry", ["box", "mask", "oriented_box"])
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(
+        self, geometry: str, channel_axis: bool
+    ) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections_1, detections_2 = self._detection_pair(geometry)
+        annotator = ComparisonAnnotator(
+            color_1=Color(r=10, g=20, b=60),
+            color_2=Color(r=10, g=20, b=120),
+            color_overlap=Color(r=10, g=20, b=240),
+        )
+        expected = annotator.annotate(
+            scene=color_scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        result = annotator.annotate(
+            scene=scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    def test_grayscale_draws_labels(self) -> None:
+        """Legend labels on a grayscale scene match the first BGR channel."""
+        gray = np.full((60, 160), 90, dtype=np.uint8)
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections_1, detections_2 = self._detection_pair("box")
+        annotator = ComparisonAnnotator(
+            label_1="model", label_2="truth", label_overlap="both", label_scale=0.4
+        )
+        expected = annotator.annotate(
+            scene=color_scene, detections_1=detections_1, detections_2=detections_2
+        )
+
+        result = annotator.annotate(
+            scene=gray.copy(), detections_1=detections_1, detections_2=detections_2
+        )
+
+        np.testing.assert_array_equal(result, expected[..., 0])
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=200)
+        detections_1, detections_2 = self._detection_pair("box")
+        annotator = ComparisonAnnotator(color_1=Color(r=0, g=0, b=0), opacity=1.0)
+
+        result = annotator.annotate(
+            scene=image, detections_1=detections_1, detections_2=detections_2
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((6, 5)) == 0
+        assert result.getpixel((38, 28)) == 200
 
 
 class TestTraceAnnotatorReset:

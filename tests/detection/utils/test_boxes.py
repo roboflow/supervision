@@ -1,4 +1,6 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
 import pytest
@@ -37,9 +39,11 @@ _ALL_ANCHORS = [
 
 
 def _rotate(corners: np.ndarray, angle_deg: float, about: np.ndarray) -> np.ndarray:
+    """Rotate points counterclockwise by ``angle_deg`` around ``about``."""
     angle = np.deg2rad(angle_deg)
     rot = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
-    return (corners - about) @ rot.T + about
+    rotated: np.ndarray = (corners - about) @ rot.T + about
+    return rotated
 
 
 @pytest.mark.parametrize(
@@ -125,7 +129,7 @@ def test_move_boxes(
     xyxy: np.ndarray,
     offset: np.ndarray,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
@@ -246,7 +250,7 @@ def test_scale_boxes(
     xyxy: np.ndarray,
     factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = scale_boxes(xyxy=xyxy, factor=factor)
@@ -493,7 +497,7 @@ def test_denormalize_boxes(
     resolution_wh: tuple[int, int],
     normalization_factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = denormalize_boxes(
@@ -802,7 +806,7 @@ class TestPadBoxes:
         padding = np.int64(-(2**63))
         expected = np.array([[2**63, 0, -(2**63), 0]], dtype=np.float64)
 
-        result = pad_boxes(xyxy, px=padding, py=0)
+        result = pad_boxes(xyxy, px=cast(int, padding), py=0)
 
         np.testing.assert_array_equal(result, expected)
 
