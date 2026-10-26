@@ -96,6 +96,7 @@ class TestInferenceSlicerCompactMasks:
         assert len(det_dense) == len(det_compact)
 
         dense_masks = det_dense.mask
+        assert dense_masks is not None
         compact_masks_arr = np.asarray(det_compact.mask)
 
         # Sort both by xyxy to align order (NMS order may differ).
