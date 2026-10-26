@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -429,9 +430,9 @@ class TestFromCocoRle:
     )
     def test_raises_on_invalid_input(
         self,
-        rles: list,
+        rles: list[Any],
         xyxy_arr: np.ndarray,
-        image_shape: tuple,
+        image_shape: tuple[int, int],
         err_match: str,
     ) -> None:
         """from_coco_rle raises ValueError for each documented invalid-input path."""
@@ -1396,7 +1397,7 @@ class TestCompactMaskFilterRandom:
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        num_selected = min(num_masks, max(1, rng.integers(1, num_masks + 1)))
+        num_selected = min(num_masks, max(1, int(rng.integers(1, num_masks + 1))))
         indices = sorted(
             rng.choice(num_masks, size=num_selected, replace=False).tolist()
         )
@@ -1417,7 +1418,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         # Use smaller images to keep move_masks fast.
-        num_masks = rng.integers(1, 10)
+        num_masks = int(rng.integers(1, 10))
         img_h, img_w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -1446,7 +1447,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_offset_into_larger_canvas(self, seed: int) -> None:
         """Offset into a larger destination image must preserve pixels."""
         rng = np.random.default_rng(seed + 100)
-        num_masks = rng.integers(1, 8)
+        num_masks = int(rng.integers(1, 8))
         img_h, img_w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
