@@ -489,6 +489,15 @@ class TestFallbackThinAndFilledCircle:
         )
         np.testing.assert_array_equal(image, expected)
 
+    @pytest.mark.parametrize("thickness", [-1, 1])
+    def test_huge_circle_off_canvas_draws_nothing(self, thickness: int) -> None:
+        """Skip a circle whose bounds miss the canvas without walking its radius."""
+        image = np.zeros((32, 32), dtype=np.uint8)
+
+        _circle(image, (2_000_000, 0), 1_000_000, 1, thickness=thickness)
+
+        assert not np.any(image)
+
     def test_rejects_negative_radius(self) -> None:
         """Reject a negative radius before drawing any pixels, as OpenCV does."""
         image = np.zeros((15, 15), dtype=np.uint8)
@@ -513,6 +522,11 @@ class TestFallbackThinStroke:
             pytest.param((18, 18), (18, 18), id="single-point"),
             pytest.param((36, 76), (-20, 24), id="clipped-at-two-edges"),
             pytest.param((-30, -5), (70, -2), id="fully-off-canvas"),
+            pytest.param(
+                (-1_000_000_000, -1_000_000_000),
+                (2, 1),
+                id="clipped-with-float-rounding",
+            ),
         ],
     )
     def test_line_matches_opencv(

@@ -636,14 +636,19 @@ def _paint_thin_segments(
         The same image, for OpenCV-style chaining.
     """
     height, width = img.shape[:2]
-    pixels: list[_Point] = []
+    color_value = _color_for_image(img, color)
     for first, second in segments:
-        clipped = _clip_polygon_line(width, height, first, second)
-        if clipped is not None:
-            pixels.extend(_iter_line_points(*clipped))
-    if pixels:
-        xs, ys = np.array(pixels, dtype=np.int64).T
-        img[ys, xs] = _color_for_image(img, color)
+        # `_clip_line` repeats OpenCV's floating-point intersection arithmetic,
+        # which moves far-off endpoints differently from exact integer division.
+        inside, clipped_first, clipped_second = _clip_line(width, height, first, second)
+        if not inside:
+            continue
+        # Paint per segment: a clipped segment spans at most the canvas diagonal,
+        # so memory stays bounded however many segments a polyline has.
+        xs, ys = np.array(
+            list(_iter_line_points(clipped_first, clipped_second)), dtype=np.int64
+        ).T
+        img[ys, xs] = color_value
     return img
 
 
@@ -659,7 +664,9 @@ def _clip_line(
     """Clip a segment to `[0, width) x [0, height)` like OpenCV's `clipLine`.
 
     The intersection arithmetic copies OpenCV's, a double-precision product truncated
-    toward zero, so a clipped endpoint lands on the same integer as OpenCV's.
+    toward zero, so a clipped endpoint lands on the same integer as OpenCV's. The
+    first factor is converted to a float before multiplying, as OpenCV's
+    `(double)(a - y1) * (x2 - x1)` does, so huge products round the same way.
     """
     if width <= 0 or height <= 0:
         return False, first, second
@@ -674,23 +681,23 @@ def _clip_line(
     if (c1 & c2) == 0 and (c1 | c2) != 0:
         if c1 & 12:
             edge = 0 if c1 < 8 else bottom
-            x1 += int((edge - y1) * (x2 - x1) / (y2 - y1))
+            x1 += int(float(edge - y1) * (x2 - x1) / (y2 - y1))
             y1 = edge
             c1 = (x1 < 0) + (x1 > right) * 2
         if c2 & 12:
             edge = 0 if c2 < 8 else bottom
-            x2 += int((edge - y2) * (x2 - x1) / (y2 - y1))
+            x2 += int(float(edge - y2) * (x2 - x1) / (y2 - y1))
             y2 = edge
             c2 = (x2 < 0) + (x2 > right) * 2
         if (c1 & c2) == 0 and (c1 | c2) != 0:
             if c1:
                 edge = 0 if c1 == 1 else right
-                y1 += int((edge - x1) * (y2 - y1) / (x2 - x1))
+                y1 += int(float(edge - x1) * (y2 - y1) / (x2 - x1))
                 x1 = edge
                 c1 = 0
             if c2:
                 edge = 0 if c2 == 1 else right
-                y2 += int((edge - x2) * (y2 - y1) / (x2 - x1))
+                y2 += int(float(edge - x2) * (y2 - y1) / (x2 - x1))
                 x2 = edge
                 c2 = 0
     return (c1 | c2) == 0, (x1, y1), (x2, y2)
@@ -1288,6 +1295,13 @@ def _circle(
         raise ValueError("Circle radius must be non-negative")
     height, width = img.shape[:2]
     center_x, center_y = _point(center)
+    if (
+        center_x + radius < 0
+        or center_x - radius >= width
+        or center_y + radius < 0
+        or center_y - radius >= height
+    ):
+        return img
     offsets = _circle_octant_offsets(radius)
     color_value = _color_for_image(img, color)
     if thickness < 0:
@@ -1328,10 +1342,13 @@ def _circle_octant_offsets(radius: int) -> npt.NDArray[np.int64]:
 
         ```
     """
-    offsets = []
+    # The octant ends once dy passes dx, after at most radius + 1 steps.
+    offsets = np.empty((radius + 1, 2), dtype=np.int64)
+    count = 0
     error, dx, dy, plus, minus = 0, radius, 0, 1, 2 * radius - 1
     while dx >= dy:
-        offsets.append((dx, dy))
+        offsets[count] = dx, dy
+        count += 1
         dy += 1
         error += plus
         plus += 2
@@ -1340,7 +1357,7 @@ def _circle_octant_offsets(radius: int) -> npt.NDArray[np.int64]:
         error -= minus & step
         dx += step
         minus -= step & 2
-    return np.array(offsets, dtype=np.int64).reshape(-1, 2)
+    return offsets[:count]
 
 
 def _fill_circle_rows(
@@ -1363,10 +1380,13 @@ def _fill_circle_rows(
     if y_start >= y_stop or x_start >= x_stop:
         return
     major, minor = offsets[:, 0], offsets[:, 1]
-    half_widths = np.full(2 * radius + 1, -1, dtype=np.int64)
-    rows = radius + np.concatenate([-minor, minor, -major, major])
-    np.maximum.at(half_widths, rows, np.concatenate([major, major, minor, minor]))
-    half_widths = half_widths[y_start - center_y + radius : y_stop - center_y + radius]
+    rows = center_y + np.concatenate([-minor, minor, -major, major])
+    spans = np.concatenate([major, major, minor, minor])
+    visible = (rows >= y_start) & (rows < y_stop)
+    # Only rows inside the canvas window get a span, so a large radius on a small
+    # image does not allocate one entry per circle row.
+    half_widths = np.full(y_stop - y_start, -1, dtype=np.int64)
+    np.maximum.at(half_widths, rows[visible] - y_start, spans[visible])
     columns = np.abs(np.arange(x_start, x_stop) - center_x)
     window = (slice(y_start, y_stop), slice(x_start, x_stop))
     img[window][columns[np.newaxis, :] <= half_widths[:, np.newaxis]] = color
