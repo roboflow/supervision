@@ -17,6 +17,8 @@ date_modified: 2026-10-17
 
 - Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
 
+- The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
