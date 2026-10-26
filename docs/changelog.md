@@ -17,6 +17,8 @@ date_modified: 2026-10-17
 
 - Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
 
+- The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
