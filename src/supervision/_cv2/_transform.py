@@ -60,27 +60,11 @@ def _box_blur_uint8(
         ```
     """
     kernel_width, kernel_height = ksize
-    height, width = image.shape[:2]
-    channel_padding = [(0, 0)] * (image.ndim - 2)
-    padding = [
-        (kernel_height // 2, kernel_height - 1 - kernel_height // 2),
-        (kernel_width // 2, kernel_width - 1 - kernel_width // 2),
-        *channel_padding,
-    ]
-    padded = np.pad(image.astype(np.int64), padding, mode="reflect")
-    # A summed-area table with a leading zero row and column gives every window
-    # sum from four corner lookups.
-    table = np.pad(
-        padded.cumsum(axis=0).cumsum(axis=1), [(1, 0), (1, 0), *channel_padding]
-    )
-    sums = (
-        table[
-            kernel_height : kernel_height + height, kernel_width : kernel_width + width
-        ]
-        - table[:height, kernel_width : kernel_width + width]
-        - table[kernel_height : kernel_height + height, :width]
-        + table[:height, :width]
-    )
+    # Window sums are exact integers either way; int32 halves memory whenever the
+    # largest possible sum fits.
+    sum_dtype = np.int32 if 255 * kernel_width * kernel_height < 2**31 else np.int64
+    column_sums = _window_sums(image.astype(sum_dtype), kernel_height, axis=0)
+    sums = _window_sums(column_sums, kernel_width, axis=1)
     area = kernel_width * kernel_height
     blurred: npt.NDArray[np.uint8]
     if area == 1:
@@ -101,6 +85,47 @@ def _box_blur_uint8(
         scaled = sums.astype(np.float32) * np.float32(1.0 / area)
         blurred = np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
     return blurred
+
+
+def _window_sums(
+    values: npt.NDArray[np.integer], size: int, axis: int
+) -> npt.NDArray[np.integer]:
+    """Sum `size`-long windows along one axis over an OpenCV reflect-101 border.
+
+    The window for output `i` covers `i - size // 2` to `i + size - 1 - size // 2`,
+    the anchor OpenCV uses. Only this axis is padded, so a kernel much larger than
+    the image costs one padded copy of the image along a single axis rather than
+    along both.
+
+    Args:
+        values: Integer array to sum, in a dtype wide enough for every window sum.
+        size: Positive window length.
+        axis: Axis to sum along.
+
+    Returns:
+        Window sums with the same shape and dtype as `values`.
+
+    Example:
+        ```pycon
+        >>> _window_sums(np.array([1, 2, 3, 4]), 3, axis=0).tolist()
+        [5, 6, 9, 10]
+
+        ```
+    """
+    length = values.shape[axis]
+    padding = [(0, 0)] * values.ndim
+    padding[axis] = (size // 2, size - 1 - size // 2)
+    cumulative = np.cumsum(
+        np.pad(values, padding, mode="reflect"), axis=axis, dtype=values.dtype
+    )
+    upper = np.take(cumulative, np.arange(size - 1, size - 1 + length), axis=axis)
+    lower = np.take(cumulative, np.arange(-1, length - 1), axis=axis)
+    # Index -1 above wrapped to the last row; the first window starts at zero.
+    first = [slice(None)] * values.ndim
+    first[axis] = slice(0, 1)
+    lower[tuple(first)] = 0
+    sums: npt.NDArray[np.integer] = upper - lower
+    return sums
 
 
 def _as_quad(points: npt.NDArray[Any], name: str) -> npt.NDArray[np.float64]:

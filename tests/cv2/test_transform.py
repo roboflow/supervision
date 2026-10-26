@@ -140,6 +140,15 @@ class TestFallbackBlurUint8:
 
             np.testing.assert_array_equal(blurred, expected)
 
+    def test_kernel_much_larger_than_image_keeps_constant_image(self) -> None:
+        """Blur a small crop with a huge kernel, as BlurAnnotator can, no OpenCV
+        needed."""
+        source = np.full((100, 100, 3), 77, dtype=np.uint8)
+
+        blurred = _blur(source, (2001, 2001))
+
+        np.testing.assert_array_equal(blurred, source)
+
     @_requires_opencv
     def test_large_kernel_stays_within_one_level_of_opencv(self) -> None:
         """Keep kernels over 256 pixels within one gray level of OpenCV."""
