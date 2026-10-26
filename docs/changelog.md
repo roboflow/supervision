@@ -7,7 +7,7 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
-- The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`.
+- The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
 
 - The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
