@@ -21,12 +21,86 @@ def _blur(
         raise ValueError("Blur kernel dimensions must be positive")
     if border_type != 4:
         raise ValueError("Only OpenCV's default blur border is supported")
+    if image.dtype == np.uint8:
+        return _box_blur_uint8(image, ksize)
 
     from scipy import ndimage
 
     size = (*ksize[::-1], 1) if image.ndim == 3 else ksize[::-1]
     values = ndimage.uniform_filter(image.astype(np.float64), size=size, mode="mirror")
     return np.ascontiguousarray(_cast_array_like_opencv(values, image.dtype))
+
+
+def _box_blur_uint8(
+    image: npt.NDArray[np.uint8], ksize: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Box-filter an 8-bit image with OpenCV's integer rounding.
+
+    OpenCV sums each window exactly over a reflect-101 border, with the anchor at
+    `ksize // 2`. For kernels of at most 256 pixels it divides by the area with a
+    23-bit fixed-point reciprocal, `((sum + delta) * scale) >> 23`, which this
+    reproduces exactly. Larger kernels multiply by a float32 reciprocal and round
+    half to even; OpenCV computes a few trailing columns of each row in float64
+    instead, depending on the CPU's vector width, so those can differ by one in
+    rare ties.
+
+    Args:
+        image: `(height, width)` or `(height, width, channels)` 8-bit image.
+        ksize: Positive kernel `(width, height)`.
+
+    Returns:
+        A new blurred image of the same shape and dtype.
+
+    Example:
+        ```pycon
+        >>> image = np.array([[0, 0, 255]], dtype=np.uint8)
+        >>> _box_blur_uint8(image, (3, 1)).tolist()
+        [[0, 85, 85]]
+
+        ```
+    """
+    kernel_width, kernel_height = ksize
+    height, width = image.shape[:2]
+    channel_padding = [(0, 0)] * (image.ndim - 2)
+    padding = [
+        (kernel_height // 2, kernel_height - 1 - kernel_height // 2),
+        (kernel_width // 2, kernel_width - 1 - kernel_width // 2),
+        *channel_padding,
+    ]
+    padded = np.pad(image.astype(np.int64), padding, mode="reflect")
+    # A summed-area table with a leading zero row and column gives every window
+    # sum from four corner lookups.
+    table = np.pad(
+        padded.cumsum(axis=0).cumsum(axis=1), [(1, 0), (1, 0), *channel_padding]
+    )
+    sums = (
+        table[
+            kernel_height : kernel_height + height, kernel_width : kernel_width + width
+        ]
+        - table[:height, kernel_width : kernel_width + width]
+        - table[kernel_height : kernel_height + height, :width]
+        + table[:height, :width]
+    )
+    area = kernel_width * kernel_height
+    blurred: npt.NDArray[np.uint8]
+    if area == 1:
+        blurred = image.copy()
+    elif area <= 256:
+        scale = (1 << 23) / area
+        divisor_scale = int(scale)
+        divisor_delta = area // 2
+        if scale - divisor_scale < 0.5:
+            divisor_delta += 1
+        else:
+            divisor_scale += 1
+        # The formula reaches 256 for a two-pixel window of 255s; OpenCV's vector
+        # path saturates it to 255.
+        quotient = ((sums + divisor_delta) * divisor_scale) >> 23
+        blurred = np.minimum(quotient, 255).astype(np.uint8)
+    else:
+        scaled = sums.astype(np.float32) * np.float32(1.0 / area)
+        blurred = np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
+    return blurred
 
 
 def _as_quad(points: npt.NDArray[Any], name: str) -> npt.NDArray[np.float64]:
