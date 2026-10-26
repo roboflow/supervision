@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.yolo import (
     _extract_class_names,
@@ -1639,3 +1639,118 @@ class TestAsYoloMaskWithHole:
         result = next(iter(reloaded.annotations.values()))
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
+
+
+class TestAsYoloMultiSegmentMask:
+    """Tests for exporting masks consisting of disconnected segments to YOLO."""
+
+    def test_multi_segment_mask_exported_as_single_line_by_default(
+        self, tmp_path: Path
+    ) -> None:
+        """A multi-part mask is merged and exported as one continuous YOLO line."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0].startswith("0 ")
+
+    def test_multi_segment_mask_split_when_merge_segments_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When merge_segments=False, each component is written separately."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(
+            annotations_directory_path=str(labels_dir), merge_segments=False
+        )
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2
+
+
+class TestAsYoloCrowdAnnotations:
+    """Tests for handling COCO iscrowd annotations during YOLO export."""
+
+    def test_crowd_annotations_skipped_by_default(self, tmp_path: Path) -> None:
+        """Crowd regions (iscrowd=1) are omitted by default during YOLO export."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+
+    def test_crowd_annotations_exported_when_ignore_crowd_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When ignore_crowd=False, crowd annotations are exported."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir), ignore_crowd=False)
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2
