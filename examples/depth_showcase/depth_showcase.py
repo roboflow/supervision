@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import itertools
+import math
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-import cv2
 import numpy as np
 from tqdm import tqdm
 
@@ -20,6 +20,7 @@ Predictor = Callable[[np.ndarray], sv.DepthMap]
 
 
 def load_depth_anything(device: str) -> tuple[Predictor, str]:
+    """Load Depth Anything V2 and return its frame predictor and caption."""
     from PIL import Image
     from transformers import pipeline
 
@@ -30,6 +31,7 @@ def load_depth_anything(device: str) -> tuple[Predictor, str]:
     )
 
     def predict(frame: np.ndarray) -> sv.DepthMap:
+        """Predict relative inverse depth for one BGR frame."""
         result = estimator(Image.fromarray(frame[..., ::-1]))
         return sv.DepthMap.from_transformers(result, kind="relative_inverse")
 
@@ -37,6 +39,7 @@ def load_depth_anything(device: str) -> tuple[Predictor, str]:
 
 
 def load_depth_pro(device: str) -> tuple[Predictor, str]:
+    """Load Apple Depth Pro and return its frame predictor and caption."""
     import torch
     from PIL import Image
     from transformers import AutoImageProcessor, DepthProForDepthEstimation
@@ -46,6 +49,7 @@ def load_depth_pro(device: str) -> tuple[Predictor, str]:
     model = model.to(device).eval()
 
     def predict(frame: np.ndarray) -> sv.DepthMap:
+        """Predict metric depth for one BGR frame."""
         image = Image.fromarray(frame[..., ::-1])
         inputs = processor(images=image, return_tensors="pt").to(device)
         with torch.no_grad():
@@ -59,11 +63,13 @@ def load_depth_pro(device: str) -> tuple[Predictor, str]:
 
 
 def load_yolo26(device: str) -> tuple[Predictor, str]:
+    """Load YOLO26 depth and return its frame predictor and caption."""
     from ultralytics import YOLO
 
     model = YOLO("yolo26l-depth.pt")
 
     def predict(frame: np.ndarray) -> sv.DepthMap:
+        """Predict metric depth for one BGR frame."""
         result = model(frame, verbose=False, device=device)[0]
         return sv.DepthMap.from_ultralytics(result)
 
@@ -77,6 +83,23 @@ MODELS = {
 }
 
 
+def default_device() -> str:
+    """Choose the fastest device that the installed PyTorch runtime can use."""
+    try:
+        import torch
+    except ModuleNotFoundError as error:
+        if error.name != "torch":
+            raise
+        return "cpu"
+
+    if torch.cuda.is_available():
+        return "cuda"
+    mps = getattr(getattr(torch.backends, "mps", None), "is_available", None)
+    if callable(mps) and mps():
+        return "mps"
+    return "cpu"
+
+
 @dataclass
 class VideoSource:
     """A video file, or a live stream of unknown length such as a camera.
@@ -84,7 +107,7 @@ class VideoSource:
     Attributes:
         path: Video file path, camera index or stream URL
         fps: Frames per second of the video, assumed for a stream
-        total_frames: Frame count of a video file, `None` for a live stream
+        total_frames: Reported frame count, or `None` when it is unavailable
         max_frames: Number of frames to process, `None` for no limit
     """
 
@@ -95,13 +118,16 @@ class VideoSource:
 
     @property
     def is_stream(self) -> bool:
-        return self.total_frames is None
+        """Return whether the path names a camera or network stream."""
+        return self.path.isdigit() or "://" in self.path
 
     def frames(self) -> Iterator[np.ndarray]:
         """Yield the frames of the file, or of the stream until it ends."""
         if not self.is_stream:
             yield from sv.get_video_frames_generator(self.path, end=self.max_frames)
             return
+        import cv2
+
         capture = cv2.VideoCapture(int(self.path) if self.path.isdigit() else self.path)
         try:
             count = 0
@@ -114,35 +140,63 @@ class VideoSource:
         finally:
             capture.release()
 
+    def __post_init__(self) -> None:
+        """Reject frame limits that cannot produce a useful video source."""
+        if self.max_frames is not None and self.max_frames <= 0:
+            raise ValueError("max_frames must be greater than zero.")
+
 
 def sample_colour_range(
     predict: Predictor, source: VideoSource, samples: int
-) -> sv.DepthClipRange:
-    """Predict a few frames spread from the first to the last and take their range.
+) -> sv.DepthClipRange | None:
+    """Estimate a stable colour range from representative frames when possible.
 
-    A video file is known up front, so the colour range of the whole clip is estimated
-    from the first frame, the last frame and the ones in between.
+    Known positive frame counts sample across the file. When metadata has no usable
+    count, the first frames calibrate the range; unusable maps leave auto-ranging to
+    :class:`~supervision.depth.annotators.DepthAnnotator`.
     """
-    if source.total_frames is None:
-        raise ValueError("A live stream has no frames to sample ahead of time.")
-    last = min(source.total_frames, source.max_frames or source.total_frames) - 1
-    depth_maps = []
-    for index in np.linspace(0, last, samples).astype(int):
-        frames = sv.get_video_frames_generator(
-            source.path, start=int(index), end=int(index) + 1
+    if source.is_stream:
+        return None
+    if samples <= 0:
+        raise ValueError("range_samples must be greater than zero.")
+
+    if source.total_frames is not None and source.total_frames > 0:
+        frame_count = source.total_frames
+        if source.max_frames is not None:
+            frame_count = min(frame_count, source.max_frames)
+        indexes = np.unique(
+            np.linspace(0, frame_count - 1, min(samples, frame_count)).astype(int)
         )
-        depth_maps.append(predict(next(frames)))
-    return sv.DepthClipRange.from_depth_maps(depth_maps)
+        sample_frames = (
+            next(
+                sv.get_video_frames_generator(
+                    source.path, start=int(index), end=int(index) + 1
+                ),
+                None,
+            )
+            for index in indexes
+        )
+    else:
+        sample_count = min(samples, source.max_frames) if source.max_frames else samples
+        sample_frames = itertools.islice(source.frames(), sample_count)
+
+    depth_maps = [predict(frame) for frame in sample_frames if frame is not None]
+    valid_maps = [depth_map for depth_map in depth_maps if depth_map.valid_mask.any()]
+    if not valid_maps:
+        return None
+    return sv.DepthClipRange.from_depth_maps(valid_maps)
 
 
 def blend_range(
     previous: tuple[float, float] | None, depth_map: sv.DepthMap, weight: float = 0.9
-) -> tuple[float, float]:
+) -> tuple[float, float] | None:
     """Move the running colour range towards the range of this depth map.
 
     A live stream has no future frames to sample and a range per frame flickers, so the
     range follows the frames slowly instead.
     """
+    if not depth_map.valid_mask.any():
+        return previous
     low, high = sv.DepthClipRange.from_depth_maps([depth_map]).display_range
     if previous is None:
         return low, high
@@ -164,15 +218,19 @@ def run_model(
 
     Returns False when the user closed the live window, to stop the remaining models.
     """
-    predict, caption = MODELS[model_name](device)
     frames = source.frames()
-    first_frame = next(frames)
+    first_frame = next(frames, None)
+    if first_frame is None:
+        raise ValueError(f"Video source {source.path!r} contains no readable frames.")
+    predict, caption = MODELS[model_name](device)
     frames = itertools.chain([first_frame], frames)
     height, width = first_frame.shape[:2]
     fixed_range = None
     if not source.is_stream:
         fixed_range = sample_colour_range(predict, source, range_samples)
-    durations: list[float] = []
+    elapsed_total = 0.0
+    measured_frames = 0
+    frame_index = 0
     running_range = None
     with contextlib.ExitStack() as stack:
         if target_video_path is not None:
@@ -181,21 +239,26 @@ def run_model(
         else:
             window = sv.ImageWindow(model_name)
             stack.callback(window.close)
-        for frame in tqdm(
-            frames, total=source.max_frames, desc=f"Running {model_name}"
-        ):
+        frame_total = source.max_frames or source.total_frames
+        for frame in tqdm(frames, total=frame_total, desc=f"Running {model_name}"):
             start = time.perf_counter()
             depth_map = predict(frame)
-            durations.append(time.perf_counter() - start)
-            running_range = blend_range(running_range, depth_map)
+            duration = time.perf_counter() - start
+            if frame_index > 0:
+                elapsed_total += duration
+                measured_frames += 1
+            frame_index += 1
+            if fixed_range is None:
+                running_range = blend_range(running_range, depth_map)
             annotator = sv.DepthAnnotator(
                 colormap=colormap,
-                display_range=fixed_range or running_range,
+                display_range=fixed_range or running_range or "auto",
                 opacity=opacity,
             )
             frame = annotator.annotate(frame, depth_map)
-            # the first call pays one-off warm-up costs
-            speed = np.mean(durations[1:] or durations) * 1000
+            speed = (
+                elapsed_total / measured_frames if measured_frames else duration
+            ) * 1000
             frame = sv.draw_text(
                 frame,
                 f"{caption} | {speed:.0f} ms/frame",
@@ -223,7 +286,7 @@ def main(
     range_samples: int = 5,
     colormap: str = "turbo",
     opacity: float = 0.9,
-    device: str = "cpu",
+    device: str | None = None,
 ) -> None:
     """Colour a video or a live stream with the depth of every model.
 
@@ -243,12 +306,16 @@ def main(
         models: Models to run: 'depth-anything', 'depth-pro' or 'yolo26'
         max_seconds: Length of the video to process, the whole video or stream if
             not set
-        range_samples: Frames sampled from the first to the last of a video file to
-            fix its colour range
+        range_samples: Number of video frames sampled to fix its colour range
         colormap: Colour table of the depth maps, such as 'turbo' or 'viridis'
         opacity: Opacity of the depth colours over the video (0 to 1)
-        device: Computation device ('cpu', 'mps' or 'cuda')
+        device: Computation device ('cpu', 'mps' or 'cuda'); defaults to the
+            fastest available device
     """
+    if device is None:
+        device = default_device()
+    if range_samples <= 0:
+        raise ValueError("range_samples must be greater than zero.")
     is_stream = source_video_path.isdigit() or "://" in source_video_path
     if not is_stream and source_video_path.upper() in VideoAssets.__members__:
         asset = VideoAssets[source_video_path.upper()]
@@ -256,11 +323,24 @@ def main(
     fps, total_frames = STREAM_FPS, None
     if not is_stream:
         video_info = sv.VideoInfo.from_video_path(source_video_path)
-        fps, total_frames = video_info.fps, video_info.total_frames
-    max_frames = total_frames
+        fps = video_info.fps
+        total_frames = video_info.total_frames
+        if total_frames is not None and total_frames <= 0:
+            total_frames = None
+    max_frames = None
     if max_seconds is not None:
+        if not math.isfinite(max_seconds) or max_seconds <= 0:
+            raise ValueError("max_seconds must be a finite number greater than zero.")
+        if not math.isfinite(fps) or fps <= 0:
+            raise ValueError(
+                "Video FPS must be a positive finite number when max_seconds is set."
+            )
         max_frames = int(max_seconds * fps)
-        if total_frames is not None:
+        if max_frames <= 0:
+            raise ValueError(
+                "max_seconds must include at least one frame at the source FPS."
+            )
+        if total_frames is not None and total_frames > 0:
             max_frames = min(max_frames, total_frames)
     source = VideoSource(source_video_path, fps, total_frames, max_frames)
     if target_directory is not None:

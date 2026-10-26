@@ -7,6 +7,8 @@ date_modified: 2026-10-24
 
 ### Unreleased <small>upcoming</small>
 
+- The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+
 - `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
 - Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
