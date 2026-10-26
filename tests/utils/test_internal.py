@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import warnings
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
 from typing import Any
@@ -56,9 +57,9 @@ class MockDataclass:
     _protected_field: int = field(default=1)
     __private_field: int = field(default=2)
 
-    public_field_with_factory: dict = field(default_factory=dict)
-    _protected_field_with_factory: dict = field(default_factory=dict)
-    __private_field_with_factory: dict = field(default_factory=dict)
+    public_field_with_factory: dict[str, int] = field(default_factory=dict)
+    _protected_field_with_factory: dict[str, int] = field(default_factory=dict)
+    __private_field_with_factory: dict[str, int] = field(default_factory=dict)
 
     def public_method(self) -> None:
         pass
@@ -111,7 +112,8 @@ print(json.dumps([str(item.message) for item in recorded]))
         text=True,
         env=env,
     )
-    return json.loads(completed.stdout)
+    messages: list[str] = json.loads(completed.stdout)
+    return messages
 
 
 @pytest.mark.parametrize(
@@ -231,8 +233,9 @@ def test_get_instance_variables(
     input_instance: Any,
     include_properties: bool,
     expected: set[str],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Instance variables are listed, with properties included on request."""
     with exception:
         result = get_instance_variables(
             input_instance, include_properties=include_properties
