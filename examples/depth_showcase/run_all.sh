@@ -17,8 +17,7 @@ extra_args=()
 [ -n "${MAX_SECONDS:-}" ] && extra_args+=(--max_seconds "$MAX_SECONDS")
 
 # the members of supervision.assets.VideoAssets
-for asset in VEHICLES VEHICLES_2 MILK_BOTTLING_PLANT GROCERY_STORE SUBWAY \
-    MARKET_SQUARE PEOPLE_WALKING BEACH BASKETBALL SKIING; do
+for asset in VEHICLES VEHICLES_2 MILK_BOTTLING_PLANT GROCERY_STORE SUBWAY MARKET_SQUARE PEOPLE_WALKING BEACH BASKETBALL SKIING; do
     python depth_showcase.py --source_video_path "$asset" --device "$DEVICE" \
         --target_directory outputs ${extra_args[@]+"${extra_args[@]}"} \
         || echo "skipping $asset: failed"
