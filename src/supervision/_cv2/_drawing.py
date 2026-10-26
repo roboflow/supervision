@@ -1,14 +1,14 @@
-"""Private Pillow/NumPy drawing fallbacks for the OpenCV facade."""
+"""Private NumPy drawing fallbacks for the OpenCV facade."""
 
 from __future__ import annotations
 
+import itertools
 import operator
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any, SupportsIndex
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image, ImageDraw
 
 _ImageArray = npt.NDArray[Any]
 _Point = tuple[int, int]
@@ -100,16 +100,6 @@ _SIN_TABLE = np.array(
     """.split(),
     dtype=np.float32,
 )
-
-
-def _drawing_mask(
-    image: _ImageArray, draw_operation: Callable[[Any], None]
-) -> npt.NDArray[np.bool_]:
-    """Render a shape into a clipped one-bit mask with Pillow."""
-    height, width = image.shape[:2]
-    mask = Image.new("1", (width, height))
-    draw_operation(ImageDraw.Draw(mask))
-    return np.asarray(mask, dtype=bool)
 
 
 def _color_for_image(image: _ImageArray, color: Any) -> Any:
@@ -567,7 +557,7 @@ def _fill_ellipse_arc_mask(
 
 
 def _points(points: npt.NDArray[Any], offset: tuple[int, int] = (0, 0)) -> list[_Point]:
-    """Normalize OpenCV polygon shapes to integer Pillow coordinates."""
+    """Normalize OpenCV polygon shapes to integer pixel coordinates."""
     values = np.asarray(points)
     if values.size == 0:
         return []
@@ -619,16 +609,42 @@ def _line(
     del lineType
     _validate_shift(shift)
     thickness = _bounded_thickness(thickness, "Line")
-    if thickness <= 1:
-        mask = _drawing_mask(
-            img,
-            lambda draw: draw.line([_point(pt1), _point(pt2)], fill=1, width=1),
-        )
-        return _paint(img, mask, color)
     first, second = _point(pt1), _point(pt2)
+    if thickness <= 1:
+        return _paint_thin_segments(img, [(first, second)], color)
     mask = np.zeros(img.shape[:2], dtype=bool)
     _thick_line_mask(mask, first, second, thickness, _CAP_START | _CAP_END)
     return _paint_around(img, mask, color, [first, second], thickness)
+
+
+def _paint_thin_segments(
+    img: _ImageArray, segments: Sequence[tuple[_Point, _Point]], color: Any
+) -> _ImageArray:
+    """Paint one-pixel-wide segments with OpenCV's 8-connected `Line` routine.
+
+    OpenCV draws lines, polyline edges and contour edges of thickness 1 by clipping
+    each segment to the canvas and stepping the clipped endpoints with its
+    `LineIterator`, so a partly off-canvas segment follows the clipped slope rather
+    than the original one. A zero-length segment paints its single pixel.
+
+    Args:
+        img: Image to modify in place.
+        segments: Integer `(first, second)` endpoint pairs.
+        color: Scalar or channel values in the image's channel order.
+
+    Returns:
+        The same image, for OpenCV-style chaining.
+    """
+    height, width = img.shape[:2]
+    pixels: list[_Point] = []
+    for first, second in segments:
+        clipped = _clip_polygon_line(width, height, first, second)
+        if clipped is not None:
+            pixels.extend(_iter_line_points(*clipped))
+    if pixels:
+        xs, ys = np.array(pixels, dtype=np.int64).T
+        img[ys, xs] = _color_for_image(img, color)
+    return img
 
 
 def _truncating_divide(numerator: int, denominator: int) -> int:
@@ -1245,13 +1261,20 @@ def _rectangle(
 def _circle(
     img: _ImageArray,
     center: Sequence[int | float],
-    radius: int,
+    radius: int | float,
     color: Any,
     thickness: int = 1,
     lineType: int = 8,
     shift: int = 0,
 ) -> _ImageArray:
-    """Draw or fill a circle in place."""
+    """Draw or fill a circle in place.
+
+    A non-integer `radius` is rounded with ties to even, as the thick path rounds
+    its ellipse axes.
+
+    Raises:
+        ValueError: If `radius` is negative, as in OpenCV.
+    """
     del lineType
     _validate_shift(shift)
     if thickness > 1:
@@ -1260,17 +1283,93 @@ def _circle(
         # Pillow's outline grows inward from the bounding box instead, which
         # shrinks a thick ring by half its thickness.
         return _ellipse(img, center, (radius, radius), 0, 0, 360, color, thickness)
-    x, y = _point(center)
-    bounds = [x - radius, y - radius, x + radius, y + radius]
+    radius = round(radius)
+    if radius < 0:
+        raise ValueError("Circle radius must be non-negative")
+    height, width = img.shape[:2]
+    center_x, center_y = _point(center)
+    offsets = _circle_octant_offsets(radius)
+    color_value = _color_for_image(img, color)
     if thickness < 0:
-        mask = _drawing_mask(img, lambda draw: draw.ellipse(bounds, fill=1))
-    else:
-        width = max(1, thickness)
-        mask = _drawing_mask(
-            img,
-            lambda draw: draw.ellipse(bounds, outline=1, width=width),
-        )
-    return _paint(img, mask, color)
+        _fill_circle_rows(img, (center_x, center_y), radius, offsets, color_value)
+        return img
+    # Mirror every octant offset into the other seven octants.
+    major, minor = offsets[:, 0], offsets[:, 1]
+    xs = center_x + np.concatenate(
+        [-major, major, -major, major, -minor, minor, -minor, minor]
+    )
+    ys = center_y + np.concatenate(
+        [-minor, -minor, minor, minor, -major, -major, major, major]
+    )
+    inside = (xs >= 0) & (xs < width) & (ys >= 0) & (ys < height)
+    img[ys[inside], xs[inside]] = color_value
+    return img
+
+
+def _circle_octant_offsets(radius: int) -> npt.NDArray[np.int64]:
+    """Return OpenCV's midpoint-circle offsets `(dx, dy)` for one octant.
+
+    This ports the integer error stepping of OpenCV's 8-connected `Circle`
+    routine, which `cv2.circle` uses for unshifted outlines one pixel wide and for
+    filled circles. Starting at `(radius, 0)`, `dy` grows by one every step and
+    `dx` shrinks by one whenever the accumulated error turns positive; stepping
+    stops once `dx < dy`. The other seven octants are mirror images.
+
+    Args:
+        radius: Non-negative circle radius in pixels.
+
+    Returns:
+        Array of shape `(N, 2)` holding `(dx, dy)` pairs with `dx >= dy >= 0`.
+
+    Example:
+        ```pycon
+        >>> _circle_octant_offsets(3).tolist()
+        [[3, 0], [2, 1], [2, 2]]
+
+        ```
+    """
+    offsets = []
+    error, dx, dy, plus, minus = 0, radius, 0, 1, 2 * radius - 1
+    while dx >= dy:
+        offsets.append((dx, dy))
+        dy += 1
+        error += plus
+        plus += 2
+        # -1 when the error is positive and dx must step inward, 0 otherwise.
+        step = -1 if error > 0 else 0
+        error -= minus & step
+        dx += step
+        minus -= step & 2
+    return np.array(offsets, dtype=np.int64).reshape(-1, 2)
+
+
+def _fill_circle_rows(
+    img: _ImageArray,
+    center: _Point,
+    radius: int,
+    offsets: npt.NDArray[np.int64],
+    color: Any,
+) -> None:
+    """Fill a circle row by row with the spans of OpenCV's `Circle` routine.
+
+    Every octant offset `(dx, dy)` fills rows `y ± dy` between `x ± dx` and rows `y ±
+    dx` between `x ± dy`. A row may be reached by several offsets, so its span is the
+    widest one; only the canvas window covering the circle is touched.
+    """
+    height, width = img.shape[:2]
+    center_x, center_y = center
+    y_start, y_stop = max(center_y - radius, 0), min(center_y + radius + 1, height)
+    x_start, x_stop = max(center_x - radius, 0), min(center_x + radius + 1, width)
+    if y_start >= y_stop or x_start >= x_stop:
+        return
+    major, minor = offsets[:, 0], offsets[:, 1]
+    half_widths = np.full(2 * radius + 1, -1, dtype=np.int64)
+    rows = radius + np.concatenate([-minor, minor, -major, major])
+    np.maximum.at(half_widths, rows, np.concatenate([major, major, minor, minor]))
+    half_widths = half_widths[y_start - center_y + radius : y_stop - center_y + radius]
+    columns = np.abs(np.arange(x_start, x_stop) - center_x)
+    window = (slice(y_start, y_stop), slice(x_start, x_stop))
+    img[window][columns[np.newaxis, :] <= half_widths[:, np.newaxis]] = color
 
 
 def _ellipse(
@@ -1405,24 +1504,15 @@ def _polylines(
         all_points = [point for points in polylines for point in points]
         return _paint_around(img, mask, color, all_points, thickness)
 
-    def draw_polylines(draw: Any) -> None:
-        for polygon in pts:
-            points = _points(polygon)
-            if not points:
-                continue
-            points = [
-                point
-                for index, point in enumerate(points)
-                if index == 0 or point != points[index - 1]
-            ]
-            if len(points) == 1:
-                draw.point(points[0], fill=1)
-                continue
-            if isClosed:
-                points.append(points[0])
-            draw.line(points, fill=1, width=1, joint="curve")
-
-    return _paint(img, _drawing_mask(img, draw_polylines), color)
+    # OpenCV's `PolyLine` draws every edge as its own thin line; a closed
+    # polyline adds the edge from the last point back to the first.
+    segments: list[tuple[_Point, _Point]] = []
+    for polygon in pts:
+        points = _points(polygon)
+        if isClosed and points:
+            segments.append((points[-1], points[0]))
+        segments.extend(itertools.pairwise(points))
+    return _paint_thin_segments(img, segments, color)
 
 
 def _thick_polyline_mask(
@@ -1505,12 +1595,10 @@ def _draw_contours(
         all_points = [point for points in contour_points for point in points]
         return _paint_around(image, mask, color, all_points, thickness)
 
-    def draw_selected(draw: Any) -> None:
-        for contour in selected:
-            points = _points(contour, offset=offset)
-            if len(points) < 2:
-                continue
-            width = max(1, thickness)
-            draw.line([*points, points[0]], fill=1, width=width, joint="curve")
-
-    return _paint(image, _drawing_mask(image, draw_selected), color)
+    # Thickness 0 and 1 both draw each closed contour edge as a thin line, so a
+    # single-point contour still paints its pixel.
+    segments: list[tuple[_Point, _Point]] = []
+    for contour in selected:
+        points = _points(contour, offset=offset)
+        segments.extend(zip(points, [*points[1:], *points[:1]]))
+    return _paint_thin_segments(image, segments, color)
