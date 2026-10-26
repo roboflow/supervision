@@ -11,6 +11,8 @@ date_modified: 2026-10-17
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
 
+- `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>

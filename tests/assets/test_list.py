@@ -40,6 +40,11 @@ def test_video_assets_values() -> None:
     assert VideoAssets.VEHICLES.value == "vehicles.mp4"
 
 
+def test_grocery_store_asset_hash_matches_hosted_file() -> None:
+    """Test that the grocery store checksum is the one of the hosted file."""
+    assert VideoAssets.GROCERY_STORE.md5_hash == "11402e7b861c1980527d3d74cbe3b366"
+
+
 def test_image_assets_values() -> None:
     """Test that ImageAssets enum members have correct attributes."""
     assert ImageAssets.SOCCER.filename == "soccer.jpg"
