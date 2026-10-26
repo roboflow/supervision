@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -81,7 +82,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_converts_annotations(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
         expected_result: Detections,
     ) -> None:
@@ -121,7 +122,7 @@ class TestCreatemlAnnotationsToDetections:
     )
     def test_raises_on_malformed_annotation(
         self,
-        image_annotations: list[dict],
+        image_annotations: list[dict[str, Any]],
         class_to_index: dict[str, int],
     ) -> None:
         """Raises ValueError with 'Malformed' for any missing required field."""
@@ -217,10 +218,11 @@ class TestLoadCreatemlAnnotations:
 
         original_resolve = Path.resolve
 
-        def fake_resolve(self: Path, *args: object, **kwargs: object) -> Path:
+        def fake_resolve(self: Path, strict: bool = False) -> Path:
+            """Raise OSError for the bad image path, delegate for every other path."""
             if self == tmp_path / "bad.jpg":
                 raise OSError("unresolvable path")
-            return original_resolve(self, *args, **kwargs)
+            return original_resolve(self, strict)
 
         monkeypatch.setattr(Path, "resolve", fake_resolve)
 
@@ -345,7 +347,7 @@ class TestLoadCreatemlAnnotations:
     def test_raises_on_malformed_json(
         self,
         tmp_path: Path,
-        payload: dict | list,
+        payload: dict[str, Any] | list[Any],
         match: str,
     ) -> None:
         """Raises ValueError for malformed JSON: bad root, missing key, duplicate."""

@@ -217,6 +217,7 @@ overrides = [
     "tests.classification.*",
     "tests.conftest",
     "tests.cv2.*",
+    "tests.dataset.*",
     "tests.depth.*",
     "tests.draw.*",
     "tests.geometry.*",
