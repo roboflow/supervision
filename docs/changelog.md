@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-17
+date_modified: 2026-10-26
 ---
 
 # Changelog
@@ -22,6 +22,8 @@ date_modified: 2026-10-17
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
 
 - `sv.ComparisonAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Each region is blended with the first (blue) channel of its color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2803](https://github.com/roboflow/supervision/pull/2803))
+
+- `sv.PolygonZoneAnnotator.annotate` and `sv.LineZoneAnnotator.annotate` accept the same optional `coord_transform` as `trigger`, so zones, lines and their counts are drawn where they appear while the camera moves. A zone or line with a point mapped to a non-finite coordinate or beyond `2**20` pixels is skipped for that frame. ([#2760](https://github.com/roboflow/supervision/pull/2760))
 
 -
 

@@ -20,10 +20,15 @@ from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import (
     _ConstantTransform,
     _create_detections,
+    _MoveBeyondX,
     _NanBeyondX,
+    _ShearXTransform,
     _ShiftTransform,
     _WrongShapeTransform,
 )
+
+WHITE = [255, 255, 255]
+BLACK = [0, 0, 0]
 
 
 @pytest.mark.parametrize(
@@ -1631,3 +1636,282 @@ class TestLineZoneTriggerWithCoordTransform:
 
         with pytest.raises(ValueError, match="coord_transform must return"):
             line_zone.trigger(detections, coord_transform=_WrongShapeTransform())
+
+
+class TestLineZoneAnnotatorWithCoordTransform:
+    """`LineZoneAnnotator.annotate` with a per-frame `coord_transform`."""
+
+    def test_draws_line_at_mapped_position(self) -> None:
+        """The line is drawn where the camera shift moved it, not where defined."""
+        line_zone = LineZone(Point(10, 20), Point(190, 20))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((120, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 60)
+        )
+
+        assert annotated[80, 100].tolist() == WHITE
+        assert annotated[20, 100].tolist() == BLACK
+
+    @pytest.mark.parametrize(
+        ("text_orient_to_line", "text_centered", "label_window"),
+        [
+            pytest.param(
+                False,
+                True,
+                (slice(206, 210), slice(100, 110)),
+                id="level-label-at-center",
+            ),
+            pytest.param(
+                True,
+                True,
+                (slice(206, 210), slice(100, 110)),
+                id="oriented-label-at-center",
+            ),
+            pytest.param(
+                True,
+                False,
+                (slice(214, 219), slice(150, 165)),
+                id="oriented-label-near-end",
+            ),
+        ],
+    )
+    def test_count_labels_follow_mapped_line(
+        self,
+        text_orient_to_line: bool,
+        text_centered: bool,
+        label_window: tuple[slice, slice],
+    ) -> None:
+        """Count labels are drawn next to the mapped line, not the defined one."""
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(
+            text_orient_to_line=text_orient_to_line, text_centered=text_centered
+        )
+        frame = np.zeros((300, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 200)
+        )
+
+        assert not annotated[:150].any()
+        # Mid-padding of the "in" label box by the mapped center (100, 240) or
+        # end (180, 250).
+        assert np.all(annotated[label_window] == WHITE)
+
+    @pytest.mark.parametrize("text_orient_to_line", [False, True])
+    @pytest.mark.parametrize(
+        "shift",
+        [
+            pytest.param((-400, 0), id="off-left"),
+            pytest.param((0, -400), id="off-top"),
+        ],
+    )
+    def test_line_mapped_off_frame_draws_nothing(
+        self, shift: tuple[int, int], text_orient_to_line: bool
+    ) -> None:
+        """A line mapped wholly off the frame leaves no labels on its edge."""
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(text_orient_to_line=text_orient_to_line)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(*shift)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        ("end", "shift", "visible_rows"),
+        [
+            pytest.param(Point(180, 50), (-120, 0), slice(50, 60), id="center-x-20"),
+            pytest.param(
+                Point(181, 50), (-101, 0), slice(48, 55), id="center-x-half-pixel"
+            ),
+        ],
+    )
+    def test_labels_anchored_off_left_edge_are_not_pushed_into_frame(
+        self, end: Point, shift: tuple[int, int], visible_rows: slice
+    ) -> None:
+        """Labels of a visible line whose center is off-frame are cut at the edge."""
+        line_zone = LineZone(Point(20, 30), end)
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(*shift)
+        )
+
+        # The mapped center is (-20, 40) or (-0.5, 40), which truncates to x = 0
+        # but is still outside. The "out" label's padding shows at the left edge,
+        # and no label is pushed in to where x1 = 0 would put it, around x = 50.
+        assert np.all(annotated[visible_rows, 0:10] == WHITE)
+        assert not annotated[27:32, 48:53].any()
+
+    @pytest.mark.parametrize(
+        ("start", "end", "label_window"),
+        [
+            pytest.param(
+                Point(10, 10),
+                Point(10, 90),
+                (slice(46, 51), slice(57, 62)),
+                id="vertical-near-left",
+            ),
+            pytest.param(
+                Point(20, 5),
+                Point(180, 8),
+                (slice(55, 60), slice(106, 111)),
+                id="horizontal-near-top",
+            ),
+        ],
+    )
+    def test_identity_keeps_labels_of_on_screen_line_in_view(
+        self, start: Point, end: Point, label_window: tuple[slice, slice]
+    ) -> None:
+        """Labels of an on-screen line are pushed into view as without a transform."""
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, LineZone(start, end), coord_transform=_ShiftTransform(0, 0)
+        )
+
+        # Label box padding where only the pushed-in label reaches.
+        assert np.all(annotated[label_window] == WHITE)
+
+    def test_uncentered_label_anchored_inside_frame_is_pushed_into_view(self) -> None:
+        """A label near an on-screen end at the left edge is pulled into the frame."""
+        line_zone = LineZone(Point(180, 50), Point(5, 40))
+        annotator = LineZoneAnnotator(text_orient_to_line=True, text_centered=False)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(0, 0)
+        )
+
+        # Where the label's padding would be had it not been pulled in.
+        assert not annotated[9:14, 22:27].any()
+
+    def test_uncentered_label_anchored_off_frame_is_not_pushed_into_view(
+        self,
+    ) -> None:
+        """A label near an end mapped off the left edge is cut there, not pulled in."""
+        line_zone = LineZone(Point(180, 50), Point(5, 40))
+        annotator = LineZoneAnnotator(text_orient_to_line=True, text_centered=False)
+        frame = np.zeros((100, 200, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(-10, 0)
+        )
+
+        # The end maps to (-5, 40): label padding stays where the anchor puts it,
+        # and nothing reaches where a pulled-in label would.
+        assert np.all(annotated[7:12, 32:37] == WHITE)
+        assert not annotated[62:67, 55:60].any()
+
+    @pytest.mark.parametrize("shear", [1e-6, -1e-6])
+    def test_sub_pixel_jitter_does_not_flip_vertical_line_label(
+        self, shear: float
+    ) -> None:
+        """Jitter that tips a vertical line either way draws it as without jitter."""
+        line_zone = LineZone(Point(150, 10), Point(150, 190))
+        annotator = LineZoneAnnotator(text_orient_to_line=True, display_out_count=False)
+        frame = np.zeros((200, 300, 3), dtype=np.uint8)
+        expected = annotator.annotate(
+            frame.copy(), line_zone, coord_transform=_ShiftTransform(0, 0)
+        )
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShearXTransform(shear)
+        )
+
+        np.testing.assert_array_equal(annotated, expected)
+
+    def test_zero_length_mapped_line_draws_labels_vertically(self) -> None:
+        """Both endpoints mapped to one point draw labels as for a vertical line."""
+        line_zone = LineZone(Point(20, 30), Point(180, 50))
+        annotator = LineZoneAnnotator(text_orient_to_line=True)
+        frame = np.full((100, 200, 3), 128, dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ConstantTransform(50, 50)
+        )
+
+        assert np.all(annotated[25:30, 53:58] == WHITE)
+
+    @pytest.mark.parametrize(
+        "new_x",
+        [
+            pytest.param(50.0, id="drawn"),
+            pytest.param(np.nan, id="skipped"),
+        ],
+    )
+    def test_draws_on_input_frame(self, new_x: float) -> None:
+        """Drawn or skipped, the input frame itself is returned."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = LineZoneAnnotator().annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, new_x)
+        )
+
+        assert annotated is frame
+
+    def test_partially_off_screen_line_draws_visible_part(self) -> None:
+        """A line mapped partly beyond the frame edge draws its visible part."""
+        line_zone = LineZone(Point(10, 50), Point(190, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_ShiftTransform(-50, 0)
+        )
+
+        assert annotated[50, [0, 50, 99]].tolist() == [WHITE, WHITE, WHITE]
+
+    @pytest.mark.filterwarnings("error::RuntimeWarning")
+    def test_line_with_non_finite_endpoint_is_skipped(self) -> None:
+        """One non-finite endpoint skips the line and its labels."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator()
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=_MoveBeyondX(80, np.nan)
+        )
+
+        assert not annotated.any()
+
+    @pytest.mark.parametrize(
+        "coord_transform",
+        [
+            pytest.param(None, id="none"),
+            pytest.param(_ShiftTransform(0, 0), id="identity"),
+        ],
+    )
+    def test_unmapped_or_identity_drawing_stays_in_place(
+        self, coord_transform: _ShiftTransform | None
+    ) -> None:
+        """No transform, or an identity one, draws the line where it was defined."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        annotator = LineZoneAnnotator(display_in_count=False, display_out_count=False)
+        frame = np.full((100, 100, 3), 128, dtype=np.uint8)
+
+        annotated = annotator.annotate(
+            frame, line_zone, coord_transform=coord_transform
+        )
+
+        assert annotated[50, 50].tolist() == WHITE
+        assert annotated[50, 10].tolist() == BLACK
+        assert annotated[50, 90].tolist() == BLACK
+        assert annotated[10, 50].tolist() == [128, 128, 128]
+
+    def test_rejects_transform_returning_wrong_shape(self) -> None:
+        """A transform that does not return one point per input point raises."""
+        line_zone = LineZone(Point(10, 50), Point(90, 50))
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        with pytest.raises(ValueError, match="coord_transform must return"):
+            LineZoneAnnotator().annotate(
+                frame, line_zone, coord_transform=_WrongShapeTransform()
+            )
