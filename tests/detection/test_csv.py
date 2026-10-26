@@ -544,7 +544,8 @@ def test_csv_sink_manual(
     assert_csv_equal(file_name, expected_result)
 
 
-def assert_csv_equal(file_name, expected_rows) -> None:
+def assert_csv_equal(file_name: str, expected_rows: list[list[Any]]) -> None:
+    """Assert a CSV sink file holds the expected rows, then delete it."""
     with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
