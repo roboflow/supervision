@@ -149,7 +149,7 @@ class TestImageSink:
         """A dangling link cannot create its missing target through a write."""
         target = tmp_path / "missing.png"
         link = tmp_path / "link.png"
-        link.symlink_to(target)
+        link.symlink_to(target.name)
         image = np.zeros((8, 8, 3), dtype=np.uint8)
 
         with sv.ImageSink(target_dir_path=str(tmp_path), overwrite=False) as sink:
@@ -157,7 +157,7 @@ class TestImageSink:
                 sink.save_image(image=image, image_name=link.name)
 
         assert link.is_symlink()
-        assert link.readlink() == target
+        assert link.readlink() == Path(target.name)
         assert not target.exists()
         assert sink.image_count == 0
 
