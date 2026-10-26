@@ -378,8 +378,9 @@ def test_json_sink(
     second_detections: sv.Detections,
     second_custom_data: dict[str, Any] | None,
     file_name: str,
-    expected_result: list[list[Any]],
+    expected_result: list[dict[str, Any]],
 ) -> None:
+    """JSON sink rows hold detection fields plus any custom data."""
     with sv.JSONSink(file_name) as sink:
         if custom_data is None:
             sink.append(detections)
@@ -558,7 +559,8 @@ class TestJSONSinkLifecycle:
         ]
 
 
-def assert_json_equal(file_name, expected_rows):
+def assert_json_equal(file_name: str, expected_rows: list[dict[str, Any]]) -> None:
+    """Assert a JSON sink file holds the expected rows, then delete it."""
     with open(file_name) as file:
         data = json.load(file)
         assert data == expected_rows, (
