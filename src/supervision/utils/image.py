@@ -704,6 +704,7 @@ class ImageSink:
                 `None`.
 
         Raises:
+            ValueError: If the target path contains an embedded null character.
             FileExistsError: If `overwrite` is `False` and the target file exists.
             OSError: If `cv2.imwrite` cannot write the image to disk.
         """
@@ -711,6 +712,9 @@ class ImageSink:
             image_name = self.image_name_pattern.format(self.image_count)
 
         image_path = os.path.join(self.target_dir_path, image_name)
+        # Native image writers can truncate at NUL, bypassing the existence guard.
+        if "\0" in image_path:
+            raise ValueError("Image path contains an embedded null character")
         if not self.overwrite and os.path.lexists(image_path):
             raise FileExistsError(f"Image already exists: {image_path}")
         if not cv2.imwrite(image_path, image):
