@@ -286,7 +286,7 @@ def main(
     range_samples: int = 5,
     colormap: str = "turbo",
     opacity: float = 0.9,
-    device: str = "cpu",
+    device: str | None = None,
 ) -> None:
     """Colour a video or a live stream with the depth of every model.
 
@@ -309,8 +309,11 @@ def main(
         range_samples: Number of video frames sampled to fix its colour range
         colormap: Colour table of the depth maps, such as 'turbo' or 'viridis'
         opacity: Opacity of the depth colours over the video (0 to 1)
-        device: Computation device ('cpu', 'mps' or 'cuda')
+        device: Computation device ('cpu', 'mps' or 'cuda'); defaults to the
+            fastest available device
     """
+    if device is None:
+        device = default_device()
     if range_samples <= 0:
         raise ValueError("range_samples must be greater than zero.")
     is_stream = source_video_path.isdigit() or "://" in source_video_path

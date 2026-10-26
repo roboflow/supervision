@@ -1,4 +1,4 @@
-"""Regression tests for the depth showcase example."""
+"""Depth showcase regression tests."""
 
 from __future__ import annotations
 
@@ -68,6 +68,32 @@ def test_main_reads_real_video_to_eof_when_metadata_undercounts(
     frames = list(observed["source"].frames())
 
     assert len(frames) == 5
+
+
+@pytest.mark.parametrize(
+    ("requested_device", "expected_device"),
+    [
+        pytest.param(None, "mps", id="automatic-device"),
+        pytest.param("cpu", "cpu", id="explicit-device"),
+    ],
+)
+def test_main_selects_default_device_only_when_not_explicit(
+    monkeypatch: pytest.MonkeyPatch,
+    requested_device: str | None,
+    expected_device: str,
+) -> None:
+    """Use automatic device selection for direct calls without an override."""
+    observed = {}
+    monkeypatch.setattr(depth_showcase, "default_device", lambda: "mps")
+    monkeypatch.setattr(
+        depth_showcase,
+        "run_model",
+        lambda *args: observed.update(device=args[-1]) or True,
+    )
+
+    depth_showcase.main("0", models=["probe"], device=requested_device)
+
+    assert observed["device"] == expected_device
 
 
 @pytest.mark.parametrize(
