@@ -949,6 +949,62 @@ def test_fallback_filled_polygons_match_opencv_when_clipped_and_offset(
     np.testing.assert_array_equal(actual, expected)
 
 
+@requires_cv2
+@pytest.mark.parametrize(
+    "points",
+    [
+        pytest.param(
+            ((70, 34), (28, 68), (0, -21), (67, -23)),
+            id="slanted-edges-leave-three-sides",
+        ),
+        pytest.param(
+            ((22, 89), (16, 1), (-2, 71), (-5, 42)),
+            id="edge-clipped-to-a-single-point",
+        ),
+        pytest.param(
+            ((73, -5), (79, -14), (50, 88)),
+            id="edge-rejected-beyond-a-corner",
+        ),
+        pytest.param(
+            ((8, 67), (-6, -30), (-21, 56), (-26, 83), (20, 36)),
+            id="self-intersecting-off-canvas",
+        ),
+    ],
+)
+def test_fallback_fill_poly_matches_opencv_for_edges_leaving_the_canvas(
+    points: tuple[tuple[int, int], ...],
+) -> None:
+    """Fill polygons whose slanted edges leave the canvas exactly like OpenCV."""
+    polygon = np.asarray(points, dtype=np.int32)
+    actual = np.zeros((50, 60), dtype=np.uint8)
+    expected = np.zeros_like(actual)
+
+    _fill_poly(actual, [polygon], color=(1,))
+    cv2.fillPoly(expected, [polygon], color=(1,))
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@requires_cv2
+def test_fallback_random_filled_polygons_match_opencv() -> None:
+    """Match OpenCV on random filled polygons, most of them leaving the canvas."""
+    rng = np.random.default_rng(2026)
+
+    for _ in range(200):
+        height, width = (int(value) for value in rng.integers(1, 60, size=2))
+        polygons = [
+            rng.integers(-40, 100, size=(int(rng.integers(1, 9)), 2)).astype(np.int32)
+            for _ in range(int(rng.integers(1, 3)))
+        ]
+        actual = np.zeros((height, width), dtype=np.uint8)
+        expected = np.zeros_like(actual)
+
+        _fill_poly(actual, polygons, color=(1,))
+        cv2.fillPoly(expected, polygons, color=(1,))
+
+        np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_draw_contours_fills_selected_contour() -> None:
     """Fill the selected contour when drawContours receives a negative thickness."""
     image = np.zeros((12, 12, 3), dtype=np.uint8)
