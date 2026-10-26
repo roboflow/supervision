@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`.
+
 - The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
 - `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
