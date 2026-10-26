@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: 🔗 Link Checker
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@v2.9.0
         with:
           lycheeVersion: v0.22.0
           args: |
