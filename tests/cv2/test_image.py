@@ -593,7 +593,7 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -601,13 +601,13 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
 )
 def test_fallback_encoders_match_opencv_default_jpeg_quality(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode JPEG at the quality OpenCV uses when no parameters are given."""
     expected = cv2.imencode(".jpg", image)[1].tobytes()
 
-    actual = encode(tmp_path, ".jpg", image)
+    actual = fn_encode(tmp_path, ".jpg", image)
 
     assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
     assert _jpeg_chroma_subsampling(actual) == _jpeg_chroma_subsampling(expected)
@@ -634,7 +634,7 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -642,13 +642,13 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
 )
 def test_fallback_encoders_write_webp_losslessly_like_opencv(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode WebP losslessly, as OpenCV does when no parameters are given."""
     expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
 
-    actual = encode(tmp_path, ".webp", image)
+    actual = fn_encode(tmp_path, ".webp", image)
 
     decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
     np.testing.assert_array_equal(decoded, expected)
@@ -737,7 +737,7 @@ class TestFallbackEncoderChannels:
     """Image encoders accept OpenCV's one-, three- and four-channel layouts."""
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -748,7 +748,7 @@ class TestFallbackEncoderChannels:
     def test_jpeg_discards_alpha_without_compositing(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
         alpha: int,
     ) -> None:
@@ -757,13 +757,13 @@ class TestFallbackEncoderChannels:
         image = np.dstack((bgr, np.full(bgr.shape[:2], alpha, dtype=np.uint8)))
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_COLOR)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
         np.testing.assert_array_equal(actual, expected)
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -773,14 +773,14 @@ class TestFallbackEncoderChannels:
     def test_single_channel_axis_encodes_as_grayscale(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
     ) -> None:
         """An explicit singleton channel writes the same pixels as a 2D image."""
         image = _gradient_image(channels=1)[..., np.newaxis]
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(
             np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED

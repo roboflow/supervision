@@ -22,6 +22,7 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 - [Documentation](#documentation)
 - [Cookbooks](#cookbooks)
 - [Tests](#tests)
+  - [Reference parity tests](#reference-parity-tests)
 - [License](#license)
 
 ## Contribution Guidelines
@@ -359,6 +360,10 @@ def test_overlap_metric_determines_suppression(
 ```
 
 **Docstrings:** Every test function/method requires at minimum a one-line docstring (within the project line length configured in `pyproject.toml`). Describe the scenario, not the implementation.
+
+### Reference parity tests
+
+When tests claim parity with or compare results to a reference implementation or golden standard, compute the reference results using the live package on the same inputs rather than hardcoded expected values. Keep reference packages in the development dependency group; do not add them to runtime dependencies or optional extras.
 
 ### Doctests
 

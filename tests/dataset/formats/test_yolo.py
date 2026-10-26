@@ -1,12 +1,14 @@
 import re
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 from PIL import Image
 
-from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.yolo import (
     _extract_class_names,
@@ -33,7 +35,7 @@ def _arrays_almost_equal(
 ) -> bool:
     equal_elements = np.equal(arr1, arr2)
     proportion_equal = np.mean(equal_elements)
-    return proportion_equal >= threshold
+    return bool(proportion_equal >= threshold)
 
 
 @pytest.mark.parametrize(
@@ -75,7 +77,9 @@ def _arrays_almost_equal(
     ],
 )
 def test_with_mask(
-    lines: list[str], expected_result: bool | None, exception: Exception
+    lines: list[str],
+    expected_result: bool | None,
+    exception: AbstractContextManager[object],
 ) -> None:
     """Detect polygon lines; a sixth box token is not a mask."""
     with exception:
@@ -212,17 +216,21 @@ def test_yolo_annotations_to_detections(
     resolution_wh: tuple[int, int],
     with_masks: bool,
     expected_result: Detections | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = yolo_annotations_to_detections(
             lines=lines, resolution_wh=resolution_wh, with_masks=with_masks
         )
+        assert expected_result is not None
         assert np.array_equal(result.xyxy, expected_result.xyxy)
+        assert result.class_id is not None
+        assert expected_result.class_id is not None
         assert np.array_equal(result.class_id, expected_result.class_id)
-        assert (
-            result.mask is None and expected_result.mask is None
-        ) or _arrays_almost_equal(result.mask, expected_result.mask)
+        if result.mask is not None or expected_result.mask is not None:
+            assert isinstance(result.mask, np.ndarray)
+            assert isinstance(expected_result.mask, np.ndarray)
+            assert _arrays_almost_equal(result.mask, expected_result.mask)
 
 
 class TestYoloAnnotationsToDetectionsClassId:
@@ -477,7 +485,7 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
 
         np.testing.assert_array_equal(result.class_id, np.array([1]))
         np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
-        assert result.mask is not None
+        assert isinstance(result.mask, np.ndarray)
         assert result.mask.shape == (1, 10, 10)
         assert bool(result.mask[0, 5, 5])
 
@@ -498,7 +506,7 @@ class TestYoloAnnotationsToDetectionsTrailingToken:
 
         np.testing.assert_array_equal(result.class_id, np.array([1]))
         np.testing.assert_allclose(result.xyxy, [[1.0, 1.0, 9.0, 9.0]])
-        assert result.mask is not None
+        assert isinstance(result.mask, np.ndarray)
         assert bool(result.mask[0, 5, 5])
 
     def test_rejects_a_nonnumeric_trailing_token_after_a_polygon(self) -> None:
@@ -530,7 +538,7 @@ def test_from_yolo_loads_segmentation_saved_with_confidence(tmp_path: Path) -> N
 
     np.testing.assert_array_equal(detections.class_id, np.array([1]))
     np.testing.assert_allclose(detections.xyxy, [[1.0, 1.0, 9.0, 9.0]])
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert bool(detections.mask[0, 5, 5])
 
 
@@ -745,7 +753,9 @@ class TestFromYoloPoseLabels:
 
         dataset = DetectionDataset.from_yolo(*paths, is_obb=True)
 
-        corners = dataset[0][2].data[ORIENTED_BOX_COORDINATES]
+        corners = np.asarray(
+            dataset[0][2].data[ORIENTED_BOX_COORDINATES], dtype=np.float64
+        )
         assert corners.shape == (1, 4, 2)
         np.testing.assert_allclose(
             corners, [[[10.0, 8.0], [90.0, 8.0], [90.0, 72.0], [10.0, 72.0]]]
@@ -785,7 +795,9 @@ class TestFromYoloPoseLabels:
     ],
 )
 def test_image_name_to_annotation_name(
-    image_name: str, expected_result: str | None, exception: Exception
+    image_name: str,
+    expected_result: str | None,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
@@ -827,7 +839,7 @@ def test_extract_class_names_sorts_numeric_string_keys(
     tmp_path: Path,
     yaml_text: str,
     expected_names: list[str] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     """_extract_class_names returns class names sorted by class index."""
     data_yaml_path = tmp_path / "data.yaml"
@@ -897,7 +909,7 @@ def test_object_to_yolo(
     image_shape: tuple[int, int, int],
     polygon: np.ndarray | None,
     expected_result: str | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = object_to_yolo(
@@ -944,7 +956,7 @@ def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> Non
 def test_load_yolo_annotations_mask_behaviour(
     tmp_path: Path,
     annotation_line: str,
-    load_kwargs: dict,
+    load_kwargs: dict[str, Any],
     expect_mask: bool,
 ) -> None:
     """Mask presence depends on annotation format and OBB/segmentation flag."""
@@ -1020,7 +1032,7 @@ def test_from_yolo_scales_annotations_to_exif_rotated_image(tmp_path: Path) -> N
     _, image, detections = dataset[0]
 
     assert image.shape[:2] == (100, 40)
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 100, 40)
     np.testing.assert_allclose(detections.xyxy, [[10.0, 25.0, 30.0, 75.0]])
 
@@ -1142,7 +1154,7 @@ def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
     union = np.logical_or(original_mask, saved_mask).sum()
     assert union > 0
     # Keep polygon round-trip drift bounded while avoiding vertex-order assumptions.
-    iou = intersection / union
+    iou = float(intersection) / float(union)
     assert iou > 0.95, (
         f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
         "precision regression in polygon mask conversion"
@@ -1328,8 +1340,8 @@ def test_dataset_as_yolo_obb_round_trip_corner_accuracy(tmp_path: Path) -> None:
     original = next(iter(loaded.annotations.values()))
     round_tripped = next(iter(reloaded.annotations.values()))
     np.testing.assert_allclose(
-        round_tripped.data[ORIENTED_BOX_COORDINATES],
-        original.data[ORIENTED_BOX_COORDINATES],
+        np.asarray(round_tripped.data[ORIENTED_BOX_COORDINATES], dtype=np.float64),
+        np.asarray(original.data[ORIENTED_BOX_COORDINATES], dtype=np.float64),
         atol=1e-3,
     )
 
@@ -1437,7 +1449,9 @@ class TestObjectToYoloBoxOrdering:
         np.testing.assert_allclose(
             reloaded_detections.xyxy, [[30.0, 30.0, 70.0, 70.0]], atol=1e-3
         )
-        np.testing.assert_allclose(reloaded_detections.area, [1600.0], atol=0.2)
+        np.testing.assert_allclose(
+            reloaded_detections.area.astype(np.float64), [1600.0], atol=0.2
+        )
 
 
 _EMPTY_MASK = np.zeros((100, 100), dtype=bool)
@@ -1639,3 +1653,118 @@ class TestAsYoloMaskWithHole:
         result = next(iter(reloaded.annotations.values()))
         assert len(result) == 1
         np.testing.assert_array_equal(result.mask, mask)
+
+
+class TestAsYoloMultiSegmentMask:
+    """Tests for exporting masks consisting of disconnected segments to YOLO."""
+
+    def test_multi_segment_mask_exported_as_single_line_by_default(
+        self, tmp_path: Path
+    ) -> None:
+        """A multi-part mask is merged and exported as one continuous YOLO line."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0].startswith("0 ")
+
+    def test_multi_segment_mask_split_when_merge_segments_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When merge_segments=False, each component is written separately."""
+        image_path = str(tmp_path / "source" / "two_blobs.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 5:15, 5:15] = True
+        mask[0, 5:15, 35:45] = True
+        detections = Detections(
+            xyxy=np.array([[5, 5, 45, 15]], dtype=np.float32),
+            class_id=np.array([0]),
+            mask=mask,
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(
+            annotations_directory_path=str(labels_dir), merge_segments=False
+        )
+
+        ann_file = labels_dir / "two_blobs.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2
+
+
+class TestAsYoloCrowdAnnotations:
+    """Tests for handling COCO iscrowd annotations during YOLO export."""
+
+    def test_crowd_annotations_skipped_by_default(self, tmp_path: Path) -> None:
+        """Crowd regions (iscrowd=1) are omitted by default during YOLO export."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir))
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+
+    def test_crowd_annotations_exported_when_ignore_crowd_false(
+        self, tmp_path: Path
+    ) -> None:
+        """When ignore_crowd=False, crowd annotations are exported."""
+        image_path = str(tmp_path / "source" / "sample.png")
+        Path(image_path).parent.mkdir()
+        Image.new("RGB", (100, 100)).save(image_path)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 80, 80]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ISCROWD_DATA_FIELD: np.array([0, 1])},
+        )
+        dataset = DetectionDataset(
+            classes=["person"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        labels_dir = tmp_path / "labels"
+
+        dataset.as_yolo(annotations_directory_path=str(labels_dir), ignore_crowd=False)
+
+        ann_file = labels_dir / "sample.txt"
+        lines = ann_file.read_text().strip().splitlines()
+        assert len(lines) == 2

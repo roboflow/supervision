@@ -1,4 +1,7 @@
+from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import NoReturn
 from unittest import mock
 
 import numpy as np
@@ -86,8 +89,9 @@ BLACK = [0, 0, 0]
 def test_calculate_region_of_interest_limits(
     vector: Vector,
     expected_result: tuple[Vector, Vector] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Region-of-interest limits are derived from the line vector, or raise."""
     with exception:
         result = LineZone._calculate_region_of_interest_limits(vector=vector)
         assert result == expected_result
@@ -502,8 +506,9 @@ def test_line_zone_multiple_detections(
     anchors: list[Position],
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Line crossings and counts follow the tracked anchors frame by frame."""
     with exception:
         line_zone = LineZone(
             start=vector.start, end=vector.end, triggering_anchors=anchors
@@ -937,15 +942,16 @@ class TestLineZoneSubThresholdFlicker:
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: list[list[list[float] | None]],
+    xyxy_sequence: list[list[list[float]]],
     anchors: list[Position],
     minimum_crossing_threshold: int,
     expected_crossed_in: list[list[bool]],
     expected_crossed_out: list[list[bool]],
     expected_count_in: list[int],
     expected_count_out: list[int],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Crossings and counts stay consistent when detections leave for many frames."""
     with exception:
         line_zone = LineZone(
             start=vector.start,
@@ -1055,7 +1061,7 @@ def test_line_zone_trigger_does_not_call_np_cross(
 ) -> None:
     """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("np.cross must not be called on 2-D vectors")
 
     monkeypatch.setattr(np, "cross", _raise)
@@ -1107,7 +1113,7 @@ def test_line_zone_trigger_does_not_call_np_cross(
     ],
 )
 def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
-    make_anchors,
+    make_anchors: Callable[[], Iterable[Position]],
 ) -> None:
     """A single-pass anchors iterable survives construction and counts a crossing.
 
@@ -1247,13 +1253,17 @@ class TestLineZoneInit:
                 id="empty-list",
             ),
             pytest.param(
-                (anchor for anchor in []),
+                (anchor for anchor in list[Position]()),
                 pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
                 id="empty-generator",
             ),
         ],
     )
-    def test_empty_anchors_raises(self, triggering_anchors, exception) -> None:
+    def test_empty_anchors_raises(
+        self,
+        triggering_anchors: Iterable[Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
         """LineZone rejects an anchors iterable that is empty, generator included.
 
         Mirrors `TestPolygonZoneInit::test_empty_anchors_raises`. The empty-generator

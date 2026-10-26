@@ -341,6 +341,23 @@ def test_select_returns_detection_subset() -> None:
     )
 
 
+class TestDetectionsScalarData:
+    def test_select_preserves_scalar_data(self) -> None:
+        """Selecting detections preserves scalar data shared across rows."""
+        detections = Detections(
+            xyxy=np.array(
+                [[0, 0, 1, 1], [2, 2, 3, 3]],
+                dtype=np.float32,
+            ),
+            data={"class_name": np.array("person")},
+        )
+
+        selected = detections.select([1])
+
+        assert selected.data["class_name"].shape == ()
+        assert selected.data["class_name"].item() == "person"
+
+
 class TestDetectionsSelectBooleanList:
     @pytest.mark.parametrize(
         ("index", "expected_rows"),
@@ -1310,6 +1327,19 @@ class TestDetectionsIntegerAnchors:
 
         assert result.dtype == np.float32
         np.testing.assert_array_equal(result, [[2.5, 4.5]])
+
+    def test_large_float16_box_keeps_finite_center_anchor(self) -> None:
+        """Large float16 boxes return their exact finite center anchor."""
+        detections = Detections(
+            xyxy=np.array([[32000, 0, 64000, 10]], dtype=np.float16)
+        )
+
+        result = detections.get_anchors_coordinates(Position.CENTER)
+
+        expected = np.array([[48000, 5]], dtype=np.float16)
+        assert result.dtype == np.float16
+        assert np.isfinite(result).all()
+        np.testing.assert_array_equal(result, expected)
 
     def test_oriented_anchor_with_integer_xyxy_uses_rotated_body(self) -> None:
         """OBB data still wins over the integer midpoint path for `xyxy`."""

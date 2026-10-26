@@ -1,4 +1,6 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import cast
 
 import numpy as np
 import pytest
@@ -37,9 +39,11 @@ _ALL_ANCHORS = [
 
 
 def _rotate(corners: np.ndarray, angle_deg: float, about: np.ndarray) -> np.ndarray:
+    """Rotate points counterclockwise by ``angle_deg`` around ``about``."""
     angle = np.deg2rad(angle_deg)
     rot = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
-    return (corners - about) @ rot.T + about
+    rotated: np.ndarray = (corners - about) @ rot.T + about
+    return rotated
 
 
 @pytest.mark.parametrize(
@@ -125,7 +129,7 @@ def test_move_boxes(
     xyxy: np.ndarray,
     offset: np.ndarray,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = move_boxes(xyxy=xyxy, offset=offset)
@@ -246,7 +250,7 @@ def test_scale_boxes(
     xyxy: np.ndarray,
     factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = scale_boxes(xyxy=xyxy, factor=factor)
@@ -378,6 +382,40 @@ def test_scale_boxes_returns_expected_dtype(
     assert result.dtype == expected_dtype
 
 
+def test_large_float16_boxes_keep_finite_midpoints() -> None:
+    """A representable midpoint never overflows the sum of its two corners.
+
+    Averaging corners through their sum overflows `float16` for a finite box at
+    `32000`-`64000`: `scale_boxes(factor=1.0)` returned `inf` corners and
+    `Position.CENTER` returned an `inf` anchor.
+    """
+    xyxy = np.array([[32000, 0, 64000, 10]], dtype=np.float16)
+
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([48000], dtype=np.float16),
+    )
+    assert np.isfinite(spread_out_boxes(xyxy=np.tile(xyxy, (2, 1)))).all()
+
+
+def test_subnormal_float16_boxes_keep_exact_midpoints() -> None:
+    """A midpoint keeps its exact value when the result is subnormal.
+
+    `s = 2**-24` is the smallest positive `float16`; halving before adding rounds
+    `s` to zero and `5*s` to `2*s`, moving the midpoint from `3*s` to `2*s` and
+    shifting a box that `scale_boxes(factor=1.0)` must leave untouched.
+    """
+    s = np.float16(2.0**-24)
+    xyxy = np.array([[s, 0, np.float16(5) * s, 1]], dtype=np.float16)
+
+    np.testing.assert_array_equal(
+        box_midpoint(xyxy[:, 0], xyxy[:, 2]),
+        np.array([np.float16(3) * s], dtype=np.float16),
+    )
+    np.testing.assert_array_equal(scale_boxes(xyxy=xyxy, factor=1.0), xyxy)
+
+
 @pytest.mark.parametrize(
     ("xyxy", "resolution_wh", "normalization_factor", "expected_result", "exception"),
     [
@@ -459,7 +497,7 @@ def test_denormalize_boxes(
     resolution_wh: tuple[int, int],
     normalization_factor: float,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = denormalize_boxes(
@@ -768,7 +806,7 @@ class TestPadBoxes:
         padding = np.int64(-(2**63))
         expected = np.array([[2**63, 0, -(2**63), 0]], dtype=np.float64)
 
-        result = pad_boxes(xyxy, px=padding, py=0)
+        result = pad_boxes(xyxy, px=cast(int, padding), py=0)
 
         np.testing.assert_array_equal(result, expected)
 

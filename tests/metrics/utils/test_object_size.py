@@ -71,7 +71,7 @@ class TestGetMaskSizeCategory:
 
 
 @pytest.mark.parametrize(
-    ("size_category_fn", "coordinates"),
+    ("fn_size_category", "coordinates"),
     [
         pytest.param(
             get_bbox_size_category,
@@ -109,11 +109,11 @@ class TestGetMaskSizeCategory:
     ],
 )
 def test_size_category_handles_integer_coordinates(
-    size_category_fn: Callable[[np.ndarray], np.ndarray], coordinates: np.ndarray
+    fn_size_category: Callable[[np.ndarray], np.ndarray], coordinates: np.ndarray
 ) -> None:
     """Integer-coordinate objects avoid overflow and precision loss."""
     np.testing.assert_array_equal(
-        size_category_fn(coordinates), [ObjectSizeCategory.LARGE.value]
+        fn_size_category(coordinates), [ObjectSizeCategory.LARGE.value]
     )
 
 

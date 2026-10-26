@@ -5,6 +5,36 @@ from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
+from tests.metrics.coco_reference import evaluate_detections
+
+
+class TestMeanAverageRecallScalarMetadata:
+    """Size buckets preserve data shared by every target."""
+
+    @pytest.mark.parametrize("value", ["camera-a", 7, True])
+    def test_shared_target_data_does_not_change_recall(
+        self, value: str | int | bool
+    ) -> None:
+        """A shared scalar does not stop recall for small and large objects."""
+        boxes = np.array([[0, 0, 10, 10], [0, 0, 100, 100]], dtype=np.float32)
+        predictions = Detections(
+            xyxy=boxes.copy(),
+            confidence=np.array([0.9, 0.8]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0, 0]),
+            data={"source": np.array(value)},
+        )
+
+        result = MeanAverageRecall().update(predictions, targets).compute()
+
+        np.testing.assert_allclose(result.recall_scores, [0.5, 1, 1])
+        np.testing.assert_allclose(result.small_objects.recall_scores, 1)
+        np.testing.assert_allclose(result.large_objects.recall_scores, [0, 1, 1])
+        np.testing.assert_array_equal(targets.data["source"], np.array(value))
+        np.testing.assert_array_equal(targets.xyxy, boxes)
 
 
 class TestMeanAverageRecallConfidenceMatching:
@@ -15,18 +45,17 @@ class TestMeanAverageRecallConfidenceMatching:
         [MetricTarget.BOXES, MetricTarget.MASKS, MetricTarget.ORIENTED_BOUNDING_BOXES],
     )
     @pytest.mark.parametrize(
-        ("confidence", "expected"),
+        "confidence",
         [
-            pytest.param([0.9, 0.8], [0.45, 0.85, 0.85], id="higher-score-first"),
-            pytest.param([0.8, 0.9], [0.5, 0.75, 0.75], id="higher-score-second"),
-            pytest.param([0.9, 0.9], [0.45, 0.85, 0.85], id="tied-scores"),
+            pytest.param([0.9, 0.8], id="higher-score-first"),
+            pytest.param([0.8, 0.9], id="higher-score-second"),
+            pytest.param([0.9, 0.9], id="tied-scores"),
         ],
     )
     def test_overlapping_targets_match_in_confidence_order(
         self,
         metric_target: MetricTarget,
         confidence: list[float],
-        expected: list[float],
     ) -> None:
         """Higher-scored detections get first choice of overlapping targets."""
         target_boxes = np.array([[0, 0, 100, 100], [10, 0, 110, 100]], dtype=np.float32)
@@ -52,9 +81,16 @@ class TestMeanAverageRecallConfidenceMatching:
 
         result = MeanAverageRecall(metric_target).update(predictions, targets).compute()
 
-        # pycocotools 2.0.11 gives these AR@1/10/100 scores for both boxes and masks.
-        np.testing.assert_allclose(result.recall_scores, expected)
-        np.testing.assert_allclose(result.large_objects.recall_scores, expected)
+        # These oriented boxes are axis aligned, so bbox evaluation is equivalent.
+        reference_target = metric_target
+        if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            reference_target = MetricTarget.BOXES
+        reference = evaluate_detections(predictions, targets, reference_target)
+        np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
+        np.testing.assert_allclose(
+            result.large_objects.recall_scores,
+            reference.eval["recall"][:, :, 3, :].mean(axis=(0, 1)),
+        )
 
     @pytest.mark.parametrize(
         "metric_target",
@@ -698,11 +734,13 @@ def test_compute_value_error_for_missing_required_fields(missing_attribute) -> N
 
 
 def test_complex_integration_scenario(
-    complex_scenario_predictions, complex_scenario_targets
+    complex_scenario_predictions: list[np.ndarray],
+    complex_scenario_targets: list[np.ndarray],
 ) -> None:
     """Test integration scenario with multiple images and varying performance."""
 
-    def mock_detections_list(boxes_list):
+    def mock_detections_list(boxes_list: list[np.ndarray]) -> list[Detections]:
+        """Convert fixture arrays to aligned detections."""
         return [
             Detections(
                 xyxy=boxes[:, :4],
@@ -719,15 +757,12 @@ def test_complex_integration_scenario(
     metric.update(predictions_list, targets_list)
     result = metric.compute()
 
-    # Expected mAR at K = 1, 10, 100; equal to pycocotools AR@1, AR@10, AR@100
-    # on the same data, because the limit applies per image and per class.
-    expected_result = np.array([0.44845201, 0.63622291, 0.63622291])
-
-    np.testing.assert_almost_equal(result.recall_scores, expected_result, decimal=6)
+    reference = evaluate_detections(predictions_list, targets_list)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9], atol=1e-6)
 
 
 def test_mar_at_k_applies_limit_per_class_across_images(
-    two_class_two_image_detections,
+    two_class_two_image_detections: tuple[list[Detections], list[Detections]],
 ) -> None:
     """`mAR @ K` keeps the top detection of each class in each image, as COCO does."""
     predictions, targets = two_class_two_image_detections
@@ -735,13 +770,12 @@ def test_mar_at_k_applies_limit_per_class_across_images(
 
     result = metric.update(predictions, targets).compute()
 
-    # Every class has one detection per image, so it is the top detection of its
-    # class at K=1 even when another class scores higher in that image.
-    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
 
 
 def test_mar_at_k_applies_limit_per_class_within_one_image(
-    three_class_single_image_detections,
+    three_class_single_image_detections: tuple[Detections, Detections],
 ) -> None:
     """With one detection per class in one image, `mAR @ 1` already reaches 1.0."""
     predictions, targets = three_class_single_image_detections
@@ -749,9 +783,8 @@ def test_mar_at_k_applies_limit_per_class_within_one_image(
 
     result = metric.update(predictions, targets).compute()
 
-    # pycocotools reports AR@1 = 1.0 for this data; an image-wide limit would
-    # keep only the 0.9 detection and give 1/3.
-    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
 
 
 def test_mar_at_k_limits_each_class_separately_in_one_image() -> None:
@@ -771,9 +804,8 @@ def test_mar_at_k_limits_each_class_separately_in_one_image() -> None:
 
     result = metric.update(predictions, targets).compute()
 
-    # pycocotools reports AR@1 = 0.5 and AR@10 = AR@100 = 1.0. An image-wide limit
-    # would count only class 0's top detection and give 0.25 at K=1.
-    np.testing.assert_allclose(result.recall_scores, [0.5, 1.0, 1.0])
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
 
 
 def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
@@ -796,9 +828,8 @@ def test_mar_at_k_ranks_tied_confidences_in_input_order() -> None:
 
     result = MeanAverageRecall().update(predictions, targets).compute()
 
-    # Only the first of the tied top-scored boxes hits the target. Among the equal
-    # scores it ranks first, so it is the top-1 detection; pycocotools agrees.
-    np.testing.assert_allclose(result.recall_scores, [1.0, 1.0, 1.0])
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
 
 
 def test_mar_matching_follows_confidence_order_when_iou_order_disagrees() -> None:
@@ -815,8 +846,8 @@ def test_mar_matching_follows_confidence_order_when_iou_order_disagrees() -> Non
 
     result = MeanAverageRecall().update(predictions, targets).compute()
 
-    # Both targets tie for the first prediction; COCO assigns the last one.
-    np.testing.assert_allclose(result.recall_scores, [0.1, 0.6, 0.6])
+    reference = evaluate_detections(predictions, targets)
+    np.testing.assert_allclose(result.recall_scores, reference.stats[6:9])
 
 
 @pytest.mark.parametrize(

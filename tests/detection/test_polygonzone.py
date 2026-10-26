@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -45,11 +46,17 @@ class TestPolygonZoneInit:
             ),
         ],
     )
-    def test_empty_anchors_raises(self, polygon, triggering_anchors, exception) -> None:
+    def test_empty_anchors_raises(
+        self,
+        polygon: np.ndarray,
+        triggering_anchors: list[sv.Position],
+        exception: AbstractContextManager[object],
+    ) -> None:
+        """An empty list of triggering anchors is rejected."""
         with exception:
             sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
-    def test_generator_triggering_anchors_is_materialized(self):
+    def test_generator_triggering_anchors_is_materialized(self) -> None:
         """A generator passed for triggering_anchors must not be silently exhausted.
 
         Calls trigger() twice on the same zone: a materialized list keeps returning
@@ -149,8 +156,9 @@ class TestPolygonZoneTrigger:
         detections: sv.Detections,
         polygon_zone: sv.PolygonZone,
         expected_results: np.ndarray,
-        exception: Exception,
+        exception: AbstractContextManager[object],
     ) -> None:
+        """Each anchor configuration triggers the expected detections."""
         with exception:
             in_zone = polygon_zone.trigger(detections)
             assert np.all(in_zone == expected_results)
