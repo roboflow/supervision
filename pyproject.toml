@@ -223,6 +223,8 @@ overrides = [
     "tests.helpers",
     "tests.test_public_api",
     "tests.test_validate_deprecations",
+    "tests.utils.test_conversion",
+    "tests.utils.test_iterables",
     "tests.validators.*",
   ], ignore_errors = false },
   { module = [ "supervision._cv2" ], warn_unused_ignores = false },
