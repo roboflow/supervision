@@ -258,10 +258,10 @@ def test_trace_put_requires_tracker_id_before_mutation() -> None:
         ("00FF0080", (0, 255, 0, 128)),
         ("  #ff00ff80  ", (255, 0, 255, 128)),
         ("abcdef", (171, 205, 239, 255)),
-        ("#F0F", (255, 0, 255, 255)),
-        ("f0f", (255, 0, 255, 255)),
-        ("#F0F8", (255, 0, 255, 136)),
-        ("  #fff  ", (255, 255, 255, 255)),
+        pytest.param("#F0F", (255, 0, 255, 255), id="shorthand-rgb-prefixed"),
+        pytest.param("f0f", (255, 0, 255, 255), id="shorthand-rgb-no-prefix"),
+        pytest.param("#F0F8", (255, 0, 255, 136), id="shorthand-rgba-prefixed"),
+        pytest.param("  #fff  ", (255, 255, 255, 255), id="shorthand-rgb-whitespace"),
     ],
 )
 def test_hex_to_rgba_valid(
