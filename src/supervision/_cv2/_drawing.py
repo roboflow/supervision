@@ -220,7 +220,40 @@ def _clip_polygon_line(
     """
     if width <= 0 or height <= 0:
         return None
+    clipped_first, clipped_second, visible = _clip_line_endpoints(
+        width, height, first, second
+    )
+    return (clipped_first, clipped_second) if visible else None
 
+
+def _clip_line_endpoints(
+    width: int, height: int, first: _Point, second: _Point
+) -> tuple[_Point, _Point, bool]:
+    """Run OpenCV's integer `clipLine` and return its endpoints and verdict.
+
+    OpenCV updates the endpoints in place even when it finally rejects the
+    segment, and `fillPoly` builds its scanline edges from those partly clipped
+    endpoints, so callers that need them cannot use
+    :func:`~supervision._cv2._drawing._clip_polygon_line`, which discards a
+    rejected segment.
+
+    Args:
+        width: Positive image width in pixels.
+        height: Positive image height in pixels.
+        first: First endpoint as integer (x, y) coordinates.
+        second: Second endpoint as integer (x, y) coordinates.
+
+    Returns:
+        The possibly updated endpoints, in their original order, and whether any
+        part of the segment lies inside the image.
+
+    Example:
+        ```pycon
+        >>> _clip_line_endpoints(5, 4, (-2, 1), (7, 1))
+        ((0, 1), (4, 1), True)
+
+        ```
+    """
     x1, y1 = first
     x2, y2 = second
     right = width - 1
@@ -255,9 +288,7 @@ def _clip_polygon_line(
                 x2 = edge
                 code_2 = 0
 
-    if (code_1 | code_2) != 0:
-        return None
-    return (x1, y1), (x2, y2)
+    return (x1, y1), (x2, y2), (code_1 | code_2) == 0
 
 
 def _iter_line_points(first: _Point, second: _Point) -> Iterator[_Point]:
@@ -348,14 +379,15 @@ def _fill_polygon_mask(
     interior. Second, nonhorizontal edges become records (y0, y1, x0, dx), where
     x0 is the x coordinate at the upper endpoint and dx is the per-row increment.
     Both x values use 16 fractional bits, with slopes truncated toward zero to
-    preserve integer rasterization rules.
+    preserve integer rasterization rules. An edge leaving the canvas takes its x
+    coordinates from OpenCV's integer clipping, as described in
+    :func:`~supervision._cv2._drawing._polygon_edge`.
 
     On each visible row, edges are active over the half-open interval y0 <= y < y1.
     Excluding the lower endpoint prevents a shared vertex from being counted twice.
     Sorted intersections are paired, then each inclusive span runs from the ceiling
-    of its left intersection to the floor of its right intersection. Only the
-    resulting spans are clipped horizontally: keeping the original edge geometry
-    preserves interior crossings for polygons extending beyond the canvas.
+    of its left intersection to the floor of its right intersection, clipped to
+    the canvas width.
 
     Args:
         width: Nonnegative output width in pixels.
@@ -395,15 +427,65 @@ def _fill_polygon_mask(
         previous = points[-1]
         for current in points:
             if previous[1] != current[1]:
-                y0, y1 = sorted((previous[1], current[1]))
-                x0 = (previous[0] if previous[1] == y0 else current[0]) << _XY_SHIFT
-                x1 = (current[0] if previous[1] == y0 else previous[0]) << _XY_SHIFT
-                dx = _trunc_div(x1 - x0, y1 - y0)
-                edges.append((y0, y1, x0, dx))
+                edges.append(_polygon_edge(width, height, previous, current))
             previous = current
 
     _fill_mask_edges(mask, edges)
     return mask
+
+
+def _polygon_edge(
+    width: int, height: int, first: _Point, second: _Point
+) -> tuple[int, int, int, int]:
+    """Build the `(y0, y1, x, dx)` scanline record of one non-horizontal edge.
+
+    This follows OpenCV's `CollectPolyEdges`. When an endpoint lies outside the
+    image, OpenCV runs `clipLine` on the edge and always takes the anchor x
+    coordinates from its result, even when it rejects the edge, since `clipLine`
+    updates the endpoints in place either way. The anchor rows come from the
+    clipped endpoints only when they still differ; otherwise the original rows
+    are kept. The edge keeps its original rows, with x extended along the anchor
+    line, so a slope measured on the visible part decides which pixels fill.
+
+    Args:
+        width: Image width in pixels.
+        height: Image height in pixels.
+        first: Edge start as integer (x, y) coordinates.
+        second: Edge end, on a different row from `first`.
+
+    Returns:
+        The edge's top row, its excluded bottom row, its x coordinate at the top
+        row and its per-row x increment, both with 16 fractional bits.
+
+    Example:
+        ```pycon
+        >>> _polygon_edge(10, 10, (2, 0), (4, 4))
+        (0, 4, 131072, 32768)
+        >>> _polygon_edge(10, 10, (-6, 0), (4, 4))
+        (0, 4, -262144, 131072)
+
+        ```
+    """
+    anchor_first, anchor_second = first, second
+    inside = all(0 <= x < width and 0 <= y < height for x, y in (first, second))
+    if not inside:
+        clipped_first, clipped_second, _ = _clip_line_endpoints(
+            width, height, first, second
+        )
+        if clipped_first[1] != clipped_second[1]:
+            anchor_first, anchor_second = clipped_first, clipped_second
+        else:
+            anchor_first = (clipped_first[0], first[1])
+            anchor_second = (clipped_second[0], second[1])
+    dx = _trunc_div(
+        (anchor_second[0] - anchor_first[0]) << _XY_SHIFT,
+        anchor_second[1] - anchor_first[1],
+    )
+    top, anchor = (
+        (first, anchor_first) if first[1] < second[1] else (second, anchor_second)
+    )
+    x = (anchor[0] << _XY_SHIFT) + (top[1] - anchor[1]) * dx
+    return top[1], max(first[1], second[1]), x, dx
 
 
 def _fill_mask_edges(
