@@ -1,6 +1,8 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.detection.utils.polygons import (
@@ -117,7 +119,7 @@ def test_filter_polygons_by_area(
     min_area: float | None,
     max_area: float | None,
     expected_result: list[np.ndarray],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = filter_polygons_by_area(
@@ -206,7 +208,7 @@ class TestApproximatePolygon:
     )
     def test_approximate_polygon_preserves_dtype(self, dtype: type) -> None:
         """Ensure approximate_polygon supports float64/int64 and preserves dtype."""
-        polygon = np.array(
+        polygon: npt.NDArray[np.number] = np.array(
             [[0, 0], [10, 0], [10, 10], [0, 10], [5, 10], [5, 5], [3, 7], [1, 9]],
             dtype=dtype,
         )
@@ -225,7 +227,7 @@ class TestApproximatePolygon:
         self, dtype: type, origin: float
     ) -> None:
         """Approximation keeps large-origin local geometry instead of collapsing it."""
-        polygon = np.array(
+        polygon: npt.NDArray[np.number] = np.array(
             [
                 [origin, origin],
                 [origin + 10, origin],
@@ -259,8 +261,12 @@ class TestApproximatePolygon:
 )
 def test_filter_polygons_by_area_dtypes(dtype: type) -> None:
     """Ensure filter_polygons_by_area supports float64/int64 dtypes."""
-    small = np.array([[0, 0], [2, 0], [2, 2], [0, 2]], dtype=dtype)
-    big = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype)
+    small: npt.NDArray[np.number] = np.array(
+        [[0, 0], [2, 0], [2, 2], [0, 2]], dtype=dtype
+    )
+    big: npt.NDArray[np.number] = np.array(
+        [[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype
+    )
     result = filter_polygons_by_area([small, big], min_area=50)
     assert len(result) == 1
     assert result[0].dtype == dtype
@@ -278,7 +284,7 @@ def test_filter_polygons_by_area_preserves_large_origin_geometry(
     dtype: type, origin: float
 ) -> None:
     """Area filtering measures large-origin polygons in their local coordinates."""
-    square = np.array(
+    square: npt.NDArray[np.number] = np.array(
         [
             [origin, origin],
             [origin + 10, origin],
@@ -385,8 +391,12 @@ class TestMergeMultiSegment:
     )
     def test_preserves_input_dtype(self, dtype: type) -> None:
         """The merged polygon retains the dtype of the input segments."""
-        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype)
-        p2 = np.array([[20, 0], [30, 0], [30, 10], [20, 10]], dtype=dtype)
+        p1: npt.NDArray[np.number] = np.array(
+            [[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype
+        )
+        p2: npt.NDArray[np.number] = np.array(
+            [[20, 0], [30, 0], [30, 10], [20, 10]], dtype=dtype
+        )
 
         result = merge_multi_segment([p1, p2])
 
@@ -422,7 +432,7 @@ class TestMergeMultiSegment:
         """Mixed dtypes reject integer coordinates outside the exact float64 range."""
         p1 = np.array([[integer_x, 0]], dtype=np.int64)
         p2 = np.array([[2**53, 0]], dtype=np.float64)
-        segments = [p2, p1] if float_first else [p1, p2]
+        segments: list[npt.NDArray[np.number]] = [p2, p1] if float_first else [p1, p2]
 
         with pytest.raises(ValueError, match="Mixed integer and floating segments"):
             merge_multi_segment(segments)
@@ -436,8 +446,12 @@ class TestMergeMultiSegment:
     )
     def test_accepts_integer_span_at_safe_limit(self, dtype: type, origin: int) -> None:
         """Integer extremes preserve the nearest seam at the supported span limit."""
-        p1 = np.array([[origin, origin], [origin + 1, origin]], dtype=dtype)
-        p2 = np.array([[origin + 2**25, origin + 2**25]], dtype=dtype)
+        p1: npt.NDArray[np.number] = np.array(
+            [[origin, origin], [origin + 1, origin]], dtype=dtype
+        )
+        p2: npt.NDArray[np.number] = np.array(
+            [[origin + 2**25, origin + 2**25]], dtype=dtype
+        )
 
         result = merge_multi_segment([p1, p2])
 
