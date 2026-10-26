@@ -123,6 +123,7 @@ class TestUltralyticsArrayResults:
             actual.data[CLASS_NAME_DATA_FIELD], ["person"] * count
         )
         if tracked:
+            assert actual.tracker_id is not None
             np.testing.assert_array_equal(actual.tracker_id, np.arange(count))
             assert actual.tracker_id.dtype == np.int32
         else:
