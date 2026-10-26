@@ -4354,6 +4354,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p><code>sv.metrics.MeanAverageRecall.compute()</code> now preserves shared scalar metadata when filtering targets by object size, instead of raising <code>IndexError</code>. (<a href="https://github.com/roboflow/supervision/pull/2791">#2791</a>)</p>
 </li>
+<li>
+<p>Annotators and <code>sv.hex_to_rgba</code> now accept 3- and 4-digit short hex colors such as <code>"#f0f"</code> and <code>"#f0f8"</code>, matching <code>sv.Color.from_hex</code>. Previously <code>sv.BoxAnnotator(color="#f0f")</code> raised <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2801">#2801</a>)</p>
+</li>
 </ul>
 <p>-</p>
 <h3 id="0312-oct-24-2026">0.31.2 <small>Oct 24, 2026</small><a class="headerlink" href="#0312-oct-24-2026" title="Permanent link">&para;</a></h3>
@@ -6557,7 +6560,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2026 09:40:19 UTC">October 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2026 14:15:26 UTC">October 26, 2026</span>
   </span>
 
     
@@ -6585,9 +6588,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Vuln3rat0r" class="md-author" title="@Vuln3rat0r">
+        <a href="https://github.com/cmaranes" class="md-author" title="@cmaranes">
           
-          <img src="https://avatars.githubusercontent.com/u/109514829?v=4&size=72" alt="Vuln3rat0r">
+          <img src="https://avatars.githubusercontent.com/u/36731118?v=4&size=72" alt="cmaranes">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6595,21 +6598,21 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Vuln3rat0r" class="md-author" title="@Vuln3rat0r">
+          
+          <img src="https://avatars.githubusercontent.com/u/109514829?v=4&size=72" alt="Vuln3rat0r">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/reubenjrouse" class="md-author" title="@reubenjrouse">
-          
-          <img src="https://avatars.githubusercontent.com/u/95531805?v=4&size=72" alt="reubenjrouse">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +31
+            +32
           </a>
         
       
