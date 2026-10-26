@@ -6,6 +6,7 @@ import pytest
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
+    merge_multi_segment,
 )
 
 
@@ -291,3 +292,204 @@ def test_filter_polygons_by_area_preserves_large_origin_geometry(
 
     assert len(result) == 1
     assert np.array_equal(result[0], square)
+
+
+class TestMergeMultiSegment:
+    """Tests for merging multiple disconnected polygon segments."""
+
+    def test_empty_segments_returns_empty_array(self) -> None:
+        """Empty input yields a 2D empty array."""
+        result = merge_multi_segment([])
+
+        assert result.shape == (0, 2)
+
+    def test_single_segment_returns_unchanged(self) -> None:
+        """Single polygon segment is returned as-is without modification."""
+        poly = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.int32)
+
+        result = merge_multi_segment([poly])
+
+        np.testing.assert_array_equal(result, poly)
+
+    def test_merge_two_disconnected_segments(self) -> None:
+        """Two separated square segments are merged into a single closed contour."""
+        p1 = np.array([[5, 5], [15, 5], [15, 15], [5, 15]], dtype=np.int32)
+        p2 = np.array([[35, 5], [45, 5], [45, 15], [35, 15]], dtype=np.int32)
+
+        result = merge_multi_segment([p1, p2])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        assert len(result) == 10
+        # The first and last points of p1 at the seam are connected to p2
+        assert [15, 5] in result.tolist()
+        assert [35, 5] in result.tolist()
+
+    def test_merge_three_disconnected_segments(self) -> None:
+        """Three collinear square segments are merged in order."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        p2 = np.array([[20, 0], [30, 0], [30, 10], [20, 10]], dtype=np.float32)
+        p3 = np.array([[40, 0], [50, 0], [50, 10], [40, 10]], dtype=np.float32)
+
+        result = merge_multi_segment([p1, p2, p3])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        assert len(result) == 16
+
+    def test_merge_intermediate_segment_reversed_indices(self) -> None:
+        """Intermediate polygon with idx[0] > idx[1] connects closest vertices."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+        # 5 points; closest to p1 is index 4 ([20, 0]);
+        # closest to p3 is index 2 ([30, 0])
+        p2 = np.array(
+            [
+                [25, -5],
+                [27, -5],
+                [30, 0],
+                [30, 10],
+                [20, 0],
+            ],
+            dtype=np.float32,
+        )
+        p3 = np.array([[40, 0], [50, 0], [50, 10], [40, 10]], dtype=np.float32)
+
+        result = merge_multi_segment([p1, p2, p3])
+
+        assert result.ndim == 2
+        assert result.shape[-1] == 2
+        # p1 (5 points) + p2 forward (3 points) + p3 (5 points) + p2 return (3 pts) + 1
+        assert len(result) == 17
+        # Ensure the transition from p1 connects to p2[4] ([20, 0]), not [30, 0]
+        # In result, after p1 ends at [10, 0], the next point should be [20, 0]
+        p1_end_idx = 4
+        np.testing.assert_array_equal(result[p1_end_idx], [10.0, 0.0])
+        np.testing.assert_array_equal(result[p1_end_idx + 1], [20.0, 0.0])
+
+    def test_invalid_shape_raises_value_error(self) -> None:
+        """A segment with incorrect dimension or coordinates raises ValueError."""
+        invalid_1d = np.array([0, 0, 10, 10])
+
+        with pytest.raises(ValueError, match="Each segment must have shape \\(N, 2\\)"):
+            merge_multi_segment([invalid_1d])
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pytest.param(np.uint8, id="uint8"),
+            pytest.param(np.int32, id="int32"),
+            pytest.param(np.int64, id="int64"),
+            pytest.param(np.float32, id="float32"),
+            pytest.param(np.float64, id="float64"),
+        ],
+    )
+    def test_preserves_input_dtype(self, dtype: type) -> None:
+        """The merged polygon retains the dtype of the input segments."""
+        p1 = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=dtype)
+        p2 = np.array([[20, 0], [30, 0], [30, 10], [20, 10]], dtype=dtype)
+
+        result = merge_multi_segment([p1, p2])
+
+        assert result.dtype == dtype
+
+    def test_preserves_nearest_pair_beyond_float64_integer_precision(self) -> None:
+        """Large integer origins retain the uniquely closest seam vertices."""
+        base = 2**53
+        p1 = np.array([[base - 8, -8], [base - 7, -4]], dtype=np.int64)
+        p2 = np.array([[base + 1, -8]], dtype=np.int64)
+        squared_distances = np.sum((p1 - p2[0]) ** 2, axis=1)
+
+        result = merge_multi_segment([p1, p2])
+
+        np.testing.assert_array_equal(squared_distances, [81, 80])
+        np.testing.assert_array_equal(result[0], p1[1])
+        np.testing.assert_array_equal(result[2], p1[1])
+        np.testing.assert_array_equal(result[3], p2[0])
+        assert result.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("integer_x", "float_first"),
+        [
+            pytest.param(2**53 + 1, False, id="positive-integer-first"),
+            pytest.param(2**53 + 1, True, id="positive-integer-second"),
+            pytest.param(-(2**53) - 1, False, id="negative-integer-first"),
+            pytest.param(-(2**53) - 1, True, id="negative-integer-second"),
+        ],
+    )
+    def test_rejects_large_integer_origin_with_float_segment(
+        self, integer_x: int, float_first: bool
+    ) -> None:
+        """Mixed dtypes reject integer coordinates outside the exact float64 range."""
+        p1 = np.array([[integer_x, 0]], dtype=np.int64)
+        p2 = np.array([[2**53, 0]], dtype=np.float64)
+        segments = [p2, p1] if float_first else [p1, p2]
+
+        with pytest.raises(ValueError, match="Mixed integer and floating segments"):
+            merge_multi_segment(segments)
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin"),
+        [
+            pytest.param(np.int64, -(2**63), id="int64-minimum-origin"),
+            pytest.param(np.uint64, 2**64 - 2**25 - 1, id="uint64-maximum-origin"),
+        ],
+    )
+    def test_accepts_integer_span_at_safe_limit(self, dtype: type, origin: int) -> None:
+        """Integer extremes preserve the nearest seam at the supported span limit."""
+        p1 = np.array([[origin, origin], [origin + 1, origin]], dtype=dtype)
+        p2 = np.array([[origin + 2**25, origin + 2**25]], dtype=dtype)
+
+        result = merge_multi_segment([p1, p2])
+
+        np.testing.assert_array_equal(result[0], p1[1])
+        np.testing.assert_array_equal(result[3], p2[0])
+        assert result.dtype == dtype
+
+    @pytest.mark.parametrize(
+        ("x1", "x2", "y2"),
+        [
+            pytest.param(0, 2**25 + 1, 0, id="x-span-too-large"),
+            pytest.param(0, 0, 2**25 + 1, id="y-span-too-large"),
+            pytest.param(
+                -(2**63), 2**63 - 1, 0, id="signed-subtraction-would-overflow"
+            ),
+        ],
+    )
+    def test_rejects_integer_span_beyond_safe_limit(
+        self, x1: int, x2: int, y2: int
+    ) -> None:
+        """Unsupported integer spans raise before a lossy distance conversion."""
+        p1 = np.array([[x1, 0]], dtype=np.int64)
+        p2 = np.array([[x2, y2]], dtype=np.int64)
+
+        with pytest.raises(
+            ValueError, match="Integer segments must span at most 2\\*\\*25"
+        ):
+            merge_multi_segment([p1, p2])
+
+    def test_no_overflow_uint8_and_large_int32(self) -> None:
+        """Nearest pair calculation does not overflow with uint8 or large int32."""
+        # uint8: squared distance of 20 or 40 would overflow in uint8
+        p1_uint8 = np.array([[5, 5], [15, 5], [15, 15], [5, 15]], dtype=np.uint8)
+        p2_uint8 = np.array([[35, 5], [45, 5], [45, 15], [35, 15]], dtype=np.uint8)
+        res_uint8 = merge_multi_segment([p1_uint8, p2_uint8])
+        assert res_uint8.dtype == np.uint8
+        # Closest vertices are [15, 5] and [35, 5] (dx=20), not [5, 5] and [45, 5]
+        # In the result, the seam must connect p1's [15, 5] to p2's [35, 5]
+        p1_seam_idx = 4
+        np.testing.assert_array_equal(res_uint8[p1_seam_idx], [15, 5])
+        np.testing.assert_array_equal(res_uint8[p1_seam_idx + 1], [35, 5])
+
+        # int32: coordinate difference > 46,341 squares to > 2**31 - 1
+        p1_int32 = np.array(
+            [[0, 0], [100000, 0], [100000, 10], [0, 10]], dtype=np.int32
+        )
+        p2_int32 = np.array(
+            [[160000, 0], [200000, 0], [200000, 10], [160000, 10]],
+            dtype=np.int32,
+        )
+        res_int32 = merge_multi_segment([p1_int32, p2_int32])
+        assert res_int32.dtype == np.int32
+        # Closest vertices are [100000, 0] and [160000, 0]
+        np.testing.assert_array_equal(res_int32[4], [100000, 0])
+        np.testing.assert_array_equal(res_int32[5], [160000, 0])

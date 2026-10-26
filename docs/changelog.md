@@ -7,6 +7,8 @@ date_modified: 2026-10-24
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
+
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
