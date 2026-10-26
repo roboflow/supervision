@@ -1,4 +1,6 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -330,7 +332,10 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
         ),
     ],
 )
-def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) -> None:
+def test_xyxy_to_mask(
+    boxes: np.ndarray, resolution_wh: tuple[int, int], expected: np.ndarray
+) -> None:
+    """Boxes are rasterized into boolean masks of the requested resolution."""
     result = xyxy_to_mask(boxes, resolution_wh)
     assert result.dtype == np.bool_
     assert result.shape == expected.shape
@@ -347,7 +352,9 @@ class TestXyxyToMaskOffFrame:
         ],
     )
     def test_fully_outside_fractional_box_has_empty_mask(
-        self, box: list[float], coordinate_convention: str
+        self,
+        box: list[float],
+        coordinate_convention: Literal["inclusive", "exclusive"],
     ) -> None:
         """A box wholly outside the image must not fill an edge pixel."""
         boxes = np.array([box], dtype=float)
@@ -565,7 +572,7 @@ def test_mask_to_rle(
     mask: npt.NDArray[np.bool_],
     compressed: bool,
     expected_rle: list[int] | str | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = mask_to_rle(mask=mask, compressed=compressed)
@@ -678,7 +685,7 @@ def test_rle_to_mask(
     rle: npt.NDArray[np.int_],
     resolution_wh: tuple[int, int],
     expected_mask: npt.NDArray[np.bool_],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = rle_to_mask(rle=rle, resolution_wh=resolution_wh)
@@ -1134,7 +1141,7 @@ def test_polygon_to_mask_accepts_non_list_array_like(
         ),
     ],
 )
-def test_polygon_to_mask_rejects_malformed_input(polygon: object, match: str) -> None:
+def test_polygon_to_mask_rejects_malformed_input(polygon: Any, match: str) -> None:
     """Malformed polygon input raises ValueError instead of a raw OpenCV/NumPy error.
 
     A scalar, flat 1-D list, wrong-width array, ragged nested list, or non-numeric dtype

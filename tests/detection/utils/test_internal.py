@@ -1,6 +1,7 @@
 import tracemalloc
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -157,6 +158,15 @@ TEST_RLE_MASK[0, 1:3, 1:3] = True
 TEST_RLE_NONCONTIGUOUS_MASK = np.zeros((1, 4, 4), dtype=bool)
 TEST_RLE_NONCONTIGUOUS_MASK[0, 0:2, 0:2] = True
 TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
+
+
+def _optional_array_equal(
+    actual: np.ndarray | None, expected: np.ndarray | None
+) -> bool:
+    """Compare two optional arrays, treating two ``None`` values as equal."""
+    if actual is None or expected is None:
+        return actual is None and expected is None
+    return np.array_equal(actual, expected)
 
 
 @pytest.mark.parametrize(
@@ -448,35 +458,38 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
     ],
 )
 def test_process_roboflow_result(
-    roboflow_result: dict,
+    roboflow_result: dict[str, Any],
     expected_result: tuple[
-        np.ndarray, np.ndarray, np.ndarray, np.ndarray | None, np.ndarray
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray | None,
+        np.ndarray | None,
+        dict[str, Any],
     ],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Roboflow API results are parsed into boxes, scores, ids, masks and data."""
     with exception:
         result = process_roboflow_result(roboflow_result=roboflow_result)
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
         assert np.array_equal(result[2], expected_result[2])
-        assert (result[3] is None and expected_result[3] is None) or (
-            np.array_equal(result[3], expected_result[3])
-        )
-        assert (result[4] is None and expected_result[4] is None) or (
-            np.array_equal(result[4], expected_result[4])
-        )
-        for key in result[5]:
-            if isinstance(result[5][key], np.ndarray):
-                assert np.array_equal(result[5][key], expected_result[5][key]), (
+        assert _optional_array_equal(result[3], expected_result[3])
+        assert _optional_array_equal(result[4], expected_result[4])
+        for key, value in result[5].items():
+            expected_value = expected_result[5][key]
+            if isinstance(value, np.ndarray):
+                assert np.array_equal(value, expected_value), (
                     f"Mismatch in arrays for key {key}"
                 )
-                assert result[5][key].dtype == expected_result[5][key].dtype, (
+                assert value.dtype == expected_value.dtype, (
                     f"dtype mismatch for key {key}: "
-                    f"got {result[5][key].dtype}, "
-                    f"expected {expected_result[5][key].dtype}"
+                    f"got {value.dtype}, "
+                    f"expected {expected_value.dtype}"
                 )
             else:
-                assert result[5][key] == expected_result[5][key], (
+                assert value == expected_value, (
                     f"Mismatch in non-array data for key {key}"
                 )
 
@@ -955,7 +968,7 @@ def test_rle_size_mismatch_resizes_dense_mask() -> None:
 def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = merge_data(data_list=data_list)
@@ -1131,10 +1144,12 @@ def test_get_data_item(
     data: dict[str, Any],
     index: Any,
     expected_result: dict[str, Any] | None,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Data dict fields are sliced consistently for every supported index type."""
     with exception:
         result = get_data_item(data=data, index=index)
+        assert expected_result is not None
         for key in result:
             if isinstance(result[key], np.ndarray):
                 assert np.array_equal(result[key], expected_result[key]), (
@@ -1150,7 +1165,7 @@ class TestGetDataItemListSelection:
     def test_small_integer_selection_uses_bounded_memory(self) -> None:
         """Selecting a few list rows avoids allocation for unselected rows."""
         values = list(range(100_000))
-        data = {"label": values}
+        data: dict[str, Any] = {"label": values}
         tracemalloc.start()
         try:
             result = get_data_item(data, [0, -1, 0])
@@ -1178,9 +1193,9 @@ class TestGetDataItemListSelection:
         self, index: list[int | bool | np.bool_], expected: list[int]
     ) -> None:
         """Python-list metadata follows NumPy mask and positional semantics."""
-        data = {"label": [0, 1, 2], "score": np.arange(3)}
+        data: dict[str, Any] = {"label": [0, 1, 2], "score": np.arange(3)}
 
-        result = get_data_item(data, index)
+        result = get_data_item(data, cast(list[int], index))
 
         assert result["label"] == expected
         np.testing.assert_array_equal(result["score"], expected)
@@ -1195,7 +1210,7 @@ class TestGetDataItemListSelection:
     )
     def test_rejects_out_of_bounds_rows(self, index: list[int | bool]) -> None:
         """Invalid positions and mask lengths remain indexing errors."""
-        data = {"label": [0, 1, 2]}
+        data: dict[str, Any] = {"label": [0, 1, 2]}
 
         with pytest.raises(IndexError):
             get_data_item(data, index)
@@ -1385,11 +1400,17 @@ class TestGetDataItemListSelection:
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception) -> None:
+def test_merge_metadata(
+    metadata_list: list[dict[str, Any]],
+    expected_result: dict[str, Any] | None,
+    exception: AbstractContextManager[object],
+) -> None:
+    """Metadata dicts merge when values agree and raise on conflicting values."""
     with exception:
         result = merge_metadata(metadata_list)
-        if expected_result is None:
-            assert result is None, f"Expected an error, but got a result {result}"
+        assert expected_result is not None, (
+            f"Expected an error, but got a result {result}"
+        )
         for key, value in result.items():
             assert key in expected_result
             if isinstance(value, np.ndarray):
