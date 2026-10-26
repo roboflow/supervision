@@ -91,6 +91,7 @@ class TestDetectionsSmoother:
         result = smoother.update_with_detections(_track(100, 0.9))
 
         assert_allclose(result.xyxy, expected_xyxy)
+        assert result.confidence is not None
         assert_allclose(result.confidence, expected_confidence)
 
     @pytest.mark.parametrize(
@@ -184,7 +185,8 @@ class TestDetectionsSmoother:
         result = smoother.update_with_detections(returned)
 
         assert_allclose(
-            result.data[ORIENTED_BOX_COORDINATES], corners + np.array([100, 0])
+            np.asarray(result.data[ORIENTED_BOX_COORDINATES]),
+            corners + np.array([100, 0]),
         )
 
     def test_partially_aged_track_returns_its_remaining_box(self) -> None:
@@ -197,6 +199,7 @@ class TestDetectionsSmoother:
 
         assert track is not None
         assert_allclose(track.xyxy, [[0, 0, 10, 10]])
+        assert track.confidence is not None
         assert_allclose(track.confidence, [0.5])
 
     def test_get_smoothed_detections_includes_aged_tracks(self) -> None:
@@ -232,6 +235,7 @@ class TestDetectionsSmoother:
 
         result = smoother.update_with_detections(returned)
 
+        assert result.confidence is not None
         assert_allclose(result.confidence, [0.5])
 
     def test_tracks_disagreeing_on_confidence_drop_it_for_all(self) -> None:
@@ -438,7 +442,7 @@ class TestDetectionsSmoother:
 
         assert smoothed.class_id is not None
         assert smoothed.class_id.tolist() == [1]
-        assert smoothed["class_name"].tolist() == ["truck"]
+        assert np.asarray(smoothed["class_name"]).tolist() == ["truck"]
 
     def test_reset_clears_track_history(self) -> None:
         """Reset() must drop cached frames so post-reset output ignores prior boxes."""
@@ -573,7 +577,7 @@ class TestDetectionsSmootherOrientedBoxes:
             np.array([[90.0, -10.0], [110.0, -10.0], [110.0, 10.0], [90.0, 10.0]]),
         )
 
-    def test_corners_agree_with_the_smoothed_box(self):
+    def test_corners_agree_with_the_smoothed_box(self) -> None:
         """The invariant that matters: the two must describe the same position."""
         smoother = DetectionsSmoother(length=3)
         for cx in (0.0, 100.0, 200.0):
@@ -603,7 +607,7 @@ class TestDetectionsSmootherOrientedBoxes:
             )
             result = smoother.update_with_detections(detections)
 
-        assert_allclose(result.data[ORIENTED_BOX_COORDINATES], upright)
+        assert_allclose(np.asarray(result.data[ORIENTED_BOX_COORDINATES]), upright)
         assert_allclose(
             result.xyxy,
             np.array([[-10.0, -10.0, 10.0, 10.0]], dtype=np.float32),
@@ -615,7 +619,7 @@ class TestDetectionsSmootherOrientedBoxes:
         for angle in (np.pi / 4, -np.pi / 4):
             result = smoother.update_with_detections(self._rectangle(angle))
 
-        corners = result.data[ORIENTED_BOX_COORDINATES]
+        corners = np.asarray(result.data[ORIENTED_BOX_COORDINATES])
         assert_allclose(
             result.xyxy,
             np.array(
@@ -659,7 +663,7 @@ class TestDetectionsSmootherOrientedBoxes:
         result = smoother.update_with_detections(frames[1])
 
         assert_allclose(
-            result.data[ORIENTED_BOX_COORDINATES],
+            np.asarray(result.data[ORIENTED_BOX_COORDINATES]),
             [[[0, 80], [400, 80], [400, 280], [0, 280]]],
         )
         assert_allclose(result.xyxy, [[0, 80, 400, 280]])
@@ -683,7 +687,7 @@ class TestDetectionsSmootherOrientedBoxes:
             )
 
         assert_allclose(
-            result.data[ORIENTED_BOX_COORDINATES],
+            np.asarray(result.data[ORIENTED_BOX_COORDINATES]),
             [[[2000, 2000], [2001, 2000], [2001, 2001], [2000, 2001]]],
         )
         assert_allclose(result.xyxy, [[2000, 2000, 2001, 2001]])
