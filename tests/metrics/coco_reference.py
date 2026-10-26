@@ -62,8 +62,8 @@ def evaluate_detections(
             (target, annotations, True),
             (prediction, results, False),
         ):
-            assert detections.class_id is not None
             for index in range(len(detections)):
+                assert detections.class_id is not None
                 category = int(detections.class_id[index])
                 categories.add(category)
                 x1, y1, x2, y2 = detections.xyxy[index].astype(float)
