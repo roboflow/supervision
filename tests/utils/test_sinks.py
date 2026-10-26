@@ -1,6 +1,7 @@
 """Round-trip tests for VideoSink and ImageSink."""
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
@@ -9,6 +10,17 @@ from PIL import Image
 import supervision as sv
 import supervision.utils.video as video_utils
 from supervision.utils.video import VideoInfo
+
+
+def _can_create_symlink() -> bool:
+    """Probe whether the current process can create filesystem symlinks."""
+    with TemporaryDirectory() as directory:
+        link = Path(directory) / "link"
+        try:
+            link.symlink_to(Path(directory) / "missing")
+        except OSError:
+            return False
+        return link.is_symlink()
 
 
 class TestImageSink:
@@ -107,6 +119,47 @@ class TestImageSink:
         with Image.open(tmp_path / image_name) as saved:
             assert saved.getpixel((0, 0)) == (255, 255, 255)
         assert sink.image_count == 2
+
+    @pytest.mark.parametrize("overwrite", [False, True])
+    @pytest.mark.parametrize("image_name", [None, "existing.png\0suffix"])
+    def test_rejects_embedded_nul_without_replacing_image(
+        self, tmp_path: Path, overwrite: bool, image_name: str | None
+    ) -> None:
+        """Invalid generated and explicit names cannot reach native path truncation."""
+        image = np.full((8, 8, 3), 255, dtype=np.uint8)
+        with sv.ImageSink(
+            target_dir_path=str(tmp_path),
+            overwrite=overwrite,
+            image_name_pattern="existing.png\0{:d}",
+        ) as sink:
+            existing = tmp_path / "existing.png"
+            Image.new("RGB", (8, 8), color="black").save(existing)
+            original = existing.read_bytes()
+
+            with pytest.raises(ValueError, match="embedded null"):
+                sink.save_image(image=image, image_name=image_name)
+
+            assert existing.read_bytes() == original
+            assert sink.image_count == 0
+
+    @pytest.mark.skipif(
+        not _can_create_symlink(), reason="Symlink creation unavailable"
+    )
+    def test_overwrite_false_preserves_dangling_symlink(self, tmp_path: Path) -> None:
+        """A dangling link cannot create its missing target through a write."""
+        target = tmp_path / "missing.png"
+        link = tmp_path / "link.png"
+        link.symlink_to(target)
+        image = np.zeros((8, 8, 3), dtype=np.uint8)
+
+        with sv.ImageSink(target_dir_path=str(tmp_path), overwrite=False) as sink:
+            with pytest.raises(FileExistsError, match=r"link\.png"):
+                sink.save_image(image=image, image_name=link.name)
+
+        assert link.is_symlink()
+        assert link.readlink() == target
+        assert not target.exists()
+        assert sink.image_count == 0
 
     def test_overwrite_true_clears_existing_dir(self, tmp_path: Path) -> None:
         """Overwrite=True removes pre-existing files before writing."""
