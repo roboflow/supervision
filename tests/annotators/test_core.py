@@ -193,6 +193,15 @@ def test_hex_color_support_across_annotators(
         assert color.as_rgb() == expected_rgb
 
 
+@pytest.mark.parametrize("hex_color", ["#f0f", "f0f", "#f0f8", "#FFF"])
+def test_short_hex_color_matches_color_from_hex(hex_color: str) -> None:
+    """Annotators accept the short hex forms that Color.from_hex documents."""
+    annotator = BoxAnnotator(color=hex_color)
+
+    assert isinstance(annotator.color, Color)
+    assert annotator.color.as_rgb() == Color.from_hex(hex_color).as_rgb()
+
+
 class TestBoxAnnotator:
     """Verify that BoxAnnotator correctly draws bounding boxes on an image.
 
