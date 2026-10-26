@@ -13,6 +13,8 @@ date_modified: 2026-10-17
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
 
+- The NumPy fallback for `line`, `polylines` and `drawContours` at `thickness` 1, and for `circle` outlines of `thickness` 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from `cv2`, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's `clipLine` and `LineIterator`, and circles port the midpoint stepping of OpenCV's `Circle`. A negative circle radius now raises `ValueError`, as in OpenCV. ([#2808](https://github.com/roboflow/supervision/pull/2808))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
