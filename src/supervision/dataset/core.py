@@ -608,6 +608,8 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         is_obb: bool = False,
         show_progress: bool = False,
+        ignore_crowd: bool = True,
+        merge_segments: bool = True,
     ) -> None:
         """Exports the dataset to YOLO format.
 
@@ -642,6 +644,14 @@ class DetectionDataset(BaseDataset):
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
             show_progress: If True, display a progress bar during saving.
+            ignore_crowd: When True (default), detections marked with a non-zero
+                `iscrowd` flag in `detections.data` are omitted from the export.
+                When False, those detections are included.
+            merge_segments: When True (default), multiple disconnected polygon
+                contours belonging to a single detection mask are joined using
+                zero-width seams, emitting exactly one YOLO polygon line per
+                detection. When False, each disconnected contour is exported on a
+                separate line.
 
         Raises:
             ValueError: If two image paths share the same basename (when
@@ -692,6 +702,8 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
                 show_progress=show_progress,
                 is_obb=is_obb,
+                ignore_crowd=ignore_crowd,
+                merge_segments=merge_segments,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
