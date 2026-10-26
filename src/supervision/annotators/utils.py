@@ -517,7 +517,8 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     """Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
 
     Args:
-        hex_color: A hex color string.
+        hex_color: A 3-, 4-, 6- or 8-digit hex color string, with an optional
+            leading "#".
 
     Returns:
         RGBA values in range 0-255.
@@ -532,10 +533,14 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
         (255, 0, 255, 255)
         >>> hex_to_rgba("#FF00FF80")
         (255, 0, 255, 128)
+        >>> hex_to_rgba("#F0F8")
+        (255, 0, 255, 136)
 
         ```
     """
     hex_color = hex_color.strip().removeprefix("#")
+    if len(hex_color) in (3, 4):
+        hex_color = "".join(digit * 2 for digit in hex_color)
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:

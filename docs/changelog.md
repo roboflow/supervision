@@ -7,11 +7,15 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename, including dangling symlink destinations. Paths containing embedded null characters raise `ValueError` before writing, preventing native path truncation from bypassing the overwrite guard. ([#2800](https://github.com/roboflow/supervision/pull/2800))
+
 - `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
 
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
+
+- Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
 
 - The NumPy fallback for `line`, `polylines` and `drawContours` at `thickness` 1, and for `circle` outlines of `thickness` 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from `cv2`, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's `clipLine` and `LineIterator`, and circles port the midpoint stepping of OpenCV's `Circle`. A negative circle radius now raises `ValueError`, as in OpenCV. ([#2808](https://github.com/roboflow/supervision/pull/2808))
 

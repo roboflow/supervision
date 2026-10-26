@@ -709,6 +709,17 @@ class TestMeanAveragePrecision:
             reference.stats[:6],
         )
 
+    def test_coco_reference_handles_empty_predictions_without_class_id(self) -> None:
+        """An empty prediction without class IDs still yields a zero-score reference."""
+        predictions = Detections(xyxy=np.empty((0, 4)))
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float), class_id=np.array([0])
+        )
+
+        reference = evaluate_detections(predictions, targets)
+
+        assert reference.stats[0] == pytest.approx(0.0)
+
     def test_box_map_uses_100_max_detections_by_default(self) -> None:
         """Box mAP reads the 100-detection slice, so a match ranked 12th counts.
 
