@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 import supervision as sv
-import supervision.utils.video as video_utils
+from supervision import _cv2 as cv2
 from supervision.utils.video import VideoInfo
 
 
@@ -199,9 +199,7 @@ class TestVideoSink:
             def release(self) -> None:
                 pass
 
-        monkeypatch.setattr(
-            video_utils.cv2, "VideoWriter", lambda *args: ClosedWriter()
-        )
+        monkeypatch.setattr(cv2, "VideoWriter", lambda *args: ClosedWriter())
         target = str(tmp_path / "out.avi")
         info = VideoInfo(width=64, height=64, fps=1, total_frames=None)
 
