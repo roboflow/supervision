@@ -173,27 +173,8 @@ def _resize(
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
-    if (
-        not scale_from_factors
-        and src.dtype == np.uint8
-        and (src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3))
-    ):
-        from PIL import Image
-
-        size = (width, height)
-        image = Image.fromarray(src)
-        if width >= source_width and height >= source_height:
-            resized = image.resize(size, resample=Image.Resampling.BILINEAR)
-        else:
-            # Affine sampling keeps Pillow from widening its bilinear kernel
-            # during reduction and maps pixel centers like INTER_LINEAR.
-            resized = image.transform(
-                size,
-                Image.Transform.AFFINE,
-                (source_width / width, 0, 0, 0, source_height / height, 0),
-                resample=Image.Resampling.BILINEAR,
-            )
-        return np.ascontiguousarray(np.asarray(resized))
+    if src.dtype == np.uint8:
+        return _resize_linear_uint8(src, width, height, scale_x, scale_y)
 
     y = (np.arange(height) + 0.5) * scale_y - 0.5
     x = (np.arange(width) + 0.5) * scale_x - 0.5
@@ -224,6 +205,99 @@ def _resize(
         + bottom_right * wx * wy
     )
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
+
+
+# OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.
+_INTER_RESIZE_COEF_BITS = 11
+_INTER_RESIZE_COEF_SCALE = 1 << _INTER_RESIZE_COEF_BITS
+
+
+def _linear_resize_taps(
+    size: int, source_size: int, scale: float, clamp_weights: bool
+) -> tuple[
+    npt.NDArray[np.intp],
+    npt.NDArray[np.intp],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+]:
+    """Return OpenCV's two source taps and fixed-point weights for one axis.
+
+    Positions are computed in `float32` like `resizeGeneric_`. Along columns OpenCV
+    snaps samples left of the first or right of the last pixel to that pixel with a
+    zero fraction; along rows it only clamps the row index and keeps the fraction, so
+    the weights of an edge row come from the unclamped position.
+    """
+    position = ((np.arange(size) + 0.5) * scale - 0.5).astype(np.float32)
+    first = np.floor(position).astype(np.intp)
+    fraction = (position - first).astype(np.float32)
+    if clamp_weights:
+        before = first < 0
+        fraction[before] = 0
+        first[before] = 0
+        after = first >= source_size - 1
+        fraction[after] = 0
+        first[after] = source_size - 1
+    second = np.clip(first + 1, 0, source_size - 1)
+    first = np.clip(first, 0, source_size - 1)
+    weight_second = np.rint(fraction * _INTER_RESIZE_COEF_SCALE).astype(np.int32)
+    weight_first = np.rint(
+        (np.float32(1) - fraction) * _INTER_RESIZE_COEF_SCALE
+    ).astype(np.int32)
+    return first, second, weight_first, weight_second
+
+
+def _resize_linear_uint8(
+    src: npt.NDArray[np.uint8],
+    width: int,
+    height: int,
+    scale_x: float,
+    scale_y: float,
+) -> npt.NDArray[np.uint8]:
+    """Resize uint8 images bit-exactly like OpenCV's fixed-point `INTER_LINEAR`.
+
+    Each row is first interpolated horizontally into `int32` sums scaled by
+    `2**11`. The vertical pass then mirrors OpenCV's SIMD `VResizeLinearVec_32s8u`:
+    each sum is shifted right by 4, multiplied by its 11-bit row weight keeping the
+    high 16 bits, and the two products are added and rounded with `(sum + 2) >> 2`.
+    """
+    source_height, source_width = src.shape[:2]
+    x0, x1, wx0, wx1 = _linear_resize_taps(
+        width, source_width, scale_x, clamp_weights=True
+    )
+    y0, y1, wy0, wy1 = _linear_resize_taps(
+        height, source_height, scale_y, clamp_weights=False
+    )
+    # Work on `(rows, width * channels)` so every weight broadcasts along the
+    # contiguous axis; each channel of a column shares that column's taps.
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    channel_offsets = np.arange(channels)
+    columns0 = (x0[:, np.newaxis] * channels + channel_offsets).ravel()
+    columns1 = (x1[:, np.newaxis] * channels + channel_offsets).ravel()
+    weights0 = np.repeat(wx0, channels)
+    weights1 = np.repeat(wx1, channels)
+
+    # Interpolate only the source rows the vertical pass reads.
+    used_rows, row_index = np.unique(np.concatenate((y0, y1)), return_inverse=True)
+    y0, y1 = row_index[:height], row_index[height:]
+    rows = src.reshape(source_height, source_width * channels)[used_rows]
+    horizontal = np.take(rows, columns0, axis=1).astype(np.int32)
+    horizontal *= weights0
+    right = np.take(rows, columns1, axis=1).astype(np.int32)
+    right *= weights1
+    horizontal += right
+    horizontal >>= 4
+
+    resized = np.take(horizontal, y0, axis=0)
+    resized *= wy0[:, np.newaxis]
+    resized >>= 16
+    bottom = np.take(horizontal, y1, axis=0)
+    bottom *= wy1[:, np.newaxis]
+    bottom >>= 16
+    resized += bottom
+    resized += 2
+    resized >>= 2
+    np.clip(resized, 0, 255, out=resized)
+    return resized.astype(np.uint8).reshape((height, width, *src.shape[2:]))
 
 
 _EXIF_ORIENTATION_TAG = 0x0112

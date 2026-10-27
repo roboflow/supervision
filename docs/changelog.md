@@ -27,6 +27,8 @@ date_modified: 2026-10-17
 
 - The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
 
+- The NumPy fallback for `resize` with `INTER_LINEAR` now matches OpenCV pixel for pixel on `uint8` images. It went through Pillow (or float64 math for RGBA and `fx`/`fy` resizes), which rounded differently from OpenCV's 11-bit fixed-point weights: on 996 random grayscale, BGR and RGBA resizes every result differed from `cv2.resize` by one level somewhere. `sv.resize_image`, `sv.letterbox_image`, `sv.scale_image`, `sv.PixelateAnnotator` and `sv.draw_image` are affected without OpenCV. Other dtypes keep the float path. ([#PRNUM](https://github.com/roboflow/supervision/pull/PRNUM))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>

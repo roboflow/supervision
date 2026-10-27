@@ -302,6 +302,35 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
 
 
+@pytest.mark.parametrize(
+    ("source_shape", "dsize", "fx", "fy"),
+    [
+        pytest.param((9, 9), (13, 15), 0, 0, id="gray-upscale"),
+        pytest.param((17, 23, 3), (31, 29), 0, 0, id="bgr-upscale"),
+        pytest.param((40, 37, 3), (11, 26), 0, 0, id="bgr-mixed"),
+        pytest.param((9, 7, 4), (13, 4), 0, 0, id="rgba"),
+        pytest.param((13, 10, 3), None, 0.6, 0.6, id="factor-downscale"),
+        pytest.param((13, 10, 3), None, 0.3, 3.7, id="factor-mixed"),
+    ],
+)
+def test_fallback_linear_resize_is_bit_exact_for_uint8(
+    source_shape: tuple[int, ...],
+    dsize: tuple[int, int] | None,
+    fx: float,
+    fy: float,
+) -> None:
+    """Reproduce OpenCV's fixed-point uint8 `INTER_LINEAR` resize pixel for pixel."""
+    rng = np.random.default_rng(20261027)
+    source = rng.integers(0, 256, source_shape, dtype=np.uint8)
+
+    actual = _resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == expected.dtype
+    assert actual.flags.c_contiguous
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
     """Keep float-mask interpolation on the established numeric path."""
     rng = np.random.default_rng(20260717)
