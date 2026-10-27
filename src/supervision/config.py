@@ -61,3 +61,12 @@ DISPARITY_PX_DATA_FIELD: str = "disparity_px"
 #: Same layout as ``DEPTH_M_DATA_FIELD``, unitless; larger is nearer. Monocular models
 #: such as Depth Anything produce it, and it has no metric scale.
 RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"
+
+#: Native OBB provenance marker in ``Detections.data``; aligned bool array.
+NATIVE_OBB_DATA_FIELD: str = "native_obb"
+#: Per-class semantic-front capability, aligned with each detection row.
+HEADING_DATA_FIELD: str = "heading"
+#: Frozen class-name to semantic-front capability map in ``Detections.metadata``.
+CLASS_HEADING_METADATA_FIELD: str = "class_heading"
+#: Stable source inference identity, aligned with each detection row.
+DETECTION_ID_DATA_FIELD: str = "detection_id"

@@ -12,6 +12,8 @@ from deprecate import deprecated, void
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
+    HEADING_DATA_FIELD,
+    NATIVE_OBB_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
 from supervision.detection._geometry_dispatch import detection_area, detection_iou
@@ -62,6 +64,7 @@ from supervision.detection.utils.iou_and_nms import (
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
 )
+from supervision.detection.utils.native_obb import _parse_native_obb_result
 from supervision.detection.vlm import (
     VLM,
     _validate_vlm_parameters,
@@ -792,6 +795,12 @@ class Detections:
                 `detections.mask` is `None` when no predictions include mask
                 data, or when only a subset carry masks — all masks are dropped
                 to preserve xyxy alignment.
+                Native `oriented-object-detection` responses retain float ordered
+                corners in `data["xyxyxyxy"]`, required class front capability in
+                `data["heading"]`, and stable `data["detection_id"]`. The positive
+                first-edge direction is the native front axis; ordered width and
+                height are never canonicalized. Frozen capabilities are retained
+                in `metadata["class_heading"]`. Missing direction is an error.
                 When `compact_masks=True` and all predictions carry mask data,
                 `detections.mask` is a
                 :class:`~supervision.detection.compact_mask.CompactMask` rather
@@ -817,6 +826,27 @@ class Detections:
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
+        if isinstance(roboflow_result, dict) and (
+            roboflow_result.get("task_type") == "oriented-object-detection"
+            or (
+                isinstance(roboflow_result.get("predictions"), list)
+                and any("obb" in p for p in roboflow_result["predictions"])
+            )
+        ):
+            (
+                native_xyxy,
+                native_confidence,
+                native_class_id,
+                native_data,
+                native_metadata,
+            ) = _parse_native_obb_result(roboflow_result)
+            return cls(
+                xyxy=native_xyxy,
+                confidence=native_confidence,
+                class_id=native_class_id,
+                data=native_data,
+                metadata=native_metadata,
+            )
         masks: npt.NDArray[np.bool_] | CompactMask | None
         # Design note (ADR): the `compact_masks` flag changes the runtime type of
         # `detections.mask` from `NDArray[bool_]` to `CompactMask`, so every mask
@@ -3012,6 +3042,12 @@ class Detections:
             For zero-rotation OBBs this equals the axis-aligned union exactly;
             for rotated OBBs the merged rect inherits the winner's rotation angle.
             Groups of size 1 keep the original OBB unchanged.
+            Native Inference OBBs (`data["native_obb"]`) instead retain the exact
+            highest-confidence contributor, including its ordered geometry,
+            front, confidence and identity. Ties use the merge group's source
+            order. Opposite fronts can localize the same footprint; this policy
+            selects one observed front and does not assert directional agreement.
+            Conflicting class heading capabilities are rejected.
 
         Raises:
             ValueError: If `confidence` is None or `class_id` is None and
@@ -3145,6 +3181,31 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     )
     winner_idx = int(np.argmax(confidences))
     winner = detections[winner_idx]
+
+    native_flags = [
+        bool(d.data.get(NATIVE_OBB_DATA_FIELD, np.array([False]))[0])
+        for d in detections
+    ]
+    if any(native_flags):
+        if not all(native_flags):
+            raise ValueError("Native OBB NMM cannot mix ordinary detections")
+        if any(
+            ORIENTED_BOX_COORDINATES not in d.data or HEADING_DATA_FIELD not in d.data
+            for d in detections
+        ):
+            raise ValueError("Native OBB NMM requires ordered corners and heading")
+        capabilities: dict[int, bool] = {}
+        for detection in detections:
+            if detection.class_id is None:
+                raise ValueError("Native OBB NMM requires class identifiers")
+            category = int(detection.class_id[0])
+            heading = bool(detection.data[HEADING_DATA_FIELD][0])
+            if category in capabilities and capabilities[category] != heading:
+                raise ValueError("Conflicting native OBB class heading capabilities")
+            capabilities[category] = heading
+        # Native front belongs to its exact ordered footprint. A union/refit
+        # would need a new front policy, so retain the highest-confidence row.
+        return winner
 
     # Area-weighted confidence: each box contributes proportionally to its
     # footprint so large overlapping boxes dominate over small slivers.
