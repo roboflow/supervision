@@ -7,9 +7,25 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+
+- `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+
+- Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
+
+- `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename, including dangling symlink destinations. Paths containing embedded null characters raise `ValueError` before writing, preventing native path truncation from bypassing the overwrite guard. ([#2800](https://github.com/roboflow/supervision/pull/2800))
+
+- `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
+
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
+
+- `sv.ComparisonAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Each region is blended with the first (blue) channel of its color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2803](https://github.com/roboflow/supervision/pull/2803))
+
+- The NumPy fallback for `line`, `polylines` and `drawContours` at `thickness` 1, and for `circle` outlines of `thickness` 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from `cv2`, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's `clipLine` and `LineIterator`, and circles port the midpoint stepping of OpenCV's `Circle`. A negative circle radius now raises `ValueError`, as in OpenCV. ([#2808](https://github.com/roboflow/supervision/pull/2808))
+
+- The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
 
 -
 

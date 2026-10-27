@@ -19,7 +19,7 @@ from supervision.utils.internal import SupervisionWarnings
 
 
 @pytest.fixture
-def mock_callback():
+def mock_callback() -> Callable[[np.ndarray], Detections]:
     """Mock callback function for testing."""
 
     def callback(_: np.ndarray) -> Detections:
@@ -447,7 +447,8 @@ def _rotated_rect(
     corners = np.array(
         [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
     )
-    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+    rotated: np.ndarray = (corners @ rot.T + [cx, cy]).astype(np.float32)
+    return rotated
 
 
 @pytest.mark.parametrize(
@@ -591,9 +592,9 @@ class TestInferenceSlicerBatch:
 
     def test_batch_callback_receives_list_of_ndarrays(self) -> None:
         """batch_size > 1 delivers list[np.ndarray] to callback."""
-        received: list[list] = []
+        received: list[list[np.ndarray]] = []
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             received.append(tiles)
             return [Detections.empty() for _ in tiles]
 
@@ -625,7 +626,7 @@ class TestInferenceSlicerBatch:
         """Last batch has remaining slices when total not divisible by batch_size."""
         received_batch_sizes: list[int] = []
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             received_batch_sizes.append(len(tiles))
             return [Detections.empty() for _ in tiles]
 
@@ -644,12 +645,16 @@ class TestInferenceSlicerBatch:
     def test_batch_wrong_return_type_raises(self) -> None:
         """ValueError raised when batch callback returns Detections instead of list."""
 
-        def callback(tiles: list) -> Detections:  # type: ignore[return]
+        def callback(tiles: list[np.ndarray]) -> Detections:
             return Detections.empty()
 
         image = np.zeros((128, 128, 3), dtype=np.uint8)
+        # The callback deliberately breaks the batch contract.
         slicer = InferenceSlicer(
-            callback=callback, slice_wh=64, overlap_wh=0, batch_size=2
+            callback=callback,  # type: ignore[type-var, unused-ignore]
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=2,
         )
         with pytest.raises(ValueError, match="list\\[Detections\\]"):
             slicer(image)
@@ -657,7 +662,7 @@ class TestInferenceSlicerBatch:
     def test_batch_length_mismatch_raises(self) -> None:
         """ValueError raised when batch callback returns list of wrong length."""
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             return [Detections.empty()]  # always 1, regardless of batch size
 
         # 128x128, batch_size=4 → one batch of 4 slices; callback returns 1
@@ -672,7 +677,7 @@ class TestInferenceSlicerBatch:
         """batch_size + thread_workers > 1 yields correct merged detection count."""
         call_count = 0
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             nonlocal call_count
             call_count += 1
             return [
@@ -700,7 +705,7 @@ class TestInferenceSlicerBatch:
         max_active_calls = 0
         lock = threading.Lock()
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             nonlocal active_calls, max_active_calls
             with lock:
                 active_calls += 1
@@ -739,7 +744,7 @@ class TestInferenceSlicerBatch:
     def test_batch_warns_out_of_bounds_once(self) -> None:
         """Out-of-slice-bounds warning fires exactly once in batch path."""
 
-        def callback(tiles: list) -> list:
+        def callback(tiles: list[np.ndarray]) -> list[Detections]:
             return [
                 Detections(xyxy=np.array([[0, 0, 512, 512]], dtype=float))
                 for _ in tiles
@@ -1299,7 +1304,11 @@ class TestInferenceSlicerMetadata:
         slicer = InferenceSlicer(callback=callback, slice_wh=(200, 200))
         with warnings.catch_warnings(record=True) as recorded_warnings:
             warnings.simplefilter("always")
-            detections = slicer(image)
+            # `ImageType` is a constrained TypeVar, so narrow the union per branch.
+            if isinstance(image, Image.Image):
+                detections = slicer(image)
+            else:
+                detections = slicer(image)
 
         dropped_warnings = [
             w

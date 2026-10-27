@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from unittest.mock import patch
 
@@ -29,43 +30,43 @@ class TestMaskROIHelpers:
         mask[3, 5] = True
         assert mask_to_roi(mask) == (5, 3, 6, 4)
 
-    def test_mask_to_roi_all_false_returns_none(self):
+    def test_mask_to_roi_all_false_returns_none(self) -> None:
         """All-false mask should return None."""
         mask = np.zeros((10, 15), dtype=bool)
         assert _mask_to_roi(mask) is None
 
-    def test_mask_to_roi_single_pixel_exclusive_bounds(self):
+    def test_mask_to_roi_single_pixel_exclusive_bounds(self) -> None:
         """Single true pixel at (row=3, col=5) gives bounds (5, 3, 6, 4)."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[3, 5] = True
         assert _mask_to_roi(mask) == (5, 3, 6, 4)
 
-    def test_mask_to_roi_boundary_row_col_zero(self):
+    def test_mask_to_roi_boundary_row_col_zero(self) -> None:
         """True pixel at top-left boundary should give (0, 0, 1, 1)."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[0, 0] = True
         assert _mask_to_roi(mask) == (0, 0, 1, 1)
 
-    def test_mask_to_roi_full_image(self):
+    def test_mask_to_roi_full_image(self) -> None:
         """Full-image true mask should span the entire array."""
         h, w = 8, 12
         mask = np.ones((h, w), dtype=bool)
         assert _mask_to_roi(mask) == (0, 0, w, h)
 
-    def test_mask_to_roi_region(self):
+    def test_mask_to_roi_region(self) -> None:
         """Region [10:20, 15:25] in 80x90 mask gives exclusive bounds (15,10,25,20)."""
         mask = np.zeros((80, 90), dtype=bool)
         mask[10:20, 15:25] = True
         assert _mask_to_roi(mask) == (15, 10, 25, 20)
 
-    def test_compact_masks_to_roi_empty_returns_none(self):
+    def test_compact_masks_to_roi_empty_returns_none(self) -> None:
         """Zero-length CompactMask should return None."""
         masks = np.zeros((0, 10, 10), dtype=bool)
         xyxy = np.empty((0, 4), dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
         assert _compact_masks_to_roi(cm, (10, 10)) is None
 
-    def test_compact_masks_to_roi_single_detection_coordinates(self):
+    def test_compact_masks_to_roi_single_detection_coordinates(self) -> None:
         """Single compact mask with known crop should give correct exclusive bounds."""
         masks = np.zeros((1, 20, 20), dtype=bool)
         masks[0, 5:10, 3:8] = True
@@ -106,7 +107,7 @@ class TestMaskROIHelpers:
 
         assert result == (60, 40, 65, 45)
 
-    def test_compact_masks_to_roi_two_detections_union(self):
+    def test_compact_masks_to_roi_two_detections_union(self) -> None:
         """Two disjoint compact masks union should span both regions."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         masks[0, 2:8, 1:6] = True
@@ -123,18 +124,18 @@ class TestMaskROIHelpers:
         assert x2 >= 35
         assert y2 >= 25
 
-    def test_masks_to_roi_empty_array_returns_none(self):
+    def test_masks_to_roi_empty_array_returns_none(self) -> None:
         """Zero-element dense mask array (N=0) should return None."""
         masks = np.zeros((0, 10, 10), dtype=bool)
         assert _masks_to_roi(masks, (10, 10)) is None
 
-    def test_masks_to_roi_2d_array(self):
+    def test_masks_to_roi_2d_array(self) -> None:
         """2D boolean array (single mask) should work as union mask."""
         mask = np.zeros((10, 15), dtype=bool)
         mask[3:6, 7:11] = True
         assert _masks_to_roi(mask, (10, 15)) == (7, 3, 11, 6)
 
-    def test_masks_to_roi_dense_with_xyxy_uses_box_union(self):
+    def test_masks_to_roi_dense_with_xyxy_uses_box_union(self) -> None:
         """Dense path with xyxy should return union of boxes (O(N) path)."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         masks[0, 5:10, 5:10] = True
@@ -148,7 +149,7 @@ class TestMaskROIHelpers:
         assert x2 >= 30
         assert y2 >= 25
 
-    def test_masks_to_roi_dense_with_xyxy_loose_box_returns_box_union(self):
+    def test_masks_to_roi_dense_with_xyxy_loose_box_returns_box_union(self) -> None:
         """Loose xyxy (larger than pixel region) returns box union, not tight bounds."""
         masks = np.zeros((1, 30, 40), dtype=bool)
         masks[0, 10:12, 10:12] = True  # tiny 2x2 pixel region
@@ -163,7 +164,9 @@ class TestMaskROIHelpers:
         assert x2 >= 21  # floor(20.0) + 1
         assert y2 >= 21
 
-    def test_masks_to_roi_dense_with_xyxy_falls_back_for_pixels_outside_box(self):
+    def test_masks_to_roi_dense_with_xyxy_falls_back_for_pixels_outside_box(
+        self,
+    ) -> None:
         """Dense xyxy path scans pixels when true pixels fall outside the box union."""
         masks = np.zeros((1, 30, 40), dtype=bool)
         masks[0, 10:12, 10:12] = True
@@ -174,7 +177,7 @@ class TestMaskROIHelpers:
 
         assert result == (10, 10, 32, 27)
 
-    def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self):
+    def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self) -> None:
         """All-false masks with xyxy provided should still return None."""
         masks = np.zeros((2, 30, 40), dtype=bool)
         xyxy = np.array([[5.0, 5.0, 20.0, 20.0], [10.0, 10.0, 25.0, 25.0]])
@@ -486,7 +489,7 @@ def test_move_masks(
     offset: np.ndarray,
     resolution_wh: tuple[int, int],
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = move_masks(masks=masks, offset=offset, resolution_wh=resolution_wh)
@@ -577,7 +580,7 @@ def test_move_masks(
 def test_calculate_masks_centroids(
     masks: np.ndarray,
     expected_result: np.ndarray,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = calculate_masks_centroids(masks=masks)
@@ -632,7 +635,9 @@ def test_calculate_masks_centroids(
     ],
 )
 def test_contains_holes(
-    mask: npt.NDArray[np.bool_], expected_result: bool, exception: Exception
+    mask: npt.NDArray[np.bool_],
+    expected_result: bool,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = contains_holes(mask)
@@ -712,7 +717,7 @@ def test_contains_multiple_segments(
     mask: npt.NDArray[np.bool_],
     connectivity: int,
     expected_result: bool,
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = contains_multiple_segments(mask=mask, connectivity=connectivity)
@@ -933,14 +938,15 @@ def test_contains_multiple_segments(
     ],
 )
 def test_filter_segments_by_distance_sweep(
-    mask: npt.NDArray,
+    mask: npt.NDArray[np.bool_],
     connectivity: int,
     mode: str,
     absolute_distance: float | None,
     relative_distance: float | None,
-    expected_result: npt.NDArray | None,
-    exception: Exception,
+    expected_result: npt.NDArray[np.bool_] | None,
+    exception: AbstractContextManager[object],
 ) -> None:
+    """Segments far from the main component are removed for each distance mode."""
     with exception:
         result = filter_segments_by_distance(
             mask=mask,
@@ -949,4 +955,5 @@ def test_filter_segments_by_distance_sweep(
             absolute_distance=absolute_distance,
             relative_distance=relative_distance,
         )
+        assert expected_result is not None
         assert np.array_equal(result, expected_result)
