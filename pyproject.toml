@@ -237,6 +237,7 @@ overrides = [
     "tests.detection.utils.test_boxes",
     "tests.detection.utils.test_converters",
     "tests.detection.utils.test_internal",
+    "tests.detection.utils.test_iou_and_nms",
     "tests.detection.utils.test_masks",
     "tests.detection.utils.test_matching",
     "tests.detection.utils.test_polygons",
