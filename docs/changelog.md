@@ -17,7 +17,7 @@ date_modified: 2026-10-17
 
 - Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
 
-- The NumPy fallback for `blur` now rounds 8-bit results like OpenCV. It averaged in float64 and rounded exact halves to even, while OpenCV divides exact window sums with a fixed-point reciprocal that rounds them up, so kernels with an even area, such as `(2, 1)` or `(4, 4)`, were one gray level off on many pixels. Kernels of up to 256 pixels now match OpenCV exactly; larger ones use OpenCV's float32 reciprocal. `BlurAnnotator`, `HaloAnnotator` and `HeatMapAnnotator` are affected without OpenCV. ([#2811](https://github.com/roboflow/supervision/pull/2811))
+- The NumPy fallback for `blur` now rounds 8-bit results like OpenCV. It averaged in float64 and rounded exact halves to even, while OpenCV divides exact window sums with a fixed-point reciprocal that rounds them up, so kernels with an even area, such as `(2, 1)` or `(4, 4)`, were one gray level off on many pixels. Kernels of up to 256 pixels use OpenCV's fixed-point rounding, with saturation for maximum-valued two-pixel windows; larger ones use OpenCV's float32 reciprocal. `BlurAnnotator`, `HaloAnnotator` and `HeatMapAnnotator` are affected without OpenCV. ([#2811](https://github.com/roboflow/supervision/pull/2811))
 
 -
 

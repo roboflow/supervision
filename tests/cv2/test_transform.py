@@ -89,6 +89,18 @@ def test_fallback_blur_preserves_shape_and_dtype() -> None:
 class TestFallbackBlurUint8:
     """8-bit box blur with OpenCV's integer window sums and rounding."""
 
+    @pytest.mark.parametrize(
+        "ksize",
+        [pytest.param((2, 1), id="horizontal"), pytest.param((1, 2), id="vertical")],
+    )
+    def test_two_pixel_white_windows_stay_white(self, ksize: tuple[int, int]) -> None:
+        """Preserve maximum-valued pixels when the fixed-point product saturates."""
+        source = np.full((40, 40, 3), 255, dtype=np.uint8)
+
+        blurred = _blur(source, ksize)
+
+        np.testing.assert_array_equal(blurred, source)
+
     def test_rounds_with_fixed_point_reciprocal(self) -> None:
         """Divide window sums like OpenCV's 23-bit reciprocal, no OpenCV needed."""
         source = np.array([[0, 0, 255, 255, 1, 2]], dtype=np.uint8)

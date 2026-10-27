@@ -77,9 +77,9 @@ def _box_blur_uint8(
             divisor_delta += 1
         else:
             divisor_scale += 1
-        # The formula reaches 256 for a two-pixel window of 255s; OpenCV's vector
-        # path saturates it to 255.
-        quotient = ((sums + divisor_delta) * divisor_scale) >> 23
+        # Widen before multiplication: a white two-pixel window reaches 2**31,
+        # and OpenCV's vector path saturates its resulting 256 to 255.
+        quotient = ((sums.astype(np.int64) + divisor_delta) * divisor_scale) >> 23
         blurred = np.minimum(quotient, 255).astype(np.uint8)
     else:
         scaled = sums.astype(np.float32) * np.float32(1.0 / area)
