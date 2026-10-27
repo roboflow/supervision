@@ -7,6 +7,8 @@ date_modified: 2026-10-24
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
+
 - The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
 
 - `sv.get_video_frames_generator` now rejects `stride=0` and negative strides with `ValueError` on first iteration, before opening the video or starting a prefetch thread. Previously these values could yield frames past `end`. ([#2819](https://github.com/roboflow/supervision/pull/2819))
