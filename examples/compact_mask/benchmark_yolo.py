@@ -62,7 +62,8 @@ def worker(mode: str, scenario: str) -> None:
             )
             for path, expected in dataset.annotations.items():
                 actual = compact.annotations[path]
-                assert isinstance(actual.mask, sv.CompactMask)
+                if not isinstance(actual.mask, sv.CompactMask):
+                    raise TypeError("Compact loading did not return CompactMask")
                 np.testing.assert_array_equal(actual.mask.to_dense(), expected.mask)
                 np.testing.assert_array_equal(actual.xyxy, expected.xyxy)
                 np.testing.assert_array_equal(actual.class_id, expected.class_id)
@@ -75,7 +76,8 @@ def worker(mode: str, scenario: str) -> None:
                 buffers += mask._offsets.nbytes + mask._crop_shapes.nbytes
                 buffers += sum(rle.nbytes for rle in mask._rles)
             else:
-                assert isinstance(mask, np.ndarray)
+                if not isinstance(mask, np.ndarray):
+                    raise TypeError("Dense loading did not return a NumPy mask")
                 buffers += mask.nbytes
         print(
             json.dumps(
@@ -106,7 +108,8 @@ if __name__ == "__main__":
             for mode in ("dense", "compact"):
                 samples = []
                 for _ in range(3):
-                    result = subprocess.run(
+                    # Only this interpreter/file and fixed mode/scenario choices run.
+                    result = subprocess.run(  # noqa: S603
                         [
                             sys.executable,
                             __file__,
@@ -118,6 +121,7 @@ if __name__ == "__main__":
                         text=True,
                         capture_output=True,
                         check=True,
+                        timeout=120,
                     )
                     samples.append(json.loads(result.stdout))
                 print(
@@ -126,10 +130,12 @@ if __name__ == "__main__":
                     ),
                     flush=True,
                 )
-            verification = subprocess.run(
+            # Use the same trusted command for an untimed pixel comparison.
+            verification = subprocess.run(  # noqa: S603
                 [sys.executable, __file__, "--mode", "verify", "--scenario", scenario],
                 text=True,
                 capture_output=True,
                 check=True,
+                timeout=120,
             )
             print(verification.stdout, end="", flush=True)
