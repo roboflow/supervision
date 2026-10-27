@@ -230,6 +230,7 @@ overrides = [
     "tests.detection.test_line_counter",
     "tests.detection.test_polygonzone",
     "tests.detection.test_ultralytics_arrays",
+    "tests.detection.test_vlm",
     "tests.detection.tools.test_inference_slicer",
     "tests.detection.tools.test_inference_slicer_geotiff",
     "tests.detection.tools.test_smoother",
