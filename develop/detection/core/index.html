@@ -8820,7 +8820,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">                task=&quot;yolo&quot;,</span>
 </span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">                model_path = &quot;zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none&quot;</span>
 </span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">             )</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            result = yolo_pipeline(&lt;SOURCE IMAGE PATH&gt;)</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            result = yolo_pipeline(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            detections = sv.Detections.from_deepsparse(result)</span>
 </span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">            ```</span>
 </span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
@@ -10223,7 +10223,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-1946"><a id="__codelineno-0-1946" name="__codelineno-0-1946"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1947"><a id="__codelineno-0-1947" name="__codelineno-0-1947"></a><span class="sd">            model = get_model(</span>
 </span><span id="__span-0-1948"><a id="__codelineno-0-1948" name="__codelineno-0-1948"></a><span class="sd">                &quot;yolov8s&quot;,</span>
-</span><span id="__span-0-1949"><a id="__codelineno-0-1949" name="__codelineno-0-1949"></a><span class="sd">                target_size=640</span>
+</span><span id="__span-0-1949"><a id="__codelineno-0-1949" name="__codelineno-0-1949"></a><span class="sd">                target_size=640,</span>
 </span><span id="__span-0-1950"><a id="__codelineno-0-1950" name="__codelineno-0-1950"></a><span class="sd">                prob_threshold=0.5,</span>
 </span><span id="__span-0-1951"><a id="__codelineno-0-1951" name="__codelineno-0-1951"></a><span class="sd">                nms_threshold=0.45,</span>
 </span><span id="__span-0-1952"><a id="__codelineno-0-1952" name="__codelineno-0-1952"></a><span class="sd">                num_threads=4,</span>
@@ -12664,7 +12664,7 @@ inference result.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;yolo&quot;</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">model_path</span> <span class="o">=</span> <span class="s2">&quot;zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none&quot;</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a> <span class="p">)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">yolo_pipeline</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE</span> <span class="n">IMAGE</span> <span class="n">PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">yolo_pipeline</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div>
 </details>
@@ -12727,7 +12727,7 @@ inference result.</p>
 </span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">            task=&quot;yolo&quot;,</span>
 </span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            model_path = &quot;zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none&quot;</span>
 </span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">         )</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">        result = yolo_pipeline(&lt;SOURCE IMAGE PATH&gt;)</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">        result = yolo_pipeline(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">        detections = sv.Detections.from_deepsparse(result)</span>
 </span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">        ```</span>
 </span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
@@ -13817,7 +13817,7 @@ Supports object detection models.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;yolov8s&quot;</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_size</span><span class="o">=</span><span class="mi">640</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_size</span><span class="o">=</span><span class="mi">640</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">prob_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">nms_threshold</span><span class="o">=</span><span class="mf">0.45</span><span class="p">,</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">num_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
@@ -13908,7 +13908,7 @@ Supports object detection models.</p>
 </span><span id="__span-0-1946"><a id="__codelineno-0-1946" name="__codelineno-0-1946"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1947"><a id="__codelineno-0-1947" name="__codelineno-0-1947"></a><span class="sd">        model = get_model(</span>
 </span><span id="__span-0-1948"><a id="__codelineno-0-1948" name="__codelineno-0-1948"></a><span class="sd">            &quot;yolov8s&quot;,</span>
-</span><span id="__span-0-1949"><a id="__codelineno-0-1949" name="__codelineno-0-1949"></a><span class="sd">            target_size=640</span>
+</span><span id="__span-0-1949"><a id="__codelineno-0-1949" name="__codelineno-0-1949"></a><span class="sd">            target_size=640,</span>
 </span><span id="__span-0-1950"><a id="__codelineno-0-1950" name="__codelineno-0-1950"></a><span class="sd">            prob_threshold=0.5,</span>
 </span><span id="__span-0-1951"><a id="__codelineno-0-1951" name="__codelineno-0-1951"></a><span class="sd">            nms_threshold=0.45,</span>
 </span><span id="__span-0-1952"><a id="__codelineno-0-1952" name="__codelineno-0-1952"></a><span class="sd">            num_threads=4,</span>
