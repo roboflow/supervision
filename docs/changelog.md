@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.get_video_frames_generator` now rejects `stride=0` and negative strides with `ValueError` on first iteration, before opening the video or starting a prefetch thread. Previously these values could yield frames past `end`. ([#2819](https://github.com/roboflow/supervision/pull/2819))
+
 - `sv.KeyPoints.as_detections` and `sv.KeyPoints.with_nms` now use x/y for missing-point and finiteness checks when building image-space boxes. An extra coordinate no longer changes the boxes or suppression result; original keypoint data is preserved. ([#2817](https://github.com/roboflow/supervision/pull/2817))
 
 - The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
