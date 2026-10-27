@@ -7,7 +7,7 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks.
+- `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
 
 - The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
