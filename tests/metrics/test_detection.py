@@ -87,7 +87,7 @@ class TestDetectionMetrics:
     within the `supervision` ecosystem.
     """
 
-    CLASSES = np.arange(80)
+    CLASSES: ClassVar[list[str]] = [str(class_id) for class_id in range(80)]
     NUM_CLASSES = len(CLASSES)
 
     PREDICTIONS = np.array(
@@ -659,7 +659,7 @@ class TestDetectionMetrics:
                     )
                 ],
                 [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],  # GT bboxes
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence Threshold
                 0.5,  # IOU Threshold
                 np.array(  # Expected confusion matrix
@@ -691,7 +691,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -718,7 +718,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -748,7 +748,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -776,7 +776,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -803,7 +803,7 @@ class TestDetectionMetrics:
                         xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -830,7 +830,7 @@ class TestDetectionMetrics:
                         xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.zeros((4, 4)),
@@ -851,7 +851,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -890,7 +890,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2, 0],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -930,7 +930,7 @@ class TestDetectionMetrics:
                         class_id=[0, 1, 2, 0],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,  # conf_threshold filters out last prediction
                 0.5,
                 np.array(
@@ -974,7 +974,7 @@ class TestDetectionMetrics:
                         class_id=[0, 0, 0, 1, 1, 2, 2],
                     )
                 ],
-                [0, 1, 2],
+                ["0", "1", "2"],
                 0.5,
                 0.5,
                 np.array(
@@ -1018,7 +1018,7 @@ class TestDetectionMetrics:
                         class_id=[0, 0, 1, 1, 2, 2],
                     )
                 ],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1041,7 +1041,7 @@ class TestDetectionMetrics:
                     )
                 ],
                 [Detections.empty()],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1062,7 +1062,7 @@ class TestDetectionMetrics:
                         xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0]
                     )
                 ],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
@@ -1079,7 +1079,7 @@ class TestDetectionMetrics:
             (
                 [Detections.empty()],
                 [Detections.empty()],
-                [0, 1, 2],  # Class ids
+                ["0", "1", "2"],  # Class names
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
                 np.array(
