@@ -543,7 +543,7 @@ class Detections:
                 task="yolo",
                 model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
              )
-            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            result = yolo_pipeline("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
@@ -1205,7 +1205,10 @@ class Detections:
 
     @classmethod
     def from_vlm(
-        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+        cls,
+        vlm: VLM | str,
+        result: str | dict[str, Any] | tuple[str, list[Any]],
+        **kwargs: Any,
     ) -> Detections:
         """Creates a Detections object from the given result string based on the
         specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
@@ -1227,7 +1230,9 @@ class Detections:
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
-            result: The result string containing the detection data.
+            result: The model output containing the detection data: a string for
+                text-based VLMs, a dict for Florence-2 and Moondream, or the
+                `(caption, entities)` tuple returned by Kosmos-2.
             **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
@@ -1941,7 +1946,7 @@ class Detections:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
-                target_size=640
+                target_size=640,
                 prob_threshold=0.5,
                 nms_threshold=0.45,
                 num_threads=4,

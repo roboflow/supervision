@@ -1,4 +1,5 @@
 from collections import UserDict
+from typing import Any
 
 import numpy as np
 import pytest
@@ -38,6 +39,7 @@ def test_from_yolov5_maps_columns_correctly() -> None:
 
     assert isinstance(det, Detections)
     np.testing.assert_allclose(det.xyxy, pred[:, :4])
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, pred[:, 4])
     np.testing.assert_array_equal(det.class_id, pred[:, 5].astype(int))
 
@@ -54,6 +56,7 @@ def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     det = Detections.from_ultralytics(results)
 
     np.testing.assert_allclose(det.xyxy, xyxy)
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, conf)
     np.testing.assert_array_equal(det.class_id, cls.astype(int))
     assert det.tracker_id is None
@@ -133,6 +136,7 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
     assert len(det) == expected_len
     if expected_len > 0:
         np.testing.assert_allclose(det.xyxy, bboxes)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, conf)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
 
@@ -151,6 +155,7 @@ def test_from_tensorflow_scales_axes_on_non_square_image() -> None:
 
     # xmin=0.2*1000, ymin=0.1*500, xmax=0.6*1000, ymax=0.5*500
     np.testing.assert_allclose(det.xyxy, [[200.0, 50.0, 600.0, 250.0]])
+    assert det.confidence is not None
     np.testing.assert_allclose(det.confidence, [0.9])
     np.testing.assert_array_equal(det.class_id, [1])
 
@@ -194,6 +199,7 @@ class TestFromTransformers:
 
         np.testing.assert_allclose(det.xyxy, xyxy)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
 
     def test_detection_path_empty_returns_zero_detections(self) -> None:
@@ -275,6 +281,7 @@ class TestFromTransformers:
 
         assert len(det) == 2
         np.testing.assert_array_equal(det.class_id, [0, 1])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, [0.9, 0.8])
 
     def test_v5_semantic_output_with_scores_uses_class_map(self) -> None:
@@ -290,9 +297,11 @@ class TestFromTransformers:
         )
 
         det = Detections.from_transformers(
-            result, id2label={0: "background", 1: "cat", 2: "dog"}
+            result,  # type: ignore[arg-type]
+            id2label={0: "background", 1: "cat", 2: "dog"},
         )
 
+        assert isinstance(det.mask, np.ndarray)
         np.testing.assert_array_equal(det.class_id, [0, 1, 2])
         np.testing.assert_array_equal(det.mask[1], segmentation == 1)
         np.testing.assert_array_equal(
@@ -325,6 +334,7 @@ class TestFromDetectron2:
         det = Detections.from_detectron2(result)
 
         np.testing.assert_allclose(det.xyxy, xyxy)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, class_ids.astype(int))
         assert det.mask is None
@@ -385,6 +395,7 @@ class TestFromMMDetection:
         det = Detections.from_mmdetection(result)
 
         np.testing.assert_allclose(det.xyxy, xyxy)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
         assert det.mask is None
@@ -469,6 +480,7 @@ class TestFromPaddleDet:
 
         assert len(det) == expected_len
         np.testing.assert_allclose(det.xyxy, bbox_array[:, 2:6])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, bbox_array[:, 1])
         np.testing.assert_array_equal(det.class_id, bbox_array[:, 0].astype(int))
 
@@ -526,6 +538,7 @@ class TestFromDeepSparse:
 
         assert len(det) == expected_len
         np.testing.assert_allclose(det.xyxy, boxes)
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, scores)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
 
@@ -577,6 +590,7 @@ class TestFromEasyOCR:
         det = Detections.from_easyocr(results)
 
         assert len(det) == 1
+        assert det.confidence is not None
         assert float(det.confidence[0]) == pytest.approx(0.0)
 
     def test_preserves_oriented_corners_in_data(self) -> None:
@@ -587,7 +601,9 @@ class TestFromEasyOCR:
         det = Detections.from_easyocr(results)
 
         assert ORIENTED_BOX_COORDINATES in det.data
-        np.testing.assert_allclose(det.data[ORIENTED_BOX_COORDINATES], np.array([bbox]))
+        np.testing.assert_allclose(
+            np.asarray(det.data[ORIENTED_BOX_COORDINATES]), np.array([bbox])
+        )
 
     def test_detail_zero_results_raise_clear_error(self) -> None:
         """Detail=0 EasyOCR results must fail with a descriptive ValueError."""
@@ -601,13 +617,15 @@ class TestFromEasyOCR:
 
 
 def _make_azure_result(
-    detections: list[dict],
-) -> dict:
+    detections: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Build a minimal Azure Image Analysis response dict."""
     return {"objectsResult": {"values": detections}}
 
 
-def _make_azure_detection(x: int, y: int, w: int, h: int, tags: list[dict]) -> dict:
+def _make_azure_detection(
+    x: int, y: int, w: int, h: int, tags: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Build one Azure detection entry."""
     return {
         "boundingBox": {"x": x, "y": y, "w": w, "h": h},
@@ -636,6 +654,7 @@ class TestFromAzureAnalyzeImage:
         assert len(det) == 2
         # cat gets id=0 (first seen), dog gets id=1
         np.testing.assert_array_equal(det.class_id, [0, 1])
+        assert det.confidence is not None
         np.testing.assert_allclose(det.confidence, [0.9, 0.7])
         np.testing.assert_allclose(det.xyxy[0], [0, 0, 10, 10])
 
@@ -660,6 +679,8 @@ class TestFromAzureAnalyzeImage:
         det = Detections.from_azure_analyze_image(result, class_map=class_map)
 
         assert len(det) == 1
+        assert det.class_id is not None
+        assert det.confidence is not None
         assert int(det.class_id[0]) == 5
         np.testing.assert_allclose(det.confidence, [0.9])
 
@@ -734,7 +755,9 @@ class TestFromNCNN:
             ),
         ],
     )
-    def test_maps_xywh_rect_to_xyxy(self, objects: list, expected_len: int) -> None:
+    def test_maps_xywh_rect_to_xyxy(
+        self, objects: list[_FakeNCNNObject], expected_len: int
+    ) -> None:
         """Rect xywh converts to xyxy; prob and label map to confidence/class_id."""
         det = Detections.from_ncnn(objects)
 
@@ -744,5 +767,7 @@ class TestFromNCNN:
         expected_y2 = first.rect.y + first.rect.h
         np.testing.assert_allclose(det.xyxy[0, 2], expected_x2)
         np.testing.assert_allclose(det.xyxy[0, 3], expected_y2)
+        assert det.confidence is not None
+        assert det.class_id is not None
         assert float(det.confidence[0]) == pytest.approx(first.prob)
         assert int(det.class_id[0]) == first.label
