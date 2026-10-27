@@ -9,6 +9,8 @@ date_modified: 2026-10-17
 
 - `sv.KeyPoints.as_detections` and `sv.KeyPoints.with_nms` now use x/y for missing-point and finiteness checks when building image-space boxes. An extra coordinate no longer changes the boxes or suppression result; original keypoint data is preserved. ([#2817](https://github.com/roboflow/supervision/pull/2817))
 
+- The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+
 - `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
 - Annotators and `sv.hex_to_rgba` now accept 3- and 4-digit short hex colors such as `"#f0f"` and `"#f0f8"`, matching `sv.Color.from_hex`. Previously `sv.BoxAnnotator(color="#f0f")` raised `ValueError`. ([#2801](https://github.com/roboflow/supervision/pull/2801))
@@ -20,6 +22,16 @@ date_modified: 2026-10-17
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
 - `sv.metrics.MeanAverageRecall.compute()` now preserves shared scalar metadata when filtering targets by object size, instead of raising `IndexError`. ([#2791](https://github.com/roboflow/supervision/pull/2791))
+
+- `sv.ComparisonAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. Each region is blended with the first (blue) channel of its color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2803](https://github.com/roboflow/supervision/pull/2803))
+
+- The NumPy fallback for `line`, `polylines` and `drawContours` at `thickness` 1, and for `circle` outlines of `thickness` 1 and filled circles, now matches OpenCV pixel for pixel. These paths still used Pillow: on 2,000 random shapes, 66% of thin lines, 80% of thin circles and 82% of filled circles differed from `cv2`, and a filled radius-10 circle painted 349 pixels instead of 317. Thin segments now follow OpenCV's `clipLine` and `LineIterator`, and circles port the midpoint stepping of OpenCV's `Circle`. A negative circle radius now raises `ValueError`, as in OpenCV. ([#2808](https://github.com/roboflow/supervision/pull/2808))
+
+- The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
+
+- The NumPy fallback for `blur` now rounds 8-bit results like OpenCV. It averaged in float64 and rounded exact halves to even, while OpenCV divides exact window sums with a fixed-point reciprocal that rounds them up, so kernels with an even area, such as `(2, 1)` or `(4, 4)`, were one gray level off on many pixels. Kernels of up to 256 pixels use OpenCV's fixed-point rounding, with saturation for maximum-valued two-pixel windows; larger ones use OpenCV's float32 reciprocal. `BlurAnnotator`, `HaloAnnotator` and `HeatMapAnnotator` are affected without OpenCV. ([#2811](https://github.com/roboflow/supervision/pull/2811))
+
+- The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
 
 -
 

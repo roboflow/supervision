@@ -461,7 +461,11 @@ class TestCompactMaskNmmUnion:
                 CompactMask, "crop", side_effect=AssertionError("crop decode")
             ),
         ):
-            result = _merge_detection_group([detections[0], detections[1]])
+            first = detections[0]
+            second = detections[1]
+            assert isinstance(first, Detections)
+            assert isinstance(second, Detections)
+            result = _merge_detection_group([first, second])
 
         assert isinstance(result.mask, CompactMask)
         np.testing.assert_array_equal(

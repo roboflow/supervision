@@ -6,9 +6,9 @@ set -uo pipefail
 cd "$(dirname "$0")"
 
 if [ -z "${DEVICE:-}" ]; then
-    if [ "$(uname)" = "Darwin" ]; then DEVICE=mps
-    elif command -v nvidia-smi > /dev/null 2>&1; then DEVICE=cuda
-    else DEVICE=cpu
+    if ! DEVICE="$(python -c 'from depth_showcase import default_device; print(default_device())')"; then
+        echo "Could not detect a PyTorch accelerator; using CPU." >&2
+        DEVICE=cpu
     fi
 fi
 
