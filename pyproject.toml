@@ -248,6 +248,7 @@ overrides = [
     "tests.metrics.test_core",
     "tests.metrics.test_f1_score",
     "tests.metrics.test_lazy_imports",
+    "tests.metrics.test_mean_average_precision",
     "tests.metrics.test_precision",
     "tests.metrics.test_recall",
     "tests.test_public_api",
