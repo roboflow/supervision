@@ -1422,6 +1422,20 @@ def test_get_video_frames_generator_prefetch_negative_raises(dummy_video_path) -
         next(generator)
 
 
+@pytest.mark.parametrize("prefetch", [0, 2])
+@pytest.mark.parametrize("stride", [0, -1])
+def test_get_video_frames_generator_rejects_nonpositive_stride(
+    dummy_video_path: str, stride: int, prefetch: int
+) -> None:
+    """Reject nonpositive stride before yielding frames in either reading mode."""
+    generator = get_video_frames_generator(
+        dummy_video_path, stride=stride, end=2, prefetch=prefetch
+    )
+
+    with pytest.raises(ValueError, match="stride must be >= 1"):
+        next(generator)
+
+
 def test_get_video_frames_generator_prefetch_stride_early_termination(
     dummy_video_path,
 ) -> None:
