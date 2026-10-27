@@ -35,7 +35,7 @@ date_modified: 2026-10-17
 
 - The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
 
-- The NumPy fallback for `addWeighted` now rounds 8-bit, 16-bit and float32 blends like OpenCV. It blended in float64, while OpenCV casts the weights to float32 and adds with two fused multiply-adds, so sums that land on or next to a half rounded the other way: with `alpha=0.3` and `beta=0.7`, 820 of the 65,536 pairs of 8-bit values were one level off. Opacities such as 0.3, 0.7 or 0.9 in `sv.ColorAnnotator`, `sv.MaskAnnotator`, `sv.draw_filled_polygon` and the other blending annotators are affected without OpenCV. 32-bit integer and float64 inputs keep the float64 path.
+- The NumPy fallback for `addWeighted` now rounds 8-bit, 16-bit and float32 blends like OpenCV. It blended in float64, while OpenCV casts the weights to float32 and adds with two fused multiply-adds, so sums that land on or next to a half rounded the other way: with `alpha=0.3` and `beta=0.7`, 820 of the 65,536 pairs of 8-bit values were one level off. Opacities such as 0.3, 0.7 or 0.9 in `sv.ColorAnnotator`, `sv.MaskAnnotator`, `sv.draw_filled_polygon` and the other blending annotators are affected without OpenCV. 32-bit integer and float64 inputs keep the float64 path. ([#2836](https://github.com/roboflow/supervision/pull/2836))
 
 -
 
