@@ -11,6 +11,10 @@ from supervision.metrics import (
     Recall,
 )
 
+BucketedMetric = (
+    type[Precision] | type[Recall] | type[F1Score] | type[MeanAverageRecall]
+)
+
 
 @pytest.mark.parametrize(
     ("cls_metric", "bucket_attr", "score_attrs", "expected"),
@@ -46,8 +50,11 @@ from supervision.metrics import (
     ],
 )
 def test_size_bucket_match_is_not_stolen(
-    cls_metric, bucket_attr, score_attrs, expected
-):
+    cls_metric: BucketedMetric,
+    bucket_attr: str,
+    score_attrs: tuple[str, ...],
+    expected: tuple[float, ...],
+) -> None:
     """Bucketed metrics must keep the in-bucket match instead of stealing it."""
     predictions = Detections(
         xyxy=np.array([[0, 0, 90, 90]], dtype=np.float32),
@@ -156,8 +163,10 @@ def test_medium_bucket_mar_counts_global_rank_budget() -> None:
     ],
 )
 def test_perfect_detector_scores_full_marks_in_every_bucket(
-    cls_metric, bucket_attrs, score_attrs
-):
+    cls_metric: BucketedMetric,
+    bucket_attrs: tuple[str, ...],
+    score_attrs: tuple[str, ...],
+) -> None:
     """Bucketed metrics must score a perfect detector 1.0 in every bucket."""
     xyxy = np.array(
         [[0, 0, 50, 50], [100, 100, 250, 250]],
@@ -194,8 +203,8 @@ def test_perfect_detector_scores_full_marks_in_every_bucket(
     ],
 )
 def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
-    cls_metric, score_attr, overall_expected
-):
+    cls_metric: BucketedMetric, score_attr: str, overall_expected: float
+) -> None:
     """A stray large false positive lowers overall scores, not the medium bucket."""
     predictions = Detections(
         xyxy=np.array(
@@ -356,7 +365,9 @@ def test_obb_bucket_ignores_out_of_bucket_predictions(
         pytest.param(MeanAverageRecall, "targets", id="mar-targets"),
     ],
 )
-def test_mask_target_requires_masks(cls_metric, missing_side) -> None:
+def test_mask_target_requires_masks(
+    cls_metric: BucketedMetric, missing_side: str
+) -> None:
     """Mask-target metrics raise when either side omits masks."""
     box = np.array([[0, 0, 10, 10]], dtype=np.float32)
     mask = np.zeros((1, 10, 10), dtype=bool)

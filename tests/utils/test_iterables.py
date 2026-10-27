@@ -18,7 +18,10 @@ from supervision.utils.iterables import create_batches, fill
         ([1, 2, 3, 4], 3, [[1, 2, 3], [4]]),
     ],
 )
-def test_create_batches(sequence, batch_size, expected) -> None:
+def test_create_batches(
+    sequence: list[int], batch_size: int, expected: list[list[int]]
+) -> None:
+    """Batching preserves item order across empty, partial and full batches."""
     result = list(create_batches(sequence=sequence, batch_size=batch_size))
     assert result == expected
 
@@ -38,6 +41,9 @@ def test_create_batches(sequence, batch_size, expected) -> None:
         ([2], 3, 1, [2, 1, 1]),
     ],
 )
-def test_fill(sequence, desired_size, content, expected) -> None:
+def test_fill(
+    sequence: list[int], desired_size: int, content: int, expected: list[int]
+) -> None:
+    """Padding reaches the requested size without truncating existing items."""
     result = fill(sequence=sequence, desired_size=desired_size, content=content)
     assert result == expected
