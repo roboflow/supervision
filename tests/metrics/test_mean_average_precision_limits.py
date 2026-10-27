@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+from typing import Any
 
 import numpy as np
 import pytest
@@ -32,6 +33,9 @@ def _dense_pair(count: int, classes: int = 1) -> tuple[Detections, Detections]:
 
 def _reference(predictions: Detections, targets: Detections, cap: int) -> np.ndarray:
     """Calculate bbox AP from the selected Faster COCO Eval precision slice."""
+    assert targets.class_id is not None
+    assert predictions.class_id is not None
+    assert predictions.confidence is not None
     annotations = []
     for index, (box, category) in enumerate(zip(targets.xyxy, targets.class_id)):
         x0, y0, x1, y1 = box
@@ -141,7 +145,9 @@ class TestMeanAveragePrecisionLimits:
     ) -> None:
         """A larger cap does not turn imperfect predictions into perfect AP."""
         predictions, targets = _dense_pair(350, classes=2)
-        predictions = predictions[np.arange(350) % 7 != 0]
+        kept = predictions[np.arange(350) % 7 != 0]
+        assert isinstance(kept, Detections)
+        predictions = kept
         predictions.xyxy[:20, 1::2] += 4
         expected = _reference(predictions, targets, cap)
 
@@ -211,6 +217,7 @@ class TestMeanAveragePrecisionLimits:
             result.medium_objects,
             result.large_objects,
         ):
+            assert child is not None
             assert child.max_detection_thresholds == (1, 10, 1000)
             assert child.to_pandas().attrs["max_detection_thresholds"] == (1, 10, 1000)
 
@@ -245,7 +252,7 @@ class TestMeanAveragePrecisionLimits:
             pytest.param((1, 10, 100.0), id="float"),
         ],
     )
-    def test_invalid_limits_are_rejected(self, thresholds: tuple) -> None:
+    def test_invalid_limits_are_rejected(self, thresholds: tuple[Any, ...]) -> None:
         """Require exactly three strictly increasing positive integer limits."""
         with pytest.raises(ValueError, match="max_detection_thresholds"):
             MeanAveragePrecision(max_detection_thresholds=thresholds)
@@ -276,13 +283,15 @@ class TestMeanAveragePrecisionLimits:
         )
 
         children = (result.small_objects, result.medium_objects, result.large_objects)
-        selected = {1: 0, 50: 1, 100: 2}[scale]
-        assert children[selected].map50 == pytest.approx(1.0)
-        assert children[selected].max_detection_thresholds == (1, 10, 300)
+        selected = children[{1: 0, 50: 1, 100: 2}[scale]]
+        assert selected is not None
+        assert selected.map50 == pytest.approx(1.0)
+        assert selected.max_detection_thresholds == (1, 10, 300)
 
     def test_tied_scores_match_reference(self) -> None:
         """Stable score sorting agrees with COCO when tied candidates cross the cap."""
         predictions, targets = _dense_pair(121)
+        assert predictions.confidence is not None
         predictions.confidence[:] = 0.9
         predictions.xyxy[::3, 1::2] += 4
         expected = _reference(predictions, targets, 100)
