@@ -1,11 +1,15 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-24
+date_modified: 2026-10-28
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
+
+-
+
+### 0.31.3 <small>Oct 28, 2026</small>
 
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
 
@@ -15,7 +19,7 @@ date_modified: 2026-10-24
 
 - `sv.KeyPoints.as_detections` and `sv.KeyPoints.with_nms` now use x/y for missing-point and finiteness checks when building image-space boxes. An extra coordinate no longer changes the boxes or suppression result; original keypoint data is preserved. ([#2817](https://github.com/roboflow/supervision/pull/2817))
 
-- The depth showcase now reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804))
+- Added the `examples/depth_showcase` example, which runs Depth Anything V2 Large, Apple Depth Pro and a YOLO depth model through `sv.DepthAnnotator` on video files, webcams and streams. It reads video files to EOF by default even when frame-count metadata is missing or inaccurate, validates frame limits, skips unusable depth maps during colour-range calibration, selects only devices supported by installed PyTorch, and keeps inference timing memory bounded. ([#2804](https://github.com/roboflow/supervision/pull/2804), [#2818](https://github.com/roboflow/supervision/pull/2818))
 
 - `sv.assets.download_assets(VideoAssets.GROCERY_STORE)` no longer fails with `Downloaded asset 'grocery-store.mp4' failed MD5 verification`: the catalog now holds the checksum of the hosted file. ([#2804](https://github.com/roboflow/supervision/pull/2804))
 
@@ -23,7 +27,9 @@ date_modified: 2026-10-24
 
 - `sv.ImageSink(overwrite=False)` now raises `FileExistsError` instead of silently replacing an existing image with the same filename, including dangling symlink destinations. Paths containing embedded null characters raise `ValueError` before writing, preventing native path truncation from bypassing the overwrite guard. ([#2800](https://github.com/roboflow/supervision/pull/2800))
 
-- `sv.merge_multi_segment` now preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
+- Added `sv.merge_multi_segment`, which joins the disconnected polygon segments of one mask into a single polygon through zero-width seams at the nearest vertices. It preserves nearest-vertex ordering for large integer origins by translating before distance calculations, and raises `ValueError` when an adjacent integer segment pair spans more than `2**25` on either axis. Adjacent pairs mixing integer and floating segments reject integer coordinates outside `[-2**53, 2**53]` before lossy float64 conversion. ([#2786](https://github.com/roboflow/supervision/pull/2786))
+
+- `sv.DetectionDataset.as_yolo` now omits detections whose `iscrowd` flag is set and writes a mask with several disconnected parts as one merged polygon line instead of one line per part. Both are on by default; pass `ignore_crowd=False` and `merge_segments=False` to keep the previous output. The same parameters were added to `save_yolo_annotations` and `detections_to_yolo_annotations` in `supervision.dataset.formats.yolo`. ([#2786](https://github.com/roboflow/supervision/pull/2786))
 
 - Depth input validation now rejects unwrapped integer arrays instead of treating them as valid depth values. ([#2795](https://github.com/roboflow/supervision/pull/2795))
 
@@ -42,8 +48,6 @@ date_modified: 2026-10-24
 - The NumPy fallback for `addWeighted` now rounds 8-bit, 16-bit and float32 blends like OpenCV. It blended in float64, while OpenCV casts the weights to float32 and adds with two fused multiply-adds, so sums that land on or next to a half rounded the other way: with `alpha=0.3` and `beta=0.7`, 820 of the 65,536 pairs of 8-bit values were one level off. Opacities such as 0.3, 0.7 or 0.9 in `sv.ColorAnnotator`, `sv.MaskAnnotator`, `sv.draw_filled_polygon` and the other blending annotators are affected without OpenCV. 32-bit integer and float64 inputs keep the float64 path. ([#2836](https://github.com/roboflow/supervision/pull/2836))
 
 - The NumPy fallback for `resize` with `INTER_LINEAR` now matches OpenCV pixel for pixel on `uint8` images. It went through Pillow (or float64 math for RGBA and `fx`/`fy` resizes), which rounded differently from OpenCV's 11-bit fixed-point weights: on 996 random grayscale, BGR and RGBA resizes every result differed from `cv2.resize` by one level somewhere. Exact halvings (`fx=fy=0.5`) follow OpenCV's fast area path, and an unchanged size returns a copy. The reference is OpenCV's generic kernel; arm64 builds hand some grayscale and RGBA resizes to the Carotene HAL, which can differ by up to two levels. `sv.resize_image`, `sv.letterbox_image`, `sv.scale_image`, `sv.PixelateAnnotator` and `sv.draw_image` are affected without OpenCV. Other dtypes keep the float path. ([#2833](https://github.com/roboflow/supervision/pull/2833))
-
--
 
 ### 0.31.2 <small>Oct 24, 2026</small>
 
