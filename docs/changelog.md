@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
+
 - `sv.get_video_frames_generator` now rejects `stride=0` and negative strides with `ValueError` on first iteration, before opening the video or starting a prefetch thread. Previously these values could yield frames past `end`. ([#2819](https://github.com/roboflow/supervision/pull/2819))
 
 - `sv.KeyPoints.as_detections` and `sv.KeyPoints.with_nms` now use x/y for missing-point and finiteness checks when building image-space boxes. An extra coordinate no longer changes the boxes or suppression result; original keypoint data is preserved. ([#2817](https://github.com/roboflow/supervision/pull/2817))
