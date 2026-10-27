@@ -122,3 +122,28 @@ class TestNativeOBBInference:
         result = source.with_nms(threshold=0.5)
 
         assert len(result) == 2
+
+
+class TestOrdinaryInferenceCompatibility:
+    def test_unmarked_obb_extension_keeps_ordinary_detection_contract(self) -> None:
+        """An unrelated extension cannot change the existing task discriminator."""
+        response = {
+            "image": {"width": 100, "height": 100},
+            "predictions": [
+                {
+                    "x": 20,
+                    "y": 30,
+                    "width": 10,
+                    "height": 8,
+                    "confidence": 0.9,
+                    "class_id": 0,
+                    "class": "object",
+                    "obb": "caller-owned extension",
+                }
+            ],
+        }
+
+        detections = sv.Detections.from_inference(response)
+
+        np.testing.assert_array_equal(detections.xyxy, [[15, 26, 25, 34]])
+        assert ORIENTED_BOX_COORDINATES not in detections.data

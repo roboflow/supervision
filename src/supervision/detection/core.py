@@ -826,12 +826,9 @@ class Detections:
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
-        if isinstance(roboflow_result, dict) and (
-            roboflow_result.get("task_type") == "oriented-object-detection"
-            or (
-                isinstance(roboflow_result.get("predictions"), list)
-                and any("obb" in p for p in roboflow_result["predictions"])
-            )
+        if (
+            isinstance(roboflow_result, dict)
+            and roboflow_result.get("task_type") == "oriented-object-detection"
         ):
             (
                 native_xyxy,
