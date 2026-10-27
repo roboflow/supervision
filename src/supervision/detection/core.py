@@ -543,7 +543,7 @@ class Detections:
                 task="yolo",
                 model_path = "zoo:cv/detection/yolov5-l/pytorch/ultralytics/coco/pruned80_quant-none"
              )
-            result = yolo_pipeline(<SOURCE IMAGE PATH>)
+            result = yolo_pipeline("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_deepsparse(result)
             ```
         """  # noqa: E501 // docs
@@ -1941,7 +1941,7 @@ class Detections:
             image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
-                target_size=640
+                target_size=640,
                 prob_threshold=0.5,
                 nms_threshold=0.45,
                 num_threads=4,
