@@ -176,12 +176,31 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
-def test_fallback_mean_matches_opencv() -> None:
-    """Match OpenCV masked mean semantics."""
-    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
-    mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
+class TestFallbackMean:
+    def test_matches_opencv_for_masked_uint8(self) -> None:
+        """Match OpenCV masked mean semantics for integer images."""
+        source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+        mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
 
-    assert _mean(source, mask) == cv2.mean(source, mask)
+        assert _mean(source, mask) == cv2.mean(source, mask)
+
+    def test_preserves_float32_precision(self) -> None:
+        """Retain small values when averaging large float32 pixels."""
+        source = np.array([[1e8, 1, -1e8]], dtype=np.float32)
+
+        assert _mean(source) == cv2.mean(source)
+
+    def test_preserves_masked_multichannel_float32_precision(self) -> None:
+        """Match OpenCV precision for selected pixels in each channel."""
+        source = np.array(
+            [[[1e8, -1e8], [1, 5], [-1e8, 1e8], [999, 999]]],
+            dtype=np.float32,
+        )
+        mask = np.array([[255, 255, 255, 0]], dtype=np.uint8)
+
+        assert _mean(source, mask) == pytest.approx(
+            cv2.mean(source, mask), rel=0, abs=1e-15
+        )
 
 
 @pytest.mark.parametrize(
