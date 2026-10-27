@@ -235,6 +235,7 @@ def _linear_resize_taps(
 
     For a two-pixel source axis, horizontal taps snap at both edges:
 
+    ```pycon
     >>> left, right, weight_left, weight_right = _linear_resize_taps(
     ...     3, 2, 2 / 3, clamp_weights=True
     ... )
@@ -243,13 +244,18 @@ def _linear_resize_taps(
     >>> weight_left.tolist(), weight_right.tolist()
     ([2048, 1024, 2048], [0, 1024, 0])
 
+    ```
+
     Vertical taps keep the fractional weights at the clamped edge rows:
 
+    ```pycon
     >>> _, _, weight_top, weight_bottom = _linear_resize_taps(
     ...     3, 2, 2 / 3, clamp_weights=False
     ... )
     >>> weight_top.tolist(), weight_bottom.tolist()
     ([341, 1024, 1707], [1707, 1024, 341])
+
+    ```
     """
     position = ((np.arange(size) + 0.5) * scale - 0.5).astype(np.float32)
     first = np.floor(position).astype(np.intp)
@@ -292,6 +298,7 @@ def _resize_linear_uint8(
 
     A 4-by-4 image with constant 2-by-2 regions resizes to those four values:
 
+    ```pycon
     >>> source = np.array(
     ...     [[0, 0, 100, 100], [0, 0, 100, 100],
     ...      [200, 200, 255, 255], [200, 200, 255, 255]],
@@ -299,6 +306,8 @@ def _resize_linear_uint8(
     ... )
     >>> _resize_linear_uint8(source, 2, 2, 2.0, 2.0).tolist()
     [[0, 100], [200, 255]]
+
+    ```
     """
     source_height, source_width = src.shape[:2]
     x0, x1, wx0, wx1 = _linear_resize_taps(
@@ -363,9 +372,12 @@ def _resize_half_uint8(
 
     Odd edges average only their available pixels, rounding half to even:
 
+    ```pycon
     >>> source = np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
     >>> _resize_half_uint8(source, 2, 2).tolist()
     [[3, 4], [8, 9]]
+
+    ```
     """
     source_height, source_width = src.shape[:2]
     image = src if src.ndim == 3 else src[:, :, np.newaxis]
