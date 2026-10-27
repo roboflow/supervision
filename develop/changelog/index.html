@@ -4393,6 +4393,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <li>
 <p>The NumPy fallback for <code>connectedComponents</code> and <code>connectedComponentsWithStats</code> now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, <code>stats</code> rows and <code>centroids</code> rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. (<a href="https://github.com/roboflow/supervision/pull/2812">#2812</a>)</p>
 </li>
+<li>
+<p>The NumPy fallback for <code>resize</code> with <code>INTER_LINEAR</code> now matches OpenCV pixel for pixel on <code>uint8</code> images. It went through Pillow (or float64 math for RGBA and <code>fx</code>/<code>fy</code> resizes), which rounded differently from OpenCV's 11-bit fixed-point weights: on 996 random grayscale, BGR and RGBA resizes every result differed from <code>cv2.resize</code> by one level somewhere. Exact halvings (<code>fx=fy=0.5</code>) follow OpenCV's fast area path, and an unchanged size returns a copy. The reference is OpenCV's generic kernel; arm64 builds hand some grayscale and RGBA resizes to the Carotene HAL, which can differ by up to two levels. <code>sv.resize_image</code>, <code>sv.letterbox_image</code>, <code>sv.scale_image</code>, <code>sv.PixelateAnnotator</code> and <code>sv.draw_image</code> are affected without OpenCV. Other dtypes keep the float path. (<a href="https://github.com/roboflow/supervision/pull/2833">#2833</a>)</p>
+</li>
 </ul>
 <p>-</p>
 <h3 id="0312-oct-24-2026">0.31.2 <small>Oct 24, 2026</small><a class="headerlink" href="#0312-oct-24-2026" title="Permanent link">&para;</a></h3>
@@ -6596,7 +6599,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 27, 2026 16:56:51 UTC">October 27, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 27, 2026 19:24:12 UTC">October 27, 2026</span>
   </span>
 
     
@@ -6624,9 +6627,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6634,14 +6637,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+          
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+        </a>
+      
         <a href="https://github.com/AuricTW" class="md-author" title="@AuricTW">
           
           <img src="https://avatars.githubusercontent.com/u/108772778?v=4&size=72" alt="AuricTW">
-        </a>
-      
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
-          
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
       
