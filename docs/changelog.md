@@ -27,6 +27,8 @@ date_modified: 2026-10-17
 
 - The NumPy fallback for `fillPoly` and filled `drawContours` now matches OpenCV for polygons whose edges leave the canvas, extending the in-bounds parity of [#2730](https://github.com/roboflow/supervision/pull/2730). OpenCV takes an off-canvas edge's slope from its integer-clipped endpoints; the fallback used the original vertices, so 61% of random polygons leaving the canvas differed by a few boundary pixels (up to 52). `polygon_to_mask`, `sv.draw_filled_polygon` and `PolygonZone` masks are affected without OpenCV. ([#2810](https://github.com/roboflow/supervision/pull/2810))
 
+- The NumPy fallback for `blur` now rounds 8-bit results like OpenCV. It averaged in float64 and rounded exact halves to even, while OpenCV divides exact window sums with a fixed-point reciprocal that rounds them up, so kernels with an even area, such as `(2, 1)` or `(4, 4)`, were one gray level off on many pixels. Kernels of up to 256 pixels use OpenCV's fixed-point rounding, with saturation for maximum-valued two-pixel windows; larger ones use OpenCV's float32 reciprocal. `BlurAnnotator`, `HaloAnnotator` and `HeatMapAnnotator` are affected without OpenCV. ([#2811](https://github.com/roboflow/supervision/pull/2811))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
