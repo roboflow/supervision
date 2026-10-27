@@ -119,6 +119,50 @@ def test_fallback_add_weighted_matches_opencv() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("alpha", "beta", "gamma"),
+    [
+        pytest.param(0.3, 0.7, 0, id="opacity-0.3"),
+        pytest.param(0.7, 1 - 0.7, 0, id="opacity-0.7"),
+        pytest.param(0.1, 0.9, 0, id="opacity-0.1"),
+        pytest.param(0.35, 0.65, 2.5, id="with-gamma"),
+    ],
+)
+def test_fallback_add_weighted_rounds_8bit_blends_like_opencv(
+    alpha: float, beta: float, gamma: float
+) -> None:
+    """Blend every pair of 8-bit values in float32, as OpenCV does."""
+    first, second = np.meshgrid(np.arange(256), np.arange(256), indexing="ij")
+    source = np.stack([first, second, 255 - first], axis=-1).astype(np.uint8)
+    other = np.stack([second, first, 255 - second], axis=-1).astype(np.uint8)
+
+    np.testing.assert_array_equal(
+        _add_weighted(source, alpha, other, beta, gamma),
+        cv2.addWeighted(source, alpha, other, beta, gamma),
+    )
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.uint16, np.int16, np.float32])
+def test_fallback_add_weighted_matches_opencv_for_float32_blend_depths(
+    dtype: type[np.generic],
+) -> None:
+    """Match OpenCV on the other depths it blends in float32."""
+    rng = np.random.default_rng(20261027)
+    if np.issubdtype(dtype, np.integer):
+        info = np.iinfo(dtype)
+        source = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+        other = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+    else:
+        source = rng.uniform(-100, 400, (64, 48, 3))
+        other = rng.uniform(-100, 400, (64, 48, 3))
+    source, other = source.astype(dtype), other.astype(dtype)
+
+    np.testing.assert_array_equal(
+        _add_weighted(source, 0.35, other, 0.65, 0),
+        cv2.addWeighted(source, 0.35, other, 0.65, 0),
+    )
+
+
 def test_fallback_add_weighted_supports_destination() -> None:
     """Write weighted image blending results into the provided destination."""
     source = np.array([[0, 100], [200, 255]], dtype=np.uint8)

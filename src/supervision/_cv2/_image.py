@@ -71,6 +71,34 @@ def _copy_make_border(
     return result
 
 
+# OpenCV's `addWeighted` blends these depths in float32 rather than float64.
+_FLOAT32_BLEND_DTYPES = tuple(
+    np.dtype(dtype) for dtype in (np.uint8, np.int8, np.uint16, np.int16, np.float32)
+)
+
+
+def _blend_like_opencv_float32(
+    src1: npt.NDArray[Any],
+    alpha: float,
+    src2: npt.NDArray[Any],
+    beta: float,
+    gamma: float,
+) -> npt.NDArray[np.float32]:
+    """Compute `src1 * alpha + src2 * beta + gamma` the way OpenCV's SIMD loop does.
+
+    The weights are cast to float32 and the sum is taken with two fused multiply-adds,
+    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32. A
+    product of an 8- or 16-bit value with a float32 weight, plus a float32 term, is
+    exact in float64, so rounding each float64 sum to float32 gives the same result;
+    float32 images take the same path.
+    """
+    alpha32, beta32, gamma32 = (
+        np.float64(np.float32(value)) for value in (alpha, beta, gamma)
+    )
+    inner = (src2.astype(np.float64) * beta32 + gamma32).astype(np.float32)
+    return (src1.astype(np.float64) * alpha32 + inner).astype(np.float32)
+
+
 def _add_weighted(
     src1: npt.NDArray[Any],
     alpha: float,
@@ -88,10 +116,15 @@ def _add_weighted(
         )
     if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
-    result = _cast_array_like_opencv(
-        src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
-        src1.dtype,
-    )
+    if src1.dtype in _FLOAT32_BLEND_DTYPES:
+        result = _cast_array_like_opencv(
+            _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
+        )
+    else:
+        result = _cast_array_like_opencv(
+            src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
+            src1.dtype,
+        )
     if dst is not None:
         dst[...] = result
         return dst
