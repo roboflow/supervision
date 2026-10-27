@@ -3,13 +3,6 @@ name: Test GitHub Configuration
 on:
   push:
     branches: ["main", "develop", "release/*"]
-    paths:
-      - ".github/**"
-      - "docs/**"
-      - "tests/cv2/installed_wheel_fallback_manifest.txt"
-      - "mkdocs.yml"
-      - "pyproject.toml"
-      - "uv.lock"
   pull_request:
     branches: ["main", "develop", "release/*"]
     paths:
@@ -26,7 +19,7 @@ permissions:
 
 concurrency:
   group: github-tests-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:

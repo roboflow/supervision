@@ -6,10 +6,6 @@ permissions:
 on:
   push:
     branches: ["main", "develop", "release/*"]
-    paths:
-      - "**/*.md"
-      - ".github/lychee.toml"
-      - ".github/workflows/ci-check-links.yml"
   pull_request:
     paths:
       - "**/*.md"
@@ -21,7 +17,7 @@ on:
 
 concurrency:
   group: ci-check-links-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   links-check:
     timeout-minutes: 10

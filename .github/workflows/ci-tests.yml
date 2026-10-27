@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: pytest-test-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-pkg:
@@ -31,6 +31,8 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         cv2: ["none"]
+        # Linux covers every Python minor; other OSes cover the version endpoints.
+        # The backend-specific cases below still run on every OS.
         exclude:
           - { os: "windows-latest", python-version: "3.11" }
           - { os: "windows-latest", python-version: "3.12" }
