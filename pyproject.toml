@@ -223,6 +223,7 @@ overrides = [
     "tests.detection.test_compact_mask_integration",
     "tests.detection.test_compact_mask_iou",
     "tests.detection.test_compact_mask_union",
+    "tests.detection.test_core",
     "tests.detection.test_csv",
     "tests.detection.test_from_adapters",
     "tests.detection.test_from_sam",
