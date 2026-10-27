@@ -249,6 +249,7 @@ overrides = [
     "tests.metrics.test_f1_score",
     "tests.metrics.test_keypoint_mean_average_precision",
     "tests.metrics.test_lazy_imports",
+    "tests.metrics.test_mean_average_precision",
     "tests.metrics.test_mean_average_precision_area",
     "tests.metrics.test_mean_average_precision_limits",
     "tests.metrics.test_mean_average_recall",
