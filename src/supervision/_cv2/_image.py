@@ -176,7 +176,7 @@ def _resize(
     if src.dtype == np.uint8:
         if (width, height) == (source_width, source_height):
             # `cv2.resize` copies the image when the size does not change.
-            return np.ascontiguousarray(src).copy()
+            return np.array(src, order="C", copy=True)
         if scale_from_factors and (fx, fy) == (0.5, 0.5):
             # OpenCV resizes an exact 2x reduction with its fast area path.
             return _resize_half_uint8(src, width, height)
