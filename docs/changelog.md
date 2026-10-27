@@ -29,6 +29,8 @@ date_modified: 2026-10-17
 
 - The NumPy fallback for `blur` now rounds 8-bit results like OpenCV. It averaged in float64 and rounded exact halves to even, while OpenCV divides exact window sums with a fixed-point reciprocal that rounds them up, so kernels with an even area, such as `(2, 1)` or `(4, 4)`, were one gray level off on many pixels. Kernels of up to 256 pixels use OpenCV's fixed-point rounding, with saturation for maximum-valued two-pixel windows; larger ones use OpenCV's float32 reciprocal. `BlurAnnotator`, `HaloAnnotator` and `HeatMapAnnotator` are affected without OpenCV. ([#2811](https://github.com/roboflow/supervision/pull/2811))
 
+- The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
