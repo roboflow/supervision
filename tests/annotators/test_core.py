@@ -2262,6 +2262,56 @@ class TestBackgroundOverlayAnnotator:
         assert np.array_equal(result_bool, result_uint8)
 
 
+class TestSingleChannelBackgroundOverlayAnnotator:
+    """Verify BackgroundOverlayAnnotator on grayscale scenes."""
+
+    @pytest.mark.parametrize("force_box", [False, True])
+    @pytest.mark.parametrize("use_mask", [False, True])
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(
+        self, force_box: bool, use_mask: bool, channel_axis: bool
+    ) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+
+        boxes = np.array([[5, 4, 25, 22]], dtype=np.float32)
+        detections = Detections(xyxy=boxes, class_id=np.array([0]))
+        if use_mask:
+            detections.mask = xyxy_to_mask(boxes, resolution_wh=(40, 30))
+
+        annotator = BackgroundOverlayAnnotator(
+            color=Color(r=10, g=20, b=60), opacity=0.5, force_box=force_box
+        )
+        expected = annotator.annotate(scene=color_scene, detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    @pytest.mark.parametrize("use_mask", [False, True])
+    def test_grayscale_pillow_image(self, use_mask: bool) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=200)
+        boxes = np.array([[10, 10, 30, 20]], dtype=np.float32)
+        detections = Detections(xyxy=boxes, class_id=np.array([0]))
+        if use_mask:
+            detections.mask = xyxy_to_mask(boxes, resolution_wh=(40, 30))
+
+        annotator = BackgroundOverlayAnnotator(color=Color(r=0, g=0, b=0), opacity=1.0)
+
+        result = annotator.annotate(scene=image, detections=detections)
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((5, 5)) == 0
+        assert result.getpixel((20, 15)) == 200
+
+
 class TestComparisonAnnotator:
     """Tests for ComparisonAnnotator class."""
 

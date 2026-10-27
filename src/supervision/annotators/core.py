@@ -3275,7 +3275,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         Args:
             scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; the overlay is blended with the first (blue) channel
+                of its color, as OpenCV draws boxes and polygons.
             detections: Object detections to annotate.
 
         Returns:
@@ -3304,7 +3306,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        color = _color_for_canvas(self.color.as_bgr(), scene)
+        colored_mask = np.full_like(scene, color, dtype=np.uint8)
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
