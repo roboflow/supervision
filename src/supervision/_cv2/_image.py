@@ -87,10 +87,10 @@ def _blend_like_opencv_float32(
     """Compute `src1 * alpha + src2 * beta + gamma` the way OpenCV's SIMD loop does.
 
     The weights are cast to float32 and the sum is taken with two fused multiply-adds,
-    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32. A
-    product of an 8- or 16-bit value with a float32 weight, plus a float32 term, is
-    exact in float64, so rounding each float64 sum to float32 gives the same result;
-    float32 images take the same path.
+    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32. A product
+    of an 8- or 16-bit value with a float32 weight, plus a float32 term, is exact in
+    float64, so rounding each float64 sum to float32 gives the same result; float32
+    images take the same path.
     """
     alpha32, beta32, gamma32 = (
         np.float64(np.float32(value)) for value in (alpha, beta, gamma)
