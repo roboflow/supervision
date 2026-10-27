@@ -1560,9 +1560,10 @@ class KeyPoints:
     ) -> KeyPoints:
         """Performs non-max suppression on the keypoint detections. Bounding boxes are
         derived from valid keypoints of each skeleton, and standard box NMS is applied.
-        A keypoint is considered valid when its coordinates are finite and not all-zero,
-        and its `visible` flag is `True` (if `visible` is set). A skeleton without any
-        valid keypoints, including an empty keypoint axis, keeps a zero-area box, so it
+        A keypoint is considered valid when its x/y coordinates are finite and not both
+        zero, and its `visible` flag is `True` (if `visible` is set). An extra
+        coordinate does not affect the image-space box. A skeleton without any valid
+        keypoints, including an empty keypoint axis, keeps a zero-area box, so it
         overlaps nothing and passes through.
 
         Args:
@@ -1636,7 +1637,7 @@ class KeyPoints:
                 "class_agnostic=True."
             )
 
-        xy = self.xy
+        xy = self.xy[..., :2]
         # A non-finite keypoint marks an undetected joint, so it must not reach the
         # box: `xy == 0` does not catch it and `np.min`/`np.max` propagate it into
         # every corner, leaving an all-`NaN` box that compares False against every
@@ -1680,10 +1681,10 @@ class KeyPoints:
     ) -> Detections:
         """Convert a KeyPoints object to a Detections object. This approximates the
         bounding box of the detected object by taking the bounding box that fits all key
-        points. Key points that are missing (`[0, 0]`), not finite, or marked not
-        visible via `visible` are left out, as in
+        points. Key points whose x/y coordinates are missing (`[0, 0]`), not finite, or
+        marked not visible via `visible` are left out, as in
         :meth:`~supervision.key_points.core.KeyPoints.with_nms`, and a skeleton with no
-        other key point is dropped.
+        other key point is dropped. An extra coordinate does not affect the box.
 
         Args:
             selected_keypoint_indices: The
@@ -1714,7 +1715,7 @@ class KeyPoints:
         if self.is_empty() or self.xy.shape[1] == 0:
             return Detections.empty()
 
-        xy = self.xy
+        xy = self.xy[..., :2]
         indices: npt.NDArray[np.intp] | None = None
         if selected_keypoint_indices is not None:
             candidate = np.asarray(list(selected_keypoint_indices), dtype=np.intp)

@@ -1205,7 +1205,10 @@ class Detections:
 
     @classmethod
     def from_vlm(
-        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+        cls,
+        vlm: VLM | str,
+        result: str | dict[str, Any] | tuple[str, list[Any]],
+        **kwargs: Any,
     ) -> Detections:
         """Creates a Detections object from the given result string based on the
         specified Vision Language Model, :class:`~supervision.detection.vlm.VLM`.
@@ -1227,7 +1230,9 @@ class Detections:
 
         Args:
             vlm: The type of VLM (Vision Language Model) to use.
-            result: The result string containing the detection data.
+            result: The model output containing the detection data: a string for
+                text-based VLMs, a dict for Florence-2 and Moondream, or the
+                `(caption, entities)` tuple returned by Kosmos-2.
             **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
