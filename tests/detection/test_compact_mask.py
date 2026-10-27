@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from contextlib import ExitStack as DoesNotRaise
+from typing import Any
 
 import numpy as np
 import pytest
@@ -429,9 +430,9 @@ class TestFromCocoRle:
     )
     def test_raises_on_invalid_input(
         self,
-        rles: list,
+        rles: list[Any],
         xyxy_arr: np.ndarray,
-        image_shape: tuple,
+        image_shape: tuple[int, int],
         err_match: str,
     ) -> None:
         """from_coco_rle raises ValueError for each documented invalid-input path."""
@@ -747,7 +748,7 @@ class TestArrayProtocol:
         assert arr.sum() == 25
 
     @pytest.mark.parametrize(
-        ("converter", "kwargs"),
+        ("fn_converter", "kwargs"),
         [
             pytest.param(np.array, {}, id="array-default"),
             pytest.param(np.array, {"copy": True}, id="array-copy"),
@@ -773,7 +774,7 @@ class TestArrayProtocol:
     )
     def test_returns_dense_pixels_without_warnings(
         self,
-        converter: Callable[..., np.ndarray],
+        fn_converter: Callable[..., np.ndarray],
         kwargs: dict[str, bool],
         dtype: np.dtype | None,
     ) -> None:
@@ -781,7 +782,7 @@ class TestArrayProtocol:
         masks = np.eye(3, dtype=bool)[None, ...]
         cm = _make_cm(masks, (3, 3))
 
-        result = converter(cm, dtype=dtype, **kwargs)
+        result = fn_converter(cm, dtype=dtype, **kwargs)
 
         np.testing.assert_array_equal(result, masks)
         assert result.dtype == (np.dtype(bool) if dtype is None else dtype)
@@ -791,11 +792,11 @@ class TestArrayProtocol:
         reason="NumPy 1 allows allocation when copy=False",
     )
     @pytest.mark.parametrize(
-        "converter",
+        "fn_converter",
         [pytest.param(np.array, id="array"), pytest.param(np.asarray, id="asarray")],
     )
     def test_rejects_zero_copy_before_materializing(
-        self, converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
+        self, fn_converter: Callable[..., np.ndarray], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A zero-copy request fails before allocating the dense mask tensor."""
         cm = _make_cm(np.ones((1, 3, 3), dtype=bool), (3, 3))
@@ -804,7 +805,7 @@ class TestArrayProtocol:
         )
 
         with pytest.raises(ValueError, match="copy=False"):
-            converter(cm, copy=False)
+            fn_converter(cm, copy=False)
 
     def test_copies_empty_masks(self) -> None:
         """Explicit copies retain the spatial dimensions of empty mask collections."""
@@ -1396,7 +1397,7 @@ class TestCompactMaskFilterRandom:
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        num_selected = min(num_masks, max(1, rng.integers(1, num_masks + 1)))
+        num_selected = min(num_masks, max(1, int(rng.integers(1, num_masks + 1))))
         indices = sorted(
             rng.choice(num_masks, size=num_selected, replace=False).tolist()
         )
@@ -1417,7 +1418,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         # Use smaller images to keep move_masks fast.
-        num_masks = rng.integers(1, 10)
+        num_masks = int(rng.integers(1, 10))
         img_h, img_w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
@@ -1446,7 +1447,7 @@ class TestCompactMaskWithOffsetRandom:
     def test_offset_into_larger_canvas(self, seed: int) -> None:
         """Offset into a larger destination image must preserve pixels."""
         rng = np.random.default_rng(seed + 100)
-        num_masks = rng.integers(1, 8)
+        num_masks = int(rng.integers(1, 8))
         img_h, img_w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
         masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))

@@ -471,6 +471,9 @@ def save_dataset_images(
         show_progress: If ``True``, display a tqdm progress bar while
             saving images.
 
+    Raises:
+        OSError: If an in-memory image cannot be written to its destination.
+
     Examples:
         ```pycon
         >>> from supervision.dataset.core import DetectionDataset
@@ -494,7 +497,8 @@ def save_dataset_images(
         final_path = os.path.join(images_directory_path, Path(image_path).name)
         if image_path in dataset._images_in_memory:
             image = dataset._images_in_memory[image_path]
-            cv2.imwrite(final_path, image)
+            if not cv2.imwrite(final_path, image):
+                raise OSError(f"Failed to save image to path: {final_path}")
         else:
             # Exporting into the folder the image was loaded from leaves it where it
             # is, as `ClassificationDataset.as_folder_structure` does.

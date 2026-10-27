@@ -378,8 +378,9 @@ def test_json_sink(
     second_detections: sv.Detections,
     second_custom_data: dict[str, Any] | None,
     file_name: str,
-    expected_result: list[list[Any]],
+    expected_result: list[dict[str, Any]],
 ) -> None:
+    """JSON sink rows hold detection fields plus any custom data."""
     with sv.JSONSink(file_name) as sink:
         if custom_data is None:
             sink.append(detections)
@@ -527,8 +528,39 @@ class TestJSONSinkLifecycle:
             }
         ]
 
+    def test_write_and_close_inside_with_block_keeps_output(
+        self, tmp_path: Any
+    ) -> None:
+        """Closing explicitly inside `with` does not fail or rewrite on exit."""
+        path = tmp_path / "closed_early.json"
+        detections = sv.Detections(
+            xyxy=np.array([[0, 0, 10, 10]]),
+            class_id=np.array([1]),
+        )
 
-def assert_json_equal(file_name, expected_rows):
+        with sv.JSONSink(str(path)) as sink:
+            sink.append(detections)
+            sink.write_and_close()
+            sink.write_and_close()
+
+        with open(path) as file:
+            rows = json.load(file)
+
+        assert rows == [
+            {
+                "x_min": 0.0,
+                "y_min": 0.0,
+                "x_max": 10.0,
+                "y_max": 10.0,
+                "class_id": 1,
+                "confidence": "",
+                "tracker_id": "",
+            }
+        ]
+
+
+def assert_json_equal(file_name: str, expected_rows: list[dict[str, Any]]) -> None:
+    """Assert a JSON sink file holds the expected rows, then delete it."""
     with open(file_name) as file:
         data = json.load(file)
         assert data == expected_rows, (

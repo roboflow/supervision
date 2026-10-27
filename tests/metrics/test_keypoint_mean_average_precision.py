@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from faster_coco_eval import COCO, COCOeval_faster
+from pycocotools.cocoeval import Params
 
 from supervision.detection.utils.iou_and_nms import (
     _COCO_KEYPOINT_SIGMAS,
@@ -19,6 +20,7 @@ from supervision.metrics.keypoint_mean_average_precision import (
     _KeyPointCOCOEvaluator,
 )
 from supervision.metrics.mean_average_precision import EvaluationDataset
+from tests.metrics.coco_reference import evaluate_coco
 
 PERSON_TEMPLATE = np.array(
     [
@@ -47,46 +49,6 @@ PERSON_TEMPLATE = np.array(
 # accumulator stores precision as float32, which leaves up to ~1e-8 of drift here.
 PARITY_TOLERANCE = 1e-7
 
-# pycocotools 2.0.11 results for `_make_synthetic_pose_images()`. pycocotools is not a
-# dependency, so regenerate them with
-# `uv run --with pycocotools python -m tests.metrics._generate_keypoint_map_parity`
-# after any change to the synthetic data, such as its RNG call order.
-EXPECTED_STATS = [
-    0.2508697518103459,
-    0.3701084394153701,
-    0.2701457645764576,
-    0.20684818481848183,
-    0.2680997426665743,
-]
-EXPECTED_AP_PER_CLASS = np.array(
-    [
-        [
-            0.231966053748,
-            0.231966053748,
-            0.177274870344,
-            0.177274870344,
-            0.177274870344,
-            0.159653465347,
-            0.159653465347,
-            0.136633663366,
-            0.136633663366,
-            0.102056359482,
-        ],
-        [
-            0.508250825083,
-            0.508250825083,
-            0.508250825083,
-            0.46204620462,
-            0.380638063806,
-            0.380638063806,
-            0.380638063806,
-            0.158415841584,
-            0.039878987899,
-            0.0,
-        ],
-    ]
-)
-
 
 @dataclass
 class SyntheticPoseImage:
@@ -102,7 +64,8 @@ def _random_person(
     """Draw a 17-point person of the given height with its box at `origin`."""
     jitter = rng.normal(0.0, 0.02, size=PERSON_TEMPLATE.shape)
     xy = (PERSON_TEMPLATE + jitter) * np.array([0.45 * height, height]) + origin
-    return xy.astype(np.float32)
+    person: npt.NDArray[np.float32] = xy.astype(np.float32)
+    return person
 
 
 def _make_synthetic_pose_images(seed: int = 7) -> list[SyntheticPoseImage]:
@@ -205,30 +168,45 @@ def _to_coco(
         image_id = index + 1
         targets, predictions = image.targets, image.predictions
         for target_index in range(len(targets)):
+            assert targets.class_id is not None
             xy = targets.xy[target_index].astype(np.float64)
-            visible = np.asarray(targets.visible)[target_index]
+            visible = np.ones(len(xy), dtype=bool)
+            if targets.visible is not None:
+                visible = targets.visible[target_index]
+            bbox = _keypoints_span(xy)
+            if "xyxy" in targets.data:
+                x1, y1, x2, y2 = targets.data["xyxy"][target_index]
+                bbox = [float(x1), float(y1), float(x2 - x1), float(y2 - y1)]
+            area = bbox[2] * bbox[3]
+            if "area" in targets.data:
+                area = float(targets.data["area"][target_index])
             annotations.append(
                 {
                     "id": len(annotations) + 1,
                     "image_id": image_id,
                     "category_id": int(targets.class_id[target_index]),
                     "iscrowd": 0,
-                    "area": float(targets.data["area"][target_index]),
-                    "bbox": _keypoints_span(xy),
+                    "area": area,
+                    "bbox": bbox,
                     "num_keypoints": int(visible.sum()),
                     "keypoints": _flat_keypoints(xy, 2 * visible.astype(int)),
                 }
             )
         for pred_index in range(len(predictions)):
+            assert predictions.class_id is not None
+            assert predictions.detection_confidence is not None
             xy = predictions.xy[pred_index].astype(np.float64)
-            results.append(
-                {
-                    "image_id": image_id,
-                    "category_id": int(predictions.class_id[pred_index]),
-                    "score": float(predictions.detection_confidence[pred_index]),
-                    "keypoints": _flat_keypoints(xy, np.ones(len(xy), dtype=int)),
-                }
-            )
+            record = {
+                "image_id": image_id,
+                "category_id": int(predictions.class_id[pred_index]),
+                "score": float(predictions.detection_confidence[pred_index]),
+                "keypoints": _flat_keypoints(xy, np.ones(len(xy), dtype=int)),
+                "bbox": _keypoints_span(xy),
+            }
+            if "xyxy" in predictions.data:
+                x1, y1, x2, y2 = predictions.data["xyxy"][pred_index]
+                record["bbox"] = [float(x1), float(y1), float(x2 - x1), float(y2 - y1)]
+            results.append(record)
     categories = [{"id": class_id, "name": str(class_id)} for class_id in (0, 1)]
     dataset = {
         "images": [{"id": index + 1} for index in range(len(images))],
@@ -299,30 +277,36 @@ class TestKeyPointOksBatch:
         assert oks == pytest.approx(np.array([[0.0]]))
 
     @pytest.mark.parametrize(
-        ("detection_xy", "expected_squared_distances"),
+        "detection_xy",
         [
-            pytest.param(
-                [[-9, 5], [19, -9], [5, 19]], [0.0, 0.0, 0.0], id="inside-expanded-box"
-            ),
-            pytest.param(
-                [[-13, 5], [5, 24], [5, 5]], [9.0, 16.0, 0.0], id="outside-expanded-box"
-            ),
+            pytest.param([[-9, 5], [19, -9], [5, 19]], id="inside-expanded-box"),
+            pytest.param([[-13, 5], [5, 24], [5, 5]], id="outside-expanded-box"),
         ],
     )
     def test_target_without_visible_keypoints_uses_expanded_box(
         self,
         detection_xy: list[list[float]],
-        expected_squared_distances: list[float],
     ) -> None:
         """Without visible points, distance is measured to the expanded box.
 
         The box `(0, 0, 10, 10)` expands to `[-10, 20] x [-10, 20]`, as in
         `pycocotools` `computeOks`, and the mean runs over all keypoints.
         """
-        keypoints_true = np.zeros((1, 3, 2))
+        keypoints_true = np.zeros((1, 3, 2), dtype=np.float32)
         area, sigma = 50.0, 0.1
-        distances = np.array(expected_squared_distances)
-        expected = np.exp(-distances / (2 * area * (2 * sigma) ** 2)).mean()
+        target = KeyPoints(
+            xy=keypoints_true,
+            visible=np.zeros((1, 3), dtype=bool),
+            class_id=np.array([0]),
+            data={"area": np.array([area]), "xyxy": np.array([[0, 0, 10, 10]])},
+        )
+        prediction = KeyPoints(
+            xy=np.array([detection_xy], dtype=np.float64),
+            class_id=np.array([0]),
+            detection_confidence=np.array([0.9]),
+        )
+        dataset, records = _to_coco([SyntheticPoseImage(target, prediction)])
+        reference = evaluate_coco(dataset, records, "keypoints", np.full(3, sigma))
 
         oks = _keypoint_oks_batch(
             keypoints_true,
@@ -333,7 +317,7 @@ class TestKeyPointOksBatch:
             xyxy_true=np.array([[0.0, 0.0, 10.0, 10.0]]),
         )
 
-        assert oks == pytest.approx(np.array([[expected]]))
+        assert oks == pytest.approx(reference.computeOks(1, 0).T)
 
     def test_box_is_unused_for_target_with_visible_keypoints(self) -> None:
         """A target with visible points keeps the keypoint OKS despite a box."""
@@ -582,15 +566,20 @@ class TestKeyPointMeanAveragePrecision:
         hidden_target.data.update(area_data)
         prediction_on_hidden = _triangle_key_points(offset=300.0, confidence=0.95)
         metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        predictions = [_triangle_key_points(confidence=0.9), prediction_on_hidden]
+        targets = [_triangle_key_points(), hidden_target]
+        dataset, records = _to_coco(
+            [SyntheticPoseImage(t, p) for t, p in zip(targets, predictions)]
+        )
+        reference = evaluate_coco(
+            dataset, records, "keypoints", np.array(TRIANGLE_SIGMAS)
+        )
 
-        result = metric.update(
-            [_triangle_key_points(confidence=0.9), prediction_on_hidden],
-            [_triangle_key_points(), hidden_target],
-        ).compute()
+        result = metric.update(predictions, targets).compute()
 
-        assert result.map50_95 == pytest.approx(1.0)
+        assert result.map50_95 == pytest.approx(reference.stats[0])
         assert result.medium_objects is not None
-        assert result.medium_objects.map50_95 == pytest.approx(1.0)
+        assert result.medium_objects.map50_95 == pytest.approx(reference.stats[3])
 
     def test_prediction_on_hidden_target_without_box_is_false_positive(
         self,
@@ -622,12 +611,11 @@ class TestKeyPointMeanAveragePrecision:
             metric.update(prediction, target)
 
     @pytest.mark.parametrize(
-        ("false_positive_data", "expected_medium_map50"),
+        "false_positive_data",
         [
-            pytest.param({}, 0.5, id="keypoint-span-medium"),
+            pytest.param({}, id="keypoint-span-medium"),
             pytest.param(
                 {"xyxy": np.array([[500.0, 500.0, 700.0, 700.0]])},
-                1.0,
                 id="box-large",
             ),
         ],
@@ -635,7 +623,6 @@ class TestKeyPointMeanAveragePrecision:
     def test_prediction_box_sets_object_size_bucket(
         self,
         false_positive_data: dict[str, npt.NDArray[np.float64]],
-        expected_medium_map50: float,
     ) -> None:
         """An unmatched prediction is bucketed by its `data["xyxy"]` box area.
 
@@ -650,14 +637,22 @@ class TestKeyPointMeanAveragePrecision:
         false_positive = _triangle_key_points(offset=500.0, confidence=0.95)
         false_positive.data.update(false_positive_data)
         metric = KeyPointMeanAveragePrecision(sigmas=TRIANGLE_SIGMAS)
+        predictions = [false_positive, _triangle_key_points(confidence=0.9)]
+        targets = [KeyPoints.empty(), target]
+        dataset, records = _to_coco(
+            [SyntheticPoseImage(t, p) for t, p in zip(targets, predictions)]
+        )
+        reference = evaluate_coco(
+            dataset, records, "keypoints", np.array(TRIANGLE_SIGMAS)
+        )
 
-        result = metric.update(
-            [false_positive, _triangle_key_points(confidence=0.9)],
-            [KeyPoints.empty(), target],
-        ).compute()
+        result = metric.update(predictions, targets).compute()
 
         assert result.medium_objects is not None
-        assert result.medium_objects.map50 == pytest.approx(expected_medium_map50)
+        precision = reference.eval["precision"][0, :, :, 1, -1]
+        assert result.medium_objects.map50 == pytest.approx(
+            precision[precision >= 0].mean()
+        )
 
     @pytest.mark.parametrize(
         "visible",
@@ -917,6 +912,7 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
         before it can be counted, so the target is a miss and AP is 0.
         """
         false_positives = _false_positives(num_false_positives)
+        assert false_positives.detection_confidence is not None
         match = _triangle_key_points(confidence=0.5)
         predictions = KeyPoints(
             xy=np.concatenate([false_positives.xy, match.xy]),
@@ -937,6 +933,8 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
         """
         match = _triangle_key_points(confidence=0.5)
         false_positives = _false_positives(20, class_id=1)
+        assert false_positives.class_id is not None
+        assert false_positives.detection_confidence is not None
         predictions = KeyPoints(
             xy=np.concatenate([false_positives.xy, match.xy]),
             class_id=np.append(false_positives.class_id, 0),
@@ -996,9 +994,12 @@ class TestKeyPointMeanAveragePrecisionMaxDetections:
 class TestKeyPointMeanAveragePrecisionParity:
     """Scores match COCO keypoint evaluation on synthetic data."""
 
-    def test_scores_match_pycocotools(self) -> None:
-        """Overall, per-size and per-class AP equal pycocotools 2.0.11."""
-        images = _make_synthetic_pose_images()
+    @pytest.mark.parametrize("seed", [7, 17, 42])
+    def test_scores_match_pycocotools(self, seed: int) -> None:
+        """Overall, per-size and per-class AP equal live pycocotools results."""
+        images = _make_synthetic_pose_images(seed)
+        dataset, predictions = _to_coco(images)
+        evaluator = evaluate_coco(dataset, predictions, "keypoints")
         metric = KeyPointMeanAveragePrecision()
 
         result = metric.update(
@@ -1006,23 +1007,22 @@ class TestKeyPointMeanAveragePrecisionParity:
             [image.targets for image in images],
         ).compute()
 
-        # pycocotools 2.0.11 `COCOeval(..., "keypoints")` on the same data, with
-        # `area` from `targets.data["area"]`, v=2 for visible target points and
-        # v=0 otherwise: stats[0:5] and the per-category mean of
-        # `eval["precision"]` over recall thresholds (area all, maxDets 20).
-        assert result.map50_95 == pytest.approx(EXPECTED_STATS[0], abs=PARITY_TOLERANCE)
-        assert result.map50 == pytest.approx(EXPECTED_STATS[1], abs=PARITY_TOLERANCE)
-        assert result.map75 == pytest.approx(EXPECTED_STATS[2], abs=PARITY_TOLERANCE)
+        assert result.map50_95 == pytest.approx(
+            evaluator.stats[0], abs=PARITY_TOLERANCE
+        )
+        assert result.map50 == pytest.approx(evaluator.stats[1], abs=PARITY_TOLERANCE)
+        assert result.map75 == pytest.approx(evaluator.stats[2], abs=PARITY_TOLERANCE)
         assert result.medium_objects is not None
         assert result.large_objects is not None
         assert result.medium_objects.map50_95 == pytest.approx(
-            EXPECTED_STATS[3], abs=PARITY_TOLERANCE
+            evaluator.stats[3], abs=PARITY_TOLERANCE
         )
         assert result.large_objects.map50_95 == pytest.approx(
-            EXPECTED_STATS[4], abs=PARITY_TOLERANCE
+            evaluator.stats[4], abs=PARITY_TOLERANCE
         )
         assert result.ap_per_class == pytest.approx(
-            EXPECTED_AP_PER_CLASS, abs=PARITY_TOLERANCE
+            evaluator.eval["precision"][:, :, :, 0, -1].mean(axis=1).T,
+            abs=PARITY_TOLERANCE,
         )
 
     @pytest.mark.parametrize("seed", [7, 17, 42])
@@ -1054,6 +1054,8 @@ class TestKeyPointMeanAveragePrecisionParity:
         )
 
         expected_stats = evaluator.stats
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         actual_stats = np.array(
             [
                 result.map50_95,
@@ -1089,13 +1091,7 @@ class TestKeyPointMeanAveragePrecisionParity:
         )
 
         # Assert
-        # pycocotools `Params.setKpParams` sets `areaRng` to these ranges; the
-        # small bucket of box evaluation is not computed.
-        assert evaluator.params.area_range == [
-            [0**2, 1e5**2],
-            [32**2, 96**2],
-            [96**2, 1e5**2],
-        ]
+        assert evaluator.params.area_range == Params(iouType="keypoints").areaRng
 
 
 def _exact_match_result() -> KeyPointMeanAveragePrecisionResult:
@@ -1342,7 +1338,7 @@ class TestKeyPointMeanAveragePrecisionNonFiniteKeypoints:
         ],
     )
     def test_non_finite_target_keypoint_is_unlabelled(
-        self, value: float, data: dict[str, npt.NDArray[np.float64]]
+        self, value: float, data: dict[str, npt.NDArray[Any] | list[Any]]
     ) -> None:
         """A non-finite target keypoint is left out, like one with `visible=False`.
 
@@ -1375,7 +1371,7 @@ class TestKeyPointMeanAveragePrecisionNonFiniteKeypoints:
         ],
     )
     def test_target_with_only_non_finite_keypoints_is_hidden(
-        self, data: dict[str, npt.NDArray[np.float64]], expected_map50: float
+        self, data: dict[str, npt.NDArray[Any] | list[Any]], expected_map50: float
     ) -> None:
         """A target with only non-finite keypoints counts as one without visible ones.
 

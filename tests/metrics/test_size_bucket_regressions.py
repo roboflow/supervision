@@ -11,9 +11,13 @@ from supervision.metrics import (
     Recall,
 )
 
+BucketedMetric = (
+    type[Precision] | type[Recall] | type[F1Score] | type[MeanAverageRecall]
+)
+
 
 @pytest.mark.parametrize(
-    ("metric_cls", "bucket_attr", "score_attrs", "expected"),
+    ("cls_metric", "bucket_attr", "score_attrs", "expected"),
     [
         pytest.param(
             Precision,
@@ -46,8 +50,11 @@ from supervision.metrics import (
     ],
 )
 def test_size_bucket_match_is_not_stolen(
-    metric_cls, bucket_attr, score_attrs, expected
-):
+    cls_metric: BucketedMetric,
+    bucket_attr: str,
+    score_attrs: tuple[str, ...],
+    expected: tuple[float, ...],
+) -> None:
     """Bucketed metrics must keep the in-bucket match instead of stealing it."""
     predictions = Detections(
         xyxy=np.array([[0, 0, 90, 90]], dtype=np.float32),
@@ -63,7 +70,7 @@ def test_size_bucket_match_is_not_stolen(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.BOXES)
+        cls_metric(metric_target=MetricTarget.BOXES)
         .update(predictions, targets)
         .compute()
     )
@@ -127,7 +134,7 @@ def test_medium_bucket_mar_counts_global_rank_budget() -> None:
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "bucket_attrs", "score_attrs"),
+    ("cls_metric", "bucket_attrs", "score_attrs"),
     [
         pytest.param(
             Precision,
@@ -156,8 +163,10 @@ def test_medium_bucket_mar_counts_global_rank_budget() -> None:
     ],
 )
 def test_perfect_detector_scores_full_marks_in_every_bucket(
-    metric_cls, bucket_attrs, score_attrs
-):
+    cls_metric: BucketedMetric,
+    bucket_attrs: tuple[str, ...],
+    score_attrs: tuple[str, ...],
+) -> None:
     """Bucketed metrics must score a perfect detector 1.0 in every bucket."""
     xyxy = np.array(
         [[0, 0, 50, 50], [100, 100, 250, 250]],
@@ -174,7 +183,7 @@ def test_perfect_detector_scores_full_marks_in_every_bucket(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.BOXES)
+        cls_metric(metric_target=MetricTarget.BOXES)
         .update(predictions, targets)
         .compute()
     )
@@ -187,15 +196,15 @@ def test_perfect_detector_scores_full_marks_in_every_bucket(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "score_attr", "overall_expected"),
+    ("cls_metric", "score_attr", "overall_expected"),
     [
         pytest.param(Precision, "precision_at_50", 0.5, id="precision"),
         pytest.param(F1Score, "f1_50", 2 / 3, id="f1"),
     ],
 )
 def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
-    metric_cls, score_attr, overall_expected
-):
+    cls_metric: BucketedMetric, score_attr: str, overall_expected: float
+) -> None:
     """A stray large false positive lowers overall scores, not the medium bucket."""
     predictions = Detections(
         xyxy=np.array(
@@ -211,7 +220,7 @@ def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.BOXES)
+        cls_metric(metric_target=MetricTarget.BOXES)
         .update(predictions, targets)
         .compute()
     )
@@ -222,7 +231,7 @@ def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "score_attr"),
+    ("cls_metric", "score_attr"),
     [
         pytest.param(Precision, "precision_at_50", id="precision"),
         pytest.param(Recall, "recall_at_50", id="recall"),
@@ -230,7 +239,7 @@ def test_unmatched_out_of_bucket_prediction_does_not_penalize_bucket(
     ],
 )
 def test_explicit_area_metadata_controls_bucket_assignment(
-    metric_cls: type, score_attr: str
+    cls_metric: type, score_attr: str
 ) -> None:
     """Explicit area metadata controls bucket assignment for scoring metrics."""
     box = np.array([[0, 0, 10, 10]], dtype=np.float32)
@@ -246,7 +255,7 @@ def test_explicit_area_metadata_controls_bucket_assignment(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.BOXES)
+        cls_metric(metric_target=MetricTarget.BOXES)
         .update(predictions, targets)
         .compute()
     )
@@ -258,7 +267,7 @@ def test_explicit_area_metadata_controls_bucket_assignment(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "score_attr"),
+    ("cls_metric", "score_attr"),
     [
         pytest.param(Precision, "precision_at_50", id="precision"),
         pytest.param(Recall, "recall_at_50", id="recall"),
@@ -266,7 +275,7 @@ def test_explicit_area_metadata_controls_bucket_assignment(
     ],
 )
 def test_mask_bucket_ignores_out_of_bucket_predictions(
-    metric_cls: type, score_attr: str
+    cls_metric: type, score_attr: str
 ) -> None:
     """Mask bucket scoring ignores predictions outside the requested bucket."""
     masks = np.zeros((2, 128, 128), dtype=bool)
@@ -286,7 +295,7 @@ def test_mask_bucket_ignores_out_of_bucket_predictions(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.MASKS)
+        cls_metric(metric_target=MetricTarget.MASKS)
         .update(predictions, targets)
         .compute()
     )
@@ -296,7 +305,7 @@ def test_mask_bucket_ignores_out_of_bucket_predictions(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "score_attr"),
+    ("cls_metric", "score_attr"),
     [
         pytest.param(Precision, "precision_at_50", id="precision"),
         pytest.param(Recall, "recall_at_50", id="recall"),
@@ -304,7 +313,7 @@ def test_mask_bucket_ignores_out_of_bucket_predictions(
     ],
 )
 def test_obb_bucket_ignores_out_of_bucket_predictions(
-    metric_cls: type, score_attr: str
+    cls_metric: type, score_attr: str
 ) -> None:
     """OBB bucket scoring ignores predictions outside the requested bucket."""
     target_obb = np.array([[[0, 0], [50, 0], [50, 50], [0, 50]]], dtype=np.float32)
@@ -330,7 +339,7 @@ def test_obb_bucket_ignores_out_of_bucket_predictions(
     )
 
     result = (
-        metric_cls(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+        cls_metric(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
         .update(predictions, targets)
         .compute()
     )
@@ -340,7 +349,7 @@ def test_obb_bucket_ignores_out_of_bucket_predictions(
 
 
 @pytest.mark.parametrize(
-    ("metric_cls", "missing_side"),
+    ("cls_metric", "missing_side"),
     [
         pytest.param(Precision, "predictions", id="precision-predictions"),
         pytest.param(Precision, "targets", id="precision-targets"),
@@ -356,7 +365,9 @@ def test_obb_bucket_ignores_out_of_bucket_predictions(
         pytest.param(MeanAverageRecall, "targets", id="mar-targets"),
     ],
 )
-def test_mask_target_requires_masks(metric_cls, missing_side) -> None:
+def test_mask_target_requires_masks(
+    cls_metric: BucketedMetric, missing_side: str
+) -> None:
     """Mask-target metrics raise when either side omits masks."""
     box = np.array([[0, 0, 10, 10]], dtype=np.float32)
     mask = np.zeros((1, 10, 10), dtype=bool)
@@ -385,7 +396,7 @@ def test_mask_target_requires_masks(metric_cls, missing_side) -> None:
     else:
         targets = Detections(xyxy=box, class_id=np.array([0], dtype=np.int32))
 
-    metric = metric_cls(metric_target=MetricTarget.MASKS)
+    metric = cls_metric(metric_target=MetricTarget.MASKS)
 
     with pytest.raises(ValueError, match="requires detections to include masks"):
         metric.update(predictions, targets).compute()

@@ -34,12 +34,16 @@ def object_to_pascal_voc(
 ) -> Element:
     """Build a Pascal VOC ``<object>`` XML element for one detection.
 
-    Coordinates are converted to 1-indexed Pascal VOC convention before writing.
-    The input arrays are never mutated; new arrays are allocated for the offset.
+    ``<bndbox>`` follows the Pascal VOC devkit's 1-based inclusive pixel indices:
+    only ``xmin`` and ``ymin`` shift by one, while ``xmax`` and ``ymax`` already
+    name the last covered pixel. Coordinates are rounded to the nearest integer
+    pixel. Polygon vertices are points, so every vertex shifts by one. The input
+    arrays are never mutated.
 
     Args:
-        xyxy: Bounding box in zero-indexed pixel coordinates ``[x1, y1, x2, y2]``.
-            Shape ``(4,)``.
+        xyxy: Bounding box ``[x1, y1, x2, y2]`` in zero-indexed pixel coordinates,
+            with ``x2`` and ``y2`` on the far edge of the box, as
+            :class:`~supervision.detection.core.Detections` stores it. Shape ``(4,)``.
         name: Class label string written to the ``<name>`` child element.
         polygon: Optional segmentation polygon in zero-indexed pixel coordinates.
             Shape ``(N, 2)``.
@@ -52,7 +56,7 @@ def object_to_pascal_voc(
         ```pycon
         >>> import numpy as np
         >>> from supervision.dataset.formats.pascal_voc import object_to_pascal_voc
-        >>> elem = object_to_pascal_voc(np.array([0, 0, 9, 9]), name="cat")
+        >>> elem = object_to_pascal_voc(np.array([0, 0, 10, 10]), name="cat")
         >>> elem.find("bndbox/xmin").text
         '1'
         >>> elem.find("bndbox/xmax").text
@@ -65,28 +69,30 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
-    # Pascal VOC coordinates are 1-indexed (https://github.com/roboflow/supervision/issues/144).
-    # Rebind to a new array instead of `+= 1`: `xyxy` is a view into the source
-    # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
-    # would corrupt the caller's detections by +1 on every export.
-    xyxy = xyxy + 1
     # Order the corners so a reversed box is written as the same rectangle
-    # rather than with xmin past xmax.
+    # rather than with xmin past xmax. The VOC minimum offset applies after the
+    # corners are ordered; maxima already denote the far edge of the box.
     x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
     y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
-    xmin.text = str(int(x_min))
+    xmin_value = round(x_min + 1)
+    ymin_value = round(y_min + 1)
+    # Keep positive subpixel boxes ordered after integer rounding; otherwise the
+    # loader's reversed-corner normalization would silently move and enlarge them.
+    xmax_value = max(round(x_max), xmin_value)
+    ymax_value = max(round(y_max), ymin_value)
+    xmin.text = str(xmin_value)
     ymin = SubElement(bndbox, "ymin")
-    ymin.text = str(int(y_min))
+    ymin.text = str(ymin_value)
     xmax = SubElement(bndbox, "xmax")
-    xmax.text = str(int(x_max))
+    xmax.text = str(xmax_value)
     ymax = SubElement(bndbox, "ymax")
-    ymax.text = str(int(y_max))
+    ymax.text = str(ymax_value)
 
     if polygon is not None:
-        # 1-indexed, rebound to avoid mutating the caller's array (see above).
+        # Rebind instead of `+= 1`: the caller's polygon must not be shifted.
         polygon = polygon + 1
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
@@ -197,7 +203,9 @@ def detections_to_pascal_voc(
                 annotation.append(object_to_pascal_voc(xyxy=xyxy, name=name))
                 continue
             for polygon in polygons:
-                xyxy = polygon_to_xyxy(polygon=polygon)
+                # Contour extrema are outermost mask pixels; the VOC maximum is
+                # the far edge immediately after the last covered pixel.
+                xyxy = polygon_to_xyxy(polygon=polygon) + np.array([0, 0, 1, 1])
                 next_object = object_to_pascal_voc(
                     xyxy=xyxy, name=name, polygon=polygon
                 )
@@ -282,8 +290,13 @@ def detections_from_xml_obj(
     resolution_wh: tuple[int, int],
     force_masks: bool = False,
 ) -> tuple[Detections, list[str]]:
-    """
-    Converts an XML object in Pascal VOC format to a Detections object.
+    """Converts an XML object in Pascal VOC format to a Detections object.
+
+    ``<bndbox>`` is read as 1-based, inclusive Pascal VOC devkit pixel indices:
+    ``xmin`` and ``ymin`` are shifted down by one, while ``xmax`` and ``ymax`` are
+    kept, since they already equal the far edge of the box in zero-indexed
+    coordinates. Polygon vertices are points, so every vertex is shifted by one.
+
     Expected XML format:
     <annotation>
         ...
@@ -374,8 +387,9 @@ def detections_from_xml_obj(
     else:
         xyxy_arr = np.empty((0, 4), dtype=np.float32)
 
-    # https://github.com/roboflow/supervision/issues/144
-    xyxy_arr -= 1
+    # VOC indices are 1-based and inclusive, so only the minimum coordinates
+    # shift back; maximum coordinates already name the far edge.
+    xyxy_arr[:, :2] -= 1
 
     for k in sorted(set(class_names)):
         if k not in extended_classes:

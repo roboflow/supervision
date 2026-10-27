@@ -5,7 +5,7 @@ from collections.abc import Generator
 from pathlib import Path
 from queue import Queue as StdQueue
 from types import SimpleNamespace, TracebackType
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import av
 import numpy as np
@@ -31,6 +31,114 @@ def dummy_video_path(tmp_path):
         out.write(frame)
     out.release()
     return path
+
+
+class TestVideoGeneratorSetupCleanup:
+    @pytest.fixture
+    def capture(
+        self, dummy_video_path: str, monkeypatch: pytest.MonkeyPatch
+    ) -> Generator[Mock, None, None]:
+        """Retain a real capture so garbage collection cannot hide a leak."""
+        real_capture = cv2.VideoCapture(dummy_video_path)
+        capture = Mock(wraps=real_capture)
+        monkeypatch.setattr(cv2, "VideoCapture", lambda path: capture)
+        try:
+            yield capture
+        finally:
+            real_capture.release()
+
+    @pytest.mark.parametrize("prefetch", [0, 2])
+    def test_releases_capture_when_end_is_outbound(
+        self, dummy_video_path: str, capture: Mock, prefetch: int
+    ) -> None:
+        """Rejecting a range beyond the real video closes its capture."""
+        frames = get_video_frames_generator(dummy_video_path, end=11, prefetch=prefetch)
+
+        with pytest.raises(Exception, match="Requested frames are outbound"):
+            next(frames)
+
+        assert not capture.isOpened()
+        capture.release.assert_called_once_with()
+
+    @pytest.mark.parametrize("prefetch", [0, 2])
+    @pytest.mark.parametrize("operation", ["isOpened", "get", "set", "grab"])
+    @pytest.mark.parametrize("release_fails", [False, True])
+    def test_preserves_setup_error_and_releases_capture(
+        self,
+        dummy_video_path: str,
+        capture: Mock,
+        caplog: pytest.LogCaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+        prefetch: int,
+        operation: str,
+        release_fails: bool,
+    ) -> None:
+        """Backend setup errors close the real capture and survive release errors."""
+        setup_error = OSError("backend setup failed")
+        cleanup_error = OSError("backend release failed")
+        getattr(capture, operation).side_effect = setup_error
+        if release_fails:
+            capture.release.side_effect = cleanup_error
+        monkeypatch.setattr("supervision.utils.video.logger.handlers", [caplog.handler])
+        frames = get_video_frames_generator(
+            dummy_video_path,
+            start=1,
+            iterative_seek=operation == "grab",
+            prefetch=prefetch,
+        )
+
+        with pytest.raises((OSError, RuntimeError)) as exc_info:
+            next(frames)
+
+        error = exc_info.value.__cause__ if prefetch else exc_info.value
+        assert error is setup_error
+        capture.release.assert_called_once_with()
+        if release_fails:
+            assert any(
+                record.exc_info is not None and record.exc_info[1] is cleanup_error
+                for record in caplog.records
+            )
+        elif operation != "isOpened":
+            assert not capture.isOpened()
+
+    @pytest.mark.parametrize(
+        "error_type",
+        [
+            pytest.param(KeyboardInterrupt, id="keyboard-interrupt"),
+            pytest.param(SystemExit, id="system-exit"),
+            pytest.param(GeneratorExit, id="generator-exit"),
+        ],
+    )
+    def test_releases_capture_when_setup_is_interrupted(
+        self, dummy_video_path: str, capture: Mock, error_type: type[BaseException]
+    ) -> None:
+        """Cancellation during synchronous setup releases the retained capture."""
+        error = error_type()
+        capture.get.side_effect = error
+        frames = get_video_frames_generator(dummy_video_path, start=1)
+
+        with pytest.raises(error_type) as exc_info:
+            next(frames)
+
+        assert exc_info.value is error
+        assert not capture.isOpened()
+        capture.release.assert_called_once_with()
+
+    @pytest.mark.parametrize("prefetch", [0, 2])
+    def test_transfers_capture_to_generator_after_successful_setup(
+        self, dummy_video_path: str, capture: Mock, prefetch: int
+    ) -> None:
+        """Successful setup leaves the capture usable until iteration finishes."""
+        frames = get_video_frames_generator(
+            dummy_video_path, start=2, end=5, prefetch=prefetch
+        )
+
+        result = list(frames)
+
+        assert len(result) == 3
+        assert all(frame.shape == (480, 640, 3) for frame in result)
+        assert not capture.isOpened()
+        capture.release.assert_called_once_with()
 
 
 def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
@@ -1311,6 +1419,20 @@ def test_get_video_frames_generator_prefetch_negative_raises(dummy_video_path) -
     """
     generator = get_video_frames_generator(dummy_video_path, prefetch=-1)
     with pytest.raises(ValueError, match="prefetch must be >= 0"):
+        next(generator)
+
+
+@pytest.mark.parametrize("prefetch", [0, 2])
+@pytest.mark.parametrize("stride", [0, -1])
+def test_get_video_frames_generator_rejects_nonpositive_stride(
+    dummy_video_path: str, stride: int, prefetch: int
+) -> None:
+    """Reject nonpositive stride before yielding frames in either reading mode."""
+    generator = get_video_frames_generator(
+        dummy_video_path, stride=stride, end=2, prefetch=prefetch
+    )
+
+    with pytest.raises(ValueError, match="stride must be >= 1"):
         next(generator)
 
 

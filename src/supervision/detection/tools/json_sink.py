@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -37,7 +38,7 @@ class JSONSink:
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
-        json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
+        json_sink = sv.JSONSink("<RESULT_JSON_FILE_PATH>")
         frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
         with json_sink as sink:
@@ -104,14 +105,17 @@ class JSONSink:
         )
 
     def write_and_close(self) -> None:
-        """Write and close the JSON file."""
-        if self.file:
-            try:
-                json.dump(
-                    self.data, self.file, indent=4, default=JSONSink._json_default
-                )
-            finally:
-                self.file.close()
+        """Write and close the JSON file.
+
+        Does nothing once the file is closed, so calling it inside a `with` block
+        does not make the block's exit fail on the closed file.
+        """
+        if self.file is None or self.file.closed:
+            return
+        try:
+            json.dump(self.data, self.file, indent=4, default=JSONSink._json_default)
+        finally:
+            self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
@@ -194,6 +198,10 @@ class JSONSink:
     ) -> None:
         """Append detection data to the JSON file.
 
+        The appended rows are deep-copied so later changes to arrays or nested
+        containers in ``detections.data`` or ``custom_data`` do not change the
+        saved values. JSON serialization still happens when the sink is closed.
+
         Args:
             detections: The detection data.
             custom_data: Custom data to include. Scalars, dictionaries, and
@@ -203,4 +211,4 @@ class JSONSink:
                 and tuples are broadcast unchanged.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
-        self.data.extend(parsed_rows)
+        self.data.extend(deepcopy(parsed_rows))

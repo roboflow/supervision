@@ -3304,7 +3304,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        colored_mask = np.full_like(
+            scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
+        )
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
@@ -3385,7 +3387,9 @@ class ComparisonAnnotator:
         Args:
             scene: The image where detections will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
+                or `PIL.Image.Image`. Grayscale arrays may have shape `(H, W)`
+                or `(H, W, 1)`; regions are blended with the first (blue) channel
+                of their color, as OpenCV draws boxes and polygons.
             detections_1: The first set of detections or predictions.
             detections_2: The second set of detections to compare or
                 ground truth.
@@ -3443,9 +3447,11 @@ class ComparisonAnnotator:
         mask_2 = mask_2 & ~mask_overlap
 
         color_layer = np.zeros_like(scene, dtype=np.uint8)
-        color_layer[mask_overlap] = self.color_overlap.as_bgr()
-        color_layer[mask_1] = self.color_1.as_bgr()
-        color_layer[mask_2] = self.color_2.as_bgr()
+        color_layer[mask_overlap] = _color_for_canvas(
+            self.color_overlap.as_bgr(), scene
+        )
+        color_layer[mask_1] = _color_for_canvas(self.color_1.as_bgr(), scene)
+        color_layer[mask_2] = _color_for_canvas(self.color_2.as_bgr(), scene)
 
         scene[mask_overlap] = (1 - self.opacity) * scene[
             mask_overlap

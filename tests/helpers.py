@@ -8,6 +8,7 @@ synthetic test data and performing custom assertions.
 from __future__ import annotations
 
 import io
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -35,12 +36,12 @@ def make_panoptic_png(segment_map: np.ndarray) -> bytes:
 
 
 def _create_detections(
-    xyxy: list[list[float]],
-    mask: list[np.ndarray] | None = None,
-    confidence: list[float] | None = None,
-    class_id: list[int] | None = None,
-    tracker_id: list[int] | None = None,
-    data: dict[str, list[Any]] | None = None,
+    xyxy: Sequence[Sequence[float]] | np.ndarray,
+    mask: Sequence[np.ndarray] | np.ndarray | None = None,
+    confidence: Sequence[float] | np.ndarray | None = None,
+    class_id: Sequence[int] | np.ndarray | None = None,
+    tracker_id: Sequence[int] | np.ndarray | None = None,
+    data: Mapping[str, Any] | None = None,
 ) -> Detections:
     """Create a Detections object from list-based inputs.
 
@@ -76,7 +77,10 @@ def _create_detections(
         array([0, 1])
     """
 
-    def convert_data(data: dict[str, list[Any]]) -> dict[str, np.ndarray | list[Any]]:
+    def convert_data(
+        data: Mapping[str, Any],
+    ) -> dict[str, np.ndarray | list[Any]]:
+        """Convert each metadata value to a NumPy array."""
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(

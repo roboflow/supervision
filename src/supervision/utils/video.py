@@ -186,36 +186,46 @@ def _validate_and_setup_video(
     """Open a video, position it at `start`, and return it with the frame range.
 
     An `end` of `None` is kept, so the caller reads until the stream runs out.
+    Setup failures release the capture before propagating the original error.
     """
     video = cv2.VideoCapture(source_path)
-    if not video.isOpened():
-        raise Exception(f"Could not open video at {source_path}")
-    # OpenCV estimates the frame count from container metadata. A WebM without a
-    # duration, as browsers record it, reports a huge negative count, and a
-    # variable frame rate video can report fewer frames than it holds, so the
-    # count only rejects an `end` when it is positive and never bounds the read.
-    # It is read only when needed: the PyAV fallback decodes the whole video a
-    # second time when the container metadata lacks a count.
-    start = max(start, 0)
-    needs_frame_count = end is not None or (start > 0 and not iterative_seek)
-    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
-    if end is not None and 0 < total_frames < end:
-        raise Exception("Requested frames are outbound")
-    # `set()` cannot be trusted past a positive frame count: the PyAV fallback
-    # returns False without moving when `start` exceeds the count, and OpenCV
-    # returns True without moving on a duration-less WebM. Grabbing frames lands
-    # on `start` or runs out with the stream, so the first read is labelled right.
-    seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
+    try:
+        if not video.isOpened():
+            raise Exception(f"Could not open video at {source_path}")
+        # OpenCV estimates the frame count from container metadata. A WebM without a
+        # duration, as browsers record it, reports a huge negative count, and a
+        # variable frame rate video can report fewer frames than it holds, so the
+        # count only rejects an `end` when it is positive and never bounds the read.
+        # It is read only when needed: the PyAV fallback decodes the whole video a
+        # second time when the container metadata lacks a count.
+        start = max(start, 0)
+        needs_frame_count = end is not None or (start > 0 and not iterative_seek)
+        total_frames = (
+            int(video.get(cv2.CAP_PROP_FRAME_COUNT)) if needs_frame_count else 0
+        )
+        if end is not None and 0 < total_frames < end:
+            raise Exception("Requested frames are outbound")
+        # `set()` cannot be trusted past a positive frame count: the PyAV fallback
+        # returns False without moving when `start` exceeds the count, and OpenCV
+        # returns True without moving on a duration-less WebM. Grabbing frames lands
+        # on `start` or runs out with the stream, so the first read is labelled right.
+        seek_by_grabbing = iterative_seek or not 0 < start <= total_frames
 
-    if seek_by_grabbing:
-        # Count grabs separately: `start` is returned as the position of the first
-        # frame read, and the caller measures `end` from it.
-        for _ in range(start):
-            success = video.grab()
-            if not success:
-                break
-    else:
-        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+        if seek_by_grabbing:
+            # Count grabs separately: `start` is returned as the position of the first
+            # frame read, and the caller measures `end` from it.
+            for _ in range(start):
+                success = video.grab()
+                if not success:
+                    break
+        else:
+            video.set(cv2.CAP_PROP_POS_FRAMES, start)
+    except BaseException:
+        try:
+            video.release()
+        except Exception:
+            logger.exception("Failed to release video capture after a setup error.")
+        raise
 
     return video, start, end
 
@@ -266,7 +276,8 @@ def get_video_frames_generator(
             container (raised on first iteration), or capture release fails without
             an earlier decoding error. Both are wrapped in `RuntimeError` when
             `prefetch` > 0.
-        ValueError: If `prefetch` is negative.
+        ValueError: If `stride` is less than 1 or `prefetch` is negative,
+            raised on first iteration.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
@@ -314,6 +325,8 @@ def get_video_frames_generator(
             ...
         ```
     """
+    if stride < 1:
+        raise ValueError(f"stride must be >= 1, got {stride!r}")
     if prefetch < 0:
         raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
     if prefetch > 0:

@@ -40,8 +40,8 @@ class MetricSpec:
     """Connect a Supervision metric result to its scikit-learn function."""
 
     name: Literal["precision", "recall", "f1"]
-    metric_class: type[Precision] | type[Recall] | type[F1Score]
-    sklearn_function: Callable[..., float | np.ndarray]
+    cls_metric: type[Precision] | type[Recall] | type[F1Score]
+    fn_sklearn: Callable[..., float | np.ndarray]
     scores_attribute: str
     per_class_attribute: str
 
@@ -121,22 +121,22 @@ PARITY_CASES = (
 METRIC_SPECS = (
     MetricSpec(
         name="precision",
-        metric_class=Precision,
-        sklearn_function=precision_score,
+        cls_metric=Precision,
+        fn_sklearn=precision_score,
         scores_attribute="precision_scores",
         per_class_attribute="precision_per_class",
     ),
     MetricSpec(
         name="recall",
-        metric_class=Recall,
-        sklearn_function=recall_score,
+        cls_metric=Recall,
+        fn_sklearn=recall_score,
         scores_attribute="recall_scores",
         per_class_attribute="recall_per_class",
     ),
     MetricSpec(
         name="f1",
-        metric_class=F1Score,
-        sklearn_function=f1_score,
+        cls_metric=F1Score,
+        fn_sklearn=f1_score,
         scores_attribute="f1_scores",
         per_class_attribute="f1_per_class",
     ),
@@ -204,11 +204,11 @@ class TestSklearnParity:
     ) -> None:
         """Aggregate scores match live sklearn results at every IoU threshold."""
         predictions, targets = _build_detection_batches(case)
-        metric = metric_spec.metric_class(averaging_method=averaging_method)
+        metric = metric_spec.cls_metric(averaging_method=averaging_method)
 
         result = metric.update(predictions, targets).compute()
 
-        expected_value = metric_spec.sklearn_function(
+        expected_value = metric_spec.fn_sklearn(
             case.sklearn_y_true,
             case.sklearn_y_pred,
             labels=case.sklearn_labels,
@@ -224,11 +224,11 @@ class TestSklearnParity:
     ) -> None:
         """Per-class scores and class ordering match live sklearn results."""
         predictions, targets = _build_detection_batches(case)
-        metric = metric_spec.metric_class(averaging_method=AveragingMethod.MACRO)
+        metric = metric_spec.cls_metric(averaging_method=AveragingMethod.MACRO)
 
         result = metric.update(predictions, targets).compute()
 
-        expected_values = metric_spec.sklearn_function(
+        expected_values = metric_spec.fn_sklearn(
             case.sklearn_y_true,
             case.sklearn_y_pred,
             labels=case.matched_classes,
@@ -266,7 +266,7 @@ class TestEmptyInput:
         """Empty batches produce zero aggregate scores at every IoU threshold."""
         predictions = [Detections.empty()]
         targets = [Detections.empty()]
-        metric = metric_spec.metric_class(averaging_method=averaging_method)
+        metric = metric_spec.cls_metric(averaging_method=averaging_method)
 
         result = metric.update(predictions, targets).compute()
 
@@ -277,7 +277,7 @@ class TestEmptyInput:
         """Empty batches produce no matched classes or per-class score rows."""
         predictions = [Detections.empty()]
         targets = [Detections.empty()]
-        metric = metric_spec.metric_class(averaging_method=AveragingMethod.MACRO)
+        metric = metric_spec.cls_metric(averaging_method=AveragingMethod.MACRO)
 
         result = metric.update(predictions, targets).compute()
 

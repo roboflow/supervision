@@ -27,7 +27,50 @@ def _label(
 
     structure = ndimage.generate_binary_structure(2, 1 if connectivity == 4 else 2)
     labels, count = ndimage.label(_validate_binary_image(image), structure=structure)
+    if connectivity == 8 and count > 1:
+        labels = _order_labels_by_block(labels, count)
     return int(count), np.ascontiguousarray(labels, dtype=np.int32)
+
+
+def _order_labels_by_block(
+    labels: npt.NDArray[np.integer], count: int
+) -> npt.NDArray[np.integer]:
+    """Renumber 8-connected labels in the order OpenCV's block scan finds them.
+
+    OpenCV labels 8-connected components with a block-based scan (BBDT or
+    Spaghetti) that visits the image in 2x2 blocks, in raster order of blocks.
+    Every foreground pixel of a block belongs to the same component, so OpenCV's
+    label order is the raster order of each component's first block. SciPy
+    numbers components by their first pixel instead, which differs when a
+    component starts on the lower row of a block pair before another one starts
+    further right on the upper row.
+
+    Args:
+        labels: SciPy labels, `0` for background and `1..count` for components.
+        count: Number of components.
+
+    Returns:
+        The labels renumbered so that component `k` has the `k`-th first block.
+
+    Example:
+        ```pycon
+        >>> labels = np.array([[0, 0, 1], [2, 0, 0]])
+        >>> _order_labels_by_block(labels, 2).tolist()
+        [[0, 0, 2], [1, 0, 0]]
+
+        ```
+    """
+    rows, columns = np.nonzero(labels)
+    block_columns = (labels.shape[1] + 1) // 2
+    blocks = (rows // 2) * block_columns + columns // 2
+    first_blocks = np.full(count + 1, np.iinfo(np.int64).max, dtype=np.int64)
+    np.minimum.at(first_blocks, labels[rows, columns], blocks)
+    # Stable sorting keeps SciPy's order only for ties, which cannot occur.
+    order = np.argsort(first_blocks[1:], kind="stable")
+    relabel = np.zeros(count + 1, dtype=labels.dtype)
+    relabel[order + 1] = np.arange(1, count + 1, dtype=labels.dtype)
+    ordered: npt.NDArray[np.integer] = relabel[labels]
+    return ordered
 
 
 def _connected_components(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import platform
 from collections.abc import Callable
 from pathlib import Path
 
@@ -175,12 +176,31 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
-def test_fallback_mean_matches_opencv() -> None:
-    """Match OpenCV masked mean semantics."""
-    source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
-    mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
+class TestFallbackMean:
+    def test_matches_opencv_for_masked_uint8(self) -> None:
+        """Match OpenCV masked mean semantics for integer images."""
+        source = np.array([[0, 100], [200, 255]], dtype=np.uint8)
+        mask = np.array([[255, 0], [0, 255]], dtype=np.uint8)
 
-    assert _mean(source, mask) == cv2.mean(source, mask)
+        assert _mean(source, mask) == cv2.mean(source, mask)
+
+    def test_preserves_float32_precision(self) -> None:
+        """Retain small values when averaging large float32 pixels."""
+        source = np.array([[1e8, 1, -1e8]], dtype=np.float32)
+
+        assert _mean(source) == cv2.mean(source)
+
+    def test_preserves_masked_multichannel_float32_precision(self) -> None:
+        """Match OpenCV precision for selected pixels in each channel."""
+        source = np.array(
+            [[[1e8, -1e8], [1, 5], [-1e8, 1e8], [999, 999]]],
+            dtype=np.float32,
+        )
+        mask = np.array([[255, 255, 255, 0]], dtype=np.uint8)
+
+        assert _mean(source, mask) == pytest.approx(
+            cv2.mean(source, mask), rel=0, abs=1e-15
+        )
 
 
 @pytest.mark.parametrize(
@@ -300,6 +320,63 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
     expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
 
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+# OpenCV's arm64 builds hand some uint8 `INTER_LINEAR` resizes to the Carotene HAL
+# (`TEGRA_RESIZE`): one channel with a source at least 8 wide and an output of at
+# least 8x8, or four channels with an output at least 8 tall that is not an exact
+# 2x reduction. Carotene uses its own fixed-point kernel, up to two levels away from
+# the generic one this fallback reproduces.
+_OPENCV_MAY_USE_CAROTENE = platform.machine().lower() in {"arm64", "aarch64"}
+
+
+@pytest.mark.parametrize(
+    ("source_shape", "dsize", "fx", "fy", "carotene"),
+    [
+        pytest.param((9, 9), (13, 15), 0, 0, True, id="gray-upscale"),
+        pytest.param((17, 23, 3), (31, 29), 0, 0, False, id="bgr-upscale"),
+        pytest.param((40, 37, 3), (11, 26), 0, 0, False, id="bgr-mixed"),
+        pytest.param((9, 7, 4), (13, 4), 0, 0, False, id="rgba"),
+        pytest.param((13, 10, 3), None, 0.6, 0.6, False, id="factor-downscale"),
+        pytest.param((13, 10, 3), None, 0.3, 3.7, False, id="factor-mixed"),
+        pytest.param((3, 3), None, 0.5, 0.5, False, id="half-gray-odd"),
+        pytest.param((23, 27, 3), None, 0.5, 0.5, False, id="half-bgr-odd"),
+        pytest.param((19, 38, 4), None, 0.5, 0.5, False, id="half-rgba-odd-rows"),
+        pytest.param((6, 5, 2), None, 0.5, 0.5, False, id="half-two-channel"),
+        pytest.param((5, 7, 3), None, 0.5, 0.5, False, id="half-drops-last-pixel"),
+        pytest.param((8, 6, 3), (6, 8), 0, 0, False, id="same-size"),
+    ],
+)
+def test_fallback_linear_resize_is_bit_exact_for_uint8(
+    source_shape: tuple[int, ...],
+    dsize: tuple[int, int] | None,
+    fx: float,
+    fy: float,
+    carotene: bool,
+) -> None:
+    """Reproduce OpenCV's fixed-point uint8 `INTER_LINEAR` resize pixel for pixel."""
+    rng = np.random.default_rng(20261027)
+    source = rng.integers(0, 256, source_shape, dtype=np.uint8)
+
+    actual = _resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == expected.dtype
+    assert actual.flags.c_contiguous
+    if carotene and _OPENCV_MAY_USE_CAROTENE:
+        np.testing.assert_allclose(actual, expected, atol=2, rtol=0)
+    else:
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_linear_resize_copies_uint8_image_of_unchanged_size() -> None:
+    """Return a copy, not a view, when the requested size matches the source."""
+    source = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+
+    actual = _resize(source, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_array_equal(actual, source)
+    assert not np.shares_memory(actual, source)
 
 
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
@@ -593,7 +670,7 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -601,13 +678,13 @@ def _jpeg_chroma_subsampling(data: bytes) -> int:
 )
 def test_fallback_encoders_match_opencv_default_jpeg_quality(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode JPEG at the quality OpenCV uses when no parameters are given."""
     expected = cv2.imencode(".jpg", image)[1].tobytes()
 
-    actual = encode(tmp_path, ".jpg", image)
+    actual = fn_encode(tmp_path, ".jpg", image)
 
     assert _jpeg_quantization_tables(actual) == _jpeg_quantization_tables(expected)
     assert _jpeg_chroma_subsampling(actual) == _jpeg_chroma_subsampling(expected)
@@ -634,7 +711,7 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
     ],
 )
 @pytest.mark.parametrize(
-    "encode",
+    "fn_encode",
     [
         pytest.param(_encode_with_imwrite, id="imwrite"),
         pytest.param(_encode_with_imencode, id="imencode"),
@@ -642,13 +719,13 @@ def test_fallback_imencode_treats_jpe_as_jpeg() -> None:
 )
 def test_fallback_encoders_write_webp_losslessly_like_opencv(
     tmp_path: Path,
-    encode: Callable[[Path, str, np.ndarray], bytes],
+    fn_encode: Callable[[Path, str, np.ndarray], bytes],
     image: np.ndarray,
 ) -> None:
     """Encode WebP losslessly, as OpenCV does when no parameters are given."""
     expected = cv2.imdecode(cv2.imencode(".webp", image)[1], cv2.IMREAD_COLOR)
 
-    actual = encode(tmp_path, ".webp", image)
+    actual = fn_encode(tmp_path, ".webp", image)
 
     decoded = cv2.imdecode(np.frombuffer(actual, dtype=np.uint8), cv2.IMREAD_COLOR)
     np.testing.assert_array_equal(decoded, expected)
@@ -737,7 +814,7 @@ class TestFallbackEncoderChannels:
     """Image encoders accept OpenCV's one-, three- and four-channel layouts."""
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -748,7 +825,7 @@ class TestFallbackEncoderChannels:
     def test_jpeg_discards_alpha_without_compositing(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
         alpha: int,
     ) -> None:
@@ -757,13 +834,13 @@ class TestFallbackEncoderChannels:
         image = np.dstack((bgr, np.full(bgr.shape[:2], alpha, dtype=np.uint8)))
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_COLOR)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_COLOR)
         np.testing.assert_array_equal(actual, expected)
 
     @pytest.mark.parametrize(
-        "encode",
+        "fn_encode",
         [
             pytest.param(_encode_with_imwrite, id="imwrite"),
             pytest.param(_encode_with_imencode, id="imencode"),
@@ -773,14 +850,14 @@ class TestFallbackEncoderChannels:
     def test_single_channel_axis_encodes_as_grayscale(
         self,
         tmp_path: Path,
-        encode: Callable[[Path, str, np.ndarray], bytes],
+        fn_encode: Callable[[Path, str, np.ndarray], bytes],
         extension: str,
     ) -> None:
         """An explicit singleton channel writes the same pixels as a 2D image."""
         image = _gradient_image(channels=1)[..., np.newaxis]
         expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
 
-        encoded = encode(tmp_path, extension, image)
+        encoded = fn_encode(tmp_path, extension, image)
 
         actual = cv2.imdecode(
             np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED

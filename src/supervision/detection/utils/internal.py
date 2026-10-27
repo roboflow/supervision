@@ -288,6 +288,21 @@ def process_roboflow_result(
 ]: ...
 
 
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
     *,
@@ -762,7 +777,7 @@ def get_data_item(
     subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
-            subset_data[key] = value[index]
+            subset_data[key] = value if value.ndim == 0 else value[index]
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
