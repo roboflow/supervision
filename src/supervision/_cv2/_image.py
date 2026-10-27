@@ -232,6 +232,24 @@ def _linear_resize_taps(
     snaps samples left of the first or right of the last pixel to that pixel with a
     zero fraction; along rows it only clamps the row index and keeps the fraction, so
     the weights of an edge row come from the unclamped position.
+
+    For a two-pixel source axis, horizontal taps snap at both edges:
+
+    >>> left, right, weight_left, weight_right = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=True
+    ... )
+    >>> left.tolist(), right.tolist()
+    ([0, 0, 1], [1, 1, 1])
+    >>> weight_left.tolist(), weight_right.tolist()
+    ([2048, 1024, 2048], [0, 1024, 0])
+
+    Vertical taps keep the fractional weights at the clamped edge rows:
+
+    >>> _, _, weight_top, weight_bottom = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=False
+    ... )
+    >>> weight_top.tolist(), weight_bottom.tolist()
+    ([341, 1024, 1707], [1707, 1024, 341])
     """
     position = ((np.arange(size) + 0.5) * scale - 0.5).astype(np.float32)
     first = np.floor(position).astype(np.intp)
@@ -271,6 +289,16 @@ def _resize_linear_uint8(
     each sum is shifted right by 4, multiplied by its 11-bit row weight keeping the
     high 16 bits, and the two products are added and rounded with `(sum + 2) >> 2`.
     Output rows are produced in blocks so the intermediate buffers stay bounded.
+
+    A 4-by-4 image with constant 2-by-2 regions resizes to those four values:
+
+    >>> source = np.array(
+    ...     [[0, 0, 100, 100], [0, 0, 100, 100],
+    ...      [200, 200, 255, 255], [200, 200, 255, 255]],
+    ...     dtype=np.uint8,
+    ... )
+    >>> _resize_linear_uint8(source, 2, 2, 2.0, 2.0).tolist()
+    [[0, 100], [200, 255]]
     """
     source_height, source_width = src.shape[:2]
     x0, x1, wx0, wx1 = _linear_resize_taps(
@@ -332,6 +360,12 @@ def _resize_half_uint8(
     A full 2x2 block is rounded with `(sum + 2) >> 2` when the image has 1, 3 or 4
     channels and with `cvRound(sum * 0.25f)` (half to even) otherwise. A block cut
     by an odd last row or column averages its in-bounds pixels with `cvRound`.
+
+    Odd edges average only their available pixels, rounding half to even:
+
+    >>> source = np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
+    >>> _resize_half_uint8(source, 2, 2).tolist()
+    [[3, 4], [8, 9]]
     """
     source_height, source_width = src.shape[:2]
     image = src if src.ndim == 3 else src[:, :, np.newaxis]
