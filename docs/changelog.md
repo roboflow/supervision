@@ -7,6 +7,10 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
+
+- The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
+
 - `sv.get_video_frames_generator` now rejects `stride=0` and negative strides with `ValueError` on first iteration, before opening the video or starting a prefetch thread. Previously these values could yield frames past `end`. ([#2819](https://github.com/roboflow/supervision/pull/2819))
 
 - `sv.KeyPoints.as_detections` and `sv.KeyPoints.with_nms` now use x/y for missing-point and finiteness checks when building image-space boxes. An extra coordinate no longer changes the boxes or suppression result; original keypoint data is preserved. ([#2817](https://github.com/roboflow/supervision/pull/2817))
@@ -36,6 +40,8 @@ date_modified: 2026-10-17
 - The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
 
 - The NumPy fallback for `addWeighted` now rounds 8-bit, 16-bit and float32 blends like OpenCV. It blended in float64, while OpenCV casts the weights to float32 and adds with two fused multiply-adds, so sums that land on or next to a half rounded the other way: with `alpha=0.3` and `beta=0.7`, 820 of the 65,536 pairs of 8-bit values were one level off. Opacities such as 0.3, 0.7 or 0.9 in `sv.ColorAnnotator`, `sv.MaskAnnotator`, `sv.draw_filled_polygon` and the other blending annotators are affected without OpenCV. 32-bit integer and float64 inputs keep the float64 path. ([#2836](https://github.com/roboflow/supervision/pull/2836))
+
+- The NumPy fallback for `resize` with `INTER_LINEAR` now matches OpenCV pixel for pixel on `uint8` images. It went through Pillow (or float64 math for RGBA and `fx`/`fy` resizes), which rounded differently from OpenCV's 11-bit fixed-point weights: on 996 random grayscale, BGR and RGBA resizes every result differed from `cv2.resize` by one level somewhere. Exact halvings (`fx=fy=0.5`) follow OpenCV's fast area path, and an unchanged size returns a copy. The reference is OpenCV's generic kernel; arm64 builds hand some grayscale and RGBA resizes to the Carotene HAL, which can differ by up to two levels. `sv.resize_image`, `sv.letterbox_image`, `sv.scale_image`, `sv.PixelateAnnotator` and `sv.draw_image` are affected without OpenCV. Other dtypes keep the float path. ([#2833](https://github.com/roboflow/supervision/pull/2833))
 
 -
 
