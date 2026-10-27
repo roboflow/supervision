@@ -38,7 +38,7 @@ class JSONSink:
         from rfdetr import RFDETRMedium
 
         model = RFDETRMedium()
-        json_sink = sv.JSONSink(<RESULT_JSON_FILE_PATH>)
+        json_sink = sv.JSONSink("<RESULT_JSON_FILE_PATH>")
         frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
         with json_sink as sink:
