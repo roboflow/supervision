@@ -221,6 +221,7 @@ overrides = [
     "tests.depth.*",
     "tests.detection.test_compact_mask",
     "tests.detection.test_compact_mask_union",
+    "tests.detection.test_core",
     "tests.detection.test_csv",
     "tests.detection.test_from_sam",
     "tests.detection.test_geometry_contract",
