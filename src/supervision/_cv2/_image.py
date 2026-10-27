@@ -109,7 +109,7 @@ def _convert_scale_abs(
 def _mean(
     image: npt.NDArray[Any], mask: npt.NDArray[Any] | None = None
 ) -> tuple[float, float, float, float]:
-    """Return per-channel means using OpenCV's four-value result contract."""
+    """Return OpenCV's four-value mean with float64 accumulation."""
     if mask is None:
         selected = (
             image.reshape(-1, 1)
@@ -126,7 +126,7 @@ def _mean(
         means = np.zeros(4, dtype=np.float64)
     else:
         means = np.zeros(4, dtype=np.float64)
-        means[: selected.shape[1]] = np.mean(selected, axis=0)
+        means[: selected.shape[1]] = np.mean(selected, axis=0, dtype=np.float64)
     return cast(
         tuple[float, float, float, float],
         tuple(float(value) for value in means),
