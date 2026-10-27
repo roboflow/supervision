@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import platform
 from collections.abc import Callable
 from pathlib import Path
 
@@ -119,6 +120,23 @@ def test_fallback_add_weighted_matches_opencv() -> None:
     )
 
 
+# On arm64 builds OpenCV hands 8- and 16-bit addWeighted to the Carotene HAL, which
+# sums in the other order, `fma(src2, beta, fma(src1, alpha, gamma))`, so a value
+# that lands on a rounding boundary can come out one level away from the generic
+# kernel this fallback reproduces. float32 has no Carotene kernel.
+_ADD_WEIGHTED_MAY_USE_CAROTENE = platform.machine().lower() in {"arm64", "aarch64"}
+
+
+def _assert_matches_opencv_add_weighted(
+    actual: np.ndarray, expected: np.ndarray
+) -> None:
+    assert actual.dtype == expected.dtype
+    if _ADD_WEIGHTED_MAY_USE_CAROTENE and np.issubdtype(actual.dtype, np.integer):
+        np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+    else:
+        np.testing.assert_array_equal(actual, expected)
+
+
 @pytest.mark.parametrize(
     ("alpha", "beta", "gamma"),
     [
@@ -136,7 +154,7 @@ def test_fallback_add_weighted_rounds_8bit_blends_like_opencv(
     source = np.stack([first, second, 255 - first], axis=-1).astype(np.uint8)
     other = np.stack([second, first, 255 - second], axis=-1).astype(np.uint8)
 
-    np.testing.assert_array_equal(
+    _assert_matches_opencv_add_weighted(
         _add_weighted(source, alpha, other, beta, gamma),
         cv2.addWeighted(source, alpha, other, beta, gamma),
     )
@@ -157,7 +175,7 @@ def test_fallback_add_weighted_matches_opencv_for_float32_blend_depths(
         other = rng.uniform(-100, 400, (64, 48, 3))
     source, other = source.astype(dtype), other.astype(dtype)
 
-    np.testing.assert_array_equal(
+    _assert_matches_opencv_add_weighted(
         _add_weighted(source, 0.35, other, 0.65, 0),
         cv2.addWeighted(source, 0.35, other, 0.65, 0),
     )
