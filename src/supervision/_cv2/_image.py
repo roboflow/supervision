@@ -174,6 +174,12 @@ def _resize(
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
     if src.dtype == np.uint8:
+        if (width, height) == (source_width, source_height):
+            # `cv2.resize` copies the image when the size does not change.
+            return np.ascontiguousarray(src).copy()
+        if scale_from_factors and (fx, fy) == (0.5, 0.5):
+            # OpenCV resizes an exact 2x reduction with its fast area path.
+            return _resize_half_uint8(src, width, height)
         return _resize_linear_uint8(src, width, height, scale_x, scale_y)
 
     y = (np.arange(height) + 0.5) * scale_y - 0.5
@@ -246,6 +252,11 @@ def _linear_resize_taps(
     return first, second, weight_first, weight_second
 
 
+# Output rows per block in the uint8 passes, sized so the `int32` work buffers of a
+# block stay near 4 MiB whatever the image size.
+_RESIZE_BLOCK_ELEMENTS = 1 << 20
+
+
 def _resize_linear_uint8(
     src: npt.NDArray[np.uint8],
     width: int,
@@ -259,6 +270,7 @@ def _resize_linear_uint8(
     `2**11`. The vertical pass then mirrors OpenCV's SIMD `VResizeLinearVec_32s8u`:
     each sum is shifted right by 4, multiplied by its 11-bit row weight keeping the
     high 16 bits, and the two products are added and rounded with `(sum + 2) >> 2`.
+    Output rows are produced in blocks so the intermediate buffers stay bounded.
     """
     source_height, source_width = src.shape[:2]
     x0, x1, wx0, wx1 = _linear_resize_taps(
@@ -270,34 +282,90 @@ def _resize_linear_uint8(
     # Work on `(rows, width * channels)` so every weight broadcasts along the
     # contiguous axis; each channel of a column shares that column's taps.
     channels = 1 if src.ndim == 2 else src.shape[2]
+    row_length = width * channels
     channel_offsets = np.arange(channels)
     columns0 = (x0[:, np.newaxis] * channels + channel_offsets).ravel()
     columns1 = (x1[:, np.newaxis] * channels + channel_offsets).ravel()
     weights0 = np.repeat(wx0, channels)
     weights1 = np.repeat(wx1, channels)
+    flat = src.reshape(source_height, source_width * channels)
+    resized = np.empty((height, row_length), dtype=np.uint8)
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // row_length)
 
-    # Interpolate only the source rows the vertical pass reads.
-    used_rows, row_index = np.unique(np.concatenate((y0, y1)), return_inverse=True)
-    y0, y1 = row_index[:height], row_index[height:]
-    rows = src.reshape(source_height, source_width * channels)[used_rows]
-    horizontal = np.take(rows, columns0, axis=1).astype(np.int32)
-    horizontal *= weights0
-    right = np.take(rows, columns1, axis=1).astype(np.int32)
-    right *= weights1
-    horizontal += right
-    horizontal >>= 4
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        block_y0, block_y1 = y0[start:stop], y1[start:stop]
+        # Interpolate only the source rows this block of output rows reads.
+        used_rows, row_index = np.unique(
+            np.concatenate((block_y0, block_y1)), return_inverse=True
+        )
+        rows = flat[used_rows]
+        horizontal = np.take(rows, columns0, axis=1).astype(np.int32)
+        horizontal *= weights0
+        right = np.take(rows, columns1, axis=1).astype(np.int32)
+        right *= weights1
+        horizontal += right
+        del right
+        horizontal >>= 4
 
-    resized = np.take(horizontal, y0, axis=0)
-    resized *= wy0[:, np.newaxis]
-    resized >>= 16
-    bottom = np.take(horizontal, y1, axis=0)
-    bottom *= wy1[:, np.newaxis]
-    bottom >>= 16
-    resized += bottom
-    resized += 2
-    resized >>= 2
-    np.clip(resized, 0, 255, out=resized)
-    return resized.astype(np.uint8).reshape((height, width, *src.shape[2:]))
+        top = np.take(horizontal, row_index[: stop - start], axis=0)
+        top *= wy0[start:stop, np.newaxis]
+        top >>= 16
+        bottom = np.take(horizontal, row_index[stop - start :], axis=0)
+        del horizontal
+        bottom *= wy1[start:stop, np.newaxis]
+        bottom >>= 16
+        top += bottom
+        del bottom
+        top += 2
+        top >>= 2
+        np.clip(top, 0, 255, out=top)
+        resized[start:stop] = top
+    return resized.reshape((height, width, *src.shape[2:]))
+
+
+def _resize_half_uint8(
+    src: npt.NDArray[np.uint8], width: int, height: int
+) -> npt.NDArray[np.uint8]:
+    """Halve a uint8 image like OpenCV's `resizeAreaFast_` for `fx = fy = 0.5`.
+
+    A full 2x2 block is rounded with `(sum + 2) >> 2` when the image has 1, 3 or 4
+    channels and with `cvRound(sum * 0.25f)` (half to even) otherwise. A block cut
+    by an odd last row or column averages its in-bounds pixels with `cvRound`.
+    """
+    source_height, source_width = src.shape[:2]
+    image = src if src.ndim == 3 else src[:, :, np.newaxis]
+    channels = image.shape[2]
+    # The halved size is rounded half to even, so an odd side either drops its
+    # last pixel or ends in a cut block; zero-pad the cut blocks and count how many
+    # of their pixels are real.
+    image = image[: 2 * height, : 2 * width]
+    padded = np.pad(
+        image,
+        ((0, 2 * height - image.shape[0]), (0, 2 * width - image.shape[1]), (0, 0)),
+    ).astype(np.int32)
+    sums = (
+        padded[0::2, 0::2]
+        + padded[0::2, 1::2]
+        + padded[1::2, 0::2]
+        + padded[1::2, 1::2]
+    )
+    count_y = np.clip(source_height - 2 * np.arange(height), 0, 2)
+    count_x = np.clip(source_width - 2 * np.arange(width), 0, 2)
+    counts = count_y[:, np.newaxis] * count_x[np.newaxis, :]
+
+    full = counts == 4
+    if channels in (1, 3, 4):
+        rounded = (sums + 2) >> 2
+    else:
+        rounded = np.rint(sums.astype(np.float32) * np.float32(0.25))
+    averaged = np.rint(
+        sums.astype(np.float32) / counts[:, :, np.newaxis].astype(np.float32)
+    )
+    resized = np.where(full[:, :, np.newaxis], rounded, averaged)
+    return np.ascontiguousarray(
+        resized.astype(np.uint8).reshape((height, width, *src.shape[2:]))
+    )
 
 
 _EXIF_ORIENTATION_TAG = 0x0112

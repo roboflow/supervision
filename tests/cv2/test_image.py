@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import platform
 from collections.abc import Callable
 from pathlib import Path
 
@@ -302,15 +303,29 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
 
 
+# OpenCV's arm64 builds hand some uint8 `INTER_LINEAR` resizes to the Carotene HAL
+# (`TEGRA_RESIZE`): one channel with a source at least 8 wide and an output of at
+# least 8x8, or four channels with an output at least 8 tall that is not an exact
+# 2x reduction. Carotene uses its own fixed-point kernel, up to two levels away from
+# the generic one this fallback reproduces.
+_OPENCV_MAY_USE_CAROTENE = platform.machine().lower() in {"arm64", "aarch64"}
+
+
 @pytest.mark.parametrize(
-    ("source_shape", "dsize", "fx", "fy"),
+    ("source_shape", "dsize", "fx", "fy", "carotene"),
     [
-        pytest.param((9, 9), (13, 15), 0, 0, id="gray-upscale"),
-        pytest.param((17, 23, 3), (31, 29), 0, 0, id="bgr-upscale"),
-        pytest.param((40, 37, 3), (11, 26), 0, 0, id="bgr-mixed"),
-        pytest.param((9, 7, 4), (13, 4), 0, 0, id="rgba"),
-        pytest.param((13, 10, 3), None, 0.6, 0.6, id="factor-downscale"),
-        pytest.param((13, 10, 3), None, 0.3, 3.7, id="factor-mixed"),
+        pytest.param((9, 9), (13, 15), 0, 0, True, id="gray-upscale"),
+        pytest.param((17, 23, 3), (31, 29), 0, 0, False, id="bgr-upscale"),
+        pytest.param((40, 37, 3), (11, 26), 0, 0, False, id="bgr-mixed"),
+        pytest.param((9, 7, 4), (13, 4), 0, 0, False, id="rgba"),
+        pytest.param((13, 10, 3), None, 0.6, 0.6, False, id="factor-downscale"),
+        pytest.param((13, 10, 3), None, 0.3, 3.7, False, id="factor-mixed"),
+        pytest.param((3, 3), None, 0.5, 0.5, False, id="half-gray-odd"),
+        pytest.param((23, 27, 3), None, 0.5, 0.5, False, id="half-bgr-odd"),
+        pytest.param((19, 38, 4), None, 0.5, 0.5, False, id="half-rgba-odd-rows"),
+        pytest.param((6, 5, 2), None, 0.5, 0.5, False, id="half-two-channel"),
+        pytest.param((5, 7, 3), None, 0.5, 0.5, False, id="half-drops-last-pixel"),
+        pytest.param((8, 6, 3), (6, 8), 0, 0, False, id="same-size"),
     ],
 )
 def test_fallback_linear_resize_is_bit_exact_for_uint8(
@@ -318,6 +333,7 @@ def test_fallback_linear_resize_is_bit_exact_for_uint8(
     dsize: tuple[int, int] | None,
     fx: float,
     fy: float,
+    carotene: bool,
 ) -> None:
     """Reproduce OpenCV's fixed-point uint8 `INTER_LINEAR` resize pixel for pixel."""
     rng = np.random.default_rng(20261027)
@@ -328,7 +344,20 @@ def test_fallback_linear_resize_is_bit_exact_for_uint8(
 
     assert actual.dtype == expected.dtype
     assert actual.flags.c_contiguous
-    np.testing.assert_array_equal(actual, expected)
+    if carotene and _OPENCV_MAY_USE_CAROTENE:
+        np.testing.assert_allclose(actual, expected, atol=2, rtol=0)
+    else:
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_linear_resize_copies_uint8_image_of_unchanged_size() -> None:
+    """Return a copy, not a view, when the requested size matches the source."""
+    source = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+
+    actual = _resize(source, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_array_equal(actual, source)
+    assert not np.shares_memory(actual, source)
 
 
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:
