@@ -39,6 +39,8 @@ date_modified: 2026-10-24
 
 - The NumPy fallback for `connectedComponents` and `connectedComponentsWithStats` now numbers 8-connected components like OpenCV, by their first 2x2 block in raster order instead of their first pixel. Labels, `stats` rows and `centroids` rows were permuted relative to OpenCV whenever a component started on the lower row of a block pair before another started further right on the upper row; 131 of 282 random 8-connected masks were affected. ([#2812](https://github.com/roboflow/supervision/pull/2812))
 
+- The NumPy fallback for `resize` with `INTER_LINEAR` now matches OpenCV pixel for pixel on `uint8` images. It went through Pillow (or float64 math for RGBA and `fx`/`fy` resizes), which rounded differently from OpenCV's 11-bit fixed-point weights: on 996 random grayscale, BGR and RGBA resizes every result differed from `cv2.resize` by one level somewhere. Exact halvings (`fx=fy=0.5`) follow OpenCV's fast area path, and an unchanged size returns a copy. The reference is OpenCV's generic kernel; arm64 builds hand some grayscale and RGBA resizes to the Carotene HAL, which can differ by up to two levels. `sv.resize_image`, `sv.letterbox_image`, `sv.scale_image`, `sv.PixelateAnnotator` and `sv.draw_image` are affected without OpenCV. Other dtypes keep the float path. ([#2833](https://github.com/roboflow/supervision/pull/2833))
+
 -
 
 ### 0.31.2 <small>Oct 24, 2026</small>
