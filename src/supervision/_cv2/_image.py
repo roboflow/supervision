@@ -96,7 +96,10 @@ def _blend_like_opencv_float32(
         np.float64(np.float32(value)) for value in (alpha, beta, gamma)
     )
     inner = (src2.astype(np.float64) * beta32 + gamma32).astype(np.float32)
-    return (src1.astype(np.float64) * alpha32 + inner).astype(np.float32)
+    blended: npt.NDArray[np.float32] = (
+        src1.astype(np.float64) * alpha32 + inner
+    ).astype(np.float32)
+    return blended
 
 
 def _add_weighted(

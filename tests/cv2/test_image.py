@@ -166,8 +166,10 @@ def test_fallback_add_weighted_matches_opencv_for_float32_blend_depths(
 ) -> None:
     """Match OpenCV on the other depths it blends in float32."""
     rng = np.random.default_rng(20261027)
+    source: np.ndarray
+    other: np.ndarray
     if np.issubdtype(dtype, np.integer):
-        info = np.iinfo(dtype)
+        info = np.iinfo(np.dtype(dtype))
         source = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
         other = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
     else:
