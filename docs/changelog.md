@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
+
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
 
 - The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
