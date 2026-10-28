@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels.
+- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
