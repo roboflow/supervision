@@ -3304,7 +3304,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        colored_mask = np.full_like(
+            scene, _color_for_canvas(self.color.as_bgr(), scene), dtype=np.uint8
+        )
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
