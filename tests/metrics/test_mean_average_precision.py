@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -14,6 +15,7 @@ from supervision.metrics.mean_average_precision import (
     COCOEvaluator,
     EvaluationDataset,
     MeanAveragePrecision,
+    _TypeCocoDict,
 )
 from tests.metrics.coco_reference import evaluate_detections
 
@@ -53,6 +55,8 @@ class TestMeanAveragePrecisionWithCocoMasks:
 
         result = metric.update(predictions, targets).compute()
 
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         assert result.map50_95 == pytest.approx(1.0)
         assert result.medium_objects.map50_95 == pytest.approx(1.0)
         assert result.large_objects.map50_95 == -1
@@ -108,7 +112,7 @@ def _agnostic_pair(
     targets = Detections(
         xyxy=predictions.xyxy.copy(),
         class_id=target_class_ids,
-        mask=predictions.mask.copy(),
+        mask=np.ones((1, 10, 10), dtype=bool),
         data={ORIENTED_BOX_COORDINATES: oriented_boxes.copy()},
     )
     return predictions, targets
@@ -380,7 +384,9 @@ class TestMeanAveragePrecision:
         assert result.map50_95 == pytest.approx(1.0)
         np.testing.assert_array_equal(result.matched_classes, [-1])
 
-    def test_single_perfect_detection(self, detections_50_50, targets_50_50):
+    def test_single_perfect_detection(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that single perfect detection gets 1.0 mAP (not 0.0 due to ID=0 bug)"""
         metric = MeanAveragePrecision()
         metric.update([detections_50_50], [targets_50_50])
@@ -389,7 +395,7 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP, not 0.0 due to ID=0 bug
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_multiple_perfect_detections(self):
+    def test_multiple_perfect_detections(self) -> None:
         """Test that multiple perfect detections get 1.0 mAP."""
         # Multiple perfect detections in one image
         detections = Detections(
@@ -408,7 +414,7 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_perfect_non_square_oriented_boxes_get_full_map(self):
+    def test_perfect_non_square_oriented_boxes_get_full_map(self) -> None:
         """Perfect non-square OBB predictions score full mAP via OBB IoU."""
         obb = np.array(
             [[[10, 0], [0, 1], [30, 4], [40, 3]]],
@@ -434,7 +440,9 @@ class TestMeanAveragePrecision:
 
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_batch_updates_perfect_detections(self, detections_50_50, targets_50_50):
+    def test_batch_updates_perfect_detections(
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test that batch updates with perfect detections get 1.0 mAP."""
         metric = MeanAveragePrecision()
         # Add 3 batch updates
@@ -446,7 +454,7 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP across all batches
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_scenario_1_success_case_imperfect_match(self):
+    def test_scenario_1_success_case_imperfect_match(self) -> None:
         """Scenario 1: Success Case with imperfect match."""
         # Small object (class 0) - area = 30*30 = 900 < 1024
         small_perfect = Detections(
@@ -496,11 +504,12 @@ class TestMeanAveragePrecision:
 
         # Should be close to 0.9 (slightly less than perfect due to medium object)
         assert 0.85 < result.map50_95 < 0.98  # Adjusted upper bound
+        assert result.medium_objects is not None
         assert (
             result.medium_objects.map50_95 < 1.0
         )  # Medium should be less than perfect
 
-    def test_scenario_2_missed_detection(self):
+    def test_scenario_2_missed_detection(self) -> None:
         """Scenario 2: GT Present, No Prediction (Missed Detection)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -536,6 +545,7 @@ class TestMeanAveragePrecision:
         result = metric.compute()
 
         # Medium objects should have 0.0 mAP (missed detection)
+        assert result.medium_objects is not None
         assert abs(result.medium_objects.map50_95 - 0.0) < 1e-6
 
     def test_scenario_3_false_positive(self) -> None:
@@ -578,6 +588,7 @@ class TestMeanAveragePrecision:
             [small_detection, medium_pred, large_detections],
             [small_detection, no_medium_target, large_detections],
         )
+        assert result.medium_objects is not None
         assert result.medium_objects.map50_95 == reference.stats[4]
 
     def test_scenario_4_no_data(self) -> None:
@@ -631,9 +642,10 @@ class TestMeanAveragePrecision:
             [small_detection, no_medium, large_preds],
             [small_detection, no_medium, large_targets],
         )
+        assert result.medium_objects is not None
         assert result.medium_objects.map50_95 == reference.stats[4]
 
-    def test_scenario_5_only_one_class_present(self):
+    def test_scenario_5_only_one_class_present(self) -> None:
         """Scenario 5: Only 1 of 3 Classes Present (Perfect Match)"""
         # Only class 0 objects with perfect matches
         detections_class_0 = [
@@ -661,8 +673,8 @@ class TestMeanAveragePrecision:
         assert abs(result.map75 - 1.0) < 1e-6
 
     def test_mixed_classes_with_missing_detections(
-        self, detections_50_50, targets_50_50
-    ):
+        self, detections_50_50: Detections, targets_50_50: Detections
+    ) -> None:
         """Test mixed scenario with some classes having no detections."""
         # Class 1: GT exists but no prediction
         class_1_target = Detections(
@@ -697,6 +709,9 @@ class TestMeanAveragePrecision:
         result = metric.compute()
 
         reference = evaluate_detections(Detections.empty(), Detections.empty())
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         np.testing.assert_array_equal(
             [
                 result.map50_95,
@@ -816,6 +831,8 @@ class TestMeanAveragePrecisionMasks:
 
         result = metric.update([predictions], [targets]).compute()
 
+        assert result.small_objects is not None
+        assert result.large_objects is not None
         assert result.small_objects.map50 == pytest.approx(1.0, abs=1e-6)
         assert result.large_objects.map50 == -1
 
@@ -844,7 +861,9 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
         self, dtype: type, origin: int
     ) -> None:
         """A rotated 100x50 rectangle remains medium, despite its large envelope."""
-        corners = np.array([[[40, 0], [100, 80], [60, 110], [0, 30]]], dtype=dtype)
+        corners: np.ndarray = np.array(
+            [[[40, 0], [100, 80], [60, 110], [0, 30]]], dtype=dtype
+        )
         corners += dtype(origin)
         targets = Detections(
             xyxy=np.array([[origin, origin, origin + 100, origin + 110]], dtype=dtype),
@@ -863,6 +882,9 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
 
         result = metric.update(predictions, targets).compute()
 
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         assert result.map50_95 == pytest.approx(1.0)
         assert result.medium_objects.map50_95 == pytest.approx(1.0)
         assert result.small_objects.map50_95 == -1
@@ -889,7 +911,9 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
         self, dtype: type, origin: int, prediction_offset: int, expected_map: float
     ) -> None:
         """Translated OBBs retain perfect, partial and disjoint overlap scores."""
-        corners = np.array([[[0, 0], [100, 0], [100, 100], [0, 100]]], dtype=dtype)
+        corners: np.ndarray = np.array(
+            [[[0, 0], [100, 0], [100, 100], [0, 100]]], dtype=dtype
+        )
         target_corners = corners + dtype(origin)
         prediction_corners = target_corners + np.array(
             [prediction_offset, 0], dtype=dtype
@@ -935,7 +959,9 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
         self, dtype: type, origin: int, size: int, expected_scores: list[float]
     ) -> None:
         """OBB size buckets depend on polygon area rather than its absolute origin."""
-        corners = np.array([[[0, 0], [size, 0], [size, size], [0, size]]], dtype=dtype)
+        corners: np.ndarray = np.array(
+            [[[0, 0], [size, 0], [size, size], [0, size]]], dtype=dtype
+        )
         corners += dtype(origin)
         targets = Detections(
             xyxy=np.array(
@@ -956,6 +982,9 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
 
         result = metric.update(predictions, targets).compute()
 
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         scores = [
             result.small_objects.map50_95,
             result.medium_objects.map50_95,
@@ -1117,7 +1146,7 @@ class TestMaskIouWithJaccard:
         chunk_sizes: list[int] = []
 
         def track_ground_truth_chunks(
-            masks: object, *args: object, **kwargs: object
+            masks: object, *args: Any, **kwargs: Any
         ) -> np.ndarray:
             """Record each materialized ground-truth chunk."""
             if (
@@ -1126,12 +1155,11 @@ class TestMaskIouWithJaccard:
                 and all(id(mask) in ground_truth_mask_ids for mask in masks)
             ):
                 chunk_sizes.append(len(masks))
-            return original_asarray(masks, *args, **kwargs)
+            chunk: np.ndarray = original_asarray(masks, *args, **kwargs)
+            return chunk
 
         monkeypatch.setattr(mean_average_precision, "_MASK_IOU_GT_BUFFER_BYTES", 176)
-        monkeypatch.setattr(
-            mean_average_precision.np, "asarray", track_ground_truth_chunks
-        )
+        monkeypatch.setattr(np, "asarray", track_ground_truth_chunks)
 
         iou = mean_average_precision._mask_iou_with_jaccard(
             masks_true, masks_detection, [False, False]
@@ -1263,7 +1291,7 @@ class TestEvaluationDatasetLoadPredictions:
                 "categories": [{"id": 1}],
             }
         )
-        predictions = [
+        predictions: list[_TypeCocoDict] = [
             {"image_id": image_id, "category_id": 1, "bbox": [0, 0, 1, 1]}
             for image_id in prediction_image_ids
         ]
@@ -1280,7 +1308,9 @@ class TestEvaluationDatasetLoadPredictions:
                 "categories": [{"id": 1}],
             }
         )
-        predictions = [{"image_id": 1, "category_id": 1, "bbox": [0, 0, 1, 1]}]
+        predictions: list[_TypeCocoDict] = [
+            {"image_id": 1, "category_id": 1, "bbox": [0, 0, 1, 1]}
+        ]
 
         result = dataset.load_predictions(predictions)
 
@@ -1324,6 +1354,9 @@ class TestMeanAveragePrecisionObjectSizes:
         # Assert
         # Every bucket scores differently, so reading one bucket's precision
         # slice for another fails here.
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
         scores = [
             result.map50_95,
             result.small_objects.map50_95,
@@ -1385,12 +1418,20 @@ class TestCOCOEvaluatorAreaRanges:
 
         # Assert
         matched = [1.0] * 7 + [0.0] * 3
-        np.testing.assert_allclose(evaluator.results["mAP_scores_all_sizes"], matched)
-        np.testing.assert_allclose(evaluator.results["mAP_scores_medium"], matched)
-        np.testing.assert_allclose(evaluator.results["mAP_scores_small"], [-1.0] * 10)
-        np.testing.assert_allclose(evaluator.results["mAP_scores_large"], [-1.0] * 10)
         np.testing.assert_allclose(
-            evaluator.results["ap_per_class_small"], [[-1.0] * 10]
+            np.asarray(evaluator.results["mAP_scores_all_sizes"]), matched
+        )
+        np.testing.assert_allclose(
+            np.asarray(evaluator.results["mAP_scores_medium"]), matched
+        )
+        np.testing.assert_allclose(
+            np.asarray(evaluator.results["mAP_scores_small"]), [-1.0] * 10
+        )
+        np.testing.assert_allclose(
+            np.asarray(evaluator.results["mAP_scores_large"]), [-1.0] * 10
+        )
+        np.testing.assert_allclose(
+            np.asarray(evaluator.results["ap_per_class_small"]), [[-1.0] * 10]
         )
 
 
