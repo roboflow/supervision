@@ -85,6 +85,12 @@ def load_image_from_url(
         ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
         requests.RequestException: If the request fails or returns an error status.
 
+    Note:
+        Without OpenCV, ``cv_imread_flags=0`` (``IMREAD_GRAYSCALE``) returns a
+        two-dimensional ``uint8`` image. Pillow-backed grayscale conversions for
+        other codecs or color modes can differ from OpenCV's decoder, even when
+        their shape and dtype agree.
+
     Examples:
         ```python
         import supervision as sv

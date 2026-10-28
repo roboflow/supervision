@@ -7,6 +7,8 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
+- The image-reading fallback now honors `IMREAD_GRAYSCALE` (`0`) for file and byte decoding, including `sv.load_image_from_url(..., cv_imread_flags=0)`, returning a two-dimensional `uint8` image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences.
+
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
 
 - The NumPy `cv2.mean` fallback now accumulates `float32` pixels in `float64`, preserving small values when large positive and negative pixels cancel. For example, `[1e8, 1, -1e8]` now averages to `1/3` instead of `0`. ([#2820](https://github.com/roboflow/supervision/pull/2820))
