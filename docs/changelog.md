@@ -7,7 +7,7 @@ date_modified: 2026-10-17
 
 ### Unreleased <small>upcoming</small>
 
-- The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth.
+- The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
 
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
 
