@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- The NumPy `cv2.convertScaleAbs` fallback now scales in `float32`, as OpenCV does, so results that land next to a half round the same way with and without OpenCV. For example, `225` with `alpha=0.3, beta=-5` now gives `63` instead of `62`, and `sv.overlay_image` scales the overlay alpha like OpenCV for every `opacity`.
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

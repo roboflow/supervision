@@ -177,8 +177,18 @@ def _add_weighted(
 def _convert_scale_abs(
     image: npt.NDArray[Any], alpha: float = 1, beta: float = 0
 ) -> npt.NDArray[np.uint8]:
-    """Scale, offset, take the absolute value, and saturate to uint8."""
-    values = np.abs(image.astype(np.float64) * alpha + beta)
+    """Scale, offset, take the absolute value, and saturate to uint8.
+
+    OpenCV computes `|image * alpha + beta|` in float32 at every depth, with the
+    pixels, `alpha` and `beta` cast to float32 and one fused multiply-add. Float64
+    arithmetic rounds differently where the float32 result sits next to a half:
+    OpenCV turns `225 * 0.3 - 5` into 63, float64 into 62.
+    """
+    alpha32, beta32 = (np.float64(np.float32(value)) for value in (alpha, beta))
+    with np.errstate(invalid="ignore", over="ignore"):
+        if image.dtype not in _FLOAT32_BLEND_DTYPES:
+            image = image.astype(np.float32)
+        values = np.abs(_fused_multiply_add_float32(image, alpha32, beta32))
     return _cast_array_like_opencv(values, np.dtype(np.uint8))
 
 

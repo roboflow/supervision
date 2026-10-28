@@ -327,6 +327,28 @@ def test_fallback_convert_scale_abs_matches_opencv() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("dtype", "values", "alpha", "beta"),
+    [
+        pytest.param(np.uint8, [225, 85, 45, 25], 0.3, -5, id="uint8"),
+        pytest.param(np.int16, [-235, 225, 85, 45], 0.3, -5, id="int16"),
+        pytest.param(np.int32, [-238, 225, 85, 45], 0.3, -0.1, id="int32"),
+        pytest.param(np.float32, [325.0, 225.0, 85.0, 45.0], 0.3, -5, id="float32"),
+        pytest.param(np.float64, [325.0, 225.0, 85.0, 45.0], 0.3, -5, id="float64"),
+    ],
+)
+def test_fallback_convert_scale_abs_rounds_in_float32_like_opencv(
+    dtype: type[np.generic], values: list[float], alpha: float, beta: float
+) -> None:
+    """Scale in float32, as OpenCV does, where float64 lands just below a half."""
+    source = np.array([values], dtype=dtype)
+
+    np.testing.assert_array_equal(
+        _convert_scale_abs(source, alpha, beta),
+        cv2.convertScaleAbs(source, alpha=alpha, beta=beta),
+    )
+
+
 class TestFallbackMean:
     def test_matches_opencv_for_masked_uint8(self) -> None:
         """Match OpenCV masked mean semantics for integer images."""
