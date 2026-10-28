@@ -547,7 +547,9 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
                     values = np.asarray(image)
             elif image.mode in {"I", "I;16", "I;16B", "I;16L"}:
                 values = np.asarray(_exif_oriented(image)).astype(np.float64)
-                values = np.clip(np.rint(values / 256), 0, 255).astype(np.uint8)
+                # OpenCV discards the low byte of 16-bit samples. Rounding would
+                # brighten values such as 129 to 1 instead of keeping their high byte.
+                values = np.clip(np.floor(values / 256), 0, 255).astype(np.uint8)
                 if values.ndim == 2:
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
