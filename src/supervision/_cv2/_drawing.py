@@ -10,6 +10,8 @@ from typing import Any, SupportsIndex
 import numpy as np
 import numpy.typing as npt
 
+from supervision._cv2._common import _cast_array_like_opencv
+
 _ImageArray = npt.NDArray[Any]
 _Point = tuple[int, int]
 
@@ -103,16 +105,20 @@ _SIN_TABLE = np.array(
 
 
 def _color_for_image(image: _ImageArray, color: Any) -> Any:
-    """Normalize an OpenCV scalar color to the image channel count."""
+    """Normalize and saturate an OpenCV scalar color to the image channel count."""
     values = np.asarray(color).reshape(-1)
     if image.ndim == 2:
-        return values[0] if values.size else 0
+        val = values[0] if values.size else 0
+        arr = np.asarray([val])
+        return _cast_array_like_opencv(arr, image.dtype)[0]
     channels = image.shape[2]
     if values.size == 0:
         return np.zeros(channels, dtype=image.dtype)
     if values.size < channels:
-        return np.pad(values, (0, channels - values.size))
-    return values[:channels]
+        values = np.pad(values, (0, channels - values.size))
+    else:
+        values = values[:channels]
+    return _cast_array_like_opencv(values, image.dtype)
 
 
 def _paint(image: _ImageArray, mask: npt.NDArray[np.bool_], color: Any) -> _ImageArray:
