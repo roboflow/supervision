@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates.
+- Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates. ([#2851](https://github.com/roboflow/supervision/pull/2851))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
