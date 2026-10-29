@@ -3,6 +3,7 @@ from contextlib import ExitStack as DoesNotRaise
 from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision.detection.utils.boxes import (
@@ -986,3 +987,57 @@ class TestSpreadOutBoxes:
 
         np.testing.assert_array_equal(result[:, [0, 2]], xyxy[:, [0, 2]])
         assert result[0, 1] < xyxy[0, 1] < result[1, 1]
+
+
+class TestScaleBoxesWideFloatingSpans:
+    """Scaling finite corners must not overflow an intermediate box width."""
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    @pytest.mark.parametrize("factor", [0.0, 0.5, 1.0])
+    def test_preserves_representable_scaled_corners(
+        self, dtype: type, factor: float
+    ) -> None:
+        """Opposite-sign finite corners scale without an overflowing span."""
+        extent = np.finfo(dtype).max * 0.75
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[-extent, -extent, extent, extent]], dtype=dtype
+        )
+        expected = boxes * factor
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, factor)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_allclose(result, expected, rtol=0.002, atol=0)
+
+    @pytest.mark.parametrize("invalid", [float("nan"), float("inf")])
+    def test_finite_boxes_are_independent_of_nonfinite_siblings(
+        self, invalid: float
+    ) -> None:
+        """An unrelated invalid box does not disable finite-span recovery."""
+        boxes = np.array(
+            [[-40000, -40000, 40000, 40000], [invalid, 0, 1, 1]], dtype=np.float16
+        )
+
+        with np.errstate(invalid="ignore"):
+            result = scale_boxes(boxes, 0.5)
+
+        np.testing.assert_array_equal(result[0], [-20000, -20000, 20000, 20000])
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_keeps_representable_corners_when_scaled_span_overflows(
+        self, dtype: type
+    ) -> None:
+        """A finite width can overflow when enlarged although both corners fit."""
+        extent = np.finfo(dtype).max * 0.6
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[0, 0, extent, extent]], dtype=dtype
+        )
+        extent = float(boxes[0, 2])
+        expected = np.array([[-extent / 2, -extent / 2, extent * 1.5, extent * 1.5]])
+
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, 2.0)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_allclose(result, expected, rtol=0.002, atol=0)
