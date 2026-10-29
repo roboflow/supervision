@@ -625,6 +625,10 @@ def scale_boxes(
         Scaled bounding boxes. Integer input arrays produce `float64` output;
         floating-point inputs preserve their existing dtype.
 
+    Note:
+        Finite corners whose full span overflows the coordinate dtype are scaled
+        from their half-span when the resulting corners remain representable.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -680,10 +684,21 @@ def scale_boxes(
             xyxy = xyxy.astype(np.float64)
 
     centers = cast(npt.NDArray[np.floating], _box_midpoint(xyxy[:, :2], xyxy[:, 2:]))
-    new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+    with np.errstate(over="ignore", invalid="ignore"):
+        new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
+    half_sizes = new_sizes / 2
+    overflow = (
+        ~np.isfinite(new_sizes) & np.isfinite(xyxy[:, :2]) & np.isfinite(xyxy[:, 2:])
+    )
+    if np.any(overflow) and np.isfinite(factor):
+        # Subtracting or scaling the full span can overflow while the scaled
+        # half-span and final corners still fit the input dtype.
+        half_sizes[overflow] = (
+            xyxy[:, 2:][overflow] / 2 - xyxy[:, :2][overflow] / 2
+        ) * factor
     return cast(
         npt.NDArray[np.floating],
-        np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1),
+        np.concatenate((centers - half_sizes, centers + half_sizes), axis=1),
     )
 
 
