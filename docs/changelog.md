@@ -7,6 +7,8 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
+
 -
 
 ### 0.31.3 <small>Oct 28, 2026</small>

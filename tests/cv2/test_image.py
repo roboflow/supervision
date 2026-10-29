@@ -917,6 +917,80 @@ def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
     )
 
 
+class TestFallbackSixteenBitImageRead:
+    """Decode the complete uint16 range without rounding its discarded low byte."""
+
+    @pytest.mark.parametrize(
+        ("image_format", "dtype"),
+        [
+            pytest.param("PNG", "<u2", id="png"),
+            pytest.param("TIFF", "<u2", id="little-endian-tiff"),
+            pytest.param("TIFF", ">u2", id="big-endian-tiff"),
+        ],
+    )
+    @pytest.mark.parametrize("flags", [_IMREAD_COLOR, _IMREAD_UNCHANGED])
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_matches_opencv_for_every_pixel_value(
+        self,
+        tmp_path: Path,
+        image_format: str,
+        dtype: str,
+        flags: int,
+        entrypoint: str,
+    ) -> None:
+        """Match OpenCV values while preserving unchanged storage dtype."""
+        from PIL import Image
+
+        pixels = np.arange(65536, dtype=np.uint16).reshape(256, 256).astype(dtype)
+        image_path = tmp_path / f"sixteen-bit.{image_format.lower()}"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        with Image.open(image_path) as image:
+            unchanged_dtype = np.asarray(image).dtype
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), flags)
+        else:
+            expected = cv2.imdecode(encoded, flags)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), flags)
+        else:
+            actual = _imdecode(encoded, flags)
+
+        assert actual is not None
+        assert expected is not None
+        if flags == _IMREAD_UNCHANGED:
+            assert actual.dtype == unchanged_dtype
+        else:
+            assert actual.dtype == expected.dtype
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_preserves_signed_integer_tiff_unchanged(
+        self, tmp_path: Path, entrypoint: str
+    ) -> None:
+        """Leave signed 32-bit TIFF values untouched in unchanged mode."""
+        from PIL import Image
+
+        pixels = np.array([[-(2**31), -1, 0], [129, 65535, 2**31 - 1]], dtype=np.int32)
+        image_path = tmp_path / "signed.tiff"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            expected = cv2.imdecode(encoded, _IMREAD_UNCHANGED)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            actual = _imdecode(encoded, _IMREAD_UNCHANGED)
+
+        assert actual is not None
+        assert actual.dtype == pixels.dtype
+        np.testing.assert_array_equal(actual, expected)
+
+
 def _write_png_with_exif_orientation(path: Path, orientation: int) -> None:
     """Write a small asymmetric PNG whose EXIF orientation tag is `orientation`."""
     from PIL import Image
