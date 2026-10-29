@@ -7,6 +7,8 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
+
 -
 
 ### 0.31.3 <small>Oct 28, 2026</small>
