@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates out-of-bounds color coordinates and rounds floating-point values like OpenCV. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x.
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

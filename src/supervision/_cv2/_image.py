@@ -58,12 +58,18 @@ def _copy_make_border(
     # multichannel images — a bare scalar is treated the same as a
     # length-1 sequence, not broadcast to every channel.
     sequence_value = value if isinstance(value, Sequence) else (value,)
-    values = np.asarray(sequence_value, dtype=image.dtype).reshape(-1)
+    values = np.asarray(sequence_value).reshape(-1)
     if image.ndim == 2:
-        fill_value: Any = values[0] if values.size else 0
+        fill_value: Any = (
+            _cast_array_like_opencv(values[:1], image.dtype)[0] if values.size else 0
+        )
     else:
         fill = np.zeros(image.shape[2], dtype=image.dtype)
-        fill[: min(values.size, image.shape[2])] = values[: image.shape[2]]
+        fill_count = min(values.size, image.shape[2])
+        if fill_count > 0:
+            fill[:fill_count] = _cast_array_like_opencv(
+                values[:fill_count], image.dtype
+            )
         fill_value = fill.reshape((1, 1, -1))
 
     result = np.full(shape, fill_value, dtype=image.dtype)
