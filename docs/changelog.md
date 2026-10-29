@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names.
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

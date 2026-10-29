@@ -240,8 +240,10 @@ def from_paligemma(
     """
     w, h = _validate_resolution(resolution_wh)
 
+    # Labels end at a detection separator or model token, not at punctuation
+    # inside an open-vocabulary class name.
     pattern = re.compile(
-        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
+        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([^;<]+)"
     )
     matches = pattern.findall(result)
     matches_arr: npt.NDArray[Any] = np.array(matches) if matches else np.empty((0, 5))
