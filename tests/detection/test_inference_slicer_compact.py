@@ -6,7 +6,11 @@ Verifies that with compact_masks=True:
 - Final detections are pixel-identical to the compact_masks=False path.
 """
 
+from typing import cast
+
 import numpy as np
+import numpy.typing as npt
+import pytest
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask
@@ -39,6 +43,97 @@ class TestInferenceSlicerCompactMasks:
 
     None of those steps materialise a full (N, H, W) dense array.
     """
+
+    @pytest.mark.parametrize("batch_size", [1, 2])
+    @pytest.mark.parametrize("compact_masks", [False, True])
+    def test_reuses_dense_callback_buffers(
+        self, batch_size: int, compact_masks: bool
+    ) -> None:
+        """A callback can reset its retained dense masks on every tile or batch."""
+        image = np.zeros((4, 16, 3), dtype=np.uint8)
+        for tile_index in range(4):
+            image[:, tile_index * 4 : (tile_index + 1) * 4] = tile_index
+        buffers = [
+            Detections(
+                xyxy=np.array([[0, 0, 4, 4]], dtype=np.float32),
+                mask=np.zeros((1, 4, 4), dtype=bool),
+                confidence=np.array([0.9]),
+                class_id=np.array([0]),
+            )
+            for _ in range(batch_size)
+        ]
+        source_masks = [buffer.mask for buffer in buffers]
+
+        def fill_buffer(tile: npt.NDArray[np.generic], index: int) -> Detections:
+            """Reset one reusable mask and mark the pixel selected by the tile."""
+            detection = buffers[index]
+            mask = cast(npt.NDArray[np.bool_], detection.mask)
+            mask.fill(False)
+            mask[0, 0, int(tile[0, 0, 0])] = True
+            return detection
+
+        def callback(tile: npt.NDArray[np.generic]) -> Detections:
+            """Return the same output buffer for each tile."""
+            return fill_buffer(tile, 0)
+
+        def batch_callback(tiles: list[npt.NDArray[np.generic]]) -> list[Detections]:
+            """Return the same output buffers for each batch."""
+            for index, tile in enumerate(tiles):
+                fill_buffer(tile, index)
+            return buffers
+
+        slicer = sv.InferenceSlicer(
+            callback=callback if batch_size == 1 else batch_callback,
+            slice_wh=4,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=compact_masks,
+            batch_size=batch_size,
+        )
+        expected_masks = np.zeros((4, 4, 16), dtype=bool)
+        expected_masks[np.arange(4), 0, np.arange(4) * 5] = True
+
+        result = slicer(image)
+
+        np.testing.assert_array_equal(np.asarray(result.mask), expected_masks)
+        for buffer, source_mask in zip(buffers, source_masks):
+            assert buffer.mask is source_mask
+
+    @pytest.mark.parametrize("batch_size", [1, 2])
+    @pytest.mark.parametrize("thread_workers", [1, 2])
+    def test_preserves_callback_mask_objects(
+        self, batch_size: int, thread_workers: int
+    ) -> None:
+        """Compact output leaves each retained callback result's dense mask intact."""
+        retained: list[tuple[Detections, npt.NDArray[np.bool_]]] = []
+
+        def callback(tile: npt.NDArray[np.generic]) -> Detections:
+            """Retain each dense callback result and its original mask."""
+            detections = _fake_seg_callback(tile)
+            assert isinstance(detections.mask, np.ndarray)
+            retained.append((detections, detections.mask))
+            return detections
+
+        def batch_callback(tiles: list[npt.NDArray[np.generic]]) -> list[Detections]:
+            """Retain each result from the batch callback."""
+            return [callback(tile) for tile in tiles]
+
+        slicer = sv.InferenceSlicer(
+            callback=callback if batch_size == 1 else batch_callback,
+            slice_wh=4,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=True,
+            batch_size=batch_size,
+            thread_workers=thread_workers,
+        )
+
+        result = slicer(np.zeros((8, 8, 3), dtype=np.uint8))
+
+        assert isinstance(result.mask, CompactMask)
+        assert len(retained) == 4
+        for detections, source_mask in retained:
+            assert detections.mask is source_mask
 
     def test_compact_masks_flag_converts_dense_to_compact(self) -> None:
         """Masks returned from callback are CompactMask after _run_callback."""

@@ -4,6 +4,7 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from copy import copy
 from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
@@ -349,6 +350,10 @@ class InferenceSlicer:
         reference — a long-lived derived result (e.g. held across a video
         processing loop) keeps the full input frame alive.
 
+        Callback results are left unchanged, including dense masks converted
+        for ``compact_masks=True``, so sequential callbacks can reuse their output
+        buffers.
+
         Args:
             image: The full image to run inference on. In addition to in-memory
                 images (NumPy arrays or PIL images), this also accepts an open
@@ -642,11 +647,14 @@ class InferenceSlicer:
                 np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
                 (len(detections), 1),
             )
-            detections.mask = CompactMask.from_dense(
+            compact_mask = CompactMask.from_dense(
                 detections.mask,
                 full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
+            # A shallow copy preserves callback buffers without copying dense masks.
+            detections = copy(detections)
+            detections.mask = compact_mask
 
         # Fast-path: skip locking and bounds checking when the warning has already
         # been emitted or when there are no detections to inspect.
@@ -725,18 +733,25 @@ class InferenceSlicer:
             )
 
         if self.compact_masks:
-            for det, image_slice in zip(detections_in_slices, slices):
+            # A callback may retain both its result list and the detections in it.
+            detections_in_slices = list(detections_in_slices)
+            for index, (det, image_slice) in enumerate(
+                zip(detections_in_slices, slices)
+            ):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
                     full_slice_xyxy = np.tile(
                         np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
                         (len(det), 1),
                     )
-                    det.mask = CompactMask.from_dense(
+                    compact_mask = CompactMask.from_dense(
                         det.mask,
                         full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
+                    det = copy(det)
+                    det.mask = compact_mask
+                    detections_in_slices[index] = det
 
         if not self._out_of_slice_bounds_warned:
             for det, offset in zip(detections_in_slices, offsets):
