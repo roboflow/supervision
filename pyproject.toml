@@ -283,6 +283,7 @@ overrides = [
     "tests.utils.test_logger",
     "tests.utils.test_notebook",
     "tests.utils.test_sinks",
+    "tests.utils.test_video",
     "tests.validators.*",
   ], ignore_errors = false },
   { module = [ "supervision._cv2" ], warn_unused_ignores = false },
