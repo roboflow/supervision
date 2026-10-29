@@ -13,7 +13,12 @@ if TYPE_CHECKING:
 import numpy as np
 import numpy.typing as npt
 
-from supervision.config import ORIENTED_BOX_COORDINATES, SOURCE_IMAGE_METADATA_FIELD
+from supervision.config import (
+    IMAGE_DIMENSIONS_METADATA_FIELD,
+    NATIVE_OBB_DATA_FIELD,
+    ORIENTED_BOX_COORDINATES,
+    SOURCE_IMAGE_METADATA_FIELD,
+)
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
@@ -70,7 +75,8 @@ def move_detections(
             a fresh copy is returned.
         offset: An array of shape `(2,)` containing offset values in the
             format `[dx, dy]`.
-        resolution_wh: The width and height of the desired mask
+        resolution_wh: The width and height of the destination coordinate frame.
+            Updates existing image-dimensions metadata and sets the desired mask
             resolution. Required for segmentation detections.
 
     Returns:
@@ -78,6 +84,11 @@ def move_detections(
     """
     detections = detections.select(slice(None))
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    if (
+        resolution_wh is not None
+        and IMAGE_DIMENSIONS_METADATA_FIELD in detections.metadata
+    ):
+        detections.metadata[IMAGE_DIMENSIONS_METADATA_FIELD] = list(resolution_wh[::-1])
     if ORIENTED_BOX_COORDINATES in detections.data:
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
             xyxyxyxy=cast(
@@ -334,7 +345,12 @@ class InferenceSlicer:
         ``metadata`` dict returned is always freshly built, never the same
         dict object as any slice's own metadata.
 
-        ``source_image`` is the one metadata key handled specially: it is
+        Existing ``image_dimensions`` metadata is updated to the full-image
+        ``[height, width]`` when each slice's geometry is translated.
+        If every slice is an empty native OBB result, its typed empty arrays and
+        frozen class capabilities are retained in the merged result.
+
+        ``source_image`` is handled specially: it is
         removed from every slice before the lenient merge, then reattached
         afterward as a reference to ``image`` itself — not a copy, and not the
         per-slice tile — for in-memory input (array or PIL image); a windowed
@@ -508,6 +524,9 @@ class InferenceSlicer:
         since a key the user meant to be global (``video_name``, ``camera_id``, …)
         would otherwise vanish silently.
 
+        All-empty native OBB slices retain their metadata and one slice's typed
+        empty schema so negative images keep their frozen class capabilities.
+
         Because the source image is restored wholesale, it is removed from every
         slice up front: leaving it in would make the lenient merge — and every
         downstream merge group of ``NON_MAX_MERGE`` — compare whole image arrays
@@ -522,25 +541,36 @@ class InferenceSlicer:
             The merged detections before overlap filtering, and whether any slice
             carried a source image that the caller should restore.
         """
-        non_empty = [d for d in detections_list if not d.is_empty()]
+        metadata_slices = [d for d in detections_list if not d.is_empty()]
+        if (
+            not metadata_slices
+            and detections_list
+            and all(
+                d.metadata.get(NATIVE_OBB_DATA_FIELD) is True for d in detections_list
+            )
+        ):
+            metadata_slices = detections_list
 
         restorable = not _is_windowed_raster(image)
         had_source_image = False
         if restorable:
-            for d in non_empty:
+            for d in metadata_slices:
                 if SOURCE_IMAGE_METADATA_FIELD in d.metadata:
                     del d.metadata[SOURCE_IMAGE_METADATA_FIELD]
                     had_source_image = True
 
         merged_metadata, dropped_keys = merge_metadata_lenient(
-            [d.metadata for d in non_empty]
+            [d.metadata for d in metadata_slices]
         )
 
         # `Detections.merge` would re-compare the same metadata and raise on the
         # conflicts just resolved, so hand it empty dicts and attach the result.
-        for d in non_empty:
+        for d in metadata_slices:
             d.metadata = {}
         merged = Detections.merge(detections_list=detections_list)
+        if merged.is_empty() and metadata_slices:
+            # Global merge discards empty schemas; native negatives still need theirs.
+            merged = metadata_slices[0].select(slice(None))
         merged.metadata = merged_metadata
 
         self._warn_dropped_metadata(dropped_keys)

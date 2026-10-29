@@ -32,6 +32,9 @@ HANDEDNESS_SCORE_DATA_FIELD: str = "handedness_score"
 #: The stored value is a reference to the caller's image, not a copy — mutating
 #: ``metadata[SOURCE_IMAGE_METADATA_FIELD]`` mutates the original array.
 SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
+#: Image dimensions in ``Detections.metadata`` as ``[height, width]``.
+#: Describes the coordinate frame of the detections, including after tiling.
+IMAGE_DIMENSIONS_METADATA_FIELD: str = "image_dimensions"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
 #: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel
@@ -62,7 +65,8 @@ DISPARITY_PX_DATA_FIELD: str = "disparity_px"
 #: such as Depth Anything produce it, and it has no metric scale.
 RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"
 
-#: Native OBB provenance marker in ``Detections.data``; aligned bool array.
+#: Native OBB provenance: aligned bool array in ``Detections.data`` and a bool
+#: in ``Detections.metadata`` that also identifies empty native results.
 NATIVE_OBB_DATA_FIELD: str = "native_obb"
 #: Per-class semantic-front capability, aligned with each detection row.
 HEADING_DATA_FIELD: str = "heading"

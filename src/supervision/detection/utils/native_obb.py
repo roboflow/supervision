@@ -10,6 +10,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     DETECTION_ID_DATA_FIELD,
     HEADING_DATA_FIELD,
+    IMAGE_DIMENSIONS_METADATA_FIELD,
     NATIVE_OBB_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
@@ -97,7 +98,7 @@ def _parse_native_obb_result(
         NATIVE_OBB_DATA_FIELD: True,
     }
     if "image" in result:
-        metadata["image_dimensions"] = [
+        metadata[IMAGE_DIMENSIONS_METADATA_FIELD] = [
             result["image"]["height"],
             result["image"]["width"],
         ]
