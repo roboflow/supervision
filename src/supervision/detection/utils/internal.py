@@ -718,7 +718,7 @@ def merge_metadata_lenient(
     the surviving value is the one from the first dictionary that carried the key.
 
     Pass only authoritative metadata dictionaries. Usually these come from nonempty
-    detections; native empty results can also carry authoritative frame and class policy.
+    detections; native empty results can carry authoritative frame and class policy.
 
     Args:
         metadata_list: A list of metadata dictionaries to merge.
