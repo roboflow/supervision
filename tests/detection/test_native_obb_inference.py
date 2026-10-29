@@ -40,11 +40,17 @@ def _response() -> dict[str, Any]:
 
 
 class TestNativeOBBInference:
+    @pytest.mark.parametrize("heading", [False, True])
     @pytest.mark.parametrize("angle", [0.0, math.pi / 2, -math.pi / 2, math.pi])
-    def test_keeps_ordered_shape_and_front_axis(self, angle: float) -> None:
-        """Ordered sides stay intact and the first edge points along theta."""
+    def test_keeps_ordered_shape_and_front_axis(
+        self, angle: float, heading: bool
+    ) -> None:
+        """Ordered axes and explicit directed or undirected capabilities stay intact."""
         response = _response()
         response["predictions"][0]["obb"][4] = angle
+        response["class_heading"]["plane"] = heading
+        for prediction in response["predictions"]:
+            prediction["heading"] = heading
 
         detections = sv.Detections.from_inference(response)
 
@@ -54,8 +60,14 @@ class TestNativeOBBInference:
         np.testing.assert_allclose(
             edge, [12.5 * math.cos(angle), 12.5 * math.sin(angle)], atol=1e-12
         )
+        side = corners[0, 2] - corners[0, 1]
+        np.testing.assert_allclose(
+            side, [-25.75 * math.sin(angle), 25.75 * math.cos(angle)], atol=1e-12
+        )
         assert corners.dtype == np.float64
-        np.testing.assert_array_equal(detections.data[HEADING_DATA_FIELD], [True, True])
+        np.testing.assert_array_equal(
+            detections.data[HEADING_DATA_FIELD], [heading, heading]
+        )
         assert (
             detections.metadata[CLASS_HEADING_METADATA_FIELD]
             == response["class_heading"]

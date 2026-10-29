@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib
+import platform
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +16,7 @@ from supervision._cv2._image import (
     _convert_scale_abs,
     _copy_make_border,
     _flip,
+    _fused_multiply_add_float32,
     _imdecode,
     _imencode,
     _imread,
@@ -116,6 +119,155 @@ def test_fallback_add_weighted_matches_opencv() -> None:
     np.testing.assert_array_equal(
         _add_weighted(source, 0.5, other, 0.5, 10),
         cv2.addWeighted(source, 0.5, other, 0.5, 10),
+    )
+
+
+def _assert_matches_opencv_add_weighted(
+    actual: np.ndarray, expected: np.ndarray
+) -> None:
+    """Compare with OpenCV, allowing for build-specific addWeighted kernels.
+
+    The fallback reproduces OpenCV's fused generic kernel. Other builds round a value
+    on a boundary differently: x86 builds without FMA multiply and add separately, and
+    arm64 builds hand 8- and 16-bit blends to the Carotene HAL, which sums in the other
+    order, `fma(src2, beta, fma(src1, alpha, gamma))`. Integer results can then be one
+    level away and float32 results a few units in the last place. The exact rounding is
+    pinned by the fixed-expectation tests below instead.
+    """
+    assert actual.dtype == expected.dtype
+    if np.issubdtype(actual.dtype, np.integer):
+        np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+    else:
+        np.testing.assert_allclose(actual, expected, atol=1e-4, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("alpha", "beta", "gamma"),
+    [
+        pytest.param(0.3, 0.7, 0, id="opacity-0.3"),
+        pytest.param(0.7, 1 - 0.7, 0, id="opacity-0.7"),
+        pytest.param(0.1, 0.9, 0, id="opacity-0.1"),
+        pytest.param(0.35, 0.65, 2.5, id="with-gamma"),
+    ],
+)
+def test_fallback_add_weighted_rounds_8bit_blends_like_opencv(
+    alpha: float, beta: float, gamma: float
+) -> None:
+    """Blend every pair of 8-bit values in float32, as OpenCV does."""
+    first, second = np.meshgrid(np.arange(256), np.arange(256), indexing="ij")
+    source = np.stack([first, second, 255 - first], axis=-1).astype(np.uint8)
+    other = np.stack([second, first, 255 - second], axis=-1).astype(np.uint8)
+
+    _assert_matches_opencv_add_weighted(
+        _add_weighted(source, alpha, other, beta, gamma),
+        cv2.addWeighted(source, alpha, other, beta, gamma),
+    )
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "alpha", "beta", "expected"),
+    [
+        pytest.param(0, 45, 0.3, 0.7, 32, id="midpoint-rounds-up"),
+        pytest.param(11, 26, 0.3, 0.7, 21, id="just-below-midpoint-rounds-down"),
+    ],
+)
+def test_fallback_add_weighted_rounds_fused_blend_to_fixed_values(
+    first: int, second: int, alpha: float, beta: float, expected: int
+) -> None:
+    """Round the fused float32 blend on a boundary to the pinned 8-bit value."""
+    source = np.full((16, 64), first, dtype=np.uint8)
+    other = np.full_like(source, second)
+
+    actual = _add_weighted(source, alpha, other, beta, 0)
+
+    np.testing.assert_array_equal(actual, np.full_like(source, expected))
+
+
+@pytest.mark.parametrize(
+    ("dtype", "first", "second", "expected"),
+    [
+        pytest.param(np.uint8, 97, 1, 1, id="uint8-tie-pushed-up"),
+        pytest.param(np.int8, -97, -1, -1, id="int8-tie-pushed-down"),
+    ],
+)
+def test_fallback_add_weighted_breaks_float32_midpoint_with_dropped_addend(
+    dtype: type[np.generic], first: int, second: int, expected: int
+) -> None:
+    """Let an addend below float64 resolution decide a float32 midpoint tie."""
+    alpha = 172961 / 2**25  # 97 * alpha is 0.5 + 2**-25, a float32 midpoint
+    beta = 2.0**-60  # lost when the sum is rounded to float64 first
+    source = np.full((16, 64), first, dtype=dtype)
+    other = np.full_like(source, second)
+
+    actual = _add_weighted(source, alpha, other, beta, 0)
+
+    np.testing.assert_array_equal(actual, np.full_like(source, expected))
+
+
+def _round_exactly_to_float32(exact: Fraction) -> np.float32:
+    """Round an exact rational to the nearest float32, ties to even."""
+    guess = np.float32(float(exact))
+    candidates = [
+        guess,
+        np.nextafter(guess, np.float32(np.inf)),
+        np.nextafter(guess, np.float32(-np.inf)),
+    ]
+    return min(
+        candidates,
+        key=lambda value: (
+            abs(Fraction(float(value)) - exact),
+            int(value.view("u4")) & 1,
+        ),
+    )
+
+
+def test_fused_multiply_add_float32_matches_exact_rational_rounding() -> None:
+    """Round each fused multiply-add once, as exact rational arithmetic does."""
+    rng = np.random.default_rng(20261028)
+    values = rng.integers(0, 256, 400).astype(np.float64)
+    weights = np.float32(rng.uniform(0, 1, 400)).astype(np.float64)
+    addends = np.float32(rng.uniform(-300, 300, 400)).astype(np.float64)
+    # Pairs whose exact product sits on a float32 midpoint, with a tiny addend.
+    values = np.append(values, [97.0, 97.0, 97.0])
+    weights = np.append(weights, [172961 / 2**25] * 3)
+    addends = np.append(addends, [2.0**-60, -(2.0**-60), 0.0])
+    expected = np.array(
+        [
+            _round_exactly_to_float32(Fraction(v) * Fraction(w) + Fraction(a))
+            for v, w, a in zip(values, weights, addends)
+        ]
+    )
+
+    actual = np.array(
+        [
+            _fused_multiply_add_float32(np.array([v]), np.float64(w), np.float64(a))[0]
+            for v, w, a in zip(values, weights, addends)
+        ]
+    )
+
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int8, np.uint16, np.int16, np.float32])
+def test_fallback_add_weighted_matches_opencv_for_float32_blend_depths(
+    dtype: type[np.generic],
+) -> None:
+    """Match OpenCV on the other depths it blends in float32."""
+    rng = np.random.default_rng(20261027)
+    source: np.ndarray
+    other: np.ndarray
+    if np.issubdtype(dtype, np.integer):
+        info = np.iinfo(np.dtype(dtype))
+        source = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+        other = rng.integers(info.min, info.max, (64, 48, 3), endpoint=True)
+    else:
+        source = rng.uniform(-100, 400, (64, 48, 3))
+        other = rng.uniform(-100, 400, (64, 48, 3))
+    source, other = source.astype(dtype), other.astype(dtype)
+
+    _assert_matches_opencv_add_weighted(
+        _add_weighted(source, 0.35, other, 0.65, 0),
+        cv2.addWeighted(source, 0.35, other, 0.65, 0),
     )
 
 
@@ -319,6 +471,63 @@ def test_fallback_linear_resize_preserves_rgba_channels() -> None:
     expected = cv2.resize(source, (13, 4), interpolation=cv2.INTER_LINEAR)
 
     np.testing.assert_allclose(actual, expected, atol=1, rtol=0)
+
+
+# OpenCV's arm64 builds hand some uint8 `INTER_LINEAR` resizes to the Carotene HAL
+# (`TEGRA_RESIZE`): one channel with a source at least 8 wide and an output of at
+# least 8x8, or four channels with an output at least 8 tall that is not an exact
+# 2x reduction. Carotene uses its own fixed-point kernel, up to two levels away from
+# the generic one this fallback reproduces.
+_OPENCV_MAY_USE_CAROTENE = platform.machine().lower() in {"arm64", "aarch64"}
+
+
+@pytest.mark.parametrize(
+    ("source_shape", "dsize", "fx", "fy", "carotene"),
+    [
+        pytest.param((9, 9), (13, 15), 0, 0, True, id="gray-upscale"),
+        pytest.param((17, 23, 3), (31, 29), 0, 0, False, id="bgr-upscale"),
+        pytest.param((40, 37, 3), (11, 26), 0, 0, False, id="bgr-mixed"),
+        pytest.param((9, 7, 4), (13, 4), 0, 0, False, id="rgba"),
+        pytest.param((13, 10, 3), None, 0.6, 0.6, False, id="factor-downscale"),
+        pytest.param((13, 10, 3), None, 0.3, 3.7, False, id="factor-mixed"),
+        pytest.param((3, 3), None, 0.5, 0.5, False, id="half-gray-odd"),
+        pytest.param((23, 27, 3), None, 0.5, 0.5, False, id="half-bgr-odd"),
+        pytest.param((19, 38, 4), None, 0.5, 0.5, False, id="half-rgba-odd-rows"),
+        pytest.param((6, 5, 2), None, 0.5, 0.5, False, id="half-two-channel"),
+        pytest.param((5, 7, 3), None, 0.5, 0.5, False, id="half-drops-last-pixel"),
+        pytest.param((8, 6, 3), (6, 8), 0, 0, False, id="same-size"),
+    ],
+)
+def test_fallback_linear_resize_is_bit_exact_for_uint8(
+    source_shape: tuple[int, ...],
+    dsize: tuple[int, int] | None,
+    fx: float,
+    fy: float,
+    carotene: bool,
+) -> None:
+    """Reproduce OpenCV's fixed-point uint8 `INTER_LINEAR` resize pixel for pixel."""
+    rng = np.random.default_rng(20261027)
+    source = rng.integers(0, 256, source_shape, dtype=np.uint8)
+
+    actual = _resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+    expected = cv2.resize(source, dsize, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+
+    assert actual.dtype == expected.dtype
+    assert actual.flags.c_contiguous
+    if carotene and _OPENCV_MAY_USE_CAROTENE:
+        np.testing.assert_allclose(actual, expected, atol=2, rtol=0)
+    else:
+        np.testing.assert_array_equal(actual, expected)
+
+
+def test_fallback_linear_resize_copies_uint8_image_of_unchanged_size() -> None:
+    """Return a copy, not a view, when the requested size matches the source."""
+    source = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+
+    actual = _resize(source, (4, 2), interpolation=cv2.INTER_LINEAR)
+
+    np.testing.assert_array_equal(actual, source)
+    assert not np.shares_memory(actual, source)
 
 
 def test_fallback_float_resize_preserves_mask_threshold_decision() -> None:

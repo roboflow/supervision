@@ -71,6 +71,77 @@ def _copy_make_border(
     return result
 
 
+# OpenCV's `addWeighted` blends these depths in float32 rather than float64.
+_FLOAT32_BLEND_DTYPES = tuple(
+    np.dtype(dtype) for dtype in (np.uint8, np.int8, np.uint16, np.int16, np.float32)
+)
+
+
+def _fused_multiply_add_float32(
+    values: npt.NDArray[Any], weight: np.float64, addend: npt.NDArray[Any] | np.float64
+) -> npt.NDArray[np.float32]:
+    """Compute `values * weight + addend` with a single rounding to float32.
+
+    `values` holds 8-bit, 16-bit or float32 numbers and `weight` and `addend` are
+    float32 numbers held as float64. The product is then exact in float64, but adding
+    the addend can still round once to float64 and again to float32. That double
+    rounding is wrong when the float64 sum lands on a float32 midpoint: the part the
+    float64 sum dropped decides the direction. The dropped part is recovered exactly
+    (Knuth's two-sum) and breaks the tie.
+
+    Examples:
+        The product `97 * weight` is `0.5 + 2**-25`, exactly between two float32
+        numbers; the tiny addend tips the sum to the upper one:
+
+        ```pycon
+        >>> values = np.array([97.0])
+        >>> weight = np.float64(172961 / 2**25)
+        >>> fused = _fused_multiply_add_float32(values, weight, np.array([2.0**-60]))
+        >>> bool(fused[0] == 0.5 + 2**-24)
+        True
+
+        ```
+    """
+    product = values.astype(np.float64) * weight
+    total = product + addend
+    # Two-sum: `error` is exactly what rounding `product + addend` to float64 lost.
+    virtual = total - product
+    error = (product - (total - virtual)) + (addend - virtual)
+    rounded = total.astype(np.float32)
+    above = total > rounded
+    # The float32 neighbour on the side of the float64 sum, and the midpoint between.
+    neighbour = np.nextafter(
+        rounded, np.where(above, np.inf, -np.inf).astype(np.float32)
+    )
+    midpoint = (rounded.astype(np.float64) + neighbour.astype(np.float64)) / 2
+    # On a tie the nearest-even choice stands unless the lost part pushes away from it.
+    away = (total == midpoint) & ((error > 0) == above) & (error != 0)
+    fused: npt.NDArray[np.float32] = np.where(away, neighbour, rounded)
+    return fused
+
+
+def _blend_like_opencv_float32(
+    src1: npt.NDArray[Any],
+    alpha: float,
+    src2: npt.NDArray[Any],
+    beta: float,
+    gamma: float,
+) -> npt.NDArray[np.float32]:
+    """Compute `src1 * alpha + src2 * beta + gamma` the way OpenCV's SIMD loop does.
+
+    The weights are cast to float32 and the sum is taken with two fused multiply-adds,
+    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32 by
+    :func:`~supervision._cv2._image._fused_multiply_add_float32`. Float32 images take
+    the same path.
+    """
+    alpha32, beta32, gamma32 = (
+        np.float64(np.float32(value)) for value in (alpha, beta, gamma)
+    )
+    with np.errstate(invalid="ignore", over="ignore"):
+        inner = _fused_multiply_add_float32(src2, beta32, gamma32)
+        return _fused_multiply_add_float32(src1, alpha32, inner.astype(np.float64))
+
+
 def _add_weighted(
     src1: npt.NDArray[Any],
     alpha: float,
@@ -88,10 +159,15 @@ def _add_weighted(
         )
     if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
-    result = _cast_array_like_opencv(
-        src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
-        src1.dtype,
-    )
+    if src1.dtype in _FLOAT32_BLEND_DTYPES:
+        result = _cast_array_like_opencv(
+            _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
+        )
+    else:
+        result = _cast_array_like_opencv(
+            src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
+            src1.dtype,
+        )
     if dst is not None:
         dst[...] = result
         return dst
@@ -173,27 +249,14 @@ def _resize(
     if interpolation != _INTER_LINEAR:
         raise ValueError(f"Unsupported interpolation mode: {interpolation}")
 
-    if (
-        not scale_from_factors
-        and src.dtype == np.uint8
-        and (src.ndim == 2 or (src.ndim == 3 and src.shape[2] == 3))
-    ):
-        from PIL import Image
-
-        size = (width, height)
-        image = Image.fromarray(src)
-        if width >= source_width and height >= source_height:
-            resized = image.resize(size, resample=Image.Resampling.BILINEAR)
-        else:
-            # Affine sampling keeps Pillow from widening its bilinear kernel
-            # during reduction and maps pixel centers like INTER_LINEAR.
-            resized = image.transform(
-                size,
-                Image.Transform.AFFINE,
-                (source_width / width, 0, 0, 0, source_height / height, 0),
-                resample=Image.Resampling.BILINEAR,
-            )
-        return np.ascontiguousarray(np.asarray(resized))
+    if src.dtype == np.uint8:
+        if (width, height) == (source_width, source_height):
+            # `cv2.resize` copies the image when the size does not change.
+            return np.array(src, order="C", copy=True)
+        if scale_from_factors and (fx, fy) == (0.5, 0.5):
+            # OpenCV resizes an exact 2x reduction with its fast area path.
+            return _resize_half_uint8(src, width, height)
+        return _resize_linear_uint8(src, width, height, scale_x, scale_y)
 
     y = (np.arange(height) + 0.5) * scale_y - 0.5
     x = (np.arange(width) + 0.5) * scale_x - 0.5
@@ -224,6 +287,207 @@ def _resize(
         + bottom_right * wx * wy
     )
     return np.ascontiguousarray(_cast_array_like_opencv(resized, src.dtype))
+
+
+# OpenCV's uint8 `INTER_LINEAR` resize uses 11-bit fixed-point weights.
+_INTER_RESIZE_COEF_BITS = 11
+_INTER_RESIZE_COEF_SCALE = 1 << _INTER_RESIZE_COEF_BITS
+
+
+def _linear_resize_taps(
+    size: int, source_size: int, scale: float, clamp_weights: bool
+) -> tuple[
+    npt.NDArray[np.intp],
+    npt.NDArray[np.intp],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+]:
+    """Return OpenCV's two source taps and fixed-point weights for one axis.
+
+    Positions are computed in `float32` like `resizeGeneric_`. Along columns OpenCV
+    snaps samples left of the first or right of the last pixel to that pixel with a
+    zero fraction; along rows it only clamps the row index and keeps the fraction, so
+    the weights of an edge row come from the unclamped position.
+
+    For a two-pixel source axis, horizontal taps snap at both edges:
+
+    ```pycon
+    >>> left, right, weight_left, weight_right = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=True
+    ... )
+    >>> left.tolist(), right.tolist()
+    ([0, 0, 1], [1, 1, 1])
+    >>> weight_left.tolist(), weight_right.tolist()
+    ([2048, 1024, 2048], [0, 1024, 0])
+
+    ```
+
+    Vertical taps keep the fractional weights at the clamped edge rows:
+
+    ```pycon
+    >>> _, _, weight_top, weight_bottom = _linear_resize_taps(
+    ...     3, 2, 2 / 3, clamp_weights=False
+    ... )
+    >>> weight_top.tolist(), weight_bottom.tolist()
+    ([341, 1024, 1707], [1707, 1024, 341])
+
+    ```
+    """
+    position = ((np.arange(size) + 0.5) * scale - 0.5).astype(np.float32)
+    first = np.floor(position).astype(np.intp)
+    fraction = (position - first).astype(np.float32)
+    if clamp_weights:
+        before = first < 0
+        fraction[before] = 0
+        first[before] = 0
+        after = first >= source_size - 1
+        fraction[after] = 0
+        first[after] = source_size - 1
+    second = np.clip(first + 1, 0, source_size - 1)
+    first = np.clip(first, 0, source_size - 1)
+    weight_second = np.rint(fraction * _INTER_RESIZE_COEF_SCALE).astype(np.int32)
+    weight_first = np.rint(
+        (np.float32(1) - fraction) * _INTER_RESIZE_COEF_SCALE
+    ).astype(np.int32)
+    return first, second, weight_first, weight_second
+
+
+# Output rows per block in the uint8 passes, sized so the `int32` work buffers of a
+# block stay near 4 MiB whatever the image size.
+_RESIZE_BLOCK_ELEMENTS = 1 << 20
+
+
+def _resize_linear_uint8(
+    src: npt.NDArray[np.uint8],
+    width: int,
+    height: int,
+    scale_x: float,
+    scale_y: float,
+) -> npt.NDArray[np.uint8]:
+    """Resize uint8 images bit-exactly like OpenCV's fixed-point `INTER_LINEAR`.
+
+    Each row is first interpolated horizontally into `int32` sums scaled by
+    `2**11`. The vertical pass then mirrors OpenCV's SIMD `VResizeLinearVec_32s8u`:
+    each sum is shifted right by 4, multiplied by its 11-bit row weight keeping the
+    high 16 bits, and the two products are added and rounded with `(sum + 2) >> 2`.
+    Output rows are produced in blocks so the intermediate buffers stay bounded.
+
+    A 4-by-4 image with constant 2-by-2 regions resizes to those four values:
+
+    ```pycon
+    >>> source = np.array(
+    ...     [[0, 0, 100, 100], [0, 0, 100, 100],
+    ...      [200, 200, 255, 255], [200, 200, 255, 255]],
+    ...     dtype=np.uint8,
+    ... )
+    >>> _resize_linear_uint8(source, 2, 2, 2.0, 2.0).tolist()
+    [[0, 100], [200, 255]]
+
+    ```
+    """
+    source_height, source_width = src.shape[:2]
+    x0, x1, wx0, wx1 = _linear_resize_taps(
+        width, source_width, scale_x, clamp_weights=True
+    )
+    y0, y1, wy0, wy1 = _linear_resize_taps(
+        height, source_height, scale_y, clamp_weights=False
+    )
+    # Work on `(rows, width * channels)` so every weight broadcasts along the
+    # contiguous axis; each channel of a column shares that column's taps.
+    channels = 1 if src.ndim == 2 else src.shape[2]
+    row_length = width * channels
+    channel_offsets = np.arange(channels)
+    columns0 = (x0[:, np.newaxis] * channels + channel_offsets).ravel()
+    columns1 = (x1[:, np.newaxis] * channels + channel_offsets).ravel()
+    weights0 = np.repeat(wx0, channels)
+    weights1 = np.repeat(wx1, channels)
+    flat = src.reshape(source_height, source_width * channels)
+    resized = np.empty((height, row_length), dtype=np.uint8)
+    block = max(1, _RESIZE_BLOCK_ELEMENTS // row_length)
+
+    for start in range(0, height, block):
+        stop = min(start + block, height)
+        block_y0, block_y1 = y0[start:stop], y1[start:stop]
+        # Interpolate only the source rows this block of output rows reads.
+        used_rows, row_index = np.unique(
+            np.concatenate((block_y0, block_y1)), return_inverse=True
+        )
+        rows = flat[used_rows]
+        horizontal = np.take(rows, columns0, axis=1).astype(np.int32)
+        horizontal *= weights0
+        right = np.take(rows, columns1, axis=1).astype(np.int32)
+        right *= weights1
+        horizontal += right
+        del right
+        horizontal >>= 4
+
+        top = np.take(horizontal, row_index[: stop - start], axis=0)
+        top *= wy0[start:stop, np.newaxis]
+        top >>= 16
+        bottom = np.take(horizontal, row_index[stop - start :], axis=0)
+        del horizontal
+        bottom *= wy1[start:stop, np.newaxis]
+        bottom >>= 16
+        top += bottom
+        del bottom
+        top += 2
+        top >>= 2
+        np.clip(top, 0, 255, out=top)
+        resized[start:stop] = top
+    return resized.reshape((height, width, *src.shape[2:]))
+
+
+def _resize_half_uint8(
+    src: npt.NDArray[np.uint8], width: int, height: int
+) -> npt.NDArray[np.uint8]:
+    """Halve a uint8 image like OpenCV's `resizeAreaFast_` for `fx = fy = 0.5`.
+
+    A full 2x2 block is rounded with `(sum + 2) >> 2` when the image has 1, 3 or 4
+    channels and with `cvRound(sum * 0.25f)` (half to even) otherwise. A block cut
+    by an odd last row or column averages its in-bounds pixels with `cvRound`.
+
+    Odd edges average only their available pixels, rounding half to even:
+
+    ```pycon
+    >>> source = np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
+    >>> _resize_half_uint8(source, 2, 2).tolist()
+    [[3, 4], [8, 9]]
+
+    ```
+    """
+    source_height, source_width = src.shape[:2]
+    image = src if src.ndim == 3 else src[:, :, np.newaxis]
+    channels = image.shape[2]
+    # The halved size is rounded half to even, so an odd side either drops its
+    # last pixel or ends in a cut block; zero-pad the cut blocks and count how many
+    # of their pixels are real.
+    image = image[: 2 * height, : 2 * width]
+    padded = np.pad(
+        image,
+        ((0, 2 * height - image.shape[0]), (0, 2 * width - image.shape[1]), (0, 0)),
+    ).astype(np.int32)
+    sums = (
+        padded[0::2, 0::2]
+        + padded[0::2, 1::2]
+        + padded[1::2, 0::2]
+        + padded[1::2, 1::2]
+    )
+    count_y = np.clip(source_height - 2 * np.arange(height), 0, 2)
+    count_x = np.clip(source_width - 2 * np.arange(width), 0, 2)
+    counts = count_y[:, np.newaxis] * count_x[np.newaxis, :]
+
+    full = counts == 4
+    if channels in (1, 3, 4):
+        rounded = (sums + 2) >> 2
+    else:
+        rounded = np.rint(sums.astype(np.float32) * np.float32(0.25))
+    averaged = np.rint(
+        sums.astype(np.float32) / counts[:, :, np.newaxis].astype(np.float32)
+    )
+    resized = np.where(full[:, :, np.newaxis], rounded, averaged)
+    return np.ascontiguousarray(
+        resized.astype(np.uint8).reshape((height, width, *src.shape[2:]))
+    )
 
 
 _EXIF_ORIENTATION_TAG = 0x0112

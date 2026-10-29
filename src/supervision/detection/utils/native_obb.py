@@ -26,10 +26,6 @@ def _parse_native_obb_result(
     _MetadataType,
 ]:
     """Validate frozen semantics and derive float corners from native image tuples."""
-    if result.get("task_type") != "oriented-object-detection":
-        raise ValueError(
-            "Native OBB responses require oriented-object-detection task_type"
-        )
     class_heading = result.get(CLASS_HEADING_METADATA_FIELD)
     if not isinstance(class_heading, dict) or any(
         type(v) is not bool for v in class_heading.values()
