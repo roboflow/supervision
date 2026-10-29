@@ -270,7 +270,6 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     return result
 
 
-
 def _bbox_areas(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Pixel areas of axis-aligned boxes shaped ``(N, 4)``."""
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:

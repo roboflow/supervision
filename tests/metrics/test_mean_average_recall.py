@@ -1018,7 +1018,7 @@ def test_greedy_matching_two_valid_pairs() -> None:
 
 
 class TestMeanAverageRecallCocoSizeBuckets:
-    """mAR size buckets must match inclusive COCO / mAP ranges (issue #2846)."""
+    """MAR size buckets must match inclusive COCO / mAP ranges (issue #2846)."""
 
     def test_boundary_area_belongs_to_both_coco_size_buckets(self) -> None:
         """A 32×32 or 96×96 box is counted in both neighbouring COCO buckets."""
@@ -1050,4 +1050,3 @@ class TestMeanAverageRecallCocoSizeBuckets:
         np.testing.assert_allclose(at_96.small_objects.mAR_at_100, 0.0)
         np.testing.assert_allclose(at_96.medium_objects.mAR_at_100, 1.0)
         np.testing.assert_allclose(at_96.large_objects.mAR_at_100, 1.0)
-
