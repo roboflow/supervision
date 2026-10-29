@@ -2510,3 +2510,36 @@ class TestFromKosmos2:
         """Malformed results and resolutions must fail loudly, not silently."""
         with exception:
             Detections.from_vlm(vlm=VLM.KOSMOS_2, result=result, **kwargs)
+
+
+class TestPaliGemmaPunctuatedLabels:
+    """Open-vocabulary labels retain punctuation during detection parsing."""
+
+    @pytest.mark.parametrize(
+        "label", ["person (left)", "cat/dog", "person's hand", "v2.0"]
+    )
+    def test_preserves_class_filter_matches(self, label: str) -> None:
+        """A punctuated label remains intact and matches its requested class."""
+        response = (
+            f"<loc0000><loc0000><loc0512><loc0512> {label}; "
+            "<loc0000><loc0000><loc0256><loc0256> other"
+        )
+
+        boxes, class_ids, names = from_paligemma(response, (100, 100), [label])
+
+        np.testing.assert_array_equal(boxes, [[0, 0, 50, 50]])
+        np.testing.assert_array_equal(class_ids, [0])
+        np.testing.assert_array_equal(names, [label])
+
+    def test_keeps_multiple_unfiltered_labels_and_token_boundary(self) -> None:
+        """Punctuation is preserved across detection and end-of-sequence boundaries."""
+        response = (
+            "<loc0000><loc0000><loc0512><loc0512> cat/dog; "
+            "<loc0000><loc0000><loc0256><loc0256> person (left)</s>"
+        )
+
+        boxes, class_ids, names = from_paligemma(response, (100, 100))
+
+        np.testing.assert_array_equal(boxes, [[0, 0, 50, 50], [0, 0, 25, 25]])
+        assert class_ids is None
+        np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])

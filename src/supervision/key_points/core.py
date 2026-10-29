@@ -230,7 +230,7 @@ class KeyPoints:
     === "Transformers"
 
         Use :meth:`~supervision.key_points.core.KeyPoints.from_transformers`
-        method, which accepts [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) result.
+        method, which accepts [ViTPose](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) result.
 
         ```python
         from PIL import Image
