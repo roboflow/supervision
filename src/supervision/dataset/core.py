@@ -520,6 +520,8 @@ class DetectionDataset(BaseDataset):
         force_masks: bool = False,
         is_obb: bool = False,
         show_progress: bool = False,
+        *,
+        compact_masks: bool = False,
     ) -> DetectionDataset:
         """Creates a Dataset instance from YOLO formatted data.
 
@@ -548,6 +550,14 @@ class DetectionDataset(BaseDataset):
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
             show_progress: If True, display a progress bar during loading.
+            compact_masks: If True, store segmentation masks as
+                :class:`~supervision.detection.compact_mask.CompactMask` instead
+                of dense NumPy arrays. Each mask is rasterized full-frame and
+                immediately encoded within its rounded polygon bounds, reducing
+                retained memory without changing pixels. Compression depends on
+                mask complexity. Does not enable masks for box-only datasets;
+                combine with `force_masks=True` to generate compact box masks.
+                OBB annotations never generate masks.
 
         Returns:
             A DetectionDataset instance
@@ -580,6 +590,7 @@ class DetectionDataset(BaseDataset):
                 annotations_directory_path=f"{dataset.location}/train/labels",
                 data_yaml_path=f"{dataset.location}/data.yaml",
                 # pass show_progress=True to enable a tqdm progress bar
+                # pass compact_masks=True to reduce segmentation mask storage
             )
 
             ds.classes
@@ -593,6 +604,7 @@ class DetectionDataset(BaseDataset):
             force_masks=force_masks,
             is_obb=is_obb,
             show_progress=show_progress,
+            compact_masks=compact_masks,
         )
         return DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations

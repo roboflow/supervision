@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.DetectionDataset.from_yolo(..., compact_masks=True)` now keeps segmentation masks as `sv.CompactMask`, encoding one polygon at a time instead of retaining full-frame dense mask stacks for every image. Rounded polygon bounds preserve the dense loader's pixels, including at image borders. The default remains dense, and `force_masks=True` can also produce compact box masks. ([#2834](https://github.com/roboflow/supervision/pull/2834))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
