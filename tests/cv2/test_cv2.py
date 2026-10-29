@@ -26,6 +26,7 @@ _requires_opencv = pytest.mark.skipif(
 
 
 REQUIRED_SYMBOLS = {
+    "IMREAD_GRAYSCALE",
     "VideoCapture",
     "VideoWriter",
     "VideoWriter_fourcc",

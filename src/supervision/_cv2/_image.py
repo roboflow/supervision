@@ -13,6 +13,7 @@ from supervision._cv2._common import _cast_array_like_opencv
 from supervision._cv2.constants import (
     _BORDER_CONSTANT,
     _IMREAD_COLOR,
+    _IMREAD_GRAYSCALE,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
@@ -531,13 +532,41 @@ def _opencv_unchanged_mode(image: Any) -> str | None:
     return None
 
 
+def _read_grayscale_pil_image(image: Any) -> npt.NDArray[np.uint8]:
+    """Decode one luminance channel, retaining PNG and JPEG decoder semantics.
+
+    For 8-bit PNG colors, libpng truncates both its 15-bit RGB coefficients and the
+    weighted sum; Pillow's regular ``convert("L")`` rounds instead. JPEG's native
+    grayscale decode uses the encoded luminance, so request it before EXIF
+    transposition can load RGB pixels. Other codecs and color modes can retain
+    Pillow/OpenCV differences, including color PNGs whose 16-bit channels Pillow
+    has already reduced to 8 bits.
+    """
+    image_format = image.format
+    if image_format == "JPEG":
+        image.draft("L", image.size)
+    image = _exif_oriented(image)
+    if image.mode in {"I", "I;16", "I;16B", "I;16L"}:
+        values = np.clip(np.asarray(image), 0, 65535).astype(np.uint16)
+        return cast(npt.NDArray[np.uint8], (values >> 8).astype(np.uint8))
+    if image_format == "PNG" and image.mode not in {"1", "L", "LA"}:
+        values = np.asarray(image.convert("RGB"), dtype=np.uint32)
+        grayscale = (
+            values[..., 0] * 9797 + values[..., 1] * 19234 + values[..., 2] * 3737
+        ) >> 15
+        return cast(npt.NDArray[np.uint8], grayscale.astype(np.uint8))
+    return np.array(image.convert("L"), dtype=np.uint8)
+
+
 def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
-    """Decode any source Pillow can open into BGR or BGRA arrays."""
+    """Decode any Pillow source into grayscale, BGR or BGRA arrays."""
     from PIL import Image
 
     try:
         with Image.open(source) as image:
-            if flags == _IMREAD_UNCHANGED:
+            if flags == _IMREAD_GRAYSCALE:
+                values = _read_grayscale_pil_image(image)
+            elif flags == _IMREAD_UNCHANGED:
                 unchanged_mode = _opencv_unchanged_mode(image)
                 if unchanged_mode is not None:
                     converted = image.convert(unchanged_mode)
@@ -563,14 +592,14 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
 
 
 def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
-    """Read an image with Pillow while returning BGR or BGRA arrays."""
+    """Read an image with Pillow as grayscale, BGR or BGRA arrays."""
     return _read_pil_source(filename, flags)
 
 
 def _imdecode(
     buf: npt.NDArray[Any], flags: int = _IMREAD_COLOR
 ) -> npt.NDArray[Any] | None:
-    """Decode in-memory encoded image bytes, returning BGR or BGRA arrays."""
+    """Decode encoded image bytes as grayscale, BGR or BGRA arrays."""
     import io
 
     data = np.asarray(buf, dtype=np.uint8).tobytes()
