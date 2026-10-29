@@ -29,8 +29,10 @@ jobs:
           activate-environment: true
 
       - name: 🎨 Augment paths in README
+        env:
+          BRANCH_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          python .github/scripts/augment_links.py README.md --branch "$BRANCH_REF"
           cat README.md
 
       - name: 🔗 Link Checker
