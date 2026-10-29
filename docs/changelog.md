@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.scale_boxes` now keeps finite output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning `-40000` to `40000` scaled by `0.5`.
+- `sv.scale_boxes` now keeps finite output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning `-40000` to `40000` scaled by `0.5`. ([#2853](https://github.com/roboflow/supervision/pull/2853))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
