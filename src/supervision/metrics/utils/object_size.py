@@ -280,8 +280,11 @@ def _bbox_areas(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
         width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
         height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
     else:
-        width = xyxy[:, 2] - xyxy[:, 0]
-        height = xyxy[:, 3] - xyxy[:, 1]
+        # Promote before subtracting and multiplying: float16 areas overflow
+        # (256 * 256 is already past its maximum of 65504).
+        coordinates_f64 = np.asarray(xyxy, dtype=np.float64)
+        width = coordinates_f64[:, 2] - coordinates_f64[:, 0]
+        height = coordinates_f64[:, 3] - coordinates_f64[:, 1]
     return np.asarray(width * height, dtype=np.float64)
 
 

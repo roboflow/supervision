@@ -867,7 +867,8 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     ) -> Detections:
         """Return a copy of detections kept by the inclusive COCO size range.
 
-        Matches :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        Matches
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
         and pycocotools: small is ``[0, 32²]``, medium ``[32², 96²]``, large
         ``[96², 1e5²]``. Boundary areas therefore belong to both neighbouring
         buckets. The half-open bins in
