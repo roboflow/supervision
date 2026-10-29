@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates. ([#2851](https://github.com/roboflow/supervision/pull/2851))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
@@ -607,7 +607,7 @@ date_modified: 2026-10-28
 
 - Added [#1816](https://github.com/roboflow/supervision/pull/1816): Support for frame limitations and progress bar in [`sv.process_video`](https://supervision.roboflow.com/0.26.0/utils/video/#supervision.utils.video.process_video).
 
-- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating [`sv.KeyPoints`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints) objects from [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/en/model_doc/vitpose#vitpose-models) inference results via [`sv.KeyPoints.from_transformers`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_transformers).
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating [`sv.KeyPoints`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints) objects from [ViTPose](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) inference results via [`sv.KeyPoints.from_transformers`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_transformers).
 
 - Added [#1823](https://github.com/roboflow/supervision/pull/1823): [`sv.xyxy_to_xcycarh`](https://supervision.roboflow.com/0.26.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_xcycarh) function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` into measurement space to format `(center x, center y, aspect ratio, height)`, where the aspect ratio is `width / height`.
 
