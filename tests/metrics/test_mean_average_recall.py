@@ -1015,3 +1015,49 @@ def test_greedy_matching_two_valid_pairs() -> None:
     # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
     # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
     assert result.mAR_at_100 == pytest.approx(0.55)
+
+
+class TestMeanAverageRecallCocoSizeBuckets:
+    """MAR size buckets must match inclusive COCO / mAP ranges (issue #2846)."""
+
+    def test_boundary_area_belongs_to_both_coco_size_buckets(self) -> None:
+        """A 32x32 or 96x96 box is counted in both neighbouring COCO buckets."""
+        from supervision.metrics.mean_average_recall import (
+            MeanAverageRecall,
+            MeanAverageRecallResult,
+        )
+
+        def _perfect(xyxy: list[list[float]]) -> MeanAverageRecallResult:
+            boxes = np.array(xyxy, dtype=np.float32)
+            class_id = np.zeros(len(boxes), dtype=np.int32)
+            confidence = np.ones(len(boxes), dtype=np.float32)
+            metric = MeanAverageRecall()
+            metric.update(
+                [Detections(xyxy=boxes, confidence=confidence, class_id=class_id)],
+                [Detections(xyxy=boxes.copy(), class_id=class_id.copy())],
+            )
+            return metric.compute()
+
+        at_32 = _perfect([[0, 0, 32, 32]])
+        assert at_32.small_objects is not None
+        assert at_32.medium_objects is not None
+        assert at_32.large_objects is not None
+        np.testing.assert_allclose(at_32.small_objects.mAR_at_100, 1.0)
+        np.testing.assert_allclose(at_32.medium_objects.mAR_at_100, 1.0)
+        np.testing.assert_allclose(at_32.large_objects.mAR_at_100, 0.0)
+
+        at_96 = _perfect([[0, 0, 96, 96]])
+        assert at_96.small_objects is not None
+        assert at_96.medium_objects is not None
+        assert at_96.large_objects is not None
+        np.testing.assert_allclose(at_96.small_objects.mAR_at_100, 0.0)
+        np.testing.assert_allclose(at_96.medium_objects.mAR_at_100, 1.0)
+        np.testing.assert_allclose(at_96.large_objects.mAR_at_100, 1.0)
+
+    def test_float16_box_area_does_not_overflow(self) -> None:
+        """A float16 256x256 box has a finite area and stays in the large bucket."""
+        from supervision.metrics.utils.object_size import get_detection_areas
+
+        boxes = np.array([[0, 0, 256, 256]], dtype=np.float16)
+        areas = get_detection_areas(Detections(xyxy=boxes))
+        np.testing.assert_allclose(areas, [65536.0])
