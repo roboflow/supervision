@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator, Mapping, Sequence
+from itertools import pairwise
 from typing import Any, cast, overload
 
 import numpy as np
@@ -33,6 +34,12 @@ from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
     _rle_counts_to_mask,
 )
+
+#: Foreground runs summed per ``np.add.reduceat`` call in ``CompactMask.area``.
+#: Keeps its int64 copy near 512 KiB (more only for a single mask with more runs)
+#: instead of the whole collection's RLE payload; on fragmented masks, chunks
+#: this size also beat one large copy.
+_AREA_CHUNK_RUNS = 1 << 16
 
 
 def _rle_area(rle: npt.NDArray[np.int32]) -> int:
@@ -1349,12 +1356,11 @@ class CompactMask:
         """Compute the area (``True`` pixel count) of each mask.
 
         Note:
-            The implementation iterates over the N individual RLE arrays in a
-            Python loop (one
-            :func:`~supervision.detection.compact_mask._rle_area` call per mask).
-            This is negligible
-            for typical N, but callers processing thousands of detections per
-            frame should be aware of the per-mask Python-level overhead.
+            Counts are read from the RLE runs without decoding any crop. The
+            foreground runs of consecutive masks are concatenated and summed per
+            mask with one NumPy reduction per chunk of about 65,536 runs, instead
+            of one :func:`~supervision.detection.compact_mask._rle_area` call per
+            mask, with identical results.
 
         Returns:
             int64 array of shape ``(N,)`` with per-mask pixel counts.
@@ -1373,7 +1379,33 @@ class CompactMask:
 
             ```
         """
-        return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
+        # RLEs alternate background and foreground runs, starting with background,
+        # so each mask's area is the sum of its odd-indexed runs; concatenating
+        # only those views skips the background runs. Casting to int64 during the
+        # copy keeps sums exact (split runs let one crop exceed the int32 range,
+        # and NumPy 1.x on Windows sums int32 in int32) and spares reduceat a
+        # much slower buffered cast.
+        foreground_runs = [rle[1::2] for rle in self._rles]
+        run_counts = np.fromiter(
+            map(len, foreground_runs), dtype=np.int64, count=len(foreground_runs)
+        )
+        areas = np.zeros(len(run_counts), dtype=np.int64)
+        # Consecutive masks are reduced in chunks of about _AREA_CHUNK_RUNS runs,
+        # so the copy does not grow with the collection. Any split gives the same
+        # areas; a mask with more runs than one chunk is reduced on its own.
+        chunk_ids = np.cumsum(run_counts) // _AREA_CHUNK_RUNS
+        bounds = [0, *(np.flatnonzero(np.diff(chunk_ids)) + 1).tolist(), len(areas)]
+        for start, stop in pairwise(bounds):
+            counts = run_counts[start:stop]
+            # reduceat sums each start up to the next one and cannot express an
+            # empty segment, so all-False masks are left out and keep zero area.
+            has_foreground = counts > 0
+            if has_foreground.any():
+                areas[start:stop][has_foreground] = np.add.reduceat(
+                    np.concatenate(foreground_runs[start:stop], dtype=np.int64),
+                    (np.cumsum(counts) - counts)[has_foreground],
+                )
+        return areas
 
     def sum(
         self, axis: int | tuple[int, ...] | None = None
