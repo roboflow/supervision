@@ -41,7 +41,7 @@ jobs:
       # of built-site history (all source branches together are ~0.2 GB), which blew the
       # job timeout inside this step. Shallow checkout, then fetch only what is needed.
       - name: 📥 Checkout the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
 
       # Source history + tags, blobless: git-revision-date-localized walks commits per
       # file and compute_is_latest_release.py reads every tag; neither reads old blobs
@@ -55,7 +55,7 @@ jobs:
         run: git fetch --depth=1 origin gh-pages
 
       - name: 🐍 Install uv and set Python
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: "3.10"
           activate-environment: true

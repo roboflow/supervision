@@ -37,7 +37,7 @@ jobs:
       contents: read # Required for checkout
     steps:
       - name: 📥 Download distribution artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: dist
           path: dist/
@@ -46,6 +46,6 @@ jobs:
 
       - name: 🚀 Publish to PyPi
         if: github.event_name != 'pull_request'
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@v1.14.2
         with:
           attestations: true
