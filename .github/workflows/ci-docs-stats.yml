@@ -13,8 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}
@@ -22,12 +21,17 @@ concurrency:
 
 jobs:
   refresh:
+    permissions:
+      contents: write
+      pull-requests: write
     name: Refresh docs stats
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🌿 Name the monthly refresh branch
         id: branch

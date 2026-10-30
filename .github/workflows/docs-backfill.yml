@@ -36,7 +36,7 @@ on:
       - .github/scripts/inject_tracking_carrier.py
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   # Real dispatch runs share the "gh-pages" group — the branch both this workflow and
@@ -50,14 +50,18 @@ concurrency:
 
 jobs:
   backfill:
+    permissions:
+      contents: write
     name: Backfill canonicals
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: 🔒 Check confirmation
         if: github.event_name == 'workflow_dispatch'
+        env:
+          CONFIRM: ${{ inputs.confirm }}
         run: |
-          if [[ "${{ inputs.confirm }}" != "BACKFILL" ]]; then
+          if [[ "$CONFIRM" != "BACKFILL" ]]; then
             echo "::error::Confirmation input must be exactly 'BACKFILL'"
             exit 1
           fi
@@ -66,6 +70,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: gh-pages
+          persist-credentials: ${{ github.event_name == 'workflow_dispatch' }} # zizmor: ignore[artipacked] -- Only dispatch commits and pushes gh-pages.
 
       # A second checkout, into a subdirectory so it does not clobber the gh-pages
       # tree above: the banner script lives in the source tree, not on gh-pages.
@@ -75,6 +80,7 @@ jobs:
           sparse-checkout: .github/scripts
           sparse-checkout-cone-mode: false
           path: _scripts
+          persist-credentials: false
 
       - name: 🔗 Rewrite canonical tags
         run: |
@@ -157,6 +163,7 @@ jobs:
               echo "None — every rewritten canonical resolves to a published page."
             else
               echo "$missing_count path(s) do not exist under \`latest/\`:"
+              # shellcheck disable=SC2016
               printf '%s' "$missing" | sed 's|^|- `|; s|$|`|' | sed -n '1,20p'
               if [[ "$missing_count" -gt 20 ]]; then
                 echo "- … and $((missing_count - 20)) more"

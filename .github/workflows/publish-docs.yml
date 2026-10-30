@@ -27,12 +27,12 @@ concurrency:
 
 # Restrict permissions by default
 permissions:
-  contents: write # Required for committing to gh-pages
-  pages: write # Required for deploying to Pages
-  pull-requests: write # Required for PR comments
+  contents: read
 
 jobs:
   docs-build-deploy:
+    permissions:
+      contents: write
     name: Publish Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -42,6 +42,8 @@ jobs:
       # job timeout inside this step. Shallow checkout, then fetch only what is needed.
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked] -- This job pushes documentation to gh-pages.
 
       # Source history + tags, blobless: git-revision-date-localized walks commits per
       # file and compute_is_latest_release.py reads every tag; neither reads old blobs
@@ -59,14 +61,15 @@ jobs:
         with:
           python-version: "3.10"
           activate-environment: true
+          enable-cache: false
 
       - name: 🏗️ Install dependencies
         run: uv sync --frozen --group docs
 
       - name: ⚙️ Configure git for github-actions
         run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       # MIKE_DOCS_VERSION feeds `extra.doc_version` in mkdocs.yml, which gates the
       # outdated-version banner the theme renders server-side. It must name the version
@@ -113,9 +116,11 @@ jobs:
               is_latest_release=$(python .github/scripts/compute_is_latest_release.py "$release_tag")
             fi
           fi
-          echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "is_latest_release=$is_latest_release" >> "$GITHUB_OUTPUT"
+          {
+            echo "is_rc=$is_rc"
+            echo "release_tag=$release_tag"
+            echo "is_latest_release=$is_latest_release"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
@@ -124,7 +129,7 @@ jobs:
           MIKE_DOCS_VERSION: ${{ steps.release_metadata.outputs.release_tag }}
           MIKE_IS_LATEST_RELEASE: ${{ steps.release_metadata.outputs.is_latest_release }}
         run: |
-          mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
+          mike deploy --push "$MIKE_DOCS_VERSION"
 
       # mike never rebuilds an archived tag's tree (see docs/theme/main.html), so the
       # release /latest/ pointed to a moment ago — built with

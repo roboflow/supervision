@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-pkg:
     name: Build this Package
-    uses: ./.github/workflows/build-package.yml
+    uses: ./.github/workflows/build-package.yml # zizmor: ignore[self-repository] -- Local calls already use the workflow commit.
     with:
       # only run link check on PRs from the same repo
       link-check: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -31,6 +31,13 @@ jobs:
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         cv2: ["none"]
+        # Linux covers every Python minor; other OSes cover the version endpoints.
+        # The backend-specific cases below still run on every OS.
+        exclude:
+          - { os: "windows-latest", python-version: "3.11" }
+          - { os: "windows-latest", python-version: "3.12" }
+          - { os: "macos-latest", python-version: "3.11" }
+          - { os: "macos-latest", python-version: "3.12" }
         include:
           - { os: "ubuntu-latest", python-version: "3.13", cv2: "opencv-python" }
           - { os: "windows-latest", python-version: "3.13", cv2: "opencv-python" }
@@ -42,12 +49,15 @@ jobs:
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
+          enable-cache: true # zizmor: ignore[cache-poisoning] -- Test-only workflow; publishing jobs do not restore this cache.
 
       - name: 🚀 Install Packages
         run: uv sync --frozen --group dev --extra metrics
@@ -82,7 +92,7 @@ jobs:
           coverage report
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: "coverage.xml"
@@ -106,12 +116,15 @@ jobs:
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
+          enable-cache: true # zizmor: ignore[cache-poisoning] -- Test-only workflow; publishing jobs do not restore this cache.
 
       - name: 🏗️ Build the wheel
         run: |
@@ -138,6 +151,7 @@ jobs:
             --manifest tests/cv2/installed_wheel_fallback_manifest.txt
 
   testing-guardian:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     needs: [run-tests, clean-wheel]
     if: always()
