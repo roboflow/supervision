@@ -76,11 +76,7 @@ def _parse_native_obb_result(
         )
         + obb[:, None, :2]
     )
-    bounds = (
-        np.concatenate((corners.min(1), corners.max(1)), axis=1)
-        if rows
-        else np.empty((0, 4), dtype=np.float64)
-    )
+    bounds = np.concatenate((corners.min(1), corners.max(1)), axis=1)
     confidence = np.asarray([p["confidence"] for p in rows], dtype=np.float64)
     if not np.isfinite(confidence).all() or np.any((confidence < 0) | (confidence > 1)):
         raise ValueError("Native OBB confidence must be finite and in [0,1]")

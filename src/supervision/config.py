@@ -37,7 +37,8 @@ SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
 IMAGE_DIMENSIONS_METADATA_FIELD: str = "image_dimensions"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
-#: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel
+#: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, floating dtype (including
+#: native Inference ``float64``), pixel
 #: coordinates ordered as ``[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`` per
 #: detection where the four points are the corners of the oriented box.
 #: Used by :func:`~supervision.dataset.formats.yolo.detections_to_yolo_annotations`

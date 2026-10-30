@@ -179,6 +179,90 @@ class TestNativeOBBInference:
         with pytest.raises(ValueError, match=r"native OBB|Native OBB"):
             sv.Detections.from_inference(response)
 
+    @pytest.mark.parametrize(
+        "capabilities",
+        [
+            None,
+            pytest.param([True], id="non-mapping"),
+            pytest.param({"plane": 1}, id="non-boolean-capability"),
+            pytest.param({"stone": False}, id="missing-predicted-class"),
+            pytest.param({"plane": False}, id="contradictory-heading"),
+        ],
+    )
+    def test_rejects_invalid_frozen_capabilities(self, capabilities: Any) -> None:
+        """Native predictions require an explicit, matching boolean class policy."""
+        response = _response()
+        response["class_heading"] = capabilities
+
+        with pytest.raises(ValueError, match=r"frozen class|class capability"):
+            sv.Detections.from_inference(response)
+
+    @pytest.mark.parametrize(
+        ("field", "value", "message"),
+        [
+            pytest.param(
+                "obb", [40, 30, 0, 20, 0], "positive ordered sides", id="zero-width"
+            ),
+            pytest.param(
+                "obb",
+                [40, 30, 12, -20, 0],
+                "positive ordered sides",
+                id="negative-height",
+            ),
+            pytest.param(
+                "obb", [math.nan, 30, 12, 20, 0], "must be finite", id="nan-center"
+            ),
+            pytest.param(
+                "obb", [40, 30, 12, 20, math.inf], "must be finite", id="infinite-angle"
+            ),
+            pytest.param(
+                "obb", [40, 30, 12, 20], r"require \[cx", id="incomplete-tuple"
+            ),
+            pytest.param(
+                "obb",
+                [40, 30, 12, 20, 0] * 2,
+                "positive ordered sides",
+                id="extra-tuple",
+            ),
+            pytest.param(
+                "confidence", math.nan, "confidence must be finite", id="nan-confidence"
+            ),
+            pytest.param(
+                "confidence",
+                math.inf,
+                "confidence must be finite",
+                id="infinite-confidence",
+            ),
+            pytest.param(
+                "confidence",
+                -0.1,
+                "confidence must be finite",
+                id="negative-confidence",
+            ),
+            pytest.param(
+                "confidence",
+                1.1,
+                "confidence must be finite",
+                id="confidence-above-one",
+            ),
+            pytest.param("heading", 1, "class capability", id="non-boolean-heading"),
+            pytest.param(
+                "detection_id", "", "stable detection_id", id="empty-identity"
+            ),
+        ],
+    )
+    def test_rejects_malformed_native_prediction(
+        self, field: str, value: Any, message: str
+    ) -> None:
+        """Malformed rows fail at the adapter instead of losing native semantics."""
+        response = _response()
+        response["predictions"][0][field] = value
+        if field == "obb":
+            response["predictions"] = response["predictions"][:1]
+
+        with pytest.raises(ValueError, match=message):
+            sv.Detections.from_inference(response)
+
     def test_preserves_empty_class_contract(self) -> None:
         """An empty image keeps frozen capabilities and an empty corner array."""
         response = _response()
@@ -189,6 +273,10 @@ class TestNativeOBBInference:
         corners = detections.data[ORIENTED_BOX_COORDINATES]
         assert isinstance(corners, np.ndarray)
         assert corners.shape == (0, 4, 2)
+        assert detections.xyxy.shape == (0, 4)
+        assert detections.xyxy.dtype == np.float64
+        assert detections.confidence is not None
+        assert detections.confidence.shape == (0,)
         assert (
             detections.metadata[CLASS_HEADING_METADATA_FIELD]
             == response["class_heading"]
@@ -220,6 +308,45 @@ class TestNativeOBBInference:
         )
         np.testing.assert_array_equal(result.data["detection_id"], ["second"])
         np.testing.assert_array_equal(result.confidence, [0.9])
+
+    @pytest.mark.parametrize(
+        ("state", "message"),
+        [
+            pytest.param(
+                "mixed", "cannot mix ordinary", id="mixed-native-and-ordinary"
+            ),
+            pytest.param(
+                "corners", "requires ordered corners and heading", id="missing-corners"
+            ),
+            pytest.param(
+                "heading", "requires ordered corners and heading", id="missing-heading"
+            ),
+            pytest.param("classes", "requires class identifiers", id="missing-classes"),
+            pytest.param(
+                "conflicting",
+                "Conflicting native OBB class heading",
+                id="conflicting-class-policy",
+            ),
+        ],
+    )
+    def test_nmm_rejects_inconsistent_mutable_native_container(
+        self, state: str, message: str
+    ) -> None:
+        """Public container edits cannot merge mixed or incomplete native semantics."""
+        source = sv.Detections.from_inference(_response())
+        if state == "mixed":
+            source.data[NATIVE_OBB_DATA_FIELD] = np.array([True, False])
+        elif state == "corners":
+            del source.data[ORIENTED_BOX_COORDINATES]
+        elif state == "heading":
+            del source.data[HEADING_DATA_FIELD]
+        elif state == "classes":
+            source.class_id = None
+        else:
+            source.data[HEADING_DATA_FIELD] = np.array([True, False])
+
+        with pytest.raises(ValueError, match=message):
+            source.with_nmm(threshold=0.5, class_agnostic=True)
 
     def test_nms_uses_rotated_overlap_instead_of_enclosing_aabb(self) -> None:
         """Thin crossing rectangles share AABBs but not enough rotated area."""

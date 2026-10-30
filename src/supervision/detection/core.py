@@ -3164,9 +3164,11 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     Used internally by :meth:`~supervision.detection.core.Detections.with_nmm`
     to combine each merge group into a single output detection. The
     highest-confidence detection is the
-    "winner" whose class_id, tracker_id, and data fields are preserved. Box
-    extents are widened before subtraction to keep confidence weights finite
-    and avoid integer wraparound.
+    "winner" whose class_id, tracker_id, and data fields are preserved. Native
+    OBB groups retain that exact observed winner, including its front and
+    confidence. Ordinary groups union their boxes and area-weight confidence;
+    box extents are widened before subtraction to keep weights finite and
+    avoid integer wraparound.
 
     Args:
         detections: List of Detections, each containing exactly one object.
