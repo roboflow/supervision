@@ -119,6 +119,7 @@ def test_fallback_bgr_to_gray_matches_opencv_for_integer_images(
     source = source.astype(dtype)
     source[0, 0] = (0, 1, 187)
     source[0, 1] = (100, 200, 300 if dtype == np.uint16 else 255)
+    source[0, 2] = np.iinfo(dtype).max
 
     actual = _cvt_color(source, _COLOR_BGR2GRAY)
     expected = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)

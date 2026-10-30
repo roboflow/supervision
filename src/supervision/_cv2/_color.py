@@ -37,8 +37,9 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
             raise ValueError("BGR2GRAY conversion requires a three-channel image")
         if image.dtype in (np.uint8, np.uint16):
             # OpenCV converts 8- and 16-bit images with the same 15-bit
-            # fixed-point coefficients.
-            values = image.astype(np.uint64)
+            # fixed-point coefficients. The weights sum to 1 << 15, so even a
+            # 16-bit pixel (65535 * 32768 + 16384) fits in uint32.
+            values = image.astype(np.uint32)
             weighted = (
                 values[..., 0] * 3735
                 + values[..., 1] * 19235
