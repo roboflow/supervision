@@ -71,6 +71,77 @@ def _copy_make_border(
     return result
 
 
+# OpenCV's `addWeighted` blends these depths in float32 rather than float64.
+_FLOAT32_BLEND_DTYPES = tuple(
+    np.dtype(dtype) for dtype in (np.uint8, np.int8, np.uint16, np.int16, np.float32)
+)
+
+
+def _fused_multiply_add_float32(
+    values: npt.NDArray[Any], weight: np.float64, addend: npt.NDArray[Any] | np.float64
+) -> npt.NDArray[np.float32]:
+    """Compute `values * weight + addend` with a single rounding to float32.
+
+    `values` holds 8-bit, 16-bit or float32 numbers and `weight` and `addend` are
+    float32 numbers held as float64. The product is then exact in float64, but adding
+    the addend can still round once to float64 and again to float32. That double
+    rounding is wrong when the float64 sum lands on a float32 midpoint: the part the
+    float64 sum dropped decides the direction. The dropped part is recovered exactly
+    (Knuth's two-sum) and breaks the tie.
+
+    Examples:
+        The product `97 * weight` is `0.5 + 2**-25`, exactly between two float32
+        numbers; the tiny addend tips the sum to the upper one:
+
+        ```pycon
+        >>> values = np.array([97.0])
+        >>> weight = np.float64(172961 / 2**25)
+        >>> fused = _fused_multiply_add_float32(values, weight, np.array([2.0**-60]))
+        >>> bool(fused[0] == 0.5 + 2**-24)
+        True
+
+        ```
+    """
+    product = values.astype(np.float64) * weight
+    total = product + addend
+    # Two-sum: `error` is exactly what rounding `product + addend` to float64 lost.
+    virtual = total - product
+    error = (product - (total - virtual)) + (addend - virtual)
+    rounded = total.astype(np.float32)
+    above = total > rounded
+    # The float32 neighbour on the side of the float64 sum, and the midpoint between.
+    neighbour = np.nextafter(
+        rounded, np.where(above, np.inf, -np.inf).astype(np.float32)
+    )
+    midpoint = (rounded.astype(np.float64) + neighbour.astype(np.float64)) / 2
+    # On a tie the nearest-even choice stands unless the lost part pushes away from it.
+    away = (total == midpoint) & ((error > 0) == above) & (error != 0)
+    fused: npt.NDArray[np.float32] = np.where(away, neighbour, rounded)
+    return fused
+
+
+def _blend_like_opencv_float32(
+    src1: npt.NDArray[Any],
+    alpha: float,
+    src2: npt.NDArray[Any],
+    beta: float,
+    gamma: float,
+) -> npt.NDArray[np.float32]:
+    """Compute `src1 * alpha + src2 * beta + gamma` the way OpenCV's SIMD loop does.
+
+    The weights are cast to float32 and the sum is taken with two fused multiply-adds,
+    `fma(src1, alpha, fma(src2, beta, gamma))`, each rounded once to float32 by
+    :func:`~supervision._cv2._image._fused_multiply_add_float32`. Float32 images take
+    the same path.
+    """
+    alpha32, beta32, gamma32 = (
+        np.float64(np.float32(value)) for value in (alpha, beta, gamma)
+    )
+    with np.errstate(invalid="ignore", over="ignore"):
+        inner = _fused_multiply_add_float32(src2, beta32, gamma32)
+        return _fused_multiply_add_float32(src1, alpha32, inner.astype(np.float64))
+
+
 def _add_weighted(
     src1: npt.NDArray[Any],
     alpha: float,
@@ -88,10 +159,15 @@ def _add_weighted(
         )
     if src1.shape != src2.shape:
         raise ValueError("addWeighted inputs must have equal shapes")
-    result = _cast_array_like_opencv(
-        src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
-        src1.dtype,
-    )
+    if src1.dtype in _FLOAT32_BLEND_DTYPES:
+        result = _cast_array_like_opencv(
+            _blend_like_opencv_float32(src1, alpha, src2, beta, gamma), src1.dtype
+        )
+    else:
+        result = _cast_array_like_opencv(
+            src1.astype(np.float64) * alpha + src2.astype(np.float64) * beta + gamma,
+            src1.dtype,
+        )
     if dst is not None:
         dst[...] = result
         return dst
