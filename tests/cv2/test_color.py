@@ -109,6 +109,25 @@ def test_fallback_bgr_to_gray_matches_opencv_fixed_point_rounding() -> None:
     np.testing.assert_array_equal(actual, expected)
 
 
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16])
+def test_fallback_bgr_to_gray_matches_opencv_for_integer_images(
+    dtype: type[np.integer],
+) -> None:
+    """Match OpenCV's fixed-point conversion for 8- and 16-bit images."""
+    rng = np.random.default_rng(0)
+    source = rng.integers(0, np.iinfo(dtype).max, (64, 64, 3), endpoint=True)
+    source = source.astype(dtype)
+    source[0, 0] = (0, 1, 187)
+    source[0, 1] = (100, 200, 300 if dtype == np.uint16 else 255)
+    source[0, 2] = np.iinfo(dtype).max
+
+    actual = _cvt_color(source, _COLOR_BGR2GRAY)
+    expected = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+
+    assert actual.dtype == expected.dtype
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_fallback_merge_matches_opencv() -> None:
     """Match OpenCV channel merging."""
     bgr = np.array(
