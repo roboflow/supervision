@@ -717,8 +717,8 @@ def merge_metadata_lenient(
     A single traversal both detects conflicts and builds the merged dictionary;
     the surviving value is the one from the first dictionary that carried the key.
 
-    Warning: Assumes that empty detections were filtered-out before passing metadata
-    to this function.
+    Pass only authoritative metadata dictionaries. Usually these come from nonempty
+    detections; native empty results can carry authoritative frame and class policy.
 
     Args:
         metadata_list: A list of metadata dictionaries to merge.

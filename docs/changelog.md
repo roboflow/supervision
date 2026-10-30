@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.Detections.from_inference` parses native `oriented-object-detection` responses into ordered float corners, frozen class heading capabilities and stable detection IDs. Native NMS preserves selected rows; native NMM retains the highest-confidence contributor's exact shape and front instead of attaching its heading to a refitted rectangle. `sv.InferenceSlicer` updates supplied image-dimensions metadata to the full-image frame alongside the translated geometry and retains native metadata and typed arrays when every tile is empty. ([#2835](https://github.com/roboflow/supervision/pull/2835))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

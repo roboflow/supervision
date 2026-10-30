@@ -32,9 +32,13 @@ HANDEDNESS_SCORE_DATA_FIELD: str = "handedness_score"
 #: The stored value is a reference to the caller's image, not a copy — mutating
 #: ``metadata[SOURCE_IMAGE_METADATA_FIELD]`` mutates the original array.
 SOURCE_IMAGE_METADATA_FIELD: str = "source_image"
+#: Image dimensions in ``Detections.metadata`` as ``[height, width]``.
+#: Describes the coordinate frame of the detections, including after tiling.
+IMAGE_DIMENSIONS_METADATA_FIELD: str = "image_dimensions"
 #: Key for oriented bounding-box corner coordinates in ``Detections.data``.
 #:
-#: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, dtype ``float32``, pixel
+#: Value layout: ``np.ndarray`` of shape ``(N, 4, 2)``, floating dtype (including
+#: native Inference ``float64``), pixel
 #: coordinates ordered as ``[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`` per
 #: detection where the four points are the corners of the oriented box.
 #: Used by :func:`~supervision.dataset.formats.yolo.detections_to_yolo_annotations`
@@ -61,3 +65,13 @@ DISPARITY_PX_DATA_FIELD: str = "disparity_px"
 #: Same layout as ``DEPTH_M_DATA_FIELD``, unitless; larger is nearer. Monocular models
 #: such as Depth Anything produce it, and it has no metric scale.
 RELATIVE_INVERSE_DATA_FIELD: str = "relative_inverse"
+
+#: Native OBB provenance: aligned bool array in ``Detections.data`` and a bool
+#: in ``Detections.metadata`` that also identifies empty native results.
+NATIVE_OBB_DATA_FIELD: str = "native_obb"
+#: Per-class semantic-front capability, aligned with each detection row.
+HEADING_DATA_FIELD: str = "heading"
+#: Frozen class-name to semantic-front capability map in ``Detections.metadata``.
+CLASS_HEADING_METADATA_FIELD: str = "class_heading"
+#: Stable source inference identity, aligned with each detection row.
+DETECTION_ID_DATA_FIELD: str = "detection_id"
