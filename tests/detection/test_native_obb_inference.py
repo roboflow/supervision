@@ -184,7 +184,7 @@ class TestNativeOBBInference:
         [
             None,
             pytest.param([True], id="non-mapping"),
-            pytest.param({"plane": 1}, id="non-boolean-capability"),
+            pytest.param({"plane": True, "stone": 1}, id="non-boolean-capability"),
             pytest.param({"stone": False}, id="missing-predicted-class"),
             pytest.param({"plane": False}, id="contradictory-heading"),
         ],
