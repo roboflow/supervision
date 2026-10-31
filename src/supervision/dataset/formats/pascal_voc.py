@@ -139,6 +139,10 @@ def detections_to_pascal_voc(
     Returns:
         An XML string in Pascal VOC format representing the detections.
 
+    Raises:
+        ValueError: If ``detections.class_id`` is missing or not an integer, or
+            if any ``class_id`` value is out of range for ``classes``.
+
     Note:
         ``detections`` is never mutated by this function; the source ``xyxy``
         array is unchanged after the call. The function is therefore safe to
@@ -179,13 +183,19 @@ def detections_to_pascal_voc(
     segmented.text = "0"
 
     # Add object elements
-    for xyxy, mask, _, class_id, _, _ in detections:
+    for index, (xyxy, mask, _, class_id, _, _) in enumerate(detections):
         if class_id is None:
             raise ValueError("Detections must include class_id for Pascal VOC export.")
         if not isinstance(class_id, (int, np.integer)):
             raise ValueError(
                 f"Detections class_id must be an integer for Pascal VOC export, "
                 f"got {type(class_id)!r}."
+            )
+        # A negative index would silently pick a class from the end of the list.
+        if class_id < 0 or class_id >= len(classes):
+            raise ValueError(
+                f"class_id {int(class_id)} at detection index {index} is out of "
+                f"range for classes list of length {len(classes)}."
             )
         name = classes[class_id]
         # An empty mask (e.g. a box-only COCO annotation) has no polygon to
