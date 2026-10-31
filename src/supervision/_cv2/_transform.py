@@ -14,21 +14,25 @@ _QUAD_SHAPES = ((4, 2), (4, 1, 2), (1, 4, 2))
 
 
 def _blur(
-    image: npt.NDArray[Any], ksize: tuple[int, int], border_type: int = 4
+    src: npt.NDArray[Any], ksize: tuple[int, int], borderType: int = 4
 ) -> npt.NDArray[Any]:
-    """Apply a box filter with OpenCV's default reflect-101 boundary behavior."""
+    """Apply a box filter with OpenCV's default reflect-101 boundary behavior.
+
+    Parameter names mirror `cv2.blur(src, ksize, borderType=...)` so keyword calls
+    bind on both backends; keep them when editing.
+    """
     if min(ksize) <= 0:
         raise ValueError("Blur kernel dimensions must be positive")
-    if border_type != 4:
+    if borderType != 4:
         raise ValueError("Only OpenCV's default blur border is supported")
-    if image.dtype == np.uint8:
-        return _box_blur_uint8(image, ksize)
+    if src.dtype == np.uint8:
+        return _box_blur_uint8(src, ksize)
 
     from scipy import ndimage
 
-    size = (*ksize[::-1], 1) if image.ndim == 3 else ksize[::-1]
-    values = ndimage.uniform_filter(image.astype(np.float64), size=size, mode="mirror")
-    return np.ascontiguousarray(_cast_array_like_opencv(values, image.dtype))
+    size = (*ksize[::-1], 1) if src.ndim == 3 else ksize[::-1]
+    values = ndimage.uniform_filter(src.astype(np.float64), size=size, mode="mirror")
+    return np.ascontiguousarray(_cast_array_like_opencv(values, src.dtype))
 
 
 def _box_blur_uint8(

@@ -196,22 +196,26 @@ def _cleanup_approximation(
 
 
 def _approx_poly_dp(
-    contour: npt.NDArray[Any], epsilon: float, closed: bool
+    curve: npt.NDArray[Any], epsilon: float, closed: bool
 ) -> npt.NDArray[Any]:
-    """Approximate a contour with the supported OpenCV polygon contract."""
+    """Approximate a contour with the supported OpenCV polygon contract.
+
+    Parameter names mirror `cv2.approxPolyDP(curve, epsilon, closed)` so keyword
+    calls bind on both backends; keep them when editing.
+    """
     # Written as a negated range so NaN fails it too; OpenCV rejects the same set.
     if not 0 <= epsilon < 1e30:
         raise ValueError("epsilon must be non-negative and below 1e30")
-    points = _as_points(contour)
+    points = _as_points(curve)
     if len(points) == 0:
-        dtype = np.asarray(contour).dtype
+        dtype = np.asarray(curve).dtype
         return np.empty((0, 1, 2), dtype=dtype)
 
     epsilon_squared = float(epsilon) ** 2
     simplified = _simplify_slices(points, epsilon_squared, closed)
     simplified = _cleanup_approximation(simplified, epsilon_squared, closed)
 
-    dtype = np.asarray(contour).dtype
+    dtype = np.asarray(curve).dtype
     return simplified.astype(dtype, copy=False).reshape(-1, 1, 2)
 
 
@@ -221,14 +225,18 @@ def _cross(edge: npt.NDArray[np.float64], point: npt.NDArray[np.float64]) -> flo
 
 
 def _intersect_convex_convex(
-    first: npt.NDArray[Any],
-    second: npt.NDArray[Any],
-    handle_nested: bool = True,
+    p1: npt.NDArray[Any],
+    p2: npt.NDArray[Any],
+    handleNested: bool = True,
 ) -> tuple[float, npt.NDArray[Any]]:
-    """Clip two convex polygons and return their intersection area and vertices."""
-    del handle_nested
-    subject = _as_points(first)
-    clip = _as_points(second)
+    """Clip two convex polygons and return their intersection area and vertices.
+
+    Parameter names mirror `cv2.intersectConvexConvex(p1, p2, handleNested=...)` so
+    keyword calls bind on both backends; keep them when editing.
+    """
+    del handleNested
+    subject = _as_points(p1)
+    clip = _as_points(p2)
     output = subject
     if len(subject) < 3 or len(clip) < 3:
         return 0.0, np.empty((0, 1, 2), dtype=np.float32)
@@ -258,7 +266,7 @@ def _intersect_convex_convex(
         output = np.asarray(output_points, dtype=np.float64)
 
     if len(output) == 0:
-        dtype = np.asarray(first).dtype
+        dtype = np.asarray(p1).dtype
         result_dtype = dtype if np.issubdtype(dtype, np.floating) else np.float32
         return 0.0, np.empty((0, 1, 2), dtype=result_dtype)
 
@@ -266,6 +274,6 @@ def _intersect_convex_convex(
     if len(output) > 1 and np.array_equal(output[0], output[-1]):
         output = output[:-1]
     area = _contour_area(output)
-    dtype = np.asarray(first).dtype
+    dtype = np.asarray(p1).dtype
     result_dtype = dtype if np.issubdtype(dtype, np.floating) else np.float32
     return area, output.astype(result_dtype, copy=False).reshape(-1, 1, 2)
