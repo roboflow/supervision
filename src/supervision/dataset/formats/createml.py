@@ -252,7 +252,8 @@ def detections_to_createml_annotations(
         ``"height"`` in pixel space.
 
     Raises:
-        ValueError: If ``detections.class_id`` is ``None``.
+        ValueError: If ``detections.class_id`` is ``None`` or if any
+            ``class_id`` value is out of range for ``classes``.
 
     Example:
         ```pycon
@@ -278,7 +279,14 @@ def detections_to_createml_annotations(
             "Detections has class_id=None."
         )
     annotations: list[CreateMLDict] = []
-    for xyxy, class_id in zip(detections.xyxy, class_ids):
+    for index, (xyxy, class_id) in enumerate(zip(detections.xyxy, class_ids)):
+        class_index = int(class_id)
+        # A negative index would silently pick a class from the end of the list.
+        if class_index < 0 or class_index >= len(classes):
+            raise ValueError(
+                f"class_id {class_index} at detection index {index} is out of "
+                f"range for classes list of length {len(classes)}."
+            )
         x_min, y_min, x_max, y_max = (float(value) for value in xyxy)
         # Order the corners first: a reversed box would otherwise be written
         # with a negative width or height, which the loader now rejects.
@@ -286,7 +294,7 @@ def detections_to_createml_annotations(
         y_min, y_max = min(y_min, y_max), max(y_min, y_max)
         annotations.append(
             {
-                "label": classes[int(class_id)],
+                "label": classes[class_index],
                 "coordinates": {
                     "x": (x_min + x_max) / 2,
                     "y": (y_min + y_max) / 2,

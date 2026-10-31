@@ -1,13 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-28
+date_modified: 2026-10-31
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
--
+- `detections_to_createml_annotations` and `detections_to_pascal_voc` now raise `ValueError` for a `class_id` outside `classes`, as `detections_to_labelme_annotations` does. A negative id was silently exported under the last class name, and an id past the end raised `IndexError`. ([#2859](https://github.com/roboflow/supervision/pull/2859))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

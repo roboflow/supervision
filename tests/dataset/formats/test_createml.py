@@ -159,6 +159,23 @@ class TestDetectionsToCreatemlAnnotations:
         with pytest.raises(ValueError, match="class_id"):
             detections_to_createml_annotations(detections=detections, classes=["dog"])
 
+    @pytest.mark.parametrize("class_id", [-1, 2])
+    def test_raises_when_class_id_is_out_of_range(self, class_id: int) -> None:
+        """An out-of-range class_id raises instead of exporting a wrong label.
+
+        A negative id used to index ``classes`` from the end, so -1 was silently
+        written as the last class.
+        """
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="out of range"):
+            detections_to_createml_annotations(
+                detections=detections, classes=["cat", "dog"]
+            )
+
 
 class TestLoadCreatemlAnnotations:
     def test_loads_basic_annotations(self, tmp_path: Path) -> None:
