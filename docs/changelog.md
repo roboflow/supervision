@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.DetectionDataset.merge` now preserves annotations without class IDs while remapping labeled annotations, instead of raising `ValueError`.
+- `sv.DetectionDataset.merge` now preserves annotations without class IDs while remapping labeled annotations, instead of raising `ValueError`. ([#2858](https://github.com/roboflow/supervision/pull/2858))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
