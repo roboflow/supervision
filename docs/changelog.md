@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.Detections.from_ultralytics` now preserves at least one content pixel per axis when restoring masks from thin letterboxed images, instead of passing an empty crop to image resizing. ([#2857](https://github.com/roboflow/supervision/pull/2857))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

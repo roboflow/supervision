@@ -69,8 +69,8 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         )
         # LetterBox rounds the resized content before splitting padding. An odd
         # padding pixel belongs to the bottom/right, not to the content crop.
-        content_height = round(orig_shape[0] * gain)
-        content_width = round(orig_shape[1] * gain)
+        content_height = max(round(orig_shape[0] * gain), 1)
+        content_width = max(round(orig_shape[1] * gain), 1)
         top = (inference_shape[0] - content_height) // 2
         left = (inference_shape[1] - content_width) // 2
         bottom = top + content_height
