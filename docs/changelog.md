@@ -1,13 +1,13 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-28
+date_modified: 2026-10-31
 ---
 
 # Changelog
 
 ### Unreleased <small>upcoming</small>
 
--
+- The NumPy fallbacks for `blur`, `approxPolyDP` and `intersectConvexConvex` now take OpenCV's parameter names (`src`/`borderType`, `curve`, and `p1`/`p2`/`handleNested`), so keyword calls such as `cv2.approxPolyDP(curve=contour, epsilon=2.0, closed=True)` work without OpenCV instead of raising `TypeError`. Behavior is unchanged.
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
