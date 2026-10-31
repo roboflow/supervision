@@ -200,8 +200,8 @@ def _approx_poly_dp(
 ) -> npt.NDArray[Any]:
     """Approximate a contour with the supported OpenCV polygon contract.
 
-    Parameter names mirror `cv2.approxPolyDP(curve, epsilon, closed)` so keyword
-    calls bind on both backends; keep them when editing.
+    Parameter names mirror `cv2.approxPolyDP(curve, epsilon, closed)` so keyword calls
+    bind on both backends; keep them when editing.
     """
     # Written as a negated range so NaN fails it too; OpenCV rejects the same set.
     if not 0 <= epsilon < 1e30:
