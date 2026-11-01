@@ -1,14 +1,16 @@
 import os
 import threading
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 from queue import Queue as StdQueue
 from types import SimpleNamespace, TracebackType
+from typing import NoReturn, cast
 from unittest.mock import Mock, patch
 
 import av
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import _cv2 as cv2
@@ -22,7 +24,8 @@ from supervision.utils.video import (
 
 
 @pytest.fixture
-def dummy_video_path(tmp_path):
+def dummy_video_path(tmp_path: Path) -> str:
+    """Write a ten-frame video for processing and metadata tests."""
     path = str(tmp_path / "dummy_video.mp4")
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(path, fourcc, 25, (640, 480))
@@ -141,7 +144,9 @@ class TestVideoGeneratorSetupCleanup:
         capture.release.assert_called_once_with()
 
 
-def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
+def test_process_video_exception_handling(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
     """Verify that process_video correctly propagates exceptions from the callback.
 
     Scenario: Processing a video where the callback raises an exception.
@@ -150,7 +155,10 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
     """
     target_path = str(tmp_path / "target.mp4")
 
-    def callback_with_exception(frame, index):
+    def callback_with_exception(
+        frame: npt.NDArray[np.uint8], index: int
+    ) -> npt.NDArray[np.uint8]:
+        """Raise after five frames to exercise callback error propagation."""
         if index == 5:
             raise ValueError("Test exception at frame 5")
         return frame
@@ -163,7 +171,7 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
         )
 
 
-def test_process_video_success(dummy_video_path, tmp_path) -> None:
+def test_process_video_success(dummy_video_path: str, tmp_path: Path) -> None:
     """Verify successful video processing with a pass-through callback.
 
     Scenario: Successfully processing a video with a simple pass-through callback.
@@ -172,7 +180,10 @@ def test_process_video_success(dummy_video_path, tmp_path) -> None:
     """
     target_path = str(tmp_path / "target_success.mp4")
 
-    def callback_success(frame, index):
+    def callback_success(
+        frame: npt.NDArray[np.uint8], index: int
+    ) -> npt.NDArray[np.uint8]:
+        """Pass each decoded frame through unchanged."""
         return frame
 
     # This should complete without exception
@@ -183,7 +194,9 @@ def test_process_video_success(dummy_video_path, tmp_path) -> None:
     assert os.path.exists(target_path)
 
 
-def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -> None:
+def test_process_video_exception_with_small_buffer(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
     """Verify that process_video handles exceptions correctly even with small buffers.
 
     Scenario: Processing a video with minimal buffering where an exception occurs.
@@ -191,7 +204,10 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -
     """
     target_path = str(tmp_path / "target_exception_small_buffer.mp4")
 
-    def callback_with_exception(frame, index):
+    def callback_with_exception(
+        frame: npt.NDArray[np.uint8], index: int
+    ) -> npt.NDArray[np.uint8]:
+        """Raise after five frames while the pipeline uses minimal buffers."""
         if index == 5:
             raise ValueError("Test exception at frame 5")
         return frame
@@ -240,9 +256,11 @@ class TestProcessVideoReaderCancellation:
                 """Delegate metadata and seeking to the real capture."""
                 return getattr(self.capture, name)
 
-            def read(self) -> tuple[bool, np.ndarray | None]:
+            def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
                 """Signal when the reader has a frame beyond the one-slot queue."""
-                result = self.capture.read()
+                result = cast(
+                    tuple[bool, npt.NDArray[np.uint8] | None], self.capture.read()
+                )
                 if result[0]:
                     decoded.append(1)
                     if not reader_captures:
@@ -256,7 +274,7 @@ class TestProcessVideoReaderCancellation:
                 released.append(self)
                 self.capture.release()
 
-        def callback(frame: np.ndarray, index: int) -> None:
+        def callback(frame: npt.NDArray[np.uint8], index: int) -> None:
             """Fail only after the reader has filled the bounded queue."""
             assert reader_blocked.wait(timeout=5)
             if failure is not None:
@@ -271,7 +289,10 @@ class TestProcessVideoReaderCancellation:
                 deadline_seconds=10,
                 source_path=dummy_video_path,
                 target_path=str(tmp_path / "cancelled.mp4"),
-                callback=callback,
+                callback=cast(
+                    Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
+                    callback,
+                ),
                 prefetch=1,
                 writer_buffer=1,
             )
@@ -312,7 +333,7 @@ class TestProcessVideoReaderCancellation:
                 """Return the iterator used by the reader."""
                 return self
 
-            def __next__(self) -> np.ndarray:
+            def __next__(self) -> npt.NDArray[np.uint8]:
                 """Decode real frames, optionally failing before the second one."""
                 if failure == "reader" and self.read_count == 1:
                     raise reader_error
@@ -328,7 +349,7 @@ class TestProcessVideoReaderCancellation:
                 source_closed.set()
                 raise cleanup_error
 
-        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+        def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
             """Fail after the reader fills its queue, or pass the frame through."""
             if failure in {"callback", "interrupt"}:
                 assert reader_buffered.wait(timeout=5)
@@ -397,9 +418,11 @@ class TestProcessVideoReaderCancellation:
                 """Delegate metadata queries to the real capture."""
                 return getattr(self.capture, name)
 
-            def read(self) -> tuple[bool, np.ndarray | None]:
+            def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
                 """Decode a real frame before reporting a backend failure."""
-                result = self.capture.read()
+                result = cast(
+                    tuple[bool, npt.NDArray[np.uint8] | None], self.capture.read()
+                )
                 self.read_started = True
                 if decode_fails:
                     raise decode_error
@@ -481,7 +504,7 @@ class TestProcessVideoReaderCancellation:
 
         def frames(
             source_path: str, end: int | None = None
-        ) -> Generator[np.ndarray, None, None]:
+        ) -> Generator[npt.NDArray[np.uint8], None, None]:
             """Optionally fail after reading a real source frame."""
             generator = original_generator(source_path=source_path, end=end)
             try:
@@ -493,7 +516,7 @@ class TestProcessVideoReaderCancellation:
             finally:
                 generator.close()
 
-        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+        def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
             """Raise the selected processing error or pass the frame through."""
             if failure in {"callback", "interrupt"}:
                 raise callback_error
@@ -556,10 +579,15 @@ class TestProcessVideoReaderCancellation:
         callback_error = ValueError("callback failed")
         frame_count = 50 if failure_path == "writer" else 2
 
-        class ReadQueue(StdQueue):
+        class ReadQueue(StdQueue[tuple[int, npt.NDArray[np.uint8]] | None]):
             """Signal a frame or EOF put blocked by the one-slot read queue."""
 
-            def put(self, item: object, timeout: float | None = None) -> None:
+            def put(
+                self,
+                item: tuple[int, npt.NDArray[np.uint8]] | None,
+                block: bool = True,
+                timeout: float | None = None,
+            ) -> None:
                 """Keep real queue behavior while exposing the blocked put."""
                 awaited_put = (
                     item is None
@@ -568,9 +596,9 @@ class TestProcessVideoReaderCancellation:
                 )
                 if awaited_put and self.full():
                     reader_blocked.set()
-                super().put(item, timeout=timeout)
+                super().put(item, block=block, timeout=timeout)
 
-        class WriteQueue(StdQueue):
+        class WriteQueue(StdQueue[npt.NDArray[np.uint8] | None]):
             """Hold the processor until the writer has recorded its error."""
 
             def __init__(self) -> None:
@@ -578,22 +606,29 @@ class TestProcessVideoReaderCancellation:
                 super().__init__(maxsize=1)
                 self.get_count = 0
 
-            def put(self, item: object, timeout: float | None = None) -> None:
+            def put(
+                self,
+                item: npt.NDArray[np.uint8] | None,
+                block: bool = True,
+                timeout: float | None = None,
+            ) -> None:
                 """Wait for error recording before returning the first frame put."""
-                super().put(item, timeout=timeout)
+                super().put(item, block=block, timeout=timeout)
                 if item is not None:
                     assert writer_error_captured.wait(timeout=5)
 
-            def get(self, timeout: float | None = None) -> object:
+            def get(
+                self, block: bool = True, timeout: float | None = None
+            ) -> npt.NDArray[np.uint8] | None:
                 """The writer's second receive follows its exception handler."""
                 self.get_count += 1
                 if self.get_count == 2:
                     writer_error_captured.set()
-                return super().get(timeout=timeout)
+                return super().get(block=block, timeout=timeout)
 
         def frames(
             source_path: str, end: int | None = None
-        ) -> Generator[np.ndarray, None, None]:
+        ) -> Generator[npt.NDArray[np.uint8], None, None]:
             """Record synthetic frame reads and source cleanup without slow I/O."""
             try:
                 for index in range(frame_count):
@@ -602,11 +637,11 @@ class TestProcessVideoReaderCancellation:
             finally:
                 source_closed.set()
 
-        def fail_write(self: VideoSink, frame: np.ndarray) -> None:
+        def fail_write(self: VideoSink, frame: npt.NDArray[np.uint8]) -> None:
             """Raise a stable error from the writer thread."""
             raise writer_error
 
-        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+        def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
             """Stop processing only after the producer has reached the blocked put."""
             assert index == 0
             assert reader_blocked.wait(timeout=5)
@@ -647,7 +682,7 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
     dummy_video_path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """process_video queues its sentinel and waits for the writer to exit."""
-    read_queue = StdQueue()
+    read_queue: StdQueue[tuple[int, npt.NDArray[np.uint8]] | None] = StdQueue()
     read_queue.put((0, np.zeros((2, 2, 3), dtype=np.uint8)))
     read_queue.put((1, np.zeros((2, 2, 3), dtype=np.uint8)))
     read_queue.put(None)
@@ -686,7 +721,7 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
         def start(self) -> None:
             """Do nothing; the test preloads the queues instead."""
 
-        def join(self, timeout=None) -> None:
+        def join(self, timeout: float | None = None) -> None:
             """Do nothing; the worker targets are intentionally never started."""
             join_calls.append(timeout)
 
@@ -725,7 +760,8 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
 
     target_path = str(tmp_path / "target_sentinel.mp4")
 
-    def callback(frame, index):
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
+        """Fail on the second frame to trigger writer shutdown."""
         if index == 1:
             raise ValueError("Test exception at frame 1")
         return frame
@@ -758,11 +794,11 @@ def test_process_video_retries_full_queue_sentinel_after_writer_recovers(
 
     def recording_queue(maxsize: int = 0) -> StdQueue[object]:
         """Retain the real queues so failure cleanup can be verified."""
-        queue = StdQueue(maxsize=maxsize)
+        queue: StdQueue[object] = StdQueue(maxsize=maxsize)
         queues.append(queue)
         return queue
 
-    def blocked_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+    def blocked_write_frame(self: VideoSink, frame: npt.NDArray[np.uint8]) -> None:
         """Hold the first backend write while the bounded queue fills."""
         if not write_started.is_set():
             writer_threads.append(threading.current_thread())
@@ -776,7 +812,9 @@ def test_process_video_retries_full_queue_sentinel_after_writer_recovers(
             release_write.wait(timeout=1.1)
             release_write.set()
 
-    def callback(frame: np.ndarray, frame_index: int) -> np.ndarray:
+    def callback(
+        frame: npt.NDArray[np.uint8], frame_index: int
+    ) -> npt.NDArray[np.uint8]:
         """Fill the one-frame queue, then preserve a callback failure."""
         if frame_index == 1:
             assert write_started.wait(timeout=5)
@@ -886,7 +924,7 @@ def test_process_video_does_not_drain_reader_queue_after_callback_failure(
         def start(self) -> None:
             """Do nothing; the test preloads the queues instead."""
 
-        def join(self, timeout=None) -> None:
+        def join(self, timeout: float | None = None) -> None:
             """Record join timeouts for shutdown verification."""
             join_calls.append(timeout)
 
@@ -926,7 +964,8 @@ def test_process_video_does_not_drain_reader_queue_after_callback_failure(
 
     target_path = str(tmp_path / "target_timeout.mp4")
 
-    def callback(frame, index):
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> NoReturn:
+        """Fail on the first frame before the reader queue can be drained."""
         raise ValueError("Test exception at frame 0")
 
     with pytest.raises(ValueError, match="Test exception at frame 0"):
@@ -941,7 +980,7 @@ def test_process_video_does_not_drain_reader_queue_after_callback_failure(
     assert join_calls == [None, None]
 
 
-def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
+def test_process_video_max_frames(dummy_video_path: str, tmp_path: Path) -> None:
     """Verify that process_video respects the max_frames parameter.
 
     Scenario: Processing only a limited number of frames using `max_frames`.
@@ -951,7 +990,8 @@ def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     target_path = str(tmp_path / "target_max_frames.mp4")
     processed_indices = []
 
-    def callback(frame, index):
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
+        """Record every processed frame index."""
         processed_indices.append(index)
         return frame
 
@@ -966,7 +1006,16 @@ def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     assert processed_indices == [0, 1, 2, 3, 4]
 
 
-def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> None:
+def _run_process_video_with_deadline(
+    deadline_seconds: float,
+    *,
+    source_path: str,
+    target_path: str,
+    callback: Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
+    max_frames: int | None = None,
+    prefetch: int = 32,
+    writer_buffer: int = 32,
+) -> None:
     """Run process_video in a daemon thread; fail on timeout, re-raise its error.
 
     A hang must not block the whole test session, so the call runs in a daemon thread
@@ -979,7 +1028,14 @@ def _run_process_video_with_deadline(deadline_seconds: float, **kwargs) -> None:
     def run() -> None:
         """Call process_video, keeping any exception for the calling thread."""
         try:
-            process_video(**kwargs)
+            process_video(
+                source_path=source_path,
+                target_path=target_path,
+                callback=callback,
+                max_frames=max_frames,
+                prefetch=prefetch,
+                writer_buffer=writer_buffer,
+            )
         except BaseException as exc:
             errors.append(exc)
         finally:
@@ -999,7 +1055,7 @@ def test_process_video_max_frames_larger_than_video_processes_whole_video(
     target_path = str(tmp_path / "target_max_frames_overshoot.mp4")
     processed_indices: list[int] = []
 
-    def callback(frame, index):
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
         """Record the index of every processed frame."""
         processed_indices.append(index)
         return frame
@@ -1026,7 +1082,7 @@ def test_process_video_max_frames_caps_read_when_frame_count_is_unknown(
     )
     processed_indices: list[int] = []
 
-    def callback(frame: np.ndarray, index: int) -> np.ndarray:
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
         """Record the index of every processed frame."""
         processed_indices.append(index)
         return frame
@@ -1047,7 +1103,7 @@ def test_process_video_propagates_reader_thread_errors(
     """A failing reader thread raises RuntimeError instead of hanging forever."""
     target_path = str(tmp_path / "target_reader_error.mp4")
 
-    def failing_generator(*args, **kwargs):
+    def failing_generator(*args: object, **kwargs: object) -> NoReturn:
         """Stand in for a reader that cannot open or decode the source."""
         raise OSError("decode failed")
 
@@ -1072,7 +1128,7 @@ def test_process_video_propagates_writer_thread_errors(
     """A failing frame write raises RuntimeError instead of hanging forever."""
     target_path = str(tmp_path / "target_writer_error.mp4")
 
-    def failing_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+    def failing_write_frame(self: VideoSink, frame: npt.NDArray[np.uint8]) -> None:
         """Stand in for a sink that cannot write, e.g. on a full disk."""
         raise OSError("write failed")
 
@@ -1105,7 +1161,7 @@ def test_process_video_waits_for_delayed_writer_failure_before_releasing_sink(
     release_overlapped_write: list[bool] = []
     original_exit = VideoSink.__exit__
 
-    def delayed_write_frame(self: VideoSink, frame: np.ndarray) -> None:
+    def delayed_write_frame(self: VideoSink, frame: npt.NDArray[np.uint8]) -> None:
         """Hold the final write beyond the former ten-second join deadline."""
         write_active.set()
         write_started.set()
@@ -1172,12 +1228,15 @@ def test_process_video_rejects_callback_returning_none(
             deadline_seconds=30,
             source_path=dummy_video_path,
             target_path=target_path,
-            callback=lambda frame, index: None,
+            callback=cast(
+                Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
+                lambda frame, index: None,
+            ),
             writer_buffer=1,
         )
 
 
-def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
+def test_process_video_custom_params(dummy_video_path: str, tmp_path: Path) -> None:
     """Verify that process_video works correctly with custom performance parameters.
 
     Scenario: Processing video with custom prefetch and buffer parameters.
@@ -1186,7 +1245,8 @@ def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
     """
     target_path = str(tmp_path / "target_custom_params.mp4")
 
-    def callback(frame, index):
+    def callback(frame: npt.NDArray[np.uint8], index: int) -> npt.NDArray[np.uint8]:
+        """Pass each frame through to exercise the custom pipeline settings."""
         return frame
 
     # Test with very small prefetch and writer_buffer
@@ -1201,7 +1261,7 @@ def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
     assert os.path.exists(target_path)
 
 
-def test_video_info(dummy_video_path) -> None:
+def test_video_info(dummy_video_path: str) -> None:
     """Verify that VideoInfo correctly retrieves metadata from a video file.
 
     Scenario: Retrieving metadata from a video file using `VideoInfo`.
@@ -1217,7 +1277,9 @@ def test_video_info(dummy_video_path) -> None:
     assert video_info.resolution_wh == (640, 480)
 
 
-def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
+def test_video_info_float_fps(
+    dummy_video_path: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verify that VideoInfo preserves non-integer FPS values as floats.
 
     Scenario: Retrieving metadata from a video while OpenCV reports 23.976 fps.
@@ -1226,10 +1288,11 @@ def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
     """
     original_get = cv2.VideoCapture.get
 
-    def mocked_get(self, prop_id):
+    def mocked_get(self: cv2.VideoCapture, prop_id: int) -> float:
+        """Override only FPS while preserving the capture's other metadata."""
         if prop_id == cv2.CAP_PROP_FPS:
             return 23.976
-        return original_get(self, prop_id)
+        return float(original_get(self, prop_id))
 
     monkeypatch.setattr(cv2.VideoCapture, "get", mocked_get)
 
@@ -1264,7 +1327,7 @@ def test_video_info_and_frames_follow_display_rotation(tmp_path: Path) -> None:
     assert all(frame.shape == (32, 16, 3) for frame in frames)
 
 
-def test_get_video_frames_generator(dummy_video_path) -> None:
+def test_get_video_frames_generator(dummy_video_path: str) -> None:
     """Verify that get_video_frames_generator yields frames with correct shapes.
 
     Scenario: Iterating over video frames using a generator.
@@ -1278,7 +1341,9 @@ def test_get_video_frames_generator(dummy_video_path) -> None:
     assert all(frame.shape == (480, 640, 3) for frame in frames)
 
 
-def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path) -> None:
+def test_get_video_frames_generator_prefetch_matches_sync(
+    dummy_video_path: str,
+) -> None:
     """Verify that the prefetch path yields identical frames to the sync path.
 
     Scenario: Iterating over a video with prefetch=4 and again with prefetch=0
@@ -1293,7 +1358,9 @@ def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path) -> N
         assert np.array_equal(a, b)
 
 
-def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path) -> None:
+def test_get_video_frames_generator_prefetch_propagates_decode_errors(
+    tmp_path: Path,
+) -> None:
     """Verify that reader-thread exceptions reach the consumer, not get swallowed.
 
     Scenario: Passing a non-existent file path to the prefetch path so the reader
@@ -1308,7 +1375,7 @@ def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path) 
 
 
 def test_get_video_frames_generator_prefetch_early_termination(
-    dummy_video_path,
+    dummy_video_path: str,
 ) -> None:
     """Verify that breaking out of the prefetched generator does not block reuse.
 
@@ -1336,7 +1403,7 @@ def test_get_video_frames_generator_prefetch_early_termination(
     ],
 )
 def test_get_video_frames_generator_prefetch_param_forwarding(
-    dummy_video_path, stride, start, end
+    dummy_video_path: str, stride: int, start: int, end: int | None
 ) -> None:
     """Prefetch path must forward stride/start/end identically to the sync path.
 
@@ -1360,7 +1427,9 @@ def test_get_video_frames_generator_prefetch_param_forwarding(
         assert np.array_equal(a, b)
 
 
-def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> None:
+def test_get_video_frames_generator_prefetch_minimum_queue(
+    dummy_video_path: str,
+) -> None:
     """Prefetch=1 creates maximum backpressure; all frames must be returned in order.
 
     Scenario: Using prefetch=1 forces the reader to block after every decoded
@@ -1374,7 +1443,9 @@ def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> 
         assert np.array_equal(a, b)
 
 
-def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None:
+def test_get_video_frames_generator_releases_on_early_break(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify that the capture is released when a consumer breaks out early.
 
     Scenario: A consumer iterates one frame then abandons the generator, raising
@@ -1384,16 +1455,22 @@ def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None
     """
 
     class FakeCapture:
+        """Yield frames until the consumer explicitly closes its generator."""
+
         def __init__(self) -> None:
+            """Track whether the generator has released its capture."""
             self.released = False
 
-        def read(self):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
+            """Provide a frame on every read."""
             return True, np.zeros((2, 2, 3), dtype=np.uint8)
 
-        def grab(self):
+        def grab(self) -> bool:
+            """Allow stride handling to skip a frame."""
             return True
 
         def release(self) -> None:
+            """Record that the generator released its capture."""
             self.released = True
 
     fake_capture = FakeCapture()
@@ -1409,7 +1486,9 @@ def test_get_video_frames_generator_releases_on_early_break(monkeypatch) -> None
     assert fake_capture.released
 
 
-def test_get_video_frames_generator_prefetch_negative_raises(dummy_video_path) -> None:
+def test_get_video_frames_generator_prefetch_negative_raises(
+    dummy_video_path: str,
+) -> None:
     """Negative prefetch raises ValueError when the generator is first consumed.
 
     Scenario: Creating get_video_frames_generator with prefetch=-1 and pulling the
@@ -1437,7 +1516,7 @@ def test_get_video_frames_generator_rejects_nonpositive_stride(
 
 
 def test_get_video_frames_generator_prefetch_stride_early_termination(
-    dummy_video_path,
+    dummy_video_path: str,
 ) -> None:
     """Breaking early with stride>1 and prefetch>0 exits cleanly without hanging.
 
@@ -1459,7 +1538,7 @@ def test_get_video_frames_generator_prefetch_stride_early_termination(
 
 
 def test_get_video_frames_generator_prefetch_consumer_exception_cleans_up_thread(
-    dummy_video_path,
+    dummy_video_path: str,
 ) -> None:
     """A consumer exception propagates and the prefetch reader thread is cleaned up.
 
@@ -1480,7 +1559,9 @@ def test_get_video_frames_generator_prefetch_consumer_exception_cleans_up_thread
     assert threading.active_count() == baseline_threads
 
 
-def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -> None:
+def test_get_video_frames_generator_prefetch_reader_outlives_join(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A reader stuck in a slow read must not make the outer generator hang on close.
 
     Scenario: The background reader blocks in a slow `read()` that outlives the
@@ -1498,7 +1579,7 @@ def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -
             self.calls = 0
             self.block = threading.Event()
 
-        def read(self):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
             """Return one frame, then block on subsequent reads to simulate a hang."""
             self.calls += 1
             if self.calls == 1:
@@ -1506,7 +1587,7 @@ def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -
             self.block.wait(timeout=10.0)
             return False, None
 
-        def grab(self):
+        def grab(self) -> bool:
             """Report a successful grab so stride handling proceeds."""
             return True
 
@@ -1533,7 +1614,7 @@ def test_get_video_frames_generator_prefetch_reader_outlives_join(monkeypatch) -
 
 
 def test_get_video_frames_generator_prefetch_yields_buffered_frames_before_error(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Frames already decoded before a mid-stream failure are yielded, then raised.
 
@@ -1553,14 +1634,14 @@ def test_get_video_frames_generator_prefetch_yields_buffered_frames_before_error
             self.calls = 0
             self.released = False
 
-        def read(self):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
             """Return a frame for the first `good_reads` calls, then raise."""
             self.calls += 1
             if self.calls <= self.good_reads:
                 return True, np.full((2, 2, 3), self.calls, dtype=np.uint8)
             raise OSError("simulated mid-stream decode failure")
 
-        def grab(self):
+        def grab(self) -> bool:
             """Report a successful grab so stride handling proceeds."""
             return True
 
@@ -1587,7 +1668,9 @@ def test_get_video_frames_generator_prefetch_yields_buffered_frames_before_error
     assert isinstance(exc_info.value.__cause__, OSError)
 
 
-def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> None:
+def test_get_video_frames_generator_prefetch_zero_frame_video(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The prefetch path yields nothing and returns cleanly for a zero-frame video.
 
     Scenario: A fake capture reports failure on the very first `read()`, simulating
@@ -1599,11 +1682,11 @@ def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> No
     class EmptyCapture:
         """Fake capture that yields zero frames."""
 
-        def read(self):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
             """Report immediate end-of-stream."""
             return False, None
 
-        def grab(self):
+        def grab(self) -> bool:
             """Report a successful grab so stride handling proceeds."""
             return True
 
@@ -1620,7 +1703,7 @@ def test_get_video_frames_generator_prefetch_zero_frame_video(monkeypatch) -> No
     assert frames == []
 
 
-def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
+def test_get_video_frames_generator_with_stride(dummy_video_path: str) -> None:
     """Verify that get_video_frames_generator correctly handles the stride parameter.
 
     Scenario: Iterating over video frames with specified stride (e.g., every 2nd frame).
@@ -1632,7 +1715,7 @@ def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     assert len(frames) == 5
 
 
-def test_fps_monitor_uses_frame_intervals(monkeypatch) -> None:
+def test_fps_monitor_uses_frame_intervals(monkeypatch: pytest.MonkeyPatch) -> None:
     """FPSMonitor must divide elapsed time by intervals, not sample count."""
     timestamps = iter([0.0, 0.5, 1.0])
     monkeypatch.setattr(
@@ -1647,7 +1730,9 @@ def test_fps_monitor_uses_frame_intervals(monkeypatch) -> None:
     assert fps_monitor.fps == pytest.approx(2.0)
 
 
-def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> None:
+def test_process_video_preserve_audio_calls_mux(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
     """Verify that process_video calls _mux_audio when preserve_audio=True.
 
     Scenario: Processing a video with preserve_audio=True and ffmpeg available.
@@ -1668,7 +1753,9 @@ def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> N
         )
 
 
-def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
+def test_process_video_no_audio_by_default(
+    dummy_video_path: str, tmp_path: Path
+) -> None:
     """Verify that process_video does not call _mux_audio when preserve_audio=False.
 
     Scenario: Default process_video call without setting preserve_audio.
@@ -1686,7 +1773,7 @@ def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
         mock_mux.assert_not_called()
 
 
-def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
+def test_get_video_frames_generator_with_start_end(dummy_video_path: str) -> None:
     """Verify that get_video_frames_generator respects start and end frame indices.
 
     Scenario: Iterating over a specific range of video frames using `start` and `end`.
@@ -1764,7 +1851,7 @@ class _UnreliableCountCapture:
         assert property_id == cv2.CAP_PROP_FRAME_COUNT
         return self.reported_count
 
-    def read(self) -> tuple[bool, np.ndarray | None]:
+    def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
         """Decode the next frame, filled with its index, until the stream ends."""
         if self.position >= self.frame_count:
             return False, None
