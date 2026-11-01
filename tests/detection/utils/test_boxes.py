@@ -1058,3 +1058,34 @@ class TestScaleBoxesWideFloatingSpans:
 
         assert result.dtype == boxes.dtype
         np.testing.assert_array_equal(result, boxes)
+
+    @pytest.mark.parametrize(
+        ("boxes", "factor"),
+        [
+            (np.array([[1e300, 0, 1.7e308, 1]], dtype=np.float64), 1e10),
+            (np.array([[1e30, 0, 3e38, 1]], dtype=np.float32), 1e300),
+        ],
+    )
+    def test_out_of_range_corners_stay_infinite_instead_of_nan(
+        self, boxes: npt.NDArray[np.floating], factor: float
+    ) -> None:
+        """Weighted terms overflowing with opposite signs must not produce NaN."""
+        with np.errstate(over="ignore"):
+            result = scale_boxes(boxes, factor)
+
+        assert not np.isnan(result).any()
+        assert result[0, 0] == -np.inf
+        assert result[0, 2] == np.inf
+
+    def test_keeps_representable_corner_when_weighted_terms_overflow(self) -> None:
+        """A corner can fit although both of its weighted terms overflow."""
+        limit = float(np.finfo(np.float64).max)
+        boxes: npt.NDArray[np.floating] = np.array(
+            [[0.6 * limit, 0, 0.9 * limit, 1]], dtype=np.float64
+        )
+
+        with np.errstate(over="ignore"):
+            result = scale_boxes(boxes, 3.4)
+
+        np.testing.assert_allclose(result[0, 0], 0.24 * limit, rtol=1e-12)
+        assert result[0, 2] == np.inf
