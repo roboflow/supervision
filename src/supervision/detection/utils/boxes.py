@@ -627,7 +627,7 @@ def scale_boxes(
 
     Note:
         Finite corners whose full span overflows the coordinate dtype are scaled
-        from their half-span when the resulting corners remain representable.
+        corner by corner when the resulting corners remain representable.
 
     Examples:
         ```pycon
@@ -686,20 +686,22 @@ def scale_boxes(
     centers = cast(npt.NDArray[np.floating], _box_midpoint(xyxy[:, :2], xyxy[:, 2:]))
     with np.errstate(over="ignore", invalid="ignore"):
         new_sizes = cast(npt.NDArray[np.floating], (xyxy[:, 2:] - xyxy[:, :2]) * factor)
-    half_sizes = new_sizes / 2
+    lower = centers - new_sizes / 2
+    upper = centers + new_sizes / 2
     overflow = (
         ~np.isfinite(new_sizes) & np.isfinite(xyxy[:, :2]) & np.isfinite(xyxy[:, 2:])
     )
     if np.any(overflow) and np.isfinite(factor):
-        # Subtracting or scaling the full span can overflow while the scaled
-        # half-span and final corners still fit the input dtype.
-        half_sizes[overflow] = (
-            xyxy[:, 2:][overflow] / 2 - xyxy[:, :2][overflow] / 2
-        ) * factor
-    return cast(
-        npt.NDArray[np.floating],
-        np.concatenate((centers - half_sizes, centers + half_sizes), axis=1),
-    )
+        # Subtracting or scaling the full span can overflow while the final
+        # corners still fit the input dtype. Weight each corner directly, at
+        # float64 or wider, so a separately rounded midpoint and half-span
+        # cannot push a representable corner past the dtype limit.
+        wide_dtype = np.promote_types(xyxy.dtype, np.float64)
+        first = xyxy[:, :2][overflow].astype(wide_dtype) / 2
+        second = xyxy[:, 2:][overflow].astype(wide_dtype) / 2
+        lower[overflow] = first * (1 + factor) + second * (1 - factor)
+        upper[overflow] = second * (1 + factor) + first * (1 - factor)
+    return cast(npt.NDArray[np.floating], np.concatenate((lower, upper), axis=1))
 
 
 def spread_out_boxes(

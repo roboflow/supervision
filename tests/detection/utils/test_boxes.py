@@ -1041,3 +1041,20 @@ class TestScaleBoxesWideFloatingSpans:
 
         assert result.dtype == boxes.dtype
         np.testing.assert_allclose(result, expected, rtol=0.002, atol=0)
+
+    @pytest.mark.parametrize(
+        "boxes",
+        [
+            np.array([[-32768, 0, 65504, 1]], dtype=np.float16),
+            np.array([[-65504, 0, 32768, 1]], dtype=np.float16),
+        ],
+    )
+    def test_identity_scaling_keeps_asymmetric_near_limit_corners(
+        self, boxes: npt.NDArray[np.floating]
+    ) -> None:
+        """Recovery must not round a representable corner past the dtype limit."""
+        with np.errstate(over="raise", invalid="raise"):
+            result = scale_boxes(boxes, 1.0)
+
+        assert result.dtype == boxes.dtype
+        np.testing.assert_array_equal(result, boxes)
