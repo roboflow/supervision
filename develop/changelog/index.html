@@ -4368,6 +4368,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>The image-reading fallback now honors <code>IMREAD_GRAYSCALE</code> (<code>0</code>) for file and byte decoding, including <code>sv.load_image_from_url(..., cv_imread_flags=0)</code>, returning a two-dimensional <code>uint8</code> image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. (<a href="https://github.com/roboflow/supervision/pull/2841">#2841</a>)</p>
+</li>
+<li>
 <p>The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as <code>129</code> decode to <code>1</code> instead of <code>0</code>. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. (<a href="https://github.com/roboflow/supervision/pull/2840">#2840</a>)</p>
 </li>
 <li>
@@ -6598,7 +6601,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 1, 2026 22:55:00 UTC">November 1, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 1, 2026 23:03:18 UTC">November 1, 2026</span>
   </span>
 
     
