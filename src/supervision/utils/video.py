@@ -276,7 +276,8 @@ def get_video_frames_generator(
             container (raised on first iteration), or capture release fails without
             an earlier decoding error. Both are wrapped in `RuntimeError` when
             `prefetch` > 0.
-        ValueError: If `prefetch` is negative.
+        ValueError: If `stride` is less than 1 or `prefetch` is negative,
+            raised on first iteration.
         RuntimeError: If `prefetch` is greater than 0 and the background reader
             thread encounters a decode/open error, raised as
             `RuntimeError(f"Reader thread raised: {item!r}") from item`. Errors are
@@ -324,6 +325,8 @@ def get_video_frames_generator(
             ...
         ```
     """
+    if stride < 1:
+        raise ValueError(f"stride must be >= 1, got {stride!r}")
     if prefetch < 0:
         raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
     if prefetch > 0:

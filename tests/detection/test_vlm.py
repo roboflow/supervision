@@ -1,6 +1,8 @@
 import base64
 import io
 import json
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
 from typing import Any
@@ -266,19 +268,19 @@ def test_from_qwen_3_vl(
     ],
 )
 def test_from_paligemma(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
     expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
-        result = from_paligemma(
+        parsed = from_paligemma(
             result=result, resolution_wh=resolution_wh, classes=classes
         )
-        np.testing.assert_array_equal(result[0], expected_results[0])
-        np.testing.assert_array_equal(result[1], expected_results[1])
-        np.testing.assert_array_equal(result[2], expected_results[2])
+        np.testing.assert_array_equal(parsed[0], expected_results[0])
+        np.testing.assert_array_equal(parsed[1], expected_results[1])
+        np.testing.assert_array_equal(parsed[2], expected_results[2])
 
 
 _QWEN_DOG_AND_CAT = (
@@ -504,12 +506,12 @@ _QWEN_DOG_AND_CAT_RESULT = (
     ],
 )
 def test_from_qwen_2_5_vl(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     input_wh: tuple[int, int],
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
-    expected_results,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray] | None,
 ) -> None:
     """from_qwen_2_5_vl parses, scales and filters boxes, recovering truncated JSON."""
     with exception:
@@ -632,7 +634,7 @@ def test_from_qwen_2_5_vl(
     ],
 )
 def test_from_google_gemini(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -746,10 +748,10 @@ def test_from_google_gemini(
     ],
 )
 def test_from_moondream(
-    exception,
-    result: dict,
+    exception: AbstractContextManager[object],
+    result: dict[str, Any],
     resolution_wh: tuple[int, int],
-    expected_results,
+    expected_results: np.ndarray | None,
 ) -> None:
     with exception:
         xyxy = from_moondream(
@@ -988,12 +990,12 @@ def test_from_moondream(
     ],
 )
 def test_florence_2(
-    florence_result: dict,
+    florence_result: dict[str, Any],
     resolution_wh: tuple[int, int],
     expected_results: tuple[
         np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None
     ],
-    exception: Exception,
+    exception: AbstractContextManager[object],
 ) -> None:
     with exception:
         result = from_florence_2(florence_result, resolution_wh)
@@ -1257,7 +1259,7 @@ class TestFromFlorence2Segmentation:
         np.testing.assert_array_equal(
             detections.xyxy, np.array([[1, 1, 7, 3], [1, 6, 3, 8]], dtype=np.float32)
         )
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (2, 10, 10)
         assert detections.mask[0].sum() == 18
         assert detections.mask[1].sum() == 9
@@ -1459,7 +1461,7 @@ class TestFromFlorence2Segmentation:
     ],
 )
 def test_from_google_gemini_2_5(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -1483,6 +1485,7 @@ def test_from_google_gemini_2_5(
         assert xyxy.shape == expected_results[0].shape
         assert np.allclose(xyxy, expected_results[0])
 
+        assert class_id is not None
         assert class_id.shape == expected_results[1].shape
         assert np.array_equal(class_id, expected_results[1])
 
@@ -1581,7 +1584,7 @@ def test_from_google_gemini_2_5(
     ],
 )
 def test_from_deepseek_vl_2(
-    exception,
+    exception: AbstractContextManager[object],
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
@@ -1604,6 +1607,8 @@ def test_from_deepseek_vl_2(
             return
 
         assert np.allclose(detections.xyxy, expected_detections.xyxy, atol=1e-1)
+        assert detections.class_id is not None
+        assert expected_detections.class_id is not None
         assert np.array_equal(detections.class_id, expected_detections.class_id)
         assert np.array_equal(
             detections.data[CLASS_NAME_DATA_FIELD],
@@ -1633,7 +1638,7 @@ def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
     assert detections.xyxy.shape == (0, 4)
 
 
-def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
+def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned() -> None:
     """A non-data-URI mask must not skip the item's confidence and desync arrays."""
     result = (
         '[{"box_2d": [10, 10, 100, 100], "label": "cat", "mask": "bad", '
@@ -1728,7 +1733,7 @@ class TestGeminiMasksForBoxesOutsideImage:
 
         detections = Detections.from_vlm(vlm, result, resolution_wh=self.resolution_wh)
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         np.testing.assert_array_equal(detections.mask, expected)
 
     @pytest.mark.parametrize(
@@ -1750,7 +1755,7 @@ class TestGeminiMasksForBoxesOutsideImage:
             VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
         )
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask.shape == (1, 800, 1000)
         assert not detections.mask.any()
 
@@ -1784,7 +1789,7 @@ class TestGeminiMasksForBoxesOutsideImage:
             VLM.GOOGLE_GEMINI_2_5, result, resolution_wh=self.resolution_wh
         )
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert detections.mask[0, :, slice(*expected_columns)].all()
 
     def test_out_of_range_box_does_not_drop_the_other_detections(self) -> None:
@@ -1808,7 +1813,7 @@ class TestGeminiMasksForBoxesOutsideImage:
             VLM.GOOGLE_GEMINI_2_5, in_range_only, resolution_wh=self.resolution_wh
         )
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         assert reference.mask is not None
         assert detections.mask.shape == (4, 800, 1000)
         np.testing.assert_array_equal(detections.mask[[0, 3]], reference.mask)
@@ -1858,7 +1863,7 @@ def test_from_vlm_unsupported_future_enum_raises(
     )
 
     with pytest.raises(ValueError, match="Unsupported VLM value"):
-        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")
+        Detections.from_vlm(vlm=FakeVLM.FUTURE, result="ignored")  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -1914,9 +1919,11 @@ def test_from_vlm_unsupported_future_enum_raises(
         ),
     ],
 )
-def test_vlm_parsers_degrade_on_malformed_json(parser, result):
+def test_vlm_parsers_degrade_on_malformed_json(
+    parser: Callable[..., tuple[np.ndarray, ...]], result: str
+) -> None:
     """Valid JSON of the wrong shape should yield empty results, not raise."""
-    kwargs: dict = {"resolution_wh": (640, 480)}
+    kwargs: dict[str, Any] = {"resolution_wh": (640, 480)}
     if parser is from_qwen_2_5_vl:
         kwargs["input_wh"] = (640, 480)
 
@@ -1925,7 +1932,7 @@ def test_vlm_parsers_degrade_on_malformed_json(parser, result):
     assert xyxy.shape == (0, 4)
 
 
-def test_from_google_gemini_2_5_recovers_malformed_array():
+def test_from_google_gemini_2_5_recovers_malformed_array() -> None:
     """A single broken entry must not discard the whole array; recover the rest."""
     result = (
         "```json\n"
@@ -1944,7 +1951,7 @@ def test_from_google_gemini_2_5_recovers_malformed_array():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_2_0_recovers_malformed_array():
+def test_from_google_gemini_2_0_recovers_malformed_array() -> None:
     """The 2.0 parser must also salvage valid entries around a broken one."""
     result = (
         "```json\n"
@@ -1963,7 +1970,7 @@ def test_from_google_gemini_2_0_recovers_malformed_array():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_3_5_parses_detections():
+def test_from_google_gemini_3_5_parses_detections() -> None:
     """The 3.5 parser reuses the 2.5 format and returns boxes rescaled to resolution."""
     result = (
         "```json\n"
@@ -1981,7 +1988,7 @@ def test_from_google_gemini_3_5_parses_detections():
     assert list(class_name) == ["cat", "dog"]
 
 
-def test_from_google_gemini_3_5_recovers_malformed_array():
+def test_from_google_gemini_3_5_recovers_malformed_array() -> None:
     """The 3.5 parser must salvage valid entries around a broken one, like 2.5."""
     result = (
         "```json\n"
@@ -2018,7 +2025,7 @@ def test_from_vlm_google_gemini_3_6_parses_polygon_segmentation() -> None:
     np.testing.assert_array_equal(
         detections.data[CLASS_NAME_DATA_FIELD], ["wooden bowl"]
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
     assert detections.mask.dtype == np.bool_
     assert detections.mask[0, 40, 50]
@@ -2042,7 +2049,7 @@ def test_from_vlm_google_gemini_3_6_class_filter_can_remove_all_items() -> None:
     )
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (0, 80, 100)
 
 
@@ -2061,7 +2068,7 @@ def test_from_vlm_google_gemini_3_7_parses_structured_output() -> None:
     )
     np.testing.assert_allclose(detections.xyxy, [[20.0, 20.0, 80.0, 60.0]])
     np.testing.assert_array_equal(detections.data[CLASS_NAME_DATA_FIELD], ["glass"])
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
 
 
@@ -2088,7 +2095,7 @@ def test_from_vlm_google_gemini_3_6_masks_survive_when_filtered_item_lacks_mask(
         resolution_wh=(100, 80),
         classes=["cat"],
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
 
 
@@ -2124,7 +2131,7 @@ def test_from_vlm_google_gemini_3_6_class_filter_partial_keeps_masks_aligned() -
     )
 
     assert len(detections) == 2
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (2, 80, 100)
     # first surviving item's own region (top-left) must be set, not the dropped
     # "dog" item's region (top-right) nor the second surviving item's (bottom-left)
@@ -2163,7 +2170,7 @@ def test_from_vlm_google_gemini_3_6_malformed_polygon_degrades_to_empty_mask(
         result=result,
         resolution_wh=(100, 80),
     )
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (1, 80, 100)
     assert not detections.mask.any()
 
@@ -2190,7 +2197,7 @@ def test_from_vlm_google_gemini_3_7_class_filter_can_remove_all_items() -> None:
     )
     assert len(detections) == 0
     assert detections.xyxy.shape == (0, 4)
-    assert detections.mask is not None
+    assert isinstance(detections.mask, np.ndarray)
     assert detections.mask.shape == (0, 80, 100)
 
 
@@ -2257,7 +2264,7 @@ class TestFromVlmCornerOrdering:
         ],
     )
     def test_transposed_model_corners_are_ordered(
-        self, vlm: VLM, result: object, kwargs: dict
+        self, vlm: VLM, result: str | dict[str, Any], kwargs: dict[str, Any]
     ) -> None:
         """A model that emits a corner pair backwards still yields a valid box."""
         detections = Detections.from_vlm(
@@ -2285,7 +2292,7 @@ class TestFromVlmCornerOrdering:
 
         detections = Detections.from_vlm(vlm, result, resolution_wh=(1000, 800))
 
-        assert detections.mask is not None
+        assert isinstance(detections.mask, np.ndarray)
         np.testing.assert_array_equal(
             detections.xyxy, np.array([[200, 80, 300, 320]], dtype=np.float64)
         )

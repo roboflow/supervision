@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import numpy as np
+import numpy.typing as npt
 import pytest
 from PIL import Image, ImageChops
 
@@ -13,16 +16,19 @@ from supervision.utils.conversion import (
 def test_ensure_cv2_image_for_processing_when_pillow_image_submitted(
     empty_cv2_image: np.ndarray, empty_pillow_image: Image.Image
 ) -> None:
+    """Pillow input is processed as an array and returned without content changes."""
     # given
     param_a_value = 3
     param_b_value = "some"
 
     @ensure_cv2_image_for_standalone_function
     def my_custom_processing_function(
-        image: np.ndarray,
+        image: npt.NDArray[np.uint8] | Image.Image,
         param_a: int,
         param_b: str,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8] | Image.Image:
+        """Verify conversion and argument forwarding before returning the array."""
+        assert isinstance(image, np.ndarray)
         assert np.allclose(image, empty_cv2_image), (
             "Expected conversion to OpenCV image to happen"
         )
@@ -42,6 +48,7 @@ def test_ensure_cv2_image_for_processing_when_pillow_image_submitted(
     )
 
     # then
+    assert isinstance(result, Image.Image)
     difference = ImageChops.difference(result, empty_pillow_image)
     assert difference.getbbox() is None, (
         "Wrapper is expected to convert-back the OpenCV image "
@@ -278,7 +285,7 @@ def test_pillow_to_cv2_ycbcr_converted_to_color() -> None:
     np.testing.assert_allclose(result, [[[30, 20, 10]]], atol=2)
 
 
-def test_pillow_to_cv2_matches_opencv_reads_of_the_same_file(tmp_path) -> None:
+def test_pillow_to_cv2_matches_opencv_reads_of_the_same_file(tmp_path: Path) -> None:
     """With OpenCV installed, each converted mode equals ``cv2.imread`` of the same
     picture written to disk (the 16-bit case keeps the high byte, as libpng's
     ``png_set_strip_16`` does)."""
@@ -286,6 +293,7 @@ def test_pillow_to_cv2_matches_opencv_reads_of_the_same_file(tmp_path) -> None:
 
     rgb = Image.new("RGB", (4, 3))
     pixels = rgb.load()
+    assert pixels is not None
     for y in range(3):
         for x in range(4):
             pixels[x, y] = (10 + x * 40, 200 - y * 50, 30 + x * 10 + y * 5)
@@ -325,8 +333,12 @@ def test_annotators_accept_grayscale_alpha_scenes() -> None:
 
     assert annotated is scene
     assert annotated.mode == "LA"
-    assert annotated.getpixel((2, 10))[0] != 0  # box edge drawn
-    assert annotated.getpixel((10, 10))[0] == 0  # interior untouched
+    edge_pixel = annotated.getpixel((2, 10))
+    interior_pixel = annotated.getpixel((10, 10))
+    assert isinstance(edge_pixel, tuple)
+    assert isinstance(interior_pixel, tuple)
+    assert edge_pixel[0] != 0  # box edge drawn
+    assert interior_pixel[0] == 0  # interior untouched
 
 
 def test_images_to_cv2_when_empty_input_provided() -> None:
@@ -340,8 +352,9 @@ def test_images_to_cv2_when_empty_input_provided() -> None:
 def test_images_to_cv2_when_only_cv2_images_provided(
     empty_cv2_image: np.ndarray,
 ) -> None:
+    """Array-only input preserves every image object."""
     # given
-    images = [empty_cv2_image] * 5
+    images: list[npt.NDArray[np.uint8] | Image.Image] = [empty_cv2_image] * 5
 
     # when
     result = images_to_cv2(images=images)
@@ -358,8 +371,9 @@ def test_images_to_cv2_when_only_pillow_images_provided(
     empty_pillow_image: Image.Image,
     empty_cv2_image: np.ndarray,
 ) -> None:
+    """Pillow-only input produces an array for every supplied image."""
     # given
-    images = [empty_pillow_image] * 5
+    images: list[npt.NDArray[np.uint8] | Image.Image] = [empty_pillow_image] * 5
 
     # when
     result = images_to_cv2(images=images)
@@ -376,8 +390,12 @@ def test_images_to_cv2_when_mixed_input_provided(
     empty_pillow_image: Image.Image,
     empty_cv2_image: np.ndarray,
 ) -> None:
+    """Mixed input converts Pillow images and preserves existing arrays in order."""
     # given
-    images = [empty_pillow_image, empty_cv2_image]
+    images: list[npt.NDArray[np.uint8] | Image.Image] = [
+        empty_pillow_image,
+        empty_cv2_image,
+    ]
 
     # when
     result = images_to_cv2(images=images)

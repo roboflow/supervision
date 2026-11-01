@@ -812,6 +812,75 @@ def test_key_points_as_detections(
     assert np.array_equal(detections.class_id, expected_class_id)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [pytest.param(np.float32, id="float32"), pytest.param(np.float64, id="float64")],
+)
+@pytest.mark.parametrize("depth", [1.0, np.nan, np.inf, -np.inf])
+@pytest.mark.parametrize("with_visibility", [False, True])
+class TestKeyPointsImageSpaceBoxes:
+    def test_conversion_ignores_extra_coordinate(
+        self,
+        dtype: type[np.float32] | type[np.float64],
+        depth: float,
+        with_visibility: bool,
+    ) -> None:
+        """Missing points and valid x/y bounds do not depend on depth."""
+        xy = np.array([[[0, 0], [10, 10], [20, 20]]], dtype=dtype)
+        extra = np.full((1, 3, 1), depth, dtype=dtype)
+        extra[:, 0] = 1
+        coordinates = np.concatenate((xy, extra), axis=2)
+        visible = np.ones((1, 3), dtype=bool) if with_visibility else None
+        key_points = KeyPoints(
+            xy=coordinates,
+            visible=visible,
+            class_id=np.array([3]),
+            data={"name": np.array(["person"])},
+        )
+        original = coordinates.copy()
+
+        detections = key_points.as_detections(selected_keypoint_indices=[0, 1, 2])
+
+        np.testing.assert_array_equal(detections.xyxy, [[10, 10, 20, 20]])
+        np.testing.assert_array_equal(detections.class_id, [3])
+        np.testing.assert_array_equal(detections.data["name"], ["person"])
+        np.testing.assert_array_equal(coordinates, original)
+
+    def test_suppression_ignores_extra_coordinate(
+        self,
+        dtype: type[np.float32] | type[np.float64],
+        depth: float,
+        with_visibility: bool,
+    ) -> None:
+        """NMS suppresses duplicate image boxes while retaining distant skeletons."""
+        xy = np.array(
+            [
+                [[0, 0], [100, 100], [120, 120]],
+                [[0, 0], [102, 102], [122, 122]],
+                [[0, 0], [140, 140], [160, 160]],
+            ],
+            dtype=dtype,
+        )
+        extra = np.full((3, 3, 1), depth, dtype=dtype)
+        extra[:, 0] = 1
+        coordinates = np.concatenate((xy, extra), axis=2)
+        visible = np.ones((3, 3), dtype=bool) if with_visibility else None
+        key_points = KeyPoints(
+            xy=coordinates,
+            visible=visible,
+            class_id=np.zeros(3, dtype=int),
+            detection_confidence=np.array([0.9, 0.8, 0.7]),
+            data={"name": np.array(["first", "duplicate", "distant"])},
+        )
+        original = coordinates.copy()
+
+        result = key_points.with_nms(threshold=0.5)
+
+        np.testing.assert_array_equal(result.xy, coordinates[[0, 2]])
+        np.testing.assert_array_equal(result.data["name"], ["first", "distant"])
+        np.testing.assert_array_equal(coordinates, original)
+
+
 def test_key_points_as_detections_empty():
     """Test the as_detections method for empty KeyPoints objects."""
     empty_key_points = KeyPoints.empty()

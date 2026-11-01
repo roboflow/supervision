@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+from typing import Any
 
 import pytest
 
@@ -16,7 +17,7 @@ class TestEnsurePandasInstalled:
         """No exception is raised when pandas is importable."""
         real_import = builtins.__import__
 
-        def _fake_import(name: str, *args: object, **kwargs: object) -> object:
+        def _fake_import(name: str, *args: Any, **kwargs: Any) -> object:
             """Pretend pandas is importable regardless of the real environment."""
             if name == "pandas":
                 return object()
@@ -32,7 +33,7 @@ class TestEnsurePandasInstalled:
         """A clear ImportError is raised when pandas cannot be imported."""
         real_import = builtins.__import__
 
-        def _fake_import(name: str, *args: object, **kwargs: object) -> object:
+        def _fake_import(name: str, *args: Any, **kwargs: Any) -> object:
             """Raise ImportError for pandas, delegate everything else."""
             if name == "pandas":
                 raise ImportError("No module named 'pandas'")

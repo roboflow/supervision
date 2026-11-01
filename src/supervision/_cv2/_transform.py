@@ -21,12 +21,111 @@ def _blur(
         raise ValueError("Blur kernel dimensions must be positive")
     if border_type != 4:
         raise ValueError("Only OpenCV's default blur border is supported")
+    if image.dtype == np.uint8:
+        return _box_blur_uint8(image, ksize)
 
     from scipy import ndimage
 
     size = (*ksize[::-1], 1) if image.ndim == 3 else ksize[::-1]
     values = ndimage.uniform_filter(image.astype(np.float64), size=size, mode="mirror")
     return np.ascontiguousarray(_cast_array_like_opencv(values, image.dtype))
+
+
+def _box_blur_uint8(
+    image: npt.NDArray[np.uint8], ksize: tuple[int, int]
+) -> npt.NDArray[np.uint8]:
+    """Box-filter an 8-bit image with OpenCV's integer rounding.
+
+    OpenCV sums each window exactly over a reflect-101 border, with the anchor at
+    `ksize // 2`. For kernels of at most 256 pixels it divides by the area with a
+    23-bit fixed-point reciprocal, `((sum + delta) * scale) >> 23`, which this
+    reproduces exactly. Larger kernels multiply by a float32 reciprocal and round
+    half to even; OpenCV computes a few trailing columns of each row in float64
+    instead, depending on the CPU's vector width, so those can differ by one in
+    rare ties.
+
+    Args:
+        image: `(height, width)` or `(height, width, channels)` 8-bit image.
+        ksize: Positive kernel `(width, height)`.
+
+    Returns:
+        A new blurred image of the same shape and dtype.
+
+    Example:
+        ```pycon
+        >>> image = np.array([[0, 0, 255]], dtype=np.uint8)
+        >>> _box_blur_uint8(image, (3, 1)).tolist()
+        [[0, 85, 85]]
+
+        ```
+    """
+    kernel_width, kernel_height = ksize
+    # Window sums are exact integers either way; int32 halves memory whenever the
+    # largest possible sum fits.
+    sum_dtype = np.int32 if 255 * kernel_width * kernel_height < 2**31 else np.int64
+    column_sums = _window_sums(image.astype(sum_dtype), kernel_height, axis=0)
+    sums = _window_sums(column_sums, kernel_width, axis=1)
+    area = kernel_width * kernel_height
+    blurred: npt.NDArray[np.uint8]
+    if area == 1:
+        blurred = image.copy()
+    elif area <= 256:
+        scale = (1 << 23) / area
+        divisor_scale = int(scale)
+        divisor_delta = area // 2
+        if scale - divisor_scale < 0.5:
+            divisor_delta += 1
+        else:
+            divisor_scale += 1
+        # Widen before multiplication: a white two-pixel window reaches 2**31,
+        # and OpenCV's vector path saturates its resulting 256 to 255.
+        quotient = ((sums.astype(np.int64) + divisor_delta) * divisor_scale) >> 23
+        blurred = np.minimum(quotient, 255).astype(np.uint8)
+    else:
+        scaled = sums.astype(np.float32) * np.float32(1.0 / area)
+        blurred = np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
+    return blurred
+
+
+def _window_sums(
+    values: npt.NDArray[np.integer], size: int, axis: int
+) -> npt.NDArray[np.integer]:
+    """Sum `size`-long windows along one axis over an OpenCV reflect-101 border.
+
+    The window for output `i` covers `i - size // 2` to `i + size - 1 - size // 2`,
+    the anchor OpenCV uses. Only this axis is padded, so a kernel much larger than
+    the image costs one padded copy of the image along a single axis rather than
+    along both.
+
+    Args:
+        values: Integer array to sum, in a dtype wide enough for every window sum.
+        size: Positive window length.
+        axis: Axis to sum along.
+
+    Returns:
+        Window sums with the same shape and dtype as `values`.
+
+    Example:
+        ```pycon
+        >>> _window_sums(np.array([1, 2, 3, 4]), 3, axis=0).tolist()
+        [5, 6, 9, 10]
+
+        ```
+    """
+    length = values.shape[axis]
+    padding = [(0, 0)] * values.ndim
+    padding[axis] = (size // 2, size - 1 - size // 2)
+    cumulative = np.cumsum(
+        np.pad(values, padding, mode="reflect"), axis=axis, dtype=values.dtype
+    )
+    upper = np.take(cumulative, np.arange(size - 1, size - 1 + length), axis=axis)
+    lower = np.take(cumulative, np.arange(-1, length - 1), axis=axis)
+    # Index -1 above wrapped to the last row; the first window starts at zero.
+    first = [slice(None)] * values.ndim
+    first[axis] = slice(0, 1)
+    lower[tuple(first)] = 0
+    sums: npt.NDArray[np.integer] = upper - lower
+    return sums
 
 
 def _as_quad(points: npt.NDArray[Any], name: str) -> npt.NDArray[np.float64]:

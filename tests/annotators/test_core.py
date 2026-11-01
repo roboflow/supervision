@@ -2261,6 +2261,47 @@ class TestBackgroundOverlayAnnotator:
         )
         assert np.array_equal(result_bool, result_uint8)
 
+    @pytest.mark.parametrize("use_mask", [False, True])
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(
+        self, use_mask: bool, channel_axis: bool
+    ) -> None:
+        """A grayscale scene is annotated like the first channel of its BGR copy."""
+        gray = np.arange(30 * 40, dtype=np.uint8).reshape(30, 40)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        mask = np.zeros((30, 40), dtype=bool)
+        mask[8:20, 10:26] = True
+        detections = _create_detections(
+            xyxy=[[10, 8, 26, 20]], mask=[mask] if use_mask else None
+        )
+        annotator = BackgroundOverlayAnnotator(
+            color=Color(r=10, g=20, b=200), opacity=0.5
+        )
+        expected = annotator.annotate(scene=color_scene, detections=detections)
+
+        result = annotator.annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_array_equal(result.reshape(30, 40), expected[..., 0])
+        assert not np.array_equal(result.reshape(30, 40), gray)
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (40, 30), color=200)
+        detections = _create_detections(xyxy=[[10, 8, 26, 20]])
+        annotator = BackgroundOverlayAnnotator(
+            color=Color(r=10, g=20, b=0), opacity=0.5
+        )
+
+        result = annotator.annotate(scene=image, detections=detections)
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.getpixel((18, 12)) == 200
+        assert result.getpixel((2, 2)) == 100
+
 
 class TestComparisonAnnotator:
     """Tests for ComparisonAnnotator class."""
