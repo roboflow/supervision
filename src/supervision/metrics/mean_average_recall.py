@@ -28,8 +28,9 @@ from supervision.metrics.core import (
     _append_object_size_plot_details,
 )
 from supervision.metrics.utils.object_size import (
+    SIZE_THRESHOLDS,
     ObjectSizeCategory,
-    get_detection_size_category,
+    get_detection_areas,
 )
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
@@ -61,9 +62,9 @@ class MeanAverageRecallResult(MetricResult):
         matched_classes: the class IDs of all matched classes.
             Corresponds to the class axis of `recall_per_class`.
         small_objects: the Mean Average Recall
-            metric results for small objects (area < 32²).
+            metric results for small objects (area ≤ 32²).
         medium_objects: the Mean Average Recall
-            metric results for medium objects (32² ≤ area < 96²).
+            metric results for medium objects (32² ≤ area ≤ 96²).
         large_objects: the Mean Average Recall
             metric results for large objects (area ≥ 96²).
     """
@@ -869,8 +870,15 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
             return new_detections
 
-        sizes = get_detection_size_category(new_detections, self._metric_target)
-        size_mask = sizes == size_category.value
+        areas = get_detection_areas(new_detections, self._metric_target)
+        if size_category == ObjectSizeCategory.SMALL:
+            size_mask = (areas >= 0) & (areas <= SIZE_THRESHOLDS[0])
+        elif size_category == ObjectSizeCategory.MEDIUM:
+            size_mask = (areas >= SIZE_THRESHOLDS[0]) & (areas <= SIZE_THRESHOLDS[1])
+        elif size_category == ObjectSizeCategory.LARGE:
+            size_mask = areas >= SIZE_THRESHOLDS[1]
+        else:
+            raise ValueError(f"Unsupported size category: {size_category}")
 
         new_detections.xyxy = new_detections.xyxy[size_mask]
         if new_detections.mask is not None:

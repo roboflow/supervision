@@ -14,6 +14,7 @@ from supervision.metrics.utils.object_size import (
     SIZE_THRESHOLDS,
     ObjectSizeCategory,
     get_bbox_size_category,
+    get_detection_areas,
     get_detection_size_category,
     get_mask_size_category,
     get_obb_size_category,
@@ -231,3 +232,43 @@ def test_detection_size_category_rejects_invalid_area_metadata(
 
     with pytest.raises(ValueError, match="area metadata"):
         get_detection_size_category(detections, MetricTarget.BOXES)
+
+
+def test_get_detection_areas_prefers_explicit_metadata() -> None:
+    """Explicit area metadata overrides geometry in get_detection_areas."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        data={AREA_DATA_FIELD: np.array([550.0], dtype=np.float64)},
+    )
+    areas = get_detection_areas(detections, MetricTarget.BOXES)
+    np.testing.assert_array_equal(areas, [550.0])
+
+
+def test_get_detection_areas_computes_boxes_masks_obb() -> None:
+    """get_detection_areas returns exact areas for boxes, masks, and OBB."""
+    # Boxes
+    boxes = Detections(xyxy=np.array([[0, 0, 20, 30]], dtype=np.float32))
+    np.testing.assert_array_equal(
+        get_detection_areas(boxes, MetricTarget.BOXES), [600.0]
+    )
+
+    # Masks
+    mask = np.zeros((1, 40, 40), dtype=bool)
+    mask[0, :10, :15] = True
+    masked = Detections(
+        xyxy=np.array([[0, 0, 40, 40]], dtype=np.float32),
+        mask=mask,
+    )
+    np.testing.assert_array_equal(
+        get_detection_areas(masked, MetricTarget.MASKS), [150]
+    )
+
+    # OBB
+    obb_coords = np.array([[[0, 0], [20, 0], [20, 30], [0, 30]]], dtype=np.float32)
+    obb = Detections(
+        xyxy=np.array([[0, 0, 20, 30]], dtype=np.float32),
+        data={ORIENTED_BOX_COORDINATES: obb_coords},
+    )
+    np.testing.assert_array_equal(
+        get_detection_areas(obb, MetricTarget.ORIENTED_BOUNDING_BOXES), [600.0]
+    )

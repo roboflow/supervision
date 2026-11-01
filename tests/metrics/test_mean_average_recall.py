@@ -1015,3 +1015,108 @@ def test_greedy_matching_two_valid_pairs() -> None:
     # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
     # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
     assert result.mAR_at_100 == pytest.approx(0.55)
+
+
+@pytest.mark.parametrize(
+    ("area", "expected_small", "expected_medium", "expected_large"),
+    [
+        (1023.0, 1.0, 0.0, 0.0),
+        (1024.0, 1.0, 1.0, 0.0),
+        (1025.0, 0.0, 1.0, 0.0),
+        (9215.0, 0.0, 1.0, 0.0),
+        (9216.0, 0.0, 1.0, 1.0),
+        (9217.0, 0.0, 0.0, 1.0),
+    ],
+)
+def test_mar_size_bucket_boundary_parity_with_coco_boxes(
+    area: float,
+    expected_small: float,
+    expected_medium: float,
+    expected_large: float,
+) -> None:
+    """MeanAverageRecall includes boundary objects in both size buckets like COCO."""
+    w = area / 32.0
+    h = 32.0
+    box = np.array([[0, 0, w, h]], dtype=np.float32)
+    target = Detections(xyxy=box, class_id=np.array([0]))
+    prediction = Detections(
+        xyxy=box, class_id=np.array([0]), confidence=np.array([0.9])
+    )
+
+    mar = MeanAverageRecall().update(prediction, target).compute()
+    coco = evaluate_detections(prediction, target)
+
+    assert mar.small_objects is not None
+    assert mar.medium_objects is not None
+    assert mar.large_objects is not None
+
+    assert mar.small_objects.mAR_at_100 == pytest.approx(expected_small)
+    assert mar.medium_objects.mAR_at_100 == pytest.approx(expected_medium)
+    assert mar.large_objects.mAR_at_100 == pytest.approx(expected_large)
+
+    coco_s, coco_m, coco_l = coco.stats[9:12]
+    if coco_s != -1:
+        assert mar.small_objects.mAR_at_100 == pytest.approx(coco_s)
+    if coco_m != -1:
+        assert mar.medium_objects.mAR_at_100 == pytest.approx(coco_m)
+    if coco_l != -1:
+        assert mar.large_objects.mAR_at_100 == pytest.approx(coco_l)
+
+
+@pytest.mark.parametrize(
+    ("pixel_count", "expected_small", "expected_medium", "expected_large"),
+    [
+        (1023, 1.0, 0.0, 0.0),
+        (1024, 1.0, 1.0, 0.0),
+        (1025, 0.0, 1.0, 0.0),
+        (9215, 0.0, 1.0, 0.0),
+        (9216, 0.0, 1.0, 1.0),
+        (9217, 0.0, 0.0, 1.0),
+    ],
+)
+def test_mar_size_bucket_boundary_parity_with_coco_masks(
+    pixel_count: int,
+    expected_small: float,
+    expected_medium: float,
+    expected_large: float,
+) -> None:
+    """Mask mAR includes boundary pixel counts in both size buckets like COCO."""
+    mask = np.zeros((1, 120, 120), dtype=bool)
+    flat = mask[0].ravel()
+    flat[:pixel_count] = True
+    mask[0] = flat.reshape(120, 120)
+
+    target = Detections(
+        xyxy=np.array([[0, 0, 120, 120]], dtype=np.float32),
+        mask=mask,
+        class_id=np.array([0]),
+    )
+    prediction = Detections(
+        xyxy=np.array([[0, 0, 120, 120]], dtype=np.float32),
+        mask=mask,
+        class_id=np.array([0]),
+        confidence=np.array([0.9]),
+    )
+
+    mar = (
+        MeanAverageRecall(metric_target=MetricTarget.MASKS)
+        .update(prediction, target)
+        .compute()
+    )
+    coco = evaluate_detections(prediction, target, metric_target=MetricTarget.MASKS)
+
+    assert mar.small_objects is not None
+    assert mar.medium_objects is not None
+    assert mar.large_objects is not None
+
+    assert mar.small_objects.mAR_at_100 == pytest.approx(expected_small)
+    assert mar.medium_objects.mAR_at_100 == pytest.approx(expected_medium)
+    assert mar.large_objects.mAR_at_100 == pytest.approx(expected_large)
+
+    coco_s, coco_m, coco_l = coco.stats[9:12]
+    if coco_s != -1:
+        assert mar.small_objects.mAR_at_100 == pytest.approx(coco_s)
+    if coco_m != -1:
+        assert mar.medium_objects.mAR_at_100 == pytest.approx(coco_m)
+    if coco_l != -1:
+        assert mar.large_objects.mAR_at_100 == pytest.approx(coco_l)

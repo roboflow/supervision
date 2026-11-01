@@ -89,7 +89,7 @@ def test_small_bucket_mar_returns_zero_without_bucket_targets() -> None:
         class_id=np.array([0], dtype=np.int32),
     )
     targets = Detections(
-        xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+        xyxy=np.array([[0, 0, 50, 50]], dtype=np.float32),
         class_id=np.array([0], dtype=np.int32),
     )
 

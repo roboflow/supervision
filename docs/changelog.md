@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.metrics.MeanAverageRecall` now includes objects on size bucket boundaries (`32**2 = 1024` and `96**2 = 9216`) in both adjacent size buckets, matching `MeanAveragePrecision` and `pycocotools`. Added `sv.metrics.get_detection_areas` to compute detection areas across boxes, masks, and oriented bounding boxes.
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 

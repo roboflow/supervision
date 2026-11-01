@@ -25,6 +25,7 @@ from supervision.metrics.utils.aggregate import (
 )
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
+    get_detection_areas,
     get_detection_size_category,
     get_object_size_category,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "Recall",
     "RecallResult",
     "aggregate_metric_results",
+    "get_detection_areas",
     "get_detection_size_category",
     "get_object_size_category",
     "plot_aggregate_metric_results",
