@@ -272,3 +272,17 @@ def test_get_detection_areas_computes_boxes_masks_obb() -> None:
     np.testing.assert_array_equal(
         get_detection_areas(obb, MetricTarget.ORIENTED_BOUNDING_BOXES), [600.0]
     )
+
+
+def test_get_detection_areas_float16_and_fractional_precision() -> None:
+    """Verify float16 finite area and float32 fractional coordinate precision."""
+    xyxy_f16 = np.array([[0, 0, 300, 300]], dtype=np.float16)
+    det_f16 = Detections(xyxy=xyxy_f16)
+    areas_f16 = get_detection_areas(det_f16, MetricTarget.BOXES)
+    assert np.isfinite(areas_f16[0])
+    assert areas_f16[0] == 90000.0
+
+    xyxy_f32 = np.array([[0, 0, 32.000004, 31.999998]], dtype=np.float32)
+    det_f32 = Detections(xyxy=xyxy_f32)
+    areas_f32 = get_detection_areas(det_f32, MetricTarget.BOXES)
+    assert areas_f32[0] > 1024.0

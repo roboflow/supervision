@@ -122,8 +122,10 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]
         width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
         height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
     else:
-        width = xyxy[:, 2] - xyxy[:, 0]
-        height = xyxy[:, 3] - xyxy[:, 1]
+        coord_dtype = np.result_type(xyxy.dtype, np.float64)
+        coordinates = xyxy.astype(coord_dtype, copy=False)
+        width = coordinates[:, 2] - coordinates[:, 0]
+        height = coordinates[:, 3] - coordinates[:, 1]
     areas = width * height
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
@@ -299,7 +301,7 @@ def get_detection_areas(
         ...     xyxy=np.array([[0, 0, 10, 10], [0, 0, 50, 50]], dtype=np.float32)
         ... )
         >>> get_detection_areas(detections)
-        array([ 100., 2500.], dtype=float32)
+        array([ 100., 2500.])
 
         ```
     """
@@ -323,8 +325,10 @@ def get_detection_areas(
             width = np.asarray(coordinates[:, 2] - coordinates[:, 0], dtype=np.float64)
             height = np.asarray(coordinates[:, 3] - coordinates[:, 1], dtype=np.float64)
         else:
-            width = xyxy[:, 2] - xyxy[:, 0]
-            height = xyxy[:, 3] - xyxy[:, 1]
+            coord_dtype = np.result_type(xyxy.dtype, np.float64)
+            coordinates = xyxy.astype(coord_dtype, copy=False)
+            width = coordinates[:, 2] - coordinates[:, 0]
+            height = coordinates[:, 3] - coordinates[:, 1]
         return width * height
 
     if metric_target == MetricTarget.MASKS:
