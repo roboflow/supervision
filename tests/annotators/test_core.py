@@ -1,5 +1,6 @@
 """Tests for supervision/annotators/core.py."""
 
+import sys
 import warnings
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -1513,6 +1514,85 @@ class TestRichLabelAnnotator:
         )
 
         assert calls == 1
+
+    @pytest.mark.parametrize(
+        ("label", "expected_khatt_calls"),
+        [
+            pytest.param("سيارة 0.92", 1, id="arabic"),
+            pytest.param("מכונית 0.92", 1, id="hebrew"),
+            pytest.param("car 0.92", 0, id="latin"),
+        ],
+    )
+    def test_right_to_left_labels_are_drawn_with_khatt(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        test_image: np.ndarray,
+        label: str,
+        expected_khatt_calls: int,
+    ) -> None:
+        """Arabic and Hebrew lines are shaped by khatt; other lines stay with Pillow."""
+        khatt = pytest.importorskip("khatt")
+        drawn: list[str] = []
+        original_draw_text = khatt.draw_text
+
+        def recording_draw_text(image: Image.Image, xy: Any, text: str, **kw: Any):
+            drawn.append(text)
+            return original_draw_text(image, xy, text, **kw)
+
+        monkeypatch.setattr(khatt, "draw_text", recording_draw_text)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        RichLabelAnnotator(font_size=16).annotate(
+            scene=test_image.copy(), detections=detections, labels=[label]
+        )
+
+        assert drawn == [label] * expected_khatt_calls
+
+    @pytest.mark.parametrize(
+        ("label", "max_line_length"),
+        [
+            pytest.param("سيارة 0.92", None, id="one-line"),
+            pytest.param("سيارة إسعاف مسرعة 0.92", 6, id="wrapped"),
+        ],
+    )
+    def test_right_to_left_label_stays_inside_background(
+        self, label: str, max_line_length: int | None
+    ) -> None:
+        """Shaped Arabic text is drawn inside the background box sized for it."""
+        pytest.importorskip("khatt")
+        scene = np.zeros((300, 300, 3), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[20, 200, 280, 280]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color.BLUE,
+            text_color=Color.WHITE,
+            font_size=24,
+            max_line_length=max_line_length,
+        )
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=[label])
+
+        background = np.all(result == Color.BLUE.as_bgr(), axis=-1)
+        text = result[..., 1] > 128
+        rows, cols = np.where(background)
+        text_rows, text_cols = np.where(text)
+        assert text_rows.size > 0
+        assert rows.min() < text_rows.min()
+        assert text_rows.max() < rows.max()
+        assert cols.min() < text_cols.min()
+        assert text_cols.max() < cols.max()
+
+    def test_right_to_left_label_falls_back_to_pillow_without_rtl_extra(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """Without khatt installed, Arabic labels are still drawn (by Pillow)."""
+        monkeypatch.setitem(sys.modules, "khatt", None)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        result = RichLabelAnnotator(font_size=16).annotate(
+            scene=test_image.copy(), detections=detections, labels=["سيارة"]
+        )
+
+        assert not np.array_equal(test_image, result)
 
 
 class TestBlurAnnotator:
