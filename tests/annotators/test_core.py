@@ -1535,7 +1535,10 @@ class TestRichLabelAnnotator:
         drawn: list[str] = []
         original_draw_text = khatt.draw_text
 
-        def recording_draw_text(image: Image.Image, xy: Any, text: str, **kw: Any):
+        def recording_draw_text(
+            image: Image.Image, xy: Any, text: str, **kw: Any
+        ) -> Image.Image:
+            """Record the drawn text while retaining the original behavior."""
             drawn.append(text)
             return original_draw_text(image, xy, text, **kw)
 
