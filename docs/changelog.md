@@ -13,6 +13,8 @@ date_modified: 2026-10-28
 
 - `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
 
+- `sv.RichLabelAnnotator` now draws Arabic and Hebrew labels correctly with the new `rtl` extra (`pip install "supervision[rtl]"`, which installs [khatt](https://github.com/DrEssam97/khatt)). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, `RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")` drew `"سيارة 0.92"` as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Without the extra, a one-time warning names it when Raqm is missing. ([#PR](https://github.com/roboflow/supervision/pull/PR))
+
 -
 
 ### 0.31.3 <small>Oct 28, 2026</small>
