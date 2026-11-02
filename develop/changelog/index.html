@@ -4368,6 +4368,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.InferenceSlicer(compact_masks=True)</code> now preserves the dense masks on callback-owned detections, including results retained in a batch list. Sequential callbacks can reset and reuse their output buffers across tiles and batches without raising <code>AttributeError</code> after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. (<a href="https://github.com/roboflow/supervision/pull/2847">#2847</a>)</p>
+</li>
+<li>
 <p>The image-reading fallback now honors <code>IMREAD_GRAYSCALE</code> (<code>0</code>) for file and byte decoding, including <code>sv.load_image_from_url(..., cv_imread_flags=0)</code>, returning a two-dimensional <code>uint8</code> image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. (<a href="https://github.com/roboflow/supervision/pull/2841">#2841</a>)</p>
 </li>
 <li>
@@ -4377,7 +4380,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.Detections.from_vlm</code> now returns an integer <code>class_id</code> when a Gemini 2.5, 3.5, 3.6 or 3.7 <code>classes</code> filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a <code>float64</code> array, so <code>np.bincount(detections.class_id)</code> or indexing a class-name array with it raised on such frames. (<a href="https://github.com/roboflow/supervision/pull/2839">#2839</a>)</p>
 </li>
 </ul>
-<p>-</p>
 <h3 id="0313-oct-28-2026">0.31.3 <small>Oct 28, 2026</small><a class="headerlink" href="#0313-oct-28-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>sv.BackgroundOverlayAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. (<a href="https://github.com/roboflow/supervision/pull/2832">#2832</a>)</li>
@@ -6601,7 +6603,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 1, 2026 23:03:18 UTC">November 1, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 2, 2026 22:21:20 UTC">November 2, 2026</span>
   </span>
 
     
@@ -6629,9 +6631,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/AuricTW" class="md-author" title="@AuricTW">
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
-          <img src="https://avatars.githubusercontent.com/u/108772778?v=4&size=72" alt="AuricTW">
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6639,14 +6641,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/AuricTW" class="md-author" title="@AuricTW">
+          
+          <img src="https://avatars.githubusercontent.com/u/108772778?v=4&size=72" alt="AuricTW">
+        </a>
+      
         <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
           
           <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
-        </a>
-      
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
       
