@@ -12,6 +12,7 @@ import requests
 from PIL import Image, ImageChops
 
 from supervision import _cv2 as cv2
+from supervision._cv2._image import _imdecode
 from supervision.draw.color import Color
 from supervision.utils.image import (
     ImageSink,
@@ -28,6 +29,30 @@ from supervision.utils.image import (
 
 
 class TestLoadImageFromUrl:
+    @pytest.mark.parametrize("use_cache", [True, False])
+    def test_grayscale_flag_returns_single_channel(
+        self, tmp_path: Path, use_cache: bool
+    ) -> None:
+        """The fallback URL loader honors grayscale reads with or without a cache."""
+        image = np.full((10, 20, 3), (0, 255, 0), dtype=np.uint8)
+        response = Mock()
+        response.content = cv2.imencode(".png", image)[1].tobytes()
+        response.raise_for_status.return_value = None
+
+        with (
+            patch("supervision.utils.file.requests.get", return_value=response),
+            patch("supervision.utils.image.cv2.imdecode", side_effect=_imdecode),
+        ):
+            result = load_image_from_url(
+                "https://example.test/image.png",
+                cv_imread_flags=0,
+                cache_dir=tmp_path,
+                use_cache=use_cache,
+            )
+
+        assert result.shape == image.shape[:2]
+        assert result.dtype == np.uint8
+
     def test_returns_decoded_image(self, tmp_path: Path) -> None:
         """Valid image URL returns an OpenCV image."""
         # given

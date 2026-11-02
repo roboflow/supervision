@@ -7,6 +7,12 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- The image-reading fallback now honors `IMREAD_GRAYSCALE` (`0`) for file and byte decoding, including `sv.load_image_from_url(..., cv_imread_flags=0)`, returning a two-dimensional `uint8` image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. ([#2841](https://github.com/roboflow/supervision/pull/2841))
+
+- The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
+
+- `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
+
 - The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates out-of-bounds color coordinates and rounds floating-point values like OpenCV. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
