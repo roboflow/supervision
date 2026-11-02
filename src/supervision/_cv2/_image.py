@@ -537,10 +537,10 @@ def _read_grayscale_pil_image(image: Any) -> npt.NDArray[np.uint8]:
 
     For 8-bit PNG colors, libpng truncates both its 15-bit RGB coefficients and the
     weighted sum; Pillow's regular ``convert("L")`` rounds instead. JPEG's native
-    grayscale decode uses the encoded luminance, so request it before EXIF
-    transposition can load RGB pixels. Other codecs and color modes can retain
-    Pillow/OpenCV differences, including color PNGs whose 16-bit channels Pillow
-    has already reduced to 8 bits.
+    grayscale decode uses the encoded luminance, so request it before EXIF transposition
+    can load RGB pixels. Other codecs and color modes can retain Pillow/OpenCV
+    differences, including color PNGs whose 16-bit channels Pillow has already reduced
+    to 8 bits.
     """
     image_format = image.format
     if image_format == "JPEG":

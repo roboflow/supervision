@@ -97,7 +97,9 @@ _SIN_TABLE = np.array(
     0.9612617 0.9659258 0.9702957 0.9743701 0.9781476 0.9816272 0.9848078
     0.9876883 0.9902681 0.9925462 0.9945219 0.9961947 0.9975641 0.9986295
     0.9993908 0.9998477 1.0000000
-    """.split(),
+    """
+
+       .split(),
     dtype=np.float32,
 )
 
@@ -917,8 +919,8 @@ def _thick_line_mask(
 ) -> None:
     """Set the pixels of OpenCV's `ThickLine` for an 8-connected `thickness > 1` line.
 
-    OpenCV draws the segment as a quadrilateral `thickness` wide in fixed point and
-    puts a filled disc of radius `(thickness + 1) // 2` on each end selected by `caps`
+    OpenCV draws the segment as a quadrilateral `thickness` wide in fixed point and puts
+    a filled disc of radius `(thickness + 1) // 2` on each end selected by `caps`
     (:data:`_CAP_START`, :data:`_CAP_END`).
     """
     height, width = mask.shape

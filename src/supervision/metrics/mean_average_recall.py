@@ -648,9 +648,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         """Compute recall per detection limit and class from all images' matches.
 
         `matches` has shape (P, Th, K) and holds, for each detection limit, the matches
-        of that limit's own top predictions of each class; the other arrays have one
-        row or entry per prediction, or per target for `true_class_ids`.
-        `class_ranks` is each prediction's rank within its class in its own image.
+        of that limit's own top predictions of each class; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`. `class_ranks` is
+        each prediction's rank within its class in its own image.
         """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
