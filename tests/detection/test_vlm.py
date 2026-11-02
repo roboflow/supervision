@@ -2594,3 +2594,47 @@ class TestPaliGemmaPunctuatedLabels:
         np.testing.assert_array_equal(boxes, [[0, 0, 50, 50], [0, 0, 25, 25]])
         assert class_ids is None
         np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])
+
+
+class TestQwenMalformedBoxes:
+    """Malformed model boxes do not discard other detections in the response."""
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            None,
+            pytest.param([], id="empty"),
+            pytest.param([1, 2], id="short"),
+            pytest.param([1, 2, 3, 4, 5], id="long"),
+            pytest.param([0, 0, float("nan"), 10], id="nan"),
+            pytest.param([0, 0, float("inf"), 10], id="infinite"),
+            "bad",
+        ],
+    )
+    def test_keeps_valid_sibling(self, box: Any) -> None:
+        """A malformed box is skipped without dropping a valid sibling box."""
+        response = json.dumps(
+            [
+                {"bbox_2d": [10, 20, 30, 40], "label": "cat"},
+                {"bbox_2d": box, "label": "dog"},
+            ]
+        )
+
+        boxes, class_ids, names = from_qwen_2_5_vl(
+            response, (100, 100), (200, 300), classes=["cat", "dog"]
+        )
+
+        np.testing.assert_array_equal(boxes, [[20, 60, 60, 120]])
+        np.testing.assert_array_equal(class_ids, [0])
+        np.testing.assert_array_equal(names, ["cat"])
+
+    def test_returns_empty_when_no_box_is_valid(self) -> None:
+        """A response with only malformed boxes returns the standard empty arrays."""
+        response = json.dumps([{"bbox_2d": None, "label": "dog"}])
+
+        boxes, class_ids, names = from_qwen_2_5_vl(response, (100, 100), (100, 100))
+
+        assert boxes.shape == (0, 4)
+        assert class_ids is not None
+        assert class_ids.shape == (0,)
+        assert names.shape == (0,)
