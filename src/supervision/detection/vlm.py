@@ -322,7 +322,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
-    A truncated response yields every complete detection before the cut.
+    A truncated response yields every complete detection before the cut. Items
+    without a finite, four-coordinate box are skipped without losing valid siblings.
 
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
@@ -383,7 +384,13 @@ def from_qwen_2_5_vl(
     for item in data:
         if not isinstance(item, dict) or "bbox_2d" not in item or "label" not in item:
             continue
-        boxes_list.append(item["bbox_2d"])
+        try:
+            box = np.asarray(item["bbox_2d"], dtype=float)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if box.shape != (4,) or not np.isfinite(box).all():
+            continue
+        boxes_list.append(box)
         labels_list.append(item["label"])
 
     if not boxes_list:
