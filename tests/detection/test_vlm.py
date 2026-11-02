@@ -2201,6 +2201,57 @@ def test_from_vlm_google_gemini_3_7_class_filter_can_remove_all_items() -> None:
     assert detections.mask.shape == (0, 80, 100)
 
 
+_GEMINI_BOX_RESULT = '[{"box_2d": [100, 100, 900, 900], "label": "cat"}]'
+_GEMINI_STRUCTURED_RESULT = (
+    '{"boxes": [{"box_2d": [100, 100, 900, 900], "label": "cat"}]}'
+)
+
+
+@pytest.mark.parametrize(
+    ("vlm", "result", "classes"),
+    [
+        pytest.param(
+            VLM.GOOGLE_GEMINI_2_5,
+            _GEMINI_BOX_RESULT,
+            ["dog"],
+            id="gemini-2.5-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_5,
+            _GEMINI_BOX_RESULT,
+            ["dog"],
+            id="gemini-3.5-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_6,
+            _GEMINI_STRUCTURED_RESULT,
+            ["dog"],
+            id="gemini-3.6-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.GOOGLE_GEMINI_3_7,
+            _GEMINI_STRUCTURED_RESULT,
+            ["dog"],
+            id="gemini-3.7-every-item-filtered-out",
+        ),
+        pytest.param(
+            VLM.DEEPSEEK_VL_2, "no tags here", None, id="deepseek-vl-2-no-tags"
+        ),
+    ],
+)
+def test_from_vlm_empty_outcome_keeps_class_id_integer(
+    vlm: VLM, result: str, classes: list[str] | None
+) -> None:
+    """An empty parse must not leave `class_id` as a float array."""
+    detections = Detections.from_vlm(
+        vlm=vlm, result=result, resolution_wh=(100, 100), classes=classes
+    )
+
+    assert len(detections) == 0
+    assert detections.class_id is not None
+    assert detections.class_id.dtype == int
+
+
 class TestFromVlmCornerOrdering:
     """Tests that `from_vlm` returns boxes obeying the `xyxy` corner ordering."""
 
