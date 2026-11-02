@@ -4556,7 +4556,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p>An image without objects should still have one target entry: pass boxes with shape <code>(0, 4)</code> and class IDs with shape <code>(0,)</code>. The helper preserves these shapes and does not modify the input arrays.</p>
 <h3 id="run-evaluation">Run evaluation<a class="headerlink" href="#run-evaluation" title="Permanent link">&para;</a></h3>
 <p>This example assumes you already have a DETR <code>model</code>, its <code>image_processor</code>, and <code>TEST_DATALOADER</code>. Each batch contains <code>pixel_values</code>, <code>pixel_mask</code>, and a list of per-image <code>labels</code> dictionaries. <code>classes</code> lists class names in class-ID order, read here from the model's <code>id2label</code> mapping; both predictions and targets must use IDs from <code>0</code> to <code>len(classes) - 1</code>. Remap both sides first if your dataset uses sparse category IDs.</p>
-<p><strong>Coordinate assumptions:</strong> the targets below are normalized relative to each image before batch padding, and evaluation preprocessing only resizes images. Under these assumptions, <code>orig_size</code> restores original-image pixel coordinates, as in the <a href="https://huggingface.co/docs/transformers/tasks/object_detection#preparing-function-to-compute-map">Hugging Face evaluation example</a>. Check your processor and collate function: processing multiple images together can update annotations to the padded canvas. Such targets need padding and resize transforms reversed before using <code>orig_size</code>; multiplying by <code>orig_size</code> alone does not undo padding. Likewise, crops or other geometric augmentations require their transforms to be accounted for. Keep validation preprocessing deterministic.</p>
+<p><strong>Coordinate assumptions:</strong> the targets below are normalized relative to each image before batch padding, and evaluation preprocessing only resizes images. Under these assumptions, <code>orig_size</code> restores original-image pixel coordinates, as in the <a href="https://huggingface.co/docs/transformers/v4.57.1/en/tasks/object_detection#preparing-function-to-compute-map">Hugging Face evaluation example</a>. Check your processor and collate function: processing multiple images together can update annotations to the padded canvas. Such targets need padding and resize transforms reversed before using <code>orig_size</code>; multiplying by <code>orig_size</code> alone does not undo padding. Likewise, crops or other geometric augmentations require their transforms to be accounted for. Keep validation preprocessing deterministic.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MeanAveragePrecision</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
@@ -9924,7 +9924,7 @@ Average Precision (AP) @[ OKS=0.50:0.95 | area= large | ... ] = -1.000
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 13, 2026 18:59:09 UTC">October 13, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 2, 2026 23:07:57 UTC">November 2, 2026</span>
   </span>
 
     
@@ -9952,9 +9952,9 @@ Average Precision (AP) @[ OKS=0.50:0.95 | area= large | ... ] = -1.000
     
     <nav>
       
-        <a href="https://github.com/cdeil" class="md-author" title="@cdeil">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/852409?v=4&size=72" alt="cdeil">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -9962,21 +9962,21 @@ Average Precision (AP) @[ OKS=0.50:0.95 | area= large | ... ] = -1.000
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/cdeil" class="md-author" title="@cdeil">
+          
+          <img src="https://avatars.githubusercontent.com/u/852409?v=4&size=72" alt="cdeil">
+        </a>
+      
         <a href="https://github.com/8rulerstar" class="md-author" title="@8rulerstar">
           
           <img src="https://avatars.githubusercontent.com/u/190670431?v=4&size=72" alt="8rulerstar">
-        </a>
-      
-        <a href="https://github.com/salmanwnl44" class="md-author" title="@salmanwnl44">
-          
-          <img src="https://avatars.githubusercontent.com/u/136922694?v=4&size=72" alt="salmanwnl44">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/metrics/mean_average_precision.md" class="md-author md-author--more">
-            +8
+            +9
           </a>
         
       
