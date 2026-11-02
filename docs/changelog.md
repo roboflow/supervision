@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
+- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Sequential callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
 
 - The image-reading fallback now honors `IMREAD_GRAYSCALE` (`0`) for file and byte decoding, including `sv.load_image_from_url(..., cv_imread_flags=0)`, returning a two-dimensional `uint8` image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. ([#2841](https://github.com/roboflow/supervision/pull/2841))
 
