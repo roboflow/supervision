@@ -7,6 +7,8 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Sequential callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
+
 - The image-reading fallback now honors `IMREAD_GRAYSCALE` (`0`) for file and byte decoding, including `sv.load_image_from_url(..., cv_imread_flags=0)`, returning a two-dimensional `uint8` image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. ([#2841](https://github.com/roboflow/supervision/pull/2841))
 
 - The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
@@ -14,8 +16,6 @@ date_modified: 2026-10-28
 - `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
 
 - `sv.RichLabelAnnotator` now draws Arabic and Hebrew labels correctly with the new `rtl` extra (`pip install "supervision[rtl]"`, which installs [khatt](https://github.com/DrEssam97/khatt)). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, `RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")` drew `"سيارة 0.92"` as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Without the extra, a one-time warning names it when Raqm is missing. ([#2864](https://github.com/roboflow/supervision/pull/2864))
-
--
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
