@@ -7,6 +7,7 @@ from supervision.config import ISCROWD_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
+from supervision.metrics.utils.object_size import get_detection_areas
 from tests.metrics.coco_reference import evaluate_detections
 
 
@@ -1020,44 +1021,44 @@ def test_greedy_matching_two_valid_pairs() -> None:
 class TestMeanAverageRecallCocoSizeBuckets:
     """MAR size buckets must match inclusive COCO / mAP ranges (issue #2846)."""
 
-    def test_boundary_area_belongs_to_both_coco_size_buckets(self) -> None:
-        """A 32x32 or 96x96 box is counted in both neighbouring COCO buckets."""
-        from supervision.metrics.mean_average_recall import (
-            MeanAverageRecall,
-            MeanAverageRecallResult,
+    @pytest.mark.parametrize(
+        ("xyxy", "expected_recall"),
+        [
+            pytest.param([[0, 0, 32, 32]], [1.0, 1.0, 0.0], id="at-32"),
+            pytest.param([[0, 0, 96, 96]], [0.0, 1.0, 1.0], id="at-96"),
+            pytest.param(
+                [[0, 0, 32, 32], [0, 0, 96, 96]],
+                [1.0, 1.0, 1.0],
+                id="both-boundaries",
+            ),
+        ],
+    )
+    def test_boundary_area_belongs_to_both_coco_size_buckets(
+        self, xyxy: list[list[float]], expected_recall: list[float]
+    ) -> None:
+        """Boundary-sized boxes count in both neighbouring COCO buckets."""
+        boxes = np.array(xyxy, dtype=np.float32)
+        class_id = np.zeros(len(boxes), dtype=np.int32)
+        confidence = np.ones(len(boxes), dtype=np.float32)
+        predictions = Detections(xyxy=boxes, confidence=confidence, class_id=class_id)
+        targets = Detections(xyxy=boxes.copy(), class_id=class_id.copy())
+
+        result = MeanAverageRecall().update(predictions, targets).compute()
+
+        assert result.small_objects is not None
+        assert result.medium_objects is not None
+        assert result.large_objects is not None
+        np.testing.assert_allclose(
+            [
+                result.small_objects.mAR_at_100,
+                result.medium_objects.mAR_at_100,
+                result.large_objects.mAR_at_100,
+            ],
+            expected_recall,
         )
-
-        def _perfect(xyxy: list[list[float]]) -> MeanAverageRecallResult:
-            boxes = np.array(xyxy, dtype=np.float32)
-            class_id = np.zeros(len(boxes), dtype=np.int32)
-            confidence = np.ones(len(boxes), dtype=np.float32)
-            metric = MeanAverageRecall()
-            metric.update(
-                [Detections(xyxy=boxes, confidence=confidence, class_id=class_id)],
-                [Detections(xyxy=boxes.copy(), class_id=class_id.copy())],
-            )
-            return metric.compute()
-
-        at_32 = _perfect([[0, 0, 32, 32]])
-        assert at_32.small_objects is not None
-        assert at_32.medium_objects is not None
-        assert at_32.large_objects is not None
-        np.testing.assert_allclose(at_32.small_objects.mAR_at_100, 1.0)
-        np.testing.assert_allclose(at_32.medium_objects.mAR_at_100, 1.0)
-        np.testing.assert_allclose(at_32.large_objects.mAR_at_100, 0.0)
-
-        at_96 = _perfect([[0, 0, 96, 96]])
-        assert at_96.small_objects is not None
-        assert at_96.medium_objects is not None
-        assert at_96.large_objects is not None
-        np.testing.assert_allclose(at_96.small_objects.mAR_at_100, 0.0)
-        np.testing.assert_allclose(at_96.medium_objects.mAR_at_100, 1.0)
-        np.testing.assert_allclose(at_96.large_objects.mAR_at_100, 1.0)
 
     def test_float16_box_area_does_not_overflow(self) -> None:
         """A float16 256x256 box has a finite area and stays in the large bucket."""
-        from supervision.metrics.utils.object_size import get_detection_areas
-
         boxes = np.array([[0, 0, 256, 256]], dtype=np.float16)
         areas = get_detection_areas(Detections(xyxy=boxes))
         np.testing.assert_allclose(areas, [65536.0])
