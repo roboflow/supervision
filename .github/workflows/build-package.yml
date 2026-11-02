@@ -20,22 +20,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: 🐍 Install uv and set Python version ${{ inputs.python-version }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@v10.3.0
         with:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
 
       - name: 🎨 Augment paths in README
+        env:
+          # Bound through the environment: a branch name is attacker-chosen
+          # on pull requests, inlining it would let it break out of the shell.
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          python .github/scripts/augment_links.py README.md --branch "$BRANCH"
           cat README.md
 
       - name: 🔗 Link Checker
         if: inputs.link-check
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@v2.9.0
         with:
           lycheeVersion: v0.22.0
           args: |
@@ -50,7 +56,7 @@ jobs:
           twine check --strict dist/*
 
       - name: 📤 Upload distribution artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: dist
           path: dist/

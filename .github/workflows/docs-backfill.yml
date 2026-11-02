@@ -63,14 +63,14 @@ jobs:
           fi
 
       - name: 📥 Checkout gh-pages
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: gh-pages
 
       # A second checkout, into a subdirectory so it does not clobber the gh-pages
       # tree above: the banner script lives in the source tree, not on gh-pages.
       - name: 📥 Checkout banner script
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           sparse-checkout: .github/scripts
           sparse-checkout-cone-mode: false
