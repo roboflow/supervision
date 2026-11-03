@@ -140,8 +140,8 @@ def detections_to_pascal_voc(
         An XML string in Pascal VOC format representing the detections.
 
     Raises:
-        ValueError: If ``detections.class_id`` is missing or not an integer, or
-            if any ``class_id`` value is out of range for ``classes``.
+        ValueError: If a detection has a missing or non-integer ``class_id``,
+            or if any ``class_id`` value is out of range for ``classes``.
 
     Note:
         ``detections`` is never mutated by this function; the source ``xyxy``
