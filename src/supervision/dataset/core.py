@@ -369,6 +369,8 @@ class DetectionDataset(BaseDataset):
                 source_classes=dataset.classes, target_classes=classes
             )
             for image_path in dataset.image_paths:
+                if annotations[image_path].class_id is None:
+                    continue
                 annotations[image_path] = map_detections_class_id(
                     source_to_target_mapping=class_index_mapping,
                     detections=annotations[image_path],
