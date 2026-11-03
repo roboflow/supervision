@@ -80,8 +80,7 @@ def test_fallback_constant_matches_opencv(name: str) -> None:
 
 def test_facade_reports_fallback_backend_without_opencv() -> None:
     """Report the fallback backend when cv2 is unavailable."""
-    _run_without_opencv(
-        """
+    source = """
 import sys
 
 
@@ -98,14 +97,13 @@ from supervision import _cv2
 assert _cv2._IS_CV2_AVAILABLE is False
 assert _cv2.BACKEND_NAME == "fallback"
 """
-    )
+    _run_without_opencv(source)
 
 
 def test_facade_preserves_constants_without_opencv() -> None:
     """Preserve the OpenCV constant values when cv2 is unavailable."""
     expected_constants = {name: getattr(cv2, name) for name in OPENCV_CONSTANTS}
-    _run_without_opencv(
-        f"""
+    source = f"""
 import sys
 
 
@@ -126,7 +124,7 @@ fallback = {{name: getattr(_cv2, f"_{{name}}") for name in expected}}
 assert fallback == expected
 assert actual == expected
 """
-    )
+    _run_without_opencv(source)
 
 
 def test_facade_routes_color_calls_without_opencv() -> None:
@@ -257,8 +255,7 @@ def test_facade_binds_fallback_operation_without_opencv(
     public_name: str, private_name: str
 ) -> None:
     """Bind each public fallback operation to its private implementation."""
-    _run_without_opencv(
-        f"""
+    source = f"""
 import sys
 
 
@@ -274,7 +271,7 @@ from supervision import _cv2
 
 assert getattr(_cv2, {public_name!r}) is getattr(_cv2, {private_name!r})
 """
-    )
+    _run_without_opencv(source)
 
 
 @pytest.mark.parametrize(("public_name", "private_name"), _ALIGNED_BINDINGS)

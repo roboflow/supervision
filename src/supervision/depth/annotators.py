@@ -190,9 +190,8 @@ class DepthAnnotator:
     ) -> tuple[float, float]:
         """Return the colour range in the scale's unit for this map.
 
-        An explicit range or clip range is converted from the map's unit. `"auto"`
-        spans the pixels set in `valid`; a map without any depth falls back to
-        `(0, 1)`.
+        An explicit range or clip range is converted from the map's unit. `"auto"` spans
+        the pixels set in `valid`; a map without any depth falls back to `(0, 1)`.
         """
         option = self.display_range
         if isinstance(option, DepthClipRange):
