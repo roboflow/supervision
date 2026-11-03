@@ -224,6 +224,25 @@ def _cross(edge: npt.NDArray[np.float64], point: npt.NDArray[np.float64]) -> flo
     return float(edge[0] * point[1] - edge[1] * point[0])
 
 
+def _strictly_inside_convex(
+    points: npt.NDArray[np.float64], polygon: npt.NDArray[np.float64]
+) -> bool:
+    """Check whether every point lies strictly inside a convex polygon."""
+    signed_area = _contour_area(polygon, oriented=True)
+    if signed_area == 0:
+        return False
+    orientation = 1.0 if signed_area > 0 else -1.0
+    for start, end in zip(polygon, np.roll(polygon, -1, axis=0)):
+        edge = end - start
+        if np.all(edge == 0):
+            continue
+        offsets = points - start
+        cross = edge[0] * offsets[:, 1] - edge[1] * offsets[:, 0]
+        if not np.all(orientation * cross > 0):
+            return False
+    return True
+
+
 def _intersect_convex_convex(
     p1: npt.NDArray[Any],
     p2: npt.NDArray[Any],
@@ -234,12 +253,19 @@ def _intersect_convex_convex(
     Parameter names mirror `cv2.intersectConvexConvex(p1, p2, handleNested=...)` so
     keyword calls bind on both backends; keep them when editing.
     """
-    del handleNested
     subject = _as_points(p1)
     clip = _as_points(p2)
     output = subject
     if len(subject) < 3 or len(clip) < 3:
         return 0.0, np.empty((0, 1, 2), dtype=np.float32)
+
+    # Boundary contact is an intersection even when strict nesting is disabled.
+    if not handleNested and (
+        _strictly_inside_convex(subject, clip) or _strictly_inside_convex(clip, subject)
+    ):
+        dtype = np.asarray(p1).dtype
+        result_dtype = dtype if np.issubdtype(dtype, np.floating) else np.float32
+        return 0.0, np.empty((0, 1, 2), dtype=result_dtype)
 
     orientation = 1.0 if _contour_area(clip, oriented=True) >= 0 else -1.0
     for index, clip_start in enumerate(clip):
