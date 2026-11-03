@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LineZone` now counts an object that is occluded while it crosses the line. A tracker keeps its side for the new `max_absent_frames` (default 30, matching `ByteTrackTracker`'s `lost_track_buffer`) instead of 2 frames. Pass `max_absent_frames=2` to restore the previous retention. [#2873](https://github.com/roboflow/supervision/pull/2873)
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
