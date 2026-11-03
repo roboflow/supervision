@@ -240,8 +240,10 @@ def from_paligemma(
     """
     w, h = _validate_resolution(resolution_wh)
 
+    # Labels end at a detection separator or model token, not at punctuation
+    # inside an open-vocabulary class name.
     pattern = re.compile(
-        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
+        r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([^;<]+)"
     )
     matches = pattern.findall(result)
     matches_arr: npt.NDArray[Any] = np.array(matches) if matches else np.empty((0, 5))
@@ -322,7 +324,8 @@ def from_qwen_2_5_vl(
       ]
       ```
 
-    A truncated response yields every complete detection before the cut.
+    A truncated response yields every complete detection before the cut. Items
+    without a finite, four-coordinate box are skipped without losing valid siblings.
 
     Args:
         result: String containing Qwen-2.5-VL JSON bounding box and label data.
@@ -383,7 +386,13 @@ def from_qwen_2_5_vl(
     for item in data:
         if not isinstance(item, dict) or "bbox_2d" not in item or "label" not in item:
             continue
-        boxes_list.append(item["bbox_2d"])
+        try:
+            box = np.asarray(item["bbox_2d"], dtype=float)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if box.shape != (4,) or not np.isfinite(box).all():
+            continue
+        boxes_list.append(box)
         labels_list.append(item["label"])
 
     if not boxes_list:
@@ -455,8 +464,8 @@ def from_deepseek_vl_2(
             shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
             optional array of shape `(n,)` with class indices, and `class_name`
             is an array of shape `(n,)` with class labels. When the input
-            contains no detections (or all are filtered by `classes`), returns
-            `(np.empty((0, 4)), np.empty(0), np.empty(0))`.
+            contains no detections (or all are filtered by `classes`), `xyxy`
+            has shape `(0, 4)` and `class_id` is an empty integer array.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -499,7 +508,9 @@ def from_deepseek_vl_2(
     else:
         unique_classes = sorted(list(set(class_name)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
-        class_id = np.array([class_to_id[name] for name in class_name])
+        # `dtype=int` matters only when there are no detections: an empty list would
+        # otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([class_to_id[name] for name in class_name], dtype=int)
 
     return xyxy, class_id, class_name
 
@@ -815,7 +826,9 @@ def _parse_gemini_boxes(
         keep_mask = np.array([name in classes for name in class_name], dtype=bool)
         xyxy = xyxy[keep_mask]
         class_name = class_name[keep_mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        # `dtype=int` matters only when every item is filtered out: an empty list
+        # would otherwise make NumPy pick `float64` for an array of class indices.
+        class_id = np.array([classes.index(name) for name in class_name], dtype=int)
         if confidence_list is not None:
             confidence_list = [
                 score for score, keep in zip(confidence_list, keep_mask) if keep
