@@ -423,10 +423,10 @@ def _match_overlay_to_scene_channels(
 ) -> npt.NDArray[np.uint8]:
     """Return ``overlay`` in the channel layout of the scene region ``roi``.
 
-    A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such
-    as an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
-    layout, because ``cv2.resize`` drops the channel axis of a crop taken from an
-    ``(H, W, 1)`` scene.
+    A grayscale scene, shaped ``(H, W)`` or ``(H, W, 1)``, takes a BGR overlay, such as
+    an icon, as its gray luminance. A grayscale overlay is reshaped to the scene's
+    layout, because ``cv2.resize`` drops the channel axis of a crop taken from an ``(H,
+    W, 1)`` scene.
     """
     if roi.ndim == 3 and roi.shape[2] != 1:
         return overlay
