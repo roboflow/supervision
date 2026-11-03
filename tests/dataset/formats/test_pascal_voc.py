@@ -56,8 +56,6 @@ def are_xml_elements_equal(elem1: Element, elem2: Element) -> bool:
         if not are_xml_elements_equal(child1, child2):
             return False
     return True
-
-
 @pytest.mark.parametrize(
     ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
@@ -179,8 +177,8 @@ def test_detections_to_pascal_voc_does_not_mutate_detections() -> None:
 def test_detections_to_pascal_voc_rejects_out_of_range_class_id(class_id: int) -> None:
     """An out-of-range class_id raises instead of exporting a wrong name.
 
-    A negative id used to index ``classes`` from the end, so -1 was silently
-    written as the last class.
+    A negative id used to index ``classes`` from the end, so -1 was silently written as
+    the last class.
     """
     detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[class_id])
 
@@ -191,8 +189,6 @@ def test_detections_to_pascal_voc_rejects_out_of_range_class_id(class_id: int) -
             filename="image.jpg",
             image_shape=(100, 100, 3),
         )
-
-
 @pytest.mark.parametrize(
     ("polygon_element", "expected_result", "exception"),
     [

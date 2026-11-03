@@ -289,8 +289,8 @@ class TestKeyPointOksBatch:
     ) -> None:
         """Without visible points, distance is measured to the expanded box.
 
-        The box `(0, 0, 10, 10)` expands to `[-10, 20] x [-10, 20]`, as in
-        `pycocotools` `computeOks`, and the mean runs over all keypoints.
+        The box `(0, 0, 10, 10)` expands to `[-10, 20] x [-10, 20]`, as in `pycocotools`
+        `computeOks`, and the mean runs over all keypoints.
         """
         keypoints_true = np.zeros((1, 3, 2), dtype=np.float32)
         area, sigma = 50.0, 0.1
@@ -556,8 +556,8 @@ class TestKeyPointMeanAveragePrecision:
     ) -> None:
         """With a box, a prediction on a hidden target is ignored, not a false positive.
 
-        As in `pycocotools`, the hidden target is an ignore region in every size
-        bucket, whatever its area, so it is neither a miss nor a match.
+        As in `pycocotools`, the hidden target is an ignore region in every size bucket,
+        whatever its area, so it is neither a miss nor a match.
         """
         hidden_target = _triangle_key_points(
             offset=300.0, visible=np.zeros((1, 3), dtype=bool)
@@ -628,9 +628,9 @@ class TestKeyPointMeanAveragePrecision:
 
         The false positive sits in its own image, next to one with a match.
 
-        Its keypoints span a medium box, so without a box it is a medium false
-        positive. A large box moves it out of the medium bucket, as the
-        `bbox` of a COCO result entry does in `pycocotools`.
+        Its keypoints span a medium box, so without a box it is a medium false positive.
+        A large box moves it out of the medium bucket, as the `bbox` of a COCO result
+        entry does in `pycocotools`.
         """
         target = _triangle_key_points()
         target.data["area"] = np.array([5000.0])
@@ -1145,8 +1145,8 @@ class TestKeyPointMeanAveragePrecisionCategories:
     ) -> None:
         """Class-agnostic skeletons share class -1, or keep 0 when no input has IDs.
 
-        This mirrors `MeanAveragePrecision`, and an unlabelled target still matches
-        a labelled prediction in the mixed case.
+        This mirrors `MeanAveragePrecision`, and an unlabelled target still matches a
+        labelled prediction in the mixed case.
         """
         prediction = _triangle_key_points(confidence=0.9)
         prediction.class_id = prediction_class_id
@@ -1183,8 +1183,8 @@ class TestKeyPointMeanAveragePrecisionResult:
         """The summary prints three overall OKS lines, then medium and large.
 
         An exact match scores 1 overall and for the medium bucket its keypoints span,
-        and -1 for the large bucket, which holds no target. This is the example in
-        the `__str__` docstring.
+        and -1 for the large bucket, which holds no target. This is the example in the
+        `__str__` docstring.
         """
         result = _exact_match_result()
 

@@ -743,7 +743,6 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
 
         def write_frame(self, frame: object) -> None:
             """The writer thread is disabled in this test."""
-
     write_queue = RecordingWriteQueue()
     queue_factory_calls = iter([read_queue, write_queue])
 
@@ -946,7 +945,6 @@ def test_process_video_does_not_drain_reader_queue_after_callback_failure(
 
         def write_frame(self, frame: object) -> None:
             """The writer thread is disabled in this test."""
-
     read_queue = TimeoutReadQueue()
     write_queue = RecordingWriteQueue()
     queue_factory_calls = iter([read_queue, write_queue])
@@ -1692,7 +1690,6 @@ def test_get_video_frames_generator_prefetch_zero_frame_video(
 
         def release(self) -> None:
             """No-op release for the empty-video fake."""
-
     monkeypatch.setattr(
         "supervision.utils.video._validate_and_setup_video",
         lambda *args, **kwargs: (EmptyCapture(), 0, 100),
@@ -1831,12 +1828,10 @@ def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
 class _UnreliableCountCapture:
     """Fake capture that decodes `frame_count` frames but reports `reported_count`.
 
-    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with
-    no duration, as written by a browser's `MediaRecorder`, reports a huge negative
-    count, and a variable frame rate MKV or WebM can report fewer frames than it
-    holds.
+    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with no
+    duration, as written by a browser's `MediaRecorder`, reports a huge negative count,
+    and a variable frame rate MKV or WebM can report fewer frames than it holds.
     """
-
     def __init__(self, frame_count: int, reported_count: float) -> None:
         self.frame_count = frame_count
         self.reported_count = reported_count
@@ -1866,7 +1861,6 @@ class _UnreliableCountCapture:
 
     def release(self) -> None:
         """No-op release for the fake capture."""
-
 
 @pytest.mark.parametrize("prefetch", [0, 2])
 @pytest.mark.parametrize(

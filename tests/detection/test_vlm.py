@@ -324,7 +324,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},
-            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```""",
+            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```"""
+                                                                           ,
             (640, 640),
             (1280, 720),
             None,
@@ -332,7 +333,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # missing keys
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                 ,
             (640, 640),
             (1280, 720),
             None,
@@ -345,7 +347,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [100,
-            200, 300, 400], "label": "cat"} ] ```""",
+            200, 300, 400], "label": "cat"} ] ```"""
+                                                    ,
             (640, 640),
             (640, 640),
             None,
@@ -357,7 +360,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # multiple no classes
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```""",
+            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```"""
+                                                                                  ,
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
@@ -368,7 +372,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
             """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"}, {"bbox_2d":
 
             [50, 100, 150, 200], "label": "dog"} ] ```
-            """,
+            """
+               ,
             (640, 640),
             (640, 480),
             ["cat", "dog"],
@@ -380,7 +385,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # partial filtering
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```""",
+            """```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```"""
+                                                                                 ,
             (640, 640),
             (1280, 720),
             None,
@@ -392,7 +398,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # out-of-bounds box
         (
             does_not_raise(),
-            """[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]""",
+            """[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]"""
+                                                                     ,
             (640, 640),
             (1280, 720),
             None,
@@ -405,7 +412,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
         (
             does_not_raise(),
             """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [10,
-            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":""",
+            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":"""
+                                                                                       ,
             (640, 640),
             (640, 640),
             None,
@@ -483,7 +491,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(0, 640\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                 ,
             (0, 640),
             (1280, 720),
             None,
@@ -497,7 +506,8 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(1280, -100\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```""",
+            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```"""
+                                                                                 ,
             (640, 640),
             (1280, -100),
             None,
@@ -553,7 +563,8 @@ def test_from_qwen_2_5_vl(
         ),  # empty JSON array
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```"""
+                                                                                  ,
             (1000, 500),
             None,
             (
@@ -565,7 +576,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            100, 150, 200], "label": "dog"} ] ```"""
+                                                    ,
             (640, 480),
             None,
             (
@@ -576,7 +588,8 @@ def test_from_qwen_2_5_vl(
         ),  # multiple valid boxes without class filtering
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                ,
             (640, 480),
             ["dog", "person"],
             (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
@@ -584,7 +597,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            100, 150, 200], "label": "dog"} ] ```"""
+                                                    ,
             (640, 480),
             ["person", "dog"],
             (
@@ -596,7 +610,8 @@ def test_from_qwen_2_5_vl(
         (
             does_not_raise(),
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```""",
+            100, 150, 200], "label": "dog"} ] ```"""
+                                                    ,
             (640, 480),
             ["cat", "dog"],
             (
@@ -613,7 +628,8 @@ def test_from_qwen_2_5_vl(
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                ,
             (0, 480),
             None,
             None,
@@ -626,7 +642,8 @@ def test_from_qwen_2_5_vl(
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                ,
             (640, -100),
             None,
             None,
@@ -1049,7 +1066,6 @@ def test_florence_2_invalid_payloads_raise_value_error(
 
 class TestFromFlorence2Segmentation:
     """`from_florence_2` over segmentation tasks whose instances hold polygon lists."""
-
     @pytest.mark.parametrize(
         "task", ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]
     )
@@ -1312,7 +1328,8 @@ class TestFromFlorence2Segmentation:
             """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence":
 
             0.8} ] ```
-            """,
+            """
+               ,
             (1000, 500),
             None,
             (
@@ -1329,7 +1346,8 @@ class TestFromFlorence2Segmentation:
 
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
-            """,
+            """
+               ,
             (640, 480),
             None,
             (
@@ -1345,7 +1363,8 @@ class TestFromFlorence2Segmentation:
             """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
 
             0.8} ] ```
-            """,
+            """
+               ,
             (640, 480),
             ["dog", "person"],
             (
@@ -1362,7 +1381,8 @@ class TestFromFlorence2Segmentation:
 
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
-            """,
+            """
+               ,
             (640, 480),
             ["person", "dog"],
             (
@@ -1379,7 +1399,8 @@ class TestFromFlorence2Segmentation:
 
             0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
             ```
-            """,
+            """
+               ,
             (640, 480),
             ["cat", "dog"],
             (
@@ -1398,7 +1419,8 @@ class TestFromFlorence2Segmentation:
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                ,
             (0, 480),
             None,
             None,
@@ -1411,7 +1433,8 @@ class TestFromFlorence2Segmentation:
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```""",
+            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
+                                                                                ,
             (640, -100),
             None,
             None,
@@ -1686,7 +1709,6 @@ class TestGeminiMasksForBoxesOutsideImage:
     """Gemini 2.5 and 3.5 masks for `box_2d` values outside the 0-1000 range."""
 
     resolution_wh = (1000, 800)
-
     @staticmethod
     def _response(*items: tuple[list[int], np.ndarray]) -> str:
         """Build a Gemini response with one masked `cat` per `(box_2d, mask)` pair."""
@@ -1812,7 +1834,6 @@ class TestGeminiMasksForBoxesOutsideImage:
         reference = Detections.from_vlm(
             VLM.GOOGLE_GEMINI_2_5, in_range_only, resolution_wh=self.resolution_wh
         )
-
         assert isinstance(detections.mask, np.ndarray)
         assert reference.mask is not None
         assert detections.mask.shape == (4, 800, 1000)
@@ -1831,7 +1852,6 @@ class TestGeminiMasksForBoxesOutsideImage:
         reference = Detections.from_vlm(
             VLM.GOOGLE_GEMINI_2_5, box_only, resolution_wh=self.resolution_wh
         )
-
         np.testing.assert_array_equal(detections.xyxy, reference.xyxy)
 
 
@@ -2246,7 +2266,6 @@ def test_from_vlm_empty_outcome_keeps_class_id_integer(
     detections = Detections.from_vlm(
         vlm=vlm, result=result, resolution_wh=(100, 100), classes=classes
     )
-
     assert len(detections) == 0
     assert detections.class_id is not None
     assert detections.class_id.dtype == int
@@ -2565,7 +2584,6 @@ class TestFromKosmos2:
 
 class TestPaliGemmaPunctuatedLabels:
     """Open-vocabulary labels retain punctuation during detection parsing."""
-
     @pytest.mark.parametrize(
         "label", ["person (left)", "cat/dog", "person's hand", "v2.0"]
     )
@@ -2577,7 +2595,6 @@ class TestPaliGemmaPunctuatedLabels:
         )
 
         boxes, class_ids, names = from_paligemma(response, (100, 100), [label])
-
         np.testing.assert_array_equal(boxes, [[0, 0, 50, 50]])
         np.testing.assert_array_equal(class_ids, [0])
         np.testing.assert_array_equal(names, [label])
@@ -2590,7 +2607,6 @@ class TestPaliGemmaPunctuatedLabels:
         )
 
         boxes, class_ids, names = from_paligemma(response, (100, 100))
-
         np.testing.assert_array_equal(boxes, [[0, 0, 50, 50], [0, 0, 25, 25]])
         assert class_ids is None
         np.testing.assert_array_equal(names, ["cat/dog", "person (left)"])
@@ -2623,7 +2639,6 @@ class TestQwenMalformedBoxes:
         boxes, class_ids, names = from_qwen_2_5_vl(
             response, (100, 100), (200, 300), classes=["cat", "dog"]
         )
-
         np.testing.assert_array_equal(boxes, [[20, 60, 60, 120]])
         np.testing.assert_array_equal(class_ids, [0])
         np.testing.assert_array_equal(names, ["cat"])
