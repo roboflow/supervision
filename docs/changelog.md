@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-28
+date_modified: 2026-10-31
 ---
 
 # Changelog
@@ -8,6 +8,12 @@ date_modified: 2026-10-28
 ### Unreleased <small>upcoming</small>
 
 - COCO export now computes box widths, heights and areas using Python scalars. A `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
+
+- `sv.DetectionDataset.merge` now preserves annotations without class IDs while remapping labeled annotations, instead of raising `ValueError`. ([#2858](https://github.com/roboflow/supervision/pull/2858))
+
+- `sv.Detections.from_ultralytics` now preserves at least one content pixel per axis when restoring masks from thin letterboxed images, instead of passing an empty crop to image resizing. ([#2857](https://github.com/roboflow/supervision/pull/2857))
+
+- `sv.scale_boxes` can now retain representable output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning `-40000` to `40000` scaled by `0.5`. ([#2853](https://github.com/roboflow/supervision/pull/2853))
 
 - PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names. ([#2852](https://github.com/roboflow/supervision/pull/2852))
 
@@ -20,6 +26,10 @@ date_modified: 2026-10-28
 - The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
 
 - `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
+
+- The NumPy fallbacks for `blur`, `approxPolyDP` and `intersectConvexConvex` now take OpenCV's parameter names (`src`/`borderType`, `curve`, and `p1`/`p2`/`handleNested`), so keyword calls such as `cv2.approxPolyDP(curve=contour, epsilon=2.0, closed=True)` work without OpenCV instead of raising `TypeError`. For strictly nested polygons, `intersectConvexConvex(handleNested=False)` now returns no intersection, matching OpenCV. ([#2856](https://github.com/roboflow/supervision/pull/2856))
+
+- The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates color components and rounds floating-point inputs for integer images, matching OpenCV within the signed 32-bit rounding range. Outside that range or for non-finite values, OpenCV rounding is undefined and fallback results may differ. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
