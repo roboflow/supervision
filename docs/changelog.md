@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.HeatMapAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The heat colors are blended as their gray luminance, as `sv.CropAnnotator` and `sv.IconAnnotator` overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. ([#2872](https://github.com/roboflow/supervision/pull/2872))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
