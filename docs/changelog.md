@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.DetectionDataset.merge` now preserves annotations without class IDs while remapping labeled annotations, instead of raising `ValueError`. ([#2858](https://github.com/roboflow/supervision/pull/2858))
+
 - `sv.Detections.from_ultralytics` now preserves at least one content pixel per axis when restoring masks from thin letterboxed images, instead of passing an empty crop to image resizing. ([#2857](https://github.com/roboflow/supervision/pull/2857))
 
 - `sv.scale_boxes` can now retain representable output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning `-40000` to `40000` scaled by `0.5`. ([#2853](https://github.com/roboflow/supervision/pull/2853))
