@@ -7,6 +7,14 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.scale_boxes` can now retain representable output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning `-40000` to `40000` scaled by `0.5`. ([#2853](https://github.com/roboflow/supervision/pull/2853))
+
+- PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names. ([#2852](https://github.com/roboflow/supervision/pull/2852))
+
+- Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates. ([#2851](https://github.com/roboflow/supervision/pull/2851))
+
+- `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Sequential callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
+
 - The image-reading fallback now honors `IMREAD_GRAYSCALE` (`0`) for file and byte decoding, including `sv.load_image_from_url(..., cv_imread_flags=0)`, returning a two-dimensional `uint8` image instead of silently returning BGR. 8-bit PNG colors use decoder-compatible luminance rounding and JPEG requests native grayscale decoding before applying EXIF orientation; other codecs and color modes can retain Pillow/OpenCV conversion differences. ([#2841](https://github.com/roboflow/supervision/pull/2841))
 
 - The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
@@ -15,7 +23,7 @@ date_modified: 2026-10-31
 
 - The NumPy fallbacks for `blur`, `approxPolyDP` and `intersectConvexConvex` now take OpenCV's parameter names (`src`/`borderType`, `curve`, and `p1`/`p2`/`handleNested`), so keyword calls such as `cv2.approxPolyDP(curve=contour, epsilon=2.0, closed=True)` work without OpenCV instead of raising `TypeError`. Behavior is unchanged. ([#2856](https://github.com/roboflow/supervision/pull/2856))
 
--
+- The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates color components and rounds floating-point inputs for integer images, matching OpenCV within the signed 32-bit rounding range. Outside that range or for non-finite values, OpenCV rounding is undefined and fallback results may differ. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
 
 ### 0.31.3 <small>Oct 28, 2026</small>
 
@@ -615,7 +623,7 @@ date_modified: 2026-10-31
 
 - Added [#1816](https://github.com/roboflow/supervision/pull/1816): Support for frame limitations and progress bar in [`sv.process_video`](https://supervision.roboflow.com/0.26.0/utils/video/#supervision.utils.video.process_video).
 
-- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating [`sv.KeyPoints`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints) objects from [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/en/model_doc/vitpose#vitpose-models) inference results via [`sv.KeyPoints.from_transformers`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_transformers).
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating [`sv.KeyPoints`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints) objects from [ViTPose](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/v4.57.1/en/model_doc/vitpose) inference results via [`sv.KeyPoints.from_transformers`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_transformers).
 
 - Added [#1823](https://github.com/roboflow/supervision/pull/1823): [`sv.xyxy_to_xcycarh`](https://supervision.roboflow.com/0.26.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_xcycarh) function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` into measurement space to format `(center x, center y, aspect ratio, height)`, where the aspect ratio is `width / height`.
 
