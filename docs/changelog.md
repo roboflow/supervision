@@ -7,7 +7,7 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
-- COCO export now computes box widths, heights and areas using Python scalars. A `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision.
+- COCO export now computes box widths, heights and areas using Python scalars. A `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
 
 - PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names. ([#2852](https://github.com/roboflow/supervision/pull/2852))
 
