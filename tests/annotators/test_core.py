@@ -10,7 +10,7 @@ from unittest.mock import patch
 import numpy as np
 import numpy.typing as npt
 import pytest
-from PIL import Image
+from PIL import Image, ImageFont
 
 import supervision.annotators.core as annotators_core
 from supervision import _cv2 as cv2
@@ -1550,6 +1550,60 @@ class TestRichLabelAnnotator:
         )
 
         assert drawn == [label] * expected_khatt_calls
+
+    def test_right_to_left_labels_keep_a_font_pillow_resolved(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """A font Pillow found by name, e.g. in a system font directory, is used."""
+        khatt = pytest.importorskip("khatt")
+        resolved = str(khatt.fonts.font_path("noto-naskh"))
+        original_truetype = ImageFont.truetype
+
+        def resolving_truetype(font: Any, size: float = 10, **kw: Any) -> Any:
+            """Load the font from another path, as Pillow does for system fonts."""
+            return original_truetype(resolved, size, **kw)
+
+        fonts: list[str] = []
+        original_draw_text = khatt.draw_text
+
+        def recording_draw_text(
+            image: Image.Image, xy: Any, text: str, **kw: Any
+        ) -> Image.Image:
+            """Record the font khatt draws with."""
+            fonts.append(kw["font"])
+            return original_draw_text(image, xy, text, **kw)
+
+        monkeypatch.setattr(ImageFont, "truetype", resolving_truetype)
+        monkeypatch.setattr(khatt, "draw_text", recording_draw_text)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+
+        RichLabelAnnotator(
+            font_path="NotoNaskhArabic-Regular.ttf", font_size=16
+        ).annotate(scene=test_image.copy(), detections=detections, labels=["سيارة"])
+
+        assert fonts == [resolved]
+
+    def test_right_to_left_labels_on_palette_images_stay_with_pillow(
+        self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
+    ) -> None:
+        """Palette scenes are measured and drawn by Pillow alone, so the two agree."""
+        khatt = pytest.importorskip("khatt")
+
+        def fail(*args: Any, **kwargs: Any) -> NoReturn:
+            """Fail when khatt is used."""
+            pytest.fail("khatt used on a palette image")
+
+        monkeypatch.setattr(khatt, "draw_text", fail)
+        monkeypatch.setattr(khatt, "text_bbox", fail)
+        detections = _create_detections(xyxy=[[10, 40, 90, 90]], class_id=[0])
+        scene = Image.fromarray(test_image).convert("P")
+
+        result = RichLabelAnnotator(font_size=16).annotate(
+            scene=scene, detections=detections, labels=["سيارة 0.92"]
+        )
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "P"
 
     @pytest.mark.parametrize(
         ("label", "max_line_length"),

@@ -1739,10 +1739,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         self.font_path = font_path
         self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
-        # khatt draws in the same font file, or its bundled Arabic font when the
-        # default PIL font (no Arabic glyphs) is in use
+        # khatt draws in the font file Pillow loaded (which may be resolved from a
+        # system font directory), or its bundled Arabic font when the default PIL
+        # font (no Arabic glyphs, loaded from memory) is in use
         loaded_path = getattr(self.font, "path", None)
-        self._rtl_font = font_path if font_path and loaded_path == font_path else None
+        self._rtl_font = loaded_path if isinstance(loaded_path, str) else None
         super().__init__(
             color=color,
             color_lookup=color_lookup,
@@ -1832,10 +1833,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
         return scene
 
-    def _rtl_engine(self, line: str) -> ModuleType | None:
-        """The `khatt` module when `line` holds right-to-left text and the `rtl` extra
-        is installed, else `None` (the line is drawn by Pillow)."""
-        if not _RTL_TEXT.search(line):
+    def _rtl_engine(self, draw: ImageDraw.ImageDraw, line: str) -> ModuleType | None:
+        """The `khatt` module when `line` holds right-to-left text, the scene is RGB or
+        RGBA and the `rtl` extra is installed, else `None` (the line is measured and
+        drawn by Pillow)."""
+        if draw.mode not in ("RGB", "RGBA") or not _RTL_TEXT.search(line):
             return None
         try:
             return importlib.import_module("khatt")
@@ -1861,7 +1863,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     def _text_bbox(
         self, draw: ImageDraw.ImageDraw, line: str
     ) -> tuple[float, float, float, float]:
-        khatt = self._rtl_engine(line)
+        khatt = self._rtl_engine(draw, line)
         if khatt is not None:
             left, top, right, bottom = khatt.text_bbox(line, **self._rtl_options())
         else:
@@ -1972,8 +1974,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             y_position = box_xyxy[1] + self.text_padding - text_top
 
             for line in wrapped_lines:
-                khatt = self._rtl_engine(line)
-                if khatt is not None and scene.mode in ("RGB", "RGBA"):
+                khatt = self._rtl_engine(draw, line)
+                if khatt is not None:
                     # Right-aligned in the box, with its ink top where Pillow's
                     # lines start
                     _left, top, right, _bottom = self._text_bbox(draw, line)
