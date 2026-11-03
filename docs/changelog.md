@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.CSVSink` now preserves an exception raised inside a `with` block when writing the deferred header or flushing the file also fails. The cleanup error is logged; when the block succeeds, cleanup errors still propagate.
+- `sv.CSVSink` now preserves an exception raised inside a `with` block when writing the deferred header or flushing the file also fails. The cleanup error is logged; when the block succeeds, cleanup errors still propagate. ([#2869](https://github.com/roboflow/supervision/pull/2869))
 
 - `sv.DetectionDataset.merge` now preserves annotations without class IDs while remapping labeled annotations, instead of raising `ValueError`. ([#2858](https://github.com/roboflow/supervision/pull/2858))
 
