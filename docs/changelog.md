@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- Added `sv.DetectionDataset.empty` and `sv.DetectionDataset.add` to build a detection dataset image by image, for example from model predictions for semi-automatic annotation, before exporting it with `as_yolo`, `as_coco` or `as_pascal_voc`. `add` stores the image path and a copy of the annotation, validates class ids like the constructor, and raises `ValueError` for duplicate image paths or datasets holding in-memory images. ([#2868](https://github.com/roboflow/supervision/pull/2868))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
