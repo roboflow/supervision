@@ -21,6 +21,8 @@ date_modified: 2026-10-28
 
 - `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
 
+- The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates color components and rounds floating-point inputs for integer images, matching OpenCV within the signed 32-bit rounding range. Outside that range or for non-finite values, OpenCV rounding is undefined and fallback results may differ. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
+
 ### 0.31.3 <small>Oct 28, 2026</small>
 
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
