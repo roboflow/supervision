@@ -323,9 +323,11 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # empty list
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},
-            {"bbox_2d": [50, 60, 110, 120], "unused": "something"} ] ```"""
-                                                                           ,
+            (
+                '```json [ {"bbox_2d": [10, 10, 100, 100]}, {"label": "missing box"},\n'
+                '            {"bbox_2d": [50, 60, 110, 12'
+                '0], "unused": "something"} ] ```'
+            ),
             (640, 640),
             (1280, 720),
             None,
@@ -333,8 +335,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # missing keys
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                 ,
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, 640),
             (1280, 720),
             None,
@@ -346,9 +347,11 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # single box no classes
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [100,
-            200, 300, 400], "label": "cat"} ] ```"""
-                                                    ,
+            (
+                '```json [ {"bbox_2d": [0, 0, 64, 64], "l'
+                'abel": "dog"}, {"bbox_2d": [100,\n'
+                '            200, 300, 400], "label": "cat"} ] ```'
+            ),
             (640, 640),
             (640, 640),
             None,
@@ -360,8 +363,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # multiple no classes
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```"""
-                                                                                  ,
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "bird"} ] ```'),
             (640, 640),
             (1280, 720),
             ["cat", "dog"],
@@ -369,11 +371,13 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # class mismatch
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"}, {"bbox_2d":
-
-            [50, 100, 150, 200], "label": "dog"} ] ```
-            """
-               ,
+            (
+                '```json [ {"bbox_2d": [10, 20, 110, 120]'
+                ', "label": "cat"}, {"bbox_2d":\n'
+                "\n"
+                '            [50, 100, 150, 200], "label": "dog"} ] ```\n'
+                "            "
+            ),
             (640, 640),
             (640, 480),
             ["cat", "dog"],
@@ -385,8 +389,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # partial filtering
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```"""
-                                                                                 ,
+            ('```json [ {"bbox_2d": [-10, 0, 700, 700], "label": "dog"} ] ```'),
             (640, 640),
             (1280, 720),
             None,
@@ -398,8 +401,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # out-of-bounds box
         (
             does_not_raise(),
-            """[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]"""
-                                                                     ,
+            ("[ {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'} ]"),
             (640, 640),
             (1280, 720),
             None,
@@ -411,9 +413,13 @@ _QWEN_DOG_AND_CAT_RESULT = (
         ),  # python-style list, single quotes, no fences
         (
             does_not_raise(),
-            """```json [ {"bbox_2d": [0, 0, 64, 64], "label": "dog"}, {"bbox_2d": [10,
-            20, 110, 120], "label": "cat"}, {"bbox_2d": [30, 40, 130, 140], "label":"""
-                                                                                       ,
+            (
+                '```json [ {"bbox_2d": [0, 0, 64, 64], "l'
+                'abel": "dog"}, {"bbox_2d": [10,\n'
+                '            20, 110, 120], "label": "cat'
+                '"}, {"bbox_2d": [30, 40, 130, 140], "lab'
+                'el":'
+            ),
             (640, 640),
             (640, 640),
             None,
@@ -491,8 +497,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(0, 640\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                 ,
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 640),
             (1280, 720),
             None,
@@ -506,8 +511,7 @@ _QWEN_DOG_AND_CAT_RESULT = (
                     r"Got \(1280, -100\)"
                 ),
             ),
-            """```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```"""
-                                                                                 ,
+            ('```json [ {"bbox_2d": [10, 20, 110, 120], "label": "dog"} ] ```'),
             (640, 640),
             (1280, -100),
             None,
@@ -563,8 +567,7 @@ def test_from_qwen_2_5_vl(
         ),  # empty JSON array
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```"""
-                                                                                  ,
+            ('```json [ {"box_2d": [100, 200, 300, 400], "label": "cat"} ] ```'),
             (1000, 500),
             None,
             (
@@ -575,9 +578,11 @@ def test_from_qwen_2_5_vl(
         ),  # single valid box with coordinate scaling
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```"""
-                                                    ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             None,
             (
@@ -588,17 +593,18 @@ def test_from_qwen_2_5_vl(
         ),  # multiple valid boxes without class filtering
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                ,
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, 480),
             ["dog", "person"],
             (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
         ),  # class mismatch with filter
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```"""
-                                                    ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             ["person", "dog"],
             (
@@ -609,9 +615,11 @@ def test_from_qwen_2_5_vl(
         ),  # partial class filtering
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"}, {"box_2d": [50,
-            100, 150, 200], "label": "dog"} ] ```"""
-                                                    ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat"}, {"box_2d": [50,\n'
+                '            100, 150, 200], "label": "dog"} ] ```'
+            ),
             (640, 480),
             ["cat", "dog"],
             (
@@ -628,8 +636,7 @@ def test_from_qwen_2_5_vl(
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                ,
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 480),
             None,
             None,
@@ -642,8 +649,7 @@ def test_from_qwen_2_5_vl(
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                ,
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, -100),
             None,
             None,
@@ -1066,6 +1072,7 @@ def test_florence_2_invalid_payloads_raise_value_error(
 
 class TestFromFlorence2Segmentation:
     """`from_florence_2` over segmentation tasks whose instances hold polygon lists."""
+
     @pytest.mark.parametrize(
         "task", ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]
     )
@@ -1325,11 +1332,13 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence":
-
-            0.8} ] ```
-            """
-               ,
+            (
+                '```json [ {"box_2d": [100, 200, 300, 400'
+                '], "label": "cat", "confidence":\n'
+                "\n"
+                "            0.8} ] ```\n"
+                "            "
+            ),
             (1000, 500),
             None,
             (
@@ -1342,12 +1351,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """
-               ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             None,
             (
@@ -1360,11 +1373,13 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8} ] ```
-            """
-               ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                "            0.8} ] ```\n"
+                "            "
+            ),
             (640, 480),
             ["dog", "person"],
             (
@@ -1377,12 +1392,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """
-               ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             ["person", "dog"],
             (
@@ -1395,12 +1414,16 @@ class TestFromFlorence2Segmentation:
         ),
         (
             does_not_raise(),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence":
-
-            0.8}, {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9} ]
-            ```
-            """
-               ,
+            (
+                '```json [ {"box_2d": [10, 20, 110, 120],'
+                ' "label": "cat", "confidence":\n'
+                "\n"
+                '            0.8}, {"box_2d": [50, 100, 1'
+                '50, 200], "label": "dog", "confidence": '
+                "0.9} ]\n"
+                "            ```\n"
+                "            "
+            ),
             (640, 480),
             ["cat", "dog"],
             (
@@ -1419,8 +1442,7 @@ class TestFromFlorence2Segmentation:
                     r"Got \(0, 480\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                ,
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (0, 480),
             None,
             None,
@@ -1433,8 +1455,7 @@ class TestFromFlorence2Segmentation:
                     r"Got \(640, -100\)"
                 ),
             ),
-            """```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```"""
-                                                                                ,
+            ('```json [ {"box_2d": [10, 20, 110, 120], "label": "cat"} ] ```'),
             (640, -100),
             None,
             None,
@@ -1444,7 +1465,8 @@ class TestFromFlorence2Segmentation:
             (
                 '```json [ {"box_2d": [10, 20, 110, 120], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjA"
                 'AAAAElFTkSuQmCC", "label": "cat"} ] ```'
             ),
             (10, 10),
@@ -1462,11 +1484,13 @@ class TestFromFlorence2Segmentation:
             (
                 '```json [ {"box_2d": [100, 100, 200, 200], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXp"
                 'jAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8}, '
                 '{"box_2d": [300, 300, 400, 400], "mask": '
                 '"data:image/png;base64,'
-                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpj"
+                "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACo"
+                "WZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpj"
                 'AAAAAElFTkSuQmCC", "label": "dog", "confidence": 0.9} ] ```'
             ),
             (10, 10),
@@ -1709,6 +1733,7 @@ class TestGeminiMasksForBoxesOutsideImage:
     """Gemini 2.5 and 3.5 masks for `box_2d` values outside the 0-1000 range."""
 
     resolution_wh = (1000, 800)
+
     @staticmethod
     def _response(*items: tuple[list[int], np.ndarray]) -> str:
         """Build a Gemini response with one masked `cat` per `(box_2d, mask)` pair."""
@@ -2584,6 +2609,7 @@ class TestFromKosmos2:
 
 class TestPaliGemmaPunctuatedLabels:
     """Open-vocabulary labels retain punctuation during detection parsing."""
+
     @pytest.mark.parametrize(
         "label", ["person (left)", "cat/dog", "person's hand", "v2.0"]
     )
