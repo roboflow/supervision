@@ -21,7 +21,6 @@ date_modified: 2026-10-28
 
 - The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates out-of-bounds color coordinates and rounds floating-point values like OpenCV. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
 
-
 ### 0.31.3 <small>Oct 28, 2026</small>
 
 - `sv.BackgroundOverlayAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The background is blended with the first (blue) channel of the overlay color, the value OpenCV draws on a single-channel image, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2832](https://github.com/roboflow/supervision/pull/2832))
