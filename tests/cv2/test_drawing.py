@@ -1060,3 +1060,40 @@ assert np.any(result)
     )
 
     assert completed.returncode == 0, completed.stderr
+
+
+@requires_cv2
+@pytest.mark.parametrize(
+    ("dtype", "color"),
+    [
+        pytest.param(np.uint8, (-10, 300, 50), id="uint8-out-of-bounds-multichannel"),
+        pytest.param(np.uint8, 300, id="uint8-out-of-bounds-scalar"),
+        pytest.param(np.uint8, -10, id="uint8-negative-scalar"),
+        pytest.param(np.uint8, (128.6, 200.2, 0.0), id="uint8-float-multichannel"),
+        pytest.param(np.int8, (-150, 200, 50), id="int8-out-of-bounds"),
+        pytest.param(np.uint16, (-10, 70000, 500), id="uint16-out-of-bounds"),
+        pytest.param(np.float32, (-10.4, 300.6, 50.2), id="float32-values"),
+    ],
+)
+@pytest.mark.parametrize("shape", [(20, 20), (20, 20, 3)])
+def test_fallback_drawing_colors_saturate_and_round_like_opencv(
+    dtype: np.dtype[Any], color: Any, shape: tuple[int, ...]
+) -> None:
+    """Saturate out-of-bounds drawing colors and round floats matching OpenCV."""
+    actual_rect = np.zeros(shape, dtype=dtype)
+    expected_rect = np.zeros(shape, dtype=dtype)
+    _rectangle(actual_rect, (2, 2), (8, 8), color, -1)
+    cv2.rectangle(expected_rect, (2, 2), (8, 8), color, -1)
+    np.testing.assert_array_equal(actual_rect, expected_rect)
+
+    actual_circ = np.zeros(shape, dtype=dtype)
+    expected_circ = np.zeros(shape, dtype=dtype)
+    _circle(actual_circ, (10, 10), 4, color, -1)
+    cv2.circle(expected_circ, (10, 10), 4, color, -1)
+    np.testing.assert_array_equal(actual_circ, expected_circ)
+
+    actual_line = np.zeros(shape, dtype=dtype)
+    expected_line = np.zeros(shape, dtype=dtype)
+    _line(actual_line, (2, 2), (15, 15), color, 1)
+    cv2.line(expected_line, (2, 2), (15, 15), color, 1)
+    np.testing.assert_array_equal(actual_line, expected_line)
