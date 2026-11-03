@@ -88,8 +88,10 @@ def test_small_bucket_mar_returns_zero_without_bucket_targets() -> None:
         confidence=np.array([0.9], dtype=np.float32),
         class_id=np.array([0], dtype=np.int32),
     )
+    # 33 x 33 is above the inclusive COCO small range [0, 32²], so the small
+    # bucket has no targets. A 32 x 32 target would count as small.
     targets = Detections(
-        xyxy=np.array([[0, 0, 32, 32]], dtype=np.float32),
+        xyxy=np.array([[0, 0, 33, 33]], dtype=np.float32),
         class_id=np.array([0], dtype=np.int32),
     )
 
