@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- The OpenCV-free `cvtColor` fallback now accepts the same channel layouts as OpenCV for gray conversions: `COLOR_BGR2GRAY` takes a four-channel BGRA image (alpha ignored) and `COLOR_GRAY2BGR` takes an `(H, W, 1)` image. Both previously raised `ValueError`, so `sv.grayscale_image` failed on BGRA frames without OpenCV. ([#2866](https://github.com/roboflow/supervision/pull/2866))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
