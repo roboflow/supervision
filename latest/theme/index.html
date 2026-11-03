@@ -1,0 +1,15 @@
+{% extends "main.html" %}
+{% block content %}
+{{ super() }}
+<style>
+  .md-content__button {
+    display: none;
+  }
+  #logo {
+    position: relative;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+</style>
+{% endblock %}
