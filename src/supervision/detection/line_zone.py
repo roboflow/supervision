@@ -106,6 +106,7 @@ class LineZone:
             Position.BOTTOM_RIGHT,
         ),
         minimum_crossing_threshold: int = 1,
+        max_absent_frames: int = 30,
     ) -> None:
         """
         Args:
@@ -130,7 +131,18 @@ class LineZone:
                 on, at the start of its life and again after it has been absent
                 long enough for its state to be dropped, becomes its reference
                 immediately, with no confirmation.
+            max_absent_frames: How many consecutive frames a tracker may be missing
+                before its crossing state is dropped. A tracker that returns sooner
+                keeps its side, so an object occluded while it crosses the line is
+                still counted. The default matches the `lost_track_buffer` default of
+                `ByteTrackTracker`; keep the two equal if you change either.
+
+        Raises:
+            ValueError: If `max_absent_frames` is less than 1.
         """
+        if max_absent_frames < 1:
+            raise ValueError("max_absent_frames must be at least 1.")
+        self.max_absent_frames = max_absent_frames
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
@@ -146,9 +158,8 @@ class LineZone:
         # on its first frame back after eviction — still decides where it starts.
         self._confirmed_crossing_side: dict[int, bool] = {}
         # Tracks consecutive frames a tracker key has been absent; eviction
-        # requires crossing_history_length absent frames so that ByteTrack
-        # coasting gaps (single-frame detection drops) don't reset mid-crossing
-        # state prematurely.
+        # requires max_absent_frames absent frames so that a tracker keeping an ID
+        # through an occlusion doesn't lose its mid-crossing state.
         self._tracker_frames_absent: dict[int, int] = {}
         self._in_count_per_class: Counter[int | None] = Counter()
         self._out_count_per_class: Counter[int | None] = Counter()
@@ -317,12 +328,13 @@ class LineZone:
         return crossed_in, crossed_out
 
     def _evict_stale_crossing_history(self, current_keys: set[int]) -> None:
+        """Drop crossing state of trackers absent for `max_absent_frames` frames."""
         for key in list(self.crossing_state_history):
             if key in current_keys:
                 self._tracker_frames_absent.pop(key, None)
             else:
                 absent = self._tracker_frames_absent.get(key, 0) + 1
-                if absent >= self.crossing_history_length:
+                if absent >= self.max_absent_frames:
                     del self.crossing_state_history[key]
                     self._confirmed_crossing_side.pop(key, None)
                     self._tracker_frames_absent.pop(key, None)
