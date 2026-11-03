@@ -219,13 +219,10 @@ _FALLBACK_BINDINGS = [
 # positionally, so nothing breaks yet; align a fallback and delete its entry here.
 _RENAMED_FALLBACKS = frozenset(
     {
-        "approxPolyDP",
-        "blur",
         "convertScaleAbs",
         "copyMakeBorder",
         "cvtColor",
         "imwrite",
-        "intersectConvexConvex",
         "mean",
         "merge",
         "split",
