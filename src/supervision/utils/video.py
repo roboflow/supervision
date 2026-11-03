@@ -185,8 +185,8 @@ def _validate_and_setup_video(
 ) -> tuple[cv2.VideoCapture, int, int | None]:
     """Open a video, position it at `start`, and return it with the frame range.
 
-    An `end` of `None` is kept, so the caller reads until the stream runs out.
-    Setup failures release the capture before propagating the original error.
+    An `end` of `None` is kept, so the caller reads until the stream runs out. Setup
+    failures release the capture before propagating the original error.
     """
     video = cv2.VideoCapture(source_path)
     try:

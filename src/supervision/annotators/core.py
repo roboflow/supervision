@@ -96,10 +96,10 @@ def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPa
     """Normalize accepted color inputs to internal color objects.
 
     Accepts :class:`~supervision.draw.color.Color`,
-    :class:`~supervision.draw.color.ColorPalette`, or hex string input. Hex strings
-    are parsed via :func:`~supervision.annotators.utils.hex_to_rgba` and converted
-    to :class:`~supervision.draw.color.Color` (alpha channel is ignored because
-    annotator drawing uses RGB/BGR colors).
+    :class:`~supervision.draw.color.ColorPalette`, or hex string input. Hex strings are
+    parsed via :func:`~supervision.annotators.utils.hex_to_rgba` and converted to
+    :class:`~supervision.draw.color.Color` (alpha channel is ignored because annotator
+    drawing uses RGB/BGR colors).
     """
     if isinstance(color, str):
         r, g, b, _ = hex_to_rgba(color)
@@ -443,9 +443,9 @@ def _color_for_canvas(
 ) -> tuple[int, ...]:
     """Return the color as the pixel value OpenCV drawing writes to `canvas`.
 
-    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first
-    (blue) channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match
-    the boxes and polygons other annotators draw on the same scene.
+    A grayscale canvas, shaped ``(H, W)`` or ``(H, W, 1)``, takes the first (blue)
+    channel, as ``cv2.rectangle`` and ``cv2.fillPoly`` do, so masks match the boxes and
+    polygons other annotators draw on the same scene.
     """
     if canvas.ndim == 2 or canvas.shape[2] == 1:
         return color_bgr[:1]

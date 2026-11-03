@@ -163,8 +163,8 @@ class TestDetectionsToCreatemlAnnotations:
     def test_raises_when_class_id_is_out_of_range(self, class_id: int) -> None:
         """An out-of-range class_id raises instead of exporting a wrong label.
 
-        A negative id used to index ``classes`` from the end, so -1 was silently
-        written as the last class.
+        A negative id used to index ``classes`` from the end, so -1 was silently written
+        as the last class.
         """
         detections = Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),

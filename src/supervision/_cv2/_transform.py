@@ -18,8 +18,8 @@ def _blur(
 ) -> npt.NDArray[Any]:
     """Apply a box filter with OpenCV's default reflect-101 boundary behavior.
 
-    Parameter names mirror `cv2.blur(src, ksize, borderType=...)` so keyword calls
-    bind on both backends; keep them when editing.
+    Parameter names mirror `cv2.blur(src, ksize, borderType=...)` so keyword calls bind
+    on both backends; keep them when editing.
     """
     if min(ksize) <= 0:
         raise ValueError("Blur kernel dimensions must be positive")
