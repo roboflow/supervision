@@ -4368,6 +4368,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.DetectionDataset.merge</code> now preserves annotations without class IDs while remapping labeled annotations, instead of raising <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2858">#2858</a>)</p>
+</li>
+<li>
+<p><code>sv.Detections.from_ultralytics</code> now preserves at least one content pixel per axis when restoring masks from thin letterboxed images, instead of passing an empty crop to image resizing. (<a href="https://github.com/roboflow/supervision/pull/2857">#2857</a>)</p>
+</li>
+<li>
 <p><code>sv.scale_boxes</code> can now retain representable output corners when opposite-sign floating-point coordinates overflow the intermediate box width, including float16 boxes spanning <code>-40000</code> to <code>40000</code> scaled by <code>0.5</code>. (<a href="https://github.com/roboflow/supervision/pull/2853">#2853</a>)</p>
 </li>
 <li>
@@ -4387,6 +4393,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
 <li>
 <p><code>sv.Detections.from_vlm</code> now returns an integer <code>class_id</code> when a Gemini 2.5, 3.5, 3.6 or 3.7 <code>classes</code> filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a <code>float64</code> array, so <code>np.bincount(detections.class_id)</code> or indexing a class-name array with it raised on such frames. (<a href="https://github.com/roboflow/supervision/pull/2839">#2839</a>)</p>
+</li>
+<li>
+<p><code>detections_to_createml_annotations</code> and <code>detections_to_pascal_voc</code> now raise <code>ValueError</code> for a <code>class_id</code> outside <code>classes</code>, as <code>detections_to_labelme_annotations</code> does. A negative id was silently exported under the last class name, and an id past the end raised <code>IndexError</code>. (<a href="https://github.com/roboflow/supervision/pull/2859">#2859</a>)</p>
+</li>
+<li>
+<p>The NumPy fallbacks for <code>blur</code>, <code>approxPolyDP</code> and <code>intersectConvexConvex</code> now take OpenCV's parameter names (<code>src</code>/<code>borderType</code>, <code>curve</code>, and <code>p1</code>/<code>p2</code>/<code>handleNested</code>), so keyword calls such as <code>cv2.approxPolyDP(curve=contour, epsilon=2.0, closed=True)</code> work without OpenCV instead of raising <code>TypeError</code>. For strictly nested polygons, <code>intersectConvexConvex(handleNested=False)</code> now returns no intersection, matching OpenCV. (<a href="https://github.com/roboflow/supervision/pull/2856">#2856</a>)</p>
 </li>
 <li>
 <p>The NumPy fallback for drawing operations and <code>cv2.copyMakeBorder</code> now saturates color components and rounds floating-point inputs for integer images, matching OpenCV within the signed 32-bit rounding range. Outside that range or for non-finite values, OpenCV rounding is undefined and fallback results may differ. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised <code>OverflowError</code> under NumPy 2.x. (<a href="https://github.com/roboflow/supervision/pull/2854">#2854</a>)</p>
@@ -6615,7 +6627,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 3, 2026 11:13:25 UTC">November 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 3, 2026 15:13:25 UTC">November 3, 2026</span>
   </span>
 
     
@@ -6643,9 +6655,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Vuln3rat0r" class="md-author" title="@Vuln3rat0r">
+        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
-          <img src="https://avatars.githubusercontent.com/u/109514829?v=4&size=72" alt="Vuln3rat0r">
+          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6653,9 +6665,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
+        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
           
-          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
+          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
         </a>
       
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
@@ -6667,7 +6679,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +35
+            +34
           </a>
         
       
