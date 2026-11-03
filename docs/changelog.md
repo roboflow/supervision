@@ -7,6 +7,8 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names. ([#2852](https://github.com/roboflow/supervision/pull/2852))
+
 - Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates. ([#2851](https://github.com/roboflow/supervision/pull/2851))
 
 - `sv.InferenceSlicer(compact_masks=True)` now preserves the dense masks on callback-owned detections, including results retained in a batch list. Sequential callbacks can reset and reuse their output buffers across tiles and batches without raising `AttributeError` after the first compact conversion. The slicer's output remains compact and keeps the same mask pixels. ([#2847](https://github.com/roboflow/supervision/pull/2847))
