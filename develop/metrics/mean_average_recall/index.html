@@ -4712,9 +4712,9 @@ missed objects.</p>
 </span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute recall per detection limit and class from all images&#39; matches.</span>
 </span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a>
 </span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        `matches` has shape (P, Th, K) and holds, for each detection limit, the matches</span>
-</span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        of that limit&#39;s own top predictions of each class; the other arrays have one</span>
-</span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">        row or entry per prediction, or per target for `true_class_ids`.</span>
-</span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">        `class_ranks` is each prediction&#39;s rank within its class in its own image.</span>
+</span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        of that limit&#39;s own top predictions of each class; the other arrays have one row</span>
+</span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">        or entry per prediction, or per target for `true_class_ids`. `class_ranks` is</span>
+</span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">        each prediction&#39;s rank within its class in its own image.</span>
 </span><span id="__span-0-655"><a id="__codelineno-0-655" name="__codelineno-0-655"></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="__span-0-656"><a id="__codelineno-0-656" name="__codelineno-0-656"></a>        <span class="n">unique_classes</span><span class="p">,</span> <span class="n">class_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">true_class_ids</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-0-657"><a id="__codelineno-0-657" name="__codelineno-0-657"></a>
