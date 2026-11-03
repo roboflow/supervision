@@ -7,6 +7,8 @@ date_modified: 2026-10-28
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.CSVSink` now preserves an exception raised inside a `with` block when writing the deferred header or flushing the file also fails. The cleanup error is logged; when the block succeeds, cleanup errors still propagate.
+
 - PaliGemma detection parsing now preserves punctuation in class labels such as `person (left)` and `cat/dog`, so class filtering no longer discards these detections after truncating their names. ([#2852](https://github.com/roboflow/supervision/pull/2852))
 
 - Qwen VLM parsing now skips malformed or non-finite bounding boxes while retaining valid detections from the same response, instead of raising during array construction or returning invalid coordinates. ([#2851](https://github.com/roboflow/supervision/pull/2851))
