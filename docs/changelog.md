@@ -1,6 +1,6 @@
 ---
 description: Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version.
-date_modified: 2026-10-28
+date_modified: 2026-10-31
 ---
 
 # Changelog
@@ -20,6 +20,8 @@ date_modified: 2026-10-28
 - The OpenCV-free image reader now retains the high byte when converting 16-bit grayscale PNG and TIFF images to 8-bit color. It previously rounded the discarded low byte, making values such as `129` decode to `1` instead of `0`. File and in-memory reads now match OpenCV; unchanged reads retain their original pixel values and bit depth. ([#2840](https://github.com/roboflow/supervision/pull/2840))
 
 - `sv.Detections.from_vlm` now returns an integer `class_id` when a Gemini 2.5, 3.5, 3.6 or 3.7 `classes` filter removes every detection, and when a DeepSeek-VL2 response has no detections. It was a `float64` array, so `np.bincount(detections.class_id)` or indexing a class-name array with it raised on such frames. ([#2839](https://github.com/roboflow/supervision/pull/2839))
+
+- The NumPy fallbacks for `blur`, `approxPolyDP` and `intersectConvexConvex` now take OpenCV's parameter names (`src`/`borderType`, `curve`, and `p1`/`p2`/`handleNested`), so keyword calls such as `cv2.approxPolyDP(curve=contour, epsilon=2.0, closed=True)` work without OpenCV instead of raising `TypeError`. For strictly nested polygons, `intersectConvexConvex(handleNested=False)` now returns no intersection, matching OpenCV. ([#2856](https://github.com/roboflow/supervision/pull/2856))
 
 - The NumPy fallback for drawing operations and `cv2.copyMakeBorder` now saturates color components and rounds floating-point inputs for integer images, matching OpenCV within the signed 32-bit rounding range. Outside that range or for non-finite values, OpenCV rounding is undefined and fallback results may differ. Previously, integer colors wrapped around modulo their depth bitwidth, and out-of-bounds border constants raised `OverflowError` under NumPy 2.x. ([#2854](https://github.com/roboflow/supervision/pull/2854))
 
