@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- **Image window**: `sv.ImageWindow.show` now draws the frame on the call that opens a window, instead of leaving it blank until the next `show`. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop `show` from returning for wide frames. ([#2881](https://github.com/roboflow/supervision/pull/2881))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
