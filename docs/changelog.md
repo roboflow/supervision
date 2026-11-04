@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- The OpenCV-free `cvtColor` fallback now reads a float32 image for `COLOR_HSV2BGR` as OpenCV does: hue in degrees, saturation, value and the BGR result in `[0, 1]`. It previously applied the 8-bit scale to float32 input, and it now raises `ValueError` for the depths OpenCV rejects. ([#2885](https://github.com/roboflow/supervision/pull/2885))
+
 - `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
 
 - `sv.LineZone` now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the `max(30, minimum_crossing_threshold + 1)`th consecutive absent frame. To restore previous retention, pass `max_absent_frames=max(2, minimum_crossing_threshold + 1)`; this is 2 for the default crossing threshold. [#2873](https://github.com/roboflow/supervision/pull/2873)
