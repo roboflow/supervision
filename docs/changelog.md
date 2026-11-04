@@ -8,6 +8,9 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding. ([#2880](https://github.com/roboflow/supervision/pull/2880))
+- `sv.HeatMapAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The heat colors are blended as their gray luminance, as `sv.CropAnnotator` and `sv.IconAnnotator` overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. ([#2872](https://github.com/roboflow/supervision/pull/2872))
+
+- `sv.CSVSink` now preserves an exception raised inside a `with` block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. ([#2869](https://github.com/roboflow/supervision/pull/2869))
 
 - COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
 
