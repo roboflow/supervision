@@ -173,6 +173,94 @@ class TestFallbackBlurUint8:
         assert np.abs(blurred - expected).max() <= 1
 
 
+class TestFallbackBlur16Bit:
+    """16-bit box blur with OpenCV's exact window sums and float32 scaling."""
+
+    @pytest.mark.parametrize("dtype", [np.uint16, np.int16])
+    def test_rounds_exact_half_ties_to_even(self, dtype: type[np.integer]) -> None:
+        """Round a window mean of exactly 2.5 down to 2, no OpenCV needed."""
+        source = np.array([[4, 4, 0, 3, 0], [3, 1, 4, 1, 5]], dtype=dtype)
+
+        blurred = _blur(source, (2, 3))
+
+        # Reflect-101 rows 1, 0, 1 and columns 3, 4 sum to 15 over 6 pixels.
+        assert blurred.dtype == dtype
+        assert blurred[0, 4] == 2
+
+    @pytest.mark.parametrize(
+        ("dtype", "size", "extra"),
+        [
+            pytest.param(np.uint16, 200, 20_001, id="uint16-area-40000"),
+            pytest.param(np.int16, 300, 45_001, id="int16-area-90000"),
+        ],
+    )
+    def test_scales_large_kernels_in_float64(
+        self, dtype: type[np.integer], size: int, extra: int
+    ) -> None:
+        """Round like OpenCV's float64 path once the kernel area passes its limit."""
+        source = np.full((size, size), 20_000, dtype=dtype)
+        source.flat[:extra] += 1
+
+        blurred = _blur(source, (size, size))
+
+        # The centre window covers the whole image: (20000 * area + extra) / area is
+        # just above 20000.5, which float32 scaling rounds down to 20000.
+        assert blurred[size // 2, size // 2] == 20_001
+
+    @_requires_opencv
+    @pytest.mark.parametrize(
+        ("dtype", "ksize"),
+        [
+            pytest.param(np.uint16, (128, 256), id="uint16-float32-limit"),
+            pytest.param(np.uint16, (181, 182), id="uint16-float64"),
+            pytest.param(np.int16, (256, 256), id="int16-float32-limit"),
+            pytest.param(np.int16, (257, 256), id="int16-float64"),
+        ],
+    )
+    def test_matches_opencv_on_large_kernels(
+        self, dtype: type[np.integer], ksize: tuple[int, int]
+    ) -> None:
+        """Match OpenCV on both sides of its float32 scaling limit."""
+        info = np.iinfo(dtype)
+        rng = np.random.default_rng(3)
+        source = rng.integers(info.min, int(info.max) + 1, size=(270, 48)).astype(dtype)
+
+        blurred = _blur(source, ksize)
+        expected = cv2.blur(source, ksize)
+
+        np.testing.assert_array_equal(blurred, expected)
+
+    @_requires_opencv
+    @pytest.mark.parametrize("dtype", [np.uint16, np.int16])
+    @pytest.mark.parametrize("channels", [None, 3])
+    @pytest.mark.parametrize(
+        "ksize",
+        [
+            pytest.param((2, 3), id="even-width"),
+            pytest.param((4, 2), id="even-anchor"),
+            pytest.param((3, 3), id="odd-square"),
+        ],
+    )
+    def test_matches_opencv(
+        self,
+        dtype: type[np.integer],
+        channels: int | None,
+        ksize: tuple[int, int],
+    ) -> None:
+        """Match OpenCV on images whose width fills whole vector registers."""
+        info = np.iinfo(dtype)
+        rng = np.random.default_rng(29)
+        # Rows of 16 or 48 values: OpenCV's float64 tail is empty for 8- and 16-wide
+        # vectors, so every column takes the float32 path.
+        shape = (17, 16) if channels is None else (17, 16, channels)
+        source = rng.integers(info.min, int(info.max) + 1, size=shape).astype(dtype)
+
+        blurred = _blur(source, ksize)
+        expected = cv2.blur(source, ksize).reshape(source.shape)
+
+        np.testing.assert_array_equal(blurred, expected)
+
+
 class TestGetPerspectiveTransform:
     @pytest.mark.parametrize(("source", "target"), [*RANDOM, SPEED, SCALE])
     def test_maps_source_corners_onto_target(
