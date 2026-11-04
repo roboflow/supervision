@@ -4390,6 +4390,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.LineZone</code> now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the <code>max(30, minimum_crossing_threshold + 1)</code>th consecutive absent frame. To restore previous retention, pass <code>max_absent_frames=max(2, minimum_crossing_threshold + 1)</code>; this is 2 for the default crossing threshold. <a href="https://github.com/roboflow/supervision/pull/2873">#2873</a></p>
+</li>
+<li>
+<p><code>sv.HeatMapAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The heat colors are blended as their gray luminance, as <code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. (<a href="https://github.com/roboflow/supervision/pull/2872">#2872</a>)</p>
+</li>
+<li>
 <p><code>sv.CSVSink</code> now preserves an exception raised inside a <code>with</code> block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. (<a href="https://github.com/roboflow/supervision/pull/2869">#2869</a>)</p>
 </li>
 <li>
@@ -6675,7 +6681,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 4, 2026 14:51:12 UTC">November 4, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 4, 2026 17:33:19 UTC">November 4, 2026</span>
   </span>
 
     
@@ -6703,9 +6709,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/AuricTW" class="md-author" title="@AuricTW">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/108772778?v=4&size=72" alt="AuricTW">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6713,14 +6719,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
+        <a href="https://github.com/BarsamErshadi" class="md-author" title="@BarsamErshadi">
           
-          <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
+          <img src="https://avatars.githubusercontent.com/u/263472979?v=4&size=72" alt="BarsamErshadi">
         </a>
       
-        <a href="https://github.com/DrEssam97" class="md-author" title="@DrEssam97">
+        <a href="https://github.com/AuricTW" class="md-author" title="@AuricTW">
           
-          <img src="https://avatars.githubusercontent.com/u/197378046?v=4&size=72" alt="DrEssam97">
+          <img src="https://avatars.githubusercontent.com/u/108772778?v=4&size=72" alt="AuricTW">
         </a>
       
       
