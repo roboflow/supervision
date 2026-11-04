@@ -16,9 +16,6 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.detection.utils.matching import (
-    _match_detection_batch_with_target_indices,
-)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import (
     Metric,
@@ -649,9 +646,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         """Compute recall per detection limit and class from all images' matches.
 
         `matches` has shape (P, Th, K) and holds, for each detection limit, the matches
-        of that limit's own top predictions of each class; the other arrays have one
-        row or entry per prediction, or per target for `true_class_ids`.
-        `class_ranks` is each prediction's rank within its class in its own image.
+        of that limit's own top predictions of each class; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`. `class_ranks` is
+        each prediction's rank within its class in its own image.
         """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
@@ -688,18 +685,6 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         recall_scores = np.mean(average_recall_per_class, axis=1)
 
         return recall_scores, recall_per_class_at_k, unique_classes
-
-    @staticmethod
-    def _match_detection_batch(
-        predictions_classes: npt.NDArray[np.int32],
-        target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.float32],
-        iou_thresholds: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.bool_]:
-        result_correct, _ = _match_detection_batch_with_target_indices(
-            predictions_classes, target_classes, iou, iou_thresholds
-        )
-        return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
