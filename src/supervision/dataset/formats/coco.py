@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import warnings
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -12,6 +13,7 @@ from tqdm.auto import tqdm
 from supervision.config import AREA_DATA_FIELD, COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     _image_file_resolution_wh,
+    _SeamNotFoundError,
     approximate_mask_with_polygons,
     check_no_basename_collisions,
     map_detections_class_id,
@@ -317,7 +319,11 @@ def detections_to_coco_annotations(
         For ``iscrowd=0`` annotations, ``segmentation`` is a
         ``list[list[float]]`` where each inner list encodes one polygon
         part as flat ``[x1, y1, x2, y2, ...]`` coordinates. A single
-        object with *N* disjoint parts produces *N* inner lists.
+        object with *N* disjoint parts produces *N* inner lists. A hole is
+        joined to its part along a zero-width seam, because COCO readers
+        union the parts of an object and would fill a separate hole polygon.
+        If no seam is found, a warning is issued and the hole stays a
+        separate part.
 
         When ``iscrowd`` is not in ``detections.data``, masks with holes
         or multiple disjoint segments are auto-encoded as RLE
@@ -374,12 +380,24 @@ def detections_to_coco_annotations(
                     "size": list(mask.shape[:2]),
                 }
             else:
-                polygons = approximate_mask_with_polygons(
+                approximate = partial(
+                    approximate_mask_with_polygons,
                     mask=mask_bool,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
                 )
+                try:
+                    polygons = approximate(bridge_holes=True)
+                except _SeamNotFoundError:
+                    # One mask must not abort the export of a whole dataset.
+                    warnings.warn(
+                        "Could not join the holes of COCO annotation "
+                        f"id={annotation_id} to their outline, so they stay separate "
+                        "polygon parts, which COCO readers fill.",
+                        stacklevel=2,
+                    )
+                    polygons = approximate()
                 # Small/noisy masks can be filtered out by approximation settings.
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
