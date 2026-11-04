@@ -1,12 +1,15 @@
+import importlib
+import re
 from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
+from types import ModuleType
 from typing import Any, ClassVar, cast
 
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, features
 from scipy.interpolate import splev, splprep
 
 from supervision import _cv2 as cv2
@@ -54,6 +57,28 @@ from supervision.utils.image import (
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
+
+# Hebrew, Arabic, Syriac, Thaana, NKo and their presentation forms
+_RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
+
+
+@lru_cache(maxsize=2)
+def _warn_unshaped_rtl_text(unsupported_mode: bool = False) -> None:
+    """Warn once when Pillow cannot shape right-to-left text."""
+    # Pillow joins Arabic letters and orders right-to-left text only with Raqm
+    if not features.check("raqm"):
+        if unsupported_mode:
+            logger.warning(
+                "The `rtl` extra requires RGB or RGBA images. Pillow needs Raqm "
+                "to shape right-to-left labels. Convert the image to RGB or RGBA "
+                "to use the extra."
+            )
+        else:
+            logger.warning(
+                "Right-to-left labels (Arabic, Hebrew) need Pillow with Raqm or the "
+                "`rtl` extra to render correctly. Run `uv pip install "
+                "'supervision[rtl]'` or `uv add supervision --extra rtl`."
+            )
 
 
 @lru_cache
@@ -1703,6 +1728,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             text_color: The color to use for the text.
             font_path: Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
+                With the `rtl` extra installed, Arabic and Hebrew lines in RGB or
+                RGBA images are drawn with `khatt`, using this font when supplied.
+                Missing glyphs use Noto Naskh Arabic or Rubik (Hebrew). Other image
+                modes fall back to Pillow, which requires Raqm for shaping and may
+                not support every image mode.
             font_size: Font size for the text.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
@@ -1719,6 +1749,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         self.font_path = font_path
         self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
+        # khatt draws in the font file Pillow loaded (which may be resolved from a
+        # system font directory), or its bundled Arabic font when the default PIL
+        # font (no Arabic glyphs, loaded from memory) is in use
+        loaded_path = getattr(self.font, "path", None)
+        self._rtl_font = loaded_path if isinstance(loaded_path, str) else None
         super().__init__(
             color=color,
             color_lookup=color_lookup,
@@ -1798,6 +1833,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             )
 
         self._draw_labels(
+            scene=cast(Image.Image, scene),
             draw=draw,
             labels=labels,
             label_properties=label_properties,
@@ -1806,6 +1842,48 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         return scene
+
+    def _rtl_engine(self, draw: ImageDraw.ImageDraw, line: str) -> ModuleType | None:
+        """The `khatt` module when `line` holds right-to-left text, the scene is RGB or
+        RGBA and the `rtl` extra is installed, else `None` (the line is measured and
+        drawn by Pillow)."""
+        if not _RTL_TEXT.search(line):
+            return None
+        if draw.mode not in ("RGB", "RGBA"):
+            _warn_unshaped_rtl_text(unsupported_mode=True)
+            return None
+        try:
+            return importlib.import_module("khatt")
+        except ModuleNotFoundError as exc:
+            if exc.name != "khatt":
+                raise
+            _warn_unshaped_rtl_text()
+            return None
+
+    def _rtl_options(self) -> dict[str, Any]:
+        # khatt's bundled Noto Naskh Arabic and Rubik (Hebrew) cover characters
+        # the label font lacks
+        if self._rtl_font is None:
+            return {
+                "font": "noto-naskh",
+                "size_px": self.font_size,
+                "fallback_fonts": ("rubik",),
+            }
+        return {
+            "font": self._rtl_font,
+            "size_px": self.font_size,
+            "fallback_fonts": ("noto-naskh", "rubik"),
+        }
+
+    def _text_bbox(
+        self, draw: ImageDraw.ImageDraw, line: str
+    ) -> tuple[float, float, float, float]:
+        khatt = self._rtl_engine(draw, line)
+        if khatt is not None:
+            left, top, right, bottom = khatt.text_bbox(line, **self._rtl_options())
+        else:
+            left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+        return left, top, right, bottom
 
     def _get_label_properties(
         self, draw: ImageDraw.ImageDraw, detections: Detections, labels: list[str]
@@ -1829,7 +1907,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             total_height = 0.0
 
             for line in wrapped_lines:
-                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                left, top, right, bottom = self._text_bbox(draw, line)
                 line_width = right - left
                 line_height = bottom - top
 
@@ -1861,6 +1939,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def _draw_labels(
         self,
+        scene: Image.Image,
         draw: ImageDraw.ImageDraw,
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
@@ -1910,15 +1989,31 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             y_position = box_xyxy[1] + self.text_padding - text_top
 
             for line in wrapped_lines:
-                draw.text(
-                    xy=(x_position, y_position),
-                    text=line,
-                    font=self.font,
-                    fill=text_color.as_rgb(),
-                )
+                khatt = self._rtl_engine(draw, line)
+                if khatt is not None:
+                    # Right-aligned in the box, with its ink top where Pillow's
+                    # lines start
+                    _left, top, right, _bottom = self._text_bbox(draw, line)
+                    khatt.draw_text(
+                        scene,
+                        (
+                            box_xyxy[2] - self.text_padding - right,
+                            y_position + text_top - top,
+                        ),
+                        line,
+                        fill=text_color.as_rgb(),
+                        **self._rtl_options(),
+                    )
+                else:
+                    draw.text(
+                        xy=(x_position, y_position),
+                        text=line,
+                        font=self.font,
+                        fill=text_color.as_rgb(),
+                    )
 
                 # Move to the next line position
-                _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                _left, top, _right, bottom = self._text_bbox(draw, line)
                 line_height = bottom - top
                 y_position += line_height + self.text_padding
 
