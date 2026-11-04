@@ -91,8 +91,10 @@ class ImageWindow:
     def show(self, image: npt.NDArray[np.uint8]) -> None:
         """Display a BGR, grayscale, or BGRA frame in the window.
 
-        The image is scaled to fit the current window dimensions. Aspect ratio is
-        preserved unless `keep_aspect_ratio=False`. Resizing the window rescales live.
+        A call that opens the window sizes it to the frame, up to the screen size.
+        Otherwise the image is scaled to fit the current window dimensions. Aspect
+        ratio is preserved unless `keep_aspect_ratio=False`. Resizing the window
+        rescales live.
         Args:
             image: uint8 numpy array. Accepted shapes:
                 - ``(H, W)`` — grayscale
@@ -109,8 +111,15 @@ class ImageWindow:
                 f"image must be uint8, got {image.dtype}. "
                 "Convert with image.astype(np.uint8) before calling show()."
             )
-        self._pil_image = _bgr_to_pil(image)
+        pil_image = _bgr_to_pil(image)
+        opening_window = not self._window_exists()
+        # Opening a window resets the stored frame, so store it only afterwards.
         self._ensure_window()
+        self._pil_image = pil_image
+        if opening_window:
+            width = min(pil_image.width, self._root.winfo_screenwidth())
+            height = min(pil_image.height, self._root.winfo_screenheight())
+            self._root.geometry(f"{width}x{height}")
         self._update_display()
         self._root.update_idletasks()
         self._root.update()
@@ -174,6 +183,7 @@ class ImageWindow:
         self.close()
 
     def _ensure_window(self) -> None:
+        """Create the Tk window and its full-size image label if no window exists."""
         if self._window_exists():
             return
         self._reset_window_refs()
@@ -181,8 +191,14 @@ class ImageWindow:
 
         self._root = tk.Tk()
         self._root.title(self.title)
-        self._label = tk.Label(self._root)
+        # Without padding, a photo fitted to the window is not clipped at its edges.
+        self._label = tk.Label(
+            self._root, borderwidth=0, padx=0, pady=0, highlightthickness=0
+        )
         self._label.pack(expand=True, fill="both")
+        # The window must not follow the label's size: a redraw fitted to the window
+        # would otherwise resize the window and trigger the next redraw.
+        self._root.pack_propagate(False)
         self._key_event = tk.IntVar(master=self._root, value=0)
         self._root.bind("<Key>", self._on_key)
         self._root.bind("<Configure>", self._on_configure)
