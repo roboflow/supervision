@@ -2782,6 +2782,133 @@ def test_coco_iscrowd_mask_exports_as_rle() -> None:
     assert "size" in seg
 
 
+class TestCocoExportBoxArithmetic:
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "expected_bbox", "expected_area"),
+        [
+            pytest.param(
+                "uint8", [0, 0, 200, 200], [0, 0, 200, 200], 40000, id="uint8-area"
+            ),
+            pytest.param(
+                "int16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="int16-area"
+            ),
+            pytest.param(
+                "uint16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="uint16-area"
+            ),
+            pytest.param(
+                "int32",
+                [0, 0, 65536, 65536],
+                [0, 0, 65536, 65536],
+                2**32,
+                id="int32-area",
+            ),
+            pytest.param(
+                "float16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="float16-area"
+            ),
+            pytest.param(
+                "float16",
+                [-40000, 0, 40000, 1],
+                [-40000, 0, 80000, 1],
+                80000,
+                id="float16-width",
+            ),
+            pytest.param(
+                "float32",
+                [0, 0, 2**70, 2**70],
+                [0, 0, 2**70, 2**70],
+                2**140,
+                id="float32-area",
+            ),
+            pytest.param(
+                "int64",
+                [2**53 + 1, 2**53 + 1, 2**53 + 4, 2**53 + 6],
+                [2**53 + 1, 2**53 + 1, 3, 5],
+                15,
+                id="int64-origin",
+            ),
+            pytest.param(
+                "uint64",
+                [2**63 + 1, 2**63 + 1, 2**63 + 4, 2**63 + 6],
+                [2**63 + 1, 2**63 + 1, 3, 5],
+                15,
+                id="uint64-origin",
+            ),
+            pytest.param(
+                "float32",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float32-fractional",
+            ),
+            pytest.param(
+                "float64",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float64-fractional",
+            ),
+            pytest.param(
+                "int16", [300, 300, 0, 0], [0, 0, 300, 300], 90000, id="reversed-int16"
+            ),
+        ],
+    )
+    def test_preserves_box_extents_and_area(
+        self,
+        dtype: str,
+        xyxy: list[int | float],
+        expected_bbox: list[int | float],
+        expected_area: int | float,
+    ) -> None:
+        """Export finite extents and areas without losing integer origins."""
+        detections = Detections(
+            xyxy=np.array([xyxy], dtype=dtype), class_id=np.array([0])
+        )
+
+        annotations, _ = detections_to_coco_annotations(
+            detections=detections, image_id=1, annotation_id=1
+        )
+
+        bbox = [
+            value.item() if isinstance(value, np.generic) else value
+            for value in annotations[0]["bbox"]
+        ]
+        assert bbox == expected_bbox
+        assert annotations[0]["area"] == expected_area
+
+    @pytest.mark.parametrize("dtype", ["float16", "int16"])
+    def test_round_trip_keeps_finite_area(self, tmp_path: Path, dtype: str) -> None:
+        """Write valid JSON and retain the box area when loading it again."""
+        image_path = str(tmp_path / "image.png")
+        assert cv2.imwrite(image_path, np.zeros((320, 320, 3), dtype=np.uint8))
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300]], dtype=dtype),
+            class_id=np.array([0]),
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        annotation_path = tmp_path / "annotations.json"
+
+        dataset.as_coco(annotations_path=str(annotation_path))
+        exported = json.loads(
+            annotation_path.read_text(encoding="utf-8"),
+            parse_constant=lambda token: pytest.fail(
+                f"Non-finite JSON constant: {token}"
+            ),
+        )
+        restored = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(annotation_path),
+        )
+
+        assert exported["annotations"][0]["area"] == 90000
+        restored_detections = next(iter(restored.annotations.values()))
+        np.testing.assert_array_equal(restored_detections.data["area"], [90000])
+        np.testing.assert_array_equal(restored_detections.xyxy, [[0, 0, 300, 300]])
+
+
 class TestCocoBoxExtent:
     """Tests for how the COCO loader and exporter handle a reversed box."""
 
