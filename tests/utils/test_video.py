@@ -1961,3 +1961,29 @@ def test_get_video_frames_generator_yields_nothing_when_start_is_past_video(
     )
 
     assert list(frames) == []
+
+
+@pytest.mark.parametrize("prefetch", [0, 2])
+@pytest.mark.parametrize("stride", [1, 3])
+def test_video_range_does_not_decode_past_end(
+    monkeypatch: pytest.MonkeyPatch, prefetch: int, stride: int
+) -> None:
+    """Frames outside the requested range cannot cause a decode error."""
+
+    class Capture(_UnreliableCountCapture):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
+            """Fail when a caller attempts to decode the excluded frame."""
+            if self.position >= 2:
+                raise OSError("decode outside requested range")
+            return super().read()
+
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: Capture(frame_count=5, reported_count=5),
+    )
+
+    frames = get_video_frames_generator(
+        "recording.webm", end=2, stride=stride, prefetch=prefetch
+    )
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == list(range(0, 2, stride))

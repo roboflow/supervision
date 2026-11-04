@@ -346,13 +346,16 @@ def get_video_frames_generator(
     frame_position = start
     decoding_failed = False
     try:
-        while True:
+        while end is None or frame_position < end:
             success, frame = video.read()
-            if not success or (end is not None and frame_position >= end):
+            if not success:
                 break
             if frame is not None:
                 yield cast(npt.NDArray[np.uint8], frame)
-            for _ in range(stride - 1):
+            skip_count = stride - 1
+            if end is not None:
+                skip_count = min(skip_count, end - frame_position - 1)
+            for _ in range(skip_count):
                 success = video.grab()
                 if not success:
                     break
