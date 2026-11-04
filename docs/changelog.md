@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
