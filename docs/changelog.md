@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.oriented_box_iou_batch` and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous `cv2` call on OpenCV installs, so crowded scenes can take seconds. ([#2882](https://github.com/roboflow/supervision/pull/2882))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
