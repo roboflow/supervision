@@ -63,6 +63,26 @@ except (ImportError, OSError):
             id="gray-to-bgr",
         ),
         pytest.param(
+            np.array([[[0], [64]], [[128], [255]]], dtype=np.uint8),
+            _COLOR_GRAY2BGR,
+            cv2.COLOR_GRAY2BGR,
+            0,
+            id="single-channel-gray-to-bgr",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [[10, 20, 30, 0], [40, 50, 60, 128]],
+                    [[70, 80, 90, 255], [1, 2, 3, 4]],
+                ],
+                dtype=np.uint8,
+            ),
+            _COLOR_BGR2GRAY,
+            cv2.COLOR_BGR2GRAY,
+            0,
+            id="bgra-to-gray",
+        ),
+        pytest.param(
             np.array(
                 [[[0, 255, 255], [30, 255, 255]], [[60, 255, 255], [150, 255, 255]]],
                 dtype=np.uint8,
