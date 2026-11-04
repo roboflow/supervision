@@ -205,6 +205,8 @@ def _validate_and_setup_video(
         )
         if end is not None and 0 < total_frames < end:
             raise Exception("Requested frames are outbound")
+        if end is not None and start >= end:
+            return video, start, end
         # `set()` cannot be trusted past a positive frame count: the PyAV fallback
         # returns False without moving when `start` exceeds the count, and OpenCV
         # returns True without moving on a duration-less WebM. Grabbing frames lands

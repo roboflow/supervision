@@ -1987,3 +1987,43 @@ def test_video_range_does_not_decode_past_end(
     )
 
     assert [int(frame[0, 0, 0]) for frame in frames] == list(range(0, 2, stride))
+
+
+class TestEmptyVideoFrameRange:
+    @pytest.mark.parametrize("prefetch", [0, 2])
+    @pytest.mark.parametrize("iterative_seek", [False, True])
+    @pytest.mark.parametrize("reported_count", [0, 5])
+    @pytest.mark.parametrize("start", [2, 3])
+    def test_does_not_seek_or_decode(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        prefetch: int,
+        iterative_seek: bool,
+        reported_count: int,
+        start: int,
+    ) -> None:
+        """An empty range validates the capture without seeking or decoding."""
+
+        class Capture(_UnreliableCountCapture):
+            def grab(self) -> bool:
+                """Reject seeking by decoding frames."""
+                raise OSError("unexpected grab")
+
+            def set(self, property_id: int, value: float) -> bool:
+                """Reject seeking through the capture API."""
+                raise OSError("unexpected seek")
+
+        monkeypatch.setattr(
+            "supervision.utils.video.cv2.VideoCapture",
+            lambda source_path: Capture(frame_count=5, reported_count=reported_count),
+        )
+
+        frames = get_video_frames_generator(
+            "recording.webm",
+            start=start,
+            end=2,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+
+        assert list(frames) == []
