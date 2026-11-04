@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.CSVSink` now preserves an exception raised inside a `with` block when writing the deferred header or flushing the file also fails. The cleanup error is logged; when the block succeeds, cleanup errors still propagate. ([#2869](https://github.com/roboflow/supervision/pull/2869))
+- `sv.CSVSink` now preserves an exception raised inside a `with` block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. ([#2869](https://github.com/roboflow/supervision/pull/2869))
 
 - COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
 
