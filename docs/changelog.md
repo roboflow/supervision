@@ -8,6 +8,7 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - `sv.HeatMapAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The heat colors are blended as their gray luminance, as `sv.CropAnnotator` and `sv.IconAnnotator` overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. ([#2872](https://github.com/roboflow/supervision/pull/2872))
+- COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
 
 - The OpenCV-free `cvtColor` fallback now accepts the same channel layouts as OpenCV for gray conversions: `COLOR_BGR2GRAY` takes a four-channel BGRA image (alpha ignored) and `COLOR_GRAY2BGR` takes an `(H, W, 1)` image. Both previously raised `ValueError`, so `sv.grayscale_image` failed on BGRA frames without OpenCV. ([#2866](https://github.com/roboflow/supervision/pull/2866))
 
