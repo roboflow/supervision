@@ -16,9 +16,6 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.detection.utils.matching import (
-    _match_detection_batch_with_target_indices,
-)
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import (
     Metric,
@@ -28,8 +25,9 @@ from supervision.metrics.core import (
     _append_object_size_plot_details,
 )
 from supervision.metrics.utils.object_size import (
+    SIZE_THRESHOLDS,
     ObjectSizeCategory,
-    get_detection_size_category,
+    get_detection_areas,
 )
 from supervision.metrics.utils.utils import ensure_pandas_installed
 
@@ -648,9 +646,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         """Compute recall per detection limit and class from all images' matches.
 
         `matches` has shape (P, Th, K) and holds, for each detection limit, the matches
-        of that limit's own top predictions of each class; the other arrays have one
-        row or entry per prediction, or per target for `true_class_ids`.
-        `class_ranks` is each prediction's rank within its class in its own image.
+        of that limit's own top predictions of each class; the other arrays have one row
+        or entry per prediction, or per target for `true_class_ids`. `class_ranks` is
+        each prediction's rank within its class in its own image.
         """
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
@@ -687,18 +685,6 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         recall_scores = np.mean(average_recall_per_class, axis=1)
 
         return recall_scores, recall_per_class_at_k, unique_classes
-
-    @staticmethod
-    def _match_detection_batch(
-        predictions_classes: npt.NDArray[np.int32],
-        target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.float32],
-        iou_thresholds: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.bool_]:
-        result_correct, _ = _match_detection_batch_with_target_indices(
-            predictions_classes, target_classes, iou, iou_thresholds
-        )
-        return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
@@ -864,13 +850,31 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
     ) -> Detections:
-        """Return a copy of detections with contents filtered by object size."""
+        """Return a copy of detections kept by the inclusive COCO size range.
+
+        Matches
+        :class:`~supervision.metrics.mean_average_precision.MeanAveragePrecision`
+        and pycocotools: small is ``[0, 32²]``, medium ``[32², 96²]``, large
+        ``[96², 1e5²]``. Boundary areas therefore belong to both neighbouring
+        buckets. The half-open bins in
+        :class:`~supervision.metrics.utils.object_size.ObjectSizeCategory` stay
+        for general filtering; mAR needs the inclusive COCO semantics.
+        """
         new_detections = deepcopy(detections)
         if detections.is_empty() or size_category == ObjectSizeCategory.ANY:
             return new_detections
 
-        sizes = get_detection_size_category(new_detections, self._metric_target)
-        size_mask = sizes == size_category.value
+        areas = get_detection_areas(new_detections, self._metric_target)
+        small_area, medium_area = SIZE_THRESHOLDS
+        max_all_area = 1e5**2
+        if size_category == ObjectSizeCategory.SMALL:
+            size_mask = (areas >= 0) & (areas <= small_area)
+        elif size_category == ObjectSizeCategory.MEDIUM:
+            size_mask = (areas >= small_area) & (areas <= medium_area)
+        elif size_category == ObjectSizeCategory.LARGE:
+            size_mask = (areas >= medium_area) & (areas <= max_all_area)
+        else:
+            raise ValueError(f"Invalid size category: {size_category}")
 
         new_detections.xyxy = new_detections.xyxy[size_mask]
         if new_detections.mask is not None:

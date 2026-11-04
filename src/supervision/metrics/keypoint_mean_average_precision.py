@@ -182,15 +182,13 @@ class KeyPointMeanAveragePrecisionResult(MetricResult):
 class _KeyPointCOCOEvaluator(COCOEvaluator):
     """COCO evaluator that matches by OKS instead of IoU.
 
-    Matching, accumulation and the 101-point interpolation are inherited, so
-    keypoint mAP shares them with box, mask and oriented-box mAP. As in
-    `pycocotools`, only the all, medium and large area ranges are evaluated:
-    small people carry no keypoint labels in COCO, so there is no small bucket
-    to compute. Each
-    annotation's `content` holds its keypoints as `(K, 3)` rows of
-    `(x, y, visible)`. Boxes of targets without visible keypoints are kept in a
-    separate mapping by annotation id, so the shared COCO dictionaries hold no
-    keypoint-only fields.
+    Matching, accumulation and the 101-point interpolation are inherited, so keypoint
+    mAP shares them with box, mask and oriented-box mAP. As in `pycocotools`, only the
+    all, medium and large area ranges are evaluated: small people carry no keypoint
+    labels in COCO, so there is no small bucket to compute. Each annotation's `content`
+    holds its keypoints as `(K, 3)` rows of `(x, y, visible)`. Boxes of targets without
+    visible keypoints are kept in a separate mapping by annotation id, so the shared
+    COCO dictionaries hold no keypoint-only fields.
     """
 
     def __init__(

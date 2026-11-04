@@ -7,6 +7,7 @@ import platform
 from collections.abc import Callable
 from fractions import Fraction
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -105,6 +106,30 @@ def test_fallback_copy_make_border_matches_opencv(
     source: np.ndarray, value: int | tuple[int, ...]
 ) -> None:
     """Match OpenCV constant-border padding for scalar and Sequence values."""
+    np.testing.assert_array_equal(
+        _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
+        cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),
+    )
+
+
+@pytest.mark.parametrize(
+    ("dtype", "value"),
+    [
+        pytest.param(np.uint8, (-10, 300, 50), id="uint8-out-of-bounds-multichannel"),
+        pytest.param(np.uint8, 300, id="uint8-out-of-bounds-scalar"),
+        pytest.param(np.uint8, -10, id="uint8-negative-scalar"),
+        pytest.param(np.uint8, (128.6, 200.2, 0.0), id="uint8-float-multichannel"),
+        pytest.param(np.int8, (-150, 200, 50), id="int8-out-of-bounds"),
+        pytest.param(np.uint16, (-10, 70000, 500), id="uint16-out-of-bounds"),
+        pytest.param(np.float32, (-10.4, 300.6, 50.2), id="float32-values"),
+    ],
+)
+@pytest.mark.parametrize("shape", [(4, 4), (4, 4, 3)])
+def test_fallback_copy_make_border_saturates_and_rounds_like_opencv(
+    dtype: np.dtype[Any], value: Any, shape: tuple[int, ...]
+) -> None:
+    """Saturate out-of-bounds border values and round floats matching OpenCV."""
+    source = np.zeros(shape, dtype=dtype)
     np.testing.assert_array_equal(
         _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
         cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),
@@ -915,6 +940,80 @@ def test_fallback_image_io_matches_opencv_color_conversion_for_sixteen_bit(
         _imread(str(sixteen_bit_path), _IMREAD_COLOR),
         cv2.imread(str(sixteen_bit_path), cv2.IMREAD_COLOR),
     )
+
+
+class TestFallbackSixteenBitImageRead:
+    """Decode the complete uint16 range without rounding its discarded low byte."""
+
+    @pytest.mark.parametrize(
+        ("image_format", "dtype"),
+        [
+            pytest.param("PNG", "<u2", id="png"),
+            pytest.param("TIFF", "<u2", id="little-endian-tiff"),
+            pytest.param("TIFF", ">u2", id="big-endian-tiff"),
+        ],
+    )
+    @pytest.mark.parametrize("flags", [_IMREAD_COLOR, _IMREAD_UNCHANGED])
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_matches_opencv_for_every_pixel_value(
+        self,
+        tmp_path: Path,
+        image_format: str,
+        dtype: str,
+        flags: int,
+        entrypoint: str,
+    ) -> None:
+        """Match OpenCV values while preserving unchanged storage dtype."""
+        from PIL import Image
+
+        pixels = np.arange(65536, dtype=np.uint16).reshape(256, 256).astype(dtype)
+        image_path = tmp_path / f"sixteen-bit.{image_format.lower()}"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        with Image.open(image_path) as image:
+            unchanged_dtype = np.asarray(image).dtype
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), flags)
+        else:
+            expected = cv2.imdecode(encoded, flags)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), flags)
+        else:
+            actual = _imdecode(encoded, flags)
+
+        assert actual is not None
+        assert expected is not None
+        if flags == _IMREAD_UNCHANGED:
+            assert actual.dtype == unchanged_dtype
+        else:
+            assert actual.dtype == expected.dtype
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize("entrypoint", ["imread", "imdecode"])
+    def test_preserves_signed_integer_tiff_unchanged(
+        self, tmp_path: Path, entrypoint: str
+    ) -> None:
+        """Leave signed 32-bit TIFF values untouched in unchanged mode."""
+        from PIL import Image
+
+        pixels = np.array([[-(2**31), -1, 0], [129, 65535, 2**31 - 1]], dtype=np.int32)
+        image_path = tmp_path / "signed.tiff"
+        Image.fromarray(pixels).save(image_path)
+        encoded = np.frombuffer(image_path.read_bytes(), dtype=np.uint8)
+        if entrypoint == "imread":
+            expected = cv2.imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            expected = cv2.imdecode(encoded, _IMREAD_UNCHANGED)
+
+        if entrypoint == "imread":
+            actual = _imread(str(image_path), _IMREAD_UNCHANGED)
+        else:
+            actual = _imdecode(encoded, _IMREAD_UNCHANGED)
+
+        assert actual is not None
+        assert actual.dtype == pixels.dtype
+        np.testing.assert_array_equal(actual, expected)
 
 
 def _write_png_with_exif_orientation(path: Path, orientation: int) -> None:

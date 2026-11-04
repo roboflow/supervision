@@ -66,8 +66,8 @@ def are_xml_elements_equal(elem1: Element, elem2: Element) -> bool:
             "test",
             None,
             ElementTree.fromstring(
-                """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
-                <xmax>10</xmax><ymax>10</ymax></bndbox></object>"""
+                "<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>\n"
+                "                <xmax>10</xmax><ymax>10</ymax></bndbox></object>"
             ),
             DoesNotRaise(),
             id="bbox_only",
@@ -77,11 +77,12 @@ def are_xml_elements_equal(elem1: Element, elem2: Element) -> bool:
             "test",
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             ElementTree.fromstring(
-                """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
-                <xmax>10</xmax><ymax>10</ymax>
-                </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>
-                <y2>1</y2><x3>11</x3><y3>11</y3><x4>1</x4><y4>11</y4>
-                </polygon></object>"""
+                "<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>\n"
+                "                <xmax>10</xmax><ymax>10</ymax>\n"
+                "                </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>\n"
+                "                <y2>1</y2><x3>11</x3><y3"
+                ">11</y3><x4>1</x4><y4>11</y4>\n"
+                "                </polygon></object>"
             ),
             DoesNotRaise(),
             id="bbox_and_polygon",
@@ -175,13 +176,31 @@ def test_detections_to_pascal_voc_does_not_mutate_detections() -> None:
     assert first == second
 
 
+@pytest.mark.parametrize("class_id", [-1, 2])
+def test_detections_to_pascal_voc_rejects_out_of_range_class_id(class_id: int) -> None:
+    """An out-of-range class_id raises instead of exporting a wrong name.
+
+    A negative id used to index ``classes`` from the end, so -1 was silently written as
+    the last class.
+    """
+    detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[class_id])
+
+    with pytest.raises(ValueError, match="out of range"):
+        detections_to_pascal_voc(
+            detections,
+            classes=["cat", "dog"],
+            filename="image.jpg",
+            image_shape=(100, 100, 3),
+        )
+
+
 @pytest.mark.parametrize(
     ("polygon_element", "expected_result", "exception"),
     [
         pytest.param(
             ElementTree.fromstring(
-                """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
-                <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
+                "<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>\n"
+                "                <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"
             ),
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             DoesNotRaise(),
@@ -200,32 +219,42 @@ def test_parse_polygon_points(
         assert np.array_equal(result, expected_result)
 
 
-ONE_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
-<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>
-</bndbox></object><object><name>test</name><bndbox><xmin>11</xmin><ymin>11</ymin>
-<xmax>20</xmax><ymax>20</ymax></bndbox></object></annotation>"""
+ONE_CLASS_N_BBOX = (
+    "<annotation><object><name>test</name><bndbox><xmin>1</xmin>\n"
+    "<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>\n"
+    "</bndbox></object><object><name>test</na"
+    "me><bndbox><xmin>11</xmin><ymin>11</ymin"
+    ">\n"
+    "<xmax>20</xmax><ymax>20</ymax></bndbox></object></annotation>"
+)
 
 
-ONE_CLASS_ONE_BBOX = """<annotation><object><name>test</name><bndbox>
-<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>
-</annotation>"""
+ONE_CLASS_ONE_BBOX = (
+    "<annotation><object><name>test</name><bndbox>\n"
+    "<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox></object>\n"
+    "</annotation>"
+)
 
 
-N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
-<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>
-</bndbox></object><object><name>test</name><bndbox>
-<xmin>21</xmin><ymin>31</ymin><xmax>30</xmax><ymax>40</ymax></bndbox>
-</object><object><name>test2</name><bndbox><xmin>
-11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>
-20</ymax></bndbox></object></annotation>"""
+N_CLASS_N_BBOX = (
+    "<annotation><object><name>test</name><bndbox><xmin>1</xmin>\n"
+    "<ymin>1</ymin><xmax>10</xmax><ymax>10</ymax>\n"
+    "</bndbox></object><object><name>test</name><bndbox>\n"
+    "<xmin>21</xmin><ymin>31</ymin><xmax>30</xmax><ymax>40</ymax></bndbox>\n"
+    "</object><object><name>test2</name><bndbox><xmin>\n"
+    "11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>\n"
+    "20</ymax></bndbox></object></annotation>"
+)
 
-NO_DETECTIONS = """<annotation></annotation>"""
-MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
-<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox>
-<polygon><x1>1</x1><y1>1</y1><x2>11</x2><y2>1</y2><x3>11</x3><y3>11</y3>
-<x4>1</x4><y4>11</y4></polygon></object><object><name>test</name><bndbox>
-<xmin>11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object>
-</annotation>"""
+NO_DETECTIONS = "<annotation></annotation>"
+MIXED_POLYGON_AND_BOX = (
+    "<annotation><object><name>test</name><bndbox>\n"
+    "<xmin>1</xmin><ymin>1</ymin><xmax>10</xmax><ymax>10</ymax></bndbox>\n"
+    "<polygon><x1>1</x1><y1>1</y1><x2>11</x2><y2>1</y2><x3>11</x3><y3>11</y3>\n"
+    "<x4>1</x4><y4>11</y4></polygon></object><object><name>test</name><bndbox>\n"
+    "<xmin>11</xmin><ymin>11</ymin><xmax>20</xmax><ymax>20</ymax></bndbox></object>\n"
+    "</annotation>"
+)
 
 
 @pytest.mark.parametrize(

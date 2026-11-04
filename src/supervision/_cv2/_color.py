@@ -28,14 +28,23 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
         return np.ascontiguousarray(image[..., 2::-1])
 
     if code == _COLOR_GRAY2BGR:
+        # OpenCV reads a (H, W, 1) array as a single-channel image too.
+        if image.ndim == 3 and image.shape[2] == 1:
+            image = image[..., 0]
         if image.ndim != 2:
-            raise ValueError("GRAY2BGR conversion requires a two-dimensional image")
+            raise ValueError("GRAY2BGR conversion requires a single-channel image")
         return np.repeat(image[..., np.newaxis], 3, axis=2)
 
     if code == _COLOR_BGR2GRAY:
-        if image.ndim != 3 or image.shape[2] != 3:
-            raise ValueError("BGR2GRAY conversion requires a three-channel image")
-        if image.dtype == np.uint8:
+        # OpenCV also takes BGRA here and ignores the alpha channel.
+        if image.ndim != 3 or image.shape[2] not in (3, 4):
+            raise ValueError(
+                "BGR2GRAY conversion requires a three- or four-channel image"
+            )
+        if image.dtype in (np.uint8, np.uint16):
+            # OpenCV converts 8- and 16-bit images with the same 15-bit
+            # fixed-point coefficients. The weights sum to 1 << 15, so even a
+            # 16-bit pixel (65535 * 32768 + 16384) fits in uint32.
             values = image.astype(np.uint32)
             weighted = (
                 values[..., 0] * 3735
@@ -43,7 +52,7 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
                 + values[..., 2] * 9798
                 + (1 << 14)
             ) >> 15
-            return weighted.astype(np.uint8)
+            return weighted.astype(image.dtype)
         float_values = (
             image[..., 0].astype(np.float64) * 0.114
             + image[..., 1].astype(np.float64) * 0.587

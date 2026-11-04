@@ -715,8 +715,8 @@ class TestLineZoneSubThresholdFlicker:
         `_compute_anchor_sides` report both `has_any_left_trigger` and
         `has_any_right_trigger` as True for that frame, so it is skipped before ever
         reaching the crossing history (the ambiguous-straddle guard). A straddle
-        sandwiched inside a sustained crossing must therefore count exactly as if
-        that frame were omitted from the sequence.
+        sandwiched inside a sustained crossing must therefore count exactly as if that
+        frame were omitted from the sequence.
         """
         line_zone = LineZone(
             start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
@@ -770,9 +770,9 @@ class TestLineZoneSubThresholdFlicker:
 
         Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
         flicker with a real crossing; here both trackers are noisy at once, with
-        different flicker shapes (one single-frame excursion vs. two), to confirm
-        per-tracker isolation holds under concurrent noise, not only under a
-        concurrent real crossing.
+        different flicker shapes (one single-frame excursion vs. two), to confirm per-
+        tracker isolation holds under concurrent noise, not only under a concurrent real
+        crossing.
         """
         line_zone = self._line_zone(minimum_crossing_threshold=2)
         single_flicker_boxes = _boxes_from_sides("AAABAAA")
@@ -1117,9 +1117,9 @@ def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
 ) -> None:
     """A single-pass anchors iterable survives construction and counts a crossing.
 
-    Covers the three single-pass iterable shapes named in the PR #2561 bug report
-    — generator expression, `map`, and `filter` — none of which must be exhausted
-    by the constructor's emptiness check before `trigger()` iterates them.
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report —
+    generator expression, `map`, and `filter` — none of which must be exhausted by the
+    constructor's emptiness check before `trigger()` iterates them.
     """
     line_zone = LineZone(
         start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
@@ -1398,9 +1398,9 @@ class TestLineZoneAnnotatorOrientedLabel:
 class TestLineZoneUnconfirmedTracks:
     """Detections with a negative `tracker_id` are unconfirmed and must not count.
 
-    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is
-    confirmed, so several distinct objects can share that placeholder id in the
-    same frame. Regression tests for #2578.
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is confirmed,
+    so several distinct objects can share that placeholder id in the same frame.
+    Regression tests for #2578.
     """
 
     def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:

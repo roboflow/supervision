@@ -53,7 +53,7 @@ dependencies = [
   "matplotlib>=3.6",
   "numpy>=1.21.2",
   "pillow>=9.4",
-  "pydeprecate>=0.9,<0.14",
+  "pydeprecate>=0.9,<0.15",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
@@ -65,6 +65,9 @@ optional-dependencies.geotiff = [
 optional-dependencies.metrics = [
   "pandas>=2",
 ]
+optional-dependencies.rtl = [
+  "khatt>=0.4", # 0.4 added fallback fonts, used for glyphs a custom label font lacks
+]
 urls.Documentation = "https://supervision.roboflow.com/latest/"
 urls.Homepage = "https://github.com/roboflow/supervision"
 urls.Repository = "https://github.com/roboflow/supervision"
@@ -75,6 +78,7 @@ dev = [
   "faster-coco-eval>=1.8",
   "ipywidgets>=8.1.1",
   "jupytext>=1.16.1",
+  "khatt>=0.4",
   "nbconvert>=7.14.2",
   "notebook>=6.5.3,<8",
   "packaging",

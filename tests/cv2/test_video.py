@@ -401,8 +401,7 @@ def test_fallback_writer_rejects_a_frame_rate_that_is_not_positive(
     SIGABRT the whole interpreter, which would take the test run down with it.
     """
     target_path = tmp_path / "target.mp4"
-    _run_without_opencv(
-        f"""
+    source = f"""
 import numpy as np
 from supervision._cv2 import VideoWriter_fourcc
 from supervision._cv2._video import _VideoWriter
@@ -418,7 +417,7 @@ else:
     raise AssertionError("write() must fail on a closed writer")
 writer.release()
 """
-    )
+    _run_without_opencv(source)
 
 
 @pytest.mark.parametrize(

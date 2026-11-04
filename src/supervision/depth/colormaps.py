@@ -1,8 +1,8 @@
 """Colour tables that `sv.DepthAnnotator` paints depth maps with.
 
 Each table is 256 RGB entries, darkest or coldest first, in the order the colour
-coordinate `t` runs from 0 to 1: matplotlib's colormap of the same name, or a plain
-0 to 255 ramp for grayscale.
+coordinate `t` runs from 0 to 1: matplotlib's colormap of the same name, or a plain 0 to
+255 ramp for grayscale.
 """
 
 from __future__ import annotations
@@ -105,9 +105,8 @@ def _expanded_bgr_lut(colormap: DepthColormap) -> npt.NDArray[np.uint8]:
 
     A colour between two table entries is their linear blend, so smooth surfaces get
     smooth gradients instead of the visible bands that 256 flat steps draw in Turbo.
-    Expanding the table once to `255 * 16 + 1` entries gives that blend to a
-    sixteenth of an entry with one `np.take` per frame; entry `16 * i` is exactly
-    table entry `i`.
+    Expanding the table once to `255 * 16 + 1` entries gives that blend to a sixteenth
+    of an entry with one `np.take` per frame; entry `16 * i` is exactly table entry `i`.
     """
     rgb = _rgb_lut(colormap).astype(np.float64)
     positions = np.arange(_EXPANDED_ENTRIES) / _STEPS_PER_ENTRY

@@ -166,10 +166,10 @@ def coco_annotations_to_masks(
 def _check_box_extent(image_annotation: CocoDict) -> list[float]:
     """Return a COCO ``bbox``, rejecting a negative width or height.
 
-    COCO stores a box as ``[x, y, width, height]``, so a negative extent would
-    place ``x_max`` before ``x_min`` once the corners are formed. Such a box
-    makes ``Detections.area`` negative and scores two boxes covering the same
-    region at ``0.0`` under ``box_iou_batch``.
+    COCO stores a box as ``[x, y, width, height]``, so a negative extent would place
+    ``x_max`` before ``x_min`` once the corners are formed. Such a box makes
+    ``Detections.area`` negative and scores two boxes covering the same region at
+    ``0.0`` under ``box_iou_batch``.
     """
     bbox = image_annotation["bbox"]
     box_width, box_height = float(bbox[2]), float(bbox[3])
@@ -350,10 +350,12 @@ def detections_to_coco_annotations(
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
+        # Python scalars keep narrow-dtype arithmetic from wrapping or overflowing.
+        x1, y1, x2, y2 = xyxy.tolist()
         # Order the corners first: a reversed box would otherwise be written
         # with a negative width or height, which the loader now rejects.
-        x_min, x_max = min(xyxy[0], xyxy[2]), max(xyxy[0], xyxy[2])
-        y_min, y_max = min(xyxy[1], xyxy[3]), max(xyxy[1], xyxy[3])
+        x_min, x_max = min(x1, x2), max(x1, x2)
+        y_min, y_max = min(y1, y2), max(y1, y2)
         box_width, box_height = x_max - x_min, y_max - y_min
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:

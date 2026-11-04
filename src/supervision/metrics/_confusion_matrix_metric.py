@@ -2,11 +2,10 @@
 
 :class:`~supervision.metrics.precision.Precision`,
 :class:`~supervision.metrics.recall.Recall` and
-:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very
-same per-class, per-
-IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied to that
-matrix, in the result dataclass they fill, and in the labels used when a result is
-rendered. This module owns everything they share.
+:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very same per-
+class, per- IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied
+to that matrix, in the result dataclass they fill, and in the labels used when a result
+is rendered. This module owns everything they share.
 
 The public classes stay in their own modules on purpose: the API reference does not
 enable `inherited_members`, so a public method moved onto a shared base would silently
@@ -483,24 +482,6 @@ class _ConfusionMatrixMetric(Metric[_ResultT]):
                 new_detections.data[key] = np.array(value)[size_mask]
 
         return new_detections
-
-    def _filter_predictions_and_targets_by_size(
-        self,
-        predictions_list: list[Detections],
-        targets_list: list[Detections],
-        size_category: ObjectSizeCategory,
-    ) -> tuple[list[Detections], list[Detections]]:
-        """Filter predictions and targets by object size category."""
-        new_predictions_list = []
-        new_targets_list = []
-        for predictions, targets in zip(predictions_list, targets_list):
-            new_predictions_list.append(
-                self._filter_detections_by_size(predictions, size_category)
-            )
-            new_targets_list.append(
-                self._filter_detections_by_size(targets, size_category)
-            )
-        return new_predictions_list, new_targets_list
 
 
 @dataclass(frozen=True)

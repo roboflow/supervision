@@ -63,6 +63,26 @@ except (ImportError, OSError):
             id="gray-to-bgr",
         ),
         pytest.param(
+            np.array([[[0], [64]], [[128], [255]]], dtype=np.uint8),
+            _COLOR_GRAY2BGR,
+            cv2.COLOR_GRAY2BGR,
+            0,
+            id="single-channel-gray-to-bgr",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [[10, 20, 30, 0], [40, 50, 60, 128]],
+                    [[70, 80, 90, 255], [1, 2, 3, 4]],
+                ],
+                dtype=np.uint8,
+            ),
+            _COLOR_BGR2GRAY,
+            cv2.COLOR_BGR2GRAY,
+            0,
+            id="bgra-to-gray",
+        ),
+        pytest.param(
             np.array(
                 [[[0, 255, 255], [30, 255, 255]], [[60, 255, 255], [150, 255, 255]]],
                 dtype=np.uint8,
@@ -106,6 +126,25 @@ def test_fallback_bgr_to_gray_matches_opencv_fixed_point_rounding() -> None:
     actual = _cvt_color(source, _COLOR_BGR2GRAY)
     expected = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
 
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16])
+def test_fallback_bgr_to_gray_matches_opencv_for_integer_images(
+    dtype: type[np.integer],
+) -> None:
+    """Match OpenCV's fixed-point conversion for 8- and 16-bit images."""
+    rng = np.random.default_rng(0)
+    source = rng.integers(0, np.iinfo(dtype).max, (64, 64, 3), endpoint=True)
+    source = source.astype(dtype)
+    source[0, 0] = (0, 1, 187)
+    source[0, 1] = (100, 200, 300 if dtype == np.uint16 else 255)
+    source[0, 2] = np.iinfo(dtype).max
+
+    actual = _cvt_color(source, _COLOR_BGR2GRAY)
+    expected = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+
+    assert actual.dtype == expected.dtype
     np.testing.assert_array_equal(actual, expected)
 
 
