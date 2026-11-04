@@ -1204,6 +1204,39 @@ def test_line_zone_counts_crossing_through_occlusion(
     assert line_zone.in_count == int(expected_crossing)
 
 
+def _count_crossing_after_high_threshold_occlusion(line_zone: LineZone) -> int:
+    """Count a crossing after a 30-frame gap and 30 opposite-side frames."""
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    line_zone.trigger(below)
+    for _ in range(30):
+        line_zone.trigger(Detections.empty())
+    for _ in range(30):
+        line_zone.trigger(above)
+    return line_zone.in_count
+
+
+def test_line_zone_high_threshold_default_preserves_crossing_history() -> None:
+    """Default retention preserves a crossing after the prior 30-frame gap."""
+    line_zone = LineZone(
+        start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=30
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 1
+
+
+def test_line_zone_high_threshold_honors_explicit_retention() -> None:
+    """An explicit limit expires crossing history at its specified boundary."""
+    line_zone = LineZone(
+        start=Point(0, 0),
+        end=Point(10, 0),
+        minimum_crossing_threshold=30,
+        max_absent_frames=30,
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 0
+
+
 def test_line_zone_occlusion_with_other_trackers_visible() -> None:
     """Another visible tracker does not shorten an occluded tracker's retention."""
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))

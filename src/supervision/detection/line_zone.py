@@ -106,7 +106,7 @@ class LineZone:
             Position.BOTTOM_RIGHT,
         ),
         minimum_crossing_threshold: int = 1,
-        max_absent_frames: int = 30,
+        max_absent_frames: int | None = None,
     ) -> None:
         """
         Args:
@@ -131,15 +131,19 @@ class LineZone:
                 on, at the start of its life and again after it has been absent
                 long enough for its state to be dropped, becomes its reference
                 immediately, with no confirmation.
-            max_absent_frames: How many consecutive frames a tracker may be missing
-                before its crossing state is dropped. A tracker that returns sooner
+            max_absent_frames: Number of consecutive missing frames at which a
+                tracker's crossing state is dropped. A tracker that returns sooner
                 keeps its side, so an object occluded while it crosses the line is
-                still counted. The default matches the `lost_track_buffer` default of
-                `ByteTrackTracker`; keep the two equal if you change either.
+                still counted. If `None`, the limit is the larger of 30 and
+                `minimum_crossing_threshold + 1`, preserving previous retention for
+                high crossing thresholds. Set it explicitly to match the tracker's
+                lost-track buffer when needed.
 
         Raises:
             ValueError: If `max_absent_frames` is less than 1.
         """
+        if max_absent_frames is None:
+            max_absent_frames = max(30, minimum_crossing_threshold + 1)
         if max_absent_frames < 1:
             raise ValueError("max_absent_frames must be at least 1.")
         self.max_absent_frames = max_absent_frames
