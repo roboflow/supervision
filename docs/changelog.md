@@ -8,6 +8,9 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - `sv.oriented_box_iou_batch` and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous `cv2` call on OpenCV installs, so crowded scenes can take seconds. ([#2882](https://github.com/roboflow/supervision/pull/2882))
+- `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
+
+- `sv.LineZone` now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the `max(30, minimum_crossing_threshold + 1)`th consecutive absent frame. To restore previous retention, pass `max_absent_frames=max(2, minimum_crossing_threshold + 1)`; this is 2 for the default crossing threshold. [#2873](https://github.com/roboflow/supervision/pull/2873)
 
 - `sv.HeatMapAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The heat colors are blended as their gray luminance, as `sv.CropAnnotator` and `sv.IconAnnotator` overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. ([#2872](https://github.com/roboflow/supervision/pull/2872))
 
@@ -18,6 +21,8 @@ date_modified: 2026-10-31
 - The OpenCV-free `cvtColor` fallback now accepts the same channel layouts as OpenCV for gray conversions: `COLOR_BGR2GRAY` takes a four-channel BGRA image (alpha ignored) and `COLOR_GRAY2BGR` takes an `(H, W, 1)` image. Both previously raised `ValueError`, so `sv.grayscale_image` failed on BGRA frames without OpenCV. ([#2866](https://github.com/roboflow/supervision/pull/2866))
 
 - `sv.RichLabelAnnotator` now draws Arabic and Hebrew labels correctly on RGB and RGBA images with the new `rtl` extra (`pip install "supervision[rtl]"`, which installs [khatt](https://github.com/DrEssam97/khatt)). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, `RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")` drew `"سيارة 0.92"` as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Other image modes fall back to Pillow, which requires Raqm for shaping and may not support every mode; a warning suggests converting to RGB or RGBA when Raqm is missing. Without the extra, a one-time warning names it when Raqm is missing. ([#2864](https://github.com/roboflow/supervision/pull/2864))
+
+- The NumPy fallback for `cv2.blur` now blurs `uint16` and `int16` images with exact integer window sums and OpenCV's scaling precision (float32, or float64 for kernels larger than 32,768 `uint16` or 65,536 `int16` pixels), as it already did for `uint8`. It averaged in float64, which rounded exact `.5` means the other way, for example `3` returned instead of `2` for a window that sums to `15` over `6` pixels. ([#2875](https://github.com/roboflow/supervision/pull/2875))
 
 ### 0.31.4 <small>Nov 3, 2026</small>
 
