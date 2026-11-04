@@ -220,15 +220,19 @@ class TestApproximateMaskWithPolygons:
     def test_keeps_the_given_hole_order_when_it_works(self, reverse: bool) -> None:
         """A mask the given order can bridge keeps the polygon that order produces."""
         mask = _ring_mask()
-        mask[25:45, 40:55] = False
+        mask[48:55, 20:50] = False
         polygons: list[Any] = mask_to_polygons(mask)
         outer = next(p for p in polygons if not _is_hole_contour(p))
         holes = [p for p in polygons if _is_hole_contour(p)]
-        holes = holes[::-1] if reverse else holes
+        assert len(holes) == 2
+        other_order = _splice_holes_in_order(mask=mask, outer=outer, holes=holes[::-1])
+        expected = _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
+        assert not np.array_equal(expected, other_order)
+        if reverse:
+            holes, expected = holes[::-1], other_order
 
         bridged = _bridge_holes(mask=mask, outer=outer, holes=holes)
 
-        expected = _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
         np.testing.assert_array_equal(bridged, expected)
 
     def test_keeps_seam_on_foreground_when_nearest_vertex_is_across_background(
