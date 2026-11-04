@@ -35,6 +35,48 @@ HAND = (
 )
 
 
+# MediaPipe's `POSE_CONNECTIONS` with its 0-based vertices, transcribed from
+# mediapipe/python/solutions/pose_connections.py. Kept independent of skeletons.py
+# so this test fails loudly if Skeleton.GHUM regresses.
+MEDIAPIPE_POSE_CONNECTIONS = (
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 7),
+    (0, 4),
+    (4, 5),
+    (5, 6),
+    (6, 8),
+    (9, 10),
+    (11, 12),
+    (11, 13),
+    (13, 15),
+    (15, 17),
+    (15, 19),
+    (15, 21),
+    (17, 19),
+    (12, 14),
+    (14, 16),
+    (16, 18),
+    (16, 20),
+    (16, 22),
+    (18, 20),
+    (11, 23),
+    (12, 24),
+    (23, 24),
+    (23, 25),
+    (24, 26),
+    (25, 27),
+    (26, 28),
+    (27, 29),
+    (28, 30),
+    (29, 31),
+    (30, 32),
+    (27, 31),
+    (28, 32),
+)
+
+
 class TestSkeletons:
     def test_skeleton_enum_values(self) -> None:
         """Test skeleton enum has correct structure."""
@@ -108,3 +150,11 @@ class TestSkeletons:
         `skeletons.py`, so this fails loudly on a regression there.
         """
         assert Skeleton.HAND.value == HAND
+
+    def test_ghum_skeleton_matches_mediapipe_pose_connections(self) -> None:
+        """`Skeleton.GHUM` is MediaPipe's pose table shifted to 1-based vertices."""
+        expected = sorted((a + 1, b + 1) for a, b in MEDIAPIPE_POSE_CONNECTIONS)
+
+        actual = sorted(Skeleton.GHUM.value)
+
+        assert actual == expected
