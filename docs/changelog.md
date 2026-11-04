@@ -10,6 +10,7 @@ date_modified: 2026-10-31
 - `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
 
 - Hole bridging in `as_yolo`, `as_pascal_voc` and `as_labelme` now retries top-down when the contour order fails, so those exports no longer raise `ValueError` on valid masks where an enclosed hole is listed before the hole around it. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
 - COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a `300×300` box stored in `float16` or `int16` now exports an area of `90000` instead of infinity or `24464`; large integer coordinate origins retain their precision. ([#2867](https://github.com/roboflow/supervision/pull/2867))
 
 - The OpenCV-free `cvtColor` fallback now accepts the same channel layouts as OpenCV for gray conversions: `COLOR_BGR2GRAY` takes a four-channel BGRA image (alpha ignored) and `COLOR_GRAY2BGR` takes an `(H, W, 1)` image. Both previously raised `ValueError`, so `sv.grayscale_image` failed on BGRA frames without OpenCV. ([#2866](https://github.com/roboflow/supervision/pull/2866))
