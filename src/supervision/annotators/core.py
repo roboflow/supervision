@@ -49,6 +49,7 @@ from supervision.utils.conversion import (
     ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
+    _match_overlay_to_scene_channels,
     _overlay_image,
     crop_image,
     letterbox_image,
@@ -2615,11 +2616,16 @@ class HeatMapAnnotator(BaseAnnotator):
                 npt.NDArray[np.uint8],
                 cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
             )
-        hsv = np.full(scene.shape, 255, dtype=np.uint8)
+        hsv = np.full((*scene.shape[:2], 3), 255, dtype=np.uint8)
         hsv[..., 0] = heat_hue
-        heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        # A grayscale scene takes the heat colors as their gray luminance.
+        heat_overlay = _match_overlay_to_scene_channels(overlay=heat_bgr, roi=scene)
         mask2d = heat_mask > 0
-        blended = cv2.addWeighted(heat_bgr, self.opacity, scene, 1 - self.opacity, 0)
+        # OpenCV drops a singleton channel axis; restore the scene's layout.
+        blended = cv2.addWeighted(
+            heat_overlay, self.opacity, scene, 1 - self.opacity, 0
+        ).reshape(scene.shape)
         scene[mask2d] = blended[mask2d]
         return scene
 
