@@ -1,5 +1,6 @@
 """Tests for supervision/annotators/core.py."""
 
+import importlib
 import sys
 import warnings
 from collections.abc import Callable, Iterator
@@ -10,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 import numpy.typing as npt
 import pytest
-from PIL import Image, ImageFont
+from PIL import Image, ImageDraw, ImageFont, features
 
 import supervision.annotators.core as annotators_core
 from supervision import _cv2 as cv2
@@ -1650,6 +1651,37 @@ class TestRichLabelAnnotator:
         )
 
         assert not np.array_equal(test_image, result)
+
+    def test_palette_rtl_warns_when_raqm_is_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Warn when a palette image cannot use khatt or Pillow shaping."""
+        warnings_seen: list[str] = []
+        monkeypatch.setattr(features, "check", lambda _: False)
+        monkeypatch.setattr(annotators_core.logger, "warning", warnings_seen.append)
+        annotators_core._warn_unshaped_rtl_text.cache_clear()
+        draw = ImageDraw.Draw(Image.new("P", (20, 20)))
+
+        RichLabelAnnotator()._rtl_engine(draw, "سيارة")
+
+        assert len(warnings_seen) == 1
+        assert "Convert the image to RGB or RGBA" in warnings_seen[0]
+        annotators_core._warn_unshaped_rtl_text.cache_clear()
+
+    def test_rtl_engine_propagates_nested_import_errors(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Expose a broken khatt dependency instead of treating it as absent."""
+
+        def broken_import(name: str) -> Any:
+            """Simulate a missing dependency inside khatt."""
+            raise ModuleNotFoundError("missing dependency", name="dependency")
+
+        monkeypatch.setattr(importlib, "import_module", broken_import)
+        draw = ImageDraw.Draw(Image.new("RGB", (20, 20)))
+
+        with pytest.raises(ModuleNotFoundError, match="missing dependency"):
+            RichLabelAnnotator()._rtl_engine(draw, "سيارة")
 
 
 class TestBlurAnnotator:

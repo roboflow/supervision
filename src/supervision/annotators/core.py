@@ -62,15 +62,23 @@ logger = _get_logger(__name__)
 _RTL_TEXT = re.compile("[֐-ࣿיִ-﷿ﹰ-ﻼ]")
 
 
-@lru_cache(maxsize=1)
-def _warn_unshaped_rtl_text() -> None:
+@lru_cache(maxsize=2)
+def _warn_unshaped_rtl_text(unsupported_mode: bool = False) -> None:
+    """Warn once when Pillow cannot shape right-to-left text."""
     # Pillow joins Arabic letters and orders right-to-left text only with Raqm
     if not features.check("raqm"):
-        logger.warning(
-            "Right-to-left labels (Arabic, Hebrew) need Pillow with Raqm or the "
-            "`rtl` extra to render correctly. Run `uv pip install "
-            "'supervision[rtl]'` or `uv add supervision --extra rtl`."
-        )
+        if unsupported_mode:
+            logger.warning(
+                "The `rtl` extra requires RGB or RGBA images. Pillow needs Raqm "
+                "to shape right-to-left labels. Convert the image to RGB or RGBA "
+                "to use the extra."
+            )
+        else:
+            logger.warning(
+                "Right-to-left labels (Arabic, Hebrew) need Pillow with Raqm or the "
+                "`rtl` extra to render correctly. Run `uv pip install "
+                "'supervision[rtl]'` or `uv add supervision --extra rtl`."
+            )
 
 
 @lru_cache
@@ -1720,9 +1728,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             text_color: The color to use for the text.
             font_path: Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
-                With the `rtl` extra installed, Arabic and Hebrew lines are drawn
-                with `khatt`, in this font, and characters it has no glyph for
-                come from Noto Naskh Arabic or Rubik (Hebrew).
+                With the `rtl` extra installed, Arabic and Hebrew lines in RGB or
+                RGBA images are drawn with `khatt`, using this font when supplied.
+                Missing glyphs use Noto Naskh Arabic or Rubik (Hebrew). Other image
+                modes fall back to Pillow, which requires Raqm for shaping and may
+                not support every image mode.
             font_size: Font size for the text.
             text_padding: Padding around the text within its background box.
             text_position: Position of the text relative to the detection.
@@ -1837,11 +1847,16 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         """The `khatt` module when `line` holds right-to-left text, the scene is RGB or
         RGBA and the `rtl` extra is installed, else `None` (the line is measured and
         drawn by Pillow)."""
-        if draw.mode not in ("RGB", "RGBA") or not _RTL_TEXT.search(line):
+        if not _RTL_TEXT.search(line):
+            return None
+        if draw.mode not in ("RGB", "RGBA"):
+            _warn_unshaped_rtl_text(unsupported_mode=True)
             return None
         try:
             return importlib.import_module("khatt")
-        except ImportError:
+        except ModuleNotFoundError as exc:
+            if exc.name != "khatt":
+                raise
             _warn_unshaped_rtl_text()
             return None
 
