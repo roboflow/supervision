@@ -332,9 +332,8 @@ def stage_build(
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
     """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
 
-    Gathers pixels with the same per-axis sampling map as ``CompactMask.resize``, so
-    the result is the dense reference for the exact-equality check in
-    :func:`stage_resize`.
+    Gathers pixels with the same per-axis sampling map as ``CompactMask.resize``, so the
+    result is the dense reference for the exact-equality check in :func:`stage_resize`.
     """
     orig_h, orig_w = masks.shape[1], masks.shape[2]
     x = _nearest_source_index(orig_w, new_w)

@@ -240,8 +240,8 @@ class DepthCamera:
 class _Conversion:
     """How a value in the map kind's unit becomes the ranged or coloured scale.
 
-    `reciprocal ? numerator / (x + inner_offset) + outer_offset : x`. Depth grows
-    away from the camera, so for depth the low end of a range is the near, warm end
+    `reciprocal ? numerator / (x + inner_offset) + outer_offset : x`. Depth grows away
+    from the camera, so for depth the low end of a range is the near, warm end
     (`near_is_low`).
     """
 
@@ -322,8 +322,8 @@ def _holds_depth(
 ) -> npt.NDArray[np.bool_]:
     """Return where values of `kind` are depth: finite and `> 0`, or `>= 0` if relative.
 
-    The one statement of the no-depth rule, shared by the full-frame mask, single
-    pixels and the regions `DepthMap.measure_detections` gathers.
+    The one statement of the no-depth rule, shared by the full-frame mask, single pixels
+    and the regions `DepthMap.measure_detections` gathers.
     """
     lowest_ok = values >= 0 if kind is DepthKind.RELATIVE_INVERSE else values > 0
     return np.asarray(np.isfinite(values) & lowest_ok)
@@ -332,9 +332,9 @@ def _holds_depth(
 def _index_map(source: int, target: int) -> npt.NDArray[np.intp]:
     """Return the source index under each target pixel centre (nearest sampling).
 
-    Sampling at pixel centres keeps the scaled map aligned with the scene and lets
-    the valid-depth mask be resampled as plain booleans, which `sv.resize_image`
-    does not offer.
+    Sampling at pixel centres keeps the scaled map aligned with the scene and lets the
+    valid-depth mask be resampled as plain booleans, which `sv.resize_image` does not
+    offer.
     """
     positions = (np.arange(target, dtype=np.float64) + 0.5) * source / target
     return np.minimum(positions.astype(np.intp), source - 1)
@@ -387,8 +387,8 @@ def _pool_axis(keys: npt.NDArray[Any], target: int, axis: int) -> npt.NDArray[An
     """Keep the largest key in each group of source pixels covering a target pixel.
 
     Source pixel `i` belongs to target pixel `floor(i * target / source)`; the groups
-    are contiguous and non-empty when shrinking, so one `reduceat` pools them. A
-    growing axis has nothing to pool and samples the nearest pixel instead.
+    are contiguous and non-empty when shrinking, so one `reduceat` pools them. A growing
+    axis has nothing to pool and samples the nearest pixel instead.
     """
     source = keys.shape[axis]
     if target >= source:

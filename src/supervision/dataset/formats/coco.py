@@ -166,10 +166,10 @@ def coco_annotations_to_masks(
 def _check_box_extent(image_annotation: CocoDict) -> list[float]:
     """Return a COCO ``bbox``, rejecting a negative width or height.
 
-    COCO stores a box as ``[x, y, width, height]``, so a negative extent would
-    place ``x_max`` before ``x_min`` once the corners are formed. Such a box
-    makes ``Detections.area`` negative and scores two boxes covering the same
-    region at ``0.0`` under ``box_iou_batch``.
+    COCO stores a box as ``[x, y, width, height]``, so a negative extent would place
+    ``x_max`` before ``x_min`` once the corners are formed. Such a box makes
+    ``Detections.area`` negative and scores two boxes covering the same region at
+    ``0.0`` under ``box_iou_batch``.
     """
     bbox = image_annotation["bbox"]
     box_width, box_height = float(bbox[2]), float(bbox[3])

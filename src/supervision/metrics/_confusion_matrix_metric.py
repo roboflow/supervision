@@ -2,11 +2,10 @@
 
 :class:`~supervision.metrics.precision.Precision`,
 :class:`~supervision.metrics.recall.Recall` and
-:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very
-same per-class, per-
-IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied to that
-matrix, in the result dataclass they fill, and in the labels used when a result is
-rendered. This module owns everything they share.
+:class:`~supervision.metrics.f1_score.F1Score` reduce detections to the very same per-
+class, per- IoU-threshold `(TP, FP, FN)` matrix. They differ only in the formula applied
+to that matrix, in the result dataclass they fill, and in the labels used when a result
+is rendered. This module owns everything they share.
 
 The public classes stay in their own modules on purpose: the API reference does not
 enable `inherited_members`, so a public method moved onto a shared base would silently
