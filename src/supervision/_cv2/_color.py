@@ -73,10 +73,9 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
 def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
     """Convert OpenCV's HSV representation to BGR.
 
-    Like OpenCV, an 8-bit image holds hue in [0, 180) and saturation and value
-    in [0, 255], and gives BGR in [0, 255]. A float32 image holds hue in
-    degrees, [0, 360), and saturation and value in [0, 1], and gives BGR in
-    [0, 1].
+    Like OpenCV, an 8-bit image holds hue in [0, 180) and saturation and value in [0,
+    255], and gives BGR in [0, 255]. A float32 image holds hue in degrees, [0, 360), and
+    saturation and value in [0, 1], and gives BGR in [0, 1].
     """
     values = image.astype(np.float64)
     if image.dtype == np.float32:
