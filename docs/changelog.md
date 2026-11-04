@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames.
+- `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
 
 ### 0.31.4 <small>Nov 3, 2026</small>
 
