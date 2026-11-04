@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.VertexEllipseHaloAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The halo is blended with the first (blue) channel of its color, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2878](https://github.com/roboflow/supervision/pull/2878))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
