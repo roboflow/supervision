@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.RichLabelAnnotator` now draws Arabic and Hebrew labels correctly on RGB and RGBA images with the new `rtl` extra (`pip install "supervision[rtl]"`, which installs [khatt](https://github.com/DrEssam97/khatt)). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, `RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")` drew `"سيارة 0.92"` as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Other image modes fall back to Pillow, which requires Raqm for shaping and may not support every mode; a warning suggests converting to RGB or RGBA when Raqm is missing. Without the extra, a one-time warning names it when Raqm is missing. ([#2864](https://github.com/roboflow/supervision/pull/2864))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
