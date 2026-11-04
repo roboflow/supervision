@@ -303,6 +303,7 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
+ini_options.markers = [ "integration: tests requiring external integration dependencies" ]
 ini_options.filterwarnings = [
   "error::DeprecationWarning",
 ]

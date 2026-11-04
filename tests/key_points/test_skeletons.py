@@ -113,6 +113,7 @@ class TestSkeletons:
         """
         assert Skeleton.HAND.value == HAND
 
+    @pytest.mark.integration
     @pytest.mark.skipif(
         importlib.util.find_spec("mediapipe") is None,
         reason="MediaPipe reference is installed in the dedicated parity job",

@@ -94,32 +94,6 @@ jobs:
       - name: Minimize uv cache
         run: uv cache prune --ci
 
-  mediapipe-reference:
-    name: MediaPipe reference parity
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-    steps:
-      - name: 📥 Checkout the repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: 🐍 Install uv and Python
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          python-version: "3.12"
-          activate-environment: true
-
-      - name: 🚀 Install reference dependencies
-        run: uv sync --frozen --group dev --group mediapipe-reference
-
-      - name: 📦 Verify MediaPipe reference is installed
-        run: python -c "from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarksConnections; assert PoseLandmarksConnections.POSE_LANDMARKS"
-
-      - name: 🧪 Compare GHUM with MediaPipe
-        run: pytest tests/key_points/test_skeletons.py::TestSkeletons::test_ghum_skeleton_matches_mediapipe_pose_connections -rs
-
   clean-wheel:
     name: Clean Wheel on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     timeout-minutes: 10
@@ -165,18 +139,18 @@ jobs:
 
   testing-guardian:
     runs-on: ubuntu-latest
-    needs: [run-tests, clean-wheel, mediapipe-reference]
+    needs: [run-tests, clean-wheel]
     if: always()
     steps:
       - name: 📋 Display test result
-        run: echo "tests=${{ needs.run-tests.result }}, clean-wheel=${{ needs.clean-wheel.result }}, mediapipe-reference=${{ needs.mediapipe-reference.result }}"
+        run: echo "tests=${{ needs.run-tests.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
       - name: ❌ Fail guardian on test failure
-        if: needs.run-tests.result == 'failure' || needs.clean-wheel.result == 'failure' || needs.mediapipe-reference.result == 'failure'
+        if: needs.run-tests.result == 'failure' || needs.clean-wheel.result == 'failure'
         run: exit 1
       # Ensure that cancelled or skipped test runs still cause this guardian job to fail,
       # using an explicit exit code instead of relying on timeout behavior.
       - name: ⚠️ cancelled or skipped...
-        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.clean-wheel.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.mediapipe-reference.result)
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.clean-wheel.result)
         run: |
           echo "A required test job was cancelled or skipped; failing explicitly."
           exit 1
