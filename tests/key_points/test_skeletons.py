@@ -1,3 +1,7 @@
+import importlib.util
+
+import pytest
+
 from supervision.key_points.skeletons import (
     SKELETONS_BY_EDGE_COUNT,
     SKELETONS_BY_VERTEX_COUNT,
@@ -32,48 +36,6 @@ HAND = (
     (18, 19),
     (19, 20),
     (20, 21),
-)
-
-
-# MediaPipe's `POSE_CONNECTIONS` with its 0-based vertices, transcribed from
-# mediapipe/python/solutions/pose_connections.py. Kept independent of skeletons.py
-# so this test fails loudly if Skeleton.GHUM regresses.
-MEDIAPIPE_POSE_CONNECTIONS = (
-    (0, 1),
-    (1, 2),
-    (2, 3),
-    (3, 7),
-    (0, 4),
-    (4, 5),
-    (5, 6),
-    (6, 8),
-    (9, 10),
-    (11, 12),
-    (11, 13),
-    (13, 15),
-    (15, 17),
-    (15, 19),
-    (15, 21),
-    (17, 19),
-    (12, 14),
-    (14, 16),
-    (16, 18),
-    (16, 20),
-    (16, 22),
-    (18, 20),
-    (11, 23),
-    (12, 24),
-    (23, 24),
-    (23, 25),
-    (24, 26),
-    (25, 27),
-    (26, 28),
-    (27, 29),
-    (28, 30),
-    (29, 31),
-    (30, 32),
-    (27, 31),
-    (28, 32),
 )
 
 
@@ -151,9 +113,20 @@ class TestSkeletons:
         """
         assert Skeleton.HAND.value == HAND
 
+    @pytest.mark.skipif(
+        importlib.util.find_spec("mediapipe") is None,
+        reason="MediaPipe reference is installed in the dedicated parity job",
+    )
     def test_ghum_skeleton_matches_mediapipe_pose_connections(self) -> None:
-        """`Skeleton.GHUM` is MediaPipe's pose table shifted to 1-based vertices."""
-        expected = sorted((a + 1, b + 1) for a, b in MEDIAPIPE_POSE_CONNECTIONS)
+        """Compare the GHUM edges with MediaPipe pose connections."""
+        from mediapipe.tasks.python.vision.pose_landmarker import (
+            PoseLandmarksConnections,
+        )
+
+        expected = sorted(
+            (edge.start + 1, edge.end + 1)
+            for edge in PoseLandmarksConnections.POSE_LANDMARKS
+        )
 
         actual = sorted(Skeleton.GHUM.value)
 
