@@ -9,6 +9,12 @@ date_modified: 2026-10-31
 
 - `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding. ([#2880](https://github.com/roboflow/supervision/pull/2880))
 
+- `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
+- Hole bridging in `as_yolo`, `as_pascal_voc` and `as_labelme` now retries top-down when the contour order fails, so those exports no longer raise `ValueError` on valid masks where an enclosed hole is listed before the hole around it. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
+- `sv.VertexEllipseHaloAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The halo is blended with the first (blue) channel of its color, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2878](https://github.com/roboflow/supervision/pull/2878))
+
 - `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
 
 - `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
