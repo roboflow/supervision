@@ -10,6 +10,7 @@ date_modified: 2026-10-31
 - `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
 
 - Hole bridging in `as_yolo`, `as_pascal_voc` and `as_labelme` now retries top-down when the contour order fails, so those exports no longer raise `ValueError` on valid masks where an enclosed hole is listed before the hole around it. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
 - `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
 
 - `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
