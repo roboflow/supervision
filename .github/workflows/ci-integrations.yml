@@ -1,0 +1,41 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: ["main", "develop", "release/*"]
+  pull_request:
+    branches: ["main", "develop", "release/*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mediapipe-reference:
+    name: MediaPipe reference parity
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🐍 Install uv and Python
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.12"
+          activate-environment: true
+
+      - name: 🚀 Install reference dependencies
+        run: uv sync --frozen --group dev --group mediapipe-reference
+
+      - name: 📦 Verify MediaPipe reference is installed
+        run: python -c "from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarksConnections; assert PoseLandmarksConnections.POSE_LANDMARKS"
+
+      - name: 🧪 Run integration tests
+        run: pytest tests/ -m integration --strict-markers -rs
