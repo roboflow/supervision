@@ -1254,6 +1254,78 @@ class TestHeatMapAnnotator:
 
         assert np.array_equal(reused_result, fresh_result)
 
+    @pytest.mark.parametrize("channel_axis", [False, True])
+    def test_grayscale_matches_color_scene(self, channel_axis: bool) -> None:
+        """A grayscale scene is annotated like the gray luminance of its BGR copy.
+
+        The two paths round at different steps (blend then convert, or convert then
+        blend), so pixels may differ by one gray level.
+        """
+        gray = np.arange(60 * 80, dtype=np.uint8).reshape(60, 80)
+        scene = gray[..., None].copy() if channel_axis else gray.copy()
+        color_scene = np.repeat(gray[..., None], 3, axis=2)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+        expected = cv2.cvtColor(
+            HeatMapAnnotator().annotate(scene=color_scene, detections=detections),
+            cv2.COLOR_BGR2GRAY,
+        )
+
+        result = HeatMapAnnotator().annotate(scene=scene, detections=detections)
+
+        assert result is scene
+        assert result.shape == scene.shape
+        np.testing.assert_allclose(
+            result.reshape(60, 80).astype(np.int16),
+            expected.astype(np.int16),
+            atol=1,
+        )
+        assert not np.array_equal(result.reshape(60, 80), gray)
+
+    def test_grayscale_pillow_image(self) -> None:
+        """A Pillow grayscale image is annotated and returned as one."""
+        image = Image.new("L", (80, 60), color=100)
+        detections = _create_detections(xyxy=[[20, 20, 60, 40]])
+
+        result = HeatMapAnnotator().annotate(scene=image, detections=detections)
+
+        assert isinstance(result, Image.Image)
+        assert result.mode == "L"
+        assert result.size == image.size
+        assert result.getpixel((40, 40)) != 100
+        assert result.getpixel((2, 2)) == 100
+
+
+class TestCenterOfMassPosition:
+    """Tests for annotators anchored at `Position.CENTER_OF_MASS`."""
+
+    @pytest.mark.parametrize(
+        ("annotator_class", "position_argument"),
+        [
+            pytest.param(CropAnnotator, "position", id="crop"),
+            pytest.param(DotAnnotator, "position", id="dot"),
+            pytest.param(HeatMapAnnotator, "position", id="heat-map"),
+            pytest.param(IconAnnotator, "icon_position", id="icon"),
+            pytest.param(LabelAnnotator, "text_position", id="label"),
+            pytest.param(PercentageBarAnnotator, "position", id="percentage-bar"),
+            pytest.param(RichLabelAnnotator, "text_position", id="rich-label"),
+            pytest.param(TriangleAnnotator, "position", id="triangle"),
+        ],
+    )
+    def test_empty_detections_leave_scene_unchanged(
+        self,
+        annotator_class: Callable[..., Any],
+        position_argument: str,
+        test_image: np.ndarray,
+    ) -> None:
+        """A frame with no detections has no anchors, so it must not demand a mask."""
+        annotator = annotator_class(**{position_argument: Position.CENTER_OF_MASS})
+
+        result = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert np.array_equal(result, test_image)
+
 
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class."""
