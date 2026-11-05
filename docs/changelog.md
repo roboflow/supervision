@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw falsy non-string labels as text: a label of `0`, `np.int64(0)` or `0.0` was drawn as an empty background box. ([#2892](https://github.com/roboflow/supervision/pull/2892))
+
 -
 
 ### 0.31.5 <small>Nov 5, 2026</small>
