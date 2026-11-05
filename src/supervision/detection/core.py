@@ -127,7 +127,9 @@ class Detections:
 
         [RF-DETR](https://github.com/roboflow/rf-detr)'s `predict` method returns a
         :class:`~supervision.detection.core.Detections` object directly, so no
-        conversion step is needed.
+        conversion step is needed. Segmentation models such as `RFDETRSegSmall`
+        also fill `detections.mask`, so the result works with
+        :class:`~supervision.annotators.core.MaskAnnotator` as is.
 
         ```python
         from supervision import _cv2 as cv2
