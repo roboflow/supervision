@@ -6,7 +6,45 @@ import numpy.typing as npt
 
 from supervision import _cv2 as cv2
 from supervision.draw.color import Color
-from supervision.geometry.core import Point, Rect
+from supervision.geometry.core import (
+    CoordinatesTransformation,
+    Point,
+    Rect,
+    _transform_points,
+)
+
+#: Largest absolute pixel coordinate a mapped point may have and still be drawn: it
+#: fits int32 on both drawing backends and bounds their per-shape drawing work.
+_MAX_DRAWING_COORDINATE = 2**20
+
+
+def _map_to_drawing_coordinates(
+    points: npt.NDArray[np.number],
+    coord_transform: CoordinatesTransformation,
+) -> npt.NDArray[np.float64] | None:
+    """Map reference-frame `(N, 2)` points into the current frame for drawing.
+
+    Returns the mapped points unrounded, or `None` when any of them is non-finite
+    or beyond `_MAX_DRAWING_COORDINATE`, so the caller skips the whole shape
+    instead of distorting it by dropping vertices. `points` is copied first, so a
+    transform that edits its input in place cannot change the zone.
+
+    Only those points are skipped. A homography can map points behind the camera
+    to finite but mirrored coordinates, for example when it clamps a tiny `w`
+    instead of returning NaN; this protocol cannot detect that, so a zone crossing
+    the horizon may be drawn folded.
+
+    Raises:
+        ValueError: If `coord_transform` does not return one point per input point.
+    """
+    points_copy = np.array(points, dtype=np.float64)
+    mapped = _transform_points(points_copy, coord_transform.abs_to_rel)
+    # Checked unrounded so rounding cannot pull an out-of-range point inside.
+    if not np.isfinite(mapped).all():
+        return None
+    if (np.abs(mapped) > _MAX_DRAWING_COORDINATE).any():
+        return None
+    return mapped
 
 
 def draw_line(

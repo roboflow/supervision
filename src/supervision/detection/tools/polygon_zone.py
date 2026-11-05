@@ -11,9 +11,15 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
 )
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
+from supervision.draw.utils import (
+    _map_to_drawing_coordinates,
+    draw_filled_polygon,
+    draw_polygon,
+    draw_text,
+)
 from supervision.geometry.core import (
     CoordinatesTransformation,
+    Point,
     Position,
     _transform_points,
 )
@@ -271,7 +277,10 @@ class PolygonZoneAnnotator:
         self.opacity = opacity
 
     def annotate(
-        self, scene: npt.NDArray[Any], label: str | None = None
+        self,
+        scene: npt.NDArray[Any],
+        label: str | None = None,
+        coord_transform: CoordinatesTransformation | None = None,
     ) -> npt.NDArray[Any]:
         """Annotates the polygon zone within a frame with a count of detected objects.
 
@@ -279,27 +288,80 @@ class PolygonZoneAnnotator:
             scene: The image on which the polygon zone will be annotated
             label: A label for the count of detected objects
                 within the polygon zone (default: None)
+            coord_transform: Optional per-frame camera motion, the same one
+                passed to
+                :meth:`~supervision.detection.tools.polygon_zone.PolygonZone.trigger`.
+                The zone's vertices, and its count label when shown, are mapped
+                into the current frame with
+                :meth:`~supervision.geometry.core.CoordinatesTransformation.abs_to_rel`
+                and rounded to the nearest pixel. If any of them maps to a
+                non-finite coordinate or one beyond `2**20` pixels, the zone is not
+                drawn on this frame.
 
         Returns:
             The image with the polygon zone and count of detected objects
+
+        Raises:
+            ValueError: If `coord_transform` does not return one point per input
+                point.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> class CameraShift:
+            ...     def abs_to_rel(self, points): return points + [50, 0]
+            ...     def rel_to_abs(self, points): return points - [50, 0]
+            >>> zone = sv.PolygonZone(
+            ...     polygon=np.array([[0, 0], [100, 0], [100, 100], [0, 100]])
+            ... )
+            >>> zone_annotator = sv.PolygonZoneAnnotator(
+            ...     zone=zone, display_in_zone_count=False
+            ... )
+            >>> scene = np.zeros((120, 200, 3), dtype=np.uint8)
+            >>> annotated_scene = zone_annotator.annotate(
+            ...     scene=scene, coord_transform=CameraShift()
+            ... )
+            >>> annotated_scene[50, 150].tolist()
+            [255, 255, 255]
+            >>> annotated_scene[50, 100].tolist()
+            [0, 0, 0]
+
+            ```
         """
+        polygon = self.zone.polygon
+        center = self.center
+        if coord_transform is not None:
+            reference_points = polygon
+            if self.display_in_zone_count:
+                reference_points = np.vstack([polygon, [[center.x, center.y]]])
+            mapped = _map_to_drawing_coordinates(reference_points, coord_transform)
+            if mapped is None:
+                # Alias the result like the drawn path: a copy when filling.
+                return scene if self.opacity == 0 else scene.copy()
+            mapped_pixels = np.rint(mapped).astype(np.int64)
+            polygon = mapped_pixels[: len(self.zone.polygon)]
+            if self.display_in_zone_count:
+                center_x, center_y = mapped_pixels[-1].tolist()
+                center = Point(x=center_x, y=center_y)
+
         if self.opacity == 0:
             annotated_frame = draw_polygon(
                 scene=scene,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
         else:
             annotated_frame = draw_filled_polygon(
                 scene=scene.copy(),
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 opacity=self.opacity,
             )
             annotated_frame = draw_polygon(
                 scene=annotated_frame,
-                polygon=self.zone.polygon,
+                polygon=polygon,
                 color=self.color,
                 thickness=self.thickness,
             )
@@ -308,7 +370,7 @@ class PolygonZoneAnnotator:
             annotated_frame = draw_text(
                 scene=annotated_frame,
                 text=str(self.zone.current_count) if label is None else label,
-                text_anchor=self.center,
+                text_anchor=center,
                 background_color=self.color,
                 text_color=self.text_color,
                 text_scale=self.text_scale,

@@ -38,6 +38,8 @@ date_modified: 2026-10-31
     - The NumPy fallback for `cv2.blur` now blurs `uint16` and `int16` images with exact integer window sums and OpenCV's scaling precision (float32, or float64 for kernels larger than 32,768 `uint16` or 65,536 `int16` pixels), as it already did for `uint8`. It averaged in float64, which rounded exact `.5` means the other way, for example `3` returned instead of `2` for a window that sums to `15` over `6` pixels. ([#2875](https://github.com/roboflow/supervision/pull/2875))
     - The OpenCV-free `cvtColor` fallback now reads a float32 image for `COLOR_HSV2BGR` as OpenCV does: hue in degrees, saturation, value and the BGR result in `[0, 1]`. It previously applied the 8-bit scale to float32 input, and it now raises `ValueError` for the depths OpenCV rejects. ([#2885](https://github.com/roboflow/supervision/pull/2885))
 
+- `sv.PolygonZoneAnnotator.annotate` and `sv.LineZoneAnnotator.annotate` accept the same optional `coord_transform` as `trigger`, so zones, lines and their counts are drawn where they appear while the camera moves. A zone or line with a point mapped to a non-finite coordinate or beyond `2**20` pixels is skipped for that frame. ([#2760](https://github.com/roboflow/supervision/pull/2760))
+
 ### 0.31.4 <small>Nov 3, 2026</small>
 
 - **Datasets**: merging and exporting handle class IDs correctly.
