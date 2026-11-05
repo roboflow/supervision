@@ -1295,6 +1295,38 @@ class TestHeatMapAnnotator:
         assert result.getpixel((2, 2)) == 100
 
 
+class TestCenterOfMassPosition:
+    """Tests for annotators anchored at `Position.CENTER_OF_MASS`."""
+
+    @pytest.mark.parametrize(
+        ("annotator_class", "position_argument"),
+        [
+            pytest.param(CropAnnotator, "position", id="crop"),
+            pytest.param(DotAnnotator, "position", id="dot"),
+            pytest.param(HeatMapAnnotator, "position", id="heat-map"),
+            pytest.param(IconAnnotator, "icon_position", id="icon"),
+            pytest.param(LabelAnnotator, "text_position", id="label"),
+            pytest.param(PercentageBarAnnotator, "position", id="percentage-bar"),
+            pytest.param(RichLabelAnnotator, "text_position", id="rich-label"),
+            pytest.param(TriangleAnnotator, "position", id="triangle"),
+        ],
+    )
+    def test_empty_detections_leave_scene_unchanged(
+        self,
+        annotator_class: Callable[..., Any],
+        position_argument: str,
+        test_image: np.ndarray,
+    ) -> None:
+        """A frame with no detections has no anchors, so it must not demand a mask."""
+        annotator = annotator_class(**{position_argument: Position.CENTER_OF_MASS})
+
+        result = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+
+        assert np.array_equal(result, test_image)
+
+
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class."""
 
