@@ -2255,7 +2255,8 @@ class Detections:
            oriented bounding box corners (result lies on the actual rotated
            body).
         2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
-           centroid is returned regardless of OBB data presence.
+           centroid is returned regardless of OBB data presence. An empty batch
+           returns no anchors, with or without a mask.
         3. Otherwise, the anchor is derived from the axis-aligned envelope
            (``xyxy``).
 
@@ -2273,7 +2274,8 @@ class Detections:
             dtype.
 
         Raises:
-            ValueError: If the provided `anchor` is not supported.
+            ValueError: If the provided `anchor` is not supported, or if `anchor` is
+                ``Position.CENTER_OF_MASS`` and a non-empty batch has no mask.
 
         Examples:
             Axis-aligned detection:
@@ -2330,6 +2332,10 @@ class Detections:
             )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
+                # `from_inference` and `from_ultralytics` return an empty batch without
+                # a mask when a model finds nothing. It has no anchors to compute.
+                if len(self) == 0:
+                    return np.empty((0, 2), dtype=np.int_)
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
