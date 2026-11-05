@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- Added `sv.NormalMapAnnotator` for normalized xyz normal maps and `sv.GradientMapAnnotator` for scalar magnitudes or x/y derivative maps. Both colour maps over NumPy or Pillow scenes, leave invalid pixels unpainted, resize to the scene, and blend with configurable opacity. Gradient maps use the 2nd to 98th percentile by default or a fixed display range. ([#1313](https://github.com/roboflow/supervision/issues/1313))
+- Added `sv.NormalMapAnnotator` for normalized xyz normal maps and `sv.GradientMapAnnotator` for scalar magnitudes or x/y derivative maps. Both colour maps over NumPy or Pillow scenes, leave invalid pixels unpainted, resize to the scene, and blend with configurable opacity. Gradient maps use the 2nd to 98th percentile by default or a fixed display range. ([#2888](https://github.com/roboflow/supervision/pull/2888))
 
 - `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
 
