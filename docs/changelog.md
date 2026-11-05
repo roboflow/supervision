@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression`, `sv.mask_non_max_merge`, `sv.Detections.with_nms` and `sv.Detections.with_nmm` now count overlaps of dense boolean masks on bit-packed copies with NumPy >= 2.0, instead of float32 copies. Results are identical. Peak memory for mask IoU drops about 16-20x, and mask non-max merging runs 20-40x faster. Older NumPy and non-bool masks keep the previous float path. ([#2886](https://github.com/roboflow/supervision/pull/2886))
 
+- The OpenCV-free `cvtColor` fallback now reads a float32 image for `COLOR_HSV2BGR` as OpenCV does: hue in degrees, saturation, value and the BGR result in `[0, 1]`. It previously applied the 8-bit scale to float32 input, and it now raises `ValueError` for the depths OpenCV rejects. ([#2885](https://github.com/roboflow/supervision/pull/2885))
+
 - Annotators handed a `PIL.Image` now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (`I;16`) or 32-bit (`I`) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. ([#2883](https://github.com/roboflow/supervision/pull/2883))
 
 - `sv.oriented_box_iou_batch` and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous `cv2` call on OpenCV installs, so crowded scenes can take seconds. ([#2882](https://github.com/roboflow/supervision/pull/2882))

@@ -148,6 +148,41 @@ def test_fallback_bgr_to_gray_matches_opencv_for_integer_images(
     np.testing.assert_array_equal(actual, expected)
 
 
+def test_fallback_hsv_to_bgr_matches_opencv_for_float32_images() -> None:
+    """Read float32 hue in degrees and saturation and value in [0, 1]."""
+    rng = np.random.default_rng(0)
+    source = np.stack(
+        (
+            rng.uniform(0, 360, (32, 32)),
+            rng.uniform(0, 1, (32, 32)),
+            rng.uniform(0, 1, (32, 32)),
+        ),
+        axis=-1,
+    ).astype(np.float32)
+    source[0, 0] = (120, 0.5, 0.8)
+    source[0, 1] = (0, 1, 1)
+    source[0, 2] = (300, 0, 0.25)
+
+    actual = _cvt_color(source, _COLOR_HSV2BGR)
+    expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+
+    assert actual.dtype == expected.dtype
+    np.testing.assert_allclose(actual, expected, atol=1e-5, rtol=0)
+
+
+@pytest.mark.parametrize("dtype", [np.uint16, np.float64])
+def test_fallback_hsv_to_bgr_rejects_dtypes_opencv_rejects(
+    dtype: type[np.generic],
+) -> None:
+    """Raise for the depths OpenCV's HSV2BGR does not accept."""
+    source = np.zeros((2, 2, 3), dtype=dtype)
+
+    with pytest.raises(cv2.error):
+        cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+    with pytest.raises(ValueError, match="8-bit or float32"):
+        _cvt_color(source, _COLOR_HSV2BGR)
+
+
 def test_fallback_merge_matches_opencv() -> None:
     """Match OpenCV channel merging."""
     bgr = np.array(
