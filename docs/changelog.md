@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression`, `sv.mask_non_max_merge`, `sv.Detections.with_nms` and `sv.Detections.with_nmm` now count overlaps of dense boolean masks on bit-packed copies with NumPy >= 2.0, instead of float32 copies. Results are identical. Peak memory for mask IoU drops about 16-20x, and mask non-max merging runs 20-40x faster. Older NumPy and non-bool masks keep the previous float path.
+
 - `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
 
 - `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
