@@ -293,6 +293,30 @@ class TestImageWindowUpdateDisplay:
 
 
 class TestImageWindowOnConfigure:
+    @pytest.mark.parametrize(
+        ("frame_size", "window_size"),
+        [
+            pytest.param((1, 900), (1, 800), id="one-pixel-wide"),
+            pytest.param((1200, 1), (1000, 1), id="one-pixel-high"),
+        ],
+    )
+    def test_single_pixel_dimension_fits_frame(
+        self, frame_size: tuple[int, int], window_size: tuple[int, int]
+    ) -> None:
+        """A one-pixel window dimension still fits an oversized frame."""
+        window = ImageWindow()
+        root = MagicMock()
+        window._root = root
+        window._label = MagicMock()
+        window._pil_image = Image.new("RGB", frame_size)
+        event = MagicMock(widget=root, width=window_size[0], height=window_size[1])
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._on_configure(event)
+
+        assert fake_imagetk.PhotoImage.call_args.args[0].size == window_size
+
     def test_non_root_widget_is_ignored(self) -> None:
         """<Configure> events from child widgets do not update dimensions."""
         window = ImageWindow()
@@ -328,13 +352,13 @@ class TestImageWindowOnConfigure:
         mock_update.assert_not_called()
 
     def test_degenerate_size_is_ignored(self) -> None:
-        """<Configure> with width or height <= 1 (pre-geometry) is skipped."""
+        """<Configure> with a nonpositive dimension is skipped."""
         window = ImageWindow()
         mock_root = MagicMock()
         window._root = mock_root
         event = MagicMock()
         event.widget = mock_root
-        event.width = 1
+        event.width = 0
         event.height = 100
 
         with patch.object(window, "_update_display") as mock_update:

@@ -211,7 +211,7 @@ class ImageWindow:
         if event.widget is not self._root:
             return
         w, h = event.width, event.height
-        if w > 1 and h > 1 and (w, h) != (self._win_w, self._win_h):
+        if w > 0 and h > 0 and (w, h) != (self._win_w, self._win_h):
             self._win_w, self._win_h = w, h
             if self._pil_image is not None:
                 self._update_display()
@@ -222,7 +222,7 @@ class ImageWindow:
         from PIL import ImageTk
 
         img = self._pil_image
-        if self._win_w > 1 and self._win_h > 1:
+        if self._win_w > 0 and self._win_h > 0:
             img = _fit_image(img, self._win_w, self._win_h, self.keep_aspect_ratio)
         self._update_display_transform(img)
         self._photo = ImageTk.PhotoImage(img)
@@ -241,8 +241,8 @@ class ImageWindow:
             return
         orig_w, orig_h = self._pil_image.size
         fit_w, fit_h = fitted.size
-        win_w = self._win_w if self._win_w > 1 else fit_w
-        win_h = self._win_h if self._win_h > 1 else fit_h
+        win_w = self._win_w if self._win_w > 0 else fit_w
+        win_h = self._win_h if self._win_h > 0 else fit_h
         self._display_scale_x = fit_w / orig_w if orig_w else 1.0
         self._display_scale_y = fit_h / orig_h if orig_h else 1.0
         self._display_offset_x = max(0.0, (win_w - fit_w) / 2)
