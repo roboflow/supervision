@@ -3128,6 +3128,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0315-nov-5-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.5 Nov 5, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0314-nov-3-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3788,6 +3799,17 @@ APIs described here may change or may never ship in a release, so use the <a hre
 </li>
       
         <li class="md-nav__item">
+  <a href="#0315-nov-5-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.31.5 Nov 5, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0314-nov-3-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4388,66 +4410,46 @@ APIs described here may change or may never ship in a release, so use the <a hre
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
+<p>-</p>
+<h3 id="0315-nov-5-2026">0.31.5 <small>Nov 5, 2026</small><a class="headerlink" href="#0315-nov-5-2026" title="Permanent link">&para;</a></h3>
 <ul>
-<li>
-<p>The OpenCV-free <code>cvtColor</code> fallback now reads a float32 image for <code>COLOR_HSV2BGR</code> as OpenCV does: hue in degrees, saturation, value and the BGR result in <code>[0, 1]</code>. It previously applied the 8-bit scale to float32 input, and it now raises <code>ValueError</code> for the depths OpenCV rejects. (<a href="https://github.com/roboflow/supervision/pull/2885">#2885</a>)</p>
+<li><strong>Annotators</strong>: annotating more image types and right-to-left labels.<ul>
+<li><code>sv.RichLabelAnnotator</code> now draws Arabic and Hebrew labels correctly on RGB and RGBA images with the new <code>rtl</code> extra (<code>pip install "supervision[rtl]"</code>, which installs <a href="https://github.com/DrEssam97/khatt">khatt</a>). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, <code>RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")</code> drew <code>"سيارة 0.92"</code> as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Other image modes fall back to Pillow, which requires Raqm for shaping and may not support every mode; a warning suggests converting to RGB or RGBA when Raqm is missing. Without the extra, a one-time warning names it when Raqm is missing. (<a href="https://github.com/roboflow/supervision/pull/2864">#2864</a>)</li>
+<li><code>sv.HeatMapAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The heat colors are blended as their gray luminance, as <code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. (<a href="https://github.com/roboflow/supervision/pull/2872">#2872</a>)</li>
+<li><code>sv.VertexEllipseHaloAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The halo is blended with the first (blue) channel of its color, so a grayscale result equals the first channel of the same annotation on a BGR copy. (<a href="https://github.com/roboflow/supervision/pull/2878">#2878</a>)</li>
+<li>Annotators handed a <code>PIL.Image</code> now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (<code>I;16</code>) or 32-bit (<code>I</code>) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. (<a href="https://github.com/roboflow/supervision/pull/2883">#2883</a>)</li>
+</ul>
 </li>
-<li>
-<p>Annotators handed a <code>PIL.Image</code> now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (<code>I;16</code>) or 32-bit (<code>I</code>) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. (<a href="https://github.com/roboflow/supervision/pull/2883">#2883</a>)</p>
+<li><strong>Datasets and exports</strong>: COCO and mask exports keep geometry intact.<ul>
+<li>COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a <code>300×300</code> box stored in <code>float16</code> or <code>int16</code> now exports an area of <code>90000</code> instead of infinity or <code>24464</code>; large integer coordinate origins retain their precision. (<a href="https://github.com/roboflow/supervision/pull/2867">#2867</a>)</li>
+<li><code>sv.DetectionDataset.as_coco</code> and <code>detections_to_coco_annotations</code> now keep the holes of masks written as polygons with <code>iscrowd=0</code>, which <code>from_coco</code> sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. (<a href="https://github.com/roboflow/supervision/pull/2879">#2879</a>)</li>
+<li>Hole bridging in <code>as_yolo</code>, <code>as_pascal_voc</code> and <code>as_labelme</code> now retries top-down when the contour order fails, so those exports no longer raise <code>ValueError</code> on valid masks where an enclosed hole is listed before the hole around it. (<a href="https://github.com/roboflow/supervision/pull/2879">#2879</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.oriented_box_iou_batch</code> and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous <code>cv2</code> call on OpenCV installs, so crowded scenes can take seconds. (<a href="https://github.com/roboflow/supervision/pull/2882">#2882</a>)</p>
+<li><strong>Detections, zones and metrics</strong>: counting, overlap and sinks behave correctly in edge cases.<ul>
+<li><code>sv.LineZone</code> now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the <code>max(30, minimum_crossing_threshold + 1)</code>th consecutive absent frame. To restore previous retention, pass <code>max_absent_frames=max(2, minimum_crossing_threshold + 1)</code>; this is 2 for the default crossing threshold. (<a href="https://github.com/roboflow/supervision/pull/2873">#2873</a>)</li>
+<li><code>sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)</code> now returns an empty <code>(0, 2)</code> array for an empty batch without masks instead of raising <code>ValueError</code>, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. (<a href="https://github.com/roboflow/supervision/pull/2877">#2877</a>)</li>
+<li><code>np.sum</code> now works on a <code>CompactMask</code>, with or without <code>axis</code>, and for valid arguments gives the same result as the dense mask, including <code>dtype</code>, <code>out</code>, <code>keepdims</code>, <code>initial</code>, <code>where</code> and NumPy integer axes such as <code>np.int64(1)</code>. It previously raised <code>TypeError</code>. <code>np.sum(mask, axis=(1, 2))</code> with no other argument still reads per-mask areas from RLE without decoding; invalid tuple axes are validated by NumPy. (<a href="https://github.com/roboflow/supervision/pull/2880">#2880</a>)</li>
+<li><code>sv.oriented_box_iou_batch</code> and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous <code>cv2</code> call on OpenCV installs, so crowded scenes can take seconds. (<a href="https://github.com/roboflow/supervision/pull/2882">#2882</a>)</li>
+<li>Oriented-box precision, recall, F1 and mean average recall now preserve corner precision before overlap matching and calculate floating-point areas in a local coordinate frame. Perfect predictions at large coordinate origins no longer become misses or enter incorrect object-size buckets. (<a href="https://github.com/roboflow/supervision/pull/2887">#2887</a>)</li>
+<li><code>sv.CSVSink</code> now preserves an exception raised inside a <code>with</code> block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. (<a href="https://github.com/roboflow/supervision/pull/2869">#2869</a>)</li>
+</ul>
 </li>
-<li>
-<p><strong>Image window</strong>: <code>sv.ImageWindow.show</code> now draws the frame on the call that opens a window, instead of leaving it blank until the next <code>show</code>. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop <code>show</code> from returning for wide frames. (<a href="https://github.com/roboflow/supervision/pull/2881">#2881</a>)</p>
+<li><strong>Key points</strong>: skeleton edges are right.<ul>
+<li><code>Skeleton.GHUM</code> now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default <code>sv.EdgeAnnotator</code> drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. (<a href="https://github.com/roboflow/supervision/pull/2876">#2876</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>sv.ImageWindow</code> now fits frames when a window dimension is one pixel, preventing oversized single-row or single-column frames from being clipped. (<a href="https://github.com/roboflow/supervision/pull/2881">#2881</a>)</p>
+<li><strong>Video and windows</strong>: reading and showing frames.<ul>
+<li><code>sv.get_video_frames_generator</code> stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. (<a href="https://github.com/roboflow/supervision/pull/2874">#2874</a>)</li>
+<li><strong>Image window</strong>: <code>sv.ImageWindow.show</code> now draws the frame on the call that opens a window, instead of leaving it blank until the next <code>show</code>. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop <code>show</code> from returning for wide frames. (<a href="https://github.com/roboflow/supervision/pull/2881">#2881</a>)</li>
+<li><code>sv.ImageWindow</code> now fits frames when a window dimension is one pixel, preventing oversized single-row or single-column frames from being clipped. (<a href="https://github.com/roboflow/supervision/pull/2881">#2881</a>)</li>
+</ul>
 </li>
-<li>
-<p><code>np.sum</code> now works on a <code>CompactMask</code>, with or without <code>axis</code>, and for valid arguments gives the same result as the dense mask, including <code>dtype</code>, <code>out</code>, <code>keepdims</code>, <code>initial</code>, <code>where</code> and NumPy integer axes such as <code>np.int64(1)</code>. It previously raised <code>TypeError</code>. <code>np.sum(mask, axis=(1, 2))</code> with no other argument still reads per-mask areas from RLE without decoding; invalid tuple axes are validated by NumPy. (<a href="https://github.com/roboflow/supervision/pull/2880">#2880</a>)</p>
-</li>
-<li>
-<p><code>sv.DetectionDataset.as_coco</code> and <code>detections_to_coco_annotations</code> now keep the holes of masks written as polygons with <code>iscrowd=0</code>, which <code>from_coco</code> sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. (<a href="https://github.com/roboflow/supervision/pull/2879">#2879</a>)</p>
-</li>
-<li>
-<p>Hole bridging in <code>as_yolo</code>, <code>as_pascal_voc</code> and <code>as_labelme</code> now retries top-down when the contour order fails, so those exports no longer raise <code>ValueError</code> on valid masks where an enclosed hole is listed before the hole around it. (<a href="https://github.com/roboflow/supervision/pull/2879">#2879</a>)</p>
-</li>
-<li>
-<p><code>sv.VertexEllipseHaloAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The halo is blended with the first (blue) channel of its color, so a grayscale result equals the first channel of the same annotation on a BGR copy. (<a href="https://github.com/roboflow/supervision/pull/2878">#2878</a>)</p>
-</li>
-<li>
-<p><code>sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)</code> now returns an empty <code>(0, 2)</code> array for an empty batch without masks instead of raising <code>ValueError</code>, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. (<a href="https://github.com/roboflow/supervision/pull/2877">#2877</a>)</p>
-</li>
-<li>
-<p><code>Skeleton.GHUM</code> now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default <code>sv.EdgeAnnotator</code> drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. (<a href="https://github.com/roboflow/supervision/pull/2876">#2876</a>)</p>
-</li>
-<li>
-<p><code>sv.get_video_frames_generator</code> stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. (<a href="https://github.com/roboflow/supervision/pull/2874">#2874</a>)</p>
-</li>
-<li>
-<p><code>sv.LineZone</code> now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the <code>max(30, minimum_crossing_threshold + 1)</code>th consecutive absent frame. To restore previous retention, pass <code>max_absent_frames=max(2, minimum_crossing_threshold + 1)</code>; this is 2 for the default crossing threshold. <a href="https://github.com/roboflow/supervision/pull/2873">#2873</a></p>
-</li>
-<li>
-<p><code>sv.HeatMapAnnotator</code> now annotates grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code> or given as a Pillow <code>"L"</code> image, instead of raising <code>ValueError</code>. The heat colors are blended as their gray luminance, as <code>sv.CropAnnotator</code> and <code>sv.IconAnnotator</code> overlays are, so a grayscale result matches the gray conversion of the same annotation on a BGR copy to within one gray level. (<a href="https://github.com/roboflow/supervision/pull/2872">#2872</a>)</p>
-</li>
-<li>
-<p><code>sv.CSVSink</code> now preserves an exception raised inside a <code>with</code> block when cleanup raises an ordinary exception, such as a deferred-header write or file flush error. The cleanup exception is logged; when the block succeeds, cleanup exceptions still propagate. (<a href="https://github.com/roboflow/supervision/pull/2869">#2869</a>)</p>
-</li>
-<li>
-<p>COCO export now computes box widths, heights and areas using Python scalars. Without a mask or finite stored area, a <code>300×300</code> box stored in <code>float16</code> or <code>int16</code> now exports an area of <code>90000</code> instead of infinity or <code>24464</code>; large integer coordinate origins retain their precision. (<a href="https://github.com/roboflow/supervision/pull/2867">#2867</a>)</p>
-</li>
-<li>
-<p>Oriented-box precision, recall, F1 and mean average recall now preserve corner precision before overlap matching and calculate floating-point areas in a local coordinate frame. Perfect predictions at large coordinate origins no longer become misses or enter incorrect object-size buckets. (<a href="https://github.com/roboflow/supervision/pull/2887">#2887</a>)</p>
-</li>
-<li>
-<p>The OpenCV-free <code>cvtColor</code> fallback now accepts the same channel layouts as OpenCV for gray conversions: <code>COLOR_BGR2GRAY</code> takes a four-channel BGRA image (alpha ignored) and <code>COLOR_GRAY2BGR</code> takes an <code>(H, W, 1)</code> image. Both previously raised <code>ValueError</code>, so <code>sv.grayscale_image</code> failed on BGRA frames without OpenCV. (<a href="https://github.com/roboflow/supervision/pull/2866">#2866</a>)</p>
-</li>
-<li>
-<p><code>sv.RichLabelAnnotator</code> now draws Arabic and Hebrew labels correctly on RGB and RGBA images with the new <code>rtl</code> extra (<code>pip install "supervision[rtl]"</code>, which installs <a href="https://github.com/DrEssam97/khatt">khatt</a>). Pillow joins Arabic letters and orders right-to-left text only when built with Raqm, which most Windows installs and many containers lack; there, <code>RichLabelAnnotator(font_path="NotoNaskhArabic-Regular.ttf")</code> drew <code>"سيارة 0.92"</code> as isolated letters in reverse order. Lines containing Arabic or Hebrew are now shaped in the label's font, with bundled Arabic and Hebrew fonts for glyphs it lacks, and right-aligned in the background box; other lines are drawn by Pillow as before. Other image modes fall back to Pillow, which requires Raqm for shaping and may not support every mode; a warning suggests converting to RGB or RGBA when Raqm is missing. Without the extra, a one-time warning names it when Raqm is missing. (<a href="https://github.com/roboflow/supervision/pull/2864">#2864</a>)</p>
-</li>
-<li>
-<p>The NumPy fallback for <code>cv2.blur</code> now blurs <code>uint16</code> and <code>int16</code> images with exact integer window sums and OpenCV's scaling precision (float32, or float64 for kernels larger than 32,768 <code>uint16</code> or 65,536 <code>int16</code> pixels), as it already did for <code>uint8</code>. It averaged in float64, which rounded exact <code>.5</code> means the other way, for example <code>3</code> returned instead of <code>2</code> for a window that sums to <code>15</code> over <code>6</code> pixels. (<a href="https://github.com/roboflow/supervision/pull/2875">#2875</a>)</p>
+<li><strong>cv2-free fallback</strong>: the NumPy fallback follows OpenCV more closely.<ul>
+<li>The OpenCV-free <code>cvtColor</code> fallback now accepts the same channel layouts as OpenCV for gray conversions: <code>COLOR_BGR2GRAY</code> takes a four-channel BGRA image (alpha ignored) and <code>COLOR_GRAY2BGR</code> takes an <code>(H, W, 1)</code> image. Both previously raised <code>ValueError</code>, so <code>sv.grayscale_image</code> failed on BGRA frames without OpenCV. (<a href="https://github.com/roboflow/supervision/pull/2866">#2866</a>)</li>
+<li>The NumPy fallback for <code>cv2.blur</code> now blurs <code>uint16</code> and <code>int16</code> images with exact integer window sums and OpenCV's scaling precision (float32, or float64 for kernels larger than 32,768 <code>uint16</code> or 65,536 <code>int16</code> pixels), as it already did for <code>uint8</code>. It averaged in float64, which rounded exact <code>.5</code> means the other way, for example <code>3</code> returned instead of <code>2</code> for a window that sums to <code>15</code> over <code>6</code> pixels. (<a href="https://github.com/roboflow/supervision/pull/2875">#2875</a>)</li>
+<li>The OpenCV-free <code>cvtColor</code> fallback now reads a float32 image for <code>COLOR_HSV2BGR</code> as OpenCV does: hue in degrees, saturation, value and the BGR result in <code>[0, 1]</code>. It previously applied the 8-bit scale to float32 input, and it now raises <code>ValueError</code> for the depths OpenCV rejects. (<a href="https://github.com/roboflow/supervision/pull/2885">#2885</a>)</li>
+</ul>
 </li>
 </ul>
 <h3 id="0314-nov-3-2026">0.31.4 <small>Nov 3, 2026</small><a class="headerlink" href="#0314-nov-3-2026" title="Permanent link">&para;</a></h3>
@@ -6723,7 +6725,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 5, 2026 17:13:33 UTC">November 5, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 5, 2026 18:49:33 UTC">November 5, 2026</span>
   </span>
 
     
@@ -6751,9 +6753,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6761,14 +6763,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
+          
+          <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
+        </a>
+      
         <a href="https://github.com/kevin9327" class="md-author" title="@kevin9327">
           
           <img src="https://avatars.githubusercontent.com/u/5299031?v=4&size=72" alt="kevin9327">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
