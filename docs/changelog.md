@@ -7,6 +7,10 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- **Image window**: `sv.ImageWindow.show` now draws the frame on the call that opens a window, instead of leaving it blank until the next `show`. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop `show` from returning for wide frames. ([#2881](https://github.com/roboflow/supervision/pull/2881))
+
+- `sv.ImageWindow` now fits frames when a window dimension is one pixel, preventing oversized single-row or single-column frames from being clipped. ([#2881](https://github.com/roboflow/supervision/pull/2881))
+
 - `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding; invalid tuple axes are validated by NumPy. ([#2880](https://github.com/roboflow/supervision/pull/2880))
 
 - `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
