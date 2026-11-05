@@ -32,13 +32,51 @@ def ensure_cv2_image_for_class_method(
 
         if isinstance(scene, Image.Image):
             scene_np = pillow_to_cv2(scene)
+            original_np = scene_np.copy()
             annotated_np = annotate_func(self, scene_np, *args, **kwargs)
-            scene.paste(cv2_to_pillow(annotated_np))
+            _paste_annotated_pixels(scene, original_np, annotated_np)
             return scene
 
         raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
+
+
+def _paste_annotated_pixels(
+    scene: Image.Image,
+    original: npt.NDArray[np.uint8],
+    annotated: npt.NDArray[np.uint8],
+) -> None:
+    """Write the pixels an annotator changed back into the Pillow scene in place.
+
+    Annotators draw on the 8-bit BGR or grayscale copy
+    :func:`~supervision.utils.conversion.pillow_to_cv2` makes of the scene. Pasting
+    that whole copy back would replace every pixel with its 8-bit round trip, so a
+    transparent RGBA or LA background turned opaque and a 16-bit image lost its low
+    byte. Only the changed pixels are pasted; the rest keep their original values.
+
+    Args:
+        scene: Pillow image the annotator was called with, updated in place.
+        original: 8-bit copy of `scene` taken before annotation.
+        annotated: The same copy after annotation.
+    """
+    if annotated.shape != original.shape:
+        scene.paste(cv2_to_pillow(annotated))
+        return
+
+    changed = annotated != original
+    if changed.ndim == 3:
+        changed = changed.any(axis=2)
+    if not changed.any():
+        return
+
+    if scene.mode == "I" or scene.mode.startswith("I;16"):
+        # pillow_to_cv2 kept the high byte of these deep integer modes; scaling by
+        # 257 maps 0-255 back onto 0-65535 so drawn pixels keep their brightness.
+        patch = Image.fromarray(annotated.astype(np.int32) * 257)
+    else:
+        patch = cv2_to_pillow(annotated)
+    scene.paste(patch, mask=Image.fromarray(changed))
 
 
 def ensure_cv2_image_for_standalone_function(
