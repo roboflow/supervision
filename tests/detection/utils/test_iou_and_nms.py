@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
@@ -2581,7 +2582,7 @@ class TestMaskIouBatch:
         """Detection > memory_limit emits UserWarning; result shape is still correct."""
         rng = np.random.default_rng(4)
         masks_true = rng.random((3, 32, 32)) > 0.5
-        # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
+        # 500 x 32x32 float32 masks are ~2 MB > memory_limit=1 MB.
         masks_detection = (rng.random((500, 32, 32)) > 0.5).astype(np.float32)
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
@@ -2777,6 +2778,20 @@ class TestBitPackedMaskOverlap:
 
         np.testing.assert_array_equal(keep, expected_keep)
         np.testing.assert_array_equal(scores, expected_scores)
+
+    def test_mask_iou_batch_budgets_packed_masks(self) -> None:
+        """Bool masks whose float copies exceed memory_limit run without a warning."""
+        rng = np.random.default_rng(8)
+        masks_true = rng.random((3, 32, 32)) > 0.5
+        masks_detection = rng.random((500, 32, 32)) > 0.5
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(
+            result, mask_iou_batch(masks_true, masks_detection)
+        )
 
     def test_mask_iou_batch_counts_exactly_above_2pow24_pixels(self) -> None:
         """Masks over 2**24 pixels count in float64, so a one-pixel gap is kept."""
