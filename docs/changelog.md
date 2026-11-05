@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- Annotators handed a `PIL.Image` now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (`I;16`) or 32-bit (`I`) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. ([#2883](https://github.com/roboflow/supervision/pull/2883))
+
 - `sv.oriented_box_iou_batch` and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous `cv2` call on OpenCV installs, so crowded scenes can take seconds. ([#2882](https://github.com/roboflow/supervision/pull/2882))
 
 - **Image window**: `sv.ImageWindow.show` now draws the frame on the call that opens a window, instead of leaving it blank until the next `show`. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop `show` from returning for wide frames. ([#2881](https://github.com/roboflow/supervision/pull/2881))
