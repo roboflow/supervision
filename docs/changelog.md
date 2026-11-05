@@ -100,6 +100,7 @@ date_modified: 2026-10-31
     - `sv.JSONSink.write_and_close()` now does nothing once the file is closed. Calling it inside a `with` block made the block's exit call it again and raise `ValueError: I/O operation on closed file.`; `sv.CSVSink.close()` already returned early in that case. ([#2771](https://github.com/roboflow/supervision/pull/2771))
 - Detections.select() now preserves scalar NumPy values in the data field, so selecting rows with a shared scalar label no longer raises an indexing error. ([#2769](https://github.com/roboflow/supervision/pull/2769))
 - `sv.mask_iou_batch` now keeps `CompactMask` inputs aligned with the dense-mask contract: mismatched image shapes raise `ValueError`, unsupported overlap metrics are rejected even when bounding-box pre-filtering finds no pair, and overlap arithmetic follows the dense implementation's precision so exact NMS thresholds make the same decision for compact and dense masks. ([#2767](https://github.com/roboflow/supervision/pull/2767))
+- Performance: `sv.CompactMask.area` now sums the foreground runs of many masks per NumPy reduction instead of making a Python call per mask, in chunks that keep its temporary copy small. With 100 to 500 masks it is about 3–9× faster for typical masks and about 2× faster for heavily fragmented masks with thousands of runs each. No output changes. ([#2744](https://github.com/roboflow/supervision/pull/2744))
 
 ### 0.31.1 <small>Oct 20, 2026</small>
 
