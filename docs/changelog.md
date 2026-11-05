@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression`, `sv.mask_non_max_merge`, `sv.Detections.with_nms` and `sv.Detections.with_nmm` now count overlaps of dense boolean masks on bit-packed copies with NumPy >= 2.0, instead of float32 copies. Results are identical. Peak memory for mask IoU drops about 16-20x, and mask non-max merging runs 20-40x faster. Older NumPy and non-bool masks keep the previous float path.
+- `sv.mask_iou_batch`, `sv.mask_non_max_suppression`, `sv.mask_soft_non_max_suppression`, `sv.mask_non_max_merge`, `sv.Detections.with_nms` and `sv.Detections.with_nmm` now count overlaps of dense boolean masks on bit-packed copies with NumPy >= 2.0, instead of float32 copies. Results are identical. Peak memory for mask IoU drops about 16-20x, and mask non-max merging runs 20-40x faster. Older NumPy and non-bool masks keep the previous float path. ([#2886](https://github.com/roboflow/supervision/pull/2886))
 
 - Annotators handed a `PIL.Image` now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (`I;16`) or 32-bit (`I`) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. ([#2883](https://github.com/roboflow/supervision/pull/2883))
 
