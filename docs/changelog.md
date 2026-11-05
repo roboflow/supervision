@@ -7,7 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- **Zones**: per-class counting in polygon zones.
+    - `sv.PolygonZone` now tracks `current_count_per_class: dict[int | None, int]`, mapping each class ID to the count of detected objects of that class currently inside the zone (keyed by `None` for unclassified detections), matching `sv.LineZone`. ([#PR_NUMBER](https://github.com/roboflow/supervision/pull/PR_NUMBER))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
