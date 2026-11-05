@@ -791,7 +791,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
 
         For the mask target this may return a
         :class:`~supervision.detection.compact_mask.CompactMask` rather than a
-        dense boolean array when the detections carry compact masks.
+        dense boolean array when the detections carry compact masks. Oriented
+        corners retain their precision until IoU translates them into a local frame;
+        float16 corners are promoted before subtracting potentially large extents.
         """
         if self._metric_target == MetricTarget.BOXES:
             return cast(npt.NDArray[Any], detections.xyxy)
@@ -808,7 +810,9 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[Any] = np.array(obb)
+                if np.issubdtype(result_obb.dtype, np.float16):
+                    result_obb = result_obb.astype(np.float32)
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
