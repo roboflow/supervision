@@ -8,6 +8,9 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding. ([#2880](https://github.com/roboflow/supervision/pull/2880))
+- `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
+
+- `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
 
 - `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
 
