@@ -1413,9 +1413,13 @@ class CompactMask:
 
             ```
         """
-        # A NumPy array axis compares element-wise, so only compare a tuple.
+        # Only integer axes can use the shortcut; NumPy validates all other forms.
         if (
             isinstance(axis, tuple)
+            and all(
+                isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+                for value in axis
+            )
             and axis == (1, 2)
             and dtype is None
             and out is None

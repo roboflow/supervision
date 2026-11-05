@@ -2142,6 +2142,23 @@ class TestCompactMaskSum:
         with pytest.raises(TypeError):
             cm.sum(axis=axis)
 
+    @pytest.mark.parametrize(
+        "axis",
+        [
+            pytest.param((1.0, 2.0), id="float-axes"),
+            pytest.param((True, 2), id="boolean-axis"),
+        ],
+    )
+    def test_invalid_tuple_axes_raise_type_error(self, axis: Any) -> None:
+        """Invalid tuple axes raise the same error for compact and dense masks."""
+        masks = self._masks()
+        cm = _make_cm(masks, (6, 8))
+
+        with pytest.raises(TypeError):
+            np.sum(masks, axis=axis)
+        with pytest.raises(TypeError):
+            np.sum(cm, axis=axis)
+
     def test_rejects_unknown_keyword(self) -> None:
         """An unknown keyword raises TypeError instead of being ignored."""
         cm = _make_cm(self._masks(), (6, 8))
