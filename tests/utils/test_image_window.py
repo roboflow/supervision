@@ -9,6 +9,14 @@ from PIL import Image
 from supervision.utils.image_window import ImageWindow, _bgr_to_pil, _fit_image
 
 
+def _fake_tkinter() -> MagicMock:
+    """Return a fake tkinter module whose root reports a 1000 x 800 screen."""
+    fake_tkinter = MagicMock()
+    fake_tkinter.Tk.return_value.winfo_screenwidth.return_value = 1000
+    fake_tkinter.Tk.return_value.winfo_screenheight.return_value = 800
+    return fake_tkinter
+
+
 class TestBgrToPil:
     def test_grayscale(self) -> None:
         """Grayscale (H,W) array produces an L-mode PIL image of the same size."""
@@ -149,6 +157,80 @@ class TestImageWindowShow:
         mock_root.update_idletasks.assert_called_once()
         mock_root.update.assert_called_once()
 
+    def test_show_draws_frame_on_call_that_opens_window(self) -> None:
+        """The first show() puts its frame on the label it has just created."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        fake_imagetk = MagicMock()
+        frame = np.zeros((4, 4, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": fake_imagetk}
+        ):
+            window.show(frame)
+
+        fake_tkinter.Label.return_value.configure.assert_called_once_with(
+            image=fake_imagetk.PhotoImage.return_value
+        )
+        assert window._pil_image is not None
+
+    def test_show_draws_frame_on_call_that_reopens_window(self) -> None:
+        """A show() after close() puts its frame on the recreated window's label."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        fake_imagetk = MagicMock()
+        frame = np.zeros((4, 4, 3), dtype=np.uint8)
+        label = fake_tkinter.Label.return_value
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": fake_imagetk}
+        ):
+            window._ensure_window()
+            window.close()
+            window.show(frame)
+
+        label.configure.assert_called_once_with(
+            image=fake_imagetk.PhotoImage.return_value
+        )
+        assert window._pil_image is not None
+
+    def test_show_sizes_window_to_frame_only_when_opening_it(self) -> None:
+        """Only the opening show() sets the size, and the label cannot change it.
+
+        Under real Tk the window grew on every redraw when the label's size fed back
+        into it, and for wide frames show() did not return. Mocks cannot reproduce that
+        loop, so this pins the settings that remove it.
+        """
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        root = fake_tkinter.Tk.return_value
+        frame = np.zeros((48, 64, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": MagicMock()}
+        ):
+            window.show(frame)
+            window.show(frame)
+
+        root.geometry.assert_called_once_with("64x48")
+        root.pack_propagate.assert_called_once_with(False)
+        fake_tkinter.Label.assert_called_once_with(
+            root, borderwidth=0, padx=0, pady=0, highlightthickness=0
+        )
+
+    def test_show_limits_opening_window_to_screen_size(self) -> None:
+        """A frame larger than the screen opens a window no larger than the screen."""
+        window = ImageWindow("preview")
+        fake_tkinter = _fake_tkinter()
+        frame = np.zeros((900, 1920, 3), dtype=np.uint8)
+
+        with patch.dict(
+            "sys.modules", {"tkinter": fake_tkinter, "PIL.ImageTk": MagicMock()}
+        ):
+            window.show(frame)
+
+        fake_tkinter.Tk.return_value.geometry.assert_called_once_with("1000x800")
+
 
 class TestImageWindowUpdateDisplay:
     def test_no_op_without_pil_image(self) -> None:
@@ -211,6 +293,30 @@ class TestImageWindowUpdateDisplay:
 
 
 class TestImageWindowOnConfigure:
+    @pytest.mark.parametrize(
+        ("frame_size", "window_size"),
+        [
+            pytest.param((1, 900), (1, 800), id="one-pixel-wide"),
+            pytest.param((1200, 1), (1000, 1), id="one-pixel-high"),
+        ],
+    )
+    def test_single_pixel_dimension_fits_frame(
+        self, frame_size: tuple[int, int], window_size: tuple[int, int]
+    ) -> None:
+        """A one-pixel window dimension still fits an oversized frame."""
+        window = ImageWindow()
+        root = MagicMock()
+        window._root = root
+        window._label = MagicMock()
+        window._pil_image = Image.new("RGB", frame_size)
+        event = MagicMock(widget=root, width=window_size[0], height=window_size[1])
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._on_configure(event)
+
+        assert fake_imagetk.PhotoImage.call_args.args[0].size == window_size
+
     def test_non_root_widget_is_ignored(self) -> None:
         """<Configure> events from child widgets do not update dimensions."""
         window = ImageWindow()
@@ -246,13 +352,13 @@ class TestImageWindowOnConfigure:
         mock_update.assert_not_called()
 
     def test_degenerate_size_is_ignored(self) -> None:
-        """<Configure> with width or height <= 1 (pre-geometry) is skipped."""
+        """<Configure> with a nonpositive dimension is skipped."""
         window = ImageWindow()
         mock_root = MagicMock()
         window._root = mock_root
         event = MagicMock()
         event.widget = mock_root
-        event.width = 1
+        event.width = 0
         event.height = 100
 
         with patch.object(window, "_update_display") as mock_update:

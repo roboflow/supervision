@@ -2292,6 +2292,12 @@ class TestGetAnchorsObbDispatch:
         anchor_b = det_b.get_anchors_coordinates(Position.BOTTOM_CENTER)
         assert not np.allclose(anchor_a, anchor_b)
 
+    def test_center_of_mass_of_empty_detections_has_no_anchors(self) -> None:
+        """An empty batch without a mask returns no anchors instead of raising."""
+        anchors = Detections.empty().get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        assert anchors.shape == (0, 2)
+
     def test_center_of_mass_still_requires_mask(self) -> None:
         """OBB data must not divert `CENTER_OF_MASS` away from the mask path."""
         detections = _make_obb_detections(

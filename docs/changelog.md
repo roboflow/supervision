@@ -9,6 +9,26 @@ date_modified: 2026-10-31
 
 - The OpenCV-free `cvtColor` fallback now reads a float32 image for `COLOR_HSV2BGR` as OpenCV does: hue in degrees, saturation, value and the BGR result in `[0, 1]`. It previously applied the 8-bit scale to float32 input, and it now raises `ValueError` for the depths OpenCV rejects. ([#2885](https://github.com/roboflow/supervision/pull/2885))
 
+- Annotators handed a `PIL.Image` now change only the pixels they draw. A transparent RGBA or LA background stays transparent, and a 16-bit (`I;16`) or 32-bit (`I`) image keeps its full depth, with drawn pixels scaled back to the 16-bit range. Previously the whole image went through an 8-bit round trip. ([#2883](https://github.com/roboflow/supervision/pull/2883))
+
+- `sv.oriented_box_iou_batch` and OBB NMS and metrics now score rotated boxes with nearly collinear overlapping edges, and boxes with both sides far below one coordinate unit, correctly on OpenCV installs, where the IoU could be reported as 0 or 1. They now use the same exact clipper as the NumPy fallback, which is roughly 10x slower per candidate pair than the previous `cv2` call on OpenCV installs, so crowded scenes can take seconds. ([#2882](https://github.com/roboflow/supervision/pull/2882))
+
+- **Image window**: `sv.ImageWindow.show` now draws the frame on the call that opens a window, instead of leaving it blank until the next `show`. A new window opens at the frame's size, up to the screen size, and no longer grows on each redraw, which could stop `show` from returning for wide frames. ([#2881](https://github.com/roboflow/supervision/pull/2881))
+
+- `sv.ImageWindow` now fits frames when a window dimension is one pixel, preventing oversized single-row or single-column frames from being clipped. ([#2881](https://github.com/roboflow/supervision/pull/2881))
+
+- `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding; invalid tuple axes are validated by NumPy. ([#2880](https://github.com/roboflow/supervision/pull/2880))
+
+- `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
+- Hole bridging in `as_yolo`, `as_pascal_voc` and `as_labelme` now retries top-down when the contour order fails, so those exports no longer raise `ValueError` on valid masks where an enclosed hole is listed before the hole around it. ([#2879](https://github.com/roboflow/supervision/pull/2879))
+
+- `sv.VertexEllipseHaloAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow `"L"` image, instead of raising `ValueError`. The halo is blended with the first (blue) channel of its color, so a grayscale result equals the first channel of the same annotation on a BGR copy. ([#2878](https://github.com/roboflow/supervision/pull/2878))
+
+- `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
+
+- `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
+
 - `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
 
 - `sv.LineZone` now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the `max(30, minimum_crossing_threshold + 1)`th consecutive absent frame. To restore previous retention, pass `max_absent_frames=max(2, minimum_crossing_threshold + 1)`; this is 2 for the default crossing threshold. [#2873](https://github.com/roboflow/supervision/pull/2873)
