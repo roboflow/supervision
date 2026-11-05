@@ -11,6 +11,8 @@ date_modified: 2026-10-31
 
 - `sv.ImageWindow` now fits frames when a window dimension is one pixel, preventing oversized single-row or single-column frames from being clipped. ([#2881](https://github.com/roboflow/supervision/pull/2881))
 
+- `np.sum` now works on a `CompactMask`, with or without `axis`, and for valid arguments gives the same result as the dense mask, including `dtype`, `out`, `keepdims`, `initial`, `where` and NumPy integer axes such as `np.int64(1)`. It previously raised `TypeError`. `np.sum(mask, axis=(1, 2))` with no other argument still reads per-mask areas from RLE without decoding; invalid tuple axes are validated by NumPy. ([#2880](https://github.com/roboflow/supervision/pull/2880))
+
 - `sv.DetectionDataset.as_coco` and `detections_to_coco_annotations` now keep the holes of masks written as polygons with `iscrowd=0`, which `from_coco` sets on non-crowd annotations. Holes are joined to their outline along zero-width seams, as in the YOLO, Pascal VOC and LabelMe exports, instead of being written as extra polygon parts that readers fill in. A mask whose holes cannot be joined warns and keeps the old parts. ([#2879](https://github.com/roboflow/supervision/pull/2879))
 
 - Hole bridging in `as_yolo`, `as_pascal_voc` and `as_labelme` now retries top-down when the contour order fails, so those exports no longer raise `ValueError` on valid masks where an enclosed hole is listed before the hole around it. ([#2879](https://github.com/roboflow/supervision/pull/2879))
