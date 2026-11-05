@@ -993,6 +993,8 @@ def _mask_iou_batch_split(
     masks_true: npt.NDArray[Any],
     masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    detection_words: npt.NDArray[np.uint64] | None = None,
+    detection_area: npt.NDArray[np.floating] | None = None,
 ) -> npt.NDArray[np.floating]:
     """Internal function.
 
@@ -1004,6 +1006,8 @@ def _mask_iou_batch_split(
         masks_detection: 3D `np.ndarray` representing detection masks.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
+        detection_words: Optional prepacked detection masks shared across chunks.
+        detection_area: Optional pixel counts for the prepacked detection masks.
 
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -1017,9 +1021,12 @@ def _mask_iou_batch_split(
         # Popcount on bit-packed masks gives exact integer counts from 1/32 of
         # the memory a float32 copy would take.
         true_words = _pack_masks(masks_true)
-        detection_words = _pack_masks(masks_detection)
+        if detection_words is None:
+            detection_words = _pack_masks(masks_detection)
         masks_true_area = _count_pixels(true_words).astype(count_dtype)
-        masks_detection_area = _count_pixels(detection_words).astype(count_dtype)
+        if detection_area is None:
+            detection_area = _count_pixels(detection_words).astype(count_dtype)
+        masks_detection_area = detection_area
 
         # Words that are empty in either set cannot add to any intersection.
         used = true_words.any(axis=0) & detection_words.any(axis=0)
@@ -1160,11 +1167,11 @@ def mask_iou_batch(
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         memory_limit: Memory limit in MB, default is 1024 * 5 MB (5GB).
-            Controls chunking of ``masks_true`` so that flattened detection
-            masks plus each chunk's buffers stay within this limit. A
-            ``UserWarning`` is raised when ``masks_detection`` alone
-            exceeds the limit, as chunking cannot reduce peak memory
-            below that floor. Ignored when both inputs are
+            Controls chunking of ``masks_true`` based on estimated working
+            buffers. A ``UserWarning`` is raised when detection buffers alone
+            exceed the limit, as chunking cannot reduce peak memory below
+            that floor. The output and a minimum one-row chunk may also exceed
+            the limit. Ignored when both inputs are
             :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
@@ -1211,6 +1218,56 @@ def mask_iou_batch(
     # A single pass already handles empty inputs and avoids np.vstack([]) below.
     if masks_true.shape[0] == 0 or masks_detection.shape[0] == 0:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
+
+    pixels = masks_true.shape[1] * masks_true.shape[2]
+    limit_bytes = memory_limit * 1024 * 1024
+    if _HAS_BITWISE_COUNT and masks_true.dtype == masks_detection.dtype == bool:
+        word_bytes = ((pixels + 63) // 64) * 8
+        detection_count = len(masks_detection)
+        # Account for packed detections, the filtered copy, the bitwise AND and
+        # popcount temporaries, plus the already allocated final output matrix.
+        packed_detection_bytes = detection_count * word_bytes
+        detection_bytes = 3 * packed_detection_bytes + packed_detection_bytes // 8
+        detection_bytes += detection_count * 8 + 3 * (word_bytes // 8)
+        detection_floor = packed_detection_bytes
+        # Flattening copies only when the two spatial strides cannot form a view;
+        # a strided batch alone does not require a spatial copy.
+        height, width = masks_detection.shape[1:]
+        spatial_copy = (
+            height > 1
+            and width > 1
+            and masks_detection.strides[1] != width * masks_detection.strides[2]
+        )
+        if spatial_copy:
+            detection_bytes += masks_detection.size
+            detection_floor += masks_detection.size
+        output_bytes = len(masks_true) * detection_count * 8
+        per_true_row = 3 * word_bytes + 8 + 3 * detection_count * 8
+        if not masks_true.flags.c_contiguous:
+            per_true_row += pixels
+        if detection_floor > limit_bytes > 0:
+            warnings.warn(
+                f"detection masks ({detection_floor // 1024 // 1024} MB) exceed "
+                f"memory_limit ({memory_limit} MB); chunking cannot reduce peak "
+                "memory below this floor.",
+                UserWarning,
+                stacklevel=2,
+            )
+        detection_words = _pack_masks(masks_detection)
+        count_dtype = np.float32 if pixels <= 2**24 else np.float64
+        detection_area = _count_pixels(detection_words).astype(count_dtype)
+        step = max((limit_bytes - detection_bytes - output_bytes) // per_true_row, 1)
+        result = np.empty((len(masks_true), detection_count), dtype=float)
+        for chunk_start in range(0, len(masks_true), step):
+            chunk_end = min(chunk_start + step, len(masks_true))
+            result[chunk_start:chunk_end] = _mask_iou_batch_split(
+                masks_true[chunk_start:chunk_end],
+                masks_detection,
+                overlap_metric,
+                detection_words,
+                detection_area,
+            )
+        return result
 
     # Peak memory of a single matmul pass: the flattened detection masks (shared
     # across chunks) plus, per true-mask row, its flattened pixels and the three

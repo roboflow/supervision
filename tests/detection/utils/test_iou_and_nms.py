@@ -2582,7 +2582,7 @@ class TestMaskIouBatch:
         rng = np.random.default_rng(4)
         masks_true = rng.random((3, 32, 32)) > 0.5
         # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
-        masks_detection = rng.random((500, 32, 32)) > 0.5
+        masks_detection = (rng.random((500, 32, 32)) > 0.5).astype(np.float32)
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         assert result.shape == (3, 500)
@@ -2593,6 +2593,80 @@ class TestMaskIouBatch:
 )
 class TestBitPackedMaskOverlap:
     """Bit-packed dense mask overlap matches the NumPy < 2 matmul fallback exactly."""
+
+    def test_packed_detection_below_limit_does_not_warn(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A packed detection batch below the limit must not report a float floor."""
+        masks_true = np.ones((3, 32, 32), dtype=bool)
+        masks_detection = np.ones((500, 32, 32), dtype=bool)
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        assert not [
+            warning for warning in recwarn if issubclass(warning.category, UserWarning)
+        ]
+        np.testing.assert_array_equal(result, np.ones((3, 500)))
+
+    def test_packed_detection_above_limit_warns(self) -> None:
+        """A packed detection batch exceeding the limit still reports its floor."""
+        masks_true = np.zeros((1, 128, 128), dtype=bool)
+        masks_detection = np.zeros((600, 128, 128), dtype=bool)
+
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(result, np.zeros((1, 600)))
+
+    def test_strided_detection_view_below_limit_does_not_warn(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A strided batch with view-compatible masks does not warn."""
+        masks_true = np.ones((1, 1024, 1024), dtype=bool)
+        masks_detection = np.ones((10, 1024, 1024), dtype=bool)[::2]
+
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        assert not [
+            warning for warning in recwarn if issubclass(warning.category, UserWarning)
+        ]
+        np.testing.assert_array_equal(result, np.ones((1, 5)))
+
+    def test_noncontiguous_detection_copy_above_limit_warns(self) -> None:
+        """A required detection reshape copy counts toward the warning floor."""
+        masks_true = np.ones((1, 1024, 1024), dtype=bool)
+        masks_detection = np.ones((5, 1024, 1024), dtype=bool).transpose(0, 2, 1)
+
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(result, np.ones((1, 5)))
+
+    def test_chunked_masks_pack_detections_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Chunking preserves IoU while packing the detection batch only once."""
+        masks_true = np.ones((100, 32, 32), dtype=bool)
+        masks_detection = np.ones((500, 32, 32), dtype=bool)
+        original_pack = iou_and_nms._pack_masks
+        detection_pack_count = 0
+        true_pack_count = 0
+
+        def count_pack(masks: np.ndarray) -> np.ndarray:
+            """Count packing of the original detection batch."""
+            nonlocal detection_pack_count, true_pack_count
+            if masks is masks_detection:
+                detection_pack_count += 1
+            else:
+                true_pack_count += 1
+            return original_pack(masks)
+
+        monkeypatch.setattr(iou_and_nms, "_pack_masks", count_pack)
+        result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        assert detection_pack_count == 1
+        assert true_pack_count > 1
+        np.testing.assert_array_equal(result, np.ones((100, 500)))
 
     @pytest.mark.parametrize(
         "overlap_metric",
