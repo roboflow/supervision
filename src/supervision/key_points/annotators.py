@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import _cv2 as cv2
+from supervision.annotators.core import _color_for_canvas
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color
@@ -691,7 +692,8 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
             return scene
 
         h, w = scene.shape[:2]
-        composite: npt.NDArray[np.float32] = scene.astype(np.float32)
+        # Blend in an (H, W, C) view so a grayscale scene broadcasts like a BGR one.
+        composite: npt.NDArray[np.float32] = np.atleast_3d(scene).astype(np.float32)
 
         for level in self._iter_ellipse_params(key_points):
             for center, axis_lengths, angle, _sigma, color in level:
@@ -733,12 +735,14 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
                 scaled_alpha = falloff * self.opacity
 
-                bgr = np.array(color.as_bgr(), dtype=np.float32)
+                pixel = np.array(
+                    _color_for_canvas(color.as_bgr(), scene), dtype=np.float32
+                )
                 roi = composite[y_min:y_max, x_min:x_max]
                 alpha_3 = scaled_alpha[:, :, np.newaxis]
-                roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
+                roi[:] = roi * (1 - alpha_3) + pixel * alpha_3
 
-        np.copyto(scene, composite.astype(np.uint8))
+        np.copyto(scene, composite.astype(np.uint8).reshape(scene.shape))
         return scene
 
 
