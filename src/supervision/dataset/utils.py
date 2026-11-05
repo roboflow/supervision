@@ -166,6 +166,10 @@ def _seam_candidates(
     )
 
 
+class _SeamNotFoundError(ValueError):
+    """No candidate seam from a mask hole stays on foreground pixels."""
+
+
 def _find_seam(
     mask: npt.NDArray[np.bool_],
     points: npt.NDArray[np.number],
@@ -180,7 +184,7 @@ def _find_seam(
     same straight-line test; unsafe candidates fail instead of corrupting the mask.
 
     Raises:
-        ValueError: If no bounded candidate seam stays within foreground pixels.
+        _SeamNotFoundError: If no bounded candidate seam stays within foreground pixels.
     """
     for neighbour_count, max_checks in _SEAM_SEARCH_PASSES:
         sources, targets, lengths = _seam_candidates(
@@ -195,10 +199,10 @@ def _find_seam(
     source, target = int(sources[nearest]), int(targets[nearest])
     if _is_segment_inside_mask(mask, points[source], points[target]):
         return source, target
-    raise ValueError("No foreground-contained seam found for a mask hole.")
+    raise _SeamNotFoundError("No foreground-contained seam found for a mask hole.")
 
 
-def _bridge_holes(
+def _splice_holes_in_order(
     mask: npt.NDArray[np.bool_],
     outer: npt.NDArray[np.number],
     holes: list[npt.NDArray[np.number]],
@@ -265,6 +269,29 @@ def _bridge_holes(
         tour.append(ring[cursor:])
         stack.extend(reversed(tour))
     return points[np.concatenate(chunks)]
+
+
+def _bridge_holes(
+    mask: npt.NDArray[np.bool_],
+    outer: npt.NDArray[np.number],
+    holes: list[npt.NDArray[np.number]],
+) -> npt.NDArray[np.number]:
+    """Splice holes into an outer contour, retrying top-down if their order fails.
+
+    A seam can only reach the outer contour or a hole attached earlier, so a hole
+    enclosed by one listed after it has no seam, and backends list contours in
+    different orders. Top-down order attaches the enclosing hole first. It is only the
+    retry because the seam search is bounded, so neither order suits every mask, and a
+    mask the given order can bridge keeps the polygon that order produces.
+
+    Raises:
+        _SeamNotFoundError: If no candidate seam stays on foreground in either order.
+    """
+    try:
+        return _splice_holes_in_order(mask=mask, outer=outer, holes=holes)
+    except _SeamNotFoundError:
+        top_down = sorted(holes, key=lambda hole: (hole[:, 1].min(), hole[:, 0].min()))
+        return _splice_holes_in_order(mask=mask, outer=outer, holes=top_down)
 
 
 def approximate_mask_with_polygons(

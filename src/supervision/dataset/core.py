@@ -990,6 +990,10 @@ class DetectionDataset(BaseDataset):
             processing.
             - If a mask consists of a single, contiguous region without any holes, it
             will be encoded as a polygon, preserving the outline of the object.
+            - If `detections.data` holds `iscrowd`, as it does after
+            :meth:`~supervision.dataset.core.DetectionDataset.from_coco`, a mask with
+            `iscrowd=0` is always encoded as polygons, with holes joined to their
+            outline along zero-width seams where a seam is found.
 
             This automatic selection ensures that the masks are stored in the most
             appropriate and space-efficient format, complying with COCO dataset
