@@ -1,13 +1,16 @@
 import json
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from defusedxml import ElementTree
 
+import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections
 from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
@@ -1347,6 +1350,118 @@ def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
     reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
 
     assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
+
+
+def _mask_with_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with one 10x10 hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[5:35, 5:35] = True
+    mask[15:25, 15:25] = False
+    return mask
+
+
+def _mask_with_island_in_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask whose hole contains a separate island."""
+    mask = _mask_with_hole()
+    mask[18:22, 18:22] = True
+    return mask
+
+
+def _mask_with_nested_holes() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with a hole enclosed by a C-shaped hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[2:38, 2:38] = True
+    mask[8:32, 8:32] = False
+    mask[12:28, 12:28] = True
+    mask[18:22, 28:32] = True
+    mask[18:22, 18:22] = False
+    return mask
+
+
+class TestDetectionsToCocoAnnotationsMaskHoles:
+    """Non-crowd masks keep their holes through a COCO polygon export."""
+
+    @pytest.mark.parametrize(
+        "make_mask",
+        [
+            pytest.param(_mask_with_hole, id="hole"),
+            pytest.param(_mask_with_island_in_hole, id="island-in-hole"),
+            pytest.param(_mask_with_nested_holes, id="nested-holes"),
+        ],
+    )
+    def test_round_trip_restores_mask(
+        self, make_mask: Callable[[], npt.NDArray[np.bool_]]
+    ) -> None:
+        """Export and import give back the same mask, holes included."""
+        mask = make_mask()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(40, 40))
+
+        np.testing.assert_array_equal(reloaded[0], mask)
+
+    def test_unbridgeable_hole_warns_and_keeps_exporting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A hole with no seam stays a separate part and does not abort the export."""
+
+        def find_no_seam(*args: Any, **kwargs: Any) -> NoReturn:
+            """Stand in for a seam search that finds nothing."""
+            raise dataset_utils._SeamNotFoundError
+
+        monkeypatch.setattr(dataset_utils, "_find_seam", find_no_seam)
+        mask = _mask_with_hole()
+
+        with pytest.warns(UserWarning, match="Could not join the holes"):
+            annotations, _ = detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=0.0,
+            )
+
+        assert len(annotations[0]["segmentation"]) == 2
+
+    def test_invalid_approximation_percentage_raises_without_warning(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A bad argument raises as such, not as a hole that could not be joined."""
+        mask = _mask_with_hole()
+
+        with pytest.raises(ValueError, match="Percentage must be"):
+            detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=1.5,
+            )
+
+        assert not recwarn.list
+
+    @pytest.mark.filterwarnings("ignore:__array__ implementation:DeprecationWarning")
+    def test_pycocotools_keeps_hole_open(self) -> None:
+        """A reference COCO reader sees the hole and keeps the foreground around it."""
+        coco_mask = pytest.importorskip("pycocotools.mask")
+        mask = _mask_with_hole()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        rles = coco_mask.frPyObjects(annotations[0]["segmentation"], 40, 40)
+        decoded = coco_mask.decode(coco_mask.merge(rles)).astype(bool)
+
+        # Contours lie on foreground pixels and pycocotools reads them as continuous
+        # coordinates, so the traced hole misses one corner pixel. The seam paints none.
+        assert int(decoded[15:25, 15:25].sum()) == 1
+        assert decoded[mask].mean() > 0.85
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
@@ -44,6 +45,30 @@ def _rotated_rect(
     )
     rotated: np.ndarray = (corners @ rot.T + [cx, cy]).astype(np.float32)
     return rotated
+
+
+def _rotated_rect_shifted_along_axis(
+    width: float, height: float, angle_deg: float, shift: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return a float64 rotated rectangle and its copy moved along its long axis.
+
+    Their overlapping long edges are collinear up to rounding, and the true IoU is
+    exactly ``(width - shift) / (width + shift)``.
+    """
+    angle = np.deg2rad(angle_deg)
+    axis = np.array([np.cos(angle), np.sin(angle)])
+    normal = np.array([-axis[1], axis[0]])
+    half_width, half_height = axis * width / 2, normal * height / 2
+    center = np.array([200.0, 200.0])
+    box = np.array(
+        [
+            center - half_width - half_height,
+            center + half_width - half_height,
+            center + half_width + half_height,
+            center - half_width + half_height,
+        ]
+    )
+    return box, box + axis * shift
 
 
 def _aabb_of(corners: np.ndarray) -> np.ndarray:
@@ -1954,9 +1979,88 @@ class TestOrientedBoxIouBatch:
         with pytest.raises(ValueError, match=match):
             oriented_box_iou_batch(boxes_bad, boxes_ok)
 
+    @pytest.mark.parametrize(
+        ("angle_deg", "shift"),
+        [
+            pytest.param(15.0, 20.0, id="reported-as-identical-at-15-deg"),
+            pytest.param(10.0, 50.0, id="reported-as-identical-at-10-deg"),
+            pytest.param(25.0, 50.0, id="reported-as-disjoint-at-25-deg"),
+            pytest.param(20.0, 10.0, id="underestimated-at-20-deg"),
+        ],
+    )
+    def test_matches_analytic_iou_for_collinear_edges(
+        self, angle_deg: float, shift: float
+    ) -> None:
+        """Rectangles shifted along their axis score their analytic IoU."""
+        box_a, box_b = _rotated_rect_shifted_along_axis(100, 40, angle_deg, shift)
+
+        iou = oriented_box_iou_batch(box_a[None], box_b[None])
+
+        assert iou[0, 0] == pytest.approx((100 - shift) / (100 + shift), abs=1e-4)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_matches_analytic_iou_for_random_collinear_edges(
+        self, dtype: type[np.floating]
+    ) -> None:
+        """Seeded rectangles shifted along their axis all score their analytic IoU."""
+        rng = np.random.default_rng(0)
+        widths = rng.uniform(8, 200, 1000)
+        heights = rng.uniform(8, 200, 1000)
+        angles = rng.uniform(0, 180, 1000)
+        shifts = rng.uniform(0, widths)
+        pairs = [
+            _rotated_rect_shifted_along_axis(*parameters)
+            for parameters in zip(widths, heights, angles, shifts)
+        ]
+
+        scores = [
+            oriented_box_iou_batch(
+                box_a[None].astype(dtype), box_b[None].astype(dtype)
+            )[0, 0]
+            for box_a, box_b in pairs
+        ]
+
+        np.testing.assert_allclose(
+            scores, (widths - shifts) / (widths + shifts), atol=1e-3
+        )
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_tiny_identical_boxes_score_one(self, dtype: type[np.floating]) -> None:
+        """A box far below one coordinate unit in size fully overlaps itself."""
+        box = (_rotated_rect(0, 0, 0.002, 0.001, 30).astype(np.float64) + 0.5)[None]
+        boxes_true = box.astype(dtype)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_true.copy())
+
+        assert iou[0, 0] == pytest.approx(1.0, abs=1e-3)
+
 
 class TestOrientedBoxNonMaxSuppression:
     """Tests for `oriented_box_non_max_suppression`."""
+
+    @pytest.mark.parametrize(
+        ("angle_deg", "shift", "expected_keep"),
+        [
+            pytest.param(10.0, 50.0, [True, True], id="keeps-low-true-overlap"),
+            pytest.param(50.0, 10.0, [True, False], id="suppresses-high-true-overlap"),
+        ],
+    )
+    def test_uses_true_overlap_for_collinear_edges(
+        self, angle_deg: float, shift: float, expected_keep: list[bool]
+    ) -> None:
+        """Suppression of axis-shifted rectangles follows their analytic IoU."""
+        box_a, box_b = _rotated_rect_shifted_along_axis(100, 40, angle_deg, shift)
+        predictions = np.array(
+            [[*_aabb_of(box_a), 0.9, 0], [*_aabb_of(box_b), 0.8, 0]], dtype=np.float32
+        )
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=np.stack([box_a, box_b]),
+            iou_threshold=0.5,
+        )
+
+        assert keep.tolist() == expected_keep
 
     def test_keeps_x_pattern(self) -> None:
         """X-pattern: two thin rectangles crossing at +/-45° share an AABB but barely
@@ -2478,8 +2582,8 @@ class TestMaskIouBatch:
         """Detection > memory_limit emits UserWarning; result shape is still correct."""
         rng = np.random.default_rng(4)
         masks_true = rng.random((3, 32, 32)) > 0.5
-        # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
-        masks_detection = rng.random((500, 32, 32)) > 0.5
+        # 500 x 32x32 float32 masks are ~2 MB > memory_limit=1 MB.
+        masks_detection = (rng.random((500, 32, 32)) > 0.5).astype(np.float32)
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         assert result.shape == (3, 500)
@@ -2600,6 +2704,20 @@ class TestBitPackedMaskOverlap:
 
         np.testing.assert_array_equal(keep, expected_keep)
         np.testing.assert_array_equal(scores, expected_scores)
+
+    def test_mask_iou_batch_budgets_packed_masks(self) -> None:
+        """Bool masks whose float copies exceed memory_limit run without a warning."""
+        rng = np.random.default_rng(8)
+        masks_true = rng.random((3, 32, 32)) > 0.5
+        masks_detection = rng.random((500, 32, 32)) > 0.5
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+
+        np.testing.assert_array_equal(
+            result, mask_iou_batch(masks_true, masks_detection)
+        )
 
     def test_mask_iou_batch_counts_exactly_above_2pow24_pixels(self) -> None:
         """Masks over 2**24 pixels count in float64, so a one-pixel gap is kept."""
