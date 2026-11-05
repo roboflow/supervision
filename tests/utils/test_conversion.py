@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -5,6 +6,7 @@ import numpy.typing as npt
 import pytest
 from PIL import Image, ImageChops
 
+from supervision.draw.color import Color
 from supervision.utils.conversion import (
     cv2_to_pillow,
     ensure_cv2_image_for_standalone_function,
@@ -339,6 +341,68 @@ def test_annotators_accept_grayscale_alpha_scenes() -> None:
     assert isinstance(interior_pixel, tuple)
     assert edge_pixel[0] != 0  # box edge drawn
     assert interior_pixel[0] == 0  # interior untouched
+
+
+class TestAnnotatePillowScene:
+    @pytest.mark.parametrize(
+        ("make_scene", "background"),
+        [
+            pytest.param(
+                lambda: Image.new("RGBA", (20, 20), color=(0, 0, 0, 0)),
+                (0, 0, 0, 0),
+                id="transparent-rgba",
+            ),
+            pytest.param(
+                lambda: Image.new("LA", (20, 20), color=(0, 0)),
+                (0, 0),
+                id="transparent-la",
+            ),
+            pytest.param(
+                lambda: Image.fromarray(np.full((20, 20), 40000, dtype=np.uint16)),
+                40000,
+                id="16-bit",
+            ),
+            pytest.param(
+                lambda: Image.fromarray(np.full((20, 20), 40000, dtype=np.int32)),
+                40000,
+                id="32-bit-integer",
+            ),
+        ],
+    )
+    def test_keeps_pixels_outside_the_annotation(
+        self,
+        make_scene: Callable[[], Image.Image],
+        background: tuple[int, ...] | int,
+    ) -> None:
+        """Pixels the annotator does not draw on keep their original value."""
+        from supervision.annotators.core import BoxAnnotator
+        from supervision.detection.core import Detections
+
+        scene = make_scene()
+        detections = Detections(
+            xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        BoxAnnotator(thickness=1).annotate(scene=scene, detections=detections)
+
+        assert scene.getpixel((18, 18)) == background
+        assert scene.getpixel((7, 7)) == background
+
+    def test_scales_drawn_pixels_back_to_16_bits(self) -> None:
+        """A white box drawn on a 16-bit scene is stored at the 16-bit maximum."""
+        from supervision.annotators.core import BoxAnnotator
+        from supervision.detection.core import Detections
+
+        scene = Image.fromarray(np.full((20, 20), 40000, dtype=np.uint16))
+        detections = Detections(
+            xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32), class_id=np.array([0])
+        )
+
+        BoxAnnotator(color=Color.WHITE, thickness=1).annotate(
+            scene=scene, detections=detections
+        )
+
+        assert scene.getpixel((2, 7)) == 65535
 
 
 def test_images_to_cv2_when_empty_input_provided() -> None:

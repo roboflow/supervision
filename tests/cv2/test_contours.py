@@ -14,7 +14,6 @@ from supervision._cv2._components import (
 )
 from supervision._cv2._contours import _find_contours
 from supervision._cv2._drawing import _fill_poly
-from supervision._cv2._geometry import _intersect_convex_convex
 from supervision._cv2.constants import _CHAIN_APPROX_SIMPLE, _RETR_TREE
 from supervision.detection.utils.masks import _chamfer_distances
 
@@ -143,7 +142,6 @@ def test_geometry_consumers_use_fallback_bindings(
         lambda image: _find_contours(image, _RETR_TREE, _CHAIN_APPROX_SIMPLE)[0],
     )
     assert isinstance(_cv2.find_contours(np.ones((2, 2), dtype=np.uint8)), list)
-    monkeypatch.setattr(_cv2, "intersectConvexConvex", _intersect_convex_convex)
 
     mask = np.zeros((10, 10), dtype=bool)
     mask[2:7, 2:7] = True

@@ -8,7 +8,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from supervision import _cv2 as cv2
+from supervision._cv2._geometry import _intersect_convex_convex
 from supervision.detection.compact_mask import CompactMask, _compact_mask_union
 from supervision.utils.internal import warn_deprecated
 
@@ -491,9 +491,8 @@ def oriented_box_iou_batch(
 
     Note:
         Inputs must be **convex** quads with finite coordinates. Self-intersecting
-        or non-convex polygons produce undefined results via
-        ``cv2.intersectConvexConvex``. NaN or Inf coordinates propagate silently
-        as ``0.0`` — validate inputs before calling if needed.
+        or non-convex polygons produce undefined results. NaN or Inf coordinates
+        propagate silently as ``0.0`` — validate inputs before calling if needed.
 
         When ``boxes_true is boxes_detection`` (the same Python object, not just
         equal values), the function computes only the upper triangle of the
@@ -638,7 +637,9 @@ def oriented_box_iou_batch(
         offset_j = (origin_j - pair_origin).astype(np.float32, copy=False)
         np.add(local_polygons_true[i], offset_i, out=polygon_i_buffer)
         np.add(local_polygons_detection[j], offset_j, out=polygon_j_buffer)
-        intersection, _ = cv2.intersectConvexConvex(polygon_i_buffer, polygon_j_buffer)
+        # Not cv2.intersectConvexConvex: it returns wrong areas for nearly collinear
+        # overlapping edges and zero for polygons far below one coordinate unit.
+        intersection, _ = _intersect_convex_convex(polygon_i_buffer, polygon_j_buffer)
         if intersection <= 0:
             continue
         denominator = (
@@ -652,10 +653,10 @@ def oriented_box_iou_batch(
             if is_self_comparison:
                 ious[j, i] = score
 
-    # DO NOT remove this clip. cv2.intersectConvexConvex computes in float32
-    # internally while polygon areas are computed in float64; the intersection
-    # area can exceed the float64 area by ~25 ULP (~1e-7), producing raw IoU
-    # or IoS values microscopically above 1.0 for identical boxes. The clip is
+    # DO NOT remove this clip. Intersections are computed on float32-rounded
+    # polygons while polygon areas use the original coordinates; the intersection
+    # area can exceed the polygon area by ~1e-7 relative, producing raw IoU or
+    # IoS values microscopically above 1.0 for identical boxes. The clip is
     # load-bearing, not defensive duplication.
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
 
