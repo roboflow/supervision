@@ -251,6 +251,7 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.in
     else:
         calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
         coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
+        coordinates = coordinates - coordinates[:, :1]
     x = coordinates[:, :, 0]
     y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
@@ -307,6 +308,7 @@ def _obb_areas(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     else:
         calculation_dtype = np.result_type(xyxyxyxy.dtype, np.float64)
         coordinates = xyxyxyxy.astype(calculation_dtype, copy=False)
+        coordinates = coordinates - coordinates[:, :1]
     x = coordinates[:, :, 0]
     y = coordinates[:, :, 1]
     x1, x2, x3, x4 = x.T
