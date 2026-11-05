@@ -1376,16 +1376,26 @@ class CompactMask:
         return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
 
     def sum(
-        self, axis: int | tuple[int, ...] | None = None
-    ) -> npt.NDArray[np.int64] | np.int64:
+        self,
+        axis: int | tuple[int, ...] | None = None,
+        dtype: npt.DTypeLike | None = None,
+        out: Any = None,
+        **kwargs: Any,
+    ) -> npt.NDArray[Any] | np.generic:
         """NumPy-compatible sum with a fast path for per-mask area.
 
-        When ``axis=(1, 2)``, returns the per-mask True-pixel count via
+        When ``axis=(1, 2)`` and no other argument is set, returns the per-mask
+        True-pixel count via
         :attr:`~supervision.detection.compact_mask.CompactMask.area` without
-        materialising the full dense array.
+        materialising the full dense array. Any other call materialises the dense
+        array, so ``np.sum(compact_mask, ...)`` matches ``np.sum`` on the dense mask.
 
         Args:
             axis: Axis or axes to sum over.
+            dtype: Data type of the result, as in ``numpy.sum``.
+            out: Array to write the result into, as in ``numpy.sum``.
+            **kwargs: Other ``numpy.sum`` keywords: ``keepdims``, ``initial``
+                and ``where``.
 
         Returns:
             Sum result matching NumPy semantics.
@@ -1403,9 +1413,23 @@ class CompactMask:
 
             ```
         """
-        if axis == (1, 2):
+        # Only integer axes can use the shortcut; NumPy validates all other forms.
+        if (
+            isinstance(axis, tuple)
+            and all(
+                isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+                for value in axis
+            )
+            and axis == (1, 2)
+            and dtype is None
+            and out is None
+            and not kwargs
+        ):
             return self.area
-        return cast(npt.NDArray[np.int64] | np.int64, self.to_dense().sum(axis=axis))
+        return cast(
+            npt.NDArray[Any] | np.generic,
+            self.to_dense().sum(axis=axis, dtype=dtype, out=out, **kwargs),
+        )
 
     @overload
     def __getitem__(self, index: int | np.integer) -> npt.NDArray[np.bool_]: ...
