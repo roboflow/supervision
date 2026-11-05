@@ -104,6 +104,9 @@ build = [
   "twine>=5.1.1,<8",
   "wheel>=0.40,<0.49",
 ]
+mediapipe-reference = [
+  "mediapipe>=0.10.35,<0.11; python_version<'3.13'",
+]
 
 [tool.setuptools]
 packages.find.where = [ "src" ]
@@ -300,6 +303,7 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
+ini_options.markers = [ "integration: tests requiring external integration dependencies" ]
 ini_options.filterwarnings = [
   "error::DeprecationWarning",
 ]

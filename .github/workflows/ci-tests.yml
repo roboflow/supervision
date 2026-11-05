@@ -152,7 +152,7 @@ jobs:
       - name: ⚠️ cancelled or skipped...
         if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.clean-wheel.result)
         run: |
-          echo "run-tests job result is '${{ needs.run-tests.result }}'; failing explicitly."
+          echo "A required test job was cancelled or skipped; failing explicitly."
           exit 1
       - name: ✅ tests succeeded
         if: needs.run-tests.result == 'success'
