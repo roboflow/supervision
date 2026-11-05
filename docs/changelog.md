@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.get_anchors_coordinates(sv.Position.CENTER_OF_MASS)` now returns an empty `(0, 2)` array for an empty batch without masks instead of raising `ValueError`, so annotators anchored at the center of mass no longer fail on a frame with no detections. A populated batch without masks still raises. ([#2877](https://github.com/roboflow/supervision/pull/2877))
 
+- `Skeleton.GHUM` now connects the left wrist to the left index finger. A 0-based MediaPipe edge had been left unshifted in the 1-based table, so by default `sv.EdgeAnnotator` drew a bone from the right elbow to the right pinky on 33-keypoint poses and none from the left wrist to the left index. ([#2876](https://github.com/roboflow/supervision/pull/2876))
+
 - `sv.get_video_frames_generator` stops reading and skipping when it reaches the requested end, avoiding errors from excluded frames. ([#2874](https://github.com/roboflow/supervision/pull/2874))
 
 - `sv.LineZone` now counts an object that is occluded while it crosses the line. By default, a tracker loses its stored side on the `max(30, minimum_crossing_threshold + 1)`th consecutive absent frame. To restore previous retention, pass `max_absent_frames=max(2, minimum_crossing_threshold + 1)`; this is 2 for the default crossing threshold. [#2873](https://github.com/roboflow/supervision/pull/2873)
