@@ -440,3 +440,97 @@ class TestPolygonZoneTriggerWithCoordTransform:
 
         with pytest.raises(ValueError, match="coord_transform must return"):
             zone.trigger(DETECTIONS, coord_transform=_WrongShapeTransform())
+
+
+class TestPolygonZonePerClassCount:
+    def test_init_current_count_per_class_is_empty(self) -> None:
+        """Initial current_count_per_class is an empty dictionary."""
+        zone = sv.PolygonZone(POLYGON)
+
+        assert zone.current_count_per_class == {}
+
+    def test_trigger_empty_detections_resets_current_count_per_class(self) -> None:
+        """Triggering an empty detections object clears previously populated counts."""
+        zone = sv.PolygonZone(POLYGON)
+        populated_detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]],
+            class_id=[0],
+        )
+        zone.trigger(populated_detections)
+        assert zone.current_count_per_class == {0: 1}
+        assert zone.current_count == 1
+
+        zone.trigger(sv.Detections.empty())
+
+        assert zone.current_count_per_class == {}
+        assert zone.current_count == 0
+
+    def test_trigger_no_detections_in_zone_yields_empty_count(self) -> None:
+        """Detections outside the zone result in an empty count dictionary."""
+        zone = sv.PolygonZone(POLYGON)
+        detections = _create_detections(
+            xyxy=[[0.0, 0.0, 50.0, 50.0], [500.0, 500.0, 550.0, 550.0]],
+            class_id=[0, 1],
+        )
+
+        zone.trigger(detections)
+
+        assert zone.current_count_per_class == {}
+        assert zone.current_count == 0
+
+    def test_trigger_unclassified_detections_keyed_by_none(self) -> None:
+        """Unclassified detections inside the zone are keyed by None."""
+        zone = sv.PolygonZone(POLYGON)
+        detections = sv.Detections(
+            xyxy=np.array(
+                [
+                    [140.0, 140.0, 160.0, 160.0],
+                    [150.0, 150.0, 170.0, 170.0],
+                    [400.0, 400.0, 450.0, 450.0],
+                ]
+            )
+        )
+
+        zone.trigger(detections)
+
+        assert zone.current_count_per_class == {None: 2}
+        assert zone.current_count == 2
+
+    def test_trigger_classified_detections_counts_per_class(self) -> None:
+        """Classified detections inside the zone are counted separately by class id."""
+        zone = sv.PolygonZone(POLYGON)
+        detections = _create_detections(
+            xyxy=[
+                [140.0, 140.0, 160.0, 160.0],
+                [150.0, 150.0, 170.0, 170.0],
+                [145.0, 145.0, 165.0, 165.0],
+                [155.0, 155.0, 175.0, 175.0],
+                [400.0, 400.0, 450.0, 450.0],
+                [500.0, 500.0, 550.0, 550.0],
+            ],
+            class_id=[0, 0, 1, 3, 0, 2],
+        )
+
+        zone.trigger(detections)
+
+        assert zone.current_count_per_class == {0: 2, 1: 1, 3: 1}
+        assert zone.current_count == 4
+
+    def test_trigger_updates_per_class_count_across_frames(self) -> None:
+        """Repeated trigger calls reflect only the current frame's detections."""
+        zone = sv.PolygonZone(POLYGON)
+        frame_1_detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0], [150.0, 150.0, 170.0, 170.0]],
+            class_id=[0, 1],
+        )
+        frame_2_detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]],
+            class_id=[2],
+        )
+
+        zone.trigger(frame_1_detections)
+        assert zone.current_count_per_class == {0: 1, 1: 1}
+
+        zone.trigger(frame_2_detections)
+        assert zone.current_count_per_class == {2: 1}
+        assert zone.current_count == 1
