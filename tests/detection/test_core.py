@@ -3,6 +3,7 @@ import io
 import warnings
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
+from types import SimpleNamespace
 from typing import Any, ClassVar
 
 import numpy as np
@@ -3709,6 +3710,110 @@ class TestDetectionsFromSemanticSegmentation:
 
         assert len(detections) == 0
         assert len(detections.data["class_name"]) == 0
+
+    def test_names_classes_from_integer_keys(self) -> None:
+        """An integer-keyed `id2label` names classes like a text-keyed `class_map`.
+
+        Hugging Face configs hold `id2label` with integer keys. Matching them only as
+        text would silently name every class by its id.
+        """
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map={1: "road", 2: "car"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+
+    @pytest.mark.parametrize(
+        "wrap",
+        [
+            pytest.param(lambda fields: {"predictions": fields}, id="response-dict"),
+            pytest.param(
+                lambda fields: SimpleNamespace(predictions=SimpleNamespace(**fields)),
+                id="response-object",
+            ),
+            pytest.param(lambda fields: fields, id="predictions-dict"),
+            pytest.param(
+                lambda fields: SimpleNamespace(**fields), id="predictions-object"
+            ),
+        ],
+    )
+    def test_reads_whole_inference_result(self, wrap: Any) -> None:
+        """A whole Inference result gives the same detections as its unpacked fields.
+
+        `model.infer(image)[0]` returns an object and the HTTP client returns a dict,
+        and users may pass either the result or its `predictions`.
+        """
+        result = wrap(
+            {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+                "confidence_mask": _png_b64(self.CONFIDENCE_MAP),
+            }
+        )
+
+        detections = Detections.from_semantic_segmentation(result)
+
+        assert detections.class_id is not None
+        assert detections.confidence is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+        assert np.allclose(detections.confidence, [1.0, 100 / 255])
+
+    def test_explicit_class_map_overrides_whole_result(self) -> None:
+        """An explicit `class_map` wins over the one inside a whole result."""
+        result = {
+            "predictions": {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+            }
+        }
+
+        detections = Detections.from_semantic_segmentation(
+            result, class_map={"1": "lane", "2": "truck"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["lane", "truck"])
+
+    @pytest.mark.parametrize(
+        ("segmentation_result", "message"),
+        [
+            pytest.param(None, "segmentation_mask", id="none"),
+            pytest.param(object(), "segmentation_mask", id="unknown-object"),
+            pytest.param({"image": {}}, "segmentation_mask", id="dict-without-mask"),
+            pytest.param(
+                {"predictions": [{"x": 1}]},
+                "segmentation_mask",
+                id="object-detection-result",
+            ),
+            pytest.param([{}], "single result", id="list-of-results"),
+        ],
+    )
+    def test_rejects_input_without_a_map(
+        self, segmentation_result: Any, message: str
+    ) -> None:
+        """Input holding no map raises a ValueError that says what to pass.
+
+        An opaque `AttributeError` from deep inside the decoder gave no hint of the
+        expected input.
+        """
+        with pytest.raises(ValueError, match=message):
+            Detections.from_semantic_segmentation(segmentation_result)
+
+    @pytest.mark.parametrize(
+        "confidence_mask",
+        [
+            pytest.param(np.zeros((2, 3), dtype=np.float32), id="float-map"),
+            pytest.param({"a": 1}, id="dict"),
+        ],
+    )
+    def test_undecodable_confidence_error_names_confidence_mask(
+        self, confidence_mask: Any
+    ) -> None:
+        """A bad confidence map raises an error naming `confidence_mask`."""
+        with pytest.raises(ValueError, match="confidence_mask"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=confidence_mask
+            )
 
     @pytest.mark.parametrize(
         ("segmentation_mask", "message"),

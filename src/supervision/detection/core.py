@@ -48,6 +48,7 @@ from supervision.detection.utils.internal import (
     merge_metadata,
     process_roboflow_result,
     process_semantic_segmentation,
+    read_semantic_result,
 )
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
@@ -617,7 +618,9 @@ class Detections:
         For semantic segmentation, pass either a class-ID tensor or the result of
         `post_process_semantic_segmentation(return_segmentation_scores=True)`.
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
-        holds one score per detection.
+        holds one score per detection. Every class in the map is kept, including id 0.
+        To load a Roboflow Inference result or build compact masks, use
+        :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`.
 
         Args:
             transformers_results: Inference results from your Transformers model.
@@ -831,7 +834,7 @@ class Detections:
             raise ValueError(
                 "This is a semantic segmentation result, which has one label map "
                 "instead of a list of predictions. Use "
-                "Detections.from_semantic_segmentation(...) instead."
+                "Detections.from_semantic_segmentation(result) instead."
             )
         masks: npt.NDArray[np.bool_] | CompactMask | None
         # Design note (ADR): the `compact_masks` flag changes the runtime type of
@@ -865,16 +868,16 @@ class Detections:
     @classmethod
     def from_semantic_segmentation(
         cls,
-        segmentation_mask: Any,
+        segmentation_result: Any,
         *,
-        class_map: dict[str, str] | None = None,
+        class_map: dict[int, str] | dict[str, str] | None = None,
         confidence_mask: Any = None,
         background_id: int | None = 0,
         compact_masks: bool = False,
     ) -> Detections:
         """
         Create a :class:`~supervision.detection.core.Detections` object from a
-        semantic segmentation map, such as the one a
+        semantic segmentation result, such as the one a
         [Roboflow Inference](https://inference.roboflow.com/) semantic
         segmentation model returns.
 
@@ -883,15 +886,24 @@ class Detections:
         follows Roboflow's own Workflows converter, so the same model gives the
         same detections in both places.
 
+        For Hugging Face Transformers models, use
+        :meth:`~supervision.detection.core.Detections.from_transformers`, which takes
+        the post-processed tensor directly and keeps every class.
+
         Args:
-            segmentation_mask: Per-pixel class ids, either a base64 PNG string
-                without a data-URI prefix or an `(H, W)` integer array.
-            class_map: Maps a class id written as text to its name, for example
-                `{"1": "road"}`. A class missing from it is named by its id.
+            segmentation_result: One Inference result or its `predictions`, as a dict
+                or an object, from which `segmentation_mask`, `class_map` and
+                `confidence_mask` are read. Also accepts the per-pixel class ids
+                alone, as a base64 PNG string without a data-URI prefix or an
+                `(H, W)` integer array or tensor.
+            class_map: Maps a class id, as an integer or as text, to its name, for
+                example `{"1": "road"}`. A class missing from it is named by its id.
+                Overrides the one inside `segmentation_result`.
             confidence_mask: Optional per-pixel 8-bit confidence with the same
-                shape as `segmentation_mask`, in the same formats. When given,
+                shape as the class ids, in the same formats. When available,
                 `confidence` is each class's mean over its pixels divided by
-                255; otherwise `confidence` is `None`.
+                255; otherwise `confidence` is `None`. Overrides the one inside
+                `segmentation_result`.
             background_id: Class id left out of the result. Pass `None` to keep
                 every class.
             compact_masks: When `True`, return
@@ -904,9 +916,9 @@ class Detections:
                 no class remains.
 
         Raises:
-            ValueError: If a map is not valid base64, not a PNG, not a
-                single-channel integer `(H, W)` map, or the two maps differ in
-                shape.
+            ValueError: If the input is a list or holds no map, a map is not valid
+                base64, not a PNG, not a single-channel integer `(H, W)` map, or the
+                two maps differ in shape.
 
         Example:
             ```python
@@ -915,15 +927,13 @@ class Detections:
 
             model = get_model(model_id="<SEMANTIC_SEGMENTATION_MODEL_ID>")
             result = model.infer("<SOURCE_IMAGE_PATH>")[0]
-            predictions = result.predictions
 
-            detections = sv.Detections.from_semantic_segmentation(
-                predictions.segmentation_mask,
-                class_map=predictions.class_map,
-                confidence_mask=predictions.confidence_mask,
-            )
+            detections = sv.Detections.from_semantic_segmentation(result)
             ```
         """
+        segmentation_mask, class_map, confidence_mask = read_semantic_result(
+            segmentation_result, class_map, confidence_mask
+        )
         xyxy, confidence, class_id, masks, data = process_semantic_segmentation(
             segmentation_mask=segmentation_mask,
             class_map=class_map,

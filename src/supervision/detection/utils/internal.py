@@ -538,46 +538,109 @@ def process_roboflow_result(
     )
 
 
-def decode_semantic_label_map(payload: Any) -> npt.NDArray[np.integer]:
+def _is_semantic_map_payload(value: Any) -> bool:
+    """Tell a raw map (base64 string, array or tensor) from a result object."""
+    return isinstance(value, (str, np.ndarray)) or hasattr(value, "cpu")
+
+
+def _read_semantic_field(source: Any, field: str) -> Any:
+    """Read a field from a dict or an attribute-style Inference response."""
+    if isinstance(source, dict):
+        return source.get(field)
+    return getattr(source, field, None)
+
+
+def read_semantic_result(
+    segmentation_result: Any,
+    class_map: dict[int, str] | dict[str, str] | None,
+    confidence_mask: Any,
+) -> tuple[Any, dict[int, str] | dict[str, str] | None, Any]:
+    """Find the map, class names and confidence inside a semantic segmentation input.
+
+    A raw map passes through. A Roboflow Inference result, or its ``predictions``,
+    is read as a dict or as an object, because the HTTP client returns the former and
+    ``model.infer`` the latter. Explicit arguments win over the result's own fields.
+
+    Args:
+        segmentation_result: A raw map, an Inference result or its ``predictions``.
+        class_map: Explicit class names, or ``None`` to use the result's.
+        confidence_mask: Explicit confidence map, or ``None`` to use the result's.
+
+    Returns:
+        ``(segmentation_mask, class_map, confidence_mask)``.
+
+    Raises:
+        ValueError: If the input is a list of results or holds no map.
+    """
+    if _is_semantic_map_payload(segmentation_result):
+        return segmentation_result, class_map, confidence_mask
+    if isinstance(segmentation_result, (list, tuple)):
+        raise ValueError(
+            "from_semantic_segmentation() operates on a single result at a time. You "
+            "can retrieve it like so: result = model.infer(image)[0]"
+        )
+    predictions = _read_semantic_field(segmentation_result, "predictions")
+    source = segmentation_result if predictions is None else predictions
+    segmentation_mask = _read_semantic_field(source, "segmentation_mask")
+    if segmentation_mask is None:
+        raise ValueError(
+            "Expected a semantic segmentation result holding 'segmentation_mask', a "
+            "base64 PNG string, or an (H, W) integer array, got "
+            f"{type(segmentation_result).__name__}."
+        )
+    if class_map is None:
+        class_map = _read_semantic_field(source, "class_map")
+    if confidence_mask is None:
+        confidence_mask = _read_semantic_field(source, "confidence_mask")
+    return segmentation_mask, class_map, confidence_mask
+
+
+def decode_semantic_label_map(payload: Any, field: str) -> npt.NDArray[np.integer]:
     """Decode a semantic segmentation map into an ``(H, W)`` integer array.
 
     Args:
         payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
-            returns it, or an ``(H, W)`` integer array.
+            returns it, or an ``(H, W)`` integer array or tensor.
+        field: Name of the argument being decoded, used in error messages.
 
     Returns:
         The map with its integer values unchanged, so class ids keep their meaning.
 
     Raises:
-        ValueError: If the payload is not valid base64, not a decodable PNG, or not
-            a single-channel integer ``(H, W)`` map.
+        ValueError: If the payload is not a string, array or tensor, not valid base64,
+            not a decodable PNG, or not a single-channel integer ``(H, W)`` map.
     """
+    if not _is_semantic_map_payload(payload):
+        raise ValueError(
+            f"{field} must be a base64 PNG string or an (H, W) integer array, got "
+            f"{type(payload).__name__}."
+        )
     if isinstance(payload, str):
         try:
             png_bytes = base64.b64decode(payload, validate=True)
         except binascii.Error as error:
             raise ValueError(
-                "The segmentation map is not valid base64; pass the raw base64 PNG "
-                "that Inference returns, without a data-URI prefix."
+                f"{field} is not valid base64; pass the raw base64 PNG that Inference "
+                "returns, without a data-URI prefix."
             ) from error
         try:
             with Image.open(io.BytesIO(png_bytes)) as image:
                 array = np.asarray(image)
         except OSError as error:
-            raise ValueError("The segmentation map is not a decodable PNG.") from error
+            raise ValueError(f"{field} is not a decodable PNG.") from error
     else:
         array = _to_numpy(payload)
     if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
         raise ValueError(
-            "The segmentation map must be a single-channel integer (H, W) array, "
-            f"got shape {array.shape} and dtype {array.dtype}."
+            f"{field} must be a single-channel integer (H, W) array, got shape "
+            f"{array.shape} and dtype {array.dtype}."
         )
     return cast(npt.NDArray[np.integer], array)
 
 
 def process_semantic_segmentation(
     segmentation_mask: Any,
-    class_map: dict[str, str] | None,
+    class_map: dict[int, str] | dict[str, str] | None,
     confidence_mask: Any,
     background_id: int | None,
     compact_masks: bool,
@@ -597,7 +660,7 @@ def process_semantic_segmentation(
 
     Args:
         segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.
-        class_map: Maps a class id as text to its name, or ``None``.
+        class_map: Maps a class id, as an integer or as text, to its name, or ``None``.
         confidence_mask: Per-pixel 8-bit confidence of the same shape, or ``None``.
         background_id: Class id to leave out, or ``None`` to keep every class.
         compact_masks: Return a :class:`~supervision.detection.compact_mask.CompactMask`
@@ -626,22 +689,23 @@ def process_semantic_segmentation(
 
         ```
     """
-    label_map = decode_semantic_label_map(segmentation_mask)
+    label_map = decode_semantic_label_map(segmentation_mask, "segmentation_mask")
     confidence_map = None
     if confidence_mask is not None:
-        confidence_map = decode_semantic_label_map(confidence_mask)
+        confidence_map = decode_semantic_label_map(confidence_mask, "confidence_mask")
         if confidence_map.shape != label_map.shape:
             raise ValueError(
                 "confidence_mask and segmentation_mask must have the same shape, got "
                 f"{confidence_map.shape} and {label_map.shape}."
             )
-    class_map = class_map or {}
+    # Inference keys class_map by text and Hugging Face id2label by integer.
+    names_by_id = {str(key): name for key, name in (class_map or {}).items()}
 
     class_ids = np.unique(label_map).astype(np.int64)
     if background_id is not None:
         class_ids = class_ids[class_ids != background_id]
     class_names = np.array(
-        [class_map.get(str(class_id), str(class_id)) for class_id in class_ids],
+        [names_by_id.get(str(class_id), str(class_id)) for class_id in class_ids],
         dtype=str,
     )
     data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
