@@ -775,8 +775,6 @@ We could stop here as we have successfully tracked the object detected by the ke
     <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-with-smoothing.mp4" type="video/mp4">
 </video>
 
-This structured walkthrough should give a detailed pathway to annotate videos effectively using Supervision’s various functionalities, including object tracking and trace annotations.
-
 ### Attach Tracker IDs to Keypoints
 
 The samples above track boxes. For per-person pose analysis you need the tracker ID on each skeleton. Do not copy `detections.tracker_id` into `key_points` by position: `as_detections()` leaves out skeletons without any usable keypoint, and the tracker may return rows in a different order (matched tracks first), so positional copies can put IDs on the wrong person. Instead, store each skeleton's row index in `key_points.data` before the conversion. `as_detections()` copies `data` to the detections, so the index comes back with every tracked row.
@@ -857,6 +855,8 @@ The samples above track boxes. For per-person pose analysis you need the tracker
     ```
 
 The `len(detections) > 0` check matters on frames without people: `as_detections()` then returns `Detections.empty()`, which has no `row` field. Each skeleton in `key_points` now has its ID in `key_points.data["tracker_id"]`; new tracks start with `tracker_id=-1`. With these tracker settings, a track started by a detection that meets the activation threshold can receive an ID on its next successfully matched frame. The filter keeps only skeletons that have been assigned an ID.
+
+This structured walkthrough should give a detailed pathway to annotate videos effectively using Supervision’s various functionalities, including object tracking and trace annotations.
 
 ## Frequently Asked Questions
 
