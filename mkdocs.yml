@@ -74,6 +74,7 @@ nav:
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
+          - Angles: keypoint/angles.md
       - Depth Estimation:
           - Core: depth/core.md
           - Annotators: depth/annotators.md
