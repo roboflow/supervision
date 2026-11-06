@@ -389,6 +389,200 @@ class TestClassNamePopulation:
             )
 
 
+class TestDetectionDatasetEmpty:
+    """Verify DetectionDataset.empty creates a dataset with classes and no images."""
+
+    def test_empty_keeps_classes_without_images(self) -> None:
+        """The empty dataset has the given classes and no images or annotations."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        assert dataset.classes == ["dog", "person"]
+        assert len(dataset) == 0
+        assert dataset.annotations == {}
+
+    def test_empty_equals_constructor_without_images(self) -> None:
+        """The empty dataset equals one constructed with no images or annotations."""
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        assert dataset == DetectionDataset(classes=["dog"], images=[], annotations={})
+
+
+class TestDetectionDatasetAdd:
+    """Verify DetectionDataset.add accumulates images and annotations in place."""
+
+    def test_add_appends_after_existing_images(self) -> None:
+        """An added image is appended after the images the dataset already has."""
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png", "img2.png"],
+            annotations={
+                "img1.png": Detections.empty(),
+                "img2.png": Detections.empty(),
+            },
+        )
+
+        dataset.add("img3.png", _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]))
+
+        assert dataset.image_paths == ["img1.png", "img2.png", "img3.png"]
+        assert len(dataset) == 3
+
+    def test_add_matches_constructor(self) -> None:
+        """A dataset built with add equals one built by the constructor."""
+        annotations = {
+            "img1.png": _create_detections(
+                xyxy=[[0, 0, 10, 10], [5, 5, 15, 15]], class_id=[1, 0]
+            ),
+            "img2.png": Detections.empty(),
+        }
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        for image_path, annotation in annotations.items():
+            dataset.add(image_path=image_path, annotation=annotation)
+
+        assert dataset == DetectionDataset(
+            classes=["dog", "person"],
+            images=list(annotations),
+            annotations=annotations,
+        )
+
+    def test_add_populates_class_name(self) -> None:
+        """The stored annotation gets class names mapped from its class ids."""
+        dataset = DetectionDataset.empty(classes=["dog", "person"])
+
+        dataset.add(
+            "img1.png",
+            _create_detections(xyxy=[[0, 0, 10, 10], [5, 5, 15, 15]], class_id=[1, 0]),
+        )
+
+        np.testing.assert_array_equal(
+            dataset.annotations["img1.png"].data[CLASS_NAME_DATA_FIELD],
+            np.array(["person", "dog"]),
+        )
+
+    def test_add_does_not_mutate_input_annotation(self) -> None:
+        """Adding class_name metadata must not mutate caller-owned Detections."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        dataset.add("img1.png", annotation)
+
+        assert CLASS_NAME_DATA_FIELD not in annotation.data
+        assert CLASS_NAME_DATA_FIELD in dataset.annotations["img1.png"].data
+
+    def test_add_stores_independent_copy(self) -> None:
+        """Changing the passed Detections after adding it leaves the dataset intact."""
+        annotation = _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+        dataset = DetectionDataset.empty(classes=["dog"])
+        dataset.add("img1.png", annotation)
+
+        annotation.xyxy[0, 0] = 5
+
+        assert dataset.annotations["img1.png"].xyxy[0, 0] == 0
+
+    def test_add_rejects_duplicate_image_path(self) -> None:
+        """An image path already in the dataset raises and leaves it unchanged."""
+        dataset = DetectionDataset(
+            classes=["dog"],
+            images=["img1.png"],
+            annotations={"img1.png": Detections.empty()},
+        )
+
+        with pytest.raises(ValueError, match="already in the dataset"):
+            dataset.add("img1.png", Detections.empty())
+
+        assert dataset.image_paths == ["img1.png"]
+
+    @pytest.mark.parametrize(
+        ("annotation", "match"),
+        [
+            pytest.param(
+                _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+                "outside the valid range",
+                id="too-large",
+            ),
+            pytest.param(
+                _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[-1]),
+                "outside the valid range",
+                id="negative",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0.5]),
+                ),
+                "non-integer class_id",
+                id="non-integer",
+            ),
+        ],
+    )
+    def test_add_rejects_invalid_class_id(
+        self, annotation: Detections, match: str
+    ) -> None:
+        """Invalid class ids raise like the constructor and leave the dataset empty."""
+        dataset = DetectionDataset.empty(classes=["dog"])
+
+        with pytest.raises(ValueError, match=match):
+            dataset.add("img1.png", annotation)
+
+        assert len(dataset) == 0
+        assert dataset.annotations == {}
+
+    def test_add_rejects_in_memory_dataset(self) -> None:
+        """Datasets holding deprecated in-memory images cannot be extended."""
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            dataset = DetectionDataset(
+                classes=["dog"],
+                images={"img1.png": _create_image(fill_value=1)},
+                annotations={"img1.png": Detections.empty()},
+            )
+
+        with pytest.raises(ValueError, match="in-memory images"):
+            dataset.add("img2.png", Detections.empty())
+
+        assert dataset.image_paths == ["img1.png"]
+
+    def test_added_images_export_and_reload_as_yolo(self, tmp_path: Path) -> None:
+        """Images added from disk export to YOLO and load back with their boxes."""
+        dataset = DetectionDataset.empty(classes=["cat", "dog"])
+        annotations = {
+            "a.png": _create_detections(xyxy=[[2, 4, 10, 12]], class_id=[1]),
+            "b.png": _create_detections(
+                xyxy=[[0, 0, 8, 8], [8, 8, 16, 16]], class_id=[0, 1]
+            ),
+        }
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        for file_name, annotation in annotations.items():
+            image_path = source_dir / file_name
+            Image.fromarray(np.zeros((16, 16, 3), dtype=np.uint8)).save(image_path)
+            dataset.add(str(image_path), annotation)
+
+        dataset.as_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=str(tmp_path / "images"),
+            annotations_directory_path=str(tmp_path / "labels"),
+            data_yaml_path=str(tmp_path / "data.yaml"),
+        )
+
+        assert reloaded.classes == ["cat", "dog"]
+        assert sorted(Path(path).name for path in reloaded.image_paths) == [
+            "a.png",
+            "b.png",
+        ]
+        for reloaded_path, reloaded_annotation in reloaded.annotations.items():
+            expected = annotations[Path(reloaded_path).name]
+            np.testing.assert_allclose(
+                reloaded_annotation.xyxy, expected.xyxy, atol=1e-3
+            )
+            np.testing.assert_array_equal(
+                reloaded_annotation.class_id, expected.class_id
+            )
+
+
 class TestDetectionDatasetInMemoryImages:
     """Verify DetectionDataset keeps dict-provided images in memory (DAT-01)."""
 

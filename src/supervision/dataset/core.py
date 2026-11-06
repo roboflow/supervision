@@ -56,6 +56,41 @@ _IMAGE_FILE_EXTENSIONS = frozenset(
 )
 
 
+def _validate_and_label_annotation(
+    image_path: str, annotation: Detections, classes: npt.NDArray[np.generic]
+) -> None:
+    """Validate an annotation's class ids and store their class names in place.
+
+    Args:
+        image_path: Path of the image the annotation belongs to, used in errors.
+        annotation: Dataset-owned annotation whose `data` receives the class names.
+        classes: Dataset class names as an array, indexed by `class_id`.
+
+    Raises:
+        ValueError: If `class_id` is not an integer array or holds an id outside
+            `[0, len(classes) - 1]`.
+    """
+    class_ids = annotation.class_id
+    if class_ids is None:
+        return
+    if not np.issubdtype(class_ids.dtype, np.integer):
+        raise ValueError(
+            f"Detection annotation for image {image_path!r} contains "
+            f"non-integer class_id values with dtype {class_ids.dtype}."
+        )
+
+    invalid_class_ids = class_ids[(class_ids < 0) | (class_ids >= len(classes))]
+    if len(invalid_class_ids) > 0:
+        valid_range = "empty" if len(classes) == 0 else f"[0, {len(classes) - 1}]"
+        raise ValueError(
+            f"Detection annotation for image {image_path!r} contains "
+            f"class_id {int(invalid_class_ids[0])}, outside the valid "
+            f"range {valid_range} for {len(classes)} classes."
+        )
+
+    annotation.data[CLASS_NAME_DATA_FIELD] = classes[class_ids]
+
+
 class BaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -110,31 +145,9 @@ class DetectionDataset(BaseDataset):
 
         np_classes = np.array(self.classes)
         for image_path, annotation in self.annotations.items():
-            class_ids = annotation.class_id
-            if class_ids is None:
-                continue
-            if not np.issubdtype(class_ids.dtype, np.integer):
-                raise ValueError(
-                    f"Detection annotation for image {image_path!r} contains "
-                    f"non-integer class_id values with dtype {class_ids.dtype}."
-                )
-
-            invalid_class_ids = class_ids[
-                (class_ids < 0) | (class_ids >= len(self.classes))
-            ]
-            if len(invalid_class_ids) > 0:
-                valid_range = (
-                    "empty"
-                    if len(self.classes) == 0
-                    else f"[0, {len(self.classes) - 1}]"
-                )
-                raise ValueError(
-                    f"Detection annotation for image {image_path!r} contains "
-                    f"class_id {int(invalid_class_ids[0])}, outside the valid "
-                    f"range {valid_range} for {len(self.classes)} classes."
-                )
-
-            annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[class_ids]
+            _validate_and_label_annotation(
+                image_path=image_path, annotation=annotation, classes=np_classes
+            )
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -384,6 +397,109 @@ class DetectionDataset(BaseDataset):
         if all_in_memory:
             merged_dataset._images_in_memory = images_in_memory
         return merged_dataset
+
+    @classmethod
+    def empty(cls, classes: list[str]) -> DetectionDataset:
+        """Create a :class:`~supervision.dataset.core.DetectionDataset` with no images.
+
+        Use it with :meth:`~supervision.dataset.core.DetectionDataset.add` to build a
+        dataset image by image, for example from model predictions.
+
+        Args:
+            classes: Dataset class names, indexed by the `class_id` of the
+                annotations added later.
+
+        Returns:
+            A dataset with the given classes and no images or annotations.
+
+        Examples:
+            ```pycon
+            >>> import supervision as sv
+            >>> ds = sv.DetectionDataset.empty(classes=['dog', 'person'])
+            >>> len(ds)
+            0
+            >>> ds.classes
+            ['dog', 'person']
+
+            ```
+        """
+        return cls(classes=classes, images=[], annotations={})
+
+    def add(self, image_path: str, annotation: Detections) -> None:
+        """Add an image and its annotation to the dataset in place.
+
+        The image is not read: like the rest of the dataset, it is loaded lazily from
+        `image_path` when accessed or exported, so the file must exist by then. The
+        dataset stores a copy of `annotation` with its class names filled in, so later
+        changes to the passed object do not affect the dataset.
+
+        Args:
+            image_path: Path of the image file. It must not already be in the dataset.
+            annotation: Detections for the image. Its `class_id` values index
+                :attr:`~supervision.dataset.core.DetectionDataset.classes`.
+
+        Raises:
+            ValueError: If `image_path` is already in the dataset, if the dataset
+                holds in-memory images (deprecated), or if `annotation` has a
+                non-integer `class_id` or one outside the range of `classes`.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> ds = sv.DetectionDataset.empty(classes=['dog', 'person'])
+            >>> ds.add(
+            ...     image_path='img1.jpg',
+            ...     annotation=sv.Detections(
+            ...         xyxy=np.array([[10, 10, 20, 20]]),
+            ...         class_id=np.array([1]),
+            ...     ),
+            ... )
+            >>> len(ds)
+            1
+            >>> ds.annotations['img1.jpg'].data['class_name']
+            array(['person'], dtype='<U6')
+
+            ```
+
+            Collect model predictions for semi-automatic annotation, then export:
+
+            ```python
+            from pathlib import Path
+
+            import supervision as sv
+            from ultralytics import YOLO
+
+            model = YOLO("yolo11n.pt")
+            ds = sv.DetectionDataset.empty(classes=list(model.names.values()))
+
+            for image_path in sorted(Path("images").glob("*.jpg")):
+                result = model(str(image_path))[0]
+                ds.add(str(image_path), sv.Detections.from_ultralytics(result))
+
+            ds.as_yolo(
+                images_directory_path="dataset/images",
+                annotations_directory_path="dataset/labels",
+                data_yaml_path="dataset/data.yaml",
+            )
+            ```
+        """
+        if self._images_in_memory:
+            raise ValueError(
+                "Adding images to a DetectionDataset with in-memory images is not "
+                "supported. Build the dataset from a list of image paths instead."
+            )
+        if image_path in self.annotations:
+            raise ValueError(f"Image path {image_path!r} is already in the dataset.")
+
+        annotation = deepcopy(annotation)
+        _validate_and_label_annotation(
+            image_path=image_path,
+            annotation=annotation,
+            classes=np.array(self.classes),
+        )
+        self.annotations[image_path] = annotation
+        self.image_paths.append(image_path)
 
     def as_pascal_voc(
         self,
