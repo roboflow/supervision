@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- Added `sv.Detections.from_semantic_segmentation` to load a semantic segmentation map, such as the base64 PNG `segmentation_mask` that Roboflow Inference returns, as one detection per class id. It follows Roboflow's own Workflows converter: the background id `0` is dropped by default (`background_id=None` keeps it), classes are named from `class_map`, and an optional `confidence_mask` gives each class's mean confidence. `compact_masks=True` builds a `sv.CompactMask` one class at a time. `sv.Detections.from_inference` now raises a `ValueError` naming it for a semantic result instead of an opaque `TypeError`.
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 

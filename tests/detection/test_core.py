@@ -1,10 +1,13 @@
+import base64
+import io
 import warnings
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
@@ -3599,3 +3602,152 @@ class TestDetectionsXyxyValidation:
         """Detections reports unsupported coordinate dtypes as validation errors."""
         with pytest.raises(ValueError, match="must contain only finite numeric values"):
             Detections(xyxy=xyxy)
+
+
+def _png_b64(array: np.ndarray) -> str:
+    """Encode an integer array as a base64 PNG, as Inference serialises it."""
+    buffer = io.BytesIO()
+    Image.fromarray(array).save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
+
+
+class TestDetectionsFromSemanticSegmentation:
+    """Detections.from_semantic_segmentation builds one detection per class id."""
+
+    LABEL_MAP: ClassVar[np.ndarray] = np.array([[0, 0, 1], [0, 2, 1]], dtype=np.uint8)
+    CONFIDENCE_MAP: ClassVar[np.ndarray] = np.array(
+        [[200, 200, 255], [200, 100, 255]], dtype=np.uint8
+    )
+    CLASS_MAP: ClassVar[dict[str, str]] = {
+        "0": "background",
+        "1": "road",
+        "2": "car",
+    }
+
+    def test_decodes_base64_png_and_drops_background(self) -> None:
+        """A base64 PNG yields a mask, box and name per class, background dropped.
+
+        This is the payload Roboflow Inference returns for semantic segmentation, and
+        dropping id 0 matches its own Workflows converter.
+        """
+        detections = Detections.from_semantic_segmentation(
+            _png_b64(self.LABEL_MAP), class_map=self.CLASS_MAP
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+        assert np.array_equal(detections.data["class_name"], ["road", "car"])
+        assert detections.confidence is None
+        assert np.array_equal(detections.xyxy, [[2, 0, 2, 1], [1, 1, 1, 1]])
+        assert isinstance(detections.mask, np.ndarray)
+        assert np.array_equal(
+            detections.mask, [self.LABEL_MAP == 1, self.LABEL_MAP == 2]
+        )
+
+    def test_accepts_integer_array(self) -> None:
+        """An in-process integer label array needs no PNG decoding."""
+        detections = Detections.from_semantic_segmentation(self.LABEL_MAP)
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [1, 2])
+
+    def test_keeps_background_when_background_id_is_none(self) -> None:
+        """`background_id=None` keeps every class, background included."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map=self.CLASS_MAP, background_id=None
+        )
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [0, 1, 2])
+        assert np.array_equal(
+            detections.data["class_name"], ["background", "road", "car"]
+        )
+
+    def test_names_unlisted_class_by_its_id(self) -> None:
+        """A class missing from `class_map` is named by its id as text."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, class_map={"1": "road"}
+        )
+
+        assert np.array_equal(detections.data["class_name"], ["road", "2"])
+
+    def test_confidence_is_class_mean_over_255(self) -> None:
+        """Confidence is each class's mean 8-bit confidence divided by 255."""
+        detections = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, confidence_mask=_png_b64(self.CONFIDENCE_MAP)
+        )
+
+        assert detections.confidence is not None
+        assert np.allclose(detections.confidence, [1.0, 100 / 255])
+
+    def test_compact_masks_match_dense_masks(self) -> None:
+        """`compact_masks=True` returns a CompactMask with the same pixels."""
+        dense = Detections.from_semantic_segmentation(self.LABEL_MAP)
+
+        compact = Detections.from_semantic_segmentation(
+            self.LABEL_MAP, compact_masks=True
+        )
+
+        assert isinstance(compact.mask, CompactMask)
+        assert isinstance(dense.mask, np.ndarray)
+        assert np.array_equal(compact.mask.to_dense(), dense.mask)
+
+    def test_keeps_ids_above_255_from_a_16_bit_png(self) -> None:
+        """A 16-bit PNG keeps class ids that do not fit in 8 bits."""
+        label_map = np.array([[0, 300], [300, 7]], dtype=np.uint16)
+
+        detections = Detections.from_semantic_segmentation(_png_b64(label_map))
+
+        assert detections.class_id is not None
+        assert np.array_equal(detections.class_id, [7, 300])
+
+    def test_returns_empty_detections_when_only_background(self) -> None:
+        """A map holding only the background id yields no detections."""
+        detections = Detections.from_semantic_segmentation(
+            np.zeros((2, 2), dtype=np.uint8)
+        )
+
+        assert len(detections) == 0
+        assert len(detections.data["class_name"]) == 0
+
+    @pytest.mark.parametrize(
+        ("segmentation_mask", "message"),
+        [
+            pytest.param("data:image/png;base64,AAAA", "not valid base64", id="uri"),
+            pytest.param(
+                base64.b64encode(b"not a png").decode(),
+                "not a decodable PNG",
+                id="not-png",
+            ),
+            pytest.param(
+                np.zeros((2, 2, 3), dtype=np.uint8),
+                "single-channel integer",
+                id="three-channels",
+            ),
+            pytest.param(
+                np.zeros((2, 2), dtype=np.float32),
+                "single-channel integer",
+                id="float-map",
+            ),
+        ],
+    )
+    def test_rejects_undecodable_map(
+        self, segmentation_mask: Any, message: str
+    ) -> None:
+        """A map that cannot become an integer (H, W) label map raises ValueError."""
+        with pytest.raises(ValueError, match=message):
+            Detections.from_semantic_segmentation(segmentation_mask)
+
+    def test_rejects_confidence_of_another_shape(self) -> None:
+        """A confidence mask of another shape raises instead of misaligning."""
+        with pytest.raises(ValueError, match="same shape"):
+            Detections.from_semantic_segmentation(
+                self.LABEL_MAP, confidence_mask=np.zeros((3, 3), dtype=np.uint8)
+            )
+
+    def test_from_inference_points_to_the_semantic_loader(self) -> None:
+        """`from_inference` on a semantic result names the right loader."""
+        result = {"predictions": {"segmentation_mask": "AAAA", "class_map": {}}}
+
+        with pytest.raises(ValueError, match="from_semantic_segmentation"):
+            Detections.from_inference(result)

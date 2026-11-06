@@ -1,9 +1,13 @@
+import base64
+import binascii
+import io
 import logging
 from itertools import chain
 from typing import Any, Literal, cast, overload
 
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 
 from supervision import _cv2 as cv2
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -532,6 +536,145 @@ def process_roboflow_result(
         tracker_id_arr,
         data,
     )
+
+
+def decode_semantic_label_map(payload: Any) -> npt.NDArray[np.integer]:
+    """Decode a semantic segmentation map into an ``(H, W)`` integer array.
+
+    Args:
+        payload: Base64 PNG string without a data-URI prefix, as Roboflow Inference
+            returns it, or an ``(H, W)`` integer array.
+
+    Returns:
+        The map with its integer values unchanged, so class ids keep their meaning.
+
+    Raises:
+        ValueError: If the payload is not valid base64, not a decodable PNG, or not
+            a single-channel integer ``(H, W)`` map.
+    """
+    if isinstance(payload, str):
+        try:
+            png_bytes = base64.b64decode(payload, validate=True)
+        except binascii.Error as error:
+            raise ValueError(
+                "The segmentation map is not valid base64; pass the raw base64 PNG "
+                "that Inference returns, without a data-URI prefix."
+            ) from error
+        try:
+            with Image.open(io.BytesIO(png_bytes)) as image:
+                array = np.asarray(image)
+        except OSError as error:
+            raise ValueError("The segmentation map is not a decodable PNG.") from error
+    else:
+        array = _to_numpy(payload)
+    if array.ndim != 2 or not np.issubdtype(array.dtype, np.integer):
+        raise ValueError(
+            "The segmentation map must be a single-channel integer (H, W) array, "
+            f"got shape {array.shape} and dtype {array.dtype}."
+        )
+    return cast(npt.NDArray[np.integer], array)
+
+
+def process_semantic_segmentation(
+    segmentation_mask: Any,
+    class_map: dict[str, str] | None,
+    confidence_mask: Any,
+    background_id: int | None,
+    compact_masks: bool,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating] | None,
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | CompactMask | None,
+    _DetectionDataType,
+]:
+    """Split a semantic segmentation map into one mask per class id.
+
+    Follows Roboflow's own Workflows converter: the background id is dropped,
+    class names come from ``class_map`` with the id as text when a class is not
+    listed, and confidence is the class's mean 8-bit ``confidence_mask`` over its
+    pixels divided by 255.
+
+    Args:
+        segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.
+        class_map: Maps a class id as text to its name, or ``None``.
+        confidence_mask: Per-pixel 8-bit confidence of the same shape, or ``None``.
+        background_id: Class id to leave out, or ``None`` to keep every class.
+        compact_masks: Return a :class:`~supervision.detection.compact_mask.CompactMask`
+            built one class at a time instead of a dense stack.
+
+    Returns:
+        ``(xyxy, confidence, class_id, masks, data)`` aligned on the first axis;
+            ``confidence`` is ``None`` without ``confidence_mask`` and ``masks`` is
+            ``None`` when no class remains.
+
+    Raises:
+        ValueError: If a map cannot be decoded or the two maps differ in shape.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.internal import (
+        ...     process_semantic_segmentation,
+        ... )
+        >>> label_map = np.array([[0, 1, 1], [0, 2, 2]], dtype=np.uint8)
+        >>> xyxy, _, class_id, masks, data = process_semantic_segmentation(
+        ...     label_map, {"1": "road"}, None, 0, False
+        ... )
+        >>> class_id.tolist(), masks.shape, data["class_name"].tolist()
+        ([1, 2], (2, 2, 3), ['road', '2'])
+
+        ```
+    """
+    label_map = decode_semantic_label_map(segmentation_mask)
+    confidence_map = None
+    if confidence_mask is not None:
+        confidence_map = decode_semantic_label_map(confidence_mask)
+        if confidence_map.shape != label_map.shape:
+            raise ValueError(
+                "confidence_mask and segmentation_mask must have the same shape, got "
+                f"{confidence_map.shape} and {label_map.shape}."
+            )
+    class_map = class_map or {}
+
+    class_ids = np.unique(label_map).astype(np.int64)
+    if background_id is not None:
+        class_ids = class_ids[class_ids != background_id]
+    class_names = np.array(
+        [class_map.get(str(class_id), str(class_id)) for class_id in class_ids],
+        dtype=str,
+    )
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
+    if class_ids.size == 0:
+        return np.empty((0, 4)), None, class_ids, None, data
+
+    boxes: list[list[int]] = []
+    masks: list[Any] = []
+    scores: list[float] = []
+    # The loop runs over class ids, never pixels. Building one class at a time keeps
+    # peak memory at one (H, W) plane when compact masks are requested.
+    for class_id in class_ids:
+        mask = label_map == class_id
+        rows = np.flatnonzero(mask.any(axis=1))
+        cols = np.flatnonzero(mask.any(axis=0))
+        box = [int(cols[0]), int(rows[0]), int(cols[-1]), int(rows[-1])]
+        boxes.append(box)
+        if compact_masks:
+            masks.append(
+                CompactMask.from_dense(
+                    masks=mask[np.newaxis],
+                    xyxy=np.array([box]),
+                    image_shape=label_map.shape,
+                )
+            )
+        else:
+            masks.append(mask)
+        if confidence_map is not None:
+            scores.append(float(confidence_map[mask].mean()) / 255.0)
+
+    result_masks = CompactMask.merge(masks) if compact_masks else np.stack(masks)
+    confidence = np.array(scores, dtype=np.float64) if scores else None
+    return np.array(boxes, dtype=np.float64), confidence, class_ids, result_masks, data
 
 
 def is_data_equal(
