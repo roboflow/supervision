@@ -59,6 +59,116 @@ def test_mean_average_precision_accepts_obb_metric_target() -> None:
     assert result.map50_95 == pytest.approx(1.0)
 
 
+@pytest.mark.parametrize(
+    ("metric_class", "score_name"),
+    [
+        pytest.param(Precision, "precision_at_50", id="precision"),
+        pytest.param(Recall, "recall_at_50", id="recall"),
+        pytest.param(F1Score, "f1_50", id="f1-score"),
+        pytest.param(MeanAverageRecall, "mAR_at_100", id="mean-average-recall"),
+    ],
+)
+class TestOrientedBoxMetricsPrecision:
+    """Corner precision survives matching and object-size filtering."""
+
+    @pytest.mark.parametrize(
+        ("dtype", "origin", "size", "size_name"),
+        [
+            pytest.param(
+                np.float64, 10**8, 50, "medium_objects", id="float64-stitched-origin"
+            ),
+            pytest.param(
+                np.float64, 10**10, 50, "medium_objects", id="float64-area-cancellation"
+            ),
+            pytest.param(
+                np.float16, -40000, 80000, "large_objects", id="float16-large-extent"
+            ),
+            pytest.param(
+                ">f2", -40000, 80000, "large_objects", id="float16-non-native-endian"
+            ),
+            pytest.param(np.int64, 2**60, 50, "medium_objects", id="int64-origin"),
+            pytest.param(np.uint64, 2**60, 50, "medium_objects", id="uint64-origin"),
+        ],
+    )
+    def test_perfect_box_keeps_its_score_and_size(
+        self,
+        metric_class: type,
+        score_name: str,
+        dtype: type | str,
+        origin: int,
+        size: int,
+        size_name: str,
+    ) -> None:
+        """Translated or wide rectangles retain their score and size category."""
+        corners: np.ndarray = np.array(
+            [
+                [
+                    [origin, origin],
+                    [origin + size, origin],
+                    [origin + size, origin + size],
+                    [origin, origin + size],
+                ]
+            ],
+            dtype=dtype,
+        )
+        boxes: np.ndarray = np.array(
+            [[origin, origin, origin + size, origin + size]], dtype=dtype
+        )
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+        targets = Detections(
+            xyxy=boxes.copy(),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: corners.copy()},
+        )
+
+        result = (
+            metric_class(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        assert getattr(result, score_name) == pytest.approx(1.0)
+        size_result = getattr(result, size_name)
+        assert size_result is not None
+        assert getattr(size_result, score_name) == pytest.approx(1.0)
+        np.testing.assert_array_equal(
+            predictions.data[ORIENTED_BOX_COORDINATES], corners
+        )
+
+    def test_subpixel_overlap_at_mosaic_origin_is_not_a_match(
+        self, metric_class: type, score_name: str
+    ) -> None:
+        """A 40%-shifted small rectangle has IoU below one half at a 64k origin."""
+        origin, width = 64000.0, 0.01
+        corners = np.array([[[0, 0], [width, 0], [width, width], [0, width]]])
+        corners += origin
+        boxes = np.array([[origin, origin, origin + width, origin + width]])
+        predictions = Detections(
+            xyxy=boxes + np.array([width * 0.4, 0, width * 0.4, 0]),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: corners + np.array([width * 0.4, 0])},
+        )
+        targets = Detections(
+            xyxy=boxes,
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: corners},
+        )
+
+        result = (
+            metric_class(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+            .update(predictions, targets)
+            .compute()
+        )
+
+        assert getattr(result, score_name) == 0.0
+
+
 def _axis_aligned_detections(
     xyxy: list[float], confidence: float | None = None
 ) -> Detections:
