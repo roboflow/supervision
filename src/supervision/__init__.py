@@ -44,7 +44,12 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.depth.annotators import DepthAnnotator, DepthClipRange
+from supervision.depth.annotators import (
+    DepthAnnotator,
+    DepthClipRange,
+    GradientMapAnnotator,
+    NormalMapAnnotator,
+)
 from supervision.depth.colormaps import DepthColormap
 from supervision.depth.core import (
     DepthCamera,
@@ -207,6 +212,7 @@ __all__ = [
     "EdgeAnnotator",
     "EllipseAnnotator",
     "FPSMonitor",
+    "GradientMapAnnotator",
     "HaloAnnotator",
     "HeatMapAnnotator",
     "IconAnnotator",
@@ -220,6 +226,7 @@ __all__ = [
     "LineZoneAnnotator",
     "LineZoneAnnotatorMulticlass",
     "MaskAnnotator",
+    "NormalMapAnnotator",
     "OrientedBoxAnnotator",
     "OverlapFilter",
     "OverlapMetric",
