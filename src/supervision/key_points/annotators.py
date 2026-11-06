@@ -10,8 +10,9 @@ from supervision.annotators.core import _color_for_canvas
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_rounded_rectangle
-from supervision.geometry.core import Rect
+from supervision.draw.utils import draw_rounded_rectangle, draw_text
+from supervision.geometry.core import Point, Rect
+from supervision.key_points.angles import JointAngle, joint_angles
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
@@ -1025,3 +1026,169 @@ class VertexLabelAnnotator:
                 )
             return colors
         return [colors] * points_count
+
+
+class JointAngleAnnotator(BaseKeyPointAnnotator):
+    """Draws an arc at each joint, between its two rays, labelled with the angle.
+
+    The angles come from :func:`~supervision.key_points.angles.joint_angles`, so a
+    joint is skipped whenever its angle is ``NaN``: one of its points is hidden via
+    ``key_points.visible``, has a non-finite x/y coordinate or sits at ``[0, 0]``.
+    The annotator applies no confidence threshold of its own; filter or hide
+    unreliable points before annotating. Joints narrower than one degree get no
+    arc, only their label when ``show_value`` is set. Because the interior angle
+    never exceeds 180 degrees, the arc of a joint that bends through straight moves
+    to the other side.
+    """
+
+    def __init__(
+        self,
+        angles: Sequence[JointAngle],
+        color: Color = Color.ROBOFLOW,
+        thickness: int = 2,
+        radius: int = 20,
+        show_value: bool = True,
+        text_color: Color = Color.WHITE,
+        text_scale: float = 0.5,
+        text_thickness: int = 1,
+        text_padding: int = 4,
+    ) -> None:
+        """
+        Args:
+            angles: The joints to draw, see
+                :class:`~supervision.key_points.angles.JointAngle`.
+            color: The color of the arcs and of the label backgrounds.
+            thickness: The line thickness of the arcs.
+            radius: The radius of the arcs, in pixels.
+            show_value: Whether to label each arc with its angle in whole degrees.
+            text_color: The color of the label text.
+            text_scale: The font scale of the label text.
+            text_thickness: The thickness of the label text.
+            text_padding: The padding between the label text and its background.
+
+        Raises:
+            ValueError: If ``radius`` or ``thickness`` is not positive.
+        """
+        if radius <= 0:
+            raise ValueError(f"radius must be positive, got {radius}.")
+        if thickness <= 0:
+            raise ValueError(f"thickness must be positive, got {thickness}.")
+        self.angles = tuple(angles)
+        self.color = color
+        self.thickness = thickness
+        self.radius = radius
+        self.show_value = show_value
+        self.text_color = text_color
+        self.text_scale = text_scale
+        self.text_thickness = text_thickness
+        self.text_padding = text_padding
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """Annotates the given scene with an arc, and optionally the angle in
+        degrees, at every measurable joint of every skeleton.
+
+        Args:
+            scene: The image where the joint angles will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points. Only the first two coordinate
+                channels, x and y, determine angles and pixel positions.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Raises:
+            TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
+            ValueError: If a joint refers to a position outside the key points.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((200, 200, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[100, 50], [100, 100], [150, 100]]],
+            ...         dtype=np.float32,
+            ...     )
+            ... )
+            >>> from supervision.key_points.angles import JointAngle
+            >>> knee = JointAngle(name="knee", a=0, b=1, c=2)
+            >>> annotator = sv.JointAngleAnnotator(angles=[knee])
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
+        """
+        if len(key_points) == 0 or not self.angles:
+            return scene
+
+        values = joint_angles(key_points, self.angles)
+        xy = key_points.xy[..., :2].astype(np.float64)
+        for skeleton_index, angle_index in zip(*np.nonzero(np.isfinite(values))):
+            angle = self.angles[angle_index]
+            vertex = xy[skeleton_index, angle.b]
+            heading_a = self._heading(xy[skeleton_index, angle.a] - vertex)
+            heading_c = self._heading(xy[skeleton_index, angle.c] - vertex)
+            # The interior angle never exceeds 180 degrees, so the arc follows the
+            # shorter way round from ray a to ray c. Both backends draw an arc
+            # clockwise from the smaller to the larger angle in image coordinates.
+            sweep = (heading_c - heading_a + 180.0) % 360.0 - 180.0
+            start_angle, end_angle = sorted((heading_a, heading_a + sweep))
+            # Both backends draw whole degrees, so a sub-degree arc would collapse
+            # into a dot on the joint; such joints keep only their label.
+            if end_angle - start_angle >= 1.0:
+                cv2.ellipse(
+                    scene,
+                    (int(vertex[0]), int(vertex[1])),
+                    (self.radius, self.radius),
+                    0.0,
+                    start_angle,
+                    end_angle,
+                    self.color.as_bgr(),
+                    self.thickness,
+                    cv2.LINE_AA,
+                )
+            if self.show_value:
+                self._draw_value(
+                    scene=scene,
+                    text=f"{values[skeleton_index, angle_index]:.0f}",
+                    vertex=vertex,
+                    bisector=np.radians(heading_a + sweep / 2.0),
+                )
+        return scene
+
+    @staticmethod
+    def _heading(ray: npt.NDArray[np.float64]) -> float:
+        """Return the direction of a ray in degrees, clockwise from +x in the image."""
+        return float(np.degrees(np.arctan2(ray[1], ray[0])))
+
+    def _draw_value(
+        self,
+        scene: npt.NDArray[np.uint8],
+        text: str,
+        vertex: npt.NDArray[np.float64],
+        bisector: float,
+    ) -> None:
+        """Draw the label on the bisector, just outside the arc so it never covers the
+        arc or the joint itself."""
+        (text_width, text_height), _ = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+        )
+        half_diagonal = 0.5 * float(
+            np.hypot(
+                text_width + 2 * self.text_padding, text_height + 2 * self.text_padding
+            )
+        )
+        distance = self.radius + self.thickness + half_diagonal
+        center = vertex + distance * np.array([np.cos(bisector), np.sin(bisector)])
+        draw_text(
+            scene=scene,
+            text=text,
+            text_anchor=Point(x=float(center[0]), y=float(center[1])),
+            text_color=self.text_color,
+            text_scale=self.text_scale,
+            text_thickness=self.text_thickness,
+            text_padding=self.text_padding,
+            background_color=self.color,
+        )
