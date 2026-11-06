@@ -450,8 +450,15 @@ class TestPolygonZonePerClassCount:
         assert zone.current_count_per_class == {}
 
     def test_trigger_empty_detections_resets_current_count_per_class(self) -> None:
-        """Triggering an empty detections object yields an empty count dictionary."""
+        """Triggering an empty detections object clears previously populated counts."""
         zone = sv.PolygonZone(POLYGON)
+        populated_detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]],
+            class_id=[0],
+        )
+        zone.trigger(populated_detections)
+        assert zone.current_count_per_class == {0: 1}
+        assert zone.current_count == 1
 
         zone.trigger(sv.Detections.empty())
 
