@@ -324,3 +324,51 @@ def test_grayscale_image_uniform_color_stays_gray() -> None:
     image = np.full((20, 20, 3), fill_value=[100, 150, 200], dtype=np.uint8)
     result = grayscale_image(image=image)
     assert result[:, :, 0].min() == result[:, :, 0].max()
+
+
+class TestDrawImageSceneLayouts:
+    @pytest.mark.parametrize(
+        "scene_shape", [pytest.param((6, 8), id="2d"), pytest.param((6, 8, 1), id="3d")]
+    )
+    def test_grayscale_scene_receives_image_luminance(
+        self, scene_shape: tuple[int, ...]
+    ) -> None:
+        """Draw an opaque BGR image on a grayscale scene as its gray luminance."""
+        scene = np.full(scene_shape, 7, dtype=np.uint8)
+        image = np.full((4, 4, 3), (255, 0, 0), dtype=np.uint8)
+        expected = np.asarray(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))[0, 0]
+
+        result = draw_image(scene, image, opacity=1.0, rect=Rect(1, 1, 4, 4))
+
+        assert result.shape == scene_shape
+        np.testing.assert_array_equal(
+            result[1:5, 1:5], np.full_like(result[1:5, 1:5], expected)
+        )
+        assert result[0, 0].item() == 7
+
+    def test_grayscale_scene_blends_with_opacity(self) -> None:
+        """Blend the image luminance into a grayscale scene at the given opacity."""
+        scene = np.zeros((4, 4), dtype=np.uint8)
+        image = np.full((4, 4, 3), 200, dtype=np.uint8)
+
+        result = draw_image(scene, image, opacity=0.5, rect=Rect(0, 0, 4, 4))
+
+        np.testing.assert_array_equal(result, np.full((4, 4), 100, dtype=np.uint8))
+
+    @pytest.mark.parametrize(
+        ("opacity", "expected_alpha"),
+        [pytest.param(1.0, 255, id="opaque"), pytest.param(0.0, 40, id="invisible")],
+    )
+    def test_bgra_scene_keeps_alpha_channel(
+        self, opacity: float, expected_alpha: int
+    ) -> None:
+        """Draw on a BGRA scene and make drawn pixels opaque with the image."""
+        scene = np.full((4, 4, 4), (1, 2, 3, 40), dtype=np.uint8)
+        image = np.full((4, 4, 3), (10, 20, 30), dtype=np.uint8)
+        expected_bgr = (10, 20, 30) if opacity else (1, 2, 3)
+
+        result = draw_image(scene, image, opacity=opacity, rect=Rect(0, 0, 4, 4))
+
+        assert result.shape == (4, 4, 4)
+        np.testing.assert_array_equal(result[..., :3], np.full((4, 4, 3), expected_bgr))
+        np.testing.assert_array_equal(result[..., 3], np.full((4, 4), expected_alpha))
