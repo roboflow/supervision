@@ -167,10 +167,28 @@ def test_fallback_hsv_to_bgr_matches_opencv_for_float32_images() -> None:
     expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
 
     assert actual.dtype == expected.dtype
-    np.testing.assert_array_equal(actual, expected)
+    _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.9)
 
 
-class TestFallbackHSVToBGRMatchesOpenCVExactly:
+def _assert_matches_opencv_hsv(
+    actual: np.ndarray, expected: np.ndarray, min_exact_fraction: float
+) -> None:
+    """Check an HSV2BGR result against OpenCV, allowing its fused multiply-adds.
+
+    OpenCV's Linux wheels fuse ``1 - s * f`` into one multiply-add, which the
+    Windows and macOS wheels and this fallback do not, so a few results there
+    differ by one 8-bit level or one float32 ulp. Everything else must be exact.
+    """
+    assert actual.shape == expected.shape
+    if actual.dtype == np.uint8:
+        difference = np.abs(actual.astype(np.int16) - expected.astype(np.int16))
+        assert difference.max() <= 1
+    else:
+        np.testing.assert_array_max_ulp(actual, expected, maxulp=1)
+    assert np.mean(actual == expected) >= min_exact_fraction
+
+
+class TestFallbackHSVToBGRMatchesOpenCV:
     def test_uint8_hsv_grid_matches_opencv(self) -> None:
         """Match OpenCV on every hue, including wrapped ones, across an S and V grid."""
         hue, saturation, value = np.meshgrid(
@@ -182,7 +200,8 @@ class TestFallbackHSVToBGRMatchesOpenCVExactly:
 
         actual = _cvt_color(source, _COLOR_HSV2BGR)
 
-        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
+        expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+        _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.999)
 
     @pytest.mark.parametrize("width", [1, 7, 33])
     def test_uint8_row_ends_match_opencv(self, width: int) -> None:
@@ -192,7 +211,8 @@ class TestFallbackHSVToBGRMatchesOpenCVExactly:
 
         actual = _cvt_color(source, _COLOR_HSV2BGR)
 
-        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
+        expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
+        _assert_matches_opencv_hsv(actual, expected, min_exact_fraction=0.999)
 
     def test_heat_map_colors_match_opencv(self) -> None:
         """Match the full-saturation hues :class:`HeatMapAnnotator` draws."""

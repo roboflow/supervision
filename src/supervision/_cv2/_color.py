@@ -90,7 +90,9 @@ def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
     OpenCV converts both depths in float32: 8-bit hue is scaled by ``6 / 180`` and
     saturation and value by ``1 / 255``, and each channel is picked from ``v``,
     ``v * (1 - s)``, ``v * (1 - s * f)`` and ``v * (1 - s * (1 - f))``. Float32 results
-    then match OpenCV bit for bit. Hues of 360 degrees (180) and more wrap around, as
+    then match OpenCV's Windows and macOS wheels bit for bit. The Linux wheels fuse
+    ``1 - s * f`` into one multiply-add, so a few of their results differ by one
+    float32 ulp, or one 8-bit level. Hues of 360 degrees (180) and more wrap around, as
     in OpenCV; OpenCV's own scalar and vector code disagree on negative hues, so those
     are not guaranteed to match.
 

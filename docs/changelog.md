@@ -8,7 +8,7 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - **Annotators**: heat maps look the same with and without OpenCV.
-    - `sv.HeatMapAnnotator` now draws the same colors without OpenCV installed as with it. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now repeats OpenCV's float32 arithmetic, which truncates within each row and rounds the last pixels; float32 HSV images also convert bit for bit. ([#2904](https://github.com/roboflow/supervision/pull/2904))
+    - `sv.HeatMapAnnotator` now draws the same colors without OpenCV installed as with it. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now repeats OpenCV's float32 arithmetic, which truncates within each row and rounds the last pixels, and matches OpenCV's Windows and macOS wheels exactly; on Linux, whose wheels fuse a multiply-add, a few colors can still differ by one level. ([#2904](https://github.com/roboflow/supervision/pull/2904))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
