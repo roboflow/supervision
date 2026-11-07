@@ -7,7 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- **Images and video**: saving images without OpenCV.
+    - `sv.ImageSink.save_image`, dataset exports and other image writes now save images that are not `uint8` when OpenCV is not installed, as OpenCV does. 16-bit BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs of other types, get a saturated 8-bit copy. Previously these raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
