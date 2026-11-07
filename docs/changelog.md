@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.JSONSink` now preserves an exception raised inside a `with` block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. ([#2902](https://github.com/roboflow/supervision/pull/2902))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
