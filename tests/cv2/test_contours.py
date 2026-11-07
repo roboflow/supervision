@@ -85,6 +85,73 @@ def test_facade_find_contours_returns_geometry_list() -> None:
     assert len(contours) == 1
 
 
+def _contour_points(contours: list[np.ndarray]) -> list[list[list[int]]]:
+    """Flatten contours to nested point lists that keep their order."""
+    return [contour.reshape(-1, 2).tolist() for contour in contours]
+
+
+class TestFindContoursMatchesOpenCVOrder:
+    @pytest.mark.parametrize(
+        "source",
+        [
+            pytest.param(np.pad(np.ones((1, 1), dtype=np.uint8), 1), id="single-pixel"),
+            pytest.param(np.pad(np.ones((1, 2), dtype=np.uint8), 1), id="two-pixels"),
+            pytest.param(
+                np.pad(np.eye(2, dtype=np.uint8), 1), id="two-diagonal-pixels"
+            ),
+            pytest.param(np.array([[1, 0, 1, 0]], dtype=np.uint8), id="two-blobs"),
+            pytest.param(
+                np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8),
+                id="hole-touching-frame",
+            ),
+            pytest.param(
+                np.pad(
+                    np.array(
+                        [
+                            [1, 1, 1, 1, 1, 1, 1],
+                            [1, 0, 0, 0, 0, 0, 1],
+                            [1, 0, 1, 0, 1, 0, 1],
+                            [1, 0, 0, 0, 0, 0, 1],
+                            [1, 1, 1, 1, 1, 1, 1],
+                        ],
+                        dtype=np.uint8,
+                    ),
+                    1,
+                ),
+                id="two-islands-in-hole",
+            ),
+        ],
+    )
+    def test_matches_opencv_order_and_dtype(self, source: np.ndarray) -> None:
+        """Return the same contours, order and int32 dtype as OpenCV."""
+        expected, _ = cv2.findContours(
+            source.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        actual, _ = _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+
+        assert _contour_points(actual) == _contour_points(expected)
+        assert all(contour.dtype == np.int32 for contour in actual)
+
+    def test_matches_opencv_order_on_seeded_masks(self) -> None:
+        """Match OpenCV's tree order exactly on seeded random masks."""
+        rng = np.random.default_rng(7)
+
+        for _ in range(200):
+            height, width = rng.integers(1, 24, 2)
+            source = (rng.random((height, width)) < rng.uniform(0.1, 0.9)).astype(
+                np.uint8
+            )
+            expected, _ = cv2.findContours(
+                source.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            actual, _ = _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+
+            assert _contour_points(actual) == _contour_points(expected)
+            assert all(contour.dtype == np.int32 for contour in actual)
+
+
 def test_randomized_contours_preserve_opencv_geometry() -> None:
     """Preserve the OpenCV contour geometry set on seeded binary masks."""
     rng = np.random.default_rng(2026)

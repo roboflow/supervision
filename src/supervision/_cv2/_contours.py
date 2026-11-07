@@ -86,28 +86,71 @@ def _follow_border(
 
 
 def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
-    """Trace all foreground and hole borders in raster candidate order."""
+    """Trace all borders as int32 points, ordered like OpenCV's RETR_TREE.
+
+    The raster scan follows Suzuki-Abe: ``last_border`` is the most recent border
+    the scan crossed on the current row, which decides the parent of each new
+    border. OpenCV links each new contour as the first child of its parent, so
+    its list is a depth-first pre-order walk with siblings in reverse discovery
+    order; the walk below reproduces that order.
+    """
     image = np.ascontiguousarray(mask, dtype=bool)
     labels = np.zeros(image.shape, dtype=np.int32)
     left_zero = image & ~np.pad(image[:, :-1], ((0, 0), (1, 0)))
     right_zero = image & ~np.pad(image[:, 1:], ((0, 0), (0, 1)))
-    candidates = np.argwhere(left_zero | right_zero)
-    borders: list[np.ndarray] = []
+    starts = left_zero | right_zero
+    # Border 1 is the image frame: a hole border around the whole image.
+    is_hole = {1: True}
+    parents = {1: 0}
+    children: dict[int, list[int]] = {1: []}
+    points: dict[int, np.ndarray] = {}
     border_number = 1
-    for row, column in candidates:
-        row, column = int(row), int(column)
-        if left_zero[row, column] and labels[row, column] == 0:
-            border_number += 1
-            border = _follow_border(
-                image, labels, (row, column), (row, column - 1), border_number
-            )
-            borders.append(np.array([(column, row) for row, column in border]))
-        elif right_zero[row, column] and labels[row, column] >= 0:
-            border_number += 1
-            border = _follow_border(
-                image, labels, (row, column), (row, column + 1), border_number
-            )
-            borders.append(np.array([(column, row) for row, column in border]))
+    for row in range(image.shape[0]):
+        last_border = 1
+        column = 0
+        while True:
+            # Only border starts and already traced pixels affect the scan.
+            events = np.flatnonzero(starts[row, column:] | (labels[row, column:] != 0))
+            if len(events) == 0:
+                break
+            column += int(events[0])
+            if left_zero[row, column] and labels[row, column] == 0:
+                previous, hole = (row, column - 1), False
+            elif right_zero[row, column] and labels[row, column] >= 0:
+                previous, hole = (row, column + 1), True
+                # A hole starting on a traced pixel lies just inside that border.
+                if labels[row, column] > 0:
+                    last_border = int(labels[row, column])
+            else:
+                previous = None
+            if previous is not None:
+                border_number += 1
+                parent = last_border
+                if is_hole[last_border] == hole:
+                    parent = parents[last_border]
+                border = _follow_border(
+                    image, labels, (row, column), previous, border_number
+                )
+                is_hole[border_number] = hole
+                parents[border_number] = parent
+                children[border_number] = []
+                children[parent].append(border_number)
+                points[border_number] = np.array(
+                    [(point_column, point_row) for point_row, point_column in border],
+                    dtype=np.int32,
+                )
+            if labels[row, column] != 0:
+                last_border = abs(int(labels[row, column]))
+            column += 1
+            if column >= image.shape[1]:
+                break
+
+    borders: list[np.ndarray] = []
+    stack = list(children[1])
+    while stack:
+        number = stack.pop()
+        borders.append(points[number])
+        stack.extend(children[number])
     return borders
 
 
@@ -140,7 +183,7 @@ def _compress_contour(contour: np.ndarray) -> np.ndarray:
 def _find_contours(
     image: npt.NDArray[Any], mode: int, method: int
 ) -> tuple[list[npt.NDArray[np.int32]], npt.NDArray[np.int32] | None]:
-    """Find contours for the supported tree and SIMPLE modes."""
+    """Find contours for the supported tree and SIMPLE modes in OpenCV order."""
     if mode != _RETR_TREE:
         raise ValueError("Only RETR_TREE is supported by the fallback")
     if method != _CHAIN_APPROX_SIMPLE:
