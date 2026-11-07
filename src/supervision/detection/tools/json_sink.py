@@ -107,8 +107,8 @@ class JSONSink:
     def write_and_close(self) -> None:
         """Write and close the JSON file.
 
-        Does nothing once the file is closed, so calling it inside a `with` block
-        does not make the block's exit fail on the closed file.
+        Does nothing once the file is closed, so calling it inside a `with` block does
+        not make the block's exit fail on the closed file.
         """
         if self.file is None or self.file.closed:
             return

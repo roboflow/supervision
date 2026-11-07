@@ -108,9 +108,9 @@ def _polygons_to_compact_masks(
 ) -> CompactMask:
     """Encode nonempty polygons individually, retaining only crop-scoped RLE.
 
-    Keep full-frame rasterization to preserve clipping and boundary pixels on
-    both drawing backends. Only one object's dense mask is passed to the encoder
-    at a time; a dense ``(N, H, W)`` stack is never constructed.
+    Keep full-frame rasterization to preserve clipping and boundary pixels on both
+    drawing backends. Only one object's dense mask is passed to the encoder at a time; a
+    dense ``(N, H, W)`` stack is never constructed.
     """
     w, h = resolution_wh
     masks: list[CompactMask] = []

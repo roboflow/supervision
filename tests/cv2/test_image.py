@@ -7,6 +7,7 @@ import platform
 from collections.abc import Callable
 from fractions import Fraction
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -105,6 +106,30 @@ def test_fallback_copy_make_border_matches_opencv(
     source: np.ndarray, value: int | tuple[int, ...]
 ) -> None:
     """Match OpenCV constant-border padding for scalar and Sequence values."""
+    np.testing.assert_array_equal(
+        _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
+        cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),
+    )
+
+
+@pytest.mark.parametrize(
+    ("dtype", "value"),
+    [
+        pytest.param(np.uint8, (-10, 300, 50), id="uint8-out-of-bounds-multichannel"),
+        pytest.param(np.uint8, 300, id="uint8-out-of-bounds-scalar"),
+        pytest.param(np.uint8, -10, id="uint8-negative-scalar"),
+        pytest.param(np.uint8, (128.6, 200.2, 0.0), id="uint8-float-multichannel"),
+        pytest.param(np.int8, (-150, 200, 50), id="int8-out-of-bounds"),
+        pytest.param(np.uint16, (-10, 70000, 500), id="uint16-out-of-bounds"),
+        pytest.param(np.float32, (-10.4, 300.6, 50.2), id="float32-values"),
+    ],
+)
+@pytest.mark.parametrize("shape", [(4, 4), (4, 4, 3)])
+def test_fallback_copy_make_border_saturates_and_rounds_like_opencv(
+    dtype: np.dtype[Any], value: Any, shape: tuple[int, ...]
+) -> None:
+    """Saturate out-of-bounds border values and round floats matching OpenCV."""
+    source = np.zeros(shape, dtype=dtype)
     np.testing.assert_array_equal(
         _copy_make_border(source, 1, 1, 2, 2, _BORDER_CONSTANT, value),
         cv2.copyMakeBorder(source, 1, 1, 2, 2, cv2.BORDER_CONSTANT, value=value),

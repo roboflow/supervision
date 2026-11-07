@@ -743,6 +743,7 @@ def test_process_video_enqueues_writer_sentinel_and_waits_for_writer(
 
         def write_frame(self, frame: object) -> None:
             """The writer thread is disabled in this test."""
+            pass
 
     write_queue = RecordingWriteQueue()
     queue_factory_calls = iter([read_queue, write_queue])
@@ -946,6 +947,7 @@ def test_process_video_does_not_drain_reader_queue_after_callback_failure(
 
         def write_frame(self, frame: object) -> None:
             """The writer thread is disabled in this test."""
+            pass
 
     read_queue = TimeoutReadQueue()
     write_queue = RecordingWriteQueue()
@@ -1692,6 +1694,7 @@ def test_get_video_frames_generator_prefetch_zero_frame_video(
 
         def release(self) -> None:
             """No-op release for the empty-video fake."""
+            pass
 
     monkeypatch.setattr(
         "supervision.utils.video._validate_and_setup_video",
@@ -1831,13 +1834,13 @@ def test_get_video_frames_generator_stops_at_end_after_seeking_to_start(
 class _UnreliableCountCapture:
     """Fake capture that decodes `frame_count` frames but reports `reported_count`.
 
-    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with
-    no duration, as written by a browser's `MediaRecorder`, reports a huge negative
-    count, and a variable frame rate MKV or WebM can report fewer frames than it
-    holds.
+    OpenCV estimates `CAP_PROP_FRAME_COUNT` from container metadata. A WebM with no
+    duration, as written by a browser's `MediaRecorder`, reports a huge negative count,
+    and a variable frame rate MKV or WebM can report fewer frames than it holds.
     """
 
     def __init__(self, frame_count: int, reported_count: float) -> None:
+        """Set the decoded and reported frame counts."""
         self.frame_count = frame_count
         self.reported_count = reported_count
         self.position = 0
@@ -1866,6 +1869,7 @@ class _UnreliableCountCapture:
 
     def release(self) -> None:
         """No-op release for the fake capture."""
+        pass
 
 
 @pytest.mark.parametrize("prefetch", [0, 2])
@@ -1957,3 +1961,69 @@ def test_get_video_frames_generator_yields_nothing_when_start_is_past_video(
     )
 
     assert list(frames) == []
+
+
+@pytest.mark.parametrize("prefetch", [0, 2])
+@pytest.mark.parametrize("stride", [1, 3])
+def test_video_range_does_not_decode_past_end(
+    monkeypatch: pytest.MonkeyPatch, prefetch: int, stride: int
+) -> None:
+    """Frames outside the requested range cannot cause a decode error."""
+
+    class Capture(_UnreliableCountCapture):
+        def read(self) -> tuple[bool, npt.NDArray[np.uint8] | None]:
+            """Fail when a caller attempts to decode the excluded frame."""
+            if self.position >= 2:
+                raise OSError("decode outside requested range")
+            return super().read()
+
+    monkeypatch.setattr(
+        "supervision.utils.video.cv2.VideoCapture",
+        lambda source_path: Capture(frame_count=5, reported_count=5),
+    )
+
+    frames = get_video_frames_generator(
+        "recording.webm", end=2, stride=stride, prefetch=prefetch
+    )
+
+    assert [int(frame[0, 0, 0]) for frame in frames] == list(range(0, 2, stride))
+
+
+class TestEmptyVideoFrameRange:
+    @pytest.mark.parametrize("prefetch", [0, 2])
+    @pytest.mark.parametrize("iterative_seek", [False, True])
+    @pytest.mark.parametrize("reported_count", [0, 5])
+    @pytest.mark.parametrize("start", [2, 3])
+    def test_does_not_seek_or_decode(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        prefetch: int,
+        iterative_seek: bool,
+        reported_count: int,
+        start: int,
+    ) -> None:
+        """An empty range validates the capture without seeking or decoding."""
+
+        class Capture(_UnreliableCountCapture):
+            def grab(self) -> bool:
+                """Reject seeking by decoding frames."""
+                raise OSError("unexpected grab")
+
+            def set(self, property_id: int, value: float) -> bool:
+                """Reject seeking through the capture API."""
+                raise OSError("unexpected seek")
+
+        monkeypatch.setattr(
+            "supervision.utils.video.cv2.VideoCapture",
+            lambda source_path: Capture(frame_count=5, reported_count=reported_count),
+        )
+
+        frames = get_video_frames_generator(
+            "recording.webm",
+            start=start,
+            end=2,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+
+        assert list(frames) == []

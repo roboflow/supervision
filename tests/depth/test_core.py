@@ -698,8 +698,8 @@ class TestDepthMapFromFiles:
     ) -> None:
         """A PFM written by hand stores 1.0 in its bottom row and 2.0 in its top row.
 
-        The bytes are spelled out rather than written by `_write_pfm`, so a reader and
-        a writer that misread the format the same way cannot cancel each other out.
+        The bytes are spelled out rather than written by `_write_pfm`, so a reader and a
+        writer that misread the format the same way cannot cancel each other out.
         """
         (tmp_path / "file.pfm").write_bytes(content)
 

@@ -1,14 +1,14 @@
 """Measure YOLO loading time, mask buffers and peak RSS on Linux.
 
-Run ``uv run python examples/compact_mask/benchmark_yolo.py`` from the repository
-root. Each mode runs three times in fresh processes; input generation and imports
-are outside the loader timing. Peak RSS includes process/import overhead and
-input generation. Mask buffer bytes exclude Python objects and allocator overhead.
-Pixel equality is checked separately so decoding does not inflate measured RSS.
+Run ``uv run python examples/compact_mask/benchmark_yolo.py`` from the repository root.
+Each mode runs three times in fresh processes; input generation and imports are outside
+the loader timing. Peak RSS includes process/import overhead and input generation. Mask
+buffer bytes exclude Python objects and allocator overhead. Pixel equality is checked
+separately so decoding does not inflate measured RSS.
 
-All inputs are synthetic: 16 images with 8 small polygons each. Compression and
-timing will differ for real datasets, especially fragmented masks. No model,
-dataset download, GPU, or additional dependencies are needed.
+All inputs are synthetic: 16 images with 8 small polygons each. Compression and timing
+will differ for real datasets, especially fragmented masks. No model, dataset download,
+GPU, or additional dependencies are needed.
 """
 
 import argparse

@@ -185,8 +185,8 @@ def _validate_and_setup_video(
 ) -> tuple[cv2.VideoCapture, int, int | None]:
     """Open a video, position it at `start`, and return it with the frame range.
 
-    An `end` of `None` is kept, so the caller reads until the stream runs out.
-    Setup failures release the capture before propagating the original error.
+    An `end` of `None` is kept, so the caller reads until the stream runs out. Setup
+    failures release the capture before propagating the original error.
     """
     video = cv2.VideoCapture(source_path)
     try:
@@ -205,6 +205,8 @@ def _validate_and_setup_video(
         )
         if end is not None and 0 < total_frames < end:
             raise Exception("Requested frames are outbound")
+        if end is not None and start >= end:
+            return video, start, end
         # `set()` cannot be trusted past a positive frame count: the PyAV fallback
         # returns False without moving when `start` exceeds the count, and OpenCV
         # returns True without moving on a duration-less WebM. Grabbing frames lands
@@ -346,13 +348,16 @@ def get_video_frames_generator(
     frame_position = start
     decoding_failed = False
     try:
-        while True:
+        while end is None or frame_position < end:
             success, frame = video.read()
-            if not success or (end is not None and frame_position >= end):
+            if not success:
                 break
             if frame is not None:
                 yield cast(npt.NDArray[np.uint8], frame)
-            for _ in range(stride - 1):
+            skip_count = stride - 1
+            if end is not None:
+                skip_count = min(skip_count, end - frame_position - 1)
+            for _ in range(skip_count):
                 success = video.grab()
                 if not success:
                     break
