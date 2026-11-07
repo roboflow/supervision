@@ -89,7 +89,7 @@ except (ImportError, OSError):
             ),
             _COLOR_HSV2BGR,
             cv2.COLOR_HSV2BGR,
-            1,
+            0,
             id="hsv-to-bgr",
         ),
     ],
@@ -167,7 +167,41 @@ def test_fallback_hsv_to_bgr_matches_opencv_for_float32_images() -> None:
     expected = cv2.cvtColor(source, cv2.COLOR_HSV2BGR)
 
     assert actual.dtype == expected.dtype
-    np.testing.assert_allclose(actual, expected, atol=1e-5, rtol=0)
+    np.testing.assert_array_equal(actual, expected)
+
+
+class TestFallbackHSVToBGRMatchesOpenCVExactly:
+    def test_uint8_hsv_grid_matches_opencv(self) -> None:
+        """Match OpenCV on every hue, including wrapped ones, across an S and V grid."""
+        hue, saturation, value = np.meshgrid(
+            np.arange(256), np.arange(0, 256, 3), np.arange(0, 256, 3), indexing="ij"
+        )
+        # 256-pixel rows are whole vector blocks on every OpenCV build.
+        source = np.stack((hue, saturation, value), axis=-1).reshape(-1, 256, 3)
+        source = source.astype(np.uint8)
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
+
+    @pytest.mark.parametrize("width", [1, 7, 33])
+    def test_uint8_row_ends_match_opencv(self, width: int) -> None:
+        """Round the pixels OpenCV's scalar code converts at the end of each row."""
+        rng = np.random.default_rng(width)
+        source = rng.integers(0, 256, size=(64, width, 3), dtype=np.uint8)
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
+
+    def test_heat_map_colors_match_opencv(self) -> None:
+        """Match the full-saturation hues :class:`HeatMapAnnotator` draws."""
+        source = np.full((4, 192, 3), 255, dtype=np.uint8)
+        source[..., 0] = np.arange(192) % 180
+
+        actual = _cvt_color(source, _COLOR_HSV2BGR)
+
+        np.testing.assert_array_equal(actual, cv2.cvtColor(source, cv2.COLOR_HSV2BGR))
 
 
 @pytest.mark.parametrize("dtype", [np.uint16, np.float64])
