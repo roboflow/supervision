@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.ColorPalette.from_matplotlib` now rounds palette colors to 8-bit values as Matplotlib's `to_hex` does, instead of truncating them. Channels stored as `n / 255` floats came out one level low, so the seventh `Accent` color was `#bf5b16` instead of `#bf5b17`; 8 of the 10 colors sampled by `from_matplotlib("viridis", 5)` and `from_matplotlib("plasma", 5)` were also one level off. ([#2903](https://github.com/roboflow/supervision/pull/2903))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
