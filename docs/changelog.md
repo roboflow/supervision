@@ -7,7 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- **Drawing**: `sv.draw_image` on any scene layout.
+    - `sv.draw_image` now draws on grayscale scenes, shaped `(H, W)` or `(H, W, 1)`, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and `opacity`. ([#2906](https://github.com/roboflow/supervision/pull/2906))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
