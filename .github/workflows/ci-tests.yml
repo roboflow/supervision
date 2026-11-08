@@ -94,6 +94,34 @@ jobs:
       - name: Minimize uv cache
         run: uv cache prune --ci
 
+  classification-torch:
+    name: Classification tensors (CPU)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OMP_NUM_THREADS: "1"
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🐍 Install uv and Python
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.13"
+          activate-environment: true
+
+      - name: 🚀 Install test dependencies
+        run: uv sync --frozen --group dev --extra metrics
+
+      - name: 📦 Install CPU PyTorch for classification tests
+        run: uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Confirm CPU PyTorch is installed
+        run: python -c "import torch; assert torch.version.cuda is None"
+
+      - name: Run classification tensor regressions
+        run: python -m pytest tests/classification/test_core.py::TestClassificationTensorPrecision --strict-markers -rs
+
   clean-wheel:
     name: Clean Wheel on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     timeout-minutes: 10
@@ -139,21 +167,21 @@ jobs:
 
   testing-guardian:
     runs-on: ubuntu-latest
-    needs: [run-tests, clean-wheel]
+    needs: [run-tests, classification-torch, clean-wheel]
     if: always()
     steps:
       - name: 📋 Display test result
-        run: echo "tests=${{ needs.run-tests.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
+        run: echo "tests=${{ needs.run-tests.result }}, classification=${{ needs.classification-torch.result }}, clean-wheel=${{ needs.clean-wheel.result }}"
       - name: ❌ Fail guardian on test failure
-        if: needs.run-tests.result == 'failure' || needs.clean-wheel.result == 'failure'
+        if: needs.run-tests.result == 'failure' || needs.classification-torch.result == 'failure' || needs.clean-wheel.result == 'failure'
         run: exit 1
       # Ensure that cancelled or skipped test runs still cause this guardian job to fail,
       # using an explicit exit code instead of relying on timeout behavior.
       - name: ⚠️ cancelled or skipped...
-        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.clean-wheel.result)
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.classification-torch.result) || contains(fromJSON('["cancelled", "skipped"]'), needs.clean-wheel.result)
         run: |
           echo "A required test job was cancelled or skipped; failing explicitly."
           exit 1
       - name: ✅ tests succeeded
-        if: needs.run-tests.result == 'success'
+        if: needs.run-tests.result == 'success' && needs.classification-torch.result == 'success' && needs.clean-wheel.result == 'success'
         run: echo "All tests completed successfully."
