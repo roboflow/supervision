@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.KeyPoints.empty()` now holds empty `class_id`, `keypoint_confidence` and `detection_confidence` arrays, as `sv.Detections.empty()` does, instead of `None`. Pose connectors such as `sv.KeyPoints.from_ultralytics` return it for a frame without poses, so the documented filters `key_points[key_points.detection_confidence > 0.5]` and `key_points.visible = key_points.keypoint_confidence > 0.3` raised `TypeError: '>' not supported between instances of 'NoneType' and 'float'` on every such frame of a video. ([#NNNN](https://github.com/roboflow/supervision/pull/NNNN))
+- `sv.KeyPoints.empty()` now holds empty `class_id`, `keypoint_confidence` and `detection_confidence` arrays, as `sv.Detections.empty()` does, instead of `None`. Pose connectors such as `sv.KeyPoints.from_ultralytics` return it for a frame without poses, so the documented filters `key_points[key_points.detection_confidence > 0.5]` and `key_points.visible = key_points.keypoint_confidence > 0.3` raised `TypeError: '>' not supported between instances of 'NoneType' and 'float'` on every such frame of a video. ([#2911](https://github.com/roboflow/supervision/pull/2911))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
