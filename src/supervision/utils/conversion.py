@@ -121,9 +121,14 @@ def ensure_pil_image_for_class_method(
     @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
-            scene_pil = cv2_to_pillow(scene)
+            # A view without the singleton axis, so (H, W, 1) grayscale converts
+            # like (H, W) and the result is still written into `scene`.
+            canvas = (
+                scene[:, :, 0] if scene.ndim == 3 and scene.shape[2] == 1 else scene
+            )
+            scene_pil = cv2_to_pillow(canvas)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
-            np.copyto(scene, pillow_to_cv2(annotated_pil))
+            np.copyto(canvas, pillow_to_cv2(annotated_pil))
             return scene
 
         if isinstance(scene, Image.Image):
