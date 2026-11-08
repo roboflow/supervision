@@ -74,9 +74,80 @@ def _paste_annotated_pixels(
         # pillow_to_cv2 kept the high byte of these deep integer modes; scaling by
         # 257 maps 0-255 back onto 0-65535 so drawn pixels keep their brightness.
         patch = Image.fromarray(annotated.astype(np.int32) * 257)
+    elif scene.mode in ("P", "PA"):
+        patch = _palette_index_patch(scene, annotated, changed)
     else:
         patch = cv2_to_pillow(annotated)
     scene.paste(patch, mask=Image.fromarray(changed))
+
+
+def _opaque_palette_entries(scene: Image.Image) -> npt.NDArray[np.bool_]:
+    """Return which of the 256 palette indices of `scene` its `info` leaves opaque.
+
+    Args:
+        scene: Pillow image in mode `P` or `PA`.
+
+    Returns:
+        Boolean array of shape `(256,)`, `False` at the transparent indices named by
+        `scene.info["transparency"]`, one index as in GIF or an alpha per index as
+        in PNG.
+    """
+    opaque = np.ones(256, dtype=bool)
+    transparency = scene.info.get("transparency")
+    if isinstance(transparency, int) and 0 <= transparency < 256:
+        opaque[transparency] = False
+    elif isinstance(transparency, bytes):
+        alphas = np.frombuffer(transparency, dtype=np.uint8)[:256]
+        opaque[: len(alphas)] = alphas == 255
+    return opaque
+
+
+def _palette_index_patch(
+    scene: Image.Image,
+    annotated: npt.NDArray[np.uint8],
+    changed: npt.NDArray[np.bool_],
+) -> Image.Image:
+    """Return the annotated pixels as indices into the palette of a `P` or `PA` scene.
+
+    Pasting RGB pixels would index them with Pillow's web palette, and the scene's
+    own palette then shows those indices as other colors or black. Drawn colors join
+    the palette while it has room, as they do with `ImageDraw`; the others take the
+    nearest opaque entry, so an annotation never lands on a transparent index.
+
+    Args:
+        scene: Pillow image in mode `P` or `PA`, whose palette may grow.
+        annotated: Annotated `(H, W, 3)` BGR copy of `scene`.
+        changed: Boolean `(H, W)` array of the pixels the annotator drew.
+
+    Returns:
+        Image of the scene's mode whose changed pixels hold palette indices.
+    """
+    colors, inverse = np.unique(
+        annotated[changed][:, ::-1], axis=0, return_inverse=True
+    )
+    colors = colors.astype(np.int32)
+    entries = np.array(scene.getpalette("RGBA"), dtype=np.int32).reshape(-1, 4)
+    palette = entries[:, :3]
+    opaque = _opaque_palette_entries(scene)
+    # A palette that holds alpha per entry cannot take RGB additions below.
+    opaque[: len(entries)] &= entries[:, 3] == 255
+
+    known_colors = {tuple(color) for color in palette[opaque[: len(palette)]].tolist()}
+    missing = [color for color in colors.tolist() if tuple(color) not in known_colors]
+    room = 256 - len(palette)
+    if missing and room > 0 and scene.palette.mode == "RGB":
+        palette = np.concatenate([palette, np.array(missing[:room], dtype=np.int32)])
+        scene.putpalette(palette.astype(np.uint8).tobytes())
+
+    distances = ((colors[:, np.newaxis] - palette[np.newaxis]) ** 2).sum(axis=2)
+    nearest = np.where(opaque[: len(palette)], distances, np.inf).argmin(axis=1)
+    indices = np.zeros(changed.shape, dtype=np.uint8)
+    indices[changed] = nearest[inverse.reshape(-1)]
+
+    patch = Image.fromarray(indices)
+    if scene.mode == "PA":
+        patch = Image.merge("PA", (patch, Image.new("L", scene.size, 255)))
+    return patch
 
 
 def ensure_cv2_image_for_standalone_function(

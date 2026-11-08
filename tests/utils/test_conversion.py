@@ -405,6 +405,92 @@ class TestAnnotatePillowScene:
         assert scene.getpixel((2, 7)) == 65535
 
 
+def _indexed_scene(palette: list[int], index: int = 0) -> Image.Image:
+    """Return a 20x20 `P` image filled with one index of the given RGB palette."""
+    scene = Image.new("P", (20, 20), color=index)
+    scene.putpalette(palette)
+    return scene
+
+
+def _draw_box(scene: Image.Image, color: Color) -> None:
+    """Draw a one-pixel box from (2, 2) to (12, 12) on `scene` in place."""
+    from supervision.annotators.core import BoxAnnotator
+    from supervision.detection.core import Detections
+
+    detections = Detections(
+        xyxy=np.array([[2, 2, 12, 12]], dtype=np.float32), class_id=np.array([0])
+    )
+    BoxAnnotator(color=color, thickness=1).annotate(scene=scene, detections=detections)
+
+
+class TestAnnotatePalettePillowScene:
+    @pytest.mark.parametrize(
+        "palette",
+        [
+            pytest.param([10, 20, 30, 0, 255, 0, 200, 100, 50], id="color-in-palette"),
+            pytest.param([10, 20, 30, 200, 100, 50], id="color-added-to-palette"),
+        ],
+    )
+    def test_draws_the_requested_color(self, palette: list[int]) -> None:
+        """A green box stays green and the background keeps its index."""
+        scene = _indexed_scene(palette)
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.mode == "P"
+        assert scene.convert("RGB").getpixel((2, 7)) == (0, 255, 0)
+        assert scene.getpixel((18, 18)) == 0
+
+    def test_full_palette_takes_the_nearest_entry(self) -> None:
+        """Without room for a new color, the closest existing entry is drawn."""
+        palette = [value for gray in range(255) for value in (gray, gray, gray)]
+        palette += [0, 250, 0]
+        scene = _indexed_scene(palette)
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.getpixel((2, 7)) == 255
+        assert len(scene.getpalette()) == 768
+
+    @pytest.mark.parametrize(
+        "transparency",
+        [
+            pytest.param(1, id="gif-index"),
+            pytest.param(b"\xff\x00", id="png-alpha-per-index"),
+        ],
+    )
+    def test_avoids_transparent_entries(self, transparency: int | bytes) -> None:
+        """A drawn color matching a transparent entry does not disappear."""
+        scene = _indexed_scene([10, 20, 30, 0, 255, 0])
+        scene.info["transparency"] = transparency
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.getpixel((2, 7)) not in (0, 1)
+        assert scene.convert("RGB").getpixel((2, 7)) == (0, 255, 0)
+
+    def test_palette_with_alpha_channel(self) -> None:
+        """A `PA` scene shows the drawn color opaque and keeps the rest."""
+        scene = _indexed_scene([10, 20, 30, 200, 100, 50]).convert("PA")
+        background = scene.getpixel((18, 18))
+
+        _draw_box(scene, Color.GREEN)
+
+        assert scene.convert("RGBA").getpixel((2, 7)) == (0, 255, 0, 255)
+        assert scene.getpixel((18, 18)) == background
+
+    def test_annotation_survives_saving(self, tmp_path: Path) -> None:
+        """The drawn color is still there after a PNG round trip."""
+        path = tmp_path / "indexed.png"
+        _indexed_scene([10, 20, 30, 200, 100, 50]).save(path)
+        scene = Image.open(path)
+
+        _draw_box(scene, Color.GREEN)
+        scene.save(path)
+
+        assert Image.open(path).convert("RGB").getpixel((2, 7)) == (0, 255, 0)
+
+
 def test_images_to_cv2_when_empty_input_provided() -> None:
     # when
     result = images_to_cv2(images=[])
