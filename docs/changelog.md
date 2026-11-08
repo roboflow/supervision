@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.Detections.from_transformers` now reads zero-shot detections from `post_process_grounded_object_detection`. Grounding DINO results raised `AttributeError: 'list' object has no attribute 'cpu'`; they now load with their matched phrases as class names and `class_id=None`. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as `class_id` and now take their class names from `text_labels`, where `id2label=model.config.id2label` named them `LABEL_0`, `LABEL_1`. ([#2913](https://github.com/roboflow/supervision/pull/2913))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
