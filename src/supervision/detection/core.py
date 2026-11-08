@@ -754,6 +754,11 @@ class Detections:
         confidences, and class names from the Roboflow API result and encapsulates
         them into a Detections object.
 
+        A semantic segmentation result, whose `predictions` hold one
+        `segmentation_mask` instead of a list of objects, is loaded with
+        :meth:`~supervision.detection.core.Detections.from_semantic_segmentation`
+        and its defaults: one detection per class id, background id `0` dropped.
+
         Args:
             roboflow_result: The result from the
                 Roboflow API or Inference package containing predictions.
@@ -828,13 +833,13 @@ class Detections:
             if isinstance(roboflow_result, dict)
             else None
         )
+        # Every other task returns a list (or, for multi-label classification, a
+        # dict keyed by class name), so only a semantic result holds this field.
         if isinstance(semantic_predictions, dict) and (
             "segmentation_mask" in semantic_predictions
         ):
-            raise ValueError(
-                "This is a semantic segmentation result, which has one label map "
-                "instead of a list of predictions. Use "
-                "Detections.from_semantic_segmentation(result) instead."
+            return cls.from_semantic_segmentation(
+                roboflow_result, compact_masks=compact_masks
             )
         masks: npt.NDArray[np.bool_] | CompactMask | None
         # Design note (ADR): the `compact_masks` flag changes the runtime type of
@@ -882,9 +887,12 @@ class Detections:
         segmentation model returns.
 
         Each class id present in the map becomes one detection with a mask
-        covering every pixel of that class and the tight box around it. This
-        follows Roboflow's own Workflows converter, so the same model gives the
-        same detections in both places.
+        covering every pixel of that class and the tight box around it.
+
+        :meth:`~supervision.detection.core.Detections.from_inference` calls this
+        method for a semantic result, so a whole Inference result loads either way.
+        Call this one directly for a raw map, to override the result's `class_map`
+        or `confidence_mask`, or to keep the background.
 
         For Hugging Face Transformers models, use
         :meth:`~supervision.detection.core.Detections.from_transformers`, which takes

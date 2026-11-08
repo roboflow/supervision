@@ -653,10 +653,9 @@ def process_semantic_segmentation(
 ]:
     """Split a semantic segmentation map into one mask per class id.
 
-    Follows Roboflow's own Workflows converter: the background id is dropped,
-    class names come from ``class_map`` with the id as text when a class is not
-    listed, and confidence is the class's mean 8-bit ``confidence_mask`` over its
-    pixels divided by 255.
+    The background id is dropped, class names come from ``class_map`` with the id
+    as text when a class is not listed, and confidence is the class's mean 8-bit
+    ``confidence_mask`` over its pixels divided by 255.
 
     Args:
         segmentation_mask: Per-pixel class ids, see :func:`decode_semantic_label_map`.

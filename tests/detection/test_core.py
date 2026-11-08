@@ -3628,8 +3628,8 @@ class TestDetectionsFromSemanticSegmentation:
     def test_decodes_base64_png_and_drops_background(self) -> None:
         """A base64 PNG yields a mask, box and name per class, background dropped.
 
-        This is the payload Roboflow Inference returns for semantic segmentation, and
-        dropping id 0 matches its own Workflows converter.
+        This is the payload Roboflow Inference returns for semantic segmentation, where
+        id 0 is the background.
         """
         detections = Detections.from_semantic_segmentation(
             _png_b64(self.LABEL_MAP), class_map=self.CLASS_MAP
@@ -3850,9 +3850,41 @@ class TestDetectionsFromSemanticSegmentation:
                 self.LABEL_MAP, confidence_mask=np.zeros((3, 3), dtype=np.uint8)
             )
 
-    def test_from_inference_points_to_the_semantic_loader(self) -> None:
-        """`from_inference` on a semantic result names the right loader."""
-        result = {"predictions": {"segmentation_mask": "AAAA", "class_map": {}}}
+    @pytest.mark.parametrize(
+        "wrap",
+        [
+            pytest.param(lambda result: result, id="http-client-dict"),
+            pytest.param(
+                lambda result: SimpleNamespace(dict=lambda **kwargs: result),
+                id="model-infer-object",
+            ),
+        ],
+    )
+    def test_from_inference_loads_semantic_result(self, wrap: Any) -> None:
+        """`from_inference` loads a semantic result like the dedicated loader.
 
-        with pytest.raises(ValueError, match="from_semantic_segmentation"):
-            Detections.from_inference(result)
+        Users reach for `from_inference` on any Inference result, so a semantic one must
+        load there too, from the HTTP client's dict or `model.infer`'s object.
+        """
+        result = {
+            "predictions": {
+                "segmentation_mask": _png_b64(self.LABEL_MAP),
+                "class_map": self.CLASS_MAP,
+                "confidence_mask": _png_b64(self.CONFIDENCE_MAP),
+            }
+        }
+
+        detections = Detections.from_inference(wrap(result))
+
+        assert detections == Detections.from_semantic_segmentation(result)
+
+    def test_from_inference_builds_compact_semantic_masks(self) -> None:
+        """`compact_masks=True` reaches the semantic loader through `from_inference`."""
+        result = {"predictions": {"segmentation_mask": _png_b64(self.LABEL_MAP)}}
+
+        detections = Detections.from_inference(result, compact_masks=True)
+
+        assert isinstance(detections.mask, CompactMask)
+        assert np.array_equal(
+            np.asarray(detections.mask), [self.LABEL_MAP == 1, self.LABEL_MAP == 2]
+        )
