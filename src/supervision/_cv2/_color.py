@@ -91,10 +91,10 @@ def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
     saturation and value by ``1 / 255``, and each channel is picked from ``v``,
     ``v * (1 - s)``, ``v * (1 - s * f)`` and ``v * (1 - s * (1 - f))``. Float32 results
     then match OpenCV's Windows and macOS wheels bit for bit. The Linux wheels fuse
-    ``1 - s * f`` into one multiply-add, so a few of their results differ by one
-    float32 ulp, or one 8-bit level. Hues of 360 degrees (180) and more wrap around, as
-    in OpenCV; OpenCV's own scalar and vector code disagree on negative hues, so those
-    are not guaranteed to match.
+    ``1 - s * f`` into one multiply-add, so a few of their results differ by about
+    6e-8 in float32, or one 8-bit level. Hues of 360 degrees (180) and more wrap
+    around, as in OpenCV; OpenCV's own scalar and vector code disagree on negative
+    hues, so those are not guaranteed to match.
 
     8-bit results are ``255 * channel``, which OpenCV's vector code truncates and its
     scalar code, for the pixels left over at the end of each row, rounds. This follows

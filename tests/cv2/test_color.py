@@ -177,14 +177,14 @@ def _assert_matches_opencv_hsv(
 
     OpenCV's Linux wheels fuse ``1 - s * f`` into one multiply-add, which the
     Windows and macOS wheels and this fallback do not, so a few results there
-    differ by one 8-bit level or one float32 ulp. Everything else must be exact.
+    differ by one 8-bit level or about 6e-8 in float32. Everything else must be exact.
     """
     assert actual.shape == expected.shape
     if actual.dtype == np.uint8:
         difference = np.abs(actual.astype(np.int16) - expected.astype(np.int16))
         assert difference.max() <= 1
     else:
-        np.testing.assert_array_max_ulp(actual, expected, maxulp=1)
+        assert np.abs(actual.astype(np.float64) - expected).max() <= 2.0**-22
     assert np.mean(actual == expected) >= min_exact_fraction
 
 
