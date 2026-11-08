@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.Detections.from_transformers` now reads RF-DETR instance segmentation results requested with `return_binary_maps=True`. Binary maps are now paired with `segments_info` by position; indexing them by segment id raised `IndexError` for RF-DETR, which numbers segments from 1. An empty `(0, H, W)` stack of binary maps now gives empty `(0, H, W)` masks instead of raising `ValueError`. ([#2912](https://github.com/roboflow/supervision/pull/2912))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
