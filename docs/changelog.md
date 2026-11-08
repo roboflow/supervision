@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
