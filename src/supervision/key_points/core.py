@@ -1409,10 +1409,17 @@ class KeyPoints:
             >>> key_points = sv.KeyPoints.empty()
             >>> len(key_points)
             0
+            >>> key_points.detection_confidence
+            array([], dtype=float32)
 
             ```
         """
-        return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+        return cls(
+            xy=np.empty((0, 0, 2), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            keypoint_confidence=np.empty((0, 0), dtype=np.float32),
+            detection_confidence=np.array([], dtype=np.float32),
+        )
 
     def is_empty(self) -> bool:
         """Returns `True` if the :class:`~supervision.key_points.core.KeyPoints` object
