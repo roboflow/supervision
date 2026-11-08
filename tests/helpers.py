@@ -375,11 +375,13 @@ class _FakeUltralyticsResults:
         boxes: _FakeUltralyticsBoxes | None,
         names: dict[int, str],
         length: int = 0,
+        semantic_mask: object | None = None,
     ) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
         self.masks = None
+        self.semantic_mask = semantic_mask
         self._length = length
 
     def __len__(self) -> int:

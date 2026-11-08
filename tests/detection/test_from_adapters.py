@@ -1,4 +1,5 @@
 from collections import UserDict
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -99,6 +100,58 @@ def test_from_ultralytics_segmentation_only_without_masks_returns_empty() -> Non
     np.testing.assert_array_equal(
         det.data[CLASS_NAME_DATA_FIELD], np.array([], dtype=str)
     )
+
+
+class TestFromUltralyticsSemanticSegmentation:
+    """Detections.from_ultralytics for Ultralytics semantic segmentation results."""
+
+    def test_each_named_class_in_the_map_becomes_one_detection(self) -> None:
+        """Every class present gets one mask; the `255` ignore label is skipped."""
+        class_map = np.array(
+            [[0, 0, 2, 2], [0, 0, 2, 2], [255, 255, 0, 0]], dtype=np.uint8
+        )
+        results = _semantic_results(class_map, names={0: "road", 1: "car", 2: "person"})
+
+        det = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(det.class_id, [0, 2])
+        np.testing.assert_array_equal(det.mask, [class_map == 0, class_map == 2])
+        np.testing.assert_array_equal(det.xyxy, [[0, 0, 3, 2], [2, 0, 3, 1]])
+        np.testing.assert_array_equal(
+            det.data[CLASS_NAME_DATA_FIELD], ["road", "person"]
+        )
+        assert det.confidence is None
+
+    def test_single_class_map_keeps_its_foreground(self) -> None:
+        """A single-class model marks its class with `1` over a `0` background."""
+        class_map = np.array([[0, 1, 1], [0, 0, 1]], dtype=np.uint8)
+        results = _semantic_results(class_map, names={0: "crack"})
+
+        det = Detections.from_ultralytics(results)
+
+        np.testing.assert_array_equal(det.class_id, [0])
+        np.testing.assert_array_equal(det.mask, [class_map == 1])
+        np.testing.assert_array_equal(det.data[CLASS_NAME_DATA_FIELD], ["crack"])
+
+    def test_map_without_named_classes_returns_empty_detections(self) -> None:
+        """A map holding only background and ignore labels yields no detections."""
+        class_map = np.array([[0, 255], [255, 0]], dtype=np.uint8)
+        results = _semantic_results(class_map, names={0: "crack"})
+
+        det = Detections.from_ultralytics(results)
+
+        assert len(det) == 0
+        assert det.mask is not None
+        assert det.mask.shape == (0, 2, 2)
+        assert len(det.data[CLASS_NAME_DATA_FIELD]) == 0
+
+
+def _semantic_results(
+    class_map: np.ndarray, names: dict[int, str]
+) -> _FakeUltralyticsResults:
+    """Build Ultralytics results holding only a semantic class map."""
+    semantic_mask = SimpleNamespace(data=_FakeTensor(class_map))
+    return _FakeUltralyticsResults(boxes=None, names=names, semantic_mask=semantic_mask)
 
 
 @pytest.mark.parametrize(

@@ -41,6 +41,7 @@ from supervision.detection.utils.converters import (
 )
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
+    extract_ultralytics_semantic_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
@@ -345,8 +346,11 @@ class Detections:
             :meth:`~supervision.detection.core.Detections.from_ultralytics` is
             compatible with
             [detection](https://docs.ultralytics.com/tasks/detect/),
-            [segmentation](https://docs.ultralytics.com/tasks/segment/), and
-            [OBB](https://docs.ultralytics.com/tasks/obb/) models.
+            [segmentation](https://docs.ultralytics.com/tasks/segment/),
+            [semantic segmentation](https://docs.ultralytics.com/tasks/semantic/),
+            and [OBB](https://docs.ultralytics.com/tasks/obb/) models. A semantic
+            segmentation result gives one detection per class present in the image,
+            with a mask covering all of that class's pixels and no confidence.
 
         Args:
             ultralytics_results: The output Results instance from Ultralytics,
@@ -385,6 +389,20 @@ class Detections:
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
                 },
+            )
+
+        if getattr(ultralytics_results, "semantic_mask", None) is not None:
+            class_id, semantic_masks = extract_ultralytics_semantic_masks(
+                ultralytics_results
+            )
+            class_names = np.array(
+                [ultralytics_results.names[i] for i in class_id], dtype=str
+            )
+            return cls(
+                xyxy=mask_to_xyxy(semantic_masks),
+                mask=semantic_masks,
+                class_id=class_id,
+                data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
