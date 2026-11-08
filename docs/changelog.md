@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
--
+- Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. Drawn colors are added to the palette while it has room and otherwise take the nearest opaque entry ([#2907](https://github.com/roboflow/supervision/pull/2907)).
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
