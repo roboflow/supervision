@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.RichLabelAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`, `I`, `F` or `I;16`), instead of raising `TypeError` or `ValueError`.
+- `sv.RichLabelAnnotator` now annotates grayscale scenes, shaped `(H, W)` or `(H, W, 1)` or given as a Pillow grayscale image (`1`, `L`, `LA`, `I`, `F` or `I;16`), instead of raising `TypeError` or `ValueError`. ([#2916](https://github.com/roboflow/supervision/pull/2916))
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
