@@ -634,6 +634,12 @@ class Detections:
         Per-pixel `segmentation_scores` are ignored because `Detections.confidence`
         holds one score per detection.
 
+        For zero-shot object detection, pass the result of
+        `post_process_grounded_object_detection`. Class names come from its
+        `text_labels` rather than `id2label`. OWL-ViT, OWLv2 and OmDet-Turbo set
+        `class_id` to the index of the matched text query; Grounding DINO reports
+        the matched phrases instead of indices, so its `class_id` is `None`.
+
         Args:
             transformers_results: Inference results from your Transformers model.
                 This can be either a dictionary containing valuable outputs like
