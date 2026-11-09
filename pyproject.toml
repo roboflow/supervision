@@ -107,6 +107,7 @@ build = [
 mediapipe-reference = [
   "mediapipe>=0.10.35,<0.11; python_version<'3.13'",
 ]
+torch = [ "torch>=2" ]
 
 [tool.setuptools]
 packages.find.where = [ "src" ]

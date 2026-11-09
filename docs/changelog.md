@@ -10,6 +10,14 @@ date_modified: 2026-10-31
 - **Images and video**: saving images without OpenCV.
     - `sv.ImageSink.save_image`, dataset exports and other image writes now save images that are not `uint8` when OpenCV is not installed, as OpenCV does. 16-bit BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs of other types, get a saturated 8-bit copy. Previously these raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
+- `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
+
+- `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
+
+- `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
+
+-
+
 ### 0.31.5 <small>Nov 5, 2026</small>
 
 - **Annotators**: annotating more image types and right-to-left labels.
