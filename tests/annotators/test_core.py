@@ -1572,6 +1572,56 @@ class TestRichLabelAnnotator:
         )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.95)
 
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((100, 100), id="two-dimensional"),
+            pytest.param((100, 100, 1), id="singleton-channel"),
+        ],
+    )
+    def test_array_grayscale_scene_draws_blue_channel(
+        self, shape: tuple[int, ...]
+    ) -> None:
+        """A grayscale array gets the blue channel of the background, in its shape."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        color = Color(r=10, g=20, b=200)
+        scene = np.zeros(shape, dtype=np.uint8)
+
+        result = RichLabelAnnotator(color=color).annotate(
+            scene=scene, detections=detections, labels=["a"]
+        )
+
+        assert result is scene
+        assert result.shape == shape
+        assert 200 in result
+
+    @pytest.mark.parametrize(
+        ("mode", "expected"),
+        [
+            pytest.param("1", 255, id="one-bit"),
+            pytest.param("L", 200, id="eight-bit"),
+            pytest.param("LA", (200, 255), id="eight-bit-alpha"),
+            pytest.param("I", 200 * 257, id="signed-32-bit"),
+            pytest.param("I;16", 200 * 257, id="sixteen-bit"),
+            pytest.param("F", 200.0, id="float"),
+        ],
+    )
+    def test_pillow_grayscale_scene_draws_label_background(
+        self, mode: str, expected: float | tuple[int, ...]
+    ) -> None:
+        """Every Pillow grayscale mode draws the background in its own value range."""
+        detections = _create_detections(xyxy=[[20, 40, 90, 90]], class_id=[0])
+        annotator = RichLabelAnnotator(
+            color=Color(r=10, g=20, b=200), text_position=Position.TOP_LEFT
+        )
+        scene = Image.new(mode, (100, 100))
+
+        result = annotator.annotate(scene=scene, detections=detections, labels=["a"])
+
+        assert result is scene
+        assert result.mode == mode
+        assert result.getpixel((21, 39)) == expected
+
     def test_smart_position_spreads_boxes_once(
         self, monkeypatch: pytest.MonkeyPatch, test_image: np.ndarray
     ) -> None:
