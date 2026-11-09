@@ -100,6 +100,11 @@ class TestFindContoursMatchesOpenCVOrder:
                 np.pad(np.eye(2, dtype=np.uint8), 1), id="two-diagonal-pixels"
             ),
             pytest.param(np.array([[1, 0, 1, 0]], dtype=np.uint8), id="two-blobs"),
+            pytest.param(np.ones((2, 1024), dtype=np.uint8), id="wide-filled"),
+            pytest.param(
+                np.tile([1, 0], 512).reshape(1, -1).astype(np.uint8),
+                id="wide-fragmented",
+            ),
             pytest.param(
                 np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8),
                 id="hole-touching-frame",
@@ -168,9 +173,6 @@ def test_wide_contour_row_scans_remain_linear(
     flatnonzero = np.flatnonzero
     any_nonzero = np.any
     scanned_sizes: list[int] = []
-    expected, _ = cv2.findContours(
-        source.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    )
 
     def record_scan(values: np.ndarray) -> np.ndarray:
         """Count elements examined while preserving the NumPy result."""
@@ -184,10 +186,9 @@ def test_wide_contour_row_scans_remain_linear(
 
     monkeypatch.setattr(np, "flatnonzero", record_scan)
     monkeypatch.setattr(np, "any", record_any)
-    actual, _ = _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+    _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
 
     assert sum(scanned_sizes) <= 8 * source.size
-    assert _contour_points(actual) == _contour_points(expected)
 
 
 def test_randomized_contours_preserve_opencv_geometry() -> None:
