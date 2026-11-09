@@ -7,19 +7,31 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations ([#2907](https://github.com/roboflow/supervision/pull/2907)).
+
+- `sv.draw_image` now draws on grayscale scenes, shaped `(H, W)` or `(H, W, 1)`, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and `opacity`. ([#2906](https://github.com/roboflow/supervision/pull/2906))
+
+- `sv.resize_image`, `sv.scale_image` and `sv.letterbox_image` now return `(H, W, 1)` for an `(H, W, 1)` grayscale image with OpenCV installed too, instead of `(H, W)`; the NumPy backend already kept the axis. `sv.tint_image` and `sv.grayscale_image` now accept `(H, W, 1)` images like `(H, W)` ones instead of raising. ([#2905](https://github.com/roboflow/supervision/pull/2905))
+
+- `sv.HeatMapAnnotator` now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. ([#2904](https://github.com/roboflow/supervision/pull/2904))
+
+- `sv.ColorPalette.from_matplotlib` now rounds palette colors to 8-bit values as Matplotlib's `to_hex` does, instead of truncating them. Channels stored as `n / 255` floats came out one level low, so the seventh `Accent` color was `#bf5b16` instead of `#bf5b17`; 8 of the 10 colors sampled by `from_matplotlib("viridis", 5)` and `from_matplotlib("plasma", 5)` were also one level off. ([#2903](https://github.com/roboflow/supervision/pull/2903))
+
+- `sv.JSONSink` now preserves an exception raised inside a `with` block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. ([#2902](https://github.com/roboflow/supervision/pull/2902))
+
 - `sv.ImageSink.save_image`, dataset exports and other image writes now support more non-`uint8` images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than `uint8` can still fail without OpenCV. Previously these writes raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
 - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
 
 - `sv.KeyPoints.empty()` now holds empty `class_id`, `keypoint_confidence` and `detection_confidence` arrays, as `sv.Detections.empty()` does, instead of `None`. Pose connectors such as `sv.KeyPoints.from_ultralytics` return it for a frame without poses, so the documented filters `key_points[key_points.detection_confidence > 0.5]` and `key_points.visible = key_points.keypoint_confidence > 0.3` raised `TypeError: '>' not supported between instances of 'NoneType' and 'float'` on every such frame of a video. ([#2911](https://github.com/roboflow/supervision/pull/2911))
 
+- `sv.KeyPoints.from_yolo_nas` now keeps each pose's score as `detection_confidence`, as `sv.KeyPoints.from_ultralytics`, `from_inference` and `from_detectron2` do. It used to drop it, so `sv.KeyPoints.with_nms` raised `ValueError: KeyPoints detection_confidence must be given for NMS to be executed.` on YOLO-NAS poses, and `sv.KeyPoints.as_detections` reported the mean key point confidence instead of the model's score. ([#2909](https://github.com/roboflow/supervision/pull/2909))
+
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
 
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
-
--
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 

@@ -839,7 +839,7 @@ class KeyPoints:
         Returns:
             A :class:`~supervision.key_points.core.KeyPoints` object containing
             the keypoint coordinates, class IDs,
-                and class names, and confidences of each keypoint.
+                class names, detection confidences, and confidences of each keypoint.
 
         Examples:
             ```python
@@ -863,6 +863,7 @@ class KeyPoints:
 
         xy = yolo_nas_results.prediction.poses[:, :, :2]
         confidence = yolo_nas_results.prediction.poses[:, :, 2]
+        detection_confidence = yolo_nas_results.prediction.scores
 
         # yolo_nas_results treats params differently.
         # prediction.labels may not exist, whereas class_names might be None
@@ -882,6 +883,7 @@ class KeyPoints:
         return cls(
             xy=xy,
             keypoint_confidence=confidence,
+            detection_confidence=detection_confidence,
             class_id=class_id,
             data=data,
         )

@@ -1908,6 +1908,7 @@ class TestFromDetectron2:
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    scores=[0.95],
                     labels=[1],
                 ),
             ),
@@ -1915,12 +1916,14 @@ class TestFromDetectron2:
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
                 class_id=[1],
+                detection_confidence=[0.95],
             ),
         ),
         (
             _FakeYoloNasKeyPointResults(
                 _FakeYoloNasKeyPoint(
                     poses=[],
+                    scores=[],
                 ),
             ),
             KeyPoints.empty(),
