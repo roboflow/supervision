@@ -775,3 +775,64 @@ def test_image_utils_wrong_type_raises(
     """Wrong image type raises TypeError via decorator."""
     with pytest.raises(TypeError, match="Unsupported image type"):
         func(image="not_an_image", **kwargs)
+
+
+class TestSingleChannelArrays:
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: resize_image(image, resolution_wh=(5, 3)), id="resize"
+            ),
+            pytest.param(
+                lambda image: resize_image(
+                    image, resolution_wh=(9, 9), keep_aspect_ratio=True
+                ),
+                id="resize-keep-aspect-ratio",
+            ),
+            pytest.param(
+                lambda image: scale_image(image, scale_factor=0.5), id="scale"
+            ),
+            pytest.param(
+                lambda image: letterbox_image(
+                    image, resolution_wh=(10, 10), color=(255, 255, 255)
+                ),
+                id="letterbox",
+            ),
+        ],
+    )
+    def test_geometry_keeps_channel_axis(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Return ``(H, W, 1)`` for ``(H, W, 1)`` input on every backend."""
+        # given
+        image = np.arange(48, dtype=np.uint8).reshape(6, 8) * 5
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image)[..., np.newaxis])
+
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            pytest.param(
+                lambda image: tint_image(image, color=Color.WHITE, opacity=0.5),
+                id="tint",
+            ),
+            pytest.param(grayscale_image, id="grayscale"),
+        ],
+    )
+    def test_color_output_matches_two_dimensional_gray(
+        self, transform: Callable[[np.ndarray], np.ndarray]
+    ) -> None:
+        """Convert ``(H, W, 1)`` input like ``(H, W)`` input instead of raising."""
+        # given
+        image = np.arange(12, dtype=np.uint8).reshape(3, 4) * 20
+
+        # when
+        result = transform(image[..., np.newaxis])
+
+        # then
+        np.testing.assert_array_equal(result, transform(image))
