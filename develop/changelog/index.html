@@ -4412,10 +4412,13 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
-<p><strong>Masks and polygons</strong>: the NumPy backend matches OpenCV.</p>
-<ul>
-<li><code>sv.mask_to_polygons</code> now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's <code>RETR_TREE</code> order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now <code>int32</code>, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. (<a href="https://github.com/roboflow/supervision/pull/2900">#2900</a>)</li>
-</ul>
+<p><code>sv.JSONSink</code> now preserves an exception raised inside a <code>with</code> block when writing or closing the JSON file also fails. The cleanup error is logged; it still propagates when the block succeeds. (<a href="https://github.com/roboflow/supervision/pull/2902">#2902</a>)</p>
+</li>
+<li>
+<p><code>sv.ImageSink.save_image</code>, dataset exports and other image writes now support more non-<code>uint8</code> images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than <code>uint8</code> can still fail without OpenCV. Previously these writes raised <code>TypeError</code>, or returned <code>False</code> for grayscale images. (<a href="https://github.com/roboflow/supervision/pull/2901">#2901</a>)</p>
+</li>
+<li>
+<p><code>sv.mask_to_polygons</code> now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's <code>RETR_TREE</code> order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now <code>int32</code>, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. (<a href="https://github.com/roboflow/supervision/pull/2900">#2900</a>)</p>
 </li>
 <li>
 <p><code>sv.Classifications.from_clip</code> and <code>sv.Classifications.from_timm</code> now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. (<a href="https://github.com/roboflow/supervision/pull/2894">#2894</a>)</p>
@@ -4427,7 +4430,6 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <p><code>sv.LabelAnnotator</code> and <code>sv.RichLabelAnnotator</code> now draw labels such as <code>0</code>, <code>np.int64(0)</code>, <code>0.0</code>, and <code>False</code> as text instead of empty background boxes. (<a href="https://github.com/roboflow/supervision/pull/2892">#2892</a>)</p>
 </li>
 </ul>
-<p>-</p>
 <h3 id="0315-nov-5-2026">0.31.5 <small>Nov 5, 2026</small><a class="headerlink" href="#0315-nov-5-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Annotators</strong>: annotating more image types and right-to-left labels.<ul>
@@ -6742,7 +6744,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 14:39:28 UTC">November 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 17:30:16 UTC">November 9, 2026</span>
   </span>
 
     
@@ -6770,9 +6772,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/Iyanuoluwa007" class="md-author" title="@Iyanuoluwa007">
+        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
           
-          <img src="https://avatars.githubusercontent.com/u/70354778?v=4&size=72" alt="Iyanuoluwa007">
+          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6780,14 +6782,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/Iyanuoluwa007" class="md-author" title="@Iyanuoluwa007">
+          
+          <img src="https://avatars.githubusercontent.com/u/70354778?v=4&size=72" alt="Iyanuoluwa007">
+        </a>
+      
         <a href="https://github.com/aswanth-07" class="md-author" title="@aswanth-07">
           
           <img src="https://avatars.githubusercontent.com/u/169923758?v=4&size=72" alt="aswanth-07">
-        </a>
-      
-        <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
-          
-          <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
         </a>
       
       
