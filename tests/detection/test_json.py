@@ -505,6 +505,7 @@ class TestJSONSinkLifecycle:
         from supervision.detection.tools import json_sink as json_sink_module
 
         monkeypatch.setattr(json_sink_module.logger, "handlers", [caplog.handler])
+        caplog.set_level("ERROR", logger=json_sink_module.logger.name)
 
         with pytest.raises(RuntimeError, match="processing failed"):  # noqa: PT012
             with sink:
