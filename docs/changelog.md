@@ -7,7 +7,7 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
+- `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` defined only for class `0` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
 
 - Annotators now draw the requested colors on Pillow palette images (modes `P` and `PA`), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations ([#2907](https://github.com/roboflow/supervision/pull/2907)).
 
