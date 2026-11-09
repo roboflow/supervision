@@ -4412,6 +4412,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Annotators now draw the requested colors on Pillow palette images (modes <code>P</code> and <code>PA</code>), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations (<a href="https://github.com/roboflow/supervision/pull/2907">#2907</a>).</p>
+</li>
+<li>
 <p><code>sv.draw_image</code> now draws on grayscale scenes, shaped <code>(H, W)</code> or <code>(H, W, 1)</code>, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and <code>opacity</code>. (<a href="https://github.com/roboflow/supervision/pull/2906">#2906</a>)</p>
 </li>
 <li>
@@ -6756,7 +6759,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 20:04:38 UTC">November 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 21:39:15 UTC">November 9, 2026</span>
   </span>
 
     
