@@ -455,26 +455,25 @@ download_assets(VideoAssets.SKIING)
 
 ### Keypoint Detection
 
-First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However, Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/keypoint/core/) for guidance on how to plug in other models.
+First, obtain predictions from your keypoint detection model. This tutorial uses the [RF-DETR keypoint preview model](https://rfdetr.roboflow.com/latest/learn/run/keypoints/), with Roboflow Inference and Ultralytics alternatives. Install RF-DETR with `pip install rfdetr`. See the [KeyPoints documentation](https://supervision.roboflow.com/latest/keypoint/core/) for other supported models.
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 
 Let's immediately visualize the results with our [`EdgeAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
-=== "Ultralytics"
+=== "RF-DETR"
 
-    ```{ .py hl_lines="5 10-11" }
+    ```{ .py }
     import numpy as np
     import supervision as sv
-    from ultralytics import YOLO
+    from rfdetr import RFDETRKeypointPreview
 
-    model = YOLO("yolov8m-pose.pt")
+    model = RFDETRKeypointPreview()
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        key_points = sv.KeyPoints.from_ultralytics(results)
+        key_points = model.predict(frame[:, :, ::-1], threshold=0.5)
 
         annotated_frame = edge_annotator.annotate(
             frame.copy(), key_points=key_points)
@@ -516,6 +515,33 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](https://super
     )
     ```
 
+=== "Ultralytics"
+
+    ```{ .py hl_lines="5 10-11" }
+    import numpy as np
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8m-pose.pt")
+    edge_annotator = sv.EdgeAnnotator()
+    vertex_annotator = sv.VertexAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        key_points = sv.KeyPoints.from_ultralytics(results)
+
+        annotated_frame = edge_annotator.annotate(
+            frame.copy(), key_points=key_points)
+        return vertex_annotator.annotate(
+            annotated_frame, key_points=key_points)
+
+    sv.process_video(
+        source_path="skiing.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
 <video controls>
     <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-only-keypoints.mp4" type="video/mp4">
 </video>
@@ -530,21 +556,20 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 
     You may use the `selected_keypoint_indices` argument to specify a subset of keypoints to convert. This is useful when some keypoints could be occluded. For example: a person might swing their arm, causing the elbow to be occluded by the torso sometimes.
 
-=== "Ultralytics"
+=== "RF-DETR"
 
-    ```{ .py hl_lines="8 13 19-20" }
+    ```{ .py }
     import numpy as np
     import supervision as sv
-    from ultralytics import YOLO
+    from rfdetr import RFDETRKeypointPreview
 
-    model = YOLO("yolov8m-pose.pt")
+    model = RFDETRKeypointPreview()
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        key_points = sv.KeyPoints.from_ultralytics(results)
+        key_points = model.predict(frame[:, :, ::-1], threshold=0.5)
         detections = key_points.as_detections()
 
         annotated_frame = edge_annotator.annotate(
@@ -593,6 +618,37 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
     )
     ```
 
+=== "Ultralytics"
+
+    ```{ .py hl_lines="8 13 19-20" }
+    import numpy as np
+    import supervision as sv
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8m-pose.pt")
+    edge_annotator = sv.EdgeAnnotator()
+    vertex_annotator = sv.VertexAnnotator()
+    box_annotator = sv.BoxAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        key_points = sv.KeyPoints.from_ultralytics(results)
+        detections = key_points.as_detections()
+
+        annotated_frame = edge_annotator.annotate(
+            frame.copy(), key_points=key_points)
+        annotated_frame = vertex_annotator.annotate(
+            annotated_frame, key_points=key_points)
+        return box_annotator.annotate(
+            annotated_frame, detections=detections)
+
+    sv.process_video(
+        source_path="skiing.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
 <video controls>
     <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-converted-to-detections.mp4" type="video/mp4">
 </video>
@@ -601,15 +657,15 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 
 Now that we have a `Detections` object, we can track it throughout the video. The code samples below use `ByteTrackTracker` (see the removal note above), each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
 
-=== "Ultralytics"
+=== "RF-DETR"
 
-    ```{ .py hl_lines="11-12 18 27-28" }
+    ```{ .py }
     import numpy as np
     import supervision as sv
     from trackers import ByteTrackTracker
-    from ultralytics import YOLO
+    from rfdetr import RFDETRKeypointPreview
 
-    model = YOLO("yolov8m-pose.pt")
+    model = RFDETRKeypointPreview()
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -618,8 +674,7 @@ Now that we have a `Detections` object, we can track it throughout the video. Th
     trace_annotator = sv.TraceAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
-        results = model(frame)[0]
-        key_points = sv.KeyPoints.from_ultralytics(results)
+        key_points = model.predict(frame[:, :, ::-1], threshold=0.5)
         detections = key_points.as_detections()
         detections = tracker.update(detections)
         detections = detections[detections.tracker_id != -1]
@@ -680,17 +735,9 @@ Now that we have a `Detections` object, we can track it throughout the video. Th
     )
     ```
 
-<video controls>
-    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-with-tracking.mp4" type="video/mp4">
-</video>
-
-### Bonus: Smoothing
-
-We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
-
 === "Ultralytics"
 
-    ```{ .py hl_lines="12 21" }
+    ```{ .py hl_lines="11-12 18 27-28" }
     import numpy as np
     import supervision as sv
     from trackers import ByteTrackTracker
@@ -702,12 +749,58 @@ We could stop here as we have successfully tracked the object detected by the ke
     box_annotator = sv.BoxAnnotator()
 
     tracker = ByteTrackTracker(track_activation_threshold=0.25, minimum_consecutive_frames=1)
-    smoother = sv.DetectionsSmoother()
     trace_annotator = sv.TraceAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
         key_points = sv.KeyPoints.from_ultralytics(results)
+        detections = key_points.as_detections()
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]
+
+        annotated_frame = edge_annotator.annotate(
+            frame.copy(), key_points=key_points)
+        annotated_frame = vertex_annotator.annotate(
+            annotated_frame, key_points=key_points)
+        annotated_frame = box_annotator.annotate(
+            annotated_frame, detections=detections)
+        return trace_annotator.annotate(
+            annotated_frame, detections=detections)
+
+    sv.process_video(
+        source_path="skiing.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-with-tracking.mp4" type="video/mp4">
+</video>
+
+### Bonus: Smoothing
+
+We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
+
+=== "RF-DETR"
+
+    ```{ .py }
+    import numpy as np
+    import supervision as sv
+    from trackers import ByteTrackTracker
+    from rfdetr import RFDETRKeypointPreview
+
+    model = RFDETRKeypointPreview()
+    edge_annotator = sv.EdgeAnnotator()
+    vertex_annotator = sv.VertexAnnotator()
+    box_annotator = sv.BoxAnnotator()
+
+    tracker = ByteTrackTracker(track_activation_threshold=0.25, minimum_consecutive_frames=1)
+    smoother = sv.DetectionsSmoother()
+    trace_annotator = sv.TraceAnnotator()
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        key_points = model.predict(frame[:, :, ::-1], threshold=0.5)
         detections = key_points.as_detections()
         detections = tracker.update(detections)
         detections = detections[detections.tracker_id != -1]
@@ -771,17 +864,9 @@ We could stop here as we have successfully tracked the object detected by the ke
     )
     ```
 
-<video controls>
-    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-with-smoothing.mp4" type="video/mp4">
-</video>
-
-### Attach Tracker IDs to Keypoints
-
-The samples above track boxes. For per-person pose analysis you need the tracker ID on each skeleton. Do not copy `detections.tracker_id` into `key_points` by position: `as_detections()` leaves out skeletons without any usable keypoint, and the tracker may return rows in a different order (matched tracks first), so positional copies can put IDs on the wrong person. Instead, store each skeleton's row index in `key_points.data` before the conversion. `as_detections()` copies `data` to the detections, so the index comes back with every tracked row.
-
 === "Ultralytics"
 
-    ```{ .py hl_lines="15-21" }
+    ```{ .py hl_lines="12 21" }
     import numpy as np
     import supervision as sv
     from trackers import ByteTrackTracker
@@ -790,12 +875,60 @@ The samples above track boxes. For per-person pose analysis you need the tracker
     model = YOLO("yolov8m-pose.pt")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
+    box_annotator = sv.BoxAnnotator()
 
     tracker = ByteTrackTracker(track_activation_threshold=0.25, minimum_consecutive_frames=1)
+    smoother = sv.DetectionsSmoother()
+    trace_annotator = sv.TraceAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
         key_points = sv.KeyPoints.from_ultralytics(results)
+        detections = key_points.as_detections()
+        detections = tracker.update(detections)
+        detections = detections[detections.tracker_id != -1]
+        detections = smoother.update_with_detections(detections)
+
+        annotated_frame = edge_annotator.annotate(
+            frame.copy(), key_points=key_points)
+        annotated_frame = vertex_annotator.annotate(
+            annotated_frame, key_points=key_points)
+        annotated_frame = box_annotator.annotate(
+            annotated_frame, detections=detections)
+        return trace_annotator.annotate(
+            annotated_frame, detections=detections)
+
+    sv.process_video(
+        source_path="skiing.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+<video controls>
+    <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/track-keypoints-with-smoothing.mp4" type="video/mp4">
+</video>
+
+### Attach Tracker IDs to Keypoints
+
+The samples above track boxes. For per-person pose analysis you need the tracker ID on each skeleton. Do not copy `detections.tracker_id` into `key_points` by position: `as_detections()` leaves out skeletons without any usable keypoint, and the tracker may return rows in a different order (matched tracks first), so positional copies can put IDs on the wrong person. Instead, store each skeleton's row index in `key_points.data` before the conversion. `as_detections()` copies `data` to the detections, so the index comes back with every tracked row.
+
+=== "RF-DETR"
+
+    ```{ .py }
+    import numpy as np
+    import supervision as sv
+    from trackers import ByteTrackTracker
+    from rfdetr import RFDETRKeypointPreview
+
+    model = RFDETRKeypointPreview()
+    edge_annotator = sv.EdgeAnnotator()
+    vertex_annotator = sv.VertexAnnotator()
+
+    tracker = ByteTrackTracker(track_activation_threshold=0.25, minimum_consecutive_frames=1)
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        key_points = model.predict(frame[:, :, ::-1], threshold=0.5)
         key_points.data["row"] = np.arange(len(key_points))
         detections = tracker.update(key_points.as_detections())
 
@@ -849,6 +982,43 @@ The samples above track boxes. For per-person pose analysis you need the tracker
         if edges:
             annotated_frame = sv.EdgeAnnotator(edges=edges).annotate(
                 annotated_frame, key_points=key_points)
+        return vertex_annotator.annotate(
+            annotated_frame, key_points=key_points)
+
+    sv.process_video(
+        source_path="skiing.mp4",
+        target_path="result.mp4",
+        callback=callback
+    )
+    ```
+
+=== "Ultralytics"
+
+    ```{ .py hl_lines="15-21" }
+    import numpy as np
+    import supervision as sv
+    from trackers import ByteTrackTracker
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8m-pose.pt")
+    edge_annotator = sv.EdgeAnnotator()
+    vertex_annotator = sv.VertexAnnotator()
+
+    tracker = ByteTrackTracker(track_activation_threshold=0.25, minimum_consecutive_frames=1)
+
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model(frame)[0]
+        key_points = sv.KeyPoints.from_ultralytics(results)
+        key_points.data["row"] = np.arange(len(key_points))
+        detections = tracker.update(key_points.as_detections())
+
+        key_points.data["tracker_id"] = np.full(len(key_points), -1)
+        if len(detections) > 0:
+            key_points.data["tracker_id"][detections.data["row"]] = detections.tracker_id
+        key_points = key_points[key_points.data["tracker_id"] != -1]
+
+        annotated_frame = edge_annotator.annotate(
+            frame.copy(), key_points=key_points)
         return vertex_annotator.annotate(
             annotated_frame, key_points=key_points)
 
