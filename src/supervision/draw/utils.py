@@ -390,6 +390,59 @@ def draw_text(
     return scene
 
 
+def _overlay_in_scene_channels(
+    bgr: npt.NDArray[np.uint8], channels: int
+) -> npt.NDArray[np.uint8]:
+    """Return a BGR overlay with the channel count of the scene it is drawn on.
+
+    One channel takes the overlay's gray luminance. Four channels append an opaque
+    alpha, so blending makes the drawn pixels of a BGRA scene opaque in proportion to
+    the overlay's alpha.
+    """
+    if channels == 1:
+        gray = cv2.cvtColor(np.ascontiguousarray(bgr), cv2.COLOR_BGR2GRAY)
+        return cast(npt.NDArray[np.uint8], gray)[..., np.newaxis]
+    if channels == 4:
+        opaque = np.full((*bgr.shape[:2], 1), 255, dtype=np.uint8)
+        return np.concatenate((bgr, opaque), axis=2)
+    return bgr
+
+
+def _composite_over_bgra(
+    scene: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    alpha: npt.NDArray[np.float32],
+) -> npt.NDArray[np.uint8]:
+    """Composite `overlay` over a straight-alpha BGRA region.
+
+    Colors are weighted by how much each layer shows and divided by the result's
+    alpha, so a translucent draw on a transparent scene keeps its color instead of
+    fading toward the scene's hidden one. Where the result has no alpha at all the
+    scene's color is kept.
+
+    Args:
+        scene: BGRA region of shape `(H, W, 4)`.
+        overlay: BGR pixels of shape `(H, W, 3)`.
+        alpha: Overlay coverage in `[0, 1]`, of shape `(H, W, 1)`.
+
+    Returns:
+        The composited BGRA region of shape `(H, W, 4)`.
+    """
+    scene_colors = scene[..., :3].astype(np.float32)
+    scene_weight = (1 - alpha) * (scene[..., 3:].astype(np.float32) / 255.0)
+    output_alpha = alpha + scene_weight
+    colors = np.divide(
+        alpha * overlay + scene_weight * scene_colors,
+        output_alpha,
+        out=scene_colors.copy(),
+        where=np.broadcast_to(output_alpha > 0, scene_colors.shape),
+    )
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.convertScaleAbs(np.dstack([colors, output_alpha * 255.0])),
+    )
+
+
 def draw_image(
     scene: npt.NDArray[np.uint8],
     image: str | npt.NDArray[np.uint8],
@@ -399,7 +452,11 @@ def draw_image(
     """Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
-        scene: Background image where the new image will be drawn.
+        scene: Background image where the new image will be drawn: BGR shaped
+            ``(H, W, 3)``, BGRA shaped ``(H, W, 4)``, or grayscale shaped
+            ``(H, W)`` or ``(H, W, 1)``. A grayscale scene receives the gray
+            luminance of the image. On a BGRA scene, drawn pixels also become
+            opaque in proportion to the image's alpha and `opacity`.
         image: Image to draw, either a file path or an already-loaded image array.
             A 2-D grayscale image is not accepted, whether it is passed as an array
             or read from a path; convert it to BGR first, for example with
@@ -480,14 +537,23 @@ def draw_image(
 
     # Perform blending
     scene_roi = scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width]
+    scene_channels = scene_roi.reshape(rect_height, rect_width, -1)
+    overlay = _overlay_in_scene_channels(image_np[:, :, :3], scene_channels.shape[2])
     alpha_float = alpha_scaled.astype(np.float32) / 255.0
-    blended_roi = cv2.convertScaleAbs(
-        (1 - alpha_float[..., np.newaxis]) * scene_roi
-        + alpha_float[..., np.newaxis] * image_np[:, :, :3]
-    )
+    if scene_channels.shape[2] == 4:
+        blended_roi = _composite_over_bgra(
+            scene_channels, overlay[..., :3], alpha_float[..., np.newaxis]
+        )
+    else:
+        blended_roi = cv2.convertScaleAbs(
+            (1 - alpha_float[..., np.newaxis]) * scene_channels
+            + alpha_float[..., np.newaxis] * overlay
+        )
 
-    # Update the scene
-    scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width] = blended_roi
+    # Update the scene; OpenCV drops the axis of a one-channel result.
+    scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width] = (
+        blended_roi.reshape(scene_roi.shape)
+    )
 
     return scene
 
