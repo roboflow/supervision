@@ -7,7 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- **Drawing**: `sv.draw_image` on any scene layout.
+- **Drawing**: `sv.draw_image` on grayscale, BGR, and BGRA scenes.
+
     - `sv.draw_image` now draws on grayscale scenes, shaped `(H, W)` or `(H, W, 1)`, and on BGRA scenes, like the other draw helpers, instead of raising a NumPy broadcast error. A grayscale scene receives the image's gray luminance, and on a BGRA scene the drawn pixels become opaque in proportion to the image's alpha and `opacity`. ([#2906](https://github.com/roboflow/supervision/pull/2906))
 
 - `sv.ColorPalette.from_matplotlib` now rounds palette colors to 8-bit values as Matplotlib's `to_hex` does, instead of truncating them. Channels stored as `n / 255` floats came out one level low, so the seventh `Accent` color was `#bf5b16` instead of `#bf5b17`; 8 of the 10 colors sampled by `from_matplotlib("viridis", 5)` and `from_matplotlib("plasma", 5)` were also one level off. ([#2903](https://github.com/roboflow/supervision/pull/2903))
