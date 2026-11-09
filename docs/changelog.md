@@ -9,6 +9,10 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_ultralytics` now loads Ultralytics semantic segmentation results (`task="semantic"`), which returned empty `Detections`. Each class present in `Results.semantic_mask` becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' `Results.summary`, IDs missing from `names`, such as the `255` written by `classes` filtering, are skipped, and a single-class model's `0` background is left out. ([#2915](https://github.com/roboflow/supervision/pull/2915))
 
+- **Masks and polygons**: the NumPy backend matches OpenCV.
+
+    - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
+
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
 
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
