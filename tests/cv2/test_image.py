@@ -1113,3 +1113,81 @@ class TestFallbackEncoderChannels:
             np.frombuffer(encoded, dtype=np.uint8), cv2.IMREAD_UNCHANGED
         )
         np.testing.assert_array_equal(actual, expected)
+
+
+class TestFallbackEncoderSampleTypes:
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imencode_rejects_empty_sixteen_bit_color_png(
+        self, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without returning encoded data."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+
+        success, encoded = _imencode(".png", image)
+
+        assert not success
+        assert encoded is None
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imwrite_rejects_empty_sixteen_bit_color_png(
+        self, tmp_path: Path, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without creating a file."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+        image_path = tmp_path / "image.png"
+
+        assert not _imwrite(str(image_path), image)
+        assert not image_path.exists()
+
+    @pytest.mark.parametrize(
+        "dtype", [np.uint16, np.int16, np.int32, np.float32, np.float64, np.bool_]
+    )
+    @pytest.mark.parametrize("extension", [".png", ".bmp", ".webp"])
+    @pytest.mark.parametrize("channels", [1, 3])
+    def test_imencode_converts_unsupported_types_like_opencv(
+        self, dtype: type, extension: str, channels: int
+    ) -> None:
+        """Write sample types a format lacks as OpenCV's saturated 8-bit copy."""
+        rng = np.random.default_rng(0)
+        values = rng.uniform(-500, 70000, size=(4, 5, channels))
+        values[0, 0] = 0.5
+        image = (values > 30000) if dtype is np.bool_ else values.astype(dtype)
+        expected = cv2.imdecode(cv2.imencode(extension, image)[1], cv2.IMREAD_UNCHANGED)
+
+        success, encoded = _imencode(extension, image)
+
+        assert success
+        assert encoded is not None
+        actual = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
+        assert (actual.shape, actual.dtype) == (expected.shape, expected.dtype)
+        np.testing.assert_array_equal(actual, expected)
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    def test_imwrite_keeps_sixteen_bit_color_png(
+        self, tmp_path: Path, channels: int
+    ) -> None:
+        """Write 16-bit BGR and BGRA PNGs that OpenCV reads back unchanged."""
+        image = np.random.default_rng(1).integers(
+            0, 65536, size=(3, 7, channels), dtype=np.uint16
+        )
+        image_path = tmp_path / "image.png"
+
+        assert _imwrite(str(image_path), image)
+
+        actual = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+        assert actual.dtype == np.uint16
+        np.testing.assert_array_equal(actual, image)
+
+    def test_imwrite_reports_failure_for_color_float_tiff(self, tmp_path: Path) -> None:
+        """Return False, not raise, for a color TIFF type Pillow cannot write."""
+        image = np.zeros((2, 2, 3), dtype=np.float32)
+
+        assert not _imwrite(str(tmp_path / "image.tif"), image)
