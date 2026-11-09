@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.Detections.from_inference` parses native `oriented-object-detection` responses into ordered float corners, frozen class heading capabilities and stable detection IDs. Native NMS preserves selected rows; native NMM retains the highest-confidence contributor's exact shape and front instead of attaching its heading to a refitted rectangle. `sv.InferenceSlicer` updates supplied image-dimensions metadata to the full-image frame alongside the translated geometry and retains native metadata and typed arrays when every tile is empty. ([#2835](https://github.com/roboflow/supervision/pull/2835))
+
 - `sv.ImageSink.save_image`, dataset exports and other image writes now support more non-`uint8` images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than `uint8` can still fail without OpenCV. Previously these writes raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
 - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
