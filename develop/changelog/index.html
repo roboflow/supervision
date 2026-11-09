@@ -4412,6 +4412,12 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><strong>Annotators</strong>: heat maps more closely match OpenCV colors without OpenCV installed.</p>
+<ul>
+<li><code>sv.HeatMapAnnotator</code> now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. (<a href="https://github.com/roboflow/supervision/pull/2904">#2904</a>)</li>
+</ul>
+</li>
+<li>
 <p><code>sv.ColorPalette.from_matplotlib</code> now rounds palette colors to 8-bit values as Matplotlib's <code>to_hex</code> does, instead of truncating them. Channels stored as <code>n / 255</code> floats came out one level low, so the seventh <code>Accent</code> color was <code>#bf5b16</code> instead of <code>#bf5b17</code>; 8 of the 10 colors sampled by <code>from_matplotlib("viridis", 5)</code> and <code>from_matplotlib("plasma", 5)</code> were also one level off. (<a href="https://github.com/roboflow/supervision/pull/2903">#2903</a>)</p>
 </li>
 <li>
@@ -6747,7 +6753,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 17:45:35 UTC">November 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 18:34:36 UTC">November 9, 2026</span>
   </span>
 
     
@@ -6775,9 +6781,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+        <a href="https://github.com/Iyanuoluwa007" class="md-author" title="@Iyanuoluwa007">
           
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+          <img src="https://avatars.githubusercontent.com/u/70354778?v=4&size=72" alt="Iyanuoluwa007">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6785,14 +6791,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
+          
+          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
+        </a>
+      
         <a href="https://github.com/Vaishnavi220506" class="md-author" title="@Vaishnavi220506">
           
           <img src="https://avatars.githubusercontent.com/u/183067453?v=4&size=72" alt="Vaishnavi220506">
-        </a>
-      
-        <a href="https://github.com/Iyanuoluwa007" class="md-author" title="@Iyanuoluwa007">
-          
-          <img src="https://avatars.githubusercontent.com/u/70354778?v=4&size=72" alt="Iyanuoluwa007">
         </a>
       
       
