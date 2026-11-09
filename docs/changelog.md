@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_ultralytics` now loads Ultralytics semantic segmentation results (`task="semantic"`), which returned empty `Detections`. Each class present in `Results.semantic_mask` becomes one detection with a mask of all its pixels and its class name, without confidence. As in Ultralytics' `Results.summary`, IDs missing from `names`, such as the `255` written by `classes` filtering, are skipped, and a single-class model's `0` background is left out. ([#2915](https://github.com/roboflow/supervision/pull/2915))
 
+- `sv.resize_image`, `sv.scale_image` and `sv.letterbox_image` now return `(H, W, 1)` for an `(H, W, 1)` grayscale image with OpenCV installed too, instead of `(H, W)`; the NumPy backend already kept the axis. `sv.tint_image` and `sv.grayscale_image` now accept `(H, W, 1)` images like `(H, W)` ones instead of raising. ([#2905](https://github.com/roboflow/supervision/pull/2905))
+
 - **Annotators**: heat maps more closely match OpenCV colors without OpenCV installed.
 
     - `sv.HeatMapAnnotator` now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. ([#2904](https://github.com/roboflow/supervision/pull/2904))
