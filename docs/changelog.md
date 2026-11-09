@@ -7,6 +7,8 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
+- `sv.KeyPoints.from_transformers` now gives every pose class ID `0` instead of numbering the poses of an image `0..N-1`. Class-aware code treated each person as its own class: keypoint mAP of four perfect ViTPose poses against person targets was 0.257 instead of 1.0, and `sv.EdgeAnnotator` with per-class `edges` defined only for class `0` raised `ValueError` on the second person. Code that used the old ID as a per-person index can use `np.arange(len(key_points))`. ([#2914](https://github.com/roboflow/supervision/pull/2914))
+
 - `sv.Detections.from_transformers` now reads zero-shot detections from `post_process_grounded_object_detection`. Grounding DINO results raised `AttributeError: 'list' object has no attribute 'cpu'`; they now load with their matched phrases as class names and `class_id=None`. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as `class_id` and now take their class names from `text_labels`, where `id2label=model.config.id2label` named them `LABEL_0`, `LABEL_1`. ([#2913](https://github.com/roboflow/supervision/pull/2913))
 
 - `sv.Detections.from_transformers` now reads RF-DETR instance segmentation results requested with `return_binary_maps=True`. Binary maps are now paired with `segments_info` by position; indexing them by segment id raised `IndexError` for RF-DETR, which numbers segments from 1. An empty `(0, H, W)` stack of binary maps now gives empty `(0, H, W)` masks instead of raising `ValueError`. ([#2912](https://github.com/roboflow/supervision/pull/2912))
