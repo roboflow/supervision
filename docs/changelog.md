@@ -7,8 +7,9 @@ date_modified: 2026-10-31
 
 ### Unreleased <small>upcoming</small>
 
-- **Annotators**: heat maps look the same with and without OpenCV.
-    - `sv.HeatMapAnnotator` now draws the same colors without OpenCV installed as with it. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now repeats OpenCV's float32 arithmetic, which truncates within each row and rounds the last pixels, and matches OpenCV's Windows and macOS wheels exactly; on Linux, whose wheels fuse a multiply-add, a few colors can still differ by one level. ([#2904](https://github.com/roboflow/supervision/pull/2904))
+- **Annotators**: heat maps more closely match OpenCV colors without OpenCV installed.
+
+    - `sv.HeatMapAnnotator` now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. ([#2904](https://github.com/roboflow/supervision/pull/2904))
 
 - `sv.ImageSink.save_image`, dataset exports and other image writes now support more non-`uint8` images when OpenCV is not installed. 16-bit grayscale, BGR and BGRA PNGs keep 16 bits. JPEG, BMP and WebP files, and PNGs with unsupported sample types, get a saturated 8-bit copy. Multi-channel TIFFs with types other than `uint8` can still fail without OpenCV. Previously these writes raised `TypeError`, or returned `False` for grayscale images. ([#2901](https://github.com/roboflow/supervision/pull/2901))
 
@@ -19,7 +20,6 @@ date_modified: 2026-10-31
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
-
 
 ### 0.31.5 <small>Nov 5, 2026</small>
 
