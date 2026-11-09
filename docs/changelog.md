@@ -8,7 +8,8 @@ date_modified: 2026-10-31
 ### Unreleased <small>upcoming</small>
 
 - **Masks and polygons**: the NumPy backend matches OpenCV.
-    - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. ([#2900](https://github.com/roboflow/supervision/pull/2900))
+
+    - `sv.mask_to_polygons` now lists polygons in the same order with and without OpenCV installed. The NumPy contour fallback returned them in raster order instead of OpenCV's `RETR_TREE` order, where each outline is followed by its holes and siblings come last-found first. One- and two-pixel contours from the fallback are now `int32`, as on OpenCV. Row scanning avoids repeatedly traversing wide contours. ([#2900](https://github.com/roboflow/supervision/pull/2900))
 
 - `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
 

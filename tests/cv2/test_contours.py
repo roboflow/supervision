@@ -152,6 +152,44 @@ class TestFindContoursMatchesOpenCVOrder:
             assert all(contour.dtype == np.int32 for contour in actual)
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param(np.ones((2, 1024), dtype=np.uint8), id="filled"),
+        pytest.param(
+            np.tile([1, 0], 512).reshape(1, -1).astype(np.uint8), id="fragmented"
+        ),
+    ],
+)
+def test_wide_contour_row_scans_remain_linear(
+    monkeypatch: pytest.MonkeyPatch, source: np.ndarray
+) -> None:
+    """Avoid repeatedly scanning wide contour rows as borders are traced."""
+    flatnonzero = np.flatnonzero
+    any_nonzero = np.any
+    scanned_sizes: list[int] = []
+    expected, _ = cv2.findContours(
+        source.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    def record_scan(values: np.ndarray) -> np.ndarray:
+        """Count elements examined while preserving the NumPy result."""
+        scanned_sizes.append(values.size)
+        return flatnonzero(values)
+
+    def record_any(values: np.ndarray) -> np.bool_:
+        """Count elements inspected by row and block emptiness checks."""
+        scanned_sizes.append(values.size)
+        return any_nonzero(values)
+
+    monkeypatch.setattr(np, "flatnonzero", record_scan)
+    monkeypatch.setattr(np, "any", record_any)
+    actual, _ = _find_contours(source, _RETR_TREE, _CHAIN_APPROX_SIMPLE)
+
+    assert sum(scanned_sizes) <= 8 * source.size
+    assert _contour_points(actual) == _contour_points(expected)
+
+
 def test_randomized_contours_preserve_opencv_geometry() -> None:
     """Preserve the OpenCV contour geometry set on seeded binary masks."""
     rng = np.random.default_rng(2026)

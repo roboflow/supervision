@@ -106,44 +106,48 @@ def _trace_borders(mask: npt.NDArray[np.bool_]) -> list[np.ndarray]:
     points: dict[int, np.ndarray] = {}
     border_number = 1
     for row in range(image.shape[0]):
+        if not np.any(starts[row]) and not np.any(labels[row]):
+            continue
         last_border = 1
-        column = 0
-        while True:
-            # Only border starts and already traced pixels affect the scan.
-            events = np.flatnonzero(starts[row, column:] | (labels[row, column:] != 0))
-            if len(events) == 0:
-                break
-            column += int(events[0])
-            if left_zero[row, column] and labels[row, column] == 0:
-                previous, hole = (row, column - 1), False
-            elif right_zero[row, column] and labels[row, column] >= 0:
-                previous, hole = (row, column + 1), True
-                # A hole starting on a traced pixel lies just inside that border.
-                if labels[row, column] > 0:
-                    last_border = int(labels[row, column])
-            else:
-                previous = None
-            if previous is not None:
-                border_number += 1
-                parent = last_border
-                if is_hole[last_border] == hole:
-                    parent = parents[last_border]
-                border = _follow_border(
-                    image, labels, (row, column), previous, border_number
-                )
-                is_hole[border_number] = hole
-                parents[border_number] = parent
-                children[border_number] = []
-                children[parent].append(border_number)
-                points[border_number] = np.array(
-                    [(point_column, point_row) for point_row, point_column in border],
-                    dtype=np.int32,
-                )
-            if labels[row, column] != 0:
-                last_border = abs(int(labels[row, column]))
-            column += 1
-            if column >= image.shape[1]:
-                break
+        for block_start in range(0, image.shape[1], 128):
+            block_end = min(block_start + 128, image.shape[1])
+            # Tracing may label later pixels in this block, so inspect each event
+            # after earlier borders have been traced rather than caching the list.
+            if not np.any(starts[row, block_start:block_end]) and not np.any(
+                labels[row, block_start:block_end]
+            ):
+                continue
+            for column in range(block_start, block_end):
+                if left_zero[row, column] and labels[row, column] == 0:
+                    previous, hole = (row, column - 1), False
+                elif right_zero[row, column] and labels[row, column] >= 0:
+                    previous, hole = (row, column + 1), True
+                    # A hole starting on a traced pixel lies just inside that border.
+                    if labels[row, column] > 0:
+                        last_border = int(labels[row, column])
+                else:
+                    previous = None
+                if previous is not None:
+                    border_number += 1
+                    parent = last_border
+                    if is_hole[last_border] == hole:
+                        parent = parents[last_border]
+                    border = _follow_border(
+                        image, labels, (row, column), previous, border_number
+                    )
+                    is_hole[border_number] = hole
+                    parents[border_number] = parent
+                    children[border_number] = []
+                    children[parent].append(border_number)
+                    points[border_number] = np.array(
+                        [
+                            (point_column, point_row)
+                            for point_row, point_column in border
+                        ],
+                        dtype=np.int32,
+                    )
+                if labels[row, column] != 0:
+                    last_border = abs(int(labels[row, column]))
 
     borders: list[np.ndarray] = []
     stack = list(children[1])
