@@ -4412,6 +4412,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.resize_image</code>, <code>sv.scale_image</code> and <code>sv.letterbox_image</code> now return <code>(H, W, 1)</code> for an <code>(H, W, 1)</code> grayscale image with OpenCV installed too, instead of <code>(H, W)</code>; the NumPy backend already kept the axis. <code>sv.tint_image</code> and <code>sv.grayscale_image</code> now accept <code>(H, W, 1)</code> images like <code>(H, W)</code> ones instead of raising. (<a href="https://github.com/roboflow/supervision/pull/2905">#2905</a>)</p>
+</li>
+<li>
 <p><strong>Annotators</strong>: heat maps more closely match OpenCV colors without OpenCV installed.</p>
 <ul>
 <li><code>sv.HeatMapAnnotator</code> now draws colors closer to OpenCV without OpenCV installed. The NumPy fallback of the HSV-to-BGR conversion computed in float64 and rounded, so many heat colors came out one level off. It now follows OpenCV's float32 arithmetic and the 32-pixel AVX2 block rounding used by x86-64 wheels. Linux wheels fuse a multiply-add, so a few colors can still differ by one level. Builds using other block sizes can also differ by one level near row ends. (<a href="https://github.com/roboflow/supervision/pull/2904">#2904</a>)</li>
@@ -6753,7 +6756,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 18:34:36 UTC">November 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 19:44:40 UTC">November 9, 2026</span>
   </span>
 
     
