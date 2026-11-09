@@ -4412,6 +4412,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
 <h3 id="unreleased-upcoming">Unreleased <small>upcoming</small><a class="headerlink" href="#unreleased-upcoming" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p><code>sv.Detections.from_transformers</code> now reads RF-DETR instance segmentation results requested with <code>return_binary_maps=True</code>. Binary maps are now paired with <code>segments_info</code> by position; indexing them by segment id raised <code>IndexError</code> for RF-DETR, which numbers segments from 1. An empty <code>(0, H, W)</code> stack of binary maps now gives empty <code>(0, H, W)</code> masks instead of raising <code>ValueError</code>. (<a href="https://github.com/roboflow/supervision/pull/2912">#2912</a>)</p>
+</li>
+<li>
 <p>Annotators now draw the requested colors on Pillow palette images (modes <code>P</code> and <code>PA</code>), instead of other colors or black. RGB palettes add drawn colors only in opaque slots unused by untouched pixels; RGBA palettes and colors without an available slot use the nearest opaque entry. Palette matching uses bounded batches and exact integer distances to reduce the cost of blurred or multicolor annotations (<a href="https://github.com/roboflow/supervision/pull/2907">#2907</a>).</p>
 </li>
 <li>
@@ -6765,7 +6768,7 @@ APIs described here may change or may never ship in a release, so use the <a hre
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 22:12:35 UTC">November 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 9, 2026 22:29:10 UTC">November 9, 2026</span>
   </span>
 
     
@@ -6793,9 +6796,9 @@ APIs described here may change or may never ship in a release, so use the <a hre
     
     <nav>
       
-        <a href="https://github.com/sohailshk" class="md-author" title="@sohailshk">
+        <a href="https://github.com/Nikhi00718" class="md-author" title="@Nikhi00718">
           
-          <img src="https://avatars.githubusercontent.com/u/122166523?v=4&size=72" alt="sohailshk">
+          <img src="https://avatars.githubusercontent.com/u/177048619?v=4&size=72" alt="Nikhi00718">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -6803,14 +6806,14 @@ APIs described here may change or may never ship in a release, so use the <a hre
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/sohailshk" class="md-author" title="@sohailshk">
+          
+          <img src="https://avatars.githubusercontent.com/u/122166523?v=4&size=72" alt="sohailshk">
+        </a>
+      
         <a href="https://github.com/Iyanuoluwa007" class="md-author" title="@Iyanuoluwa007">
           
           <img src="https://avatars.githubusercontent.com/u/70354778?v=4&size=72" alt="Iyanuoluwa007">
-        </a>
-      
-        <a href="https://github.com/MohammadHijjawi97" class="md-author" title="@MohammadHijjawi97">
-          
-          <img src="https://avatars.githubusercontent.com/u/51020382?v=4&size=72" alt="MohammadHijjawi97">
         </a>
       
       
