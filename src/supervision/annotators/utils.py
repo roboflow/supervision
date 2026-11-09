@@ -243,7 +243,8 @@ def _iter_resolved_colors(
 
 def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """Wrap `text` to the specified maximum line length, respecting existing newlines.
-    Falls back to str() if `text` is not already a string.
+    Falls back to str() if `text` is not already a string, so falsy values such as `0`
+    are kept as text. `None` and empty text give a single empty line.
 
     Args:
         text: The text (or object) to wrap.
@@ -252,11 +253,14 @@ def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     Returns:
         Wrapped lines.
     """
-    if not text:
+    if text is None:
         return [""]
 
     if not isinstance(text, str):
         text = str(text)
+
+    if not text:
+        return [""]
 
     if max_line_length is None:
         return text.splitlines() or [""]
