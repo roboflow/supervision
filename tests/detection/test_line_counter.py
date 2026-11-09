@@ -665,13 +665,16 @@ class TestLineZoneSubThresholdFlicker:
     """Sub-threshold side changes must not be counted as crossings (#2598)."""
 
     @staticmethod
-    def _line_zone(minimum_crossing_threshold: int) -> LineZone:
+    def _line_zone(
+        minimum_crossing_threshold: int, max_absent_frames: int = 30
+    ) -> LineZone:
         """Build a horizontal line zone driven by the TOP_LEFT anchor alone."""
         return LineZone(
             start=Point(0, 0),
             end=Point(10, 0),
             triggering_anchors=[Position.TOP_LEFT],
             minimum_crossing_threshold=minimum_crossing_threshold,
+            max_absent_frames=max_absent_frames,
         )
 
     @pytest.mark.parametrize(
@@ -710,8 +713,8 @@ class TestLineZoneSubThresholdFlicker:
         `_compute_anchor_sides` report both `has_any_left_trigger` and
         `has_any_right_trigger` as True for that frame, so it is skipped before ever
         reaching the crossing history (the ambiguous-straddle guard). A straddle
-        sandwiched inside a sustained crossing must therefore count exactly as if
-        that frame were omitted from the sequence.
+        sandwiched inside a sustained crossing must therefore count exactly as if that
+        frame were omitted from the sequence.
         """
         line_zone = LineZone(
             start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=2
@@ -765,9 +768,9 @@ class TestLineZoneSubThresholdFlicker:
 
         Companion to `test_flicker_does_not_leak_between_trackers`, which pairs a
         flicker with a real crossing; here both trackers are noisy at once, with
-        different flicker shapes (one single-frame excursion vs. two), to confirm
-        per-tracker isolation holds under concurrent noise, not only under a
-        concurrent real crossing.
+        different flicker shapes (one single-frame excursion vs. two), to confirm per-
+        tracker isolation holds under concurrent noise, not only under a concurrent real
+        crossing.
         """
         line_zone = self._line_zone(minimum_crossing_threshold=2)
         single_flicker_boxes = _boxes_from_sides("AAABAAA")
@@ -784,10 +787,10 @@ class TestLineZoneSubThresholdFlicker:
 
     def test_evicted_tracker_does_not_inherit_confirmed_side(self) -> None:
         """Eviction clears the reference side, so a reused tracker ID starts fresh."""
-        line_zone = self._line_zone(minimum_crossing_threshold=2)
+        line_zone = self._line_zone(minimum_crossing_threshold=2, max_absent_frames=3)
         for box in _boxes_from_sides("BBB"):
             line_zone.trigger(_create_detections(xyxy=[box], tracker_id=[0]))
-        for _ in range(line_zone.crossing_history_length):
+        for _ in range(line_zone.max_absent_frames):
             line_zone.trigger(Detections.empty())
 
         for box in _boxes_from_sides("AAA"):
@@ -1112,9 +1115,9 @@ def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
 ) -> None:
     """A single-pass anchors iterable survives construction and counts a crossing.
 
-    Covers the three single-pass iterable shapes named in the PR #2561 bug report
-    — generator expression, `map`, and `filter` — none of which must be exhausted
-    by the constructor's emptiness check before `trigger()` iterates them.
+    Covers the three single-pass iterable shapes named in the PR #2561 bug report —
+    generator expression, `map`, and `filter` — none of which must be exhausted by the
+    constructor's emptiness check before `trigger()` iterates them.
     """
     line_zone = LineZone(
         start=Point(0, 100), end=Point(200, 100), triggering_anchors=make_anchors()
@@ -1128,7 +1131,7 @@ def test_line_zone_counts_crossing_with_single_pass_triggering_anchors(
 
 def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
     """History for tracker IDs absent from the current frame is evicted."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     first_detections = _create_detections(
         xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1]
     )
@@ -1138,7 +1141,7 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
     line_zone.trigger(first_detections)
     # Trigger twice with second_detections so tracker_id=0 accumulates
-    # crossing_history_length absent frames (default=2) and is evicted.
+    # max_absent_frames absent frames and is evicted.
     line_zone.trigger(second_detections)
     line_zone.trigger(second_detections)
 
@@ -1147,11 +1150,11 @@ def test_line_zone_trigger_evicts_stale_crossing_history() -> None:
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_empty_frames() -> None:
     """Empty frames age out tracker crossing history."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     detections = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[0], class_id=[1])
 
     line_zone.trigger(detections)
-    for _ in range(line_zone.crossing_history_length):
+    for _ in range(line_zone.max_absent_frames):
         line_zone.trigger(Detections.empty())
 
     assert not line_zone.crossing_state_history
@@ -1164,7 +1167,7 @@ def test_line_zone_ages_history_on_untracked_frames(
     untracked_frames: int, expected_crossing: bool
 ) -> None:
     """Missing tracker IDs preserve short gaps but expire stale crossing state."""
-    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=2)
     below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
     above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
     untracked = _create_detections(xyxy=[[4, 4, 6, 6]])
@@ -1178,6 +1181,81 @@ def test_line_zone_ages_history_on_untracked_frames(
     assert crossed_in.tolist() == [expected_crossing]
     assert crossed_out.tolist() == [False]
     assert line_zone.in_count == int(expected_crossing)
+
+
+@pytest.mark.parametrize(
+    ("occluded_frames", "expected_crossing"),
+    [(1, True), (2, True), (5, True), (29, True), (30, False)],
+)
+def test_line_zone_counts_crossing_through_occlusion(
+    occluded_frames: int, expected_crossing: bool
+) -> None:
+    """A tracker hidden while it crosses keeps its side for `max_absent_frames`."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(occluded_frames):
+        line_zone.trigger(Detections.empty())
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [expected_crossing]
+    assert line_zone.in_count == int(expected_crossing)
+
+
+def _count_crossing_after_high_threshold_occlusion(line_zone: LineZone) -> int:
+    """Count a crossing after a 30-frame gap and 30 opposite-side frames."""
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+    line_zone.trigger(below)
+    for _ in range(30):
+        line_zone.trigger(Detections.empty())
+    for _ in range(30):
+        line_zone.trigger(above)
+    return line_zone.in_count
+
+
+def test_line_zone_high_threshold_default_preserves_crossing_history() -> None:
+    """Default retention preserves a crossing after the prior 30-frame gap."""
+    line_zone = LineZone(
+        start=Point(0, 0), end=Point(10, 0), minimum_crossing_threshold=30
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 1
+
+
+def test_line_zone_high_threshold_honors_explicit_retention() -> None:
+    """An explicit limit expires crossing history at its specified boundary."""
+    line_zone = LineZone(
+        start=Point(0, 0),
+        end=Point(10, 0),
+        minimum_crossing_threshold=30,
+        max_absent_frames=30,
+    )
+
+    assert _count_crossing_after_high_threshold_occlusion(line_zone) == 0
+
+
+def test_line_zone_occlusion_with_other_trackers_visible() -> None:
+    """Another visible tracker does not shorten an occluded tracker's retention."""
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+    below = _create_detections(xyxy=[[4, 4, 6, 6]], tracker_id=[7])
+    other = _create_detections(xyxy=[[1, 4, 2, 6]], tracker_id=[8])
+    above = _create_detections(xyxy=[[4, -6, 6, -4]], tracker_id=[7])
+
+    line_zone.trigger(below)
+    for _ in range(5):
+        line_zone.trigger(other)
+    crossed_in, _ = line_zone.trigger(above)
+
+    assert crossed_in.tolist() == [True]
+
+
+def test_line_zone_rejects_nonpositive_max_absent_frames() -> None:
+    """A retention below one frame has no meaning and is refused."""
+    with pytest.raises(ValueError, match="max_absent_frames"):
+        LineZone(start=Point(0, 0), end=Point(10, 0), max_absent_frames=0)
 
 
 def test_line_zone_trigger_evicts_stale_crossing_history_on_class_change() -> None:
@@ -1393,9 +1471,9 @@ class TestLineZoneAnnotatorOrientedLabel:
 class TestLineZoneUnconfirmedTracks:
     """Detections with a negative `tracker_id` are unconfirmed and must not count.
 
-    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is
-    confirmed, so several distinct objects can share that placeholder id in the
-    same frame. Regression tests for #2578.
+    Trackers such as `trackers.ByteTrackTracker` report `-1` until a track is confirmed,
+    so several distinct objects can share that placeholder id in the same frame.
+    Regression tests for #2578.
     """
 
     def test_ignores_unconfirmed_objects_that_trade_sides(self) -> None:

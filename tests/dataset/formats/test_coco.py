@@ -1,13 +1,16 @@
 import json
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 from defusedxml import ElementTree
 
+import supervision.dataset.utils as dataset_utils
 from supervision import DetectionDataset, Detections
 from supervision import _cv2 as cv2
 from supervision.dataset.formats.coco import (
@@ -1349,6 +1352,118 @@ def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
     assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
 
 
+def _mask_with_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with one 10x10 hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[5:35, 5:35] = True
+    mask[15:25, 15:25] = False
+    return mask
+
+
+def _mask_with_island_in_hole() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask whose hole contains a separate island."""
+    mask = _mask_with_hole()
+    mask[18:22, 18:22] = True
+    return mask
+
+
+def _mask_with_nested_holes() -> npt.NDArray[np.bool_]:
+    """Return a 40x40 mask with a hole enclosed by a C-shaped hole."""
+    mask = np.zeros((40, 40), dtype=bool)
+    mask[2:38, 2:38] = True
+    mask[8:32, 8:32] = False
+    mask[12:28, 12:28] = True
+    mask[18:22, 28:32] = True
+    mask[18:22, 18:22] = False
+    return mask
+
+
+class TestDetectionsToCocoAnnotationsMaskHoles:
+    """Non-crowd masks keep their holes through a COCO polygon export."""
+
+    @pytest.mark.parametrize(
+        "make_mask",
+        [
+            pytest.param(_mask_with_hole, id="hole"),
+            pytest.param(_mask_with_island_in_hole, id="island-in-hole"),
+            pytest.param(_mask_with_nested_holes, id="nested-holes"),
+        ],
+    )
+    def test_round_trip_restores_mask(
+        self, make_mask: Callable[[], npt.NDArray[np.bool_]]
+    ) -> None:
+        """Export and import give back the same mask, holes included."""
+        mask = make_mask()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(40, 40))
+
+        np.testing.assert_array_equal(reloaded[0], mask)
+
+    def test_unbridgeable_hole_warns_and_keeps_exporting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A hole with no seam stays a separate part and does not abort the export."""
+
+        def find_no_seam(*args: Any, **kwargs: Any) -> NoReturn:
+            """Stand in for a seam search that finds nothing."""
+            raise dataset_utils._SeamNotFoundError
+
+        monkeypatch.setattr(dataset_utils, "_find_seam", find_no_seam)
+        mask = _mask_with_hole()
+
+        with pytest.warns(UserWarning, match="Could not join the holes"):
+            annotations, _ = detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=0.0,
+            )
+
+        assert len(annotations[0]["segmentation"]) == 2
+
+    def test_invalid_approximation_percentage_raises_without_warning(
+        self, recwarn: pytest.WarningsRecorder
+    ) -> None:
+        """A bad argument raises as such, not as a hole that could not be joined."""
+        mask = _mask_with_hole()
+
+        with pytest.raises(ValueError, match="Percentage must be"):
+            detections_to_coco_annotations(
+                detections=_make_iscrowd0_detections(mask[np.newaxis]),
+                image_id=0,
+                annotation_id=0,
+                approximation_percentage=1.5,
+            )
+
+        assert not recwarn.list
+
+    @pytest.mark.filterwarnings("ignore:__array__ implementation:DeprecationWarning")
+    def test_pycocotools_keeps_hole_open(self) -> None:
+        """A reference COCO reader sees the hole and keeps the foreground around it."""
+        coco_mask = pytest.importorskip("pycocotools.mask")
+        mask = _mask_with_hole()
+        annotations, _ = detections_to_coco_annotations(
+            detections=_make_iscrowd0_detections(mask[np.newaxis]),
+            image_id=0,
+            annotation_id=0,
+            approximation_percentage=0.0,
+        )
+
+        rles = coco_mask.frPyObjects(annotations[0]["segmentation"], 40, 40)
+        decoded = coco_mask.decode(coco_mask.merge(rles)).astype(bool)
+
+        # Contours lie on foreground pixels and pycocotools reads them as continuous
+        # coordinates, so the traced hole misses one corner pixel. The seam paints none.
+        assert int(decoded[15:25, 15:25].sum()) == 1
+        assert decoded[mask].mean() > 0.85
+
+
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
     """Area stored in detections.data should be used instead of bbox area."""
     detections = Detections(
@@ -2665,6 +2780,133 @@ def test_coco_iscrowd_mask_exports_as_rle() -> None:
     assert isinstance(seg, dict), "multi-segment mask must export as RLE dict, not list"
     assert "counts" in seg
     assert "size" in seg
+
+
+class TestCocoExportBoxArithmetic:
+    @pytest.mark.parametrize(
+        ("dtype", "xyxy", "expected_bbox", "expected_area"),
+        [
+            pytest.param(
+                "uint8", [0, 0, 200, 200], [0, 0, 200, 200], 40000, id="uint8-area"
+            ),
+            pytest.param(
+                "int16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="int16-area"
+            ),
+            pytest.param(
+                "uint16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="uint16-area"
+            ),
+            pytest.param(
+                "int32",
+                [0, 0, 65536, 65536],
+                [0, 0, 65536, 65536],
+                2**32,
+                id="int32-area",
+            ),
+            pytest.param(
+                "float16", [0, 0, 300, 300], [0, 0, 300, 300], 90000, id="float16-area"
+            ),
+            pytest.param(
+                "float16",
+                [-40000, 0, 40000, 1],
+                [-40000, 0, 80000, 1],
+                80000,
+                id="float16-width",
+            ),
+            pytest.param(
+                "float32",
+                [0, 0, 2**70, 2**70],
+                [0, 0, 2**70, 2**70],
+                2**140,
+                id="float32-area",
+            ),
+            pytest.param(
+                "int64",
+                [2**53 + 1, 2**53 + 1, 2**53 + 4, 2**53 + 6],
+                [2**53 + 1, 2**53 + 1, 3, 5],
+                15,
+                id="int64-origin",
+            ),
+            pytest.param(
+                "uint64",
+                [2**63 + 1, 2**63 + 1, 2**63 + 4, 2**63 + 6],
+                [2**63 + 1, 2**63 + 1, 3, 5],
+                15,
+                id="uint64-origin",
+            ),
+            pytest.param(
+                "float32",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float32-fractional",
+            ),
+            pytest.param(
+                "float64",
+                [0.25, 1.5, 300.75, 302.5],
+                [0.25, 1.5, 300.5, 301],
+                90450.5,
+                id="float64-fractional",
+            ),
+            pytest.param(
+                "int16", [300, 300, 0, 0], [0, 0, 300, 300], 90000, id="reversed-int16"
+            ),
+        ],
+    )
+    def test_preserves_box_extents_and_area(
+        self,
+        dtype: str,
+        xyxy: list[int | float],
+        expected_bbox: list[int | float],
+        expected_area: int | float,
+    ) -> None:
+        """Export finite extents and areas without losing integer origins."""
+        detections = Detections(
+            xyxy=np.array([xyxy], dtype=dtype), class_id=np.array([0])
+        )
+
+        annotations, _ = detections_to_coco_annotations(
+            detections=detections, image_id=1, annotation_id=1
+        )
+
+        bbox = [
+            value.item() if isinstance(value, np.generic) else value
+            for value in annotations[0]["bbox"]
+        ]
+        assert bbox == expected_bbox
+        assert annotations[0]["area"] == expected_area
+
+    @pytest.mark.parametrize("dtype", ["float16", "int16"])
+    def test_round_trip_keeps_finite_area(self, tmp_path: Path, dtype: str) -> None:
+        """Write valid JSON and retain the box area when loading it again."""
+        image_path = str(tmp_path / "image.png")
+        assert cv2.imwrite(image_path, np.zeros((320, 320, 3), dtype=np.uint8))
+        detections = Detections(
+            xyxy=np.array([[0, 0, 300, 300]], dtype=dtype),
+            class_id=np.array([0]),
+        )
+        dataset = DetectionDataset(
+            classes=["object"],
+            images=[image_path],
+            annotations={image_path: detections},
+        )
+        annotation_path = tmp_path / "annotations.json"
+
+        dataset.as_coco(annotations_path=str(annotation_path))
+        exported = json.loads(
+            annotation_path.read_text(encoding="utf-8"),
+            parse_constant=lambda token: pytest.fail(
+                f"Non-finite JSON constant: {token}"
+            ),
+        )
+        restored = DetectionDataset.from_coco(
+            images_directory_path=str(tmp_path),
+            annotations_path=str(annotation_path),
+        )
+
+        assert exported["annotations"][0]["area"] == 90000
+        restored_detections = next(iter(restored.annotations.values()))
+        np.testing.assert_array_equal(restored_detections.data["area"], [90000])
+        np.testing.assert_array_equal(restored_detections.xyxy, [[0, 0, 300, 300]])
 
 
 class TestCocoBoxExtent:

@@ -14,21 +14,27 @@ _QUAD_SHAPES = ((4, 2), (4, 1, 2), (1, 4, 2))
 
 
 def _blur(
-    image: npt.NDArray[Any], ksize: tuple[int, int], border_type: int = 4
+    src: npt.NDArray[Any], ksize: tuple[int, int], borderType: int = 4
 ) -> npt.NDArray[Any]:
-    """Apply a box filter with OpenCV's default reflect-101 boundary behavior."""
+    """Apply a box filter with OpenCV's default reflect-101 boundary behavior.
+
+    Parameter names mirror `cv2.blur(src, ksize, borderType=...)` so keyword calls bind
+    on both backends; keep them when editing.
+    """
     if min(ksize) <= 0:
         raise ValueError("Blur kernel dimensions must be positive")
-    if border_type != 4:
+    if borderType != 4:
         raise ValueError("Only OpenCV's default blur border is supported")
-    if image.dtype == np.uint8:
-        return _box_blur_uint8(image, ksize)
+    if src.dtype == np.uint8:
+        return _box_blur_uint8(src, ksize)
+    if src.dtype in (np.uint16, np.int16):
+        return _box_blur_16bit(src, ksize)
 
     from scipy import ndimage
 
-    size = (*ksize[::-1], 1) if image.ndim == 3 else ksize[::-1]
-    values = ndimage.uniform_filter(image.astype(np.float64), size=size, mode="mirror")
-    return np.ascontiguousarray(_cast_array_like_opencv(values, image.dtype))
+    size = (*ksize[::-1], 1) if src.ndim == 3 else ksize[::-1]
+    values = ndimage.uniform_filter(src.astype(np.float64), size=size, mode="mirror")
+    return np.ascontiguousarray(_cast_array_like_opencv(values, src.dtype))
 
 
 def _box_blur_uint8(
@@ -84,6 +90,51 @@ def _box_blur_uint8(
     else:
         scaled = sums.astype(np.float32) * np.float32(1.0 / area)
         blurred = np.clip(np.rint(scaled), 0, 255).astype(np.uint8)
+    return blurred
+
+
+def _box_blur_16bit(
+    image: npt.NDArray[np.uint16] | npt.NDArray[np.int16], ksize: tuple[int, int]
+) -> npt.NDArray[Any]:
+    """Box-filter a 16-bit image with OpenCV's exact sums and scaling precision.
+
+    OpenCV sums each window exactly, then multiplies the sum by the reciprocal of
+    the area and rounds half to even. For kernel areas up to 32,768 (`uint16`) or
+    65,536 (`int16`) it scales in float32; averaging in float64 instead lands a hair
+    above or below exact `.5` ties and rounds them the other way. Larger kernels are
+    scaled in float64, as OpenCV does. Like the 8-bit path, OpenCV computes a few
+    trailing columns of each row in float64 on the float32 path, depending on the
+    CPU's vector width, so those can differ by one in rare ties.
+
+    Args:
+        image: `(height, width)` or `(height, width, channels)` 16-bit image.
+        ksize: Positive kernel `(width, height)`.
+
+    Returns:
+        A new blurred image of the same shape and dtype.
+
+    Example:
+        ```pycon
+        >>> image = np.array([[4, 4, 0, 3, 0], [3, 1, 4, 1, 5]], dtype=np.uint16)
+        >>> _box_blur_16bit(image, (2, 3))[0, 4].item()
+        2
+
+        ```
+    """
+    kernel_width, kernel_height = ksize
+    area = kernel_width * kernel_height
+    column_sums = _window_sums(image.astype(np.int64), kernel_height, axis=0)
+    sums = _window_sums(column_sums, kernel_width, axis=1)
+    # OpenCV keeps int32 sums and float32 scaling only up to these kernel areas;
+    # larger kernels sum and scale every pixel in float64.
+    if area <= (1 << 15 if image.dtype == np.uint16 else 1 << 16):
+        scaled = sums.astype(np.float32) * np.float32(1.0 / area)
+    else:
+        scaled = sums.astype(np.float64) * (1.0 / area)
+    info = np.iinfo(image.dtype)
+    blurred: npt.NDArray[Any] = np.clip(np.rint(scaled), info.min, info.max).astype(
+        image.dtype
+    )
     return blurred
 
 

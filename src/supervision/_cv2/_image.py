@@ -13,6 +13,7 @@ from supervision._cv2._common import _cast_array_like_opencv
 from supervision._cv2.constants import (
     _BORDER_CONSTANT,
     _IMREAD_COLOR,
+    _IMREAD_GRAYSCALE,
     _IMREAD_UNCHANGED,
     _INTER_LINEAR,
     _INTER_NEAREST,
@@ -58,12 +59,18 @@ def _copy_make_border(
     # multichannel images — a bare scalar is treated the same as a
     # length-1 sequence, not broadcast to every channel.
     sequence_value = value if isinstance(value, Sequence) else (value,)
-    values = np.asarray(sequence_value, dtype=image.dtype).reshape(-1)
+    values = np.asarray(sequence_value).reshape(-1)
     if image.ndim == 2:
-        fill_value: Any = values[0] if values.size else 0
+        fill_value: Any = (
+            _cast_array_like_opencv(values[:1], image.dtype)[0] if values.size else 0
+        )
     else:
         fill = np.zeros(image.shape[2], dtype=image.dtype)
-        fill[: min(values.size, image.shape[2])] = values[: image.shape[2]]
+        fill_count = min(values.size, image.shape[2])
+        if fill_count > 0:
+            fill[:fill_count] = _cast_array_like_opencv(
+                values[:fill_count], image.dtype
+            )
         fill_value = fill.reshape((1, 1, -1))
 
     result = np.full(shape, fill_value, dtype=image.dtype)
@@ -531,13 +538,41 @@ def _opencv_unchanged_mode(image: Any) -> str | None:
     return None
 
 
+def _read_grayscale_pil_image(image: Any) -> npt.NDArray[np.uint8]:
+    """Decode one luminance channel, retaining PNG and JPEG decoder semantics.
+
+    For 8-bit PNG colors, libpng truncates both its 15-bit RGB coefficients and the
+    weighted sum; Pillow's regular ``convert("L")`` rounds instead. JPEG's native
+    grayscale decode uses the encoded luminance, so request it before EXIF transposition
+    can load RGB pixels. Other codecs and color modes can retain Pillow/OpenCV
+    differences, including color PNGs whose 16-bit channels Pillow has already reduced
+    to 8 bits.
+    """
+    image_format = image.format
+    if image_format == "JPEG":
+        image.draft("L", image.size)
+    image = _exif_oriented(image)
+    if image.mode in {"I", "I;16", "I;16B", "I;16L"}:
+        values = np.clip(np.asarray(image), 0, 65535).astype(np.uint16)
+        return cast(npt.NDArray[np.uint8], (values >> 8).astype(np.uint8))
+    if image_format == "PNG" and image.mode not in {"1", "L", "LA"}:
+        values = np.asarray(image.convert("RGB"), dtype=np.uint32)
+        grayscale = (
+            values[..., 0] * 9797 + values[..., 1] * 19234 + values[..., 2] * 3737
+        ) >> 15
+        return cast(npt.NDArray[np.uint8], grayscale.astype(np.uint8))
+    return np.array(image.convert("L"), dtype=np.uint8)
+
+
 def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
-    """Decode any source Pillow can open into BGR or BGRA arrays."""
+    """Decode any Pillow source into grayscale, BGR or BGRA arrays."""
     from PIL import Image
 
     try:
         with Image.open(source) as image:
-            if flags == _IMREAD_UNCHANGED:
+            if flags == _IMREAD_GRAYSCALE:
+                values = _read_grayscale_pil_image(image)
+            elif flags == _IMREAD_UNCHANGED:
                 unchanged_mode = _opencv_unchanged_mode(image)
                 if unchanged_mode is not None:
                     converted = image.convert(unchanged_mode)
@@ -547,7 +582,9 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
                     values = np.asarray(image)
             elif image.mode in {"I", "I;16", "I;16B", "I;16L"}:
                 values = np.asarray(_exif_oriented(image)).astype(np.float64)
-                values = np.clip(np.rint(values / 256), 0, 255).astype(np.uint8)
+                # OpenCV discards the low byte of 16-bit samples. Rounding would
+                # brighten values such as 129 to 1 instead of keeping their high byte.
+                values = np.clip(np.floor(values / 256), 0, 255).astype(np.uint8)
                 if values.ndim == 2:
                     values = np.repeat(values[..., np.newaxis], 3, axis=2)
             else:
@@ -563,14 +600,14 @@ def _read_pil_source(source: Any, flags: int) -> npt.NDArray[Any] | None:
 
 
 def _imread(filename: str, flags: int = _IMREAD_COLOR) -> npt.NDArray[Any] | None:
-    """Read an image with Pillow while returning BGR or BGRA arrays."""
+    """Read an image with Pillow as grayscale, BGR or BGRA arrays."""
     return _read_pil_source(filename, flags)
 
 
 def _imdecode(
     buf: npt.NDArray[Any], flags: int = _IMREAD_COLOR
 ) -> npt.NDArray[Any] | None:
-    """Decode in-memory encoded image bytes, returning BGR or BGRA arrays."""
+    """Decode encoded image bytes as grayscale, BGR or BGRA arrays."""
     import io
 
     data = np.asarray(buf, dtype=np.uint8).tobytes()
@@ -596,6 +633,126 @@ def _bgr_to_pil_values(
     return np.ascontiguousarray(values)
 
 
+# Sample types OpenCV's encoders write as they are. `cv2.imwrite` and `cv2.imencode`
+# convert any other type to 8 bits before encoding; formats not listed keep theirs.
+_OPENCV_ENCODER_DTYPES: dict[str, frozenset[np.dtype[Any]]] = {
+    "BMP": frozenset({np.dtype(np.uint8)}),
+    "JPEG": frozenset({np.dtype(np.uint8)}),
+    "WEBP": frozenset({np.dtype(np.uint8)}),
+    "PNG": frozenset({np.dtype(np.uint8), np.dtype(np.uint16)}),
+    "TIFF": frozenset(
+        np.dtype(dtype)
+        for dtype in (
+            np.uint8,
+            np.int8,
+            np.uint16,
+            np.int16,
+            np.int32,
+            np.float32,
+            np.float64,
+        )
+    ),
+}
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_COLOR_TYPES = {3: 2, 4: 6}
+
+
+def _opencv_encoder_values(
+    image: npt.NDArray[Any], image_format: str | None
+) -> npt.NDArray[Any]:
+    """Convert samples to a type OpenCV's encoder for `image_format` writes.
+
+    OpenCV writes JPEG, BMP and WebP as 8-bit, PNG as 8- or 16-bit and TIFF in most
+    types. It saturates any other type to `uint8`, rounding half to even with NaN
+    becoming 0, and logs an "Unsupported depth" warning instead of failing. Boolean
+    images are written as 0 and 1 in every format.
+
+    Example:
+        ```pycon
+        >>> values = np.array([[0.5, 1.5, -3.0, 300.0, np.nan]], dtype=np.float32)
+        >>> _opencv_encoder_values(values, "PNG").tolist()
+        [[0, 2, 0, 255, 0]]
+
+        ```
+    """
+    values = np.asarray(image)
+    if values.dtype == np.bool_:
+        return values.astype(np.uint8)
+    supported = _OPENCV_ENCODER_DTYPES.get(image_format or "")
+    if supported is None or values.dtype in supported:
+        return values
+    if values.dtype.kind == "f":
+        values = np.where(np.isnan(values), 0, values)
+    return _cast_array_like_opencv(values, np.dtype(np.uint8))
+
+
+def _encode_png_16bit_color(values: npt.NDArray[np.uint16]) -> bytes:
+    """Encode a 16-bit RGB or RGBA array as PNG, which Pillow cannot write.
+
+    Pillow has no 16-bit color modes, so the PNG is assembled here: a header, one zlib
+    stream of unfiltered big-endian scanlines, and the end marker.
+    """
+    import struct
+    import zlib
+
+    height, width, channels = values.shape
+    if height == 0 or width == 0:
+        raise ValueError("PNG dimensions must be nonzero")
+    rows = np.ascontiguousarray(values, dtype=">u2").view(np.uint8)
+    # Every scanline starts with filter type 0, which stores bytes as they are.
+    scanlines = np.hstack(
+        (np.zeros((height, 1), dtype=np.uint8), rows.reshape(height, -1))
+    )
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        """Frame one PNG chunk with its length and CRC."""
+        crc = zlib.crc32(tag + data)
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+
+    header = struct.pack(
+        ">IIBBBBB", width, height, 16, _PNG_COLOR_TYPES[channels], 0, 0, 0
+    )
+    return (
+        _PNG_SIGNATURE
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(scanlines.tobytes()))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _save_like_opencv(
+    image: npt.NDArray[Any], image_format: str | None, target: Any
+) -> None:
+    """Encode a BGR or BGRA array to a path or binary buffer as OpenCV would.
+
+    Samples are first converted as
+    :func:`~supervision._cv2._image._opencv_encoder_values` describes. Pillow
+    encodes the result, except 16-bit color PNGs, which it cannot write.
+    """
+    from PIL import Image
+
+    values = _bgr_to_pil_values(
+        _opencv_encoder_values(image, image_format), image_format
+    )
+    if (
+        image_format == "PNG"
+        and values.dtype == np.uint16
+        and values.ndim == 3
+        and values.shape[2] in _PNG_COLOR_TYPES
+    ):
+        data = _encode_png_16bit_color(values)
+        if isinstance(target, (str, os.PathLike)):
+            with open(target, "wb") as file:
+                file.write(data)
+        else:
+            target.write(data)
+        return
+    Image.fromarray(values).save(
+        target, format=image_format, **_opencv_default_save_options(image_format)
+    )
+
+
 def _opencv_default_save_options(image_format: str | None) -> dict[str, Any]:
     """Return the Pillow save options that encode like OpenCV's default writers.
 
@@ -615,6 +772,11 @@ def _imwrite(
 ) -> bool:
     """Write a BGR or BGRA array with Pillow and return OpenCV's boolean status.
 
+    Sample types the format cannot hold are converted to 8 bits, as OpenCV does; see
+    :func:`~supervision._cv2._image._opencv_encoder_values`. `False` is returned
+    when Pillow cannot write the result, such as multi-channel TIFFs of types other
+    than `uint8`, which OpenCV writes.
+
     `params` is accepted for compatibility with `cv2.imwrite`'s signature and is
     ignored: the file is encoded with the OpenCV defaults that
     :func:`~supervision._cv2._image._opencv_default_save_options` returns, not
@@ -625,12 +787,9 @@ def _imwrite(
     del params
     extension = os.path.splitext(filename)[1].lower()
     image_format = Image.registered_extensions().get(extension)
-    save_options = _opencv_default_save_options(image_format)
     try:
-        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
-            filename, **save_options
-        )
-    except (OSError, ValueError):
+        _save_like_opencv(image, image_format, filename)
+    except (KeyError, OSError, TypeError, ValueError):
         return False
     return True
 
@@ -639,6 +798,9 @@ def _imencode(
     ext: str, image: npt.NDArray[Any], params: Sequence[int] | None = None
 ) -> tuple[bool, npt.NDArray[np.uint8] | None]:
     """Encode a BGR or BGRA array in memory, mirroring `cv2.imencode`'s return.
+
+    Samples are converted and unsupported results reported exactly as in
+    :func:`~supervision._cv2._image._imwrite`.
 
     `params` is accepted for compatibility with `cv2.imencode`'s signature and is
     ignored: the image is encoded with the OpenCV defaults that
@@ -655,12 +817,9 @@ def _imencode(
     # resolves to None, which `Image.save` rejects for a buffer with no file name.
     extension = f".{ext.lstrip('.').lower()}"
     image_format = Image.registered_extensions().get(extension)
-    save_options = _opencv_default_save_options(image_format)
     buffer = io.BytesIO()
     try:
-        Image.fromarray(_bgr_to_pil_values(image, image_format)).save(
-            buffer, format=image_format, **save_options
-        )
-    except (KeyError, OSError, ValueError):
+        _save_like_opencv(image, image_format, buffer)
+    except (KeyError, OSError, TypeError, ValueError):
         return False, None
     return True, np.frombuffer(buffer.getvalue(), dtype=np.uint8)

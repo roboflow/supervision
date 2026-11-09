@@ -19,7 +19,7 @@ from supervision._cv2.constants import (
 
 
 def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
-    """Convert the BGR, RGB, grayscale, and 8-bit HSV formats used by Supervision."""
+    """Convert the BGR, RGB, grayscale, and HSV formats used by Supervision."""
     if code in (_COLOR_BGR2RGB, _COLOR_RGB2BGR):
         if image.ndim != 3 or image.shape[2] not in (3, 4):
             raise ValueError(
@@ -28,14 +28,23 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
         return np.ascontiguousarray(image[..., 2::-1])
 
     if code == _COLOR_GRAY2BGR:
+        # OpenCV reads a (H, W, 1) array as a single-channel image too.
+        if image.ndim == 3 and image.shape[2] == 1:
+            image = image[..., 0]
         if image.ndim != 2:
-            raise ValueError("GRAY2BGR conversion requires a two-dimensional image")
+            raise ValueError("GRAY2BGR conversion requires a single-channel image")
         return np.repeat(image[..., np.newaxis], 3, axis=2)
 
     if code == _COLOR_BGR2GRAY:
-        if image.ndim != 3 or image.shape[2] != 3:
-            raise ValueError("BGR2GRAY conversion requires a three-channel image")
-        if image.dtype == np.uint8:
+        # OpenCV also takes BGRA here and ignores the alpha channel.
+        if image.ndim != 3 or image.shape[2] not in (3, 4):
+            raise ValueError(
+                "BGR2GRAY conversion requires a three- or four-channel image"
+            )
+        if image.dtype in (np.uint8, np.uint16):
+            # OpenCV converts 8- and 16-bit images with the same 15-bit
+            # fixed-point coefficients. The weights sum to 1 << 15, so even a
+            # 16-bit pixel (65535 * 32768 + 16384) fits in uint32.
             values = image.astype(np.uint32)
             weighted = (
                 values[..., 0] * 3735
@@ -43,7 +52,7 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
                 + values[..., 2] * 9798
                 + (1 << 14)
             ) >> 15
-            return weighted.astype(np.uint8)
+            return weighted.astype(image.dtype)
         float_values = (
             image[..., 0].astype(np.float64) * 0.114
             + image[..., 1].astype(np.float64) * 0.587
@@ -54,17 +63,31 @@ def _cvt_color(image: npt.NDArray[Any], code: int) -> npt.NDArray[Any]:
     if code == _COLOR_HSV2BGR:
         if image.ndim != 3 or image.shape[2] != 3:
             raise ValueError("HSV2BGR conversion requires a three-channel image")
+        if image.dtype not in (np.uint8, np.float32):
+            raise ValueError("HSV2BGR conversion requires an 8-bit or float32 image")
         return _hsv_to_bgr(image)
 
     raise ValueError(f"Unsupported color conversion code: {code}")
 
 
 def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
-    """Convert OpenCV's 8-bit HSV representation to BGR."""
+    """Convert OpenCV's HSV representation to BGR.
+
+    Like OpenCV, an 8-bit image holds hue in [0, 180) and saturation and value in [0,
+    255], and gives BGR in [0, 255]. A float32 image holds hue in degrees, [0, 360), and
+    saturation and value in [0, 1], and gives BGR in [0, 1].
+    """
     values = image.astype(np.float64)
-    hue = values[..., 0] / 30.0
-    saturation = values[..., 1] / 255.0
-    value = values[..., 2] / 255.0
+    if image.dtype == np.float32:
+        hue = values[..., 0] / 60.0
+        saturation = values[..., 1]
+        value = values[..., 2]
+        scale = 1.0
+    else:
+        hue = values[..., 0] / 30.0
+        saturation = values[..., 1] / 255.0
+        value = values[..., 2] / 255.0
+        scale = 255.0
 
     chroma = value * saturation
     sector_index = np.floor(hue).astype(np.int64) % 6
@@ -76,7 +99,7 @@ def _hsv_to_bgr(image: npt.NDArray[Any]) -> npt.NDArray[Any]:
     red = np.choose(sector_index, (chroma, x, zeros, zeros, x, chroma))
     green = np.choose(sector_index, (x, chroma, chroma, x, zeros, zeros))
     blue = np.choose(sector_index, (zeros, zeros, x, chroma, chroma, x))
-    bgr = np.stack((blue + match, green + match, red + match), axis=-1) * 255
+    bgr = np.stack((blue + match, green + match, red + match), axis=-1) * scale
     return _cast_array_like_opencv(bgr, image.dtype)
 
 
