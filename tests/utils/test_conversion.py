@@ -8,6 +8,7 @@ from PIL import Image, ImageChops
 
 from supervision.draw.color import Color
 from supervision.utils.conversion import (
+    _palette_index_patch,
     cv2_to_pillow,
     ensure_cv2_image_for_standalone_function,
     images_to_cv2,
@@ -440,6 +441,34 @@ class TestAnnotatePalettePillowScene:
         assert scene.mode == "P"
         assert scene.convert("RGB").getpixel((2, 7)) == (0, 255, 0)
         assert scene.getpixel((18, 18)) == 0
+
+    def test_full_palette_without_opaque_entries_raises(self) -> None:
+        """A palette that can only hide a drawing raises instead of hiding it."""
+        scene = _indexed_scene([0, 0, 0] * 256)
+        scene.info["transparency"] = bytes(256)
+
+        with pytest.raises(ValueError, match="no opaque entry"):
+            _draw_box(scene, Color.GREEN)
+
+    def test_more_colors_than_a_matching_batch_take_their_nearest_entries(self) -> None:
+        """Colors past the first matching batch still get their nearest entry."""
+        palette = [value for gray in range(256) for value in (gray, gray, gray)]
+        scene = Image.new("P", (80, 80))
+        scene.putpalette(palette)
+        grid = np.arange(6400, dtype=np.uint32).reshape(80, 80)
+        annotated = np.dstack([grid & 255, (grid >> 8) & 255, (grid * 7) & 255]).astype(
+            np.uint8
+        )
+        changed = np.ones((80, 80), dtype=bool)
+        rgb = annotated[:, :, ::-1].astype(np.int32)
+        expected = (rgb.sum(axis=2) + 1) // 3
+
+        patch = _palette_index_patch(scene, annotated, changed)
+
+        indices = np.asarray(patch).astype(np.int32)
+        gray_error = ((rgb - indices[:, :, np.newaxis]) ** 2).sum(axis=2)
+        best_error = ((rgb - expected[:, :, np.newaxis]) ** 2).sum(axis=2)
+        assert np.array_equal(gray_error, best_error)
 
     def test_full_palette_takes_the_nearest_entry(self) -> None:
         """Without room for a new color, the closest existing entry is drawn."""

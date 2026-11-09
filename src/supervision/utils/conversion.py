@@ -11,6 +11,8 @@ from supervision.draw.base import ImageType
 
 F = TypeVar("F", bound=Callable[..., Any])
 
+_PALETTE_MATCH_BATCH_SIZE = 4096
+
 
 def ensure_cv2_image_for_class_method(
     annotate_func: F,
@@ -112,7 +114,8 @@ def _palette_index_patch(
     Pasting RGB pixels would index them with Pillow's web palette, and the scene's
     own palette then shows those indices as other colors or black. Drawn colors join
     the palette while it has room, as they do with `ImageDraw`; the others take the
-    nearest opaque entry, so an annotation never lands on a transparent index.
+    nearest opaque entry, so an annotation never lands on a transparent index. A
+    full palette without any opaque entry cannot show a drawing, so it is an error.
 
     Args:
         scene: Pillow image in mode `P` or `PA`, whose palette may grow.
@@ -139,8 +142,21 @@ def _palette_index_patch(
         palette = np.concatenate([palette, np.array(missing[:room], dtype=np.int32)])
         scene.putpalette(palette.astype(np.uint8).tobytes())
 
-    distances = ((colors[:, np.newaxis] - palette[np.newaxis]) ** 2).sum(axis=2)
-    nearest = np.where(opaque[: len(palette)], distances, np.inf).argmin(axis=1)
+    candidates = np.flatnonzero(opaque[: len(palette)])
+    if candidates.size == 0:
+        raise ValueError(
+            "Cannot draw on this palette image: its palette is full and has no "
+            "opaque entry to draw with."
+        )
+    nearest = np.empty(len(colors), dtype=np.intp)
+    # A blurred or iconified region can hold far more colors than the palette, so
+    # comparing them in batches keeps the distance table small.
+    for start in range(0, len(colors), _PALETTE_MATCH_BATCH_SIZE):
+        batch = colors[start : start + _PALETTE_MATCH_BATCH_SIZE]
+        deltas = batch[:, np.newaxis] - palette[candidates][np.newaxis]
+        nearest[start : start + len(batch)] = candidates[
+            (deltas**2).sum(axis=2).argmin(axis=1)
+        ]
     indices = np.zeros(changed.shape, dtype=np.uint8)
     indices[changed] = nearest[inverse.reshape(-1)]
 
