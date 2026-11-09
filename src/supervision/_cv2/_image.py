@@ -697,6 +697,8 @@ def _encode_png_16bit_color(values: npt.NDArray[np.uint16]) -> bytes:
     import zlib
 
     height, width, channels = values.shape
+    if height == 0 or width == 0:
+        raise ValueError("PNG dimensions must be nonzero")
     rows = np.ascontiguousarray(values, dtype=">u2").view(np.uint8)
     # Every scanline starts with filter type 0, which stores bytes as they are.
     scanlines = np.hstack(

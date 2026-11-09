@@ -1116,6 +1116,37 @@ class TestFallbackEncoderChannels:
 
 
 class TestFallbackEncoderSampleTypes:
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imencode_rejects_empty_sixteen_bit_color_png(
+        self, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without returning encoded data."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+
+        success, encoded = _imencode(".png", image)
+
+        assert not success
+        assert encoded is None
+
+    @pytest.mark.parametrize("channels", [3, 4])
+    @pytest.mark.parametrize(
+        ("height", "width"),
+        [pytest.param(1, 0, id="zero-width"), pytest.param(0, 1, id="zero-height")],
+    )
+    def test_imwrite_rejects_empty_sixteen_bit_color_png(
+        self, tmp_path: Path, height: int, width: int, channels: int
+    ) -> None:
+        """Reject empty 16-bit color PNGs without creating a file."""
+        image = np.zeros((height, width, channels), dtype=np.uint16)
+        image_path = tmp_path / "image.png"
+
+        assert not _imwrite(str(image_path), image)
+        assert not image_path.exists()
+
     @pytest.mark.parametrize(
         "dtype", [np.uint16, np.int16, np.int32, np.float32, np.float64, np.bool_]
     )
