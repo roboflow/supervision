@@ -165,6 +165,11 @@ def test_resolve_color_accepts_palette_from_src_namespace() -> None:
         (12345, None, ["12345"], DoesNotRaise()),  # plain integer
         (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
         (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        pytest.param(0, None, ["0"], DoesNotRaise(), id="integer-zero"),
+        pytest.param(0, 10, ["0"], DoesNotRaise(), id="integer-zero-wrapped"),
+        pytest.param(np.int64(0), None, ["0"], DoesNotRaise(), id="numpy-int-zero"),
+        pytest.param(0.0, None, ["0.0"], DoesNotRaise(), id="float-zero"),
+        pytest.param(False, None, ["False"], DoesNotRaise(), id="boolean-false"),
         ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
