@@ -9,6 +9,8 @@ date_modified: 2026-10-31
 
 - `sv.Detections.from_transformers` now reads zero-shot detections from `post_process_grounded_object_detection`. Grounding DINO results raised `AttributeError: 'list' object has no attribute 'cpu'`; they now load with their matched phrases as class names and `class_id=None`. OWL-ViT, OWLv2 and OmDet-Turbo detections keep the text query index as `class_id` and now take their class names from `text_labels`, where `id2label=model.config.id2label` named them `LABEL_0`, `LABEL_1`. ([#2913](https://github.com/roboflow/supervision/pull/2913))
 
+- `sv.Classifications.from_clip` and `sv.Classifications.from_timm` now accept bfloat16 model outputs, including mixed-precision inference, by returning their probabilities as float32. Other floating-point precisions stay unchanged for nonempty outputs; empty outputs use float32. ([#2894](https://github.com/roboflow/supervision/pull/2894))
+
 - `create_batches` now yields each full batch before consuming the next item, so stopping early leaves the remaining source intact and a later source error does not discard a complete batch. ([#2893](https://github.com/roboflow/supervision/pull/2893))
 
 - `sv.LabelAnnotator` and `sv.RichLabelAnnotator` now draw labels such as `0`, `np.int64(0)`, `0.0`, and `False` as text instead of empty background boxes. ([#2892](https://github.com/roboflow/supervision/pull/2892))
